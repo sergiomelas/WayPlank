@@ -294,4 +294,7 @@
        id="path3067-7"
        style="color:#000000;fill:#f7f7f7;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.98542708;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
   </g>
+  <g id="wayplank-text-overlay" style="opacity:0.75;">
+    <text x="22.8" y="8.16" text-anchor="end" style="font-family:'URW Chancery L', 'Brush Script MT', 'Palatino Linotype', 'Century Schoolbook L', 'Georgia', cursive, serif; font-size:7.68px; font-weight:bold; font-style:italic; fill:#ff2222; stroke:#400000; stroke-width:0.53px; stroke-linejoin:round; stroke-opacity:0.65; paint-order:stroke fill;">Way</text>
+  </g>
 </svg>

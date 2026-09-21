@@ -2,20 +2,20 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="48px"
    height="48px"
    id="svg3142"
    version="1.1"
-   inkscape:version="0.48.0 r9654"
-   sodipodi:docname="plank.svg">
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   sodipodi:docname="plank.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs3144">
     <linearGradient
@@ -227,17 +227,20 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="7"
-     inkscape:cx="1.9285714"
-     inkscape:cy="24"
+     inkscape:cx="2"
+     inkscape:cy="23.928571"
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:grid-bbox="true"
      inkscape:document-units="px"
-     inkscape:window-width="1280"
-     inkscape:window-height="691"
+     inkscape:window-width="1920"
+     inkscape:window-height="1015"
      inkscape:window-x="0"
-     inkscape:window-y="24"
-     inkscape:window-maximized="1" />
+     inkscape:window-y="28"
+     inkscape:window-maximized="1"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
   <metadata
      id="metadata3147">
     <rdf:RDF>
@@ -331,5 +334,15 @@
        id="rect3038-44-1"
        style="color:#000000;fill:#f7f7f7;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.98542726;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
        d="m 38.007286,34.492714 -4.014573,0 c -0.277,0 -0.5,0.223 -0.5,0.5 l 0,4.014573 c 0,0.277 0.223,0.5 0.5,0.5 l 4.014573,0 c 0.277,0 0.5,-0.223 0.5,-0.5 l 0,-4.014573 c 0,-0.277 -0.223,-0.5 -0.5,-0.5 z m -16,0 -4.014573,0 c -0.277,0 -0.5,0.223 -0.5,0.5 l 0,4.014573 c 0,0.277 0.223,0.5 0.5,0.5 l 4.014573,0 c 0.277,0 0.5,-0.223 0.5,-0.5 l 0,-4.014573 c 0,-0.277 -0.223,-0.5 -0.5,-0.5 z m -8,0 -4.0145725,0 c -0.277,0 -0.5,0.223 -0.5,0.5 l 0,4.014573 c 0,0.277 0.223,0.5 0.5,0.5 l 4.0145725,0 c 0.277,0 0.5,-0.223 0.5,-0.5 l 0,-4.014573 c 0,-0.277 -0.223,-0.5 -0.5,-0.5 z m 16,0 -4.014573,0 c -0.277,0 -0.5,0.223 -0.5,0.5 l 0,4.014573 c 0,0.277 0.223,0.5 0.5,0.5 l 4.014573,0 c 0.277,0 0.5,-0.223 0.5,-0.5 l 0,-4.014573 c 0,-0.277 -0.223,-0.5 -0.5,-0.5 z" />
+  </g>
+  <g
+     id="wayplank-text-overlay"
+     style="opacity:0.75;">
+    <text
+       x="45.599998"
+       y="16.32"
+       text-anchor="end"
+       style="font-style:italic;font-weight:bold;font-size:15.36px;line-height:0%;font-family:'URW Chancery L', 'Brush Script MT', 'Palatino Linotype', 'Century Schoolbook L', Georgia, cursive, serif;fill:#ff2222;stroke:#400000;stroke-width:1.06px;stroke-linejoin:round;stroke-opacity:0.65;paint-order:stroke fill"
+       id="text1">Way</text>
   </g>
 </svg>

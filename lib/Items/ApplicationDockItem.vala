@@ -481,7 +481,18 @@ namespace Plank
 				}
 			}
 			
-			return items;
+			if (items.size > 0)
+							items.add (new Gtk.SeparatorMenuItem ());
+
+						// Append native dock menu items (Preferences, About)
+						var dock_item = Factory.item_factory.get_item_for_dock ();
+						if (dock_item != null) {
+							foreach (var mi in dock_item.get_menu_items ()) {
+								items.add (mi);
+							}
+						}
+
+						return items;
 		}
 		
 		/**

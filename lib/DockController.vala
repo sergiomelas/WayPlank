@@ -144,8 +144,13 @@ namespace Plank
 			drag_manager.initialize ();
 			hide_manager.initialize ();
 			renderer.initialize ();
-			
+
+			// Aggiorna le dimensioni calcolate e mappa la finestra su Wayland
+			position_manager.update (renderer.theme);
+			window.update_size_and_position ();
 			window.show_all ();
+			window.present ();
+			window.queue_draw ();
 		}
 		
 		/**

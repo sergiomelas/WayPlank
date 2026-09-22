@@ -21,8 +21,7 @@
 namespace Plank
 {
 	/**
-	 * A {@link Gtk.Window} with compositing support enabled.
-	 * The default expose event will draw a completely transparent window.
+	 * A {@link Gtk.Window} with compositing support enabled for Wayland.
 	 */
 	public class CompositedWindow : Gtk.Window
 	{
@@ -40,21 +39,18 @@ namespace Plank
 		{			
 			app_paintable = true;
 			decorated = false;
-			resizable = false;
-			double_buffered = false;
-			
+			resizable = true;
+			double_buffered = true;
+
 			unowned Gdk.Screen screen = get_screen ();
-			set_visual (screen.get_rgba_visual () ?? screen.get_system_visual ());
+			var visual = screen.get_rgba_visual ();
+			if (visual != null)
+				set_visual (visual);
 		}
 		
 		public override bool draw (Cairo.Context cr)
 		{
-			cr.save ();
-			cr.set_operator (Cairo.Operator.CLEAR);
-			cr.paint ();
-			cr.restore ();
-			
-			return Gdk.EVENT_STOP;
+			return Gdk.EVENT_PROPAGATE;
 		}
 	}
 }

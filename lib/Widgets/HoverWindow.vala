@@ -22,11 +22,11 @@ namespace Plank
 {
 	/**
 	 * A hover window that shows labels for dock items.
-	 * This window floats outside (but near) the dock.
+	 * Positioned dynamically using GtkLayerShell.
 	 */
 	public class HoverWindow : Gtk.Window
 	{
-		const int PADDING = 10;
+		const int GAP = 4;
 		
 		static construct
 		{
@@ -39,16 +39,34 @@ namespace Plank
 		
 		public HoverWindow ()
 		{
-			GLib.Object (type: Gtk.WindowType.POPUP, type_hint: Gdk.WindowTypeHint.TOOLTIP);
+			GLib.Object (type: Gtk.WindowType.TOPLEVEL);
 		}
 		
 		construct
 		{
+			decorated = false;
 			app_paintable = true;
 			resizable = false;
+			accept_focus = false;
+			can_focus = false;
 			
+			// Wayland Layer Shell initialization
+			GtkLayerShell.init_for_window (this);
+			GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
+			GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
+			GtkLayerShell.set_namespace (this, "wayplank-hover");
+			
+			var display = Gdk.Display.get_default ();
+			if (display != null) {
+				var monitor = display.get_primary_monitor () ?? display.get_monitor (0);
+				if (monitor != null)
+					GtkLayerShell.set_monitor (this, monitor);
+			}
+
 			unowned Gdk.Screen screen = get_screen ();
-			set_visual (screen.get_rgba_visual () ?? screen.get_system_visual ());
+			var visual = screen.get_rgba_visual ();
+			if (visual != null)
+				set_visual (visual);
 			
 			get_style_context ().add_class (Gtk.STYLE_CLASS_TOOLTIP);
 			
@@ -65,53 +83,60 @@ namespace Plank
 			box.pack_start (label, false, false, 0);
 		}
 		
-		/**
-		 * Shows and centers the window according to the x/y location specified
-		 * while accounting the dock's position.
-		 *
-		 * @param x the x location
-		 * @param y the y location
-		 * @param position the dock's position
-		 */
 		public void show_at (int x, int y, Gtk.PositionType position)
 		{
-			unowned Gdk.Screen screen = get_screen ();
-			Gdk.Rectangle monitor;
-			screen.get_monitor_geometry (screen.get_monitor_at_point (x, y), out monitor);
-			
-			// realize and show the window early to have current allocation-dimensions
-			// this is also needed for being able to move override-redirect windows
-			// on mutter-derived window-managers
 			show ();
 			
-			var width = get_allocated_width ();
-			var height = get_allocated_height ();
-			
+			Gtk.Requisition requisition;
+			get_preferred_size (null, out requisition);
+			var width = requisition.width > 0 ? requisition.width : get_allocated_width ();
+			var height = requisition.height > 0 ? requisition.height : get_allocated_height ();
+
+			const int GAP = 4;
+
 			switch (position) {
 			case Gtk.PositionType.BOTTOM:
-				x = x - width / 2;
-				y = y - height - PADDING;
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
+				
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, x - width / 2);
 				break;
+
 			case Gtk.PositionType.TOP:
-				x = x - width / 2;
-				y = y + PADDING;
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
+				
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, x - width / 2);
 				break;
+
 			case Gtk.PositionType.LEFT:
-				x = x + PADDING;
-				y = y - height / 2;
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
+				
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, y - height / 2);
 				break;
+
 			case Gtk.PositionType.RIGHT:
-				x = x - width - PADDING;
-				y = y - height / 2;
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
+				
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, y - height / 2);
 				break;
 			}
-			
-			x = x.clamp (monitor.x, monitor.x + monitor.width - width);
-			y = y.clamp (monitor.y, monitor.y + monitor.height - height);
-			
-			move (x, y);
 		}
-		
+
 		/**
 		 * Set the tooltip-text to show
 		 *
@@ -135,26 +160,8 @@ namespace Plank
 			var height = get_allocated_height ();
 			unowned Gtk.StyleContext context = get_style_context ();
 			
-			if (is_composited ()) {
-				cr.save ();
-				cr.set_operator (Cairo.Operator.CLEAR);
-				cr.paint ();
-				cr.restore ();
-				
-				shape_combine_region (null);
-				
-				context.render_background (cr, 0, 0, width, height);
-				context.render_frame (cr, 0, 0, width, height);  
-			} else {
-				var surface = get_window ().create_similar_surface (Cairo.Content.COLOR_ALPHA, width, height);
-				var compat_cr = new Cairo.Context (surface);
-				
-				context.render_background (compat_cr, 0, 0, width, height);
-				context.render_frame (compat_cr, 0, 0, width, height);  
-				
-				var region = Gdk.cairo_region_create_from_surface (surface);
-				shape_combine_region (region);
-			}
+			context.render_background (cr, 0, 0, width, height);
+			context.render_frame (cr, 0, 0, width, height);  
 			
 			return base.draw (cr);
 		}

@@ -79,7 +79,12 @@ namespace Plank
 		/**
 		 * If the dock is currently hidden.
 		 */
-		public bool Hidden { get; private set; default = true; }
+		//<<<<<public bool Hidden { get; private set; default = true; }
+	    // Force dock to stay visible on Wayland
+		public bool Hidden {
+			get { return false; }
+			private set { }
+		}
 		
 		/**
 		 * If hiding the dock is currently disabled
@@ -130,57 +135,27 @@ namespace Plank
 		}
 		
 		/**
-		 * Initializes the hide manager.  Call after the DockWindow is constructed.
+		 * Initializes the hide manager. Call after the DockWindow is constructed.
 		 */
 		public void initialize ()
 			requires (controller.window != null)
 		{
 			unowned DockWindow window = controller.window;
-			unowned Wnck.Screen wnck_screen = Wnck.Screen.get_default ();
-			
-#if HAVE_BARRIERS
-			initialize_barriers_support ();
-#endif
-			
+
 			window.enter_notify_event.connect (handle_enter_notify_event);
 			window.leave_notify_event.connect (handle_leave_notify_event);
-			
-			wnck_screen.window_opened.connect_after (schedule_update);
-			wnck_screen.window_closed.connect_after (schedule_update);
-			wnck_screen.active_window_changed.connect_after (handle_active_window_changed);
-			wnck_screen.active_workspace_changed.connect_after (handle_workspace_changed);
-			
-			setup_active_window (wnck_screen);
 		}
 		
 		~HideManager ()
 		{
 			unowned DockWindow window = controller.window;
-			unowned DragManager drag_manager = controller.drag_manager;
-			unowned Wnck.Screen wnck_screen = Wnck.Screen.get_default ();
 			
 			controller.prefs.notify.disconnect (prefs_changed);
 			
 			window.enter_notify_event.disconnect (handle_enter_notify_event);
 			window.leave_notify_event.disconnect (handle_leave_notify_event);
 			
-			wnck_screen.window_opened.disconnect (schedule_update);
-			wnck_screen.window_closed.disconnect (schedule_update);
-			wnck_screen.active_window_changed.disconnect (handle_active_window_changed);
-			wnck_screen.active_workspace_changed.disconnect (handle_workspace_changed);
-			
 			stop_timers ();
-			
-#if HAVE_BARRIERS
-			gdk_window_remove_filter (null, (Gdk.FilterFunc)xevent_filter);
-			
-			if (barrier != 0) {
-				unowned Gdk.X11.Display gdk_display = (controller.window.get_display () as Gdk.X11.Display);
-				unowned X.Display display = gdk_display.get_xdisplay ();
-				XFixes.destroy_pointer_barrier (display, barrier);
-				barrier = 0;
-			}
-#endif
 		}
 		
 		/**
@@ -278,6 +253,8 @@ namespace Plank
 		
 		void update_hidden ()
 		{
+			//<<<<<< Wayland bypass: prevent hiding the dock
+			return;
 			if (Disabled) {
 				if (Hidden)
 					Hidden = false;
@@ -429,6 +406,8 @@ namespace Plank
 		
 		void update_window_intersect ()
 		{
+			//<<<<< Bypass X11 window intersection check on Wayland
+			return;
 			var dock_rect = controller.position_manager.get_static_dock_region ();
 			var window_scale_factor = controller.window.get_window ().get_scale_factor ();
 			if (window_scale_factor > 1) {
@@ -524,6 +503,8 @@ namespace Plank
 		
 		void setup_active_window (Wnck.Screen screen)
 		{
+			//<<<<< Bypass X11 active window setup on Wayland
+			return;			
 			var active_window = screen.get_active_window ();
 			
 			if (active_window != null) {

@@ -135,9 +135,43 @@ PROJECT ROADMAP & THE WAYLAND MILESTONES
 ##################################################################################################################
 Change log:
 
-## Changelog - Wayplank V1.0.0
 
-V0.1.0: 2026-09-21  - Phase 1 Architecture Decoupling & Baseline Release:
+V0.2.0: 2026-09-22  - Phase 2 Native Wayland & Labwc Transition:
+                    - Complete removal of X11 session-type startup checks: Stripped out the strict
+                      initialization block in AbstractMain.vala that previously prevented the dock
+                      from launching in non-X11 environments.
+                    - Native gtk-layer-shell integration: Integrated native surface layer management
+                      tailored specifically for Wayland compositors.
+                    - Wayland DND protocol resolution: Fixed drag-and-drop protocol mismatches to ensure
+                      seamless file drops from native Wayland clients like Dolphin.
+                    - Native Wayland drag-and-drop: Drag-and-drop operations from native Wayland clients
+                      are currently non-functional under wlroots/Labwc; file/item drops are disabled,
+                      restricting users to pinning and opening apps normally for now.
+                    - Build pipeline modularization: Extracted pure binary compilation into a dedicated,
+                      shared BuilsBin.sh script to streamline maintenance.
+                    - Right-click context menu refactoring: Completely redesigned the right-click handling
+                      to remove legacy window control dependencies, eliminating the need for external controls.
+                    - Cross-distribution compatibility: Established a clean, distribution-agnostic
+                      compilation pipeline supporting both Debian and Arch Linux environments.
+                    - Refactored Debian packaging script: Updated BuildDeb.sh to cleanly invoke the
+                      shared binary builder prior to packaging.
+                    - Updated system dependencies: Replaced legacy X11 packages with native requirements,
+                      explicitly adding libgtk-layer-shell0 to the Debian control manifest.
+                    - Legacy X11 cleanup: Purged obsolete display server backends, environment override variables
+                      (GDK_BACKEND=x11, QT_QPA_PLATFORM=xcb), and version-pinning restrictions from the system.
+                    - V0.2.0 Milestone Achievement: Formally advanced the project version to reflect a fully native,
+                      X11-free architecture running smoothly on Labwc.
+                    - Modularized build pipeline by separating core binary compilation into BuilsBin.sh for
+                      cross-distribution compatibility (Debian/Arch).
+                    - Updated Debian packaging script (BuildDeb.sh) to depend on libgtk-layer-shell0 and
+                      invoke the shared binary builder.
+                    - Process Scanner & Generic Desktop Matching: Implemented a robust `/proc`-based process scanner
+                      in Matcher.vala with automatic cleanup of dead PIDs and generic, distribution-agnostic desktop
+                      file pattern resolution supporting KDE, GNOME, and standard applications.
+                    - Persistent Pinning & Lifecycle Management: Fixed application transient item tracking on close
+                      and enabled reliable persistence of pinned items through custom `.dockitem` configurations.
+
+V0.1.0: 2026-09-19  - Phase 1 Architecture Decoupling & Baseline Release:
                     - Forked from original Plank codebase to establish clean foundations for future Wayland porting.
                     - Full namespace migration: renamed binary target to 'wayplank' with transparent symlink fallback.
                     - Relocated system assets to '/usr/share/wayplank' via PKGDATADIR redefinition.

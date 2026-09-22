@@ -20,64 +20,81 @@
 
 namespace Plank
 {
-	public static int main (string[] argv)
-	{
-		Intl.setlocale (LocaleCategory.ALL, "");
-		Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Build.DATADIR + "/locale");
-		Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
-		Intl.textdomain (Build.GETTEXT_PACKAGE);
+    public static int main (string[] argv)
+    {
+        Intl.setlocale (LocaleCategory.ALL, "");
+        Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Build.DATADIR + "/locale");
+        Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
+        Intl.textdomain (Build.GETTEXT_PACKAGE);
 
-		var application = new Plank.Main ();
-		Factory.init (application, new ItemFactory ());
-		return application.run (argv);
-	}
+        Gtk.init (ref argv);
 
-	public class Main : AbstractMain
-	{
-		public Main ()
-		{
-			var authors = new string[] {
-					"Sergio Melas <sergiomelas@gmail.com>",
-					"Robert Dyer <psybers@gmail.com>",
-					"Rico Tzschichholz <ricotz@ubuntu.com>",
-					"Michal Hruby <michal.mhr@gmail.com>"
-				};
+        unowned Gdk.Display? display = Gdk.Display.get_default ();
+        if (display == null || display.get_type ().name () != "GdkWaylandDisplay") {
+            var dialog = new Gtk.MessageDialog (
+                null,
+                Gtk.DialogFlags.MODAL,
+                Gtk.MessageType.WARNING,
+                Gtk.ButtonsType.OK,
+                "Wayplank is designed exclusively for Wayland sessions.\n\nFor X11 desktop environments, please use original Plank."
+            );
+            dialog.title = "Wayplank - Unsupported Session";
+            dialog.run ();
+            dialog.destroy ();
+            return 1;
+        }
 
-			var documenters = new string[] {
-					"Sergio Melas <sergiomelas@gmail.com>",
-					"Robert Dyer <psybers@gmail.com>",
-					"Rico Tzschichholz <ricotz@ubuntu.com>"
-				};
+        var application = new Plank.Main ();
+        Factory.init (application, new ItemFactory ());
+        return application.run (argv);
+    }
 
-			var artists = new string[] {
-					"Daniel Foré <daniel@elementaryos.org>"
-				};
+    public class Main : AbstractMain
+    {
+        public Main ()
+        {
+            var authors = new string[] {
+                    "Sergio Melas <sergiomelas@gmail.com>",
+                    "Robert Dyer <psybers@gmail.com>",
+                    "Rico Tzschichholz <ricotz@ubuntu.com>",
+                    "Michal Hruby <michal.mhr@gmail.com>"
+                };
 
-			Object (
-				build_data_dir : Build.DATADIR,
-				build_pkg_data_dir : Build.PKGDATADIR,
-				build_release_name : Build.RELEASE_NAME,
-				build_version : Build.VERSION,
-				build_version_info : Build.VERSION_INFO,
+            var documenters = new string[] {
+                    "Sergio Melas <sergiomelas@gmail.com>",
+                    "Robert Dyer <psybers@gmail.com>",
+                    "Rico Tzschichholz <ricotz@ubuntu.com>"
+                };
 
-				program_name : "Wayplank",
-				exec_name : "wayplank",
+            var artists = new string[] {
+                    "Daniel Foré <daniel@elementaryos.org>"
+                };
 
-				app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
-				app_dbus : "net.launchpad.plank",
-				app_icon : "plank",
-				app_launcher : "wayplank.desktop",
+            Object (
+                build_data_dir : Build.DATADIR,
+                build_pkg_data_dir : Build.PKGDATADIR,
+                build_release_name : Build.RELEASE_NAME,
+                build_version : Build.VERSION,
+                build_version_info : Build.VERSION_INFO,
 
-				main_url : "https://github.com/sergiomelas/wayplank",
-				help_url : "https://github.com/sergiomelas/wayplank/issues",
-				translate_url : "https://github.com/sergiomelas/wayplank",
+                program_name : "Wayplank",
+                exec_name : "wayplank",
 
-				about_authors : authors,
-				about_documenters : documenters,
-				about_artists : artists,
-				about_translators : _("translator-credits"),
-				about_license_type : Gtk.License.GPL_3_0
-			);
-		}
-	}
+                app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
+                app_dbus : "net.launchpad.plank",
+                app_icon : "plank",
+                app_launcher : "wayplank.desktop",
+
+                main_url : "https://github.com/sergiomelas/wayplank",
+                help_url : "https://github.com/sergiomelas/wayplank/issues",
+                translate_url : "https://github.com/sergiomelas/wayplank",
+
+                about_authors : authors,
+                about_documenters : documenters,
+                about_artists : artists,
+                about_translators : _("translator-credits"),
+                about_license_type : Gtk.License.GPL_3_0
+            );
+        }
+    }
 }

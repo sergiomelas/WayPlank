@@ -50,6 +50,9 @@ namespace Plank
 			}
 		}
 		
+		bool dropped_on_target = false;
+		bool left_dock_during_drag = false;
+		bool is_outside_dock = false;
 		bool reposition_mode = false;
 		public bool RepositionMode {
 			get { return reposition_mode; }
@@ -64,8 +67,6 @@ namespace Plank
 					enable_drag_to (controller.window);
 			}
 		}
-		
-		Gdk.Window? proxy_window = null;
 		
 		bool drag_canceled = false;
 		bool drag_known = false;
@@ -206,11 +207,9 @@ namespace Plank
 			
 			InternalDragActive = true;
 			drag_canceled = false;
-			
-			if (proxy_window != null) {
-				enable_drag_to (window);
-				proxy_window = null;
-			}
+			dropped_on_target = false;
+			left_dock_during_drag = false;
+			is_outside_dock = false;
 			
 			DragItem = window.HoveredItem;
 			
@@ -265,12 +264,7 @@ namespace Plank
 					DragNeedsCheck = true;
 				}
 				
-				// Force initial redraw for ExternalDrag to pick up new
-				// drag_data for can_accept_drop check
 				controller.renderer.animated_draw ();
-				
-				// Trigger this manually since we will miss to receive the very first emmit
-				// after entering the dock-window
 				hovered_item_changed ();
 			}
 			
@@ -280,6 +274,7 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool drag_drop (Gtk.Widget w, Gdk.DragContext context, int x, int y, uint time_)
 		{
+			dropped_on_target = true;
 			Gtk.drag_finish (context, true, false, time_);
 			
 			if (drag_hover_timer_id > 0U) {
@@ -316,9 +311,9 @@ namespace Plank
 			
 			if (!drag_canceled && DragItem != null) {
 				hide_manager.update_hovered ();
-				if (!hide_manager.Hovered) {
+				
+				if (!dropped_on_target) {
 					if (DragItem.can_be_removed ()) {
-						// Remove from dock
 						unowned ApplicationDockItem? app_item = (DragItem as ApplicationDockItem);
 						if (app_item == null || !(app_item.is_running () || app_item.has_unity_info ())) {
 							DragItem.IsVisible = false;
@@ -331,42 +326,34 @@ namespace Plank
 						PoofWindow.get_default ().show_at (x, y);
 					}
 				} else if (controller.window.HoveredItem == null) {
-					// Dropped somewhere on dock
-					// Pin this item if possible/needed, so we assume the user cares
-					// about this application when changing its position
 					if (controller.prefs.AutoPinning && DragItem is TransientDockItem) {
 						unowned DefaultApplicationDockItemProvider? provider = (DragItem.Container as DefaultApplicationDockItemProvider);
 						if (provider != null)
 							provider.pin_item (DragItem);
 					}
-				} else {
-					// Dropped onto another dockitem
-					/* TODO
-					DockItem item = controller.window.HoveredItem;
-					if (item != null && item.CanAcceptDrop (DragItem))
-						item.AcceptDrop (DragItem);
-					*/
 				}
 			}
 			
 			InternalDragActive = false;
 			DragItem = null;
+			dropped_on_target = false;
+			left_dock_during_drag = false;
 			context.get_device ().ungrab (Gtk.get_current_event_time ());
 			
 			controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
-
 			controller.hover.hide ();
-			
-			// Force last redraw for InternalDrag
 			controller.renderer.animated_draw ();
-			
-			// Make sure to hide the dock again if needed
 			hide_manager.update_hovered ();
 		}
 
 		[CCode (instance_pos = -1)]
 		void drag_leave (Gtk.Widget w, Gdk.DragContext context, uint time_)
 		{
+			if (InternalDragActive) {
+				left_dock_during_drag = true;
+				is_outside_dock = true;
+			}
+
 			if (drag_hover_timer_id > 0U) {
 				GLib.Source.remove (drag_hover_timer_id);
 				drag_hover_timer_id = 0U;
@@ -378,24 +365,12 @@ namespace Plank
 			if (ExternalDragActive) {
 				controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
 				
-				// Make sure ExternalDragActive gets set to false to reactivate HideManager.
-				// This is needed while getting a leave event without followed by a drop.
-				// Delay it to preserve functionality in drag_drop.
 				Gdk.threads_add_idle (() => {
 					ExternalDragActive = false;
-					
 					controller.hover.hide ();
-					
-					// If an item was hovered we need it in drag_drop,
-					// so reset HoveredItem here not earlier.
 					controller.window.update_hovered (-1, -1);
-					
-					// Force last redraw for ExternalDrag
 					controller.renderer.animated_draw ();
-					
-					// Make sure to hide the dock again if needed
 					controller.hide_manager.update_hovered ();
-					
 					return false;
 				});
 			}
@@ -413,11 +388,10 @@ namespace Plank
 		bool drag_failed (Gtk.Widget w, Gdk.DragContext context, Gtk.DragResult result)
 		{
 			drag_canceled = result == Gtk.DragResult.USER_CANCELLED;
-			
 			return !drag_canceled;
 		}
 
-		[CCode (instance_pos = -1)]
+[CCode (instance_pos = -1)]
 		bool drag_motion (Gtk.Widget w, Gdk.DragContext context, int x, int y, uint time_)
 		{
 			if (RepositionMode)
@@ -426,6 +400,9 @@ namespace Plank
 			if (ExternalDragActive == InternalDragActive)
 				ExternalDragActive = !InternalDragActive;
 			
+			// Forza sempre e comunque lo stato di copia a Labwc per evitare il cursore forbidden
+			Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
+
 			if (marker != direct_hash (context)) {
 				marker = direct_hash (context);
 				drag_known = false;
@@ -434,21 +411,18 @@ namespace Plank
 			unowned DockWindow window = controller.window;
 			unowned HideManager hide_manager = controller.hide_manager;
 			
-			// we own the drag if InternalDragActive is true, lets not be silly
 			if (ExternalDragActive && !drag_known) {
 				drag_known = true;
-				
 				window.notify["HoveredItem"].connect (hovered_item_changed);
 				
-				Gdk.Atom atom = Gtk.drag_dest_find_target (window, context, Gtk.drag_dest_get_target_list (window));
-				if (atom.name () != Gdk.Atom.NONE.name ()) {
-					drag_data_requested = true;
-					Gtk.drag_get_data (window, context, atom, time_);
+				drag_data_requested = true;
+				var target_atom = Gtk.drag_dest_find_target (window, context, null);
+				if (target_atom != Gdk.Atom.NONE) {
+					Gtk.drag_get_data (window, context, target_atom, time_);
 				} else {
-					Gdk.drag_status (context, Gdk.DragAction.PRIVATE, time_);
+					var fallback_atom = Gdk.Atom.intern ("text/uri-list", false);
+					Gtk.drag_get_data (window, context, fallback_atom, time_);
 				}
-			} else {
-				Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
 			}
 			
 			if (ExternalDragActive) {
@@ -474,9 +448,12 @@ namespace Plank
 			hide_manager.update_hovered_with_coords (x, y);
 			window.update_hovered (x, y);
 			
+			is_outside_dock = false;
+			left_dock_during_drag = false;
+			
 			return true;
 		}
-		
+
 		void hovered_item_changed ()
 		{
 			unowned DockItem hovered_item = controller.window.HoveredItem;
@@ -502,61 +479,12 @@ namespace Plank
 					return item != null;
 				});
 		}
-		
-		Gdk.Window? best_proxy_window ()
-		{
-			var window_stack = controller.window.get_screen ().get_window_stack ();
-			window_stack.reverse ();
-			
-			foreach (var window in window_stack) {
-				int w_x, w_y, w_width, w_height;
-				window.get_position (out w_x, out w_y);
-				w_width = window.get_width ();
-				w_height = window.get_height ();
-				Gdk.Rectangle w_geo = { w_x, w_y, w_width, w_height };
-				
-				int x, y;
-				controller.window.get_display ().get_device_manager ().get_client_pointer ().get_position (null, out x, out y);
-				
-				if (window.is_visible () && w_geo.intersect ({ x, y, 0, 0 }, null))
-					return window;
-			}
-			
-			return null;
-		}
-		
-		public void ensure_proxy ()
-		{
-			// having a proxy window here is VERY bad ju-ju
-			if (InternalDragActive)
-				return;
-			
-			if (controller.hide_manager.Hovered) {
-				if (proxy_window == null)
-					return;
-				proxy_window = null;
-				enable_drag_to (controller.window);
-				return;
-			}
-			
-			Gdk.ModifierType mod;
-			double[] axes = {};
-			controller.window.get_display ().get_device_manager ().get_client_pointer ().get_state (controller.window.get_window (), axes, out mod);
-			
-			if ((mod & Gdk.ModifierType.BUTTON1_MASK) == Gdk.ModifierType.BUTTON1_MASK) {
-				Gdk.Window bestProxy = best_proxy_window ();
-				if (bestProxy != null && proxy_window != bestProxy) {
-					proxy_window = bestProxy;
-					Gtk.drag_dest_set_proxy (controller.window, proxy_window, Gdk.DragProtocol.XDND, true);
-				}
-			}
-		}
 
 		void enable_drag_to (DockWindow window)
 		{
 			Gtk.TargetEntry te1 = { "text/uri-list", 0, 0 };
 			Gtk.TargetEntry te2 = { "text/plank-uri-list", 0, 0 };
-			Gtk.drag_dest_set (window, 0, {te1, te2}, Gdk.DragAction.COPY);
+			Gtk.drag_dest_set (window, Gtk.DestDefaults.MOTION | Gtk.DestDefaults.DROP, {te1, te2}, Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK);
 		}
 		
 		void disable_drag_to (DockWindow window)
@@ -566,7 +494,6 @@ namespace Plank
 		
 		void enable_drag_from (DockWindow window)
 		{
-			// we dont really want to offer the drag to anything, merely pretend to, so we set a mimetype nothing takes
 			Gtk.TargetEntry te = { "text/plank-uri-list", Gtk.TargetFlags.SAME_APP, 0};
 			Gtk.drag_source_set (window, Gdk.ModifierType.BUTTON1_MASK, { te }, Gdk.DragAction.PRIVATE);
 		}
@@ -577,3 +504,4 @@ namespace Plank
 		}
 	}
 }
+

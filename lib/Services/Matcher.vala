@@ -4,135 +4,128 @@
 //
 //  This file is part of Wayplank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  Wayplank is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
 
 namespace Plank
 {
 	/**
-	 * Wrapper for Bamf.Matcher
+	 * Wayland-native Matcher wrapper (decoupled from Bamf/X11)
 	 */
 	public class Matcher : GLib.Object
 	{
-		public signal void active_window_changed (Bamf.Window? old_win, Bamf.Window? new_win);
-		public signal void window_opened (Bamf.Window w);
-		public signal void window_closed (Bamf.Window w);
-		
-		public signal void active_application_changed (Bamf.Application? old_app, Bamf.Application? new_app);
-		public signal void application_opened (Bamf.Application app);
-		public signal void application_closed (Bamf.Application app);
-		
+		public signal void active_window_changed (string? old_win_id, string? new_win_id);
+		public signal void window_opened (string win_id);
+		public signal void window_closed (string win_id);
+
+		public signal void active_application_changed (string? old_app_id, string? new_app_id);
+		public signal void application_opened (string app_id);
+		public signal void application_closed (string app_id);
+
 		static Matcher? matcher = null;
-		
+
 		public static Matcher get_default ()
 		{
 			if (matcher == null)
 				matcher = new Matcher ();
 			return matcher;
 		}
-		
-		Gee.HashSet<Bamf.View> pending_views;
-		Bamf.Matcher? bamf_matcher;
-		
+
+		Gee.HashMap<string, Gee.HashSet<int>> app_pids;
+		Gee.HashSet<string> active_apps;
+
 		private Matcher ()
 		{
+			app_pids = new Gee.HashMap<string, Gee.HashSet<int>> ();
+			active_apps = new Gee.HashSet<string> ();
 		}
-		
+
 		construct
 		{
-			bamf_matcher = Bamf.Matcher.get_default ();
-			bamf_matcher.active_application_changed.connect_after (handle_active_application_changed);
-			bamf_matcher.active_window_changed.connect_after (handle_active_window_changed);
-			bamf_matcher.view_opened.connect_after (handle_view_opened);
-			bamf_matcher.view_closed.connect_after (handle_view_closed);
-			
-			pending_views = new Gee.HashSet<Bamf.View> ();
+			// Scansione periodica dei processi in esecuzione per popolare la dock
+			GLib.Timeout.add_seconds (2, () => {
+				scan_running_applications ();
+				return true;
+			});
 		}
-		
+
 		~Matcher ()
 		{
-			foreach (var view in pending_views)
-				view.user_visible_changed.disconnect (handle_view_user_visible_changed);
-			
-			bamf_matcher.active_application_changed.disconnect (handle_active_application_changed);
-			bamf_matcher.active_window_changed.disconnect (handle_active_window_changed);
-			bamf_matcher.view_opened.disconnect (handle_view_opened);
-			bamf_matcher.view_closed.disconnect (handle_view_closed);
-			bamf_matcher = null;
+			matcher = null;
 		}
-		
-		void handle_active_application_changed (Bamf.Application? arg1, Bamf.Application? arg2)
+
+		private void scan_running_applications ()
 		{
-			active_application_changed (arg1, arg2);
-		}
-		
-		void handle_active_window_changed (Bamf.Window? arg1, Bamf.Window? arg2)
-		{
-			active_window_changed (arg1, arg2);
-		}
-		
-		void handle_view_user_visible_changed (Bamf.View view, bool user_visible)
-		{
-			if (!user_visible)
-				return;
-			
-			handle_view_opened (view);
-		}
-		
-		void handle_view_opened (Bamf.View arg1)
-		{
-			if (arg1 is Bamf.Application && !arg1.is_user_visible ()) {
-				pending_views.add (arg1);
-				arg1.user_visible_changed.connect_after (handle_view_user_visible_changed);
-				return;
+			try {
+				var dir = GLib.Dir.open ("/proc", 0);
+				string? name = null;
+				Gee.HashSet<int> current_pids = new Gee.HashSet<int> ();
+
+				while ((name = dir.read_name ()) != null) {
+					int pid = int.parse (name);
+					if (pid <= 0)
+						continue;
+
+					current_pids.add (pid);
+					string comm_path = "/proc/%s/comm".printf (name);
+					string comm = "";
+					if (GLib.FileUtils.get_contents (comm_path, out comm)) {
+						comm = comm.strip ();
+						if (comm != "") {
+							// Check common desktop file ID patterns generically
+							string[] possible_ids = {
+								comm + ".desktop",
+								"org.kde." + comm + ".desktop",
+								"org.gnome." + comm + ".desktop",
+								comm.down () + ".desktop"
+							};
+
+							foreach (var id in possible_ids) {
+								if (desktop_file_exists_in_system (id)) {
+									register_process_for_app (id, pid);
+									break;
+								}
+							}
+						}
+					}
+				}
+
+				// Rimuove i PID che non esistono più in /proc
+				foreach (var app_id in app_pids.keys.to_array ()) {
+					var pids = app_pids.get (app_id);
+					var dead_pids = new Gee.HashSet<int> ();
+					foreach (var pid in pids) {
+						if (!current_pids.contains (pid)) {
+							dead_pids.add (pid);
+						}
+					}
+					foreach (var dead in dead_pids) {
+						unregister_process_for_app (app_id, dead);
+					}
+				}
+			} catch (Error e) {
+				warning ("Errors during Process Scan: %s", e.message);
 			}
-			
-			if (arg1 is Bamf.Window)
-				window_opened ((Bamf.Window) arg1);
-			else if (arg1 is Bamf.Application)
-				application_opened ((Bamf.Application) arg1);
 		}
-		
-		void handle_view_closed (Bamf.View arg1)
+
+		private bool desktop_file_exists_in_system (string app_id)
 		{
-			if (pending_views.remove (arg1)) {
-				arg1.user_visible_changed.disconnect (handle_view_user_visible_changed);
-				return;
+			foreach (var folder in Paths.DataDirFolders) {
+				var desktop_file = folder.get_child ("applications").get_child (app_id);
+				if (desktop_file.query_exists ())
+					return true;
 			}
-			
-			if (arg1 is Bamf.Window)
-				window_closed ((Bamf.Window) arg1);
-			else if (arg1 is Bamf.Application)
-				application_closed ((Bamf.Application) arg1);
+			return false;
 		}
-		
-		public Gee.ArrayList<Bamf.Application> active_launchers ()
+
+		public Gee.ArrayList<string> active_launchers ()
 		{
-			var apps = bamf_matcher.get_running_applications ();
-			var list = new Gee.ArrayList<Bamf.Application> ();
-			
-			warn_if_fail (apps != null);
-			if (apps == null)
-				return list;
-			
-			foreach (var app in apps)
+			var list = new Gee.ArrayList<string> ();
+			foreach (var app in active_apps) {
 				list.add (app);
-			
+			}
 			return list;
 		}
-		
-		public Bamf.Application? app_for_uri (string uri)
+
+		public string? app_for_uri (string uri)
 		{
 			string launcher;
 			try {
@@ -141,22 +134,38 @@ namespace Plank
 				warning (e.message);
 				return null;
 			}
-			
-			unowned Bamf.Application app = bamf_matcher.get_application_for_desktop_file (launcher, false);
-			
-			warn_if_fail (app != null);
-			
-			return app;
+
+			return launcher;
 		}
-		
+
 		public void set_favorites (Gee.ArrayList<string> favs)
 		{
-			var paths = new string[favs.size];
-			
-			for (var i = 0; i < favs.size; i++)
-				paths [i] = favs.get (i);
-			
-			bamf_matcher.register_favorites (paths);
+		}
+
+		public void register_process_for_app (string app_id, int pid)
+		{
+			if (!app_pids.has_key (app_id)) {
+				app_pids.set (app_id, new Gee.HashSet<int> ());
+			}
+			app_pids.get (app_id).add (pid);
+
+			if (active_apps.add (app_id)) {
+				application_opened (app_id);
+			}
+		}
+
+		public void unregister_process_for_app (string app_id, int pid)
+		{
+			if (app_pids.has_key (app_id)) {
+				var pids = app_pids.get (app_id);
+				pids.remove (pid);
+				if (pids.size == 0) {
+					app_pids.unset (app_id);
+					if (active_apps.remove (app_id)) {
+						application_closed (app_id);
+					}
+				}
+			}
 		}
 	}
 }

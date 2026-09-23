@@ -56,7 +56,7 @@ namespace Plank
 				return;
 			}
 
-			// Cerca il file .desktop corrispondente nel sistema per creare l'icona al volo
+			// Find the corresponding .desktop file in the system to create the icon on the fly
 			var desktop_file = desktop_file_for_application_id (app_id);
 			if (desktop_file != null) {
 				var new_item = new TransientDockItem.with_launcher (desktop_file.get_uri ());

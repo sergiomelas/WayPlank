@@ -223,7 +223,7 @@
        d="m 13.406123,10.492713 -0.812246,0 c -0.05605,0 -0.101163,0.04512 -0.101163,0.101163 l 0,0.812247 c 0,0.05605 0.04512,0.101163 0.101163,0.101163 l 0.812246,0 c 0.05605,0 0.101163,-0.04512 0.101163,-0.101163 l 0,-0.812247 c 0,-0.05605 -0.04512,-0.101163 -0.101163,-0.101163 z"
        id="path3169-9"
        style="color:#000000;fill:#f7f7f7;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.98542714;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <!-- Overlay 'Way' in alto a destra, corsivo, fancy font, rosso semitrasparente -->
+   <!-- 'Way' overlay in the top-right corner, italic, fancy font, semitransparent red -->
     <g
        id="wayplank-text-overlay"
        style="opacity:0.75;" />

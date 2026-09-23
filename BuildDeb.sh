@@ -1,4 +1,23 @@
 #!/usr/bin/env bash
+#
+#  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
+#  Copyright (C) 2026 Sergio Melas
+#
+#  This file is part of Wayplank.
+#
+#  Wayplank is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Wayplank is distributed in the hope that it will be useful,
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 # ==============================================================================
 # Clean Debian Builder for Wayplank (Standalone & Self-Contained)
 # Developed by Sergio Melas - 2026
@@ -15,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.2"
+PKG_VER="0.3"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -34,7 +53,7 @@ echo " #                                                                #"
 echo " ##################################################################"
 echo " "
 
-# 1. Chiama lo script di compilazione del binario (BuilsBin.sh)
+# 1. Call the binary build script (BuilsBin.sh)
 if [ -f "${BASE_DIR}/BuilsBin.sh" ]; then
     bash "${BASE_DIR}/BuilsBin.sh"
 else

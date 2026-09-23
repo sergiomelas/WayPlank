@@ -11,7 +11,10 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🚀 CURRENT RUNTIME: X11 / XWayland Baseline  |  🎯 TARGET GOAL: Native Wayland Compositor Layer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 📢 Current Status: The Starting Point of the Wayland Evolution. Sorry for the readme AI generated from the next paragraph but I wanted to share this asap. I developed the core engine to discover the running apps (because Wayland segregates evriting) based on process list matching it with the content of the .desktop files of the user and system. To cope with the nithmerish traps that Wayland esposes programmers (because of the legittimate segregation of Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0 the code will be human written or human reviewed.
+## 📢 Current Status: Sorry for the readme AI generated from the next paragraph but I wanted to share this asap. I developed the core engine to discover the running apps (because Wayland segregates evriting) based on process list matching it with the content of the .desktop files of the user and system. To cope with the nithmerish traps that Wayland esposes programmers (because of the legittimate segregation of Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0 the code will be human written or human reviewed.
+
+Important notice: my contribution is just 5% of the code. all the rest is the original Plank code with is look and feel we all love from the original developers of the Docky Core Team.
+
 I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some functionality will need testing for compositor integration. I hope the comunity Will support on testing on compositors out of KDE/Kwin.
 
 ⚠️From here to the end of readme is AI generated I will rewrite it when I have time. Thx to visit this place.

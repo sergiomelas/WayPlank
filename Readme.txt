@@ -11,7 +11,12 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🚀 CURRENT RUNTIME: X11 / XWayland Baseline  |  🎯 TARGET GOAL: Native Wayland Compositor Layer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 📢 Current Status: The Starting Point of the Wayland Evolution
+## 📢 Current Status: The Starting Point of the Wayland Evolution. Sorry for the readme AI generated from the next paragraph but I wanted to share this asap. I developed the core engine to discover the running apps (because Wayland segregates evriting) based on process list matching it with the content of the .desktop files of the user and system. To cope with the nithmerish traps that Wayland esposes programmers (because of the legittimate segregation of Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0 the code will be human written or human reviewed.
+I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some functionality will need testing for compositor integration. I hope the comunity Will support on testing on compositors out of KDE/Kwin.
+
+⚠️From here to the end of readme is AI generated I will rewrite it when I have time. Thx to visit this place.
+
+
 
 ### ⚠️ Reality Check: Where Wayplank Stands Today
  To be completely transparent: **Wayplank right now is still running on the legacy X11 / XWayland
@@ -123,7 +128,7 @@ PROJECT ROADMAP & THE WAYLAND MILESTONES
      - Modern monolithic build system replacing broken autotools/autogen scripts.
      - Multi-distro compatibility and standalone Debian packaging pipeline.
 
- [ ] Phase 2 (In Active Development): Qt Subsystem Transition
+ [x] Phase 2 (In Active Development): Qt Subsystem Transition
      - Refactoring backend abstractions to C++/Qt for modern desktop stability.
      - Built-in transparent config import wizard for legacy Plank configurations.
 

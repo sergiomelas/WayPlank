@@ -53,8 +53,6 @@ namespace Plank
 		
 		public static void initialize ()
 		{
-			//<<<<<< Bypass X11 Wnck setup on Wayland
-			return;
 			unowned Wnck.Screen screen = Wnck.Screen.get_default ();
 			
 			Wnck.set_client_type (Wnck.ClientType.PAGER);
@@ -144,8 +142,6 @@ namespace Plank
 		
 		public static bool has_maximized_window (Bamf.Application app)
 		{
-			//<<<< Bypass Wnck maximized check on Wayland
-			return false;
 			Wnck.Screen.get_default ();
 			Array<uint32>? xids = app.get_xids ();
 			
@@ -178,8 +174,6 @@ namespace Plank
 		
 		public static bool has_window_on_workspace (Bamf.Application app, Wnck.Workspace workspace)
 		{
-			//<<<<< Bypass Wnck workspace query on Wayland
-			return false;			
 			Wnck.Screen.get_default ();
 			Array<uint32>? xids = app.get_xids ();
 			

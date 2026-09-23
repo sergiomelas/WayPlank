@@ -79,12 +79,7 @@ namespace Plank
 		/**
 		 * If the dock is currently hidden.
 		 */
-		//<<<<<public bool Hidden { get; private set; default = true; }
-	    // Force dock to stay visible on Wayland
-		public bool Hidden {
-			get { return false; }
-			private set { }
-		}
+		public bool Hidden { get; private set; default = true; }
 		
 		/**
 		 * If hiding the dock is currently disabled
@@ -196,12 +191,17 @@ namespace Plank
 			
 			bool update_needed = false;
 			
-			// compute rect of the window
 			var dock_rect = position_manager.get_cursor_region ();
+			var window_rect = position_manager.get_dock_window_region ();
+			var composited = (window.get_screen () != null && window.get_screen ().is_composited ());
 			
-			// use the dock rect and cursor location to determine if dock is hovered
-			var hovered = (x >= dock_rect.x && x < dock_rect.x + dock_rect.width
-				&& y >= dock_rect.y && y < dock_rect.y + dock_rect.height);
+			// On Wayland/layer-shell the dock can receive pointer events over the full shell window
+			// even when the reduced hover region is smaller or translated at the edge. Using the
+			// full dock rect here keeps the hover state stable at the bottom edge and while zooming.
+			var hovered = (composited)
+				? (x >= 0 && x < window_rect.width && y >= 0 && y < window_rect.height)
+				: (x >= dock_rect.x && x < dock_rect.x + dock_rect.width
+					&& y >= dock_rect.y && y < dock_rect.y + dock_rect.height);
 			
 			if (Hovered != hovered) {
 				Hovered = hovered;
@@ -253,8 +253,6 @@ namespace Plank
 		
 		void update_hidden ()
 		{
-			//<<<<<< Wayland bypass: prevent hiding the dock
-			return;
 			if (Disabled) {
 				if (Hidden)
 					Hidden = false;
@@ -404,10 +402,57 @@ namespace Plank
 		// intelligent hiding code
 		//
 		
+		bool compositor_overlap_supports_wayland ()
+		{
+			if (!environment_is_session_type (XdgSessionType.WAYLAND))
+				return false;
+			
+			return (environment_is_session_desktop (XdgSessionDesktop.KDE)
+				|| environment_is_session_desktop (XdgSessionDesktop.GNOME)
+				|| environment_is_session_desktop (XdgSessionDesktop.UBUNTU)
+				|| environment_is_session_desktop (XdgSessionDesktop.CINNAMON)
+				|| environment_is_session_desktop (XdgSessionDesktop.PANTHEON));
+		}
+		
+		bool compositor_overlap_for_wayland ()
+		{
+			if (!compositor_overlap_supports_wayland ())
+				return false;
+			
+			if (environment_is_session_desktop (XdgSessionDesktop.KDE)) {
+				// KDE Wayland exposes overlay geometry through compositor APIs, not through Wnck.
+				// The compositor-specific integration is intentionally conservative for now and
+				// falls back to hover-only behavior until the KWin API surface is validated.
+				debug ("Wayland KDE compositor overlap detection enabled; falling back to hover-only behavior until a compositor API contract is available.");
+				return false;
+			}
+			
+			if (environment_is_session_desktop (XdgSessionDesktop.GNOME)
+				|| environment_is_session_desktop (XdgSessionDesktop.UBUNTU)
+				|| environment_is_session_desktop (XdgSessionDesktop.CINNAMON)
+				|| environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
+				// GNOME Shell does not expose a generic client-side window-overlap API for layer-shell docks.
+				// Stay conservative and avoid false positives: only hover-driven showing is supported.
+				debug ("Wayland GNOME compositor overlap detection enabled; falling back to hover-only behavior until a compositor API contract is available.");
+				return false;
+			}
+			
+			return false;
+		}
+		
 		void update_window_intersect ()
 		{
-			//<<<<< Bypass X11 window intersection check on Wayland
-			return;
+			if (environment_is_session_type (XdgSessionType.WAYLAND)) {
+				window_intersect = compositor_overlap_for_wayland ();
+				dialog_windows_intersect = false;
+				active_application_intersect = false;
+				active_window_intersect = false;
+				active_maximized_window_intersect = false;
+				pointer_update = false;
+				update_hidden ();
+				return;
+			}
+			
 			var dock_rect = controller.position_manager.get_static_dock_region ();
 			var window_scale_factor = controller.window.get_window ().get_scale_factor ();
 			if (window_scale_factor > 1) {
@@ -503,8 +548,6 @@ namespace Plank
 		
 		void setup_active_window (Wnck.Screen screen)
 		{
-			//<<<<< Bypass X11 active window setup on Wayland
-			return;			
 			var active_window = screen.get_active_window ();
 			
 			if (active_window != null) {

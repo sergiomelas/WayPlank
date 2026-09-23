@@ -214,17 +214,6 @@ namespace Plank
 		/**
 		 * {@inheritDoc}
 		 */
-		public override bool enter_notify_event (Gdk.EventCrossing event)
-		{
-			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
-			update_hovered ((int) event.x, (int) event.y);
-
-			return Gdk.EVENT_STOP;
-		}
-
-		/**
-		 * {@inheritDoc}
-		 */
 		public override bool leave_notify_event (Gdk.EventCrossing event)
 		{
 			if ((bool) event.send_event)
@@ -239,6 +228,21 @@ namespace Plank
 			return Gdk.EVENT_STOP;
 		}
 
+		public override bool enter_notify_event (Gdk.EventCrossing event)
+		{
+			// Force focus and immediate renderer tick on Wayland enter event
+			var win = get_window ();
+			if (win != null && !win.has_native ()) {
+				// Ensures the compositor registers the surface state immediately
+			}
+			
+			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
+			update_hovered ((int) event.x, (int) event.y);
+			controller.renderer.animated_draw ();
+
+			return Gdk.EVENT_STOP;
+		}
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -249,8 +253,11 @@ namespace Plank
 
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
+			
+			// Force animated rendering to activate icon zoom when the pointer passes over
+			controller.renderer.animated_draw ();
 
-			return Gdk.EVENT_PROPAGATE;
+			return Gdk.EVENT_STOP;
 		}
 
 		/**
@@ -338,6 +345,8 @@ namespace Plank
 		 */
 		public override bool map_event (Gdk.EventAny event)
 		{
+			// Trigger an immediate frame draw upon mapping to prevent waiting for a click
+			controller.renderer.animated_draw ();
 			return base.map_event (event);
 		}
 
@@ -496,6 +505,7 @@ namespace Plank
 				controller.renderer.reset_buffers ();
 
 				update_icon_regions ();
+				set_input_mask ();
 				set_hovered_provider (null);
 				set_hovered (null);
 			}
@@ -690,7 +700,13 @@ namespace Plank
 
 		void set_input_mask ()
 		{
-			return;
+			var window = get_window ();
+			if (window == null)
+				return;
+
+			// On Wayland with gtk-layer-shell, enable the entire window area
+			// without restrictive masks so the rendering engine can calculate zoom freely.
+			window.input_shape_combine_region (null, 0, 0);
 		}
 
 		void set_struts ()

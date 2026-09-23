@@ -118,7 +118,7 @@ namespace Plank
 			foreach (var app_id in Matcher.get_default ().active_launchers ()) {
 				unowned ApplicationDockItem? found = item_for_application_id (app_id);
 				if (found == null) {
-					// Se l'app è attiva ma non pinnata, la aggiungiamo come transitoria
+					// If the app is active but not pinned, add it as a transient item
 					var desktop_file = desktop_file_for_application_uri ("application://" + app_id);
 					if (desktop_file != null) {
 						var new_item = new TransientDockItem.with_launcher (desktop_file.get_uri ());

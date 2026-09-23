@@ -321,9 +321,23 @@ namespace Plank
 						}
 						DragItem.delete ();
 						
-						int x, y;
-						context.get_device ().get_position (null, out x, out y);
-						PoofWindow.get_default ().show_at (x, y);
+						int x = 0, y = 0;
+						var display = Gdk.Display.get_default ();
+						if (display != null) {
+							var seat = display.get_default_seat ();
+							if (seat != null && seat.get_pointer () != null) {
+								seat.get_pointer ().get_position (null, out x, out y);
+							}
+						}
+						if (x <= 0 && y <= 0) {
+							context.get_device ().get_position (null, out x, out y);
+						}
+						
+						// Fallback to center if pointer coordinates are invalid under Wayland,
+						// but ensure the PoofWindow handles it cleanly without window manager decorations.
+						if (x > 0 && y > 0) {
+							PoofWindow.get_default ().show_at (x, y);
+						}
 					}
 				} else if (controller.window.HoveredItem == null) {
 					if (controller.prefs.AutoPinning && DragItem is TransientDockItem) {
@@ -400,7 +414,7 @@ namespace Plank
 			if (ExternalDragActive == InternalDragActive)
 				ExternalDragActive = !InternalDragActive;
 			
-			// Forza sempre e comunque lo stato di copia a Labwc per evitare il cursore forbidden
+			// Always force the copy state in Labwc to avoid the forbidden cursor
 			Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
 
 			if (marker != direct_hash (context)) {

@@ -136,6 +136,14 @@ PROJECT ROADMAP & THE WAYLAND MILESTONES
 Change log:
 
 
+V0.3.0: 2026-09-23  - Wayland hover and hide stabilization:
+                    - Fixed dock hover zoom when the cursor enters the dock surface, restored the
+                      proper hidden/show state logic, and removed unsafe X11 overlap assumptions
+                      from the live Wayland path.
+                    - Kept the architecture compositor-safe by reserving real overlap detection
+                      for future compositor-specific integrations instead of forcing legacy X11
+                      logic onto Wayland.
+
 V0.2.0: 2026-09-22  - Phase 2 Native Wayland & Labwc Transition:
                     - Complete removal of X11 session-type startup checks: Stripped out the strict
                       initialization block in AbstractMain.vala that previously prevented the dock

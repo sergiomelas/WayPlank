@@ -40,7 +40,7 @@ namespace Plank
 
 		construct
 		{
-			// Scansione periodica dei processi in esecuzione per popolare la dock
+			// Periodically scan running processes to populate the dock
 			GLib.Timeout.add_seconds (2, () => {
 				scan_running_applications ();
 				return true;
@@ -69,7 +69,7 @@ namespace Plank
 					string comm = "";
 					if (GLib.FileUtils.get_contents (comm_path, out comm)) {
 						comm = comm.strip ();
-						if (comm != "") {
+						if (comm != "" && comm != "wayplank") {
 							// Check common desktop file ID patterns generically
 							string[] possible_ids = {
 								comm + ".desktop",
@@ -88,7 +88,7 @@ namespace Plank
 					}
 				}
 
-				// Rimuove i PID che non esistono più in /proc
+				// Remove PIDs that no longer exist in /proc
 				foreach (var app_id in app_pids.keys.to_array ()) {
 					var pids = app_pids.get (app_id);
 					var dead_pids = new Gee.HashSet<int> ();
@@ -110,8 +110,39 @@ namespace Plank
 		{
 			foreach (var folder in Paths.DataDirFolders) {
 				var desktop_file = folder.get_child ("applications").get_child (app_id);
-				if (desktop_file.query_exists ())
-					return true;
+				if (desktop_file.query_exists ()) {
+					// Filter system daemons, KDED/KWallet services, and hidden apps
+					try {
+						var key_file = new GLib.KeyFile ();
+						key_file.load_from_file (desktop_file.get_path (), GLib.KeyFileFlags.NONE);
+						
+						if (key_file.has_key ("Desktop Entry", "NoDisplay") && key_file.get_boolean ("Desktop Entry", "NoDisplay"))
+							return false;
+						if (key_file.has_key ("Desktop Entry", "Hidden") && key_file.get_boolean ("Desktop Entry", "Hidden"))
+							return false;
+							
+						string[] categories = {};
+						if (key_file.has_key ("Desktop Entry", "Categories"))
+							categories = key_file.get_string_list ("Desktop Entry", "Categories");
+							
+						// Discard system services or pure daemons without user categories
+						bool is_service = false;
+						foreach (var cat in categories) {
+							if (cat == "Core" || cat == "System" || cat == "Settings") {
+								// Check whether it is a valid settings app or a pure service
+								if (app_id.contains ("kded") || app_id.contains ("kwallet") || app_id.contains ("at-spi")) {
+									is_service = true;
+								}
+							}
+						}
+						if (is_service)
+							return false;
+
+						return true;
+					} catch (Error e) {
+						return true; // Fallback if parsing fails but the file exists
+					}
+				}
 			}
 			return false;
 		}

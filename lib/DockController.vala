@@ -145,7 +145,7 @@ namespace Plank
 			hide_manager.initialize ();
 			renderer.initialize ();
 
-			// Aggiorna le dimensioni calcolate e mappa la finestra su Wayland
+			// Update the calculated dimensions and map the window on Wayland
 			position_manager.update (renderer.theme);
 			window.update_size_and_position ();
 			window.show_all ();

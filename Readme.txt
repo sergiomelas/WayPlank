@@ -9,31 +9,27 @@
           ╚══════════════════════════════════════════════════════════════════════════════╝
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 CURRENT RUNTIME: X11 / XWayland Baseline  |  🎯 TARGET GOAL: Native Wayland Compositor Layer
+🚀 CURRENT RUNTIME: Full Wayland with Kwin support  |  🎯 TARGET GOAL: Native Wayland Compositor Layer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 📢 Current Status: Sorry for the readme AI generated from the next paragraph but I wanted to share this asap. I developed the core engine to discover the running apps (because Wayland segregates evriting) based on process list matching it with the content of the .desktop files of the user and system. To cope with the nithmerish traps that Wayland esposes programmers (because of the legittimate segregation of Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0 the code will be human written or human reviewed.
+## 📢 Current Status: Sorry for the read-me AI generated from the next paragraph but I wanted to share
+this asap. I developed the core engine to discover the running apps (because Wayland segregates evriting)
+based on process list matching it with the content of the .desktop files of the user and system. To cope
+with the nightmarish traps that Wayland exposes programmers (because of the legitimate segregation of
+Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0
+the code will be human written or human reviewed.
 
-Important notice: my contribution is just 5% of the code. all the rest is the original Plank code with is look and feel we all love from the original developers of the Docky Core Team.
+Important notice: my contribution is just 10% of the code. all the rest is the original Plank code
+with is look and feel we all love from the original developers of the Docky Core Team.
+But i added some functionality i always wanted in Plank
 
-I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some functionality will need testing for compositor integration. I hope the comunity Will support on testing on compositors out of KDE/Kwin.
-
-⚠️From here to the end of readme is AI generated I will rewrite it when I have time. Thx to visit this place.
-
+I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some
+functionality will need testing for compositor integration.
+I hope the comunity Will support on testing on compositors out of KDE/Kwin.
 
 
 ### ⚠️ Reality Check: Where Wayplank Stands Today
- To be completely transparent: **Wayplank right now is still running on the legacy X11 / XWayland
- subsystem.**
+ To be completely transparent: **Wayplank right now i full wayland based, but it fully works only in kwin**
 
- The original Plank project has been abandoned for years, weighed down by archaic autotools build
- locks, dead package dependencies, and monolithic coupling to obsolete libraries. You cannot leap
- straight into native Wayland protocols (wlr-layer-shell / ext-workspace) on top of broken legacy
- scaffolding.
-
- **Wayplank V1.0.0 represents the indispensable Phase 1 (The Clean Groundwork):**
- We have completely decoupled Plank into a modern, standalone monolithic codebase with its own
- isolated namespace (`wayplank`), clean direct-compiler pipeline, and independent XDG storage
- hierarchies.
 
 ### 🔍 Keep an Eye on This Repository!
  If you are waiting for a true, lightweight, native Wayland dock experience to replace Plank
@@ -59,16 +55,16 @@ WARNING & DISCLAIMER: ━━━━━━━━━━━━━━━━━━━�
 Universal Build & Installation Guide (Any Linux Distribution)
 ================================================================================
 
-1. CORE DEPENDENCIES (Current X11 Stack)
+1. CORE DEPENDENCIES
 ----------------------------------------
 To compile Wayplank from source, ensure your distribution provides:
  - Vala compiler (valac >= 0.40)
  - GTK+ 3.0 (gtk3 / libgtk-3-dev)
- - GDK X11 (gdk-x11-3.0)
- - LibWNCK 3.0 (libwnck3 / libwnck-3-dev)
- - BAMF (libbamf3 / bamf-daemon)
+ - GTK Layer Shell (gtk-layer-shell-0 / libgtk-layer-shell-dev)
+ - JSON-GLib 1.0 (json-glib-1.0 / libjson-glib-dev)
  - LibGee 0.8 (libgee-0.8 / libgee-0.8-dev)
  - GLib 2.0 (glib2 / libglib2.0-dev, includes glib-compile-resources)
+ - pkg-config
 
 2. UNIVERSAL MANUAL COMPILATION
 -------------------------------
@@ -82,8 +78,8 @@ Compile the embedded resource binary directly on any Linux distribution:
      --gresources=data/plank.gresource.xml \
      --gresourcesdir=data \
      --vapidir=vapi \
-     --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gdk-x11-3.0 \
-     --pkg libwnck-3.0 --pkg libbamf3 --pkg gee-0.8 --pkg compat --pkg config \
+   --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
+   --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config \
      -X -DWNCK_I_KNOW_THIS_IS_UNSTABLE -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
      -X -DGETTEXT_PACKAGE=\"wayplank\" -X -Ilib -X -Iinclude -X -w -X -lm \
      $(find lib src -name "*.vala") lib/resources.c -o wayplank
@@ -131,20 +127,48 @@ PROJECT ROADMAP & THE WAYLAND MILESTONES
      - Modern monolithic build system replacing broken autotools/autogen scripts.
      - Multi-distro compatibility and standalone Debian packaging pipeline.
 
- [x] Phase 2 (In Active Development): Qt Subsystem Transition
-     - Refactoring backend abstractions to C++/Qt for modern desktop stability.
-     - Built-in transparent config import wizard for legacy Plank configurations.
+ [x] Phase 2 (Completed): Application Discovery and Dock Lifecycle
+   - Implemented generic application discovery from running processes and desktop files.
+   - Added persistent pinned application handling and temporary running application icons.
+   - Implemented running-instance marking and multi-instance application management.
 
- [ ] Phase 3 (Final Destination): Native Wayland Integration
-     - Implementation of wlr-layer-shell / Wayland native protocols.
-     - Complete phasing out of X11/XWayland dependencies.
+ [x] Phase 3 (Completed) WayPlank Fully works with no X11 dependency: Native Wayland Integration
+     - Implementation of Wayland native protocols.
+     - Complete phasing out of X11/XWayland dependencies. Support one copositor.
+       This will be Kwin because i the one i know the best
      - Full fractional scaling and native Wayland compositor window tracking.
+
+  [x] Phase 4 (Completed) WayPlank is polished and fully work and is optimized for Kwin Alpha
+     - Stop Mass development recive user feedback and debugging
+     - Define and implement the architecture to support multiple Compositors
+
+  [ ] Phase 5 (Current, for many years to come :) : Multi-Compositor Compatibility and Migration
+     - Import and migrate existing Plank configuration, launchers, themes, and pinned items.
+     - Implement compositor backends for KWin, wlroots compositors, and other major Wayland environments.
+     - Provide tested support for compositor families including Sway, Hyprland, Wayfire, Labwc, and GNOME/Mutter where the required protocols are available.
+     - Complete compositor-neutral window discovery, focus, minimize, restore, attention, and geometry behavior.
+     - Improve compatibility with layer-shell, fractional scaling, multi-monitor layouts, and native Wayland drag-and-drop.
+     - Finalize documentation, packaging, migration safety, accessibility, and release stability.
+
+
+
 
 ##################################################################################################################
 Change log:
 
 
-V0.3.0: 2026-09-23  - Wayland hover and hide stabilization:
+V0.4.0: 2026-09-24  Finalized KWin Wayland :
+                    - Added KDE/KWin Wayland window-state integration through a KWin scripting bridge.
+                    - Implemented Intellihide using active-window overlap detection.
+                    - Implemented Window Dodge using live KWin window geometry and overlap detection.
+                    - Implemented Dodge Active Window and Dodge Maximized Window modes for KWin.
+                    - Added dynamic layer-shell exclusive-zone and input-region handling so dodge modes
+                      allow windows to receive input while Autohide and dock interactions remain stable.
+                    - Tray icons do not appear as temporary icons
+
+V0.3.0: 2026-09-23  Wayland hover and hide stabilization:
+                    - Implemented drag icon pinning
+                    - Implemented running app marking and multi instance management
                     - Fixed dock hover zoom when the cursor enters the dock surface, restored the
                       proper hidden/show state logic, and removed unsafe X11 overlap assumptions
                       from the live Wayland path.
@@ -152,8 +176,8 @@ V0.3.0: 2026-09-23  - Wayland hover and hide stabilization:
                       for future compositor-specific integrations instead of forcing legacy X11
                       logic onto Wayland.
 
-V0.2.0: 2026-09-22  - Phase 2 Native Wayland & Labwc Transition:
-                    - Complete removal of X11 session-type startup checks: Stripped out the strict
+V0.2.0: 2026-09-22  Phase 2 Native Wayland & Labwc Transition:
+                    - Partial removal of X11 session-type startup checks: Stripped out the strict
                       initialization block in AbstractMain.vala that previously prevented the dock
                       from launching in non-X11 environments.
                     - Native gtk-layer-shell integration: Integrated native surface layer management
@@ -187,11 +211,11 @@ V0.2.0: 2026-09-22  - Phase 2 Native Wayland & Labwc Transition:
                     - Persistent Pinning & Lifecycle Management: Fixed application transient item tracking on close
                       and enabled reliable persistence of pinned items through custom `.dockitem` configurations.
 
-V0.1.0: 2026-09-19  - Phase 1 Architecture Decoupling & Baseline Release:
+V0.1.0: 2026-09-19  Phase 1 Architecture Decoupling & Baseline Release:
                     - Forked from original Plank codebase to establish clean foundations for future Wayland porting.
                     - Full namespace migration: renamed binary target to 'wayplank' with transparent symlink fallback.
                     - Relocated system assets to '/usr/share/wayplank' via PKGDATADIR redefinition.
                     - Isolated user configurations under '~/.config/wayplank'.
                     - Updated Theme loader to dynamically inspect '~/.local/share/wayplank/themes'.
                     - Created universal manual compile sequence for non-Debian distributions.
-                    - Integrated standalone Debian packaging pipeline (BuildDeb.sh) with desktop database triggers.
+                    - Integrated standalone Debian packaging pipeline (BuildDeb.sh)

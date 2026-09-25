@@ -47,13 +47,10 @@ valac -g \
     --pkg gio-unix-2.0 \
     --pkg gtk+-3.0 \
     --pkg gtk-layer-shell-0 \
-    --pkg gdk-x11-3.0 \
-    --pkg libwnck-3.0 \
-    --pkg libbamf3 \
+    --pkg json-glib-1.0 \
     --pkg gee-0.8 \
     --pkg compat \
     --pkg config \
-    -X -DWNCK_I_KNOW_THIS_IS_UNSTABLE \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \

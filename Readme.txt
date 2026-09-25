@@ -11,8 +11,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🚀 CURRENT RUNTIME: Full Wayland with Kwin support  |  🎯 TARGET GOAL: Native Wayland Compositor Layer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## 📢 Current Status: Sorry for the read-me AI generated from the next paragraph but I wanted to share
-this asap. I developed the core engine to discover the running apps (because Wayland segregates evriting)
+## 📢 Current Status: I developed the core engine to discover the running apps (because Wayland segregates evriting)
 based on process list matching it with the content of the .desktop files of the user and system. To cope
 with the nightmarish traps that Wayland exposes programmers (because of the legitimate segregation of
 Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0

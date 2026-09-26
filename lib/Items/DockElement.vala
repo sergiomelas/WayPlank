@@ -366,10 +366,19 @@ namespace Plank
 		
 		static Gtk.MenuItem create_menu_item_iternal (string title, owned Gdk.Pixbuf pixbuf, bool force_show_icon, bool mnemonics)
 		{
-			var item = (mnemonics ? new Gtk.ImageMenuItem.with_mnemonic (title) : new Gtk.ImageMenuItem.with_label (title));
-			item.set_image (new Gtk.Image.from_pixbuf (pixbuf));
-			if (force_show_icon)
-				item.always_show_image = true;
+			var item = new Gtk.MenuItem ();
+			var content = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
+			var image = new Gtk.Image.from_pixbuf (pixbuf);
+			content.pack_start (image, false, false, 0);
+			image.show ();
+			var label = mnemonics ? new Gtk.Label.with_mnemonic (title) : new Gtk.Label (title);
+			label.set_xalign (0.0f);
+			if (mnemonics)
+				label.set_mnemonic_widget (item);
+			content.pack_start (label, true, true, 0);
+			item.add (content);
+			label.show ();
+			content.show ();
 			
 			return item;
 		}

@@ -27,16 +27,17 @@ namespace Plank
 	}
 	
 	public delegate G TaskFunc<G> () throws Error;
+	public delegate void* WorkerFunc ();
 	
 	[Compact]
 	class Task
 	{
-		public ThreadFunc<void*> func;
+		public WorkerFunc func;
 		public TaskPriority priority;
 		
-		public Task (owned ThreadFunc<void*> _func, TaskPriority _priority)
+		public Task (owned WorkerFunc _func, TaskPriority _priority)
 		{
-			func = _func;
+			func = (owned) _func;
 			priority = _priority;
 		}
 		
@@ -95,10 +96,10 @@ namespace Plank
 		 * @param func function to be executed
 		 * @param priority priority of the given function
 		 */
-		public void add_task (owned ThreadFunc<void*> func, TaskPriority priority = TaskPriority.DEFAULT)
+		public void add_task (owned WorkerFunc func, TaskPriority priority = TaskPriority.DEFAULT)
 		{
 			try {
-				pool.add (new Task (func, priority));
+				pool.add (new Task ((owned) func, priority));
 			} catch (ThreadError e) {
 				warning (e.message);
 			}
@@ -123,7 +124,7 @@ namespace Plank
 			G result = null;
 			
 			try {
-				ThreadFunc tfunc = () => {
+				WorkerFunc tfunc = () => {
 					try {
 						result = func ();
 					} catch (Error e) {
@@ -133,7 +134,7 @@ namespace Plank
 					Idle.add ((owned) resume, GLib.Priority.HIGH_IDLE);
 					return null;
 				};
-				pool.add (new Task (tfunc, priority));
+				pool.add (new Task ((owned) tfunc, priority));
 			} catch (ThreadError e) {
 				warning (e.message);
 			}

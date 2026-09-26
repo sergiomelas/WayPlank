@@ -109,7 +109,7 @@ namespace Plank
 			if (theme_name != null)
 				provider = Gtk.CssProvider.get_named (theme_name, null);
 			else
-				provider = Gtk.CssProvider.get_default ();
+				provider = Gtk.CssProvider.get_named (GTK_THEME_NAME, null);
 			
 			style_context = Theme.create_style_context (typeof (Gtk.IconView), null, provider,
 				"iconview", Gtk.STYLE_CLASS_VIEW);

@@ -29,7 +29,7 @@ namespace Plank
 		public const int MAX_ICON_SIZE = 128;
 		
 		public const int MIN_ICON_ZOOM = 100;
-		public const int MAX_ICON_ZOOM = 300;
+		public const int MAX_ICON_ZOOM = 200;
 		
 		[Description(nick = "current-workspace-only", blurb = "Whether to show only windows of the current workspace.")]
 		public bool CurrentWorkspaceOnly { get; set; }
@@ -156,6 +156,12 @@ namespace Plank
 					IconSize = MAX_ICON_SIZE;
 				else if (IconSize % 2 == 1)
 					IconSize -= 1;
+				break;
+			case "ZoomPercent":
+				if (ZoomPercent < (uint) MIN_ICON_ZOOM)
+					ZoomPercent = (uint) MIN_ICON_ZOOM;
+				else if (ZoomPercent > (uint) MAX_ICON_ZOOM)
+					ZoomPercent = (uint) MAX_ICON_ZOOM;
 				break;
 			
 			case "Theme":

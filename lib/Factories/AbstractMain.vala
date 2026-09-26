@@ -47,8 +47,8 @@ namespace Plank
 		
 		static construct
 		{
-			Posix.signal(Posix.SIGINT, sig_handler);
-			Posix.signal(Posix.SIGTERM, sig_handler);
+			Posix.signal (Posix.Signal.INT, sig_handler);
+			Posix.signal (Posix.Signal.TERM, sig_handler);
 		}
 		
 		/**
@@ -313,18 +313,6 @@ namespace Plank
 			
 			docks.add (dock);
 			add_window (dock.window);
-		}
-		
-		void remove_dock (DockController dock)
-		{
-			if (docks.size == 1)
-				return;
-			
-			remove_window (dock.window);
-			docks.remove (dock);
-			
-			if (primary_dock == dock)
-				primary_dock = docks[0];
 		}
 		
 		/**

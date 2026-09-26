@@ -58,7 +58,7 @@ namespace Plank
 			(unowned ParamSpec)[] properties = get_class ().list_properties ();
 			
 			// Bind available gsettings-keys to their class-properties
-			foreach (unowned string key in settings.list_keys ()) {
+			foreach (unowned string key in settings.settings_schema.list_keys ()) {
 				//Not taking a references of matched ParamSpec results in undefined behaviour
 				ParamSpec? property = null;
 				foreach (unowned ParamSpec p in properties)
@@ -100,7 +100,7 @@ namespace Plank
 		 */
 		protected void reset_all ()
 		{
-			foreach (unowned string key in settings.list_keys ())
+			foreach (unowned string key in settings.settings_schema.list_keys ())
 				settings.reset (key);
 		}
 		

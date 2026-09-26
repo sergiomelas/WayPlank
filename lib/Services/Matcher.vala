@@ -221,8 +221,13 @@ namespace Plank
 				return;
 
 			string script = "";
-			if (!GLib.FileUtils.get_contents (script_path, out script) || !script.has_prefix ("#!"))
+			try {
+				if (!GLib.FileUtils.get_contents (script_path, out script) || !script.has_prefix ("#!"))
+					return;
+			} catch (FileError e) {
+				debug ("Unable to read launcher script '%s': %s", script_path, e.message);
 				return;
+			}
 
 			var script_dir = File.new_for_path (script_path).get_parent ();
 			foreach (var token in script.split (" ")) {

@@ -34,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.4"
+PKG_VER="0.4.1"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"

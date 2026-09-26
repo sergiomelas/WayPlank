@@ -155,7 +155,7 @@
 			<description>If true, zoom dock items when hovered with the cursor.</description>
 		</key>
 		<key name="zoom-percent" type="i">
-			<range min="100" max="300"/>
+			<range min="100" max="200"/>
 			<default>150</default>
 			<summary>Icon zoom percentage</summary>
 			<description>The amount to zoom dock items, in percent.</description>

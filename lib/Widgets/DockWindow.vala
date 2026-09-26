@@ -60,9 +60,6 @@ namespace Plank
 		bool long_press_active = false;
 		uint long_press_button = 0U;
 
-		Gdk.Rectangle input_rect;
-		int requested_x;
-		int requested_y;
 		int window_position_retry = 0;
 
 		/**
@@ -83,13 +80,7 @@ namespace Plank
 			GtkLayerShell.auto_exclusive_zone_enable (this);
 			update_exclusive_zone ();
 
-			// Attach to the primary monitor output
-			var display = Gdk.Display.get_default ();
-			if (display != null) {
-				var monitor = display.get_primary_monitor () ?? display.get_monitor (0);
-				if (monitor != null)
-					GtkLayerShell.set_monitor (this, monitor);
-			}
+			update_layer_shell_monitor ();
 
 			// Apply dynamic anchors based on current preferences
 			update_layer_shell_anchors ();
@@ -155,6 +146,26 @@ namespace Plank
 			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, pos == Gtk.PositionType.TOP);
 			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, pos == Gtk.PositionType.LEFT);
 			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, pos == Gtk.PositionType.RIGHT);
+		}
+
+		public void update_layer_shell_monitor ()
+		{
+			var display = get_display ();
+			if (display == null)
+				return;
+
+			var monitor = PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor);
+			if (monitor == null)
+				return;
+
+			var was_visible = get_visible ();
+			if (was_visible)
+				hide ();
+
+			GtkLayerShell.set_monitor (this, monitor);
+
+			if (was_visible)
+				update_size_and_position ();
 		}
 
 		/**
@@ -418,7 +429,8 @@ namespace Plank
 				var dock_region = controller.position_manager.get_dock_window_region ();
 				var dock_thickness = controller.position_manager.is_horizontal_dock ()
 					? dock_region.height : dock_region.width;
-				hover.show_at (x, y, controller.position_manager.Position, dock_thickness);
+				var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
+				hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
 
 				if (menu_is_visible ())
 					hover.hide ();
@@ -567,7 +579,7 @@ namespace Plank
 			var button = PopupButton.from_event_button (event);
 
 			if ((button & PopupButton.RIGHT) != 0
-				&& (item == null || (event.state & Gdk.ModifierType.CONTROL_MASK) != 0)) {
+				&& (item == null || item is SeparatorDockItem || (event.state & Gdk.ModifierType.CONTROL_MASK) != 0)) {
 				menu_items = Factory.item_factory.get_item_for_dock ().get_menu_items ();
 				if ((event.state & Gdk.ModifierType.MOD1_MASK) != 0
 					&& (event.state & Gdk.ModifierType.SHIFT_MASK) != 0)
@@ -708,7 +720,7 @@ namespace Plank
 
 			var cursor_region = controller.position_manager.get_cursor_region ();
 			if (cursor_region.width <= 0 || cursor_region.height <= 0) {
-				window.input_shape_combine_region (null, 0, 0);
+				window.input_shape_combine_region (new Cairo.Region (), 0, 0);
 				return;
 			}
 
@@ -719,11 +731,6 @@ namespace Plank
 				cursor_region.height
 			};
 			window.input_shape_combine_region (new Cairo.Region.rectangle (region_rect), 0, 0);
-		}
-
-		void set_struts ()
-		{
-			return;
 		}
 	}
 }

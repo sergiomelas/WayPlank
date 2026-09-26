@@ -13,15 +13,15 @@
 ---
 
 ## 📢 ## 📢 Current Status
+Important notice: my contribution is just 10% of the code. all the rest is the original Plank code
+with is look and feel we all love from the original developers of the Docky Core Team.
+But i added some functionality i always wanted in Plank.
+
 I developed the core engine to discover the running apps (because Wayland segregates evriting)
 based on process list matching it with the content of the .desktop files of the user and system. To cope
 with the nightmarish traps that Wayland exposes programmers (because of the legitimate segregation of
 Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0
 the code will be human written or human reviewed.
-
-Important notice: my contribution is just 10% of the code. all the rest is the original Plank code
-with is look and feel we all love from the original developers of the Docky Core Team.
-But i added some functionality i always wanted in Plank
 
 I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some
 functionality will need testing for compositor integration.

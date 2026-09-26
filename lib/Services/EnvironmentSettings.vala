@@ -95,7 +95,7 @@ namespace Plank
 		{
 			if (instance == null) {
 				var settings = try_create_settings ("org.pantheon.desktop.gala.notifications");
-				if (settings != null && ("do-not-disturb" in settings.list_keys ()))
+				if (settings != null && ("do-not-disturb" in settings.settings_schema.list_keys ()))
 					instance = (PantheonDesktopNotifications) Object.new (typeof (PantheonDesktopNotifications),
 						"settings", settings, "bind-flags", SettingsBindFlags.GET | SettingsBindFlags.INVERT_BOOLEAN, null);
 			}
@@ -120,7 +120,7 @@ namespace Plank
 		{
 			if (instance == null) {
 				var settings = try_create_settings ("org.gnome.desktop.notifications");
-				if (settings != null && ("show-banners" in settings.list_keys ()))
+				if (settings != null && ("show-banners" in settings.settings_schema.list_keys ()))
 					instance = (GnomeDesktopNotifications) Object.new (typeof (GnomeDesktopNotifications),
 						"settings", settings, "bind-flags", SettingsBindFlags.GET, null);
 			}

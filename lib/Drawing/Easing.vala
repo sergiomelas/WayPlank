@@ -185,66 +185,45 @@ namespace Plank
 	{
 		AnimationMode mode;
 		EasingFunc func;
-		string name;
 	}
 
 	const AnimationModeMapping[] ANIMATION_MODES = {
-		{ AnimationMode.CUSTOM,              null, "custom" },
+		{ AnimationMode.CUSTOM,              null },
 
-		{ AnimationMode.LINEAR,              linear, "linear" },
-		{ AnimationMode.EASE_IN_QUAD,        ease_in_quad, "easeInQuad" },
-		{ AnimationMode.EASE_OUT_QUAD,       ease_out_quad, "easeOutQuad" },
-		{ AnimationMode.EASE_IN_OUT_QUAD,    ease_in_out_quad, "easeInOutQuad" },
-		{ AnimationMode.EASE_IN_CUBIC,       ease_in_cubic, "easeInCubic" },
-		{ AnimationMode.EASE_OUT_CUBIC,      ease_out_cubic, "easeOutCubic" },
-		{ AnimationMode.EASE_IN_OUT_CUBIC,   ease_in_out_cubic, "easeInOutCubic" },
-		{ AnimationMode.EASE_IN_QUART,       ease_in_quart, "easeInQuart" },
-		{ AnimationMode.EASE_OUT_QUART,      ease_out_quart, "easeOutQuart" },
-		{ AnimationMode.EASE_IN_OUT_QUART,   ease_in_out_quart, "easeInOutQuart" },
-		{ AnimationMode.EASE_IN_QUINT,       ease_in_quint, "easeInQuint" },
-		{ AnimationMode.EASE_OUT_QUINT,      ease_out_quint, "easeOutQuint" },
-		{ AnimationMode.EASE_IN_OUT_QUINT,   ease_in_out_quint, "easeInOutQuint" },
-		{ AnimationMode.EASE_IN_SINE,        ease_in_sine, "easeInSine" },
-		{ AnimationMode.EASE_OUT_SINE,       ease_out_sine, "easeOutSine" },
-		{ AnimationMode.EASE_IN_OUT_SINE,    ease_in_out_sine, "easeInOutSine" },
-		{ AnimationMode.EASE_IN_EXPO,        ease_in_expo, "easeInExpo" },
-		{ AnimationMode.EASE_OUT_EXPO,       ease_out_expo, "easeOutExpo" },
-		{ AnimationMode.EASE_IN_OUT_EXPO,    ease_in_out_expo, "easeInOutExpo" },
-		{ AnimationMode.EASE_IN_CIRC,        ease_in_circ, "easeInCirc" },
-		{ AnimationMode.EASE_OUT_CIRC,       ease_out_circ, "easeOutCirc" },
-		{ AnimationMode.EASE_IN_OUT_CIRC,    ease_in_out_circ, "easeInOutCirc" },
-		{ AnimationMode.EASE_IN_ELASTIC,     ease_in_elastic, "easeInElastic" },
-		{ AnimationMode.EASE_OUT_ELASTIC,    ease_out_elastic, "easeOutElastic" },
-		{ AnimationMode.EASE_IN_OUT_ELASTIC, ease_in_out_elastic, "easeInOutElastic" },
-		{ AnimationMode.EASE_IN_BACK,        ease_in_back, "easeInBack" },
-		{ AnimationMode.EASE_OUT_BACK,       ease_out_back, "easeOutBack" },
-		{ AnimationMode.EASE_IN_OUT_BACK,    ease_in_out_back, "easeInOutBack" },
-		{ AnimationMode.EASE_IN_BOUNCE,      ease_in_bounce, "easeInBounce" },
-		{ AnimationMode.EASE_OUT_BOUNCE,     ease_out_bounce, "easeOutBounce" },
-		{ AnimationMode.EASE_IN_OUT_BOUNCE,  ease_in_out_bounce, "easeInOutBounce" },
+		{ AnimationMode.LINEAR,              linear },
+		{ AnimationMode.EASE_IN_QUAD,        ease_in_quad },
+		{ AnimationMode.EASE_OUT_QUAD,       ease_out_quad },
+		{ AnimationMode.EASE_IN_OUT_QUAD,    ease_in_out_quad },
+		{ AnimationMode.EASE_IN_CUBIC,       ease_in_cubic },
+		{ AnimationMode.EASE_OUT_CUBIC,      ease_out_cubic },
+		{ AnimationMode.EASE_IN_OUT_CUBIC,   ease_in_out_cubic },
+		{ AnimationMode.EASE_IN_QUART,       ease_in_quart },
+		{ AnimationMode.EASE_OUT_QUART,      ease_out_quart },
+		{ AnimationMode.EASE_IN_OUT_QUART,   ease_in_out_quart },
+		{ AnimationMode.EASE_IN_QUINT,       ease_in_quint },
+		{ AnimationMode.EASE_OUT_QUINT,      ease_out_quint },
+		{ AnimationMode.EASE_IN_OUT_QUINT,   ease_in_out_quint },
+		{ AnimationMode.EASE_IN_SINE,        ease_in_sine },
+		{ AnimationMode.EASE_OUT_SINE,       ease_out_sine },
+		{ AnimationMode.EASE_IN_OUT_SINE,    ease_in_out_sine },
+		{ AnimationMode.EASE_IN_EXPO,        ease_in_expo },
+		{ AnimationMode.EASE_OUT_EXPO,       ease_out_expo },
+		{ AnimationMode.EASE_IN_OUT_EXPO,    ease_in_out_expo },
+		{ AnimationMode.EASE_IN_CIRC,        ease_in_circ },
+		{ AnimationMode.EASE_OUT_CIRC,       ease_out_circ },
+		{ AnimationMode.EASE_IN_OUT_CIRC,    ease_in_out_circ },
+		{ AnimationMode.EASE_IN_ELASTIC,     ease_in_elastic },
+		{ AnimationMode.EASE_OUT_ELASTIC,    ease_out_elastic },
+		{ AnimationMode.EASE_IN_OUT_ELASTIC, ease_in_out_elastic },
+		{ AnimationMode.EASE_IN_BACK,        ease_in_back },
+		{ AnimationMode.EASE_OUT_BACK,       ease_out_back },
+		{ AnimationMode.EASE_IN_OUT_BACK,    ease_in_out_back },
+		{ AnimationMode.EASE_IN_BOUNCE,      ease_in_bounce },
+		{ AnimationMode.EASE_OUT_BOUNCE,     ease_out_bounce },
+		{ AnimationMode.EASE_IN_OUT_BOUNCE,  ease_in_out_bounce },
 
-		{ AnimationMode.LAST,                null, "sentinel" }
+		{ AnimationMode.LAST,                null }
 	};
-
-	EasingFunc easing_func_for_mode (AnimationMode mode)
-	{
-		AnimationModeMapping* animation = &(ANIMATION_MODES[mode]);
-		
-		assert (animation.mode == mode);
-		assert (animation.func != null);
-		
-		return animation.func;
-	}
-
-	unowned string easing_name_for_mode (AnimationMode mode)
-	{
-		AnimationModeMapping* animation = &(ANIMATION_MODES[mode]);
-		
-		assert (animation.mode == mode);
-		assert (animation.func != null);
-		
-		return animation.name;
-	}
 
 	/**
 	 * Calculate an interpolated value for selected animation-mode, and given

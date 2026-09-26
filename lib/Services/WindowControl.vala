@@ -20,23 +20,6 @@
 
 namespace Plank
 {
-	public enum Struts
-	{
-		LEFT,
-		RIGHT,
-		TOP,
-		BOTTOM,
-		LEFT_START,
-		LEFT_END,
-		RIGHT_START,
-		RIGHT_END,
-		TOP_START,
-		TOP_END,
-		BOTTOM_START,
-		BOTTOM_END,
-		N_VALUES
-	}
-	
 	/**
 	 * Compositor-agnostic facade for window control. Detects the active
 	 * compositor once and forwards neutral operations to the matching backend.

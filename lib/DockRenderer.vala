@@ -50,8 +50,7 @@ namespace Plank
 		/**
 		 * The current local cursor-position on the dock if hovered.
 		 */
-		[CCode (notify = false)]
-		public Gdk.Point local_cursor { get; private set; }
+		public Gdk.Point local_cursor;
 
 		Surface? main_buffer = null;
 		Surface? fade_buffer = null;
@@ -1048,7 +1047,10 @@ namespace Plank
 		Color get_styled_color ()
 		{
 			unowned Gtk.StyleContext context = theme.get_style_context ();
-			var color = (Color) context.get_background_color (context.get_state ());
+			Gdk.RGBA styled_rgba;
+			if (!context.lookup_color ("theme_selected_bg_color", out styled_rgba))
+				context.get (context.get_state (), "background-color", out styled_rgba, null);
+			var color = (Color) styled_rgba;
 			color.set_min_val (90 / (double) uint16.MAX);
 			return color;
 		}

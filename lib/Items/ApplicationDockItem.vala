@@ -130,7 +130,6 @@ namespace Plank
 			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
 			var show_running = (provider == null || provider.Prefs.ShowRunningIndicators);
 			var show_attention = (provider == null || provider.Prefs.ShowAttentionIndicators);
-			var app_id = File.new_for_uri (Launcher).get_basename ();
 			var window_manager = WindowManager.get_default ();
 			var window_count = window_manager.window_count_for_app (Launcher);
 			var running = (window_count > 0 || (scan_process && is_running ()));
@@ -191,40 +190,6 @@ namespace Plank
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{
 			return AnimationType.NONE;
-		}
-		
-		string shorten_window_name (string window_name)
-		{
-			const string[] WINDOW_NAME_PATTERN = { "%s - (.+)", "(.+) - %s", "%s – (.+)", "(.+) – %s", "%s: (.+)" };
-			const string[] APP_NAME_DELIMITER = { " ", "-", "–" };
-			
-			string[] app_strings = null;
-			foreach (unowned string d in APP_NAME_DELIMITER) {
-				app_strings = string_split_combine (Text, d);
-				if (app_strings.length > 1)
-					break;
-			}
-			
-			MatchInfo? m;
-			foreach (unowned string p in WINDOW_NAME_PATTERN) {
-				foreach (unowned string s in app_strings) {
-					if (s.char_count () < 3)
-						continue;
-					
-					try {
-						var r = new Regex ("^%s$".printf (p.printf (s)),
-							RegexCompileFlags.CASELESS | RegexCompileFlags.ANCHORED | RegexCompileFlags.DOLLAR_ENDONLY,
-							RegexMatchFlags.ANCHORED | RegexMatchFlags.NOTEMPTY);
-						r.match (window_name, RegexMatchFlags.ANCHORED | RegexMatchFlags.NOTEMPTY, out m);
-						if (m.matches ())
-							return m.fetch (1);
-					} catch (RegexError e) {
-						warning (e.message);
-					}
-				}
-			}
-			
-			return window_name;
 		}
 		
 		/**

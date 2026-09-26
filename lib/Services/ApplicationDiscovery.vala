@@ -132,20 +132,16 @@ namespace Plank
 		
 		public ApplicationIdentity? identity_for_launcher (string launcher_uri)
 		{
-			try {
-				var file = File.new_for_uri (launcher_uri);
-				if (file.query_exists ()) {
-					var id = file.get_basename ();
-					if (identities.has_key (id))
-						return identities.get (id);
-					var identity = new ApplicationIdentity (file);
-					identities.set (id, identity);
-					return identity;
-				}
-			} catch (Error e) {
-				debug ("Unable to resolve launcher identity '%s': %s", launcher_uri, e.message);
-			}
-			return null;
+			var file = File.new_for_uri (launcher_uri);
+			if (!file.query_exists ())
+				return null;
+
+			var id = file.get_basename ();
+			if (identities.has_key (id))
+				return identities.get (id);
+			var identity = new ApplicationIdentity (file);
+			identities.set (id, identity);
+			return identity;
 		}
 		
 		Gee.ArrayList<File> application_folders ()

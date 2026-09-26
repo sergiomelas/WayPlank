@@ -40,7 +40,6 @@ namespace Plank
 			app_paintable = true;
 			decorated = false;
 			resizable = true;
-			double_buffered = true;
 
 			unowned Gdk.Screen screen = get_screen ();
 			var visual = screen.get_rgba_visual ();

@@ -55,13 +55,6 @@ namespace Plank
 			GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
 			GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
 			GtkLayerShell.set_namespace (this, "wayplank-hover");
-			
-			var display = Gdk.Display.get_default ();
-			if (display != null) {
-				var monitor = display.get_primary_monitor () ?? display.get_monitor (0);
-				if (monitor != null)
-					GtkLayerShell.set_monitor (this, monitor);
-			}
 
 			unowned Gdk.Screen screen = get_screen ();
 			var visual = screen.get_rgba_visual ();
@@ -71,8 +64,8 @@ namespace Plank
 			get_style_context ().add_class (Gtk.STYLE_CLASS_TOOLTIP);
 			
 			box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
-			box.set_margin_left (6);
-			box.set_margin_right (6);
+			box.set_margin_start (6);
+			box.set_margin_end (6);
 			box.set_margin_top (6);
 			box.set_margin_bottom (6);
 			add (box);
@@ -83,8 +76,11 @@ namespace Plank
 			box.pack_start (label, false, false, 0);
 		}
 		
-		public void show_at (int x, int y, Gtk.PositionType position, int dock_thickness)
+		public void show_at (int x, int y, Gtk.PositionType position, int dock_thickness, Gdk.Monitor? monitor)
 		{
+			if (monitor != null)
+				GtkLayerShell.set_monitor (this, monitor);
+
 			show ();
 			
 			Gtk.Requisition requisition;

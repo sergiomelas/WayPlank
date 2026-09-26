@@ -305,11 +305,8 @@ namespace Plank
 			if (script_path == null)
 				return;
 
-			try {
-				FileUtils.remove (script_path);
-			} catch (Error e) {
-				debug ("Unable to remove temporary KWin script: %s", e.message);
-			}
+			if (FileUtils.remove (script_path) != 0)
+				debug ("Unable to remove temporary KWin script '%s'", script_path);
 			script_path = null;
 		}
 

@@ -13,15 +13,15 @@
 ---
 
 ## 📢 ## 📢 Current Status
-Important notice: my contribution is just 10% of the code. all the rest is the original Plank code
-with is look and feel we all love from the original developers of the Docky Core Team.
-But i added some functionality i always wanted in Plank.
-
 I developed the core engine to discover the running apps (because Wayland segregates evriting)
 based on process list matching it with the content of the .desktop files of the user and system. To cope
 with the nightmarish traps that Wayland exposes programmers (because of the legitimate segregation of
 Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0
 the code will be human written or human reviewed.
+
+Important notice: my contribution is just 10% of the code. all the rest is the original Plank code
+with is look and feel we all love from the original developers of the Docky Core Team.
+But i added some functionality i always wanted in Plank
 
 I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some
 functionality will need testing for compositor integration.
@@ -146,22 +146,40 @@ wayplank -d
     This will be Kwin because it is the one I know the best.
   - Full fractional scaling and native Wayland compositor window tracking.
 
-- [x] Phase 4 (Completed) WayPlank is polished and fully works and is optimized for Kwin Alpha
+- [ ] Phase 4 (In Progress): KWin Stabilization and Bug Fixes
+  - Define and implement the HAL architecture to support multiple compositors.
+  - Implement Multi Monitor Support: Verify monitor selection, persistence, and fallback when a display disconnects.
+  - Fix and test reported KWin bugs across hide modes and dock interactions.
   - Stop mass development; receive user feedback and debugging.
-  - Define and implement the architecture to support multiple compositors.
 
-- [ ] Phase 5 (Final): Multi-Compositor Compatibility and Migration
-  - Import and migrate existing Plank configuration, launchers, themes, and pinned items.
-  - Implement compositor backends for KWin, wlroots compositors, and other major Wayland environments.
-  - Provide tested support for compositor families including Sway, Hyprland, Wayfire, Labwc, and GNOME/Mutter where the required protocols are available.
-  - Complete compositor-neutral window discovery, focus, minimize, restore, attention, and geometry behavior.
-  - Improve compatibility with layer-shell, fractional scaling, multi-monitor layouts, and native Wayland drag-and-drop.
-  - Add automated build and runtime tests across supported compositors and distributions.
-  - Finalize documentation, packaging, migration safety, accessibility, and release stability.
+- [ ] Phase 5 (Next): Add Support for Other Compositors
+  - Import existing Plank settings, launchers, themes, and pinned items.
+  - Add and test support for selected wlroots compositors, such as Sway, Hyprland, Wayfire, and Labwc.
+  - Develop Mutter support separately, including the required GNOME Shell bridge and dock integration.
+  - Test the new compositor support and fix compatibility issues.
+
+- [ ] Phase 6 (Final): Publish Version 1.0 and Move to Maintenance
+  - Finish documentation, packaging, and configuration migration.
+  - Publish Version 1.0 with a clear list of supported compositors.
+  - After release, focus on bug fixes and compatibility updates.
 
 ---
 
 # Change log
+
+## V0.4.1: 2026-09-25
+
+KWin multi-monitor fixes:
+- Fixed dock placement not updating after selecting a different monitor.
+- Persisted the selected monitor across restarts.
+- Fixed the bug where tooltips on secondary monitors appeared on the primary monitor.
+- Added a fallback to the primary monitor if the selected monitor is disconnected.
+Core fixes:
+- Deactivated system configuration polling during icon zoom to avoid UI freezes.
+- Adjusted the zoom level to prevent icons from being clipped.
+- Removed leftover X11 code that generated XWayland calls.
+- Removed a ton of deprecated code, fully modernizing the stack.
+- Cleaned most compiler warnings caused by stale and obsolete code.
 
 ## V0.4.0: 2026-09-24
 

@@ -80,7 +80,8 @@ namespace Plank
 						x + w - padding.right - 1, y + padding.top);
 			}
 			
-			unowned Pango.FontDescription font_desc = style.font_desc;
+			Pango.FontDescription font_desc;
+			context.get (state, "font", out font_desc, null);
 			font_desc.set_absolute_size ((int) (h * Pango.SCALE * Pango.Scale.LARGE));
 			font_desc.set_weight (Pango.Weight.BOLD);
 			

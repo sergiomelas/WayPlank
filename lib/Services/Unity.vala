@@ -102,28 +102,6 @@ namespace Plank
 			}
 		}
 
-		/**
-		 * Disconnect DBus connection and release unity busname
-		 */
-		static void release_unity_dbus ()
-		{
-			if (unity_bus_id > 0U) {
-				Bus.unown_name (unity_bus_id);
-				unity_bus_id = 0U;
-			}
-
-			if (connection != null) {
-				try {
-					connection.flush_sync ();
-					connection.close_sync ();
-				} catch (Error e) {
-					warning (e.message);
-				} finally {
-					connection = null;
-				}
-			}
-		}
-
 		static void handle_bus_acquired (DBusConnection conn, string name)
 		{
 			// Nothing here since we just want to provide this bus without any functionality

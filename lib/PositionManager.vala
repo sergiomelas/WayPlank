@@ -54,7 +54,9 @@ namespace Plank
 			screen.size_changed.connect (screen_changed);
 			screen.composited_changed.connect (screen_composited_changed);
 			
-			monitor_geo = screen.get_monitor_workarea (find_monitor_number (screen, controller.prefs.Monitor));
+			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
+			if (monitor != null)
+				monitor_geo = monitor.get_workarea ();
 			
 			screen_is_composited = screen.is_composited ();
 		}
@@ -86,9 +88,10 @@ namespace Plank
 			}
 		}
 		
-		public static string[] get_monitor_plug_names (Gdk.Screen screen)
+		public static string[] get_monitor_plug_names (Gdk.Display display)
 		{
-			int n_monitors = screen.get_n_monitors ();
+			var screen = display.get_default_screen ();
+			int n_monitors = display.get_n_monitors ();
 			var result = new string[n_monitors];
 			
 			for (int i = 0; i < n_monitors; i++)
@@ -97,20 +100,24 @@ namespace Plank
 			return result;
 		}
 		
-		static int find_monitor_number (Gdk.Screen screen, string plug_name)
+		public static Gdk.Monitor? get_monitor_for_plug_name (Gdk.Display display, string plug_name)
 		{
+			var primary = display.get_primary_monitor ();
+			if (primary == null && display.get_n_monitors () > 0)
+				primary = display.get_monitor (0);
 			if (plug_name == "")
-				return screen.get_primary_monitor ();
-			
-			int n_monitors = screen.get_n_monitors ();
+				return primary;
+
+			var screen = display.get_default_screen ();
+			int n_monitors = display.get_n_monitors ();
 			
 			for (int i = 0; i < n_monitors; i++) {
 				var name = screen.get_monitor_plug_name (i) ?? "PLUG_MONITOR_%i".printf (i);
 				if (plug_name == name)
-					return i;
+					return display.get_monitor (i);
 			}
 			
-			return screen.get_primary_monitor ();
+			return primary;
 		}
 		
 		void prefs_monitor_changed ()
@@ -121,8 +128,8 @@ namespace Plank
 		void screen_changed (Gdk.Screen screen)
 		{
 			var old_monitor_geo = monitor_geo;
-			
-			var monitor_geo = screen.get_monitor_workarea (find_monitor_number (screen, controller.prefs.Monitor));
+			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
+			monitor_geo = monitor != null ? monitor.get_workarea () : Gdk.Rectangle ();
 			
 			if (old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
@@ -136,6 +143,7 @@ namespace Plank
 			freeze_notify ();
 			
 			update_dimensions ();
+			controller.window.update_layer_shell_monitor ();
 			update_regions ();
 			
 			thaw_notify ();
@@ -914,14 +922,14 @@ namespace Plank
 			default:
 			case Gtk.PositionType.BOTTOM:
 			case Gtk.PositionType.TOP:
-				int dock_start_x = mon_geo.x + (mon_geo.width - dock_w) / 2;
+				int dock_start_x = (mon_geo.width - dock_w) / 2;
 				x = dock_start_x + rect.x + rect.width / 2;
 				y = visual_thickness;
 				break;
 
 			case Gtk.PositionType.LEFT:
 			case Gtk.PositionType.RIGHT:
-				int dock_start_y = mon_geo.y + (mon_geo.height - dock_h) / 2;
+				int dock_start_y = (mon_geo.height - dock_h) / 2;
 				x = visual_thickness;
 				y = dock_start_y + rect.y + rect.height / 2;
 				break;
@@ -1225,34 +1233,6 @@ namespace Plank
 			}
 			
 			return { x, y, 0, 0 };
-		}
-		
-		public void get_struts (ref ulong[] struts)
-		{
-			window_scale_factor = controller.window.get_window ().get_scale_factor ();
-			switch (Position) {
-			default:
-			case Gtk.PositionType.BOTTOM:
-				struts [Struts.BOTTOM] = (VisibleDockHeight + controller.window.get_screen ().get_height () - monitor_geo.y - monitor_geo.height) * window_scale_factor;
-				struts [Struts.BOTTOM_START] = monitor_geo.x * window_scale_factor;
-				struts [Struts.BOTTOM_END] = (monitor_geo.x + monitor_geo.width) * window_scale_factor - 1;
-				break;
-			case Gtk.PositionType.TOP:
-				struts [Struts.TOP] = (monitor_geo.y + VisibleDockHeight) * window_scale_factor;
-				struts [Struts.TOP_START] = monitor_geo.x * window_scale_factor;
-				struts [Struts.TOP_END] = (monitor_geo.x + monitor_geo.width) * window_scale_factor - 1;
-				break;
-			case Gtk.PositionType.LEFT:
-				struts [Struts.LEFT] = (monitor_geo.x + VisibleDockWidth) * window_scale_factor;
-				struts [Struts.LEFT_START] = monitor_geo.y * window_scale_factor;
-				struts [Struts.LEFT_END] = (monitor_geo.y + monitor_geo.height) * window_scale_factor - 1;
-				break;
-			case Gtk.PositionType.RIGHT:
-				struts [Struts.RIGHT] = (VisibleDockWidth + controller.window.get_screen ().get_width () - monitor_geo.x - monitor_geo.width) * window_scale_factor;
-				struts [Struts.RIGHT_START] = monitor_geo.y * window_scale_factor;
-				struts [Struts.RIGHT_END] = (monitor_geo.y + monitor_geo.height) * window_scale_factor - 1;
-				break;
-			}
 		}
 		
 	}

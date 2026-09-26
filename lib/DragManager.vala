@@ -228,8 +228,8 @@ namespace Plank
 				set_drag_icon (context, DragItem, 0.8);
 			});
 			
-			context.get_device ().grab (window.get_window (), Gdk.GrabOwnership.APPLICATION, true,
-				Gdk.EventMask.ALL_EVENTS_MASK, null, Gtk.get_current_event_time ());
+			context.get_device ().get_seat ().grab (window.get_window (), Gdk.SeatCapabilities.POINTER, true,
+				null, null, null);
 		}
 
 		[CCode (instance_pos = -1)]
@@ -290,13 +290,9 @@ namespace Plank
 			unowned DockItemProvider? provider = window.HoveredItemProvider;
 			bool contains_directory = false;
 			foreach (string uri in drag_data) {
-				try {
-					if (File.new_for_uri (uri).query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
-						contains_directory = true;
-						break;
-					}
-				} catch (Error e) {
-					debug ("Unable to inspect dropped URI '%s': %s", uri, e.message);
+				if (File.new_for_uri (uri).query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
+					contains_directory = true;
+					break;
 				}
 			}
 			
@@ -443,7 +439,7 @@ namespace Plank
 			active_drag_context = null;
 			dropped_on_target = false;
 			left_dock_during_drag = false;
-			context.get_device ().ungrab (Gtk.get_current_event_time ());
+			context.get_device ().get_seat ().ungrab ();
 			
 			controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
 			controller.hover.hide ();

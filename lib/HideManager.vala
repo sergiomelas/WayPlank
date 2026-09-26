@@ -26,7 +26,7 @@ namespace Plank
 	public enum HideType
 	{
 		/**
-		 * The dock does not hide.  It should set struts to reserve space for it.
+		 * The dock remains visible and reserves space through the layer-shell exclusive zone.
 		 */
 		NONE,
 		/**
@@ -163,10 +163,11 @@ namespace Plank
 			unowned DockWindow window = controller.window;
 			
 			// get current mouse pointer location
-			int x, y;
-			
-			window.get_display ().
-				get_device_manager ().get_client_pointer ().get_position (null, out x, out y);
+			int x = 0, y = 0;
+			var seat = window.get_display ().get_default_seat ();
+			var pointer = seat != null ? seat.get_pointer () : null;
+			if (pointer != null)
+				pointer.get_position (null, out x, out y);
 			
 			// get window location
 			var win_rect = position_manager.get_dock_window_region ();

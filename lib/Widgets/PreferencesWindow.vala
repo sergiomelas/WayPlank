@@ -31,62 +31,62 @@ namespace Plank
 		DockPreferences prefs;
 		
 		[GtkChild]
-		Gtk.ComboBoxText cb_theme;
+		unowned Gtk.ComboBoxText cb_theme;
 		[GtkChild]
-		Gtk.ComboBoxText cb_hidemode;
+		unowned Gtk.ComboBoxText cb_hidemode;
 		[GtkChild]
-		Gtk.ComboBoxText cb_display_plug;
+		unowned Gtk.ComboBoxText cb_display_plug;
 		[GtkChild]
-		Gtk.ComboBoxText cb_position;
+		unowned Gtk.ComboBoxText cb_position;
 		[GtkChild]
-		Gtk.ComboBoxText cb_alignment;
+		unowned Gtk.ComboBoxText cb_alignment;
 		[GtkChild]
-		Gtk.ComboBoxText cb_items_alignment;
+		unowned Gtk.ComboBoxText cb_items_alignment;
 		
 		[GtkChild]
-		Gtk.SpinButton sp_hide_delay;
+		unowned Gtk.SpinButton sp_hide_delay;
 		[GtkChild]
-		Gtk.SpinButton sp_unhide_delay;
+		unowned Gtk.SpinButton sp_unhide_delay;
 		[GtkChild]
-		Gtk.Scale s_offset;
+		unowned Gtk.Scale s_offset;
 		[GtkChild]
-		Gtk.Scale s_zoom_percent;
+		unowned Gtk.Scale s_zoom_percent;
 		
 		[GtkChild]
-		Gtk.Adjustment adj_hide_delay;
+		unowned Gtk.Adjustment adj_hide_delay;
 		[GtkChild]
-		Gtk.Adjustment adj_unhide_delay;
+		unowned Gtk.Adjustment adj_unhide_delay;
 		[GtkChild]
-		Gtk.Adjustment adj_iconsize;
+		unowned Gtk.Adjustment adj_iconsize;
 		[GtkChild]
-		Gtk.Adjustment adj_offset;
+		unowned Gtk.Adjustment adj_offset;
 		[GtkChild]
-		Gtk.Adjustment adj_zoom_percent;
+		unowned Gtk.Adjustment adj_zoom_percent;
 		
 		[GtkChild]
-		Gtk.Switch sw_hide;
+		unowned Gtk.Switch sw_hide;
 		[GtkChild]
-		Gtk.Switch sw_primary_display;
+		unowned Gtk.Switch sw_primary_display;
 		[GtkChild]
-		Gtk.Switch sw_workspace_only;
+		unowned Gtk.Switch sw_workspace_only;
 		[GtkChild]
-		Gtk.Switch sw_show_unpinned;
+		unowned Gtk.Switch sw_show_unpinned;
 		[GtkChild]
-		Gtk.Switch sw_lock_items;
+		unowned Gtk.Switch sw_lock_items;
 		[GtkChild]
-		Gtk.Switch sw_pressure_reveal;
+		unowned Gtk.Switch sw_pressure_reveal;
 		[GtkChild]
-		Gtk.Switch sw_zoom_enabled;
+		unowned Gtk.Switch sw_zoom_enabled;
 		[GtkChild]
-		Gtk.Switch sw_autostart;
+		unowned Gtk.Switch sw_autostart;
 		[GtkChild]
-		Gtk.ComboBoxText cb_window_click_behavior;
+		unowned Gtk.ComboBoxText cb_window_click_behavior;
 		[GtkChild]
-		Gtk.Switch sw_restore_minimized;
+		unowned Gtk.Switch sw_restore_minimized;
 		[GtkChild]
-		Gtk.Switch sw_show_running_indicators;
+		unowned Gtk.Switch sw_show_running_indicators;
 		[GtkChild]
-		Gtk.Switch sw_show_attention_indicators;
+		unowned Gtk.Switch sw_show_attention_indicators;
 		
 		Gtk.CssProvider popup_css;
 		Gdk.Screen popup_css_screen;
@@ -106,7 +106,11 @@ namespace Plank
 			set_keep_above (true);
 			set_focus_on_map (true);
 			popup_css = new Gtk.CssProvider ();
-			popup_css.load_from_data ("menu > arrow.top, menu > arrow.bottom { min-height: 0; min-width: 0; padding: 0; border-width: 0; -gtk-icon-source: none; }");
+			try {
+				popup_css.load_from_data ("menu > arrow.top, menu > arrow.bottom { min-height: 0; min-width: 0; padding: 0; border-width: 0; -gtk-icon-source: none; }");
+			} catch (GLib.Error e) {
+				warning ("Unable to load preferences menu CSS: %s", e.message);
+			}
 			popup_css_screen = get_screen ();
 			Gtk.StyleContext.add_provider_for_screen (popup_css_screen, popup_css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 			
@@ -199,7 +203,7 @@ namespace Plank
 				break;
 			case "Monitor":
 				var pos = 0;
-				foreach (unowned string plug_name in Plank.PositionManager.get_monitor_plug_names (get_screen ())) {
+				foreach (unowned string plug_name in Plank.PositionManager.get_monitor_plug_names (get_display ())) {
 					if (plug_name == prefs.Monitor)
 						cb_display_plug.set_active (pos);
 					pos++;
@@ -518,7 +522,7 @@ namespace Plank
 
 			pos = 0;
 			cb_display_plug.remove_all ();
-			foreach (unowned string plug_name in Plank.PositionManager.get_monitor_plug_names (get_screen ())) {
+			foreach (unowned string plug_name in Plank.PositionManager.get_monitor_plug_names (get_display ())) {
 				cb_display_plug.append ("%i".printf (pos), plug_name);
 				if (plug_name == prefs.Monitor)
 					cb_display_plug.set_active (pos);

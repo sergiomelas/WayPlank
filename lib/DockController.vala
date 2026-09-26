@@ -144,6 +144,7 @@ namespace Plank
 			drag_manager.initialize ();
 			hide_manager.initialize ();
 			renderer.initialize ();
+			hide_manager.refresh_visibility ();
 
 			// Update the calculated dimensions and map the window on Wayland
 			position_manager.update (renderer.theme);
@@ -229,7 +230,6 @@ namespace Plank
 			
 			unowned ApplicationDockItemProvider? app_provider = (provider as ApplicationDockItemProvider);
 			if (app_provider != null) {
-				app_provider.item_window_added.connect (window.update_icon_region);
 				Unity.get_default ().add_client (app_provider);
 			}
 		}
@@ -246,7 +246,6 @@ namespace Plank
 			
 			unowned ApplicationDockItemProvider? app_provider = (provider as ApplicationDockItemProvider);
 			if (app_provider != null) {
-				app_provider.item_window_added.disconnect (window.update_icon_region);
 				Unity.get_default ().remove_client (app_provider);
 			}
 		}

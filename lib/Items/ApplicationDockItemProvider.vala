@@ -4,13 +4,24 @@
 //
 //  This file is part of Wayplank.
 //
+//  Wayplank is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  Wayplank is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 
 namespace Plank
 {
 	public class ApplicationDockItemProvider : DockItemProvider, UnityClient
 	{
-		public signal void item_window_added (ApplicationDockItem item);
-
 		public File LaunchersDir { get; construct; }
 
 		FileMonitor? items_monitor = null;
@@ -29,6 +40,7 @@ namespace Plank
 
 			Matcher.get_default ().application_opened.connect (app_opened);
 			Matcher.get_default ().application_closed.connect (app_closed);
+			ApplicationDiscovery.get_default ().changed.connect (sync_compositor_windows);
 
 			try {
 				items_monitor = LaunchersDir.monitor_directory (0);
@@ -42,6 +54,7 @@ namespace Plank
 		{
 			queued_files = null;
 			Matcher.get_default ().application_opened.disconnect (app_opened);
+			ApplicationDiscovery.get_default ().changed.disconnect (sync_compositor_windows);
 
 			if (items_monitor != null) {
 				items_monitor.changed.disconnect (handle_items_dir_changed);
@@ -115,6 +128,7 @@ namespace Plank
 
 		public override void prepare ()
 		{
+			sync_compositor_windows ();
 			foreach (var app_id in Matcher.get_default ().active_launchers ()) {
 				unowned ApplicationDockItem? found = item_for_application_id (app_id);
 				if (found == null) {
@@ -125,6 +139,33 @@ namespace Plank
 						add (new_item);
 					}
 				}
+			}
+		}
+
+		void sync_compositor_windows ()
+		{
+			var active_ids = ApplicationDiscovery.get_default ().active_launcher_ids ();
+			if (active_ids.length == 0)
+				return;
+			var active = new Gee.HashSet<string> ();
+			foreach (var app_id in active_ids)
+				active.add (ApplicationIdentity.normalize (app_id));
+
+			foreach (var app_id in active) {
+				if (item_for_application_id (app_id) != null)
+					continue;
+				var desktop_file = ApplicationDiscovery.get_default ().desktop_file_for_id (app_id);
+				if (desktop_file != null)
+					add (new TransientDockItem.with_launcher (desktop_file.get_uri ())); 
+			}
+
+			foreach (var element in internal_elements.to_array ()) {
+				unowned TransientDockItem? transient = (element as TransientDockItem);
+				if (transient == null)
+					continue;
+				var launcher_id = ApplicationIdentity.normalize (File.new_for_uri (transient.Launcher).get_basename ());
+				if (!active.contains (launcher_id))
+					remove (transient);
 			}
 		}
 

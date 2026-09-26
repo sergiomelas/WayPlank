@@ -83,7 +83,7 @@ namespace Plank
 			box.pack_start (label, false, false, 0);
 		}
 		
-		public void show_at (int x, int y, Gtk.PositionType position)
+		public void show_at (int x, int y, Gtk.PositionType position, int dock_thickness)
 		{
 			show ();
 			
@@ -92,7 +92,11 @@ namespace Plank
 			var width = requisition.width > 0 ? requisition.width : get_allocated_width ();
 			var height = requisition.height > 0 ? requisition.height : get_allocated_height ();
 
-			const int GAP = 4;
+			var edge_margin = dock_thickness + GAP;
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
 
 			switch (position) {
 			case Gtk.PositionType.BOTTOM:
@@ -101,7 +105,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 				
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, edge_margin);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, x - width / 2);
 				break;
 
@@ -111,7 +115,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 				
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, edge_margin);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, x - width / 2);
 				break;
 
@@ -121,7 +125,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 				
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, edge_margin);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, y - height / 2);
 				break;
 
@@ -131,7 +135,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 				
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, GAP);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, edge_margin);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, y - height / 2);
 				break;
 			}

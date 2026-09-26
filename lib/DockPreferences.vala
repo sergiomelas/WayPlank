@@ -29,10 +29,22 @@ namespace Plank
 		public const int MAX_ICON_SIZE = 128;
 		
 		public const int MIN_ICON_ZOOM = 100;
-		public const int MAX_ICON_ZOOM = 200;
+		public const int MAX_ICON_ZOOM = 300;
 		
 		[Description(nick = "current-workspace-only", blurb = "Whether to show only windows of the current workspace.")]
 		public bool CurrentWorkspaceOnly { get; set; }
+
+		[Description(nick = "window-click-behavior", blurb = "How clicking a running application selects its windows: 0 smart, 1 focus, 2 cycle.")]
+		public int WindowClickBehavior { get; set; }
+
+		[Description(nick = "restore-minimized-windows", blurb = "Whether window cycling restores minimized windows when needed.")]
+		public bool RestoreMinimizedWindows { get; set; }
+
+		[Description(nick = "show-running-indicators", blurb = "Whether application icons show running-window indicators.")]
+		public bool ShowRunningIndicators { get; set; }
+
+		[Description(nick = "show-attention-indicators", blurb = "Whether application icons show attention indicators.")]
+		public bool ShowAttentionIndicators { get; set; }
 		
 		[Description(nick = "icon-size", blurb = "The size of dock icons (in pixels).")]
 		public int IconSize { get; set; }

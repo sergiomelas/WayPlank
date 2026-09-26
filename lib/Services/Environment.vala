@@ -108,7 +108,6 @@ namespace Plank
 	{
 		UNSPECIFIED,
 		TTY,
-		X11,
 		WAYLAND,
 		MIR;
 		
@@ -120,7 +119,6 @@ namespace Plank
 			default:
 			case "unspecified": result = XdgSessionType.UNSPECIFIED; break;
 			case "tty": result = XdgSessionType.TTY; break;
-			case "x11": result = XdgSessionType.X11; break;
 			case "wayland": result = XdgSessionType.WAYLAND; break;
 			case "mir": result = XdgSessionType.MIR; break;
 			}
@@ -132,7 +130,7 @@ namespace Plank
 	static XdgSessionClass session_class;
 	static XdgSessionDesktop session_desktop;
 	static XdgSessionType session_type;
-	
+
 	public static void environment_initialize ()
 	{
 		session_class = get_xdg_session_class ();
@@ -195,9 +193,6 @@ namespace Plank
 			return XdgSessionType.from_string (result);
 		
 		warning ("XDG_SESSION_TYPE not set in this environment!");
-		
-		if (Gdk.Screen.get_default () is Gdk.X11.Screen)
-			return XdgSessionType.X11;
 		
 		error ("XdgSessionType could not be determined!");
 	}

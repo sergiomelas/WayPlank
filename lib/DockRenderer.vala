@@ -440,6 +440,8 @@ namespace Plank
 #endif
 			}
 			
+			update_separator_colors ();
+			
 			// draw items-shadow-layer
 			main_cr.set_source_surface (shadow_buffer.Internal, x_offset, y_offset);
 			main_cr.paint ();
@@ -503,6 +505,40 @@ namespace Plank
 				});
 				
 				is_first_frame = false;
+			}
+		}
+		
+		/**
+		 * Updates the color of any real SeparatorDockItem present, based on how
+		 * the dock background actually renders (only touches the item's cache
+		 * when the color actually changed, to avoid needless redraw churn).
+		 */
+		Color? last_separator_color = null;
+		
+		void update_separator_colors ()
+		{
+			var reference = (background_buffer != null ? background_buffer.average_color () : theme.FillEndColor);
+			var luminance = 0.299 * reference.red + 0.587 * reference.green + 0.114 * reference.blue;
+			var is_light = (reference.alpha < 0.35 || luminance > 0.5);
+			var alpha = (is_light ? 0.42 : 0.58);
+			
+			var color = (is_light
+				? Color () { red = 0.0, green = 0.0, blue = 0.0, alpha = alpha }
+				: Color () { red = 1.0, green = 1.0, blue = 1.0, alpha = alpha });
+			
+			if (last_separator_color != null
+				&& last_separator_color.red == color.red
+				&& last_separator_color.green == color.green
+				&& last_separator_color.blue == color.blue
+				&& last_separator_color.alpha == color.alpha)
+				return;
+			
+			last_separator_color = color;
+			
+			foreach (unowned DockItem item in current_items) {
+				unowned SeparatorDockItem? sep = (item as SeparatorDockItem);
+				if (sep != null)
+					sep.BarColor = color;
 			}
 		}
 		
@@ -764,6 +800,9 @@ namespace Plank
 		void draw_item (Cairo.Context cr, DockItem item, DockItemDrawValue draw_value, int64 frame_time)
 		{
 			unowned PositionManager position_manager = controller.position_manager;
+			unowned SeparatorDockItem? separator = (item as SeparatorDockItem);
+			if (separator != null)
+				separator.set_horizontal_orientation (position_manager.is_horizontal_dock ());
 			var icon_size = (int) draw_value.icon_size * window_scale_factor;
 			var position = position_manager.Position;
 			
@@ -1026,12 +1065,8 @@ namespace Plank
 			else
 				last_hide = now;
 			
-			if (!screen_is_composited) {
-				controller.position_manager.update_dock_position ();
-				controller.window.update_size_and_position ();
-				return;
-			}
-			
+			controller.position_manager.update_dock_position ();
+			controller.window.update_size_and_position ();
 			controller.window.update_icon_regions ();
 			
 			animated_draw ();

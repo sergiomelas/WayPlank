@@ -44,21 +44,6 @@ namespace Plank
 		 */
 		public signal void pin_launcher ();
 		
-		/**
-		 * Signal fired when the application associated with this item closes.
-		 */
-		public signal void app_closed ();
-		
-		/**
-		 * Signal fired when the application associated with this item opened a new window.
-		 */
-		public signal void app_window_added ();
-		
-		/**
-		 * Signal fired when the application associated with this item closed a window.
-		 */
-		public signal void app_window_removed ();
-		
 #if HAVE_DBUSMENU
 		/**
 		 * The dock item's quicklist-dbusmenu.
@@ -66,47 +51,10 @@ namespace Plank
 		DbusmenuGtk.Client? Quicklist { get; set; default = null; }
 #endif
 		
-		Bamf.Application? app = null;
-		public Bamf.Application? App {
-			internal get {
-				// Nasty hack for libreoffice as workarround
-				// closing libreoffice results in destroying its Bamf.Application object
-				// and creating a new object which renders our reference useless
-				// https://bugs.launchpad.net/bamf/+bug/1026426
-				// https://github.com/sergiomelas/wayplank/issues/+bug/1029555
-				warn_if_fail (app == null || (app is Bamf.Application));
-				if (app != null && !(app is Bamf.Application))
-					app = null;
-				
-				return app;
-			}
-			internal construct set {
-				if (app == value)
-					return;
-				
-				if (app != null)
-					app_signals_disconnect (app);
-				
-				app = value;
-				
-				if (app != null) {
-					app_signals_connect (app);
-					initialize_states ();
-					if (app.is_running () && app.is_user_visible ())
-						app_window_added ();
-				} else {
-					reset_application_status ();
-				}
-				
-				unity_update_application_uri ();
-			}
-		}
-		
 		Gee.ArrayList<string> supported_mime_types;
 		Gee.ArrayList<string> actions;
 		Gee.HashMap<string, string> actions_map;
 		
-		string? unity_application_uri = null;
 		string? unity_dbusname = null;
 		
 		/**
@@ -130,6 +78,8 @@ namespace Plank
 			supported_mime_types = new Gee.ArrayList<string> ();
 			actions = new Gee.ArrayList<string> ();
 			actions_map = new Gee.HashMap<string, string> ();
+			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
+			WindowControl.get_default ().state_changed.connect (handle_window_state_changed);
 			
 			load_from_launcher ();
 		}
@@ -140,174 +90,60 @@ namespace Plank
 			actions = null;
 			actions_map = null;
 			
-			App = null;
+			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
+			WindowControl.get_default ().state_changed.disconnect (handle_window_state_changed);
 #if HAVE_DBUSMENU
 			Quicklist = null;
 #endif
 		}
 		
-		void app_signals_connect (Bamf.Application app)
-		{
-			app.active_changed.connect_after (handle_active_changed);
-			app.name_changed.connect_after (handle_name_changed);
-			app.running_changed.connect_after (handle_running_changed);
-			app.urgent_changed.connect_after (handle_urgent_changed);
-			app.user_visible_changed.connect_after (handle_user_visible_changed);
-			app.child_added.connect_after (handle_window_added);
-			app.child_removed.connect_after (handle_window_removed);
-			app.closed.connect_after (handle_closed);
-		}
-		
-		void app_signals_disconnect (Bamf.Application app)
-		{
-			app.active_changed.disconnect (handle_active_changed);
-			app.name_changed.disconnect (handle_name_changed);
-			app.running_changed.disconnect (handle_running_changed);
-			app.urgent_changed.disconnect (handle_urgent_changed);
-			app.user_visible_changed.disconnect (handle_user_visible_changed);
-			app.child_added.disconnect (handle_window_added);
-			app.child_removed.disconnect (handle_window_removed);
-			app.closed.disconnect (handle_closed);
-		}
-		
-		void initialize_states ()
-			requires (App != null)
-		{
-			handle_active_changed (App.is_active ());
-			handle_urgent_changed (App.is_urgent ());
-			
-			update_indicator ();
-		}
-		
 		public bool is_running ()
 		{
-			return (App != null && App.is_running ());
+			return Matcher.get_default ().is_launcher_running (Launcher);
 		}
 		
 		public bool is_window ()
 		{
-			if (App == null)
-				return false;
-			
-			unowned string? desktop_file = App.get_desktop_file ();
-			return (desktop_file == null || desktop_file == "");
+			return false;
 		}
-		
-		void handle_user_visible_changed (bool user_visible)
+
+		void handle_processes_changed ()
 		{
-			if (user_visible)
-				app_window_added ();
-			else
-				app_window_removed ();
+			update_indicator (true);
 		}
-		
-		void handle_closed ()
+
+		void handle_window_state_changed ()
 		{
-			App = null;
-			
-			app_closed ();
+			update_indicator (false);
 		}
-		
-		void handle_active_changed (bool is_active)
-		{
-			var was_active = (State & ItemState.ACTIVE) == ItemState.ACTIVE;
-			
-			if (is_active && !was_active) {
-				LastActive = GLib.get_monotonic_time ();
-				State |= ItemState.ACTIVE;
-			} else if (!is_active && was_active) {
-				LastActive = GLib.get_monotonic_time ();
-				State &= ~ItemState.ACTIVE;
-			}
-		}
-		
-		void handle_name_changed (string old_name, string new_name)
-		{
-			// do nothing if name and icon are coming from the desktop-file
-			if (this is TransientDockItem)
-				Text = new_name;
-		}
-		
-		void handle_running_changed (bool is_running)
-		{
-			if (!is_running) {
-				reset_application_status ();
-				return;
-			}
-			
-			update_indicator ();
-			
-			app_window_added ();
-		}
-		
+
 		public void set_urgent (bool is_urgent)
 		{
-			handle_urgent_changed (is_urgent);
-		}
-		
-		void handle_urgent_changed (bool is_urgent)
-		{
-			var was_urgent = (State & ItemState.URGENT) == ItemState.URGENT;
-			
-			if (is_urgent && !was_urgent) {
-				LastUrgent = GLib.get_monotonic_time ();
+			if (is_urgent)
 				State |= ItemState.URGENT;
-			} else if (!is_urgent && was_urgent) {
+			else
 				State &= ~ItemState.URGENT;
-			}
 		}
 		
-		void handle_window_added (Bamf.View? child)
+		void update_indicator (bool scan_process)
 		{
-			if (!(child is Bamf.Window))
-				return;
+			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
+			var show_running = (provider == null || provider.Prefs.ShowRunningIndicators);
+			var show_attention = (provider == null || provider.Prefs.ShowAttentionIndicators);
+			var app_id = File.new_for_uri (Launcher).get_basename ();
+			var window_manager = WindowManager.get_default ();
+			var window_count = window_manager.window_count_for_app (Launcher);
+			var running = (window_count > 0 || (scan_process && is_running ()));
 			
-			update_indicator ();
-			
-			app_window_added ();
-		}
-		
-		void handle_window_removed (Bamf.View? child)
-		{
-			if (!(child is Bamf.Window))
-				return;
-			
-			update_indicator ();
-			
-			app_window_removed ();
-		}
-		
-		void update_indicator ()
-		{
-			//FIXME Do not be silly if the application is running
-			//  we must indicate it, same goes for the opposite.
-			
-			var is_running = is_running ();
-			
-			if (!is_running) {
-				if (Indicator != IndicatorState.NONE)
-					Indicator = IndicatorState.NONE;
-				return;
-			}
-			
-			var window_count = App.get_windows ().length ();
-			
-			if (window_count <= 1) {
-				if (Indicator != IndicatorState.SINGLE)
-					Indicator = IndicatorState.SINGLE;
-			} else {
-				if (Indicator != IndicatorState.SINGLE_PLUS)
-					Indicator = IndicatorState.SINGLE_PLUS;
-			}
-		}
-		
-		inline void reset_application_status ()
-		{
-			handle_urgent_changed (false);
-			handle_active_changed (false);
-			
-			if (Indicator != IndicatorState.NONE)
+			if (!show_running || !running)
 				Indicator = IndicatorState.NONE;
+			else
+				Indicator = (window_count > 1 ? IndicatorState.SINGLE_PLUS : IndicatorState.SINGLE);
+			
+			if (show_attention && window_manager.app_demands_attention (Launcher))
+				set_urgent (true);
+			else if ((State & ItemState.URGENT) != 0)
+				set_urgent (false);
 		}
 		
 		void launch ()
@@ -320,17 +156,30 @@ namespace Plank
 		 */
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
-			if (!is_window ())
-				if (button == PopupButton.MIDDLE
-					|| (button == PopupButton.LEFT && (App == null || App.get_windows ().length () == 0
-					|| (mod & Gdk.ModifierType.CONTROL_MASK) == Gdk.ModifierType.CONTROL_MASK))) {
+			if (button == PopupButton.MIDDLE
+				|| (button == PopupButton.LEFT && (mod & Gdk.ModifierType.CONTROL_MASK) != 0)) {
+					message ("Wayplank: click on '%s' -> launching new instance (is_running=%s)", Text, is_running ().to_string ());
 					launch ();
 					return AnimationType.BOUNCE;
 				}
 			
-			if (button == PopupButton.LEFT && App != null && App.get_windows ().length () > 0) {
-				WindowControl.smart_focus (App, event_time);
-				return AnimationType.DARKEN;
+			if (button == PopupButton.LEFT) {
+				var app_id = File.new_for_uri (Launcher).get_basename ();
+				unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
+				var click_behavior = (provider != null ? provider.Prefs.WindowClickBehavior : 0);
+				var restore_minimized = (provider == null || provider.Prefs.RestoreMinimizedWindows);
+				string? uuid;
+				string action;
+				if (WindowManager.get_default ().resolve_click_command (Launcher, click_behavior, restore_minimized, out uuid, out action)) {
+					message ("Wayplank: click on '%s' (app_id=%s) -> uuid=%s action=%s", Text, app_id, uuid, action);
+					WindowControl.queue_command (uuid, action);
+					return AnimationType.BOUNCE;
+				}
+				if (!is_running ()) {
+					message ("Wayplank: click on '%s' -> no matching window, launching new instance", Text);
+					launch ();
+					return AnimationType.BOUNCE;
+				}
 			}
 			
 			return AnimationType.NONE;
@@ -341,20 +190,7 @@ namespace Plank
 		 */
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{
-			if (App == null || App.get_windows ().length () == 0)
-				return AnimationType.NONE;
-			
-			if (GLib.get_monotonic_time () - LastScrolled < ITEM_SCROLL_DURATION * 1000)
-				return AnimationType.DARKEN;
-			
-			LastScrolled = GLib.get_monotonic_time ();
-			
-			if (direction == Gdk.ScrollDirection.UP || direction == Gdk.ScrollDirection.LEFT)
-				WindowControl.focus_previous (App, event_time);
-			else
-				WindowControl.focus_next (App, event_time);
-			
-			return AnimationType.DARKEN;
+			return AnimationType.NONE;
 		}
 		
 		string shorten_window_name (string window_name)
@@ -398,14 +234,6 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 			
-			GLib.List<unowned Bamf.View>? windows = null;
-			if (App != null)
-				windows = App.get_windows ();
-			
-			var window_count = 0U;
-			if (windows != null)
-				window_count = windows.length ();
-			
 			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems
@@ -413,13 +241,6 @@ namespace Plank
 				var item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
 				item.active = !(this is TransientDockItem);
 				item.activate.connect (() => pin_launcher ());
-				items.add (item);
-			}
-			
-			var event_time = Gtk.get_current_event_time ();
-			if (is_running () && window_count > 0) {
-				var item = create_menu_item ((window_count > 1 ? _("_Close All") : _("_Close")), "window-close-symbolic;;window-close");
-				item.activate.connect (() => WindowControl.close_all (App, event_time));
 				items.add (item);
 			}
 			
@@ -451,34 +272,6 @@ namespace Plank
 						} catch { }
 					});
 					items.add (item);
-				}
-			}
-			
-			if (is_running () && window_count > 1) {
-				if (items.size > 0)
-					items.add (new Gtk.SeparatorMenuItem ());
-				
-				foreach (var view in windows) {
-					unowned Bamf.Window? window = (view as Bamf.Window);
-					if (window == null || window.get_transient () != null)
-						continue;
-					
-					Gtk.MenuItem window_item;
-					var pbuf = WindowControl.get_window_icon (window);
-					var window_name = window.get_name ();
-					window_name = shorten_window_name (window_name);
-					
-					if (pbuf != null)
-						window_item = create_literal_menu_item_with_pixbuf (window_name, pbuf);
-					else 
-						window_item = create_literal_menu_item (window_name, Icon);
-					
-					if (window.is_active ())
-						window_item.set_sensitive (false);
-					else
-						window_item.activate.connect (() => WindowControl.focus_window (window, event_time));
-					
-					items.add (window_item);
 				}
 			}
 			
@@ -551,8 +344,6 @@ namespace Plank
 		{
 			if (Prefs.Launcher == "")
 				return;
-			
-			unity_update_application_uri ();
 			
 			string icon, text;
 			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types);
@@ -710,31 +501,6 @@ namespace Plank
 			}
 		}
 		
-		
-		void unity_update_application_uri ()
-		{
-			unity_application_uri = null;
-			
-			unowned string? desktop_file = (App != null ? App.get_desktop_file () : Launcher);
-			if (desktop_file == null || desktop_file == "")
-				return;
-			
-			var p = desktop_file.split ("/");
-			if (p.length == 0)
-				return;
-			
-			unity_application_uri = "application://%s".printf (p[p.length - 1]);
-		}
-		
-		/**
-		 * Get libunity application URI
-		 *
-		 * @return the libunity application uri of this item, or NULL
-		 */
-		public unowned string? get_unity_application_uri ()
-		{
-			return unity_application_uri;
-		}
 		
 		/**
 		 * Get current libunity dbusname

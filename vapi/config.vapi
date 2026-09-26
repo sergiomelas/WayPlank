@@ -22,7 +22,6 @@
 namespace Build {
     public const string DATADIR;
     public const string PKGDATADIR;
-    public const string DOCKLETSDIR;
     public const string RELEASE_NAME;
     public const string VERSION;
     public const string VERSION_INFO;

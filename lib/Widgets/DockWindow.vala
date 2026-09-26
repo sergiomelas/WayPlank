@@ -81,6 +81,7 @@ namespace Plank
 			GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
 			GtkLayerShell.set_namespace (this, "wayplank");
 			GtkLayerShell.auto_exclusive_zone_enable (this);
+			update_exclusive_zone ();
 
 			// Attach to the primary monitor output
 			var display = Gdk.Display.get_default ();
@@ -98,6 +99,7 @@ namespace Plank
 				update_layer_shell_anchors ();
 				update_size_and_position ();
 			});
+			controller.prefs.notify["HideMode"].connect (update_exclusive_zone);
 
 			// Native RGBA visual setup for Wayland transparency
 			var visual = get_screen ().get_rgba_visual ();
@@ -118,8 +120,22 @@ namespace Plank
 						Gdk.EventMask.STRUCTURE_MASK);
 		}
 
+		void update_exclusive_zone ()
+		{
+			var mode = controller.prefs.HideMode;
+			if (mode == HideType.WINDOW_DODGE
+				|| mode == HideType.DODGE_ACTIVE
+				|| mode == HideType.DODGE_MAXIMIZED
+				|| mode == HideType.INTELLIGENT)
+				GtkLayerShell.set_exclusive_zone (this, 0);
+			else
+				GtkLayerShell.auto_exclusive_zone_enable (this);
+		}
+
 		~DockWindow ()
 		{
+			controller.prefs.notify["HideMode"].disconnect (update_exclusive_zone);
+
 			if (menu != null) {
 				menu.show.disconnect (on_menu_show);
 				menu.hide.disconnect (on_menu_hide);
@@ -382,6 +398,7 @@ namespace Plank
 			controller.hover.hide ();
 
 			if (HoveredItem == null
+				|| HoveredItem is SeparatorDockItem
 				|| !controller.prefs.TooltipsEnabled
 				|| controller.drag_manager.InternalDragActive)
 				return;
@@ -398,7 +415,10 @@ namespace Plank
 				int x, y;
 				hover.set_text (HoveredItem.Text);
 				controller.position_manager.get_hover_position (HoveredItem, out x, out y);
-				hover.show_at (x, y, controller.position_manager.Position);
+				var dock_region = controller.position_manager.get_dock_window_region ();
+				var dock_thickness = controller.position_manager.is_horizontal_dock ()
+					? dock_region.height : dock_region.width;
+				hover.show_at (x, y, controller.position_manager.Position, dock_thickness);
 
 				if (menu_is_visible ())
 					hover.hide ();
@@ -518,29 +538,11 @@ namespace Plank
 		public void update_icon_regions ()
 		{
 			Logger.verbose ("DockWindow.update_icon_regions ()");
-
-			var use_hidden_region = (menu_is_visible () || controller.hide_manager.Hidden);
-
-			foreach (var item in controller.VisibleItems) {
-				unowned ApplicationDockItem? appitem = (item as ApplicationDockItem);
-				if (appitem == null || !appitem.is_running ())
-					continue;
-
-				var region = controller.position_manager.get_icon_geometry (appitem, use_hidden_region);
-				WindowControl.update_icon_regions (appitem.App, region);
-			}
 		}
 
 		public void update_icon_region (ApplicationDockItem appitem)
 		{
-			if (!appitem.is_running ())
-				return;
-
 			Logger.verbose ("DockWindow.update_icon_region ('%s')", appitem.Text);
-
-			var use_hidden_region = (menu_is_visible () || controller.hide_manager.Hidden);
-			var region = controller.position_manager.get_icon_geometry (appitem, use_hidden_region);
-			WindowControl.update_icon_regions (appitem.App, region);
 		}
 
 		public bool menu_is_visible ()
@@ -605,7 +607,7 @@ namespace Plank
 				} while (iterator.next ());
 			}
 
-			menu.popup (null, null, position_func, event.button, event.time);
+			menu.popup_at_pointer (event);
 
 			return true;
 		}
@@ -704,9 +706,19 @@ namespace Plank
 			if (window == null)
 				return;
 
-			// On Wayland with gtk-layer-shell, enable the entire window area
-			// without restrictive masks so the rendering engine can calculate zoom freely.
-			window.input_shape_combine_region (null, 0, 0);
+			var cursor_region = controller.position_manager.get_cursor_region ();
+			if (cursor_region.width <= 0 || cursor_region.height <= 0) {
+				window.input_shape_combine_region (null, 0, 0);
+				return;
+			}
+
+			Cairo.RectangleInt region_rect = {
+				cursor_region.x,
+				cursor_region.y,
+				cursor_region.width,
+				cursor_region.height
+			};
+			window.input_shape_combine_region (new Cairo.Region.rectangle (region_rect), 0, 0);
 		}
 
 		void set_struts ()

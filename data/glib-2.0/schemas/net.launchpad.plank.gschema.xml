@@ -102,6 +102,27 @@
 			<summary>The position for the dock on the monitor</summary>
 			<description>Possible values are "left", "right", "top", and "bottom".</description>
 		</key>
+		<key name="window-click-behavior" type="i">
+			<range min="0" max="2"/>
+			<default>0</default>
+			<summary>Window click behavior</summary>
+			<description>0 smart, 1 focus, 2 cycle.</description>
+		</key>
+		<key name="restore-minimized-windows" type="b">
+			<default>true</default>
+			<summary>Restore minimized windows</summary>
+			<description>Restore minimized windows when cycling application windows.</description>
+		</key>
+		<key name="show-running-indicators" type="b">
+			<default>true</default>
+			<summary>Show running indicators</summary>
+			<description>Show one or two indicators for running application windows.</description>
+		</key>
+		<key name="show-attention-indicators" type="b">
+			<default>true</default>
+			<summary>Show attention indicators</summary>
+			<description>Show urgent application attention indicators.</description>
+		</key>
 		<key name="pressure-reveal" type="b">
 			<default>false</default>
 			<summary>Pressure Reveal</summary>
@@ -134,7 +155,7 @@
 			<description>If true, zoom dock items when hovered with the cursor.</description>
 		</key>
 		<key name="zoom-percent" type="i">
-			<range min="100" max="200"/>
+			<range min="100" max="300"/>
 			<default>150</default>
 			<summary>Icon zoom percentage</summary>
 			<description>The amount to zoom dock items, in percent.</description>

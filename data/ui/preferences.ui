@@ -44,7 +44,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
   </object>
   <object class="GtkAdjustment" id="adj_zoom_percent">
     <property name="lower">100</property>
-    <property name="upper">200</property>
+    <property name="upper">300</property>
     <property name="value">150</property>
     <property name="step_increment">5</property>
     <property name="page_increment">10</property>
@@ -530,6 +530,30 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="l_autostart">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Start on Login:</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_autostart">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">6</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel" id="l_lock_items">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -588,22 +612,115 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkScrolledWindow" id="sw_docklets">
+          <object class="GtkGrid" id="grid_windows">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="hscrollbar_policy">never</property>
+            <property name="can_focus">False</property>
+            <property name="valign">start</property>
+            <property name="margin_left">16</property>
+            <property name="margin_right">16</property>
+            <property name="margin_top">16</property>
+            <property name="margin_bottom">16</property>
+            <property name="row_spacing">8</property>
+            <property name="column_spacing">12</property>
             <child>
-              <object class="GtkIconView" id="view_docklets">
+              <object class="GtkLabel" id="l_activation">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="margin">6</property>
-                <property name="columns">3</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Activation</property>
+                <attributes><attribute name="weight" value="bold"/></attributes>
               </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">0</property><property name="width">4</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_window_click_behavior">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Click Behavior:</property>
+              </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">1</property></packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="cb_window_click_behavior">
+                <property name="visible">True</property>
+                <property name="hexpand">True</property>
+                <items>
+                  <item id="0" translatable="yes">Smart</item>
+                  <item id="1" translatable="yes">Focus</item>
+                  <item id="2" translatable="yes">Cycle</item>
+                </items>
+              </object>
+              <packing><property name="left_attach">1</property><property name="top_attach">1</property><property name="width">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_cycling">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Cycling</property>
+                <attributes><attribute name="weight" value="bold"/></attributes>
+              </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">2</property><property name="width">4</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_restore_minimized">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Restore Minimized:</property>
+              </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">3</property><property name="width">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_restore_minimized">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing><property name="left_attach">3</property><property name="top_attach">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_indicators">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Indicators</property>
+                <attributes><attribute name="weight" value="bold"/></attributes>
+              </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">4</property><property name="width">4</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_show_running_indicators">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Show Running:</property>
+              </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">5</property><property name="width">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_show_running_indicators">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing><property name="left_attach">3</property><property name="top_attach">5</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_show_attention_indicators">
+                <property name="visible">True</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Show Attention:</property>
+              </object>
+              <packing><property name="left_attach">0</property><property name="top_attach">6</property><property name="width">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_show_attention_indicators">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing><property name="left_attach">3</property><property name="top_attach">6</property></packing>
             </child>
           </object>
           <packing>
-            <property name="name">view_docklets</property>
-            <property name="title" translatable="yes">Docklets</property>
+            <property name="name">grid_windows</property>
+            <property name="title" translatable="yes">Applications</property>
             <property name="position">2</property>
           </packing>
         </child>

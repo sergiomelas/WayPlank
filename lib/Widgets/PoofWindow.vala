@@ -57,6 +57,12 @@ namespace Plank
 		
 		construct
 		{
+			GtkLayerShell.init_for_window (this);
+			GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
+			GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
+			GtkLayerShell.set_namespace (this, "wayplank-poof");
+			decorated = false;
+			resizable = false;
 			accept_focus = false;
 			can_focus = false;
 			set_keep_above (true);
@@ -93,7 +99,7 @@ namespace Plank
 			if (animation_timer_id > 0U)
 				GLib.Source.remove (animation_timer_id);
 			
-			if (poof_image == null && poof_frames > 0)
+			if (poof_image == null || poof_frames <= 0)
 				return;
 			
 			Logger.verbose ("Show animation: size = %ipx, frame-count = %i, duration = %ims", poof_size, poof_frames, RUN_LENGTH / 1000);
@@ -101,8 +107,29 @@ namespace Plank
 			start_time = GLib.get_monotonic_time ();
 			frame_time = start_time;
 						
+			var display = get_display ();
+			var monitor = display != null ? display.get_monitor_at_point (x, y) : null;
+			if (monitor == null && display != null)
+				monitor = display.get_primary_monitor () ?? display.get_monitor (0);
+			if (monitor != null) {
+				var geometry = monitor.get_geometry ();
+				var local_x = int.max (0, int.min (geometry.width - poof_size, x - geometry.x - poof_size / 2));
+				var local_y = int.max (0, int.min (geometry.height - poof_size, y - geometry.y - poof_size / 2));
+				GtkLayerShell.set_monitor (this, monitor);
+				GtkLayerShell.set_exclusive_zone (this, 0);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
+				set_size_request (poof_size, poof_size);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, local_y);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, local_x);
+			}
 			show ();
-			move (x - (poof_size / 2), y - (poof_size / 2));
 
 			animation_timer_id = Gdk.threads_add_timeout (30, () => {
 				frame_time = GLib.get_monotonic_time ();

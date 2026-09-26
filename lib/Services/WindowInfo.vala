@@ -21,20 +21,22 @@
 namespace Plank
 {
 	/**
-	 * The common interface for all docklets.
+	 * Compositor-neutral state for one application window.
 	 */
-	public interface Docklet : Object
+	public class WindowInfo : GLib.Object
 	{
-		public abstract unowned string get_id ();
-		
-		public abstract unowned string get_name ();
-		
-		public abstract unowned string get_description ();
-		
-		public abstract unowned string get_icon ();
-		
-		public abstract bool is_supported ();
-		
-		public abstract Plank.DockElement make_element (string launcher, GLib.File file);
+		public string Id { get; set; default = ""; }
+		public string ApplicationId { get; set; default = ""; }
+		public string DesktopFileName { get; set; default = ""; }
+		public string ResourceClass { get; set; default = ""; }
+		public string ResourceName { get; set; default = ""; }
+		public string Executable { get; set; default = ""; }
+		public bool Minimized { get; set; default = false; }
+		public bool Active { get; set; default = false; }
+		public bool Maximized { get; set; default = false; }
+		public bool DemandsAttention { get; set; default = false; }
+		public bool CurrentDesktop { get; set; default = true; }
+		public int64 MinimizedSequence { get; set; default = 0; }
+		public Gdk.Rectangle Geometry { get; set; default = {}; }
 	}
 }

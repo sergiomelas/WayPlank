@@ -60,6 +60,8 @@ namespace Plank
 		public bool add (string uri)
 		{
 			debug ("Try to remotely add '%s'", uri);
+			if (controller.prefs.LockItems)
+				return false;
 			
 			unowned ApplicationDockItemProvider? provider = (controller.default_provider as ApplicationDockItemProvider);
 			if (provider == null)
@@ -77,6 +79,8 @@ namespace Plank
 		public bool remove (string uri)
 		{
 			debug ("Try to remotely remove '%s'", uri);
+			if (controller.prefs.LockItems)
+				return false;
 			
 			unowned ApplicationDockItemProvider? provider = (controller.default_provider as ApplicationDockItemProvider);
 			if (provider == null)
@@ -208,6 +212,7 @@ namespace Plank
 			try {
 				var dbus_items = new DBusItems (controller);
 				dbus_items_signal_id = connection.register_object<Plank.DBusItemsIface> (object_path, dbus_items);
+				WindowControl.register_dbus (connection, object_path);
 			} catch (IOError e) {
 				warning ("Could not register service (%s)", e.message);
 			}

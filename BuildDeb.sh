@@ -34,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.3"
+PKG_VER="0.4"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -95,7 +95,7 @@ chmod 644 "${BUILD_DIR}/usr/share/applications/wayplank.desktop"
 cat << EOF > "$BUILD_DIR/DEBIAN/control"
 Package: ${PKG_NAME}
 Version: ${PKG_VER}
-Section: x11
+Section: misc
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: ${MAINTAINER}
@@ -103,7 +103,7 @@ Provides: plank (= ${PKG_VER}), libplank-common, libplank1
 Replaces: plank, libplank-common, libplank1
 Conflicts: plank, libplank-common, libplank1
 Breaks: plank, libplank-common, libplank1
-Depends: libgtk-3-0, libgtk-layer-shell0, libwnck-3-0, libbamf3-2, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend
+Depends: libgtk-3-0, libgtk-layer-shell0, libjson-glib-1.0-0, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend
 Description: Wayplank dock - Modern Standalone Fork
  Wayplank is a monolithic, standalone dock for modern desktop environments.
  Drop-in replacement for the original Plank dock with native enhancements.

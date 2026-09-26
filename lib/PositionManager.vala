@@ -476,7 +476,7 @@ namespace Plank
 					break;
 				}
 			}
-			
+
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
@@ -488,12 +488,12 @@ namespace Plank
 				static_dock_region.y = 0;
 				break;
 			case Gtk.PositionType.LEFT:
-				static_dock_region.y = yoffset;
 				static_dock_region.x = 0;
+				static_dock_region.y = yoffset;
 				break;
 			case Gtk.PositionType.RIGHT:
-				static_dock_region.y = yoffset;
 				static_dock_region.x = DockWidth - static_dock_region.width;
+				static_dock_region.y = yoffset;
 				break;
 			}
 			
@@ -505,9 +505,6 @@ namespace Plank
 				|| old_region.width != static_dock_region.width
 				|| old_region.height != static_dock_region.height) {
 				controller.window.update_size_and_position ();
-#if HAVE_BARRIERS
-				controller.hide_manager.update_barrier ();
-#endif
 				if (screen_is_composited)
 					controller.renderer.animated_draw ();
 			} else {
@@ -651,6 +648,14 @@ namespace Plank
 				val.center = { center_position, zoomed_center_height };
 				val.zoom = zoom;
 				val.icon_size = Math.round (zoom * icon_size);
+				
+				// The separator is a real item for layout/animation purposes, but its
+				// own rendered size must stay fixed regardless of hover-zoom.
+				if (item is SeparatorDockItem) {
+					val.center.y = icon_size / 2.0;
+					val.zoom = 1.0;
+					val.icon_size = icon_size;
+				}
 				
 				if (!is_horizontal_dock ()) {
 					double tmp = val.center.y;
@@ -1250,43 +1255,5 @@ namespace Plank
 			}
 		}
 		
-#if HAVE_BARRIERS
-		public Gdk.Rectangle get_barrier ()
-		{
-			Gdk.Rectangle barrier = {};
-			
-			switch (Position) {
-			default:
-			case Gtk.PositionType.BOTTOM:
-				barrier.x = monitor_geo.x + (monitor_geo.width - VisibleDockWidth) / 2;
-				barrier.y = monitor_geo.y + monitor_geo.height;
-				barrier.width = VisibleDockWidth;
-				barrier.height = 0;
-				break;
-			case Gtk.PositionType.TOP:
-				barrier.x = monitor_geo.x + (monitor_geo.width - VisibleDockWidth) / 2;
-				barrier.y = monitor_geo.y;
-				barrier.width = VisibleDockWidth;
-				barrier.height = 0;
-				break;
-			case Gtk.PositionType.LEFT:
-				barrier.x = monitor_geo.x;
-				barrier.y = monitor_geo.y + (monitor_geo.height - VisibleDockHeight) / 2;
-				barrier.width = 0;
-				barrier.height = VisibleDockHeight;
-				break;
-			case Gtk.PositionType.RIGHT:
-				barrier.x = monitor_geo.x + monitor_geo.width;
-				barrier.y = monitor_geo.y + (monitor_geo.height - VisibleDockHeight) / 2;
-				barrier.width = 0;
-				barrier.height = VisibleDockHeight;
-				break;
-			}
-			
-			warn_if_fail (barrier.width > 0 || barrier.height > 0);
-			
-			return barrier;
-		}
-#endif
 	}
 }

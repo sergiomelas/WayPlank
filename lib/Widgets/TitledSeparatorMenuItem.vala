@@ -1,23 +1,21 @@
 //
-//  Copyright (C) 2010 Michal Hruby <michal.mhr@gmail.com>
-//  Copyright (C) 2011-2012 Robert Dyer, Rico Tzschichholz
-//  Copyright (C) 2013 Rico Tzschichholz
+//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
+//  Copyright (C) 2026 Sergio Melas
 //
-//  This library is free software; you can redistribute it and/or
-//  modify it under the terms of the GNU Lesser General Public
-//  License as published by the Free Software Foundation; either
-//  version 2.1 of the License, or (at your option) any later version.
+//  This file is part of Wayplank.
 //
-//  This library is distributed in the hope that it will be useful,
+//  Wayplank is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  Wayplank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//  Lesser General Public License for more details.
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
 //
-//  You should have received a copy of the GNU Lesser General Public License
+//  You should have received a copy of the GNU General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//  Authored by Michal Hruby <michal.mhr@gmail.com>
-//  Modified by Robert Dyer, Rico Tzschichholz
 //
 
 namespace Plank

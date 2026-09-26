@@ -41,6 +41,7 @@ namespace Plank
 		static void sig_handler (int sig)
 		{
 			warning ("Caught signal (%d), exiting", sig);
+			WindowControl.cleanup ();
 			GLib.Application.get_default ().quit ();
 		}
 		
@@ -235,15 +236,11 @@ namespace Plank
 			message ("GTK+ version: %u.%u.%u (%i.%i.%i)",
 				Gtk.get_major_version (), Gtk.get_minor_version () , Gtk.get_micro_version (),
 				Gtk.MAJOR_VERSION, Gtk.MINOR_VERSION, Gtk.MICRO_VERSION);
-			message ("Wnck version: %d.%d.%d", Wnck.Version.MAJOR_VERSION, Wnck.Version.MINOR_VERSION, Wnck.Version.MICRO_VERSION);
 			message ("Cairo version: %s", Cairo.version_string ());
 			message ("Pango version: %s", Pango.version_string ());
 			message ("+ Cairo/Gtk+ HiDPI support enabled");
 #if HAVE_DBUSMENU
 			message ("+ Dynamic Quicklists support enabled");
-#endif
-#if HAVE_BARRIERS
-			message ("+ XInput Barriers support enabled");
 #endif
 			if (Gtk.Widget.get_default_direction () == Gtk.TextDirection.RTL)
 				message ("+ RTL support enabled");
@@ -253,10 +250,10 @@ namespace Plank
 			
 			Paths.initialize (exec_name, build_pkg_data_dir);
 			WindowControl.initialize ();
-			DockletManager.get_default ().load_docklets ();
 			
 			initialize ();
 			create_docks ();
+			WindowControl.start ();
 			create_actions ();
 		}
 		
@@ -363,6 +360,7 @@ namespace Plank
 			
 			action = new SimpleAction ("quit", null);
 			action.activate.connect (() => {
+				WindowControl.cleanup ();
 				quit ();
 			});
 			add_action (action);
@@ -397,7 +395,15 @@ namespace Plank
 			about_dlg.set_version ("%s\n%s".printf (build_version, build_version_info));
 			about_dlg.set_logo_icon_name (app_icon);
 			
-			about_dlg.set_comments ("%s. %s".printf (program_name, build_release_name));
+			var fully_supported_compositors = WindowCapabilities.fully_supported_compositors ();
+			var fully_supported = (fully_supported_compositors == ""
+				? _("Fully supported compositors: none")
+				: _("Fully supported compositors: %s").printf (fully_supported_compositors));
+			var partially_supported_compositors = WindowCapabilities.partially_supported_compositors ();
+			var partially_supported = (partially_supported_compositors == ""
+				? _("Partially supported compositors: none")
+				: _("Partially supported compositors: %s").printf (partially_supported_compositors));
+			about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
 			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
 			about_dlg.set_website (main_url);
 			about_dlg.set_website_label ("Website");
@@ -435,13 +441,13 @@ namespace Plank
 		{
 			if (preferences_dlg != null) {
 				preferences_dlg.controller = controller;
-				preferences_dlg.set_transient_for (controller.window);
-				preferences_dlg.show ();
+				preferences_dlg.show_all ();
+				preferences_dlg.present ();
+				preferences_dlg.grab_focus ();
 				return;
 			}
 			
 			preferences_dlg = new PreferencesWindow (controller);
-			preferences_dlg.set_transient_for (controller.window);
 			
 			preferences_dlg.destroy.connect (() => {
 				preferences_dlg = null;

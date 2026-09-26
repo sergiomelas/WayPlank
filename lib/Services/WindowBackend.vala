@@ -20,11 +20,20 @@
 
 namespace Plank
 {
-	public abstract class DockletItem : DockItem
+	/**
+	 * Backend contract used by compositor-neutral window management code.
+	 */
+	public interface WindowBackend : GLib.Object
 	{
-		public override bool is_valid ()
-		{
-			return true;
-		}
+		public signal void state_changed ();
+		public abstract bool start ();
+		public abstract void cleanup ();
+		public abstract bool has_state ();
+		public abstract void register_dbus (DBusConnection connection, string object_path) throws GLib.IOError;
+		public abstract Gee.ArrayList<WindowInfo> get_windows ();
+		public abstract bool queue_command (string target, string action);
+		public abstract bool any_window_intersects (Gdk.Rectangle rect);
+		public abstract bool active_window_intersects (Gdk.Rectangle rect);
+		public abstract bool maximized_window_intersects (Gdk.Rectangle rect);
 	}
 }

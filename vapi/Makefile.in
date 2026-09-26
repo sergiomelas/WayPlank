@@ -156,7 +156,6 @@ DBUS_RUN_SESSION = @DBUS_RUN_SESSION@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
-DOCKLET_LDFLAGS = @DOCKLET_LDFLAGS@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
@@ -317,11 +316,7 @@ top_srcdir = @top_srcdir@
 VAPIS = \
 	compat.vapi \
 	config.vapi \
-	libbamf3.deps \
-	libbamf3.vapi \
-	xfixes.vapi \
 	xi.deps \
-	xi.vapi \
 	$(NULL)
 
 EXTRA_DIST = $(VAPIS)

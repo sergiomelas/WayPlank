@@ -4,14 +4,28 @@
 //
 //  This file is part of Wayplank.
 //
+//  Wayplank is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  Wayplank is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 
 namespace Plank
 {
 	/**
-	 * Wayland-native Matcher wrapper (decoupled from Bamf/X11)
+	 * Wayland-native process matcher.
 	 */
 	public class Matcher : GLib.Object
 	{
+
 		public signal void active_window_changed (string? old_win_id, string? new_win_id);
 		public signal void window_opened (string win_id);
 		public signal void window_closed (string win_id);
@@ -19,6 +33,7 @@ namespace Plank
 		public signal void active_application_changed (string? old_app_id, string? new_app_id);
 		public signal void application_opened (string app_id);
 		public signal void application_closed (string app_id);
+		public signal void processes_changed ();
 
 		static Matcher? matcher = null;
 
@@ -101,6 +116,8 @@ namespace Plank
 						unregister_process_for_app (app_id, dead);
 					}
 				}
+
+				processes_changed ();
 			} catch (Error e) {
 				warning ("Errors during Process Scan: %s", e.message);
 			}
@@ -154,6 +171,74 @@ namespace Plank
 				list.add (app);
 			}
 			return list;
+		}
+
+		public bool is_launcher_running (string launcher_uri)
+		{
+			try {
+			var launcher_file = File.new_for_uri (launcher_uri);
+			var launcher_name = launcher_file.get_basename ().down ();
+			var keyfile = new KeyFile ();
+			keyfile.load_from_file (launcher_file.get_path (), KeyFileFlags.NONE);
+
+			var candidates = new Gee.ArrayList<string> ();
+			candidates.add (launcher_name);
+
+			var exec = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
+			var executable = exec.split (" ")[0].replace ("\"", "").replace ("'", "");
+			if (executable != "") {
+				candidates.add (File.new_for_path (executable).get_basename ().down ());
+				add_script_candidates (executable, candidates, 0);
+			}
+
+			var dir = GLib.Dir.open ("/proc", 0);
+			string? name = null;
+			while ((name = dir.read_name ()) != null) {
+				int pid = int.parse (name);
+				if (pid <= 0)
+					continue;
+
+				string comm = "";
+				string cmdline = "";
+				GLib.FileUtils.get_contents ("/proc/%s/comm".printf (name), out comm);
+				GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
+				comm = comm.strip ().down ();
+
+				foreach (var candidate in candidates)
+					if ((candidate != "" && comm == candidate) || (candidate != "" && cmdline.down ().contains (candidate)))
+						return true;
+			}
+		} catch (Error e) {
+			debug ("Unable to match launcher process '%s': %s", launcher_uri, e.message);
+		}
+
+			return false;
+		}
+
+		void add_script_candidates (string script_path, Gee.ArrayList<string> candidates, int depth)
+		{
+			if (depth >= 4 || !File.new_for_path (script_path).query_exists ())
+				return;
+
+			string script = "";
+			if (!GLib.FileUtils.get_contents (script_path, out script) || !script.has_prefix ("#!"))
+				return;
+
+			var script_dir = File.new_for_path (script_path).get_parent ();
+			foreach (var token in script.split (" ")) {
+				var path = token.strip ().replace ("\"", "").replace ("'", "").replace ("\n", "");
+				if (path.has_prefix ("$HERE/"))
+					path = script_dir.get_child (path.substring (6)).get_path ();
+				if (!path.has_prefix ("/"))
+					continue;
+
+				var candidate = File.new_for_path (path).get_basename ().down ();
+				if (candidate == null || candidate == "")
+					continue;
+
+				candidates.add (candidate);
+				add_script_candidates (path, candidates, depth + 1);
+			}
 		}
 
 		public string? app_for_uri (string uri)

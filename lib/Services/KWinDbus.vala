@@ -20,41 +20,26 @@
 
 namespace Plank
 {
-	/**
-	 * A dock item for applications which aren't pinned or doesn't have a matched desktop-files.
-	 *
-	 * Usually this represents a running application while it is possible it is a virtual item
-	 * added through e.g. libunity-support to show specific application information.
-	 */
-	public class TransientDockItem : ApplicationDockItem
+	[DBus (name = "net.launchpad.plank.KWin")]
+	interface DBusKWinIface : GLib.Object
 	{
-		public TransientDockItem.with_launcher (string launcher_uri)
+		public abstract void update_window_state (string state) throws GLib.DBusError, GLib.IOError;
+		public abstract string fetch_pending_command () throws GLib.DBusError, GLib.IOError;
+	}
+
+	/**
+	 * KWin-specific D-Bus endpoint used by the injected KWin script.
+	 */
+	class KWinDbus : GLib.Object, Plank.DBusKWinIface
+	{
+		public void update_window_state (string state)
 		{
-			GLib.Object (Prefs: new DockItemPreferences.with_launcher (launcher_uri));
+			KWinBridge.update_window_state (state);
 		}
 		
-		construct
+		public string fetch_pending_command ()
 		{
-			if (Prefs.Launcher != "")
-				load_from_launcher ();
-			else
-				critical ("No source of information for this item available");
-		}
-		
-		/**
-		 * {@inheritDoc}
-		 */
-		public override bool can_be_removed ()
-		{
-			return false;
-		}
-		
-		/**
-		 * {@inheritDoc}
-		 */
-		public override bool is_valid ()
-		{
-			return true;
+			return KWinBridge.fetch_pending_command ();
 		}
 	}
 }

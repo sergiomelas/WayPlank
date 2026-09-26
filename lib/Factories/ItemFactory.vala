@@ -101,10 +101,6 @@ namespace Plank
 		{
 			var launcher = get_launcher_from_dockitem (file);
 			
-			Docklet? docklet;
-			if ((docklet = DockletManager.get_default ().get_docklet_by_uri (launcher)) != null)
-				return docklet.make_element (launcher, file);
-			
 			return default_make_element (file, launcher);
 		}
 		
@@ -359,16 +355,9 @@ namespace Plank
 			if (target_dir == null)
 				target_dir = launchers_dir;
 			
-			bool is_valid = false;
-			string basename;
-			if (uri.has_prefix (DOCKLET_URI_PREFIX)) {
-				is_valid = true;
-				basename = uri.substring (10);
-			} else {
-				var launcher_file = File.new_for_uri (uri);
-				is_valid = launcher_file.query_exists ();
-				basename = (launcher_file.get_basename () ?? "unknown");
-			}
+			var launcher_file = File.new_for_uri (uri);
+			bool is_valid = launcher_file.query_exists ();
+			string basename = (launcher_file.get_basename () ?? "unknown");
 			
 			if (is_valid) {
 				var file = new KeyFile ();

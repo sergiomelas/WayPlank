@@ -57,12 +57,4 @@ namespace PlankCompat
 	public void gtk_widget_path_iter_set_object_name (Gtk.WidgetPath path, int pos, string? name);
 }
 
-[CCode (cheader_filename = "X11/Xlib.h")]
-namespace X
-{
-	[CCode (cname = "XGetEventData")]
-	public static bool get_event_data (X.Display display, X.GenericEventCookie* event_cookie);
-	[CCode (cname = "XFreeEventData")]
-	public static bool free_event_data (X.Display display, X.GenericEventCookie* event_cookie);
-}	
 

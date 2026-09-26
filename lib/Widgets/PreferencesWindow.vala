@@ -77,9 +77,19 @@ namespace Plank
 		Gtk.Switch sw_pressure_reveal;
 		[GtkChild]
 		Gtk.Switch sw_zoom_enabled;
-		
 		[GtkChild]
-		Gtk.IconView view_docklets;
+		Gtk.Switch sw_autostart;
+		[GtkChild]
+		Gtk.ComboBoxText cb_window_click_behavior;
+		[GtkChild]
+		Gtk.Switch sw_restore_minimized;
+		[GtkChild]
+		Gtk.Switch sw_show_running_indicators;
+		[GtkChild]
+		Gtk.Switch sw_show_attention_indicators;
+		
+		Gtk.CssProvider popup_css;
+		Gdk.Screen popup_css_screen;
 		
 		public PreferencesWindow (DockController controller)
 		{
@@ -88,17 +98,62 @@ namespace Plank
 		
 		construct
 		{
-			var title = _("Preferences");
+			configure_hide_mode_rows ();
+			set_decorated (true);
+			set_destroy_with_parent (true);
+			set_position (Gtk.WindowPosition.CENTER_ON_PARENT);
+			set_type_hint (Gdk.WindowTypeHint.DIALOG);
+			set_keep_above (true);
+			set_focus_on_map (true);
+			popup_css = new Gtk.CssProvider ();
+			popup_css.load_from_data ("menu > arrow.top, menu > arrow.bottom { min-height: 0; min-width: 0; padding: 0; border-width: 0; -gtk-icon-source: none; }");
+			popup_css_screen = get_screen ();
+			Gtk.StyleContext.add_provider_for_screen (popup_css_screen, popup_css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 			
 			prefs = controller.prefs;
+			var stack = (get_child () as Gtk.Widget);
+			remove (stack);
+			var content = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+			content.pack_start (stack, true, true, 0);
+			var actions = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			actions.set_margin_start (12);
+			actions.set_margin_end (12);
+			actions.set_margin_top (8);
+			actions.set_margin_bottom (12);
+			actions.set_halign (Gtk.Align.CENTER);
+			var ok_button = new Gtk.Button.with_label (_("OK"));
+			ok_button.set_size_request (160, 36);
+			ok_button.get_style_context ().add_class (Gtk.STYLE_CLASS_SUGGESTED_ACTION);
+			ok_button.clicked.connect (() => hide ());
+			actions.pack_end (ok_button, false, false, 0);
+			content.pack_end (actions, false, false, 0);
+			add (content);
+			set_default (ok_button);
+			content.show_all ();
 			
 			init_dock_tab ();
-			init_docklets_tab ();
+			init_window_tab ();
 			connect_signals ();
 			
 			notify["controller"].connect (controller_changed);
 		}
-		
+
+		~PreferencesWindow ()
+		{
+			if (popup_css_screen != null && popup_css != null)
+				Gtk.StyleContext.remove_provider_for_screen (popup_css_screen, popup_css);
+		}
+
+		void configure_hide_mode_rows ()
+		{
+			foreach (unowned Gtk.CellRenderer renderer in cb_hidemode.get_cells ())
+				cb_hidemode.set_cell_data_func (renderer, (layout, cell, model, iter) => {
+					string id = "";
+					model.get (iter, 1, out id);
+					cell.sensitive = WindowCapabilities.hide_mode_supported ((HideType) int.parse (id));
+				});
+		}
+
 		void controller_changed ()
 		{
 			disconnect_signals ();
@@ -106,6 +161,7 @@ namespace Plank
 			prefs = controller.prefs;
 			
 			init_dock_tab ();
+			init_window_tab ();
 			connect_signals ();
 		}
 		
@@ -181,6 +237,18 @@ namespace Plank
 			case "ZoomPercent":
 				adj_zoom_percent.value = prefs.ZoomPercent;
 				break;
+			case "WindowClickBehavior":
+				cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
+				break;
+			case "RestoreMinimizedWindows":
+				sw_restore_minimized.set_active (prefs.RestoreMinimizedWindows);
+				break;
+			case "ShowRunningIndicators":
+				sw_show_running_indicators.set_active (prefs.ShowRunningIndicators);
+				break;
+			case "ShowAttentionIndicators":
+				sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);
+				break;
 			// Ignored settings
 			case "DockItems":
 				break;
@@ -198,7 +266,11 @@ namespace Plank
 		
 		void hidemode_changed (Gtk.ComboBox widget)
 		{
-			prefs.HideMode = (HideType) int.parse (widget.get_active_id ());
+			var mode = (HideType) int.parse (widget.get_active_id ());
+			if (WindowCapabilities.hide_mode_supported (mode))
+				prefs.HideMode = mode;
+			else
+				cb_hidemode.active_id = ((int) HideType.AUTO).to_string ();
 		}
 		
 		void position_changed (Gtk.ComboBox widget)
@@ -221,7 +293,7 @@ namespace Plank
 		void hide_toggled (GLib.Object widget, ParamSpec param)
 		{
 			if (((Gtk.Switch) widget).get_active ()) {
-				prefs.HideMode = HideType.INTELLIGENT;
+				prefs.HideMode = HideType.AUTO;
 				cb_hidemode.sensitive = true;
 				sp_hide_delay.sensitive = true;
 				sp_unhide_delay.sensitive = true;
@@ -250,6 +322,46 @@ namespace Plank
 		{
 			prefs.CurrentWorkspaceOnly = ((Gtk.Switch) widget).get_active ();
 		}
+
+		void autostart_toggled (GLib.Object widget, ParamSpec param)
+		{
+			var enabled = ((Gtk.Switch) widget).get_active ();
+			var autostart_dir = Path.build_filename (Environment.get_user_config_dir (), "autostart");
+			var autostart_path = Path.build_filename (autostart_dir, "wayplank.desktop");
+			var success = true;
+
+			if (enabled) {
+				if (DirUtils.create_with_parents (autostart_dir, 0755) != 0) {
+					warning ("Unable to create autostart directory '%s'", autostart_dir);
+					success = false;
+				} else {
+					try {
+						FileUtils.set_contents (autostart_path,
+							"[Desktop Entry]\n" +
+							"Type=Application\n" +
+							"Name=Wayplank\n" +
+							"Comment=Stupidly simple dock for Wayland\n" +
+							"Exec=wayplank\n" +
+							"Icon=plank\n" +
+							"Terminal=false\n" +
+							"X-GNOME-Autostart-enabled=true\n" +
+							"X-GNOME-Autostart-Delay=2\n");
+					} catch (FileError e) {
+						warning ("Unable to create autostart entry '%s': %s", autostart_path, e.message);
+						success = false;
+					}
+				}
+			} else if (FileUtils.test (autostart_path, FileTest.EXISTS) && FileUtils.remove (autostart_path) != 0) {
+				warning ("Unable to remove autostart entry '%s'", autostart_path);
+				success = false;
+			}
+
+			if (!success) {
+				sw_autostart.notify["active"].disconnect (autostart_toggled);
+				sw_autostart.set_active (!enabled);
+				sw_autostart.notify["active"].connect (autostart_toggled);
+			}
+		}
 		
 		void show_unpinned_toggled (GLib.Object widget, ParamSpec param)
 		{
@@ -264,6 +376,26 @@ namespace Plank
 		void pressure_reveal_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.PressureReveal = ((Gtk.Switch) widget).get_active ();
+		}
+
+		void window_click_behavior_changed (Gtk.ComboBox widget)
+		{
+			prefs.WindowClickBehavior = int.parse (widget.get_active_id ());
+		}
+
+		void restore_minimized_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.RestoreMinimizedWindows = ((Gtk.Switch) widget).get_active ();
+		}
+
+		void show_running_indicators_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.ShowRunningIndicators = ((Gtk.Switch) widget).get_active ();
+		}
+
+		void show_attention_indicators_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.ShowAttentionIndicators = ((Gtk.Switch) widget).get_active ();
 		}
 		
 		void zoom_enabled_toggled (GLib.Object widget, ParamSpec param)
@@ -320,13 +452,18 @@ namespace Plank
 			adj_iconsize.value_changed.connect (iconsize_changed);
 			adj_offset.value_changed.connect (offset_changed);
 			adj_zoom_percent.value_changed.connect (zoom_percent_changed);
+			cb_window_click_behavior.changed.connect (window_click_behavior_changed);
 			sw_hide.notify["active"].connect (hide_toggled);
 			sw_primary_display.notify["active"].connect (primary_display_toggled);
 			sw_workspace_only.notify["active"].connect (workspace_only_toggled);
+			sw_autostart.notify["active"].connect (autostart_toggled);
 			sw_show_unpinned.notify["active"].connect (show_unpinned_toggled);
 			sw_lock_items.notify["active"].connect (lock_items_toggled);
 			sw_pressure_reveal.notify["active"].connect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
+			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
+			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
+			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 		}
@@ -344,13 +481,18 @@ namespace Plank
 			adj_iconsize.value_changed.disconnect (iconsize_changed);
 			adj_offset.value_changed.disconnect (offset_changed);
 			adj_zoom_percent.value_changed.disconnect (zoom_percent_changed);
+			cb_window_click_behavior.changed.disconnect (window_click_behavior_changed);
 			sw_hide.notify["active"].disconnect (hide_toggled);
 			sw_primary_display.notify["active"].disconnect (primary_display_toggled);
 			sw_workspace_only.notify["active"].disconnect (workspace_only_toggled);
+			sw_autostart.notify["active"].disconnect (autostart_toggled);
 			sw_show_unpinned.notify["active"].disconnect (show_unpinned_toggled);
 			sw_lock_items.notify["active"].disconnect (lock_items_toggled);
 			sw_pressure_reveal.notify["active"].disconnect (pressure_reveal_toggled);
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
+			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
+			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
+			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 		}
@@ -366,6 +508,8 @@ namespace Plank
 				pos++;
 			}
 
+			if (prefs.HideMode != HideType.NONE && !WindowCapabilities.hide_mode_supported (prefs.HideMode))
+				prefs.HideMode = HideType.AUTO;
 			cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
 			cb_hidemode.sensitive = (prefs.HideMode != HideType.NONE);
 			cb_position.active_id = ((int) prefs.Position).to_string ();
@@ -395,78 +539,26 @@ namespace Plank
 			sw_hide.set_active (prefs.HideMode != HideType.NONE);
 			sw_primary_display.set_active (prefs.Monitor == "");
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
+			sw_autostart.set_active (FileUtils.test (
+				Path.build_filename (Environment.get_user_config_dir (), "autostart", "wayplank.desktop"),
+				FileTest.IS_REGULAR));
 			sw_show_unpinned.set_active (!prefs.PinnedOnly);
 			sw_lock_items.set_active (prefs.LockItems);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
+			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
 			cb_items_alignment.sensitive = (prefs.Alignment == Gtk.Align.FILL);
 		}
-		
-		void init_docklets_tab ()
+
+		void init_window_tab ()
 		{
-			var model_docklets = new DockletViewModel ();
-			var sorted_docklets = new Gtk.TreeModelSort.with_model (model_docklets);
-			
-			Gtk.TargetEntry te = { "text/plank-uri-list", Gtk.TargetFlags.SAME_APP, 0};
-			view_docklets.enable_model_drag_source (Gdk.ModifierType.BUTTON1_MASK, { te }, Gdk.DragAction.PRIVATE);
-			view_docklets.set_text_column (DockletViewModel.Column.NAME);
-			view_docklets.set_tooltip_column (DockletViewModel.Column.DESCRIPTION);
-			view_docklets.set_pixbuf_column (DockletViewModel.Column.PIXBUF);
-			view_docklets.drag_begin.connect_after (view_drag_begin);
-			view_docklets.item_activated.connect (view_item_activated);
-			
-			foreach (var docklet in DockletManager.get_default ().list_docklets ()) {
-				var pixbuf = DrawingService.load_icon (docklet.get_icon (), 48, 48);
-				model_docklets.add (docklet.get_id (), docklet.get_name (), docklet.get_description (), docklet.get_icon (), pixbuf);
-			}
-			
-			sorted_docklets.set_sort_column_id (DockletViewModel.Column.NAME, Gtk.SortType.ASCENDING);
-			view_docklets.set_model (sorted_docklets);
+			cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
+			sw_restore_minimized.set_active (prefs.RestoreMinimizedWindows);
+			sw_show_running_indicators.set_active (prefs.ShowRunningIndicators);
+			sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);
 		}
 		
-		[CCode (instance_pos = -1)]
-		void view_drag_begin (Gtk.Widget widget, Gdk.DragContext context)
-		{
-			unowned Gtk.IconView view = (Gtk.IconView) widget;
-			var selection = view.get_selected_items ();
-			unowned List<Gtk.TreePath>? path_list = selection.first ();
-			if (path_list == null)
-				return;
-			
-			unowned Gtk.TreeModel model = view.get_model ();
-			Gtk.TreeIter iter;
-			GLib.Value val;
-			var path = path_list.data;
-			model.get_iter (out iter, path);
-			model.get_value (iter, DockletViewModel.Column.ICON, out val);
-			
-			var icon_name = val.get_string ();
-			var icon_size = prefs.IconSize;
-			var window_scale_factor = get_window ().get_scale_factor ();
-			icon_size *= window_scale_factor;
-			var surface = DrawingService.load_icon_for_scale (icon_name, icon_size, icon_size, window_scale_factor);
-			surface.set_device_offset (-icon_size / 2.0, -icon_size / 2.0);
-			Gtk.drag_set_icon_surface (context, surface);
-		}
-		
-		[CCode (instance_pos = -1)]
-		void view_item_activated (Gtk.IconView view, Gtk.TreePath path)
-		{
-			unowned ApplicationDockItemProvider? provider = (controller.default_provider as ApplicationDockItemProvider);
-			if (provider == null)
-				return;
-			
-			unowned Gtk.TreeModel model = view.get_model ();
-			Gtk.TreeIter iter;
-			GLib.Value val;
-			model.get_iter (out iter, path);
-			model.get_value (iter, DockletViewModel.Column.ID, out val);
-			
-			var uri = "%s%s".printf (DOCKLET_URI_PREFIX, val.get_string ());
-			debug ("Try to add docklet for '%s'", uri);
-			provider.add_item_with_uri (uri);
-		}
 	}
 }

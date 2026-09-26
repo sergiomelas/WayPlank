@@ -1,6 +1,6 @@
 # WAYPLANK: THE ROAD TO WAYLAND DOCK
 
-> Standalone, Monolithic Fork of Plank (Current X11 Baseline)
+> Standalone, Monolithic Fork of Plank for Wayland
 >
 > Laying the Groundwork for Native Wayland Architecture
 >
@@ -170,16 +170,11 @@ wayplank -d
 ## V0.4.1: 2026-09-25
 
 KWin multi-monitor fixes:
-
-
 - Fixed dock placement not updating after selecting a different monitor.
 - Persisted the selected monitor across restarts.
 - Fixed the bug where tooltips on secondary monitors appeared on the primary monitor.
 - Added a fallback to the primary monitor if the selected monitor is disconnected.
-
-
 Core fixes:
-
 - Deactivated system configuration polling during icon zoom to avoid UI freezes.
 - Adjusted the zoom level to prevent icons from being clipped.
 - Removed leftover X11 code that generated XWayland calls.

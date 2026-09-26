@@ -75,10 +75,6 @@ namespace Plank
 			item.activate.connect (() => Application.get_default ().activate_action ("help", null));
 			items.add (item);
 			
-			item = create_menu_item (_("_Translate This Application..."), "locale");
-			item.activate.connect (() => Application.get_default ().activate_action ("translate", null));
-			items.add (item);
-			
 			items.add (new Gtk.SeparatorMenuItem ());
 			
 			item = create_menu_item (_("_Preferences"), "preferences-system", true);

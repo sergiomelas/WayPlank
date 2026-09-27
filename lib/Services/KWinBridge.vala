@@ -415,6 +415,7 @@ namespace Plank
 				connection.call_sync ("org.kde.KWin", "/Scripting",
 					"org.kde.kwin.Scripting", "start", null, null,
 					DBusCallFlags.NONE, -1, null);
+				debug ("KWin bridge script loaded (id %d)", result.get_child_value (0).get_int32 ());
 				script_id = result.get_child_value (0).get_int32 ();
 				debug ("KWin bridge script loaded (id %d)", script_id);
 			} catch (Error e) {

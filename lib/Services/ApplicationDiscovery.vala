@@ -32,6 +32,7 @@ namespace Plank
 		Gee.ArrayList<FileMonitor> folder_monitors;
 		string last_window_signature = "";
 		string[] cached_active_ids = {};
+		uint refresh_timer_id = 0U;
 		uint debounce_timer_id = 0U;
 		uint change_timer_id = 0U;
 		
@@ -48,6 +49,10 @@ namespace Plank
 			identities = new Gee.HashMap<string, ApplicationIdentity> ();
 			folder_monitors = new Gee.ArrayList<FileMonitor> ();
 			refresh_desktop_index ();
+			refresh_timer_id = Timeout.add_seconds (2, () => {
+				refresh_desktop_index ();
+				return true;
+			});
 
 			foreach (var folder in application_folders ()) {
 				if (!folder.query_exists ())
@@ -66,6 +71,8 @@ namespace Plank
 
 		~ApplicationDiscovery ()
 		{
+			if (refresh_timer_id > 0U)
+				Source.remove (refresh_timer_id);
 			if (debounce_timer_id > 0U)
 				Source.remove (debounce_timer_id);
 			if (change_timer_id > 0U)
@@ -302,10 +309,13 @@ namespace Plank
 					}
 				}
 			}
+			if (!changed_index)
+				return;
 			indexed_desktop_files = next;
 			var new_identities = new Gee.HashMap<string, ApplicationIdentity> ();
-			foreach (var file in indexed_desktop_files)
+			foreach (var file in indexed_desktop_files) {
 				new_identities.set (file.get_basename (), new ApplicationIdentity (file));
+			}
 			// Preserve custom pinned identities that were loaded outside standard XDG directories
 			foreach (var entry in identities.entries) {
 				if (!new_identities.has_key (entry.key))

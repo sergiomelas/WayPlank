@@ -167,7 +167,6 @@ namespace Plank
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = monitor != null ? monitor.get_workarea () : Gdk.Rectangle ();
-			
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
 

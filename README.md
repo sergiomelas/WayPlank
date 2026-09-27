@@ -169,6 +169,7 @@ wayplank -d
 
 ## V0.4.1: 2026-09-25
 
+
 KWin multi-monitor fixes:
 
 
@@ -176,6 +177,8 @@ KWin multi-monitor fixes:
 - Persisted the selected monitor across restarts.
 - Fixed the bug where tooltips on secondary monitors appeared on the primary monitor.
 - Added a fallback to the primary monitor if the selected monitor is disconnected.
+
+
 Core fixes:
 
 

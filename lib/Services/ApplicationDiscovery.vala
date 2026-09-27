@@ -29,9 +29,10 @@ namespace Plank
 		public signal void changed ();
 		Gee.ArrayList<File> indexed_desktop_files;
 		Gee.HashMap<string, ApplicationIdentity> identities;
+		Gee.ArrayList<FileMonitor> folder_monitors;
 		string last_window_signature = "";
 		string[] cached_active_ids = {};
-		uint refresh_timer_id = 0U;
+		uint debounce_timer_id = 0U;
 		uint change_timer_id = 0U;
 		
 		public static unowned ApplicationDiscovery get_default ()
@@ -45,20 +46,46 @@ namespace Plank
 		{
 			indexed_desktop_files = new Gee.ArrayList<File> ();
 			identities = new Gee.HashMap<string, ApplicationIdentity> ();
+			folder_monitors = new Gee.ArrayList<FileMonitor> ();
 			refresh_desktop_index ();
-			refresh_timer_id = Timeout.add_seconds (2, () => {
-				refresh_desktop_index ();
-				return true;
-			});
+
+			foreach (var folder in application_folders ()) {
+				if (!folder.query_exists ())
+					continue;
+				try {
+					var monitor = folder.monitor_directory (FileMonitorFlags.NONE, null);
+					monitor.changed.connect (on_folder_changed);
+					folder_monitors.add (monitor);
+				} catch (Error e) {
+					debug ("Unable to monitor folder '%s': %s", folder.get_path (), e.message);
+				}
+			}
+
 			WindowControl.get_default ().state_changed.connect (schedule_changed);
 		}
 
 		~ApplicationDiscovery ()
 		{
-			if (refresh_timer_id > 0U)
-				Source.remove (refresh_timer_id);
+			if (debounce_timer_id > 0U)
+				Source.remove (debounce_timer_id);
 			if (change_timer_id > 0U)
 				Source.remove (change_timer_id);
+			foreach (var monitor in folder_monitors) {
+				monitor.changed.disconnect (on_folder_changed);
+				monitor.cancel ();
+			}
+			folder_monitors.clear ();
+		}
+
+		void on_folder_changed (File file, File? other_file, FileMonitorEvent event_type)
+		{
+			if (debounce_timer_id > 0U)
+				Source.remove (debounce_timer_id);
+			debounce_timer_id = Timeout.add (300, () => {
+				debounce_timer_id = 0U;
+				refresh_desktop_index ();
+				return false;
+			});
 		}
 
 		void schedule_changed ()
@@ -275,12 +302,16 @@ namespace Plank
 					}
 				}
 			}
-			if (!changed_index)
-				return;
 			indexed_desktop_files = next;
-			identities.clear ();
+			var new_identities = new Gee.HashMap<string, ApplicationIdentity> ();
 			foreach (var file in indexed_desktop_files)
-				identities.set (file.get_basename (), new ApplicationIdentity (file));
+				new_identities.set (file.get_basename (), new ApplicationIdentity (file));
+			// Preserve custom pinned identities that were loaded outside standard XDG directories
+			foreach (var entry in identities.entries) {
+				if (!new_identities.has_key (entry.key))
+					new_identities.set (entry.key, entry.value);
+			}
+			identities = new_identities;
 			last_window_signature = "";
 			changed ();
 		}

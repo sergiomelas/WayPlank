@@ -160,13 +160,19 @@ namespace Plank
 			screen_changed (controller.window.get_screen ());
 		}
 
+		weak Gdk.Monitor? current_monitor = null;
+
 		void screen_changed (Gdk.Screen screen)
 		{
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = monitor != null ? monitor.get_workarea () : Gdk.Rectangle ();
 			
-			if (old_monitor_geo.x == monitor_geo.x
+			bool monitor_changed = (monitor != current_monitor);
+			current_monitor = monitor;
+
+			if (!monitor_changed
+				&& old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
 				&& old_monitor_geo.width == monitor_geo.width
 				&& old_monitor_geo.height == monitor_geo.height)

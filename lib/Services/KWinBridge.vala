@@ -147,6 +147,7 @@ namespace Plank
 		static string? window_state;
 		static Gee.ArrayList<WindowInfo> window_infos = new Gee.ArrayList<WindowInfo> ();
 		static string? script_path;
+		static int script_id = -1;
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
 		public signal void state_changed ();
@@ -265,7 +266,7 @@ namespace Plank
 				connection.call_sync ("org.kde.kglobalaccel", "/component/kwin",
 					"org.kde.kglobalaccel.Component", "invokeShortcut",
 					new Variant ("(s)", "WayplankApplyCommand"),
-					null, DBusCallFlags.NONE, -1, null);
+					null, DBusCallFlags.NONE, 250, null);
 				message ("Wayplank: invoked KWin shortcut to apply pending command");
 			} catch (Error e) {
 				warning ("Wayplank: unable to invoke KWin shortcut (%s)", e.message);
@@ -314,6 +315,23 @@ namespace Plank
 				dbus_registration_id = 0U;
 			}
 			dbus_connection = null;
+
+			if (script_id >= 0) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
+						"org.kde.kwin.Script", "stop", null, null,
+						DBusCallFlags.NONE, 500, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting",
+						"org.kde.kwin.Scripting", "unloadScript",
+						new Variant ("(s)", script_path), null,
+						DBusCallFlags.NONE, 500, null);
+				} catch (Error e) {
+					debug ("Unable to stop KWin script: %s", e.message);
+				}
+				script_id = -1;
+			}
+
 			if (script_path == null)
 				return;
 
@@ -397,7 +415,8 @@ namespace Plank
 				connection.call_sync ("org.kde.KWin", "/Scripting",
 					"org.kde.kwin.Scripting", "start", null, null,
 					DBusCallFlags.NONE, -1, null);
-				debug ("KWin bridge script loaded (id %d)", result.get_child_value (0).get_int32 ());
+				script_id = result.get_child_value (0).get_int32 ();
+				debug ("KWin bridge script loaded (id %d)", script_id);
 			} catch (Error e) {
 				warning ("Unable to start KWin bridge: %s", e.message);
 			}

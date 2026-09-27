@@ -54,6 +54,7 @@ namespace Plank
 		{
 			queued_files = null;
 			Matcher.get_default ().application_opened.disconnect (app_opened);
+			Matcher.get_default ().application_closed.disconnect (app_closed);
 			ApplicationDiscovery.get_default ().changed.disconnect (sync_compositor_windows);
 
 			if (items_monitor != null) {

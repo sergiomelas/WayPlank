@@ -94,6 +94,13 @@ namespace Plank
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
 
+			var geo = monitor != null ? monitor.get_geometry () : Gdk.Rectangle ();
+			var mon_w = geo.width > 0 ? geo.width : 1920;
+			var mon_h = geo.height > 0 ? geo.height : 1080;
+
+			var clamped_x = int.max (GAP, int.min (mon_w - width - GAP, x - width / 2));
+			var clamped_y = int.max (GAP, int.min (mon_h - height - GAP, y - height / 2));
+
 			switch (position) {
 			case Gtk.PositionType.BOTTOM:
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, true);
@@ -102,7 +109,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 				
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, edge_margin);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, x - width / 2);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
 				break;
 
 			case Gtk.PositionType.TOP:
@@ -112,7 +119,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 				
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, edge_margin);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, x - width / 2);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
 				break;
 
 			case Gtk.PositionType.LEFT:
@@ -122,7 +129,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 				
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, edge_margin);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, y - height / 2);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_y);
 				break;
 
 			case Gtk.PositionType.RIGHT:
@@ -132,7 +139,7 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 				
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, edge_margin);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, y - height / 2);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_y);
 				break;
 			}
 		}

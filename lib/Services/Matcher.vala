@@ -53,17 +53,33 @@ namespace Plank
 			active_apps = new Gee.HashSet<string> ();
 		}
 
+		uint scan_timer_id = 0U;
+
 		construct
 		{
-			// Periodically scan running processes to populate the dock
-			GLib.Timeout.add_seconds (2, () => {
-				scan_running_applications ();
-				return true;
+			// Only scan /proc if no compositor window-control is providing live state
+			if (!WindowControl.has_state ()) {
+				scan_timer_id = GLib.Timeout.add_seconds (3, () => {
+					if (!WindowControl.has_state ())
+						scan_running_applications ();
+					return true;
+				});
+			}
+
+			WindowControl.get_default ().state_changed.connect (() => {
+				if (WindowControl.has_state () && scan_timer_id > 0U) {
+					GLib.Source.remove (scan_timer_id);
+					scan_timer_id = 0U;
+				}
 			});
 		}
 
 		~Matcher ()
 		{
+			if (scan_timer_id > 0U) {
+				GLib.Source.remove (scan_timer_id);
+				scan_timer_id = 0U;
+			}
 			matcher = null;
 		}
 
@@ -130,8 +146,14 @@ namespace Plank
 
 		private bool desktop_file_exists_in_system (string app_id)
 		{
+			var search_dirs = new Gee.ArrayList<File> ();
+			search_dirs.add (Paths.DataHomeFolder.get_child ("applications"));
 			foreach (var folder in Paths.DataDirFolders) {
-				var desktop_file = folder.get_child ("applications").get_child (app_id);
+				search_dirs.add (folder.get_child ("applications"));
+			}
+
+			foreach (var app_dir in search_dirs) {
+				var desktop_file = app_dir.get_child (app_id);
 				if (desktop_file.query_exists ()) {
 					// Filter system daemons, KDED/KWallet services, and hidden apps
 					try {

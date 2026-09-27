@@ -50,21 +50,28 @@ namespace Plank
 				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
 					var command = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
 					if (command != "") {
-						var parts = command.split (" ");
-						var executable = File.new_for_path (parts[0].replace ("\"", "").replace ("'", "")).get_basename ();
-						if (executable != null && executable != "")
-							executable_tokens.add (normalize (executable));
+						string[] parts;
+						try {
+							GLib.Shell.parse_argv (command, out parts);
+						} catch (Error e) {
+							parts = command.split (" ");
+						}
+						if (parts.length > 0) {
+							var executable = File.new_for_path (parts[0].replace ("\"", "").replace ("'", "")).get_basename ();
+							if (executable != null && executable != "")
+								executable_tokens.add (normalize (executable));
 
-						for (int i = 1; i < parts.length; i++) {
-							var part = parts[i].strip ().replace ("\"", "").replace ("'", "");
-							if (part == "" || part.has_prefix ("-") || part.has_prefix ("%"))
-								continue;
-							var target_name = File.new_for_path (part).get_basename ().down ();
-							if (target_name != "" && target_name != ".") {
-								argument_tokens.add (target_name);
-								var dot = target_name.last_index_of_char ('.');
-								if (dot > 0)
-									argument_tokens.add (target_name.substring (0, dot));
+							for (int i = 1; i < parts.length; i++) {
+								var part = parts[i].strip ().replace ("\"", "").replace ("'", "");
+								if (part == "" || part.has_prefix ("-") || part.has_prefix ("%"))
+									continue;
+								var target_name = File.new_for_path (part).get_basename ().down ();
+								if (target_name != "" && target_name != ".") {
+									argument_tokens.add (target_name);
+									var dot = target_name.last_index_of_char ('.');
+									if (dot > 0)
+										argument_tokens.add (target_name.substring (0, dot));
+								}
 							}
 						}
 					}

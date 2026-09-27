@@ -79,21 +79,6 @@ namespace Plank
 			return null;
 		}
 
-		static File? desktop_file_for_application_uri (string app_uri)
-		{
-			foreach (var folder in Paths.DataDirFolders) {
-				var applications_folder = folder.get_child ("applications");
-				if (!applications_folder.query_exists ())
-					continue;
-
-				var desktop_file = applications_folder.get_child (app_uri.replace ("application://", ""));
-				if (!desktop_file.query_exists ())
-					continue;
-
-				return desktop_file;
-			}
-			return null;
-		}
 
 		public override bool add_item_with_uri (string uri, DockItem? target = null)
 		{
@@ -126,45 +111,64 @@ namespace Plank
 			return true;
 		}
 
+		bool window_has_pinned_item (WindowInfo window)
+		{
+			var discovery = ApplicationDiscovery.get_default ();
+			foreach (var element in internal_elements) {
+				unowned ApplicationDockItem? appitem = (element as ApplicationDockItem);
+				if (appitem == null || (appitem is TransientDockItem))
+					continue;
+
+				var identity = discovery.identity_for_launcher (appitem.Launcher);
+				if (identity != null && identity.matches (window))
+					return true;
+			}
+			return false;
+		}
+
 		public override void prepare ()
 		{
 			sync_compositor_windows ();
-			foreach (var app_id in Matcher.get_default ().active_launchers ()) {
-				unowned ApplicationDockItem? found = item_for_application_id (app_id);
-				if (found == null) {
-					// If the app is active but not pinned, add it as a transient item
-					var desktop_file = desktop_file_for_application_uri ("application://" + app_id);
-					if (desktop_file != null) {
-						var new_item = new TransientDockItem.with_launcher (desktop_file.get_uri ());
-						add (new_item);
-					}
-				}
-			}
 		}
 
 		void sync_compositor_windows ()
 		{
-			var active_ids = ApplicationDiscovery.get_default ().active_launcher_ids ();
-			if (active_ids.length == 0)
-				return;
-			var active = new Gee.HashSet<string> ();
-			foreach (var app_id in active_ids)
-				active.add (ApplicationIdentity.normalize (app_id));
+			var windows = WindowControl.get_windows ();
+			var discovery = ApplicationDiscovery.get_default ();
+			var active_transient_launchers = new Gee.HashSet<string> ();
 
-			foreach (var app_id in active) {
-				if (item_for_application_id (app_id) != null)
+			foreach (var window in windows) {
+				// If a window is already handled by a pinned dock item, don't create a transient item
+				if (window_has_pinned_item (window))
 					continue;
-				var desktop_file = ApplicationDiscovery.get_default ().desktop_file_for_id (app_id);
-				if (desktop_file != null)
-					add (new TransientDockItem.with_launcher (desktop_file.get_uri ())); 
+
+				var desktop_file = discovery.best_desktop_file_for_window (window);
+				if (desktop_file == null)
+					continue;
+
+				var uri = desktop_file.get_uri ();
+				active_transient_launchers.add (uri);
+
+				bool already_exists = false;
+				foreach (var element in internal_elements) {
+					unowned ApplicationDockItem? appitem = (element as ApplicationDockItem);
+					if (appitem != null && appitem.Launcher == uri) {
+						already_exists = true;
+						break;
+					}
+				}
+
+				if (!already_exists) {
+					add (new TransientDockItem.with_launcher (uri));
+				}
 			}
 
 			foreach (var element in internal_elements.to_array ()) {
 				unowned TransientDockItem? transient = (element as TransientDockItem);
 				if (transient == null)
 					continue;
-				var launcher_id = ApplicationIdentity.normalize (File.new_for_uri (transient.Launcher).get_basename ());
-				if (!active.contains (launcher_id))
+
+				if (!active_transient_launchers.contains (transient.Launcher))
 					remove (transient);
 			}
 		}

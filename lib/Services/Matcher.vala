@@ -73,10 +73,15 @@ namespace Plank
 				var dir = GLib.Dir.open ("/proc", 0);
 				string? name = null;
 				Gee.HashSet<int> current_pids = new Gee.HashSet<int> ();
+				var my_uid = Posix.getuid ();
 
 				while ((name = dir.read_name ()) != null) {
 					int pid = int.parse (name);
 					if (pid <= 0)
+						continue;
+
+					Posix.Stat st;
+					if (Posix.stat ("/proc/%s".printf (name), out st) != 0 || st.st_uid != my_uid)
 						continue;
 
 					current_pids.add (pid);
@@ -176,41 +181,69 @@ namespace Plank
 		public bool is_launcher_running (string launcher_uri)
 		{
 			try {
-			var launcher_file = File.new_for_uri (launcher_uri);
-			var launcher_name = launcher_file.get_basename ().down ();
-			var keyfile = new KeyFile ();
-			keyfile.load_from_file (launcher_file.get_path (), KeyFileFlags.NONE);
+				var launcher_file = File.new_for_uri (launcher_uri);
+				var launcher_name = launcher_file.get_basename ().down ();
+				var keyfile = new KeyFile ();
+				keyfile.load_from_file (launcher_file.get_path (), KeyFileFlags.NONE);
 
-			var candidates = new Gee.ArrayList<string> ();
-			candidates.add (launcher_name);
+				var candidates = new Gee.ArrayList<string> ();
+				candidates.add (launcher_name);
 
-			var exec = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-			var executable = exec.split (" ")[0].replace ("\"", "").replace ("'", "");
-			if (executable != "") {
-				candidates.add (File.new_for_path (executable).get_basename ().down ());
-				add_script_candidates (executable, candidates, 0);
+				var exec = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
+				var parts = exec.split (" ");
+				var executable = parts[0].replace ("\"", "").replace ("'", "");
+				if (executable != "") {
+					candidates.add (File.new_for_path (executable).get_basename ().down ());
+					add_script_candidates (executable, candidates, 0);
+				}
+
+				string? specific_arg = null;
+				for (int i = 1; i < parts.length; i++) {
+					var p = parts[i].strip ().replace ("\"", "").replace ("'", "");
+					if (p != "" && !p.has_prefix ("-") && !p.has_prefix ("%")) {
+						var basename = File.new_for_path (p).get_basename ().down ();
+						if (basename != "" && basename != ".") {
+							specific_arg = basename;
+							break;
+						}
+					}
+				}
+
+				var my_uid = Posix.getuid ();
+				var dir = GLib.Dir.open ("/proc", 0);
+				string? name = null;
+				while ((name = dir.read_name ()) != null) {
+					int pid = int.parse (name);
+					if (pid <= 0)
+						continue;
+
+					Posix.Stat st;
+					if (Posix.stat ("/proc/%s".printf (name), out st) != 0 || st.st_uid != my_uid)
+						continue;
+
+					string comm = "";
+					string cmdline = "";
+					GLib.FileUtils.get_contents ("/proc/%s/comm".printf (name), out comm);
+					GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
+					comm = comm.strip ().down ();
+					var cmdline_down = cmdline.replace ("\0", " ").down ();
+
+					if (specific_arg != null && specific_arg != "") {
+						if (cmdline_down.contains (specific_arg))
+							return true;
+						continue;
+					}
+
+					var argv0 = cmdline_down.split (" ")[0];
+					var bin_name = File.new_for_path (argv0).get_basename ();
+					foreach (var candidate in candidates) {
+						if (candidate != "" && (comm == candidate || bin_name == candidate))
+							return true;
+					}
+				}
+			} catch (Error e) {
+				debug ("Unable to match launcher process '%s': %s", launcher_uri, e.message);
 			}
-
-			var dir = GLib.Dir.open ("/proc", 0);
-			string? name = null;
-			while ((name = dir.read_name ()) != null) {
-				int pid = int.parse (name);
-				if (pid <= 0)
-					continue;
-
-				string comm = "";
-				string cmdline = "";
-				GLib.FileUtils.get_contents ("/proc/%s/comm".printf (name), out comm);
-				GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
-				comm = comm.strip ().down ();
-
-				foreach (var candidate in candidates)
-					if ((candidate != "" && comm == candidate) || (candidate != "" && cmdline.down ().contains (candidate)))
-						return true;
-			}
-		} catch (Error e) {
-			debug ("Unable to match launcher process '%s': %s", launcher_uri, e.message);
-		}
 
 			return false;
 		}

@@ -215,6 +215,18 @@ namespace Plank
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
+					info.Caption = json.has_member ("caption") ? json.get_string_member ("caption") : "";
+					info.Pid = json.has_member ("pid") ? (int) json.get_int_member ("pid") : 0;
+					if (info.Pid > 0) {
+						string cmd = "";
+						if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
+							info.Cmdline = cmd.replace ("\0", " ").strip ();
+						}
+						string comm = "";
+						if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
+							info.Executable = comm.strip ();
+						}
+					}
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height"))
 						info.Geometry = { (int) json.get_double_member ("x"), (int) json.get_double_member ("y"),
 							(int) json.get_double_member ("width"), (int) json.get_double_member ("height") };

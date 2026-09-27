@@ -92,6 +92,22 @@ namespace Plank
 					return file;
 			return null;
 		}
+
+		public File? best_desktop_file_for_window (WindowInfo window)
+		{
+			var best_score = 0;
+			string? best_id = null;
+			foreach (var entry in identities.entries) {
+				var score = entry.value.match_score (window);
+				if (score > best_score) {
+					best_score = score;
+					best_id = entry.key;
+				}
+			}
+			if (best_id != null)
+				return desktop_file_for_id (best_id);
+			return null;
+		}
 		
 		public string[] active_launcher_ids ()
 		{
@@ -142,6 +158,24 @@ namespace Plank
 			var identity = new ApplicationIdentity (file);
 			identities.set (id, identity);
 			return identity;
+		}
+		
+		public bool is_best_launcher_for_window (string launcher_uri, WindowInfo window)
+		{
+			var my_identity = identity_for_launcher (launcher_uri);
+			if (my_identity == null)
+				return false;
+			var my_score = my_identity.match_score (window);
+			if (my_score <= 0)
+				return false;
+
+			var file = File.new_for_uri (launcher_uri);
+			var target_id = file.get_basename ();
+			foreach (var entry in identities.entries) {
+				if (entry.key != target_id && entry.value.match_score (window) > my_score)
+					return false;
+			}
+			return true;
 		}
 		
 		Gee.ArrayList<File> application_folders ()

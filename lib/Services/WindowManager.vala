@@ -84,10 +84,16 @@ namespace Plank
 
 			var result = new Gee.ArrayList<WindowInfo> ();
 			var app_id = File.new_for_uri (launcher_uri).get_basename ();
+			var discovery = ApplicationDiscovery.get_default ();
 			var identity = identity_for_launcher (launcher_uri);
-			foreach (var window in cached_windows)
-				if ((identity != null && identity.matches (window)) || (identity == null && matches_app (window, app_id)))
+			foreach (var window in cached_windows) {
+				if (identity != null) {
+					if (discovery.is_best_launcher_for_window (launcher_uri, window))
+						result.add (window);
+				} else if (matches_app (window, app_id)) {
 					result.add (window);
+				}
+			}
 			matches_cache.set (launcher_uri, result);
 			return result;
 		}

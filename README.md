@@ -79,7 +79,7 @@ valac -g \
     --vapidir=vapi \
     --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
     --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config \
-    -X -DWNCK_I_KNOW_THIS_IS_UNSTABLE -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
+    -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" -X -Ilib -X -Iinclude -X -w -X -lm \
     $(find lib src -name "*.vala") lib/resources.c -o wayplank
 ```
@@ -170,6 +170,15 @@ wayplank -d
 ---
 
 # Change log
+
+## V0.4.2: 2026-09-27
+
+Core fixes:
+
+
+- Launch standard [Desktop Action …] entries through GDesktopAppInfo.launch_action() instead of treating their Exec lines as generic commands. Legacy Unity quicklists (X-Ayatana-Desktop-Shortcuts) still use the existing launch path.
+- Fixed running detection and window matching for custom and specialized launchers (e.g. virtual machines, web apps, dedicated profiles): process scanning is now isolated to the user's UID to prevent system daemons from triggering false-positive running states, while window titles and command-line arguments are now matched to ensure custom shortcuts correctly launch and toggle their windows.
+- **Declaration of Independence from X11 & Native Hardware Modernization**: WayPlank has officially severed all ties with legacy X11: purged all remaining X11, XRandR, XInput, and libwnck dependencies, obsolete vapi bindings, and build flags. The codebase now compiles with **0 warnings and 0 errors**. Eliminated the final compiler deprecations by reimplementing multi-monitor discovery via native `Gdk.Monitor` hardware querying, featuring automatic disambiguation for identical display models (e.g., `DELL U2720Q (1)`, `DELL U2720Q (2)`). Additionally, replaced continuous 2-second background disk/proc polling with event-driven `inotify` directory monitors and on-demand matching, achieving zero idle CPU/disk I/O and perfectly fluid icon zoom animations.
 
 ## V0.4.1: 2026-09-25
 

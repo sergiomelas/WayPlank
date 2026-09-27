@@ -60,6 +60,8 @@ To compile Wayplank from source, ensure your distribution provides:
 - GLib 2.0 (glib2 / libglib2.0-dev, includes glib-compile-resources)
 - pkg-config
 
+WayPlank uses GTK 3.24 with gtk+-3.0 and GTK 3 gtk-layer-shell for native Wayland integration. GTK 4 migration may be considered later, but GTK 3 remains the supported toolkit for the current release line.
+
 ## 2. UNIVERSAL MANUAL COMPILATION
 
 Compile the embedded resource binary directly on any Linux distribution:

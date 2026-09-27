@@ -312,7 +312,10 @@ namespace Plank
 			if (!changed_index)
 				return;
 			indexed_desktop_files = next;
+			identities.clear ();
 			var new_identities = new Gee.HashMap<string, ApplicationIdentity> ();
+			foreach (var file in indexed_desktop_files)
+				identities.set (file.get_basename (), new ApplicationIdentity (file));
 			foreach (var file in indexed_desktop_files) {
 				new_identities.set (file.get_basename (), new ApplicationIdentity (file));
 			}

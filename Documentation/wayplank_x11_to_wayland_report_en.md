@@ -1,10 +1,10 @@
-# Exhaustive Technical Report: Architectural & Function-by-Function Migration from Plank X11 (0.1_X11) to WayPlank Wayland (0.4_Wayland / v0.4.2)
+# Exhaustive Technical Report: Architectural & Function-by-Function Migration from Plank X11 (0.1_X11) to WayPlank Wayland (_Wayland / v)
 
 ---
 
 ## 1. Executive Summary & Paradigm Shift
 
-The transition from **Plank 0.1 (X11)** to **WayPlank 0.4 (Wayland)** represents an exhaustive architectural rewrite of Linux desktop dock mechanics. In traditional X11 window management, any unprivileged client process possessed global desktop access:
+The transition from **Plank 0.1 (X11)** to **WayPlank  (Wayland)** represents an exhaustive architectural rewrite of Linux desktop dock mechanics. In traditional X11 window management, any unprivileged client process possessed global desktop access:
 1. **Global Window Introspection:** Direct querying of root window properties (`_NET_CLIENT_LIST`, `_NET_ACTIVE_WINDOW`, via `Wnck.Screen`).
 2. **Arbitrary Window Placement & Struts:** Positioning via *override-redirect* and reserving desktop display edges by transmitting client messages (`_NET_WM_STRUT_PARTIAL`).
 3. **Global Pointer Tracking & Confinement:** Hardware pointer barriers and off-screen motion tracking via the **XFixes** and **XInput 2.0 (XI2)** extensions.
@@ -16,18 +16,18 @@ Under the **Wayland security model**, all global introspection is intentionally 
 - X11 atoms, client messages, XFixes pointer barriers, and Wnck data structures do not exist.
 - BAMF is completely obsolete, missing Wayland native surface descriptors and abandoned upstream.
 
-To overcome these structural restrictions and build a high-performance, lightweight Wayland dock, **WayPlank 0.4.2** introduces a completely redesigned, modular stack:
+To overcome these structural restrictions and build a high-performance, lightweight Wayland dock, **WayPlank ** introduces a completely redesigned, modular stack:
 1. **GtkLayerShell (`gtk-layer-shell-0`):** Native `wlr-layer-shell` integration inside GTK3, managing layer positioning (`TOP`), keyboard interaction modes (`NONE`), dynamic edge anchors, and compositor-enforced *exclusive zones* (strut replacement).
 2. **Hardware / Compositor Abstraction Layer (HAL):** An extensible backend architecture (`WindowBackend`, `WindowInfo`, `WindowCapabilities`, `WindowManager`).
 3. **Bi-Directional KWin D-Bus Scripting Bridge:** Event-driven, push-based synchronization with zero polling (**0.0% CPU at idle**) between KWin (KDE Plasma) and WayPlank, delivering window states, geometry intersection, stacking order, and multi-window activation/minimization.
 4. **Real-Time Application Discovery & Identity Engine:** Inotify-based filesystem monitoring with **300ms debounce** (`GLib.FileMonitor`), paired with a multi-attribute heuristic scoring engine matching Wayland `app_id`, `StartupWMClass`, `/proc/[pid]/cmdline`, and wrapper scripts without external daemons.
-5. **Monolithic Core Stabilization:** Complete removal of fragile external dynamic docklet plugins (`lib/Docklets/`), replaced by built-in native items like [`SeparatorDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/SeparatorDockItem.vala).
+5. **Monolithic Core Stabilization:** Complete removal of fragile external dynamic docklet plugins (`lib/Docklets/`), replaced by built-in native items like [`SeparatorDockItem.vala`](file:///home/sergio/Others/WayPlank/_Wayland/lib/Items/SeparatorDockItem.vala).
 
 ---
 
 ## 2. Quantitative Metric Overview
 
-| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank 0.4 (Wayland Current) | Net Variance |
+| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank  (Wayland Current) | Net Variance |
 | :--- | :--- | :--- | :--- |
 | **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell | Full replacement |
 | **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | `WindowBackend` + KWin D-Bus Bridge | Wnck & X11 stripped |
@@ -179,7 +179,7 @@ The following 13 files were completely eliminated from the source repository:
 
 ### 4.6. `_Private/Howto.txt` & `Readme.txt`
 - **Original Purpose:** Legacy developer notes and outdated plain-text documentation.
-- **Reason for Removal:** Replaced by the comprehensive GitHub-flavored [`README.md`](file:///home/sergio/Others/WayPlank/0.4_Wayland/README.md).
+- **Reason for Removal:** Replaced by the comprehensive GitHub-flavored [`README.md`](file:///home/sergio/Others/WayPlank/_Wayland/README.md).
 
 ---
 
@@ -553,13 +553,13 @@ The following section covers every modified file across the codebase, documentin
   - Replaced build dependencies: removed `libwnck-3-dev`, `libbamf3-dev`, `libx11-dev`, `libxfixes-dev`, `libxi-dev`.
   - Added dependencies: `libgtk-layer-shell-dev`, `libgee-0.8-dev`, `libjson-glib-1.0-dev`.
   - Stripped X11 event hooks (`gdk_window_add_filter`, `XGetEventData`) from `compat.vapi`.
-  - Version updated to **0.4.2**; package renamed to **wayplank**.
+  - Version updated to ****; package renamed to **wayplank**.
 
 ---
 
 ## 7. Performance & Resource Comparison
 
-| Benchmark Parameter | Plank 0.1 (X11) | WayPlank 0.4 (Wayland) | Architectural Cause |
+| Benchmark Parameter | Plank 0.1 (X11) | WayPlank  (Wayland) | Architectural Cause |
 | :--- | :--- | :--- | :--- |
 | **Idle CPU Utilization** | ~1.5% - 3.5% | **0.0% - 0.1%** | Polling loops eliminated; pure event-driven D-Bus push notifications. |
 | **Window State Latency** | Up to 2,000 ms | **< 10 ms (Real-time)** | KWin pushes geometry mutations directly upon compositor events. |
@@ -571,4 +571,4 @@ The following section covers every modified file across the codebase, documentin
 
 ## 8. Summary & Future Outlook
 
-The transformation from **Plank 0.1_X11** to **WayPlank 0.4.2_Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.
+The transformation from **Plank 0.1_X11** to **WayPlank _Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.

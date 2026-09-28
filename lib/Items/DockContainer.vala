@@ -135,9 +135,10 @@ namespace Plank
 			
 			add_without_signaling (element);
 			
-			if (target != null && target != placeholder_item)
-				move_to (element, target);
-			else
+			if (target != null && target != placeholder_item) {
+				if (!move_to (element, target))
+					update_visible_elements ();
+			} else
 				update_visible_elements ();
 			
 			return true;

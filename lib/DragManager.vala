@@ -239,7 +239,12 @@ namespace Plank
 				unowned string? data = (string?) selection_data.get_data ();
 				if (data == null) {
 					drag_data_requested = false;
-					Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
+					if (dropped_on_target) {
+						Gtk.drag_finish (context, false, false, time_);
+						dropped_on_target = false;
+					} else {
+						Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
+					}
 					return;
 				}
 				
@@ -248,15 +253,30 @@ namespace Plank
 				drag_data = new Gee.ArrayList<string> ();
 				if (uris.length == 0) {
 					var plain_uri = data.strip ();
-					if (plain_uri.has_prefix ("application://") || plain_uri.has_prefix ("file://"))
+					if (plain_uri.has_prefix ("application://") || plain_uri.has_prefix ("file://")) {
 						drag_data.add (plain_uri);
-					else if (plain_uri.has_suffix (".desktop") && File.new_for_path (plain_uri).query_exists ())
-						drag_data.add (File.new_for_path (plain_uri).get_uri ());
+					} else {
+						var f = File.new_for_commandline_arg (plain_uri);
+						if (f.query_exists ())
+							drag_data.add (f.get_uri ());
+					}
 				}
 
 				foreach (unowned string s in uris) {
-					var uri = File.new_for_uri (s).get_uri ();
-					if (uri != null)
+					string cleaned = s.strip ();
+					if (cleaned.length == 0)
+						continue;
+					
+					string? uri = null;
+					if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("application://")) {
+						uri = File.new_for_uri (cleaned).get_uri ();
+					} else {
+						var f = File.new_for_commandline_arg (cleaned);
+						if (f.query_exists ())
+							uri = f.get_uri ();
+					}
+					
+					if (uri != null && !drag_data.contains (uri))
 						drag_data.add (uri);
 				}
 				
@@ -272,7 +292,7 @@ namespace Plank
 				controller.renderer.animated_draw ();
 				hovered_item_changed ();
 
-				if (dropped_on_target)
+				if (dropped_on_target && ExternalDragActive)
 					accept_external_drop (context, time_);
 			}
 			
@@ -282,12 +302,19 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void accept_external_drop (Gdk.DragContext context, uint time_)
 		{
-			if (drag_data == null)
+			if (drag_data == null) {
+				Gtk.drag_finish (context, false, false, time_);
 				return;
+			}
 			
 			unowned DockWindow window = controller.window;
 			unowned DockItem? item = window.HoveredItem;
 			unowned DockItemProvider? provider = window.HoveredItemProvider;
+			if (provider == null && item != null)
+				provider = item.Container as DockItemProvider;
+			if (provider == null)
+				provider = controller.default_provider;
+
 			bool contains_directory = false;
 			foreach (string uri in drag_data) {
 				if (File.new_for_uri (uri).query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
@@ -296,13 +323,17 @@ namespace Plank
 				}
 			}
 			
+			bool handled = false;
 			if (!contains_directory && DragNeedsCheck && item != null && item.can_accept_drop (drag_data))
-				item.accept_drop (drag_data);
+				handled = item.accept_drop (drag_data);
 			else if (!controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
-				provider.accept_drop (drag_data);
+				handled = provider.accept_drop (drag_data);
 			
-			Gtk.drag_finish (context, true, false, time_);
+			Gtk.drag_finish (context, handled, false, time_);
 			ExternalDragActive = false;
+			drag_data = null;
+			dropped_on_target = false;
+			controller.renderer.animated_draw ();
 		}
 
 		[CCode (instance_pos = -1)]
@@ -315,17 +346,17 @@ namespace Plank
 				drag_hover_timer_id = 0U;
 			}
 			
-			if (drag_data == null) {
+			if (ExternalDragActive) {
+				drag_data = null;
 				drag_data_requested = true;
 				var target_atom = Gtk.drag_dest_find_target (controller.window, context, null);
 				if (target_atom != Gdk.Atom.NONE)
 					Gtk.drag_get_data (controller.window, context, target_atom, time_);
 				else
 					Gtk.drag_get_data (controller.window, context, Gdk.Atom.intern ("text/uri-list", false), time_);
-				return true;
+			} else {
+				Gtk.drag_finish (context, true, false, time_);
 			}
-
-			accept_external_drop (context, time_);
 			return true;
 		}
 		
@@ -351,6 +382,16 @@ namespace Plank
 						var launcher_uri = DragItem.Launcher;
 						unowned DockContainer? drag_container = DragItem.Container;
 						
+						// Compute poof position using dock origin (exact same way as tooltips / HoverWindow)
+						int poof_x = 0;
+						int poof_y = 0;
+						controller.position_manager.get_hover_position (DragItem, out poof_x, out poof_y);
+						var dock_region = controller.position_manager.get_dock_window_region ();
+						var dock_thickness = controller.position_manager.is_horizontal_dock ()
+							? dock_region.height : dock_region.width;
+						var monitor = PositionManager.get_monitor_for_plug_name (controller.window.get_display (), controller.prefs.Monitor);
+						var dock_pos = controller.position_manager.Position;
+
 						if (app_item == null || !(still_running || app_item.has_unity_info ())) {
 							DragItem.IsVisible = false;
 							DragItem.Container.remove (DragItem);
@@ -361,42 +402,8 @@ namespace Plank
 						// instead of disappearing entirely once dragged out of the dock.
 						if (was_pinned && still_running && drag_container != null)
 							drag_container.add (new TransientDockItem.with_launcher (launcher_uri));
-						
-						var local_cursor = controller.renderer.local_cursor;
-						var x = local_cursor.x;
-						var y = local_cursor.y;
-						var display = controller.window.get_display ();
-						var dock_window = controller.window.get_window ();
-						var monitor = display != null && dock_window != null
-							? display.get_monitor_at_window (dock_window) : null;
-						if (monitor == null && display != null)
-							monitor = display.get_primary_monitor () ?? display.get_monitor (0);
 
-						if (monitor != null) {
-							var geometry = monitor.get_geometry ();
-							var dock_width = controller.window.get_allocated_width ();
-							var dock_height = controller.window.get_allocated_height ();
-							switch (controller.position_manager.Position) {
-							case Gtk.PositionType.TOP:
-								x += geometry.x + (geometry.width - dock_width) / 2;
-								y += geometry.y;
-								break;
-							case Gtk.PositionType.BOTTOM:
-								x += geometry.x + (geometry.width - dock_width) / 2;
-								y += geometry.y + geometry.height - dock_height;
-								break;
-							case Gtk.PositionType.LEFT:
-								x += geometry.x;
-								y += geometry.y + (geometry.height - dock_height) / 2;
-								break;
-							case Gtk.PositionType.RIGHT:
-								x += geometry.x + geometry.width - dock_width;
-								y += geometry.y + (geometry.height - dock_height) / 2;
-								break;
-							}
-						}
-
-						PoofWindow.get_default ().show_at (x, y);
+						PoofWindow.get_default ().show_at (poof_x, poof_y, dock_pos, dock_thickness, monitor);
 					}
 				} else if (controller.window.HoveredItem == null) {
 					if (controller.prefs.AutoPinning && DragItem is TransientDockItem) {
@@ -408,26 +415,50 @@ namespace Plank
 				
 				// Keep items on the correct side of the pinned/temporary divider after any
 				// reorder: a temporary item resting left of it gets pinned, a pinned item
-				// resting at/right of it gets unpinned - regardless of exact drop target.
+				// resting right of it gets unpinned.
 				if (dropped_on_target && !controller.prefs.LockItems) {
 					unowned DefaultApplicationDockItemProvider? provider = (DragItem.Container as DefaultApplicationDockItemProvider);
 					if (provider != null) {
 						unowned Gee.ArrayList<DockElement> elements = provider.Elements;
-						var boundary = -1;
-						for (var i = 0; i < elements.size; i++) {
-							if (elements.get (i) is TransientDockItem) {
-								boundary = i;
-								break;
+						int drag_index = elements.index_of (DragItem);
+						if (drag_index >= 0) {
+							int sep_index = -1;
+							for (int i = 0; i < elements.size; i++) {
+								if (elements.get (i) is SeparatorDockItem) {
+									sep_index = i;
+									break;
+								}
 							}
-						}
-						
-						if (boundary >= 0) {
-							var drag_index = elements.index_of (DragItem);
-							if (drag_index >= 0) {
-								if (DragItem is TransientDockItem && drag_index < boundary)
+							
+							if (sep_index >= 0) {
+								if (DragItem is TransientDockItem && drag_index < sep_index) {
 									provider.pin_item (DragItem);
-								else if (!(DragItem is TransientDockItem) && drag_index >= boundary)
+								} else if (!(DragItem is TransientDockItem) && drag_index > sep_index) {
 									provider.pin_item (DragItem);
+								}
+							} else {
+								// No separator: check against last pinned item
+								int last_pinned = -1;
+								int first_transient = -1;
+								for (int i = 0; i < elements.size; i++) {
+									var el = elements.get (i);
+									if (el == DragItem || el is SeparatorDockItem)
+										continue;
+									if (el is TransientDockItem) {
+										if (first_transient < 0)
+											first_transient = i;
+									} else {
+										last_pinned = i;
+									}
+								}
+								
+								if (DragItem is TransientDockItem) {
+									if (last_pinned >= 0 && drag_index <= last_pinned)
+										provider.pin_item (DragItem);
+								} else {
+									if (first_transient >= 0 && drag_index >= first_transient)
+										provider.pin_item (DragItem);
+								}
 							}
 						}
 					}
@@ -550,7 +581,6 @@ namespace Plank
 				&& DragItem != hovered_item
 				&& DragItem.Container == hovered_item.Container) {
 				DragItem.Container.move_to (DragItem, hovered_item);
-				convert_drag_item_if_crossed_boundary ();
 			}
 			
 			if (drag_hover_timer_id > 0U) {
@@ -567,64 +597,6 @@ namespace Plank
 						drag_hover_timer_id = 0U;
 					return item != null;
 				});
-		}
-		
-		/**
-		 * Pins/unpins the dragged item the moment it crosses the pinned/temporary
-		 * divider, so its slide-into-place animation matches its final state
-		 * instead of a mismatched state being converted only after the drop.
-		 */
-		void convert_drag_item_if_crossed_boundary ()
-		{
-			if (DragItem == null || controller.prefs.LockItems)
-				return;
-			
-			unowned DefaultApplicationDockItemProvider? provider = (DragItem.Container as DefaultApplicationDockItemProvider);
-			if (provider == null)
-				return;
-			
-			unowned Gee.ArrayList<DockElement> elements = provider.Elements;
-			var boundary = -1;
-			for (var i = 0; i < elements.size; i++) {
-				if (elements.get (i) is TransientDockItem) {
-					boundary = i;
-					break;
-				}
-			}
-			if (boundary < 0)
-				return;
-			
-			var drag_index = elements.index_of (DragItem);
-			if (drag_index < 0)
-				return;
-			
-			var was_transient = (DragItem is TransientDockItem);
-			// Already on the correct side of the divider - nothing to do.
-			if (was_transient == (drag_index >= boundary))
-				return;
-			
-			var launcher_uri = DragItem.Launcher;
-			
-			if (drag_item_redraw_handler_id > 0UL) {
-				GLib.SignalHandler.disconnect (DragItem, drag_item_redraw_handler_id);
-				drag_item_redraw_handler_id = 0UL;
-			}
-			
-			provider.pin_item (DragItem);
-			
-			unowned DockItem? replacement = provider.item_for_uri (launcher_uri);
-			if (replacement == null)
-				return;
-			
-			DragItem = replacement;
-			
-			if (active_drag_context != null) {
-				unowned Gdk.DragContext context = active_drag_context;
-				set_drag_icon (context, DragItem, 0.8);
-				drag_item_redraw_handler_id = DragItem.needs_redraw.connect (() => {
-					set_drag_icon (context, DragItem, 0.8);
-				});
-			}
 		}
 
 		void enable_drag_to (DockWindow window)

@@ -65,32 +65,77 @@ namespace Plank
 		 */
 		void maintain_separator ()
 		{
-			var boundary = -1;
 			SeparatorDockItem? existing = null;
+			int first_transient_idx = -1;
+			int pinned_count = 0;
+			int transient_count = 0;
 			
-			for (var i = 0; i < internal_elements.size; i++) {
+			// If an internal drag is in progress, exclude the dragged item from
+			// deciding where the separator should be anchored so it doesn't jump during drag.
+			unowned DockController? dock = get_dock ();
+			unowned DockItem? dragging_item = (dock != null && dock.drag_manager.InternalDragActive)
+				? dock.drag_manager.DragItem : null;
+			
+			for (int i = 0; i < internal_elements.size; i++) {
 				var element = internal_elements.get (i);
 				if (element is SeparatorDockItem) {
 					existing = (SeparatorDockItem) element;
 					continue;
 				}
-				if (boundary < 0 && element is TransientDockItem)
-					boundary = i;
+				if (element == dragging_item)
+					continue;
+				
+				if (element is TransientDockItem) {
+					transient_count++;
+					if (first_transient_idx < 0)
+						first_transient_idx = i;
+				} else if (element is ApplicationDockItem) {
+					pinned_count++;
+				}
 			}
 			
-			var need_separator = (boundary > 0 && !Prefs.PinnedOnly);
+			bool need_separator = (!Prefs.PinnedOnly && pinned_count > 0 && transient_count > 0);
 			
 			if (!need_separator) {
-				if (existing != null)
-					remove (existing);
+				if (existing != null) {
+					disconnect_element (existing);
+					internal_elements.remove (existing);
+					existing.Container = null;
+				}
 				return;
 			}
 			
-			if (existing != null)
-				return;
+			if (existing != null) {
+				int current_sep_idx = internal_elements.index_of (existing);
+				if (current_sep_idx == first_transient_idx - 1)
+					return;
+				
+				disconnect_element (existing);
+				internal_elements.remove (existing);
+				existing.Container = null;
+			}
 			
-			var target = internal_elements.get (boundary);
-			add (new SeparatorDockItem (), target);
+			int target_idx = -1;
+			for (int i = 0; i < internal_elements.size; i++) {
+				var el = internal_elements.get (i);
+				if (el == dragging_item)
+					continue;
+				if (el is TransientDockItem) {
+					target_idx = i;
+					break;
+				}
+			}
+			
+			if (target_idx >= 0) {
+				if (existing == null) {
+					existing = new SeparatorDockItem ();
+				}
+				existing.AddTime = GLib.get_monotonic_time ();
+				existing.RemoveTime = 0;
+				internal_elements.insert (target_idx, existing);
+				existing.Container = this;
+				connect_element (existing);
+			}
 		}
 
 		public override void prepare ()

@@ -60,6 +60,10 @@ namespace Plank
 		bool long_press_active = false;
 		uint long_press_button = 0U;
 
+		double smooth_scroll_dy = 0.0;
+		double smooth_scroll_dx = 0.0;
+		uint32 last_scroll_time = 0U;
+
 		int window_position_retry = 0;
 
 		/**
@@ -310,13 +314,49 @@ namespace Plank
 			if (controller.drag_manager.InternalDragActive)
 				return Gdk.EVENT_STOP;
 
-			if (event.direction >= 4)
+			Gdk.ScrollDirection direction = event.direction;
+			if (direction == Gdk.ScrollDirection.SMOOTH) {
+				double dx, dy;
+				if (event.get_scroll_deltas (out dx, out dy)) {
+					if (event.time - last_scroll_time > 400U) {
+						smooth_scroll_dx = 0.0;
+						smooth_scroll_dy = 0.0;
+					}
+					last_scroll_time = event.time;
+
+					smooth_scroll_dx += dx;
+					smooth_scroll_dy += dy;
+
+					if (smooth_scroll_dy <= -0.7) {
+						direction = Gdk.ScrollDirection.UP;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else if (smooth_scroll_dy >= 0.7) {
+						direction = Gdk.ScrollDirection.DOWN;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else if (smooth_scroll_dx <= -0.7) {
+						direction = Gdk.ScrollDirection.LEFT;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else if (smooth_scroll_dx >= 0.7) {
+						direction = Gdk.ScrollDirection.RIGHT;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else {
+						return Gdk.EVENT_STOP;
+					}
+				} else {
+					return Gdk.EVENT_STOP;
+				}
+			} else if ((uint) direction >= 4) {
 				return Gdk.EVENT_STOP;
+			}
 
 			if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0) {
-				if (event.direction == Gdk.ScrollDirection.UP)
+				if (direction == Gdk.ScrollDirection.UP)
 					controller.prefs.increase_icon_size ();
-				else if (event.direction == Gdk.ScrollDirection.DOWN)
+				else if (direction == Gdk.ScrollDirection.DOWN)
 					controller.prefs.decrease_icon_size ();
 
 				return Gdk.EVENT_STOP;
@@ -324,7 +364,7 @@ namespace Plank
 
 			if (HoveredItem != null) {
 				controller.hover.hide ();
-				HoveredItem.scrolled (event.direction, event.state, event.time);
+				HoveredItem.scrolled (direction, event.state, event.time);
 				controller.renderer.animated_draw ();
 			}
 

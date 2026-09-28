@@ -34,10 +34,12 @@ namespace Plank
 			return instance;
 		}
 		
+		public signal void windows_refreshed ();
+		
 		WindowManager ()
 		{
-			cached_windows = new Gee.ArrayList<WindowInfo> ();
 			matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
+			cached_windows = WindowControl.get_windows ();
 			WindowControl.get_default ().state_changed.connect (refresh_windows);
 		}
 
@@ -53,6 +55,7 @@ namespace Plank
 		{
 			cached_windows = WindowControl.get_windows ();
 			matches_cache.clear ();
+			windows_refreshed ();
 		}
 		
 		static string normalize_id (string id)
@@ -166,6 +169,44 @@ namespace Plank
 			
 			var next_index = (active_index + 1) % visible.size;
 			target = visible[next_index].Id;
+			return true;
+		}
+
+		public bool cycle_window (string launcher_uri, bool forward, out string? target)
+		{
+			target = null;
+			var matches = matching_windows (launcher_uri);
+			if (matches.size == 0)
+				return false;
+
+			if (matches.size == 1) {
+				target = matches[0].Id;
+				return true;
+			}
+
+			var list = new Gee.ArrayList<WindowInfo> ();
+			list.add_all (matches);
+			list.sort ((a, b) => GLib.strcmp (a.Id, b.Id));
+
+			var active_index = -1;
+			for (var i = 0; i < list.size; i++) {
+				if (list[i].Active) {
+					active_index = i;
+					break;
+				}
+			}
+
+			int next_index;
+			if (active_index < 0) {
+				next_index = forward ? 0 : list.size - 1;
+			} else {
+				if (forward)
+					next_index = (active_index + 1) % list.size;
+				else
+					next_index = (active_index - 1 + list.size) % list.size;
+			}
+
+			target = list[next_index].Id;
 			return true;
 		}
 	}

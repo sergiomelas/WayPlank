@@ -81,7 +81,7 @@ namespace Plank
 			actions_map = new Gee.HashMap<string, string> ();
 			desktop_action_ids = new Gee.HashMap<string, string> ();
 			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
-			WindowControl.get_default ().state_changed.connect (handle_window_state_changed);
+			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
 			
 			load_from_launcher ();
 		}
@@ -94,7 +94,7 @@ namespace Plank
 			desktop_action_ids = null;
 			
 			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
-			WindowControl.get_default ().state_changed.disconnect (handle_window_state_changed);
+			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
 #if HAVE_DBUSMENU
 			Quicklist = null;
 #endif
@@ -177,11 +177,9 @@ namespace Plank
 					WindowControl.queue_command (uuid, action);
 					return AnimationType.BOUNCE;
 				}
-				if (!is_running ()) {
-					message ("Wayplank: click on '%s' -> no matching window, launching new instance", Text);
-					launch ();
-					return AnimationType.BOUNCE;
-				}
+				message ("Wayplank: click on '%s' -> no matching window, launching new instance", Text);
+				launch ();
+				return AnimationType.BOUNCE;
 			}
 			
 			return AnimationType.NONE;
@@ -192,6 +190,13 @@ namespace Plank
 		 */
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{
+			base.on_scrolled (direction, mod, event_time);
+			bool forward = (direction == Gdk.ScrollDirection.UP || direction == Gdk.ScrollDirection.RIGHT);
+			string? uuid;
+			if (WindowManager.get_default ().cycle_window (Launcher, forward, out uuid)) {
+				message ("Wayplank: scroll on '%s' -> cycle window uuid=%s (forward=%s)", Text, uuid, forward.to_string ());
+				WindowControl.queue_command (uuid, "activate");
+			}
 			return AnimationType.NONE;
 		}
 		

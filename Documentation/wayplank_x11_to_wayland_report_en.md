@@ -553,13 +553,13 @@ The following section covers every modified file across the codebase, documentin
   - Replaced build dependencies: removed `libwnck-3-dev`, `libbamf3-dev`, `libx11-dev`, `libxfixes-dev`, `libxi-dev`.
   - Added dependencies: `libgtk-layer-shell-dev`, `libgee-0.8-dev`, `libjson-glib-1.0-dev`.
   - Stripped X11 event hooks (`gdk_window_add_filter`, `XGetEventData`) from `compat.vapi`.
-  - Version updated to ****; package renamed to **wayplank**.
+  - Version updated to **0.4.2**; package renamed to **wayplank**.
 
 ---
 
 ## 7. Performance & Resource Comparison
 
-| Benchmark Parameter | Plank 0.1 (X11) | WayPlank  (Wayland) | Architectural Cause |
+| Benchmark Parameter | Plank 0.1 (X11) | WayPlank 0.4.2 (Wayland) | Architectural Cause |
 | :--- | :--- | :--- | :--- |
 | **Idle CPU Utilization** | ~1.5% - 3.5% | **0.0% - 0.1%** | Polling loops eliminated; pure event-driven D-Bus push notifications. |
 | **Window State Latency** | Up to 2,000 ms | **< 10 ms (Real-time)** | KWin pushes geometry mutations directly upon compositor events. |
@@ -571,4 +571,46 @@ The following section covers every modified file across the codebase, documentin
 
 ## 8. Summary & Future Outlook
 
-The transformation from **Plank 0.1_X11** to **WayPlank _Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.
+The transformation from **Plank 0.1_X11** to **WayPlank 0.4.2_Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.
+
+---
+
+## 9. Bug Fixes & Refinements Changelog (v0.4.2 Post-Release)
+
+### 9.1. Wayland Rendering Pipeline & Instant Indicator Updates (0ms FrameClock)
+- **Issue:** When closing all instances of an application, the running indicator (blue dot) and temporary/transient launcher icons failed to update or disappear until the user manually hovered the mouse pointer over the dock.
+- **Root Cause:**
+  - On X11, `widget.queue_draw()` immediately triggered X11 expose events.
+  - Under Wayland with `gtk-layer-shell`, `queue_draw()` merely marks the GTK surface dirty. If the `GdkFrameClock` is idling, GTK never requests compositor frame callbacks (`wl_surface.frame`) until an input event (pointer motion) is dispatched to the dock surface.
+  - Additionally, KWin kept closing windows in `workspace.stackingOrder` while playing close animations, preventing immediate state detection.
+- **Resolution:**
+  - In `lib/Drawing/Renderer.vala`: Eliminated the conditional `if (animation_needed)` gate in `animated_draw()`. `frame_clock.begin_updating()` is now invoked on every redraw request, ensuring GTK schedules immediate surface commits (0–16ms at 60/120Hz) on Wayland without waiting for mouse events.
+  - In `lib/Services/KWinBridge.vala`: Intercepted the `removedClient` parameter directly in `workspace.windowRemoved` and filtered out all windows marked `client.deleted === true`.
+  - In `lib/Services/WindowManager.vala`: Introduced the synchronous `windows_refreshed` signal to update icon running states immediately upon receiving compositor D-Bus updates.
+
+### 9.2. Mouse Wheel Window Cycling (Smooth Scrolling)
+- **Implementation:** In `ApplicationDockItem.on_scrolled`, added deterministic window switching (`cycle_window`) for applications with multiple active windows via mouse wheel scrolling (UP/RIGHT to cycle forward, DOWN/LEFT to cycle backward), including smooth-scroll delta accumulation and rate limiting.
+
+### 9.3. Drag & Drop from Dolphin & Application Launching
+- **Issue:** Dragging a `.desktop` file from Dolphin file manager created the launcher on the dock, but subsequent left-clicks were unresponsive.
+- **Resolution:** Removed the restrictive `if (!is_running ())` guard in `ApplicationDockItem.on_clicked`: if an application has no open windows to focus, a left-click unconditionally invokes `launch()`.
+
+### 9.4. Separator Boundary, Dynamic Pinning and Unpinning
+- **Issue:** Dragging temporary/running application icons to the left of the separator failed to pin them as permanent launchers, and the separator position became misaligned.
+- **Resolution:**
+  - In `lib/DragManager.vala`: Restricted `accept_external_drop` strictly to external drops (`ExternalDragActive == true`), preventing internal dock item reordering from falsely resetting drop state.
+  - In `drag_end`: Calculated the pinning boundary by comparing the dragged item's position directly against the real position of `SeparatorDockItem` (`sep_index`).
+  - In `lib/Items/DefaultApplicationDockItemProvider.vala`: Rewrote `maintain_separator()` to dynamically reposition the separator and exclude the currently dragged item during reordering.
+
+### 9.5. Layer-Shell Poof (Smoke Cloud) Placement
+- **Issue:** The unpinning smoke puff animation (`PoofWindow`) rendered at arbitrary screen offsets instead of directly over the removed dock icon.
+- **Resolution:** Extended `PoofWindow.show_at()` to take `position`, `dock_thickness`, and `monitor`, applying the exact same LayerShell coordinate and margin calculation used by `HoverWindow` tooltips.
+
+### 9.6. Standalone Builder, Vala Compiler & IDE Synchronization Fixes (Dedicated Section)
+- **Vala Compiler Fix:**
+  - Aligned the `PoofWindow.show_at` method signature in `lib/Widgets/PoofWindow.vala` with caller arguments in `DragManager.vala`, achieving **0 errors and 0 warnings** under `valac`.
+- **IDE Buffer Conflict Resolution:**
+  - Configured `"chat.editing.alwaysSaveWithGeneratedChanges": true` in workspace and user settings (`.vscode/settings.json`), resolving dirty-buffer desynchronization and eliminating accidental overwrites.
+- **Build Pipeline Verification:**
+  - Both `./BuilsBin.sh` and `./BuildDeb.sh` were updated and verified; the standalone Debian package `build/wayplank_0.4.2_amd64.deb` was compiled and verified cleanly.
+

@@ -87,10 +87,22 @@ namespace Plank
 				return false;
 
 			if (target != null && target != placeholder_item && !internal_elements.contains (target))
-				return false;
+				target = null;
 
-			if (item_exists_for_uri (uri))
+			unowned DockItem? existing = item_for_uri (uri);
+			if (existing != null) {
+				if (existing is TransientDockItem) {
+					unowned DefaultApplicationDockItemProvider? default_provider = this as DefaultApplicationDockItemProvider;
+					if (default_provider != null) {
+						default_provider.pin_item (existing);
+						unowned DockItem? pinned = item_for_uri (uri);
+						if (target != null && pinned != null && target != pinned && internal_elements.contains (target))
+							move_to (pinned, target);
+						return true;
+					}
+				}
 				return false;
+			}
 
 			delay_items_monitor ();
 

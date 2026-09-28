@@ -23,6 +23,7 @@ set -euo pipefail
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_DIR="${BASE_DIR}/build"
 mkdir -p "$OUT_DIR"
+rm -f "${OUT_DIR}/wayplank"
 
 echo "⚙️ Compiling GLib resources..."
 glib-compile-resources \
@@ -39,7 +40,7 @@ if [ -f "${BASE_DIR}/lib/gtk-compat.c" ]; then
     C_SOURCES="${C_SOURCES} ${BASE_DIR}/lib/gtk-compat.c"
 fi
 
-valac -g \
+if valac -g \
     --gresources="${BASE_DIR}/data/plank.gresource.xml" \
     --gresourcesdir="${BASE_DIR}/data" \
     --vapidir="${BASE_DIR}/vapi" \
@@ -60,8 +61,12 @@ valac -g \
     -X -lm \
     "${VALA_FILES[@]}" \
     ${C_SOURCES} \
-    -o "${OUT_DIR}/wayplank"
-
-rm -f "${BASE_DIR}/lib/resources.c"
-
-echo "✅ Binary ready: ${OUT_DIR}/wayplank"
+    -o "${OUT_DIR}/wayplank"; then
+    rm -f "${BASE_DIR}/lib/resources.c"
+    echo "✅ Binary ready: ${OUT_DIR}/wayplank"
+else
+    rm -f "${BASE_DIR}/lib/resources.c"
+    echo ""
+    echo "❌ Error: Compilation failed!"
+    exit 1
+fi

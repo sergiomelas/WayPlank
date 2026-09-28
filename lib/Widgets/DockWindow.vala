@@ -629,21 +629,27 @@ namespace Plank
 			var debug_items = new Gee.ArrayList<Gtk.MenuItem> ();
 
 			debug_items.add (new Gtk.SeparatorMenuItem ());
-			debug_items.add (new TitledSeparatorMenuItem.no_line ("debug this dock"));
+
+			var dev_item = new Gtk.MenuItem.with_mnemonic (_("Developer _Tools"));
+			var dev_submenu = new Gtk.Menu ();
+			dev_item.set_submenu (dev_submenu);
 
 			Gtk.MenuItem menu_item;
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open config folder");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open config folder"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (controller.config_folder);
 			});
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open current theme file");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open current theme file"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (controller.renderer.theme.get_backing_file ());
 			});
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
+
+			dev_submenu.show_all ();
+			debug_items.add (dev_item);
 
 			return debug_items;
 		}
@@ -653,32 +659,38 @@ namespace Plank
 			var debug_items = new Gee.ArrayList<Gtk.MenuItem> ();
 
 			debug_items.add (new Gtk.SeparatorMenuItem ());
-			debug_items.add (new TitledSeparatorMenuItem.no_line ("debug this item"));
+
+			var dev_item = new Gtk.MenuItem.with_mnemonic (_("Developer _Tools"));
+			var dev_submenu = new Gtk.Menu ();
+			dev_item.set_submenu (dev_submenu);
 
 			Gtk.MenuItem menu_item;
 
 			var dock_item_file = item.Prefs.get_backing_file ();
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Print info to stdout");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print info to stdout"));
 			menu_item.activate.connect (() => {
 				print ("DockItemFile: '%s'\nText = '%s'\nIcon = '%s'\nLauncher = '%s'\n",
 					dock_item_file != null ? dock_item_file.get_uri () : "",
 					item.Text, item.Icon, item.Launcher);
 			});
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open dockitem file");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open dockitem file"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (dock_item_file);
 			});
 			menu_item.sensitive = (dock_item_file != null && dock_item_file.query_exists ());
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open launcher file");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open launcher file"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (File.new_for_uri (item.Launcher));
 			});
 			menu_item.sensitive = (item.Launcher != "");
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
+
+			dev_submenu.show_all ();
+			debug_items.add (dev_item);
 
 			return debug_items;
 		}

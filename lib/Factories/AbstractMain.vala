@@ -34,6 +34,8 @@ namespace Plank
 			{ "verbose", 'v', 0, OptionArg.NONE, null, "Enable verbose logging", null },
 			{ "name", 'n', 0, OptionArg.STRING, null, "The name of this dock. Defaults to \"dock1\".", null },
 			{ "preferences", 0, 0, OptionArg.NONE, null, "Show preferences dialog of the just started or already running instance", null },
+			{ "shortcuts", 's', 0, OptionArg.NONE, null, "Show shortcuts and gestures guide dialog", null },
+			{ "reload", 'r', 0, OptionArg.NONE, null, "Reload and refresh running dock instance", null },
 			{ "version", 'V', 0, OptionArg.NONE, null, "Show the application's version", null },
 			{ null }
 		};
@@ -136,6 +138,7 @@ namespace Plank
 		
 		Gtk.AboutDialog? about_dlg;
 		PreferencesWindow? preferences_dlg;
+		HelpWindow? help_dlg;
 		DockController? primary_dock;
 		Gee.ArrayList<DockController> docks;
 		
@@ -163,7 +166,7 @@ namespace Plank
 		 */
 		public override void activate ()
 		{
-			//TODO Maybe let the dock hide/show for a visible feedback
+			refresh_docks ();
 		}
 		
 		/**
@@ -202,9 +205,19 @@ namespace Plank
 		{
 			var options = command_line.get_options_dict ();
 			
-			if (options.contains ("preferences"))
+			if (options.contains ("preferences")) {
 				activate_action ("preferences", null);
+				return 0;
+			}
 			
+			if (options.contains ("shortcuts")) {
+				activate_action ("shortcuts", null);
+				return 0;
+			}
+			
+			refresh_docks ();
+			command_line.print ("Wayplank is already running. Refreshing dock surface and position.\n");
+
 			return 0;
 		}
 		
@@ -255,6 +268,7 @@ namespace Plank
 			create_docks ();
 			WindowControl.start ();
 			create_actions ();
+			setup_power_management_listener ();
 		}
 		
 		/**
@@ -337,6 +351,12 @@ namespace Plank
 			action = new SimpleAction ("preferences", null);
 			action.activate.connect (() => {
 				show_preferences (primary_dock);
+			});
+			add_action (action);
+
+			action = new SimpleAction ("shortcuts", null);
+			action.activate.connect (() => {
+				show_help ();
 			});
 			add_action (action);
 			
@@ -447,6 +467,104 @@ namespace Plank
 			});
 			
 			preferences_dlg.show ();
+		}
+
+		void show_help ()
+		{
+			if (help_dlg != null) {
+				help_dlg.show_all ();
+				help_dlg.present ();
+				help_dlg.grab_focus ();
+				return;
+			}
+
+			help_dlg = new HelpWindow ();
+
+			help_dlg.destroy.connect (() => {
+				help_dlg = null;
+			});
+
+			help_dlg.hide.connect (() => {
+				help_dlg.destroy ();
+				help_dlg = null;
+			});
+
+			help_dlg.show_all ();
+		}
+
+		uint resume_timer_id = 0U;
+
+		void schedule_dock_refresh (uint delay_ms)
+		{
+			if (resume_timer_id > 0U) {
+				GLib.Source.remove (resume_timer_id);
+				resume_timer_id = 0U;
+			}
+
+			resume_timer_id = GLib.Timeout.add (delay_ms, () => {
+				resume_timer_id = 0U;
+				refresh_docks ();
+				return false;
+			});
+		}
+
+		public void refresh_docks ()
+		{
+			message ("Refreshing all docks after resume / wake-up event...");
+			foreach (var dock in docks) {
+				dock.handle_system_resume ();
+			}
+		}
+
+		void setup_power_management_listener ()
+		{
+			// 1. Listen for systemd-logind sleep/resume events (system bus)
+			try {
+				var system_bus = Bus.get_sync (BusType.SYSTEM, null);
+				system_bus.signal_subscribe (
+					"org.freedesktop.login1",
+					"org.freedesktop.login1.Manager",
+					"PrepareForSleep",
+					"/org/freedesktop/login1",
+					null,
+					DBusSignalFlags.NONE,
+					(conn, sender, path, iface, signal_name, parameters) => {
+						bool is_sleeping = false;
+						parameters.get ("(b)", out is_sleeping);
+						if (!is_sleeping) {
+							message ("System resumed from suspend/hibernate! Scheduling dock refresh...");
+							schedule_dock_refresh (800);
+						}
+					}
+				);
+				debug ("Subscribed to systemd-logind PrepareForSleep signal");
+			} catch (Error e) {
+				debug ("Unable to subscribe to systemd-logind PrepareForSleep: %s", e.message);
+			}
+
+			// 2. Listen for ScreenSaver / Screen Lock unlock events (session bus)
+			try {
+				var session_bus = Bus.get_sync (BusType.SESSION, null);
+				session_bus.signal_subscribe (
+					null,
+					"org.freedesktop.ScreenSaver",
+					"ActiveChanged",
+					null,
+					null,
+					DBusSignalFlags.NONE,
+					(conn, sender, path, iface, signal_name, parameters) => {
+						bool is_active = false;
+						parameters.get ("(b)", out is_active);
+						if (!is_active) {
+							message ("Screen unlocked! Scheduling dock refresh...");
+							schedule_dock_refresh (500);
+						}
+					}
+				);
+				debug ("Subscribed to ScreenSaver ActiveChanged signal");
+			} catch (Error e) {
+				debug ("Unable to subscribe to ScreenSaver ActiveChanged: %s", e.message);
+			}
 		}
 	}
 }

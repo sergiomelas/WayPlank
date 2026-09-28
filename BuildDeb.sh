@@ -44,20 +44,37 @@ export DEBFULLNAME="Sergio Melas"
 export DEBEMAIL="sergiomelas@gmail.com"
 MAINTAINER="${DEBFULLNAME} <${DEBEMAIL}>"
 
-echo " "
-echo " ##################################################################"
-echo " #                                                                #"
-echo " #               Plank Dock Local Builder - Standalone            #"
-echo " #             Master Builder V1.0 - Debian Integration           #"
-echo " #                                                                #"
-echo " ##################################################################"
-echo " "
+echo ""
+echo "🚀 Wayplank Standalone Builder — V${PKG_VER} (Debian Integration)"
+echo "─────────────────────────────────────────────────────────────────"
+echo ""
 
 # 1. Call the binary build script (BuilsBin.sh)
 if [ -f "${BASE_DIR}/BuilsBin.sh" ]; then
-    bash "${BASE_DIR}/BuilsBin.sh"
+    if ! bash "${BASE_DIR}/BuilsBin.sh"; then
+        echo ""
+        echo "❌ Build failed! Compilation error in BuilsBin.sh"
+        echo ""
+        if [ -t 0 ]; then
+            read -rp "👋 Press Enter to close..."
+        fi
+        exit 1
+    fi
 else
     echo "❌ Error: BuilsBin.sh not found!"
+    if [ -t 0 ]; then
+        read -rp "👋 Press Enter to close..."
+    fi
+    exit 1
+fi
+
+if [ ! -f "${OUT_DIR}/wayplank" ]; then
+    echo ""
+    echo "❌ Build failed! Binary '${OUT_DIR}/wayplank' was not generated."
+    echo ""
+    if [ -t 0 ]; then
+        read -rp "👋 Press Enter to close..."
+    fi
     exit 1
 fi
 
@@ -139,19 +156,40 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 EOF
 chmod 755 "$BUILD_DIR/DEBIAN/postrm"
+chmod 755 "$BUILD_DIR/DEBIAN"
 
 DEB_FILE="${OUT_DIR}/${PKG_NAME}_${PKG_VER}_${ARCH}.deb"
+rm -f "$DEB_FILE"
+
 echo "📦 Building ${PKG_NAME} package..."
-dpkg-deb --build --root-owner-group "$BUILD_DIR" "$DEB_FILE"
+if ! dpkg-deb --build --root-owner-group "$BUILD_DIR" "$DEB_FILE"; then
+    echo ""
+    echo "❌ Build failed! Error creating Debian package with dpkg-deb."
+    echo ""
+    rm -rf "$BUILD_DIR"
+    if [ -t 0 ]; then
+        read -rp "👋 Press Enter to close..."
+    fi
+    exit 1
+fi
 rm -rf "$BUILD_DIR"
 
-echo " "
-echo "################################################"
-echo "# Build successful!                            #"
-echo "# Package created: ${DEB_FILE}                 #"
-echo "################################################"
-echo " "
+if [ -f "$DEB_FILE" ]; then
+    echo ""
+    echo "🎉 Build completed successfully!"
+    echo "📦 Package: ${DEB_FILE}"
+    echo "💡 Install with: sudo dpkg -i \"${DEB_FILE}\""
+    echo ""
+else
+    echo ""
+    echo "❌ Build failed! Package file '${DEB_FILE}' was not created."
+    echo ""
+    if [ -t 0 ]; then
+        read -rp "👋 Press Enter to close..."
+    fi
+    exit 1
+fi
 
 if [ -t 0 ]; then
-    read -rp "Press Enter to close..."
+    read -rp "👋 Press Enter to close..."
 fi

@@ -27,6 +27,21 @@ namespace Plank
         Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
         Intl.textdomain (Build.GETTEXT_PACKAGE);
 
+        for (int i = 1; i < argv.length; i++) {
+            if (argv[i] == "--help" || argv[i] == "-h" || argv[i] == "-?") {
+                print_clean_help ();
+                return 0;
+            }
+            if (argv[i] == "--version" || argv[i] == "-V") {
+                print ("Wayplank %s\n", Build.VERSION);
+                return 0;
+            }
+            if (argv[i] == "--shortcuts" || argv[i] == "-s" || argv[i] == "--gestures") {
+                print_shortcuts_cheatsheet ();
+                return 0;
+            }
+        }
+
         Gtk.init (ref argv);
 
         unowned Gdk.Display? display = Gdk.Display.get_default ();
@@ -96,5 +111,43 @@ namespace Plank
                 about_license_type : Gtk.License.GPL_3_0
             );
         }
+    }
+
+    static void print_clean_help ()
+    {
+        print ("Usage:\n  wayplank [OPTION…]\n\n");
+        print ("Help Options:\n");
+        print ("  -h, --help                Show help options\n");
+        print ("  -s, --shortcuts           Show shortcuts and mouse gestures in terminal\n");
+        print ("  -V, --version             Show application version\n\n");
+        print ("Application Options:\n");
+        print ("  -p, --preferences         Show preferences dialog of the running or started instance\n");
+        print ("  -r, --reload              Reload and refresh running dock instance\n");
+        print ("  -d, --debug               Enable debug logging\n");
+        print ("  -v, --verbose             Enable verbose logging\n");
+        print ("  -n, --name=NAME           The name of this dock. Defaults to \"dock1\"\n\n");
+    }
+
+    static void print_shortcuts_cheatsheet ()
+    {
+        print ("\n=======================================================\n");
+        print ("  Wayplank — Shortcuts, Mouse Controls & Gestures Guide\n");
+        print ("=======================================================\n\n");
+        print ("MOUSE ACTIONS ON ICONS:\n");
+        print ("  Left Click                    Launch application, or activate/minimize/cycle open windows\n");
+        print ("  Middle Click (or Ctrl+Left)   Force launch a NEW instance of the application\n");
+        print ("  Right Click                   Open application context menu (Desktop Actions, Keep in Dock)\n\n");
+        print ("DYNAMIC ZOOM & RESIZE:\n");
+        print ("  Ctrl + Mouse Scroll Up        Increase dock icon size dynamically in real-time\n");
+        print ("  Ctrl + Mouse Scroll Down      Decrease dock icon size dynamically in real-time\n\n");
+        print ("DRAG & DROP GESTURES:\n");
+        print ("  Drag icon off dock            Unpin / remove launcher from dock (with smoke animation)\n");
+        print ("  Drag icon along dock          Reorder pinned application icons\n");
+        print ("  Drop file on app icon         Open the dropped file directly with that application\n");
+        print ("  Drop .desktop / folder        Pin a new application or folder to the dock\n\n");
+        print ("DOCK CONTROLS & DEVELOPER TOOLS:\n");
+        print ("  Ctrl + Right Click            Open dock preferences menu directly, even over an icon\n");
+        print ("  Right Click on separator      Open dock preferences menu\n");
+        print ("  Ctrl+Alt+Shift + Right Click  Open Developer Tools submenu (inspect launcher, config, theme)\n\n");
     }
 }

@@ -299,6 +299,13 @@ namespace Plank
 			return true;
 		}
 
+		public void wake_up ()
+		{
+			pointer_update = false;
+			show ();
+			update_window_intersect ();
+		}
+
 		void update_hidden ()
 		{
 			if (Disabled) {

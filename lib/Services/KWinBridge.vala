@@ -340,6 +340,33 @@ namespace Plank
 			script_path = null;
 		}
 
+		public static void reload_script ()
+		{
+			if (script_id >= 0) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
+						"org.kde.kwin.Script", "stop", null, null,
+						DBusCallFlags.NONE, 500, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting",
+						"org.kde.kwin.Scripting", "unloadScript",
+						new Variant ("(s)", script_path), null,
+						DBusCallFlags.NONE, 500, null);
+				} catch (Error e) {
+					debug ("Unable to stop KWin script: %s", e.message);
+				}
+				script_id = -1;
+			}
+
+			if (script_path != null) {
+				if (FileUtils.remove (script_path) != 0)
+					debug ("Unable to remove temporary KWin script '%s'", script_path);
+				script_path = null;
+			}
+
+			start ();
+		}
+
 		public static bool any_window_intersects (Gdk.Rectangle dock_rect)
 		{
 			return window_intersects (dock_rect, false, false);

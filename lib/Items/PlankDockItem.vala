@@ -71,10 +71,14 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 			
-			var item = create_menu_item (_("Get _Help Online..."), "help");
+			var item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
 			item.activate.connect (() => Application.get_default ().activate_action ("help", null));
 			items.add (item);
-			
+
+			item = create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
+			item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
+			items.add (item);
+
 			items.add (new Gtk.SeparatorMenuItem ());
 			
 			item = create_menu_item (_("_Preferences"), "preferences-system", true);

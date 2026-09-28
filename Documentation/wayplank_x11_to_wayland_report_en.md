@@ -614,3 +614,30 @@ The transformation from **Plank 0.1_X11** to **WayPlank 0.4.2_Wayland** successf
 - **Build Pipeline Verification:**
   - Both `./BuilsBin.sh` and `./BuildDeb.sh` were updated and verified; the standalone Debian package `build/wayplank_0.4.2_amd64.deb` was compiled and verified cleanly.
 
+### 9.7. Native Drag & Drop Shortcuts and Files into Dock Folders (`FileDockItem`)
+- **Issue:** Dragging and dropping `.desktop` application shortcuts or regular files onto pinned dock folders (`FileDockItem`) had no effect (the file was not copied and was rejected or treated as an invalid dock rearrange).
+- **Resolution:**
+  - In `lib/Items/FileDockItem.vala`:
+    - Implemented `can_accept_drop(string[] uris)` to verify that the item represents a directory and the dropped URIs are valid file or application schemes.
+    - Implemented `accept_drop(string[] uris)` to copy files/folders asynchronously using `copy_file_or_dir()`, with recursive subfolder copying support.
+    - For `.desktop` files, automatically sets executable POSIX permissions (`0755`) via `FileUtils.chmod` so the shortcut is immediately launchable.
+    - Invalidates the folder's Cairo stack thumbnail icon cache (`stack_buffer = null`) to immediately render new contents in the dock icon preview.
+    - Triggers `AnimationType.BOUNCE` to provide visual feedback upon successful copy.
+  - In `lib/DragManager.vala`:
+    - Added routing in `accept_external_drop` to inspect if the hovered item can accept drops via `can_accept_drop(uris)`. If true, delegates to `item.accept_drop(uris)` without triggering dock item unpinning or repositioning.
+    - In `drag_drop`, refreshes cursor and hover state at the drop coordinates.
+  - In `lib/DockRenderer.vala`:
+    - Maintained target folder brightness during external drag hover when `can_accept_drop()` is satisfied.
+
+### 9.8. Dynamic Transient Dock Items Synchronization & Audit Findings
+- **Dynamic Transient Dock Items under KWin:**
+  - **Issue:** Unpinned applications launching or quitting did not dynamically appear or disappear on the dock under KWin until an explicit dock reload or configuration change.
+  - **Resolution:** In `lib/Items/ApplicationDockItemProvider.vala`, connected `WindowManager.get_default().windows_refreshed` to `sync_compositor_windows()`, and cleanly disconnected it in `destroy()`. This guarantees immediate creation and destruction of `TransientDockItem` instances as foreign windows open and close in KWin.
+- **Robust Quoted Command Line Parsing (`Matcher.vala`):**
+  - **Issue:** Desktop launchers with spaces inside quotes in their `Exec=` line (e.g. `/opt/My App/binary "%U"`) failed to match running processes due to simple whitespace splitting.
+  - **Resolution:** Replaced basic string splitting with `GLib.Shell.parse_argv` with a safe fallback, correctly extracting the executable binary path.
+- **Layer-Shell Tooltip Margin Clamping (`HoverWindow.vala`):**
+  - **Issue:** Potential duplicate layout passes and negative coordinate values passed to GTK Layer Shell margin setters.
+  - **Resolution:** Removed redundant margin calls and directly clamped calculated margins to prevent protocol violations near screen edges.
+
+

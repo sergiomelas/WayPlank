@@ -41,6 +41,7 @@ namespace Plank
 			Matcher.get_default ().application_opened.connect (app_opened);
 			Matcher.get_default ().application_closed.connect (app_closed);
 			ApplicationDiscovery.get_default ().changed.connect (sync_compositor_windows);
+			WindowManager.get_default ().windows_refreshed.connect (sync_compositor_windows);
 
 			try {
 				items_monitor = LaunchersDir.monitor_directory (0);
@@ -56,6 +57,7 @@ namespace Plank
 			Matcher.get_default ().application_opened.disconnect (app_opened);
 			Matcher.get_default ().application_closed.disconnect (app_closed);
 			ApplicationDiscovery.get_default ().changed.disconnect (sync_compositor_windows);
+			WindowManager.get_default ().windows_refreshed.disconnect (sync_compositor_windows);
 
 			if (items_monitor != null) {
 				items_monitor.changed.disconnect (handle_items_dir_changed);

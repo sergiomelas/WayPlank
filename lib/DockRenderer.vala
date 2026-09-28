@@ -646,7 +646,7 @@ namespace Plank
 			if (hovered_item == item && controller.window.menu_is_visible ())
 				draw_value.darken += 0.4;
 			else if (drag_manager.ExternalDragActive
-				&& drag_manager.DragNeedsCheck
+				&& (drag_manager.DragNeedsCheck || item is FileDockItem)
 				&& !drag_manager.drop_is_accepted_by (item))
 				draw_value.darken += 0.6;
 			

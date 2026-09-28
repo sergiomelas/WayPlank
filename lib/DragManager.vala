@@ -324,7 +324,8 @@ namespace Plank
 			}
 			
 			bool handled = false;
-			if (!contains_directory && DragNeedsCheck && item != null && item.can_accept_drop (drag_data))
+			bool item_can_drop = (item != null && item.can_accept_drop (drag_data));
+			if (item_can_drop && (item is FileDockItem || (!contains_directory && DragNeedsCheck)))
 				handled = item.accept_drop (drag_data);
 			else if (!controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
 				handled = provider.accept_drop (drag_data);
@@ -340,6 +341,9 @@ namespace Plank
 		bool drag_drop (Gtk.Widget w, Gdk.DragContext context, int x, int y, uint time_)
 		{
 			dropped_on_target = true;
+			controller.renderer.update_local_cursor (x, y);
+			controller.hide_manager.update_hovered_with_coords (x, y);
+			controller.window.update_hovered (x, y);
 			
 			if (drag_hover_timer_id > 0U) {
 				GLib.Source.remove (drag_hover_timer_id);

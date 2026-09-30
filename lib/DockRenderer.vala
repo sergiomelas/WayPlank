@@ -660,7 +660,7 @@ namespace Plank
 			
 			// animate addition/removal
 			unowned DockContainer? container = item.Container;
-			var allow_animation = (screen_is_composited && (container == null || container.AddTime < item.AddTime));
+			var allow_animation = (screen_is_composited && !(item is SeparatorDockItem) && (container == null || container.AddTime < item.AddTime));
 			if (allow_animation && item.AddTime > item.RemoveTime) {
 				var move_duration = theme.ItemMoveTime * 1000;
 				var move_time = int64.max (0LL, frame_time - item.AddTime);
@@ -1110,7 +1110,7 @@ namespace Plank
 			
 			foreach (var element in elements) {
 				DockItem? item = (element as DockItem);
-				if (item != null)
+				if (item != null && !(item is SeparatorDockItem))
 					transient_items.add (item);
 			}
 			

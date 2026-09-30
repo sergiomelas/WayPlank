@@ -76,10 +76,11 @@ namespace Plank
 			unowned DockItem? dragging_item = (dock != null && dock.drag_manager.InternalDragActive)
 				? dock.drag_manager.DragItem : null;
 			
+			var all_separators = new Gee.ArrayList<SeparatorDockItem> ();
 			for (int i = 0; i < internal_elements.size; i++) {
 				var element = internal_elements.get (i);
 				if (element is SeparatorDockItem) {
-					existing = (SeparatorDockItem) element;
+					all_separators.add ((SeparatorDockItem) element);
 					continue;
 				}
 				if (element == dragging_item)
@@ -93,6 +94,19 @@ namespace Plank
 					pinned_count++;
 				}
 			}
+			
+			// Clean up any extraneous separators if more than one ever slipped in
+			if (all_separators.size > 1) {
+				for (int i = 1; i < all_separators.size; i++) {
+					var extra = all_separators.get (i);
+					disconnect_element (extra);
+					internal_elements.remove (extra);
+					extra.Container = null;
+				}
+			}
+			
+			if (all_separators.size > 0)
+				existing = all_separators.get (0);
 			
 			bool need_separator = (!Prefs.PinnedOnly && pinned_count > 0 && transient_count > 0);
 			
@@ -130,7 +144,7 @@ namespace Plank
 				if (existing == null) {
 					existing = new SeparatorDockItem ();
 				}
-				existing.AddTime = GLib.get_monotonic_time ();
+				existing.AddTime = 0;
 				existing.RemoveTime = 0;
 				internal_elements.insert (target_idx, existing);
 				existing.Container = this;

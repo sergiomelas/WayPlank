@@ -84,6 +84,10 @@ namespace Plank
 			item = create_menu_item (_("_Preferences"), "preferences-system", true);
 			item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
 			items.add (item);
+
+			item = create_menu_item (_("Wayland Migration Report..."), "text-x-generic", true);
+			item.activate.connect (() => Application.get_default ().activate_action ("report", null));
+			items.add (item);
 			
 			item = create_menu_item (_("_About"), "help-about", true);
 			item.activate.connect (() => Application.get_default ().activate_action ("about", null));

@@ -32,7 +32,7 @@ namespace Plank
                 print_clean_help ();
                 return 0;
             }
-            if (argv[i] == "--version" || argv[i] == "-V") {
+            if (argv[i] == "--version" || argv[i] == "-v" || argv[i] == "-V") {
                 print ("Wayplank %s\n", Build.VERSION);
                 return 0;
             }
@@ -119,12 +119,12 @@ namespace Plank
         print ("Help Options:\n");
         print ("  -h, --help                Show help options\n");
         print ("  -s, --shortcuts           Show shortcuts and mouse gestures in terminal\n");
-        print ("  -V, --version             Show application version\n\n");
+        print ("  -v, --version             Show application version\n\n");
         print ("Application Options:\n");
         print ("  -p, --preferences         Show preferences dialog of the running or started instance\n");
         print ("  -r, --reload              Reload and refresh running dock instance\n");
         print ("  -d, --debug               Enable debug logging\n");
-        print ("  -v, --verbose             Enable verbose logging\n");
+        print ("  -V, --verbose             Enable verbose logging\n");
         print ("  -n, --name=NAME           The name of this dock. Defaults to \"dock1\"\n\n");
     }
 

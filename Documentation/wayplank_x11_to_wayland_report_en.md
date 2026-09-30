@@ -1,4 +1,4 @@
-# Exhaustive Technical Report: Architectural & Function-by-Function Migration from Plank X11 (0.1_X11) to WayPlank Wayland (_Wayland / v)
+# Exhaustive Technical Report: Architectural & Function-by-Function Migration from Plank X11 (0.1_X11) to WayPlank Wayland
 
 ---
 
@@ -639,5 +639,32 @@ The transformation from **Plank 0.1_X11** to **WayPlank 0.4.2_Wayland** successf
 - **Layer-Shell Tooltip Margin Clamping (`HoverWindow.vala`):**
   - **Issue:** Potential duplicate layout passes and negative coordinate values passed to GTK Layer Shell margin setters.
   - **Resolution:** Removed redundant margin calls and directly clamped calculated margins to prevent protocol violations near screen edges.
+
+### 9.9. Community-Reported Hallucination Purge & Monolithic About Logo
+- **Removal of Placebo Code (`DockWindow.vala`):**
+  - **Issue:** An empty conditional block calling `win != null && !win.has_native ()` with misleading comments in `enter_notify_event` was spotted and pointed out by a user on Reddit. It was an AI-generated placebo artifact from earlier v0.3.0 prototyping.
+  - **Resolution:** Purged the entire empty check and comments, leaving only the real cursor and renderer calls.
+- **Monolithic Embedded Wayplank Logo in About Dialog:**
+  - Bundled the high-resolution vector Wayplank logo into the binary's monolithic GResource bundle (`/net/launchpad/plank/img/wayplank.svg`), ensuring the About dialog renders the official crisp Wayplank branding independently of system themes while keeping external desktop launchers using `plank` for full cross-distribution icon theme compatibility.
+- **CLI Options Harmonization & Short Flag Restoration (`-p`, `-v`, `-V`):**
+  - **Issue:** Running `wayplank -p` produced `Unknown option -p`, despite `-p, --preferences` being documented in the terminal help output.
+  - **Root Cause:** Upstream Plank's `OptionEntry` in `lib/Factories/AbstractMain.vala` historically passed the null character `0` for the short option character (`{ "preferences", 0, ... }`), disallowing single-dash invocation.
+  - **Resolution:** Replaced the null byte with `'p'` in `AbstractMain.vala`. Swapped and harmonized short options to standard Linux conventions (`-v` for `--version`, `-V` for `--verbose`), and synchronized early command-line interception and `--help` text in `src/Main.vala`.
+
+### 9.10. Integrated In-App Wayland Migration & Architecture Report
+- **Concept & Motivation:**
+  - Provide instant access to the complete technical documentation, architectural blueprints, and interactive sequence diagrams directly from the running dock interface without bloating the package with heavy embedded web engine dependencies.
+- **Monolithic GResource Embedding:**
+  - Added `<file alias="doc/report.md" compressed="true">../Documentation/wayplank_x11_to_wayland_report_en.md</file>` to `data/plank.gresource.xml`.
+  - The documentation markdown is compiled directly into the binary payload, eliminating file system path assumptions and guaranteeing offline availability.
+- **Dynamic HTML & Mermaid Visualization Engine:**
+  - When invoked, Wayplank extracts the embedded markdown resource and exports a self-contained HTML document into the user's cache directory (`~/.cache/wayplank/wayplank_migration_report.html`).
+  - The generated document incorporates GitHub Markdown CSS, Marked.js, and Mermaid.js, rendering all subsystem block diagrams and IPC sequence diagrams as crisp, interactive vector graphics in the user's default browser.
+  - Includes a fallback mode that displays raw formatted markdown if offline without an active internet connection.
+- **Dock Context Menu Integration:**
+  - Placed the "Wayland Migration Report..." entry inside the dedicated Preferences & About menu group in `PlankDockItem.get_menu_items()`.
+  - Connected the `"report"` action to `AbstractMain.show_report()`, ensuring instant one-click access.
+
+
 
 

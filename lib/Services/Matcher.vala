@@ -316,6 +316,7 @@ namespace Plank
 
 		public void set_favorites (Gee.ArrayList<string> favs)
 		{
+			// Kept for backward compatibility with docklet provider calls
 		}
 
 		public void register_process_for_app (string app_id, int pid)

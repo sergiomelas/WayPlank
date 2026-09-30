@@ -208,10 +208,6 @@ namespace Plank
 
 		protected virtual void app_opened (string app_id)
 		{
-			unowned ApplicationDockItem? found = item_for_application_id (app_id);
-			if (found != null) {
-				// Gestione apertura app
-			}
 		}
 
 		protected virtual void app_closed (string app_id)
@@ -282,16 +278,7 @@ namespace Plank
 				process_queued_files ();
 		}
 
-		protected override void connect_element (DockElement element)
-		{
-			base.connect_element (element);
-		}
-
-		protected override void disconnect_element (DockElement element)
-		{
-			base.disconnect_element (element);
-		}
-
+		// Unity.Client interface stubs
 		public void remove_launcher_entry (string sender_name) {}
 		public void update_launcher_entry (string sender_name, Variant parameters, bool is_retry = false) {}
 	}

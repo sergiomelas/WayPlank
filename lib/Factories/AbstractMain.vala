@@ -31,12 +31,12 @@ namespace Plank
 		 */
 		const OptionEntry[] options = {
 			{ "debug", 'd', 0, OptionArg.NONE, null, "Enable debug logging", null },
-			{ "verbose", 'v', 0, OptionArg.NONE, null, "Enable verbose logging", null },
+			{ "verbose", 'V', 0, OptionArg.NONE, null, "Enable verbose logging", null },
 			{ "name", 'n', 0, OptionArg.STRING, null, "The name of this dock. Defaults to \"dock1\".", null },
-			{ "preferences", 0, 0, OptionArg.NONE, null, "Show preferences dialog of the just started or already running instance", null },
+			{ "preferences", 'p', 0, OptionArg.NONE, null, "Show preferences dialog of the just started or already running instance", null },
 			{ "shortcuts", 's', 0, OptionArg.NONE, null, "Show shortcuts and gestures guide dialog", null },
 			{ "reload", 'r', 0, OptionArg.NONE, null, "Reload and refresh running dock instance", null },
-			{ "version", 'V', 0, OptionArg.NONE, null, "Show the application's version", null },
+			{ "version", 'v', 0, OptionArg.NONE, null, "Show the application's version", null },
 			{ null }
 		};
 
@@ -359,6 +359,12 @@ namespace Plank
 				show_help ();
 			});
 			add_action (action);
+
+			action = new SimpleAction ("report", null);
+			action.activate.connect (() => {
+				show_report ();
+			});
+			add_action (action);
 			
 			action = new SimpleAction ("about", null);
 			action.activate.connect (() => {
@@ -401,7 +407,15 @@ namespace Plank
 			
 			about_dlg.set_program_name (exec_name);
 			about_dlg.set_version ("%s\n%s".printf (build_version, build_version_info));
-			about_dlg.set_logo_icon_name (app_icon);
+			try {
+				var logo_buf = new Gdk.Pixbuf.from_resource_at_scale (
+					"%s/img/wayplank.svg".printf (G_RESOURCE_PATH),
+					128, 128, true
+				);
+				about_dlg.set_logo (logo_buf);
+			} catch (Error e) {
+				about_dlg.set_logo_icon_name (app_icon);
+			}
 			
 			var fully_supported_compositors = WindowCapabilities.fully_supported_compositors ();
 			var fully_supported = (fully_supported_compositors == ""
@@ -490,6 +504,126 @@ namespace Plank
 			});
 
 			help_dlg.show_all ();
+		}
+
+		void show_report ()
+		{
+			string report_b64 = "";
+			try {
+				var bytes = GLib.resources_lookup_data ("/net/launchpad/plank/doc/report.md", GLib.ResourceLookupFlags.NONE);
+				if (bytes != null) {
+					unowned uint8[] data = bytes.get_data ();
+					report_b64 = GLib.Base64.encode (data);
+				}
+			} catch (GLib.Error e) {
+				warning ("Failed to load report resource: %s", e.message);
+				return;
+			}
+
+			if (report_b64 == "")
+				return;
+
+			string cache_dir = Path.build_filename (Environment.get_user_cache_dir (), "wayplank");
+			DirUtils.create_with_parents (cache_dir, 0755);
+			string html_path = Path.build_filename (cache_dir, "wayplank_migration_report.html");
+
+			var builder = new StringBuilder ();
+			builder.append ("""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WayPlank - Wayland Migration & Architecture Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
+  <style>
+    body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 40px 24px;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    }
+    @media (prefers-color-scheme: light) {
+      body { background-color: #ffffff; color: #24292f; }
+    }
+    .markdown-body {
+      background-color: transparent !important;
+    }
+    .mermaid {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin: 24px 0;
+      overflow-x: auto;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body class="markdown-body">
+  <div id="content">Loading documentation report...</div>
+  <script>
+    const b64 = '""");
+			builder.append (report_b64);
+			builder.append ("""';
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const md = new TextDecoder().decode(bytes);
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    try {
+      if (typeof marked !== 'undefined') {
+        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (typeof mermaid !== 'undefined') {
+          mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+        }
+
+        const renderer = new marked.Renderer();
+        const origCode = renderer.code.bind(renderer);
+        renderer.code = function(token, lang, escaped) {
+          let codeText = typeof token === 'object' && token !== null ? token.text : token;
+          let codeLang = typeof token === 'object' && token !== null ? token.lang : lang;
+          if (codeLang === 'mermaid') {
+            return '<pre class="mermaid">' + codeText + '</pre>';
+          }
+          return origCode(token, lang, escaped);
+        };
+
+        marked.setOptions({ renderer: renderer });
+        document.getElementById('content').innerHTML = marked.parse(md);
+
+        if (typeof mermaid !== 'undefined') {
+          mermaid.run({ querySelector: '.mermaid' });
+        }
+      } else {
+        document.getElementById('content').innerHTML = '<div style="padding:15px; background:rgba(255,165,0,0.1); border:1px solid orange; border-radius:6px; margin-bottom:20px;"><strong>Notice:</strong> Offline mode active (CDN unreachable). Displaying raw documentation below.</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
+      }
+    } catch (e) {
+      document.getElementById('content').innerHTML = '<div style="color:red; padding:20px;">Error rendering report: ' + e.message + '</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
+    }
+  </script>
+</body>
+</html>
+""");
+
+			try {
+				FileUtils.set_contents (html_path, builder.str);
+				string uri = "file://" + html_path;
+				try {
+					AppInfo.launch_default_for_uri (uri, null);
+				} catch (GLib.Error err) {
+					System.get_default ().open_uri (uri);
+				}
+			} catch (GLib.Error e) {
+				warning ("Failed to save/open report HTML: %s", e.message);
+			}
 		}
 
 		uint resume_timer_id = 0U;

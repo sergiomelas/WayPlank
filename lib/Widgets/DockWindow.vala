@@ -261,12 +261,6 @@ namespace Plank
 
 		public override bool enter_notify_event (Gdk.EventCrossing event)
 		{
-			// Force focus and immediate renderer tick on Wayland enter event
-			var win = get_window ();
-			if (win != null && !win.has_native ()) {
-				// Ensures the compositor registers the surface state immediately
-			}
-			
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.renderer.animated_draw ();

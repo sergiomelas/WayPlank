@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "wayplank",
+  "version": "0.4.2",
+  "description": "Monolithic lightweight Wayland dock for Linux desktop environments",
+  "homepage": "https://github.com/sergiomelas/wayplank",
+  "license": "GPL-3.0-or-later",
+  "dependencies": [
+    "gtk3",
+    "gtk-layer-shell",
+    "libgee",
+    "json-glib",
+    "glib",
+    "cairo",
+    "pango"
+  ]
+}

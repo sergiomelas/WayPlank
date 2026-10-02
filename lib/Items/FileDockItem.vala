@@ -95,10 +95,7 @@ namespace Plank
 			
 			Text = get_display_name (OwnedFile);
 			
-			// pop up the dir contents on a left click too
 			if (OwnedFile.query_file_type (0) == FileType.DIRECTORY) {
-				Button = PopupButton.RIGHT | PopupButton.LEFT;
-				
 				try {
 					dir_monitor = OwnedFile.monitor_directory (0);
 					dir_monitor.changed.connect (handle_dir_changed);
@@ -246,8 +243,10 @@ namespace Plank
 				return AnimationType.BOUNCE;
 			}
 			
-			// this actually only happens if its a file, not a directory
 			if (button == PopupButton.LEFT) {
+				if (is_directory ())
+					return AnimationType.BOUNCE;
+				
 				launch ();
 				return AnimationType.BOUNCE;
 			}

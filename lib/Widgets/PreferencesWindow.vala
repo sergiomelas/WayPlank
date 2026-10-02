@@ -87,6 +87,28 @@ namespace Plank
 		unowned Gtk.Switch sw_show_running_indicators;
 		[GtkChild]
 		unowned Gtk.Switch sw_show_attention_indicators;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_trash;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_clock;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_digital_clock;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_battery;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_cpu;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_desktop;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_mpris;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_volume;
+		[GtkChild]
+		unowned Gtk.Stack dock_preferences;
+		[GtkChild]
+		unowned Gtk.StackSwitcher dock_preferences_switcher;
+		
+		bool updating_docklets = false;
 		
 		Gtk.CssProvider popup_css;
 		Gdk.Screen popup_css_screen;
@@ -105,9 +127,25 @@ namespace Plank
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
 			set_focus_on_map (true);
+			
+			dock_preferences.set_transition_type (Gtk.StackTransitionType.SLIDE_LEFT_RIGHT);
+			dock_preferences.set_transition_duration (200);
+			
+			dock_preferences_switcher.set_homogeneous (true);
+			dock_preferences_switcher.set_hexpand (true);
+			dock_preferences_switcher.set_halign (Gtk.Align.FILL);
+			foreach (var child in dock_preferences_switcher.get_children ()) {
+				child.hexpand = true;
+				child.halign = Gtk.Align.FILL;
+			}
+			
 			popup_css = new Gtk.CssProvider ();
 			try {
-				popup_css.load_from_data ("menu > arrow.top, menu > arrow.bottom { min-height: 0; min-width: 0; padding: 0; border-width: 0; -gtk-icon-source: none; }");
+				popup_css.load_from_data (
+					"menu > arrow.top, menu > arrow.bottom { min-height: 0; min-width: 0; padding: 0; border-width: 0; -gtk-icon-source: none; }\n" +
+					"headerbar stackswitcher, headerbar .stack-switcher { margin-left: 2px; margin-right: 2px; }\n" +
+					"headerbar stackswitcher button, headerbar .stack-switcher button { padding-left: 14px; padding-right: 14px; font-weight: bold; }\n"
+				);
 			} catch (GLib.Error e) {
 				warning ("Unable to load preferences menu CSS: %s", e.message);
 			}
@@ -137,6 +175,7 @@ namespace Plank
 			
 			init_dock_tab ();
 			init_window_tab ();
+			init_docklets_tab ();
 			connect_signals ();
 			
 			notify["controller"].connect (controller_changed);
@@ -166,6 +205,7 @@ namespace Plank
 			
 			init_dock_tab ();
 			init_window_tab ();
+			init_docklets_tab ();
 			connect_signals ();
 		}
 		
@@ -468,6 +508,16 @@ namespace Plank
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
+			sw_docklet_trash.notify["active"].connect (docklet_trash_toggled);
+			sw_docklet_clock.notify["active"].connect (docklet_clock_toggled);
+			sw_docklet_digital_clock.notify["active"].connect (docklet_digital_clock_toggled);
+			sw_docklet_battery.notify["active"].connect (docklet_battery_toggled);
+			sw_docklet_cpu.notify["active"].connect (docklet_cpu_toggled);
+			sw_docklet_desktop.notify["active"].connect (docklet_desktop_toggled);
+			sw_docklet_mpris.notify["active"].connect (docklet_mpris_toggled);
+			sw_docklet_volume.notify["active"].connect (docklet_volume_toggled);
+			if (controller.default_provider != null)
+				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 		}
@@ -497,6 +547,16 @@ namespace Plank
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
+			sw_docklet_trash.notify["active"].disconnect (docklet_trash_toggled);
+			sw_docklet_clock.notify["active"].disconnect (docklet_clock_toggled);
+			sw_docklet_digital_clock.notify["active"].disconnect (docklet_digital_clock_toggled);
+			sw_docklet_battery.notify["active"].disconnect (docklet_battery_toggled);
+			sw_docklet_cpu.notify["active"].disconnect (docklet_cpu_toggled);
+			sw_docklet_desktop.notify["active"].disconnect (docklet_desktop_toggled);
+			sw_docklet_mpris.notify["active"].disconnect (docklet_mpris_toggled);
+			sw_docklet_volume.notify["active"].disconnect (docklet_volume_toggled);
+			if (controller.default_provider != null)
+				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 		}
@@ -564,5 +624,93 @@ namespace Plank
 			sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);
 		}
 		
+		void toggle_docklet_uri (GLib.Object widget, string uri)
+		{
+			if (updating_docklets)
+				return;
+			var enabled = ((Gtk.Switch) widget).get_active ();
+			unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+			if (default_provider == null)
+				return;
+			if (enabled) {
+				if (default_provider.item_for_uri (uri) == null)
+					default_provider.add_item_with_uri (uri);
+			} else {
+				unowned DockItem? di = default_provider.item_for_uri (uri);
+				if (di != null)
+					di.delete ();
+			}
+		}
+
+		void docklet_trash_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://trash");
+		}
+
+		void docklet_clock_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://clock");
+		}
+
+		void docklet_digital_clock_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://digital-clock");
+		}
+
+		void docklet_battery_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://battery");
+		}
+
+		void docklet_cpu_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://cpu");
+		}
+
+		void docklet_desktop_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://desktop");
+		}
+
+		void docklet_mpris_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://mpris");
+		}
+
+		void docklet_volume_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://volume");
+		}
+
+		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
+		{
+			init_docklets_tab ();
+		}
+
+		void init_docklets_tab ()
+		{
+			updating_docklets = true;
+			unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+			if (default_provider != null) {
+				sw_docklet_trash.set_active (default_provider.item_for_uri ("docklet://trash") != null);
+				sw_docklet_clock.set_active (default_provider.item_for_uri ("docklet://clock") != null);
+				sw_docklet_digital_clock.set_active (default_provider.item_for_uri ("docklet://digital-clock") != null);
+				sw_docklet_battery.set_active (default_provider.item_for_uri ("docklet://battery") != null);
+				sw_docklet_cpu.set_active (default_provider.item_for_uri ("docklet://cpu") != null);
+				sw_docklet_desktop.set_active (default_provider.item_for_uri ("docklet://desktop") != null);
+				sw_docklet_mpris.set_active (default_provider.item_for_uri ("docklet://mpris") != null);
+				sw_docklet_volume.set_active (default_provider.item_for_uri ("docklet://volume") != null);
+			} else {
+				sw_docklet_trash.set_active (false);
+				sw_docklet_clock.set_active (false);
+				sw_docklet_digital_clock.set_active (false);
+				sw_docklet_battery.set_active (false);
+				sw_docklet_cpu.set_active (false);
+				sw_docklet_desktop.set_active (false);
+				sw_docklet_mpris.set_active (false);
+				sw_docklet_volume.set_active (false);
+			}
+			updating_docklets = false;
+		}
 	}
 }

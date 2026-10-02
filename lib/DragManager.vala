@@ -79,6 +79,7 @@ namespace Plank
 		int window_scale_factor = 1;
 		ulong drag_item_redraw_handler_id = 0UL;
 		weak Gdk.DragContext? active_drag_context = null;
+		weak DockItem? drop_target_item = null;
 		
 		/**
 		 * Creates a new instance of a DragManager, which handles
@@ -237,50 +238,62 @@ namespace Plank
 		{
 			if (drag_data_requested) {
 				unowned string? data = (string?) selection_data.get_data ();
-				if (data == null) {
-					drag_data_requested = false;
+				
+				drag_data = new Gee.ArrayList<string> ();
+				
+				string[]? raw_uris = selection_data.get_uris ();
+				if (raw_uris != null && raw_uris.length > 0) {
+					foreach (unowned string s in raw_uris) {
+						string cleaned = s.strip ();
+						if (cleaned.length > 0 && !drag_data.contains (cleaned))
+							drag_data.add (cleaned);
+					}
+				}
+				
+				if (drag_data.size == 0 && data != null) {
+					var uris = Uri.list_extract_uris (data);
+					if (uris.length == 0) {
+						var plain_uri = data.strip ();
+						if (plain_uri.has_prefix ("application://") || plain_uri.has_prefix ("file://")) {
+							drag_data.add (plain_uri);
+						} else {
+							var f = File.new_for_commandline_arg (plain_uri);
+							if (f.query_exists ())
+								drag_data.add (f.get_uri ());
+						}
+					}
+
+					foreach (unowned string s in uris) {
+						string cleaned = s.strip ();
+						if (cleaned.length == 0)
+							continue;
+						
+						string? uri = null;
+						if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("application://")) {
+							uri = File.new_for_uri (cleaned).get_uri ();
+						} else {
+							var f = File.new_for_commandline_arg (cleaned);
+							if (f.query_exists ())
+								uri = f.get_uri ();
+						}
+						
+						if (uri != null && !drag_data.contains (uri))
+							drag_data.add (uri);
+					}
+				}
+				
+				drag_data_requested = false;
+				
+				if (drag_data.size == 0) {
 					if (dropped_on_target) {
 						Gtk.drag_finish (context, false, false, time_);
 						dropped_on_target = false;
+						drop_target_item = null;
 					} else {
 						Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
 					}
 					return;
 				}
-				
-				var uris = Uri.list_extract_uris (data);
-				
-				drag_data = new Gee.ArrayList<string> ();
-				if (uris.length == 0) {
-					var plain_uri = data.strip ();
-					if (plain_uri.has_prefix ("application://") || plain_uri.has_prefix ("file://")) {
-						drag_data.add (plain_uri);
-					} else {
-						var f = File.new_for_commandline_arg (plain_uri);
-						if (f.query_exists ())
-							drag_data.add (f.get_uri ());
-					}
-				}
-
-				foreach (unowned string s in uris) {
-					string cleaned = s.strip ();
-					if (cleaned.length == 0)
-						continue;
-					
-					string? uri = null;
-					if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("application://")) {
-						uri = File.new_for_uri (cleaned).get_uri ();
-					} else {
-						var f = File.new_for_commandline_arg (cleaned);
-						if (f.query_exists ())
-							uri = f.get_uri ();
-					}
-					
-					if (uri != null && !drag_data.contains (uri))
-						drag_data.add (uri);
-				}
-				
-				drag_data_requested = false;
 				
 				if (drag_data.size == 1) {
 					var uri = drag_data[0];
@@ -292,7 +305,7 @@ namespace Plank
 				controller.renderer.animated_draw ();
 				hovered_item_changed ();
 
-				if (dropped_on_target && ExternalDragActive)
+				if (dropped_on_target)
 					accept_external_drop (context, time_);
 			}
 			
@@ -304,11 +317,16 @@ namespace Plank
 		{
 			if (drag_data == null) {
 				Gtk.drag_finish (context, false, false, time_);
+				drop_target_item = null;
 				return;
 			}
 			
 			unowned DockWindow window = controller.window;
-			unowned DockItem? item = window.HoveredItem;
+			unowned DockItem? item = drop_target_item;
+			if (item == null)
+				item = window.HoveredItem;
+			drop_target_item = null;
+			
 			unowned DockItemProvider? provider = window.HoveredItemProvider;
 			if (provider == null && item != null)
 				provider = item.Container as DockItemProvider;
@@ -325,7 +343,7 @@ namespace Plank
 			
 			bool handled = false;
 			bool item_can_drop = (item != null && item.can_accept_drop (drag_data));
-			if (item_can_drop && (item is FileDockItem || (!contains_directory && DragNeedsCheck)))
+			if (item_can_drop && (item is TrashDockItem || item is FileDockItem || (!contains_directory && DragNeedsCheck)))
 				handled = item.accept_drop (drag_data);
 			else if (!controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data))
 				handled = provider.accept_drop (drag_data);
@@ -344,6 +362,7 @@ namespace Plank
 			controller.renderer.update_local_cursor (x, y);
 			controller.hide_manager.update_hovered_with_coords (x, y);
 			controller.window.update_hovered (x, y);
+			drop_target_item = controller.window.HoveredItem;
 			
 			if (drag_hover_timer_id > 0U) {
 				GLib.Source.remove (drag_hover_timer_id);
@@ -485,6 +504,9 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void drag_leave (Gtk.Widget w, Gdk.DragContext context, uint time_)
 		{
+			if (dropped_on_target)
+				return;
+
 			if (InternalDragActive) {
 				left_dock_during_drag = true;
 				is_outside_dock = true;

@@ -123,6 +123,22 @@ namespace Plank
 		 */
 		protected DockElement default_make_element (GLib.File file, string launcher)
 		{
+			if (launcher == "docklet://trash")
+				return new TrashDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://clock")
+				return new ClockDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://digital-clock")
+				return new DigitalClockDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://battery")
+				return new BatteryDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://cpu")
+				return new CpuDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://desktop")
+				return new ShowDesktopDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://mpris")
+				return new MprisDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://volume")
+				return new VolumeDockItem.with_dockitem_file (file);
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);
@@ -356,8 +372,9 @@ namespace Plank
 				target_dir = launchers_dir;
 			
 			var launcher_file = File.new_for_uri (uri);
-			bool is_valid = launcher_file.query_exists ();
-			string basename = (launcher_file.get_basename () ?? "unknown");
+			bool is_docklet = uri.has_prefix ("docklet://");
+			bool is_valid = is_docklet || launcher_file.query_exists ();
+			string basename = is_docklet ? uri.replace ("docklet://", "") : (launcher_file.get_basename () ?? "unknown");
 			
 			if (is_valid) {
 				var file = new KeyFile ();
@@ -370,8 +387,12 @@ namespace Plank
 					var launcher_base = (index_of_last_dot >= 0 ? basename.slice (0, index_of_last_dot) : basename);
 					var dockitem = "%s.dockitem".printf (launcher_base);
 					var dockitem_file = target_dir.get_child (dockitem);
-					var counter = 1;
 					
+					if (is_docklet && dockitem_file.query_exists ()) {
+						try { dockitem_file.delete (null); } catch { }
+					}
+					
+					var counter = 1;
 					while (dockitem_file.query_exists ()) {
 						dockitem = "%s-%d.dockitem".printf (launcher_base, counter++);
 						dockitem_file = target_dir.get_child (dockitem);

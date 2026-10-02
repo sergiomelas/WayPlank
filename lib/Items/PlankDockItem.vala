@@ -23,6 +23,11 @@ namespace Plank
 	/**
 	 * A dock item for the dock itself.  Has things like about, help, quit etc.
 	 */
+	struct DockletMenuEntry {
+		public string label;
+		public string uri;
+	}
+
 	public class PlankDockItem : DockItem
 	{
 		static PlankDockItem? instance;
@@ -80,6 +85,46 @@ namespace Plank
 			items.add (item);
 
 			items.add (new Gtk.SeparatorMenuItem ());
+			
+			unowned DockController? controller = get_dock ();
+			if (controller != null) {
+				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+				if (default_provider != null) {
+					var docklets_item = create_menu_item (_("_Docklets"), "system-run", true);
+					var docklets_menu = new Gtk.Menu ();
+					DockletMenuEntry[] docklets = {
+						{ _("_Trash"), "docklet://trash" },
+						{ _("_Analog Clock"), "docklet://clock" },
+						{ _("_Digital Clock"), "docklet://digital-clock" },
+						{ _("_Battery"), "docklet://battery" },
+						{ _("_CPU / RAM Monitor"), "docklet://cpu" },
+						{ _("_Show Desktop"), "docklet://desktop" },
+						{ _("_Media Player"), "docklet://mpris" },
+						{ _("_Volume Control"), "docklet://volume" }
+					};
+					foreach (var d in docklets) {
+						var d_uri = d.uri;
+						var c_item = new Gtk.CheckMenuItem.with_mnemonic (d.label);
+						c_item.active = (default_provider.item_for_uri (d_uri) != null);
+						c_item.toggled.connect (() => {
+							if (c_item.active) {
+								if (default_provider.item_for_uri (d_uri) == null)
+									default_provider.add_item_with_uri (d_uri);
+							} else {
+								unowned DockItem? di = default_provider.item_for_uri (d_uri);
+								if (di != null)
+									di.delete ();
+							}
+						});
+						docklets_menu.add (c_item);
+					}
+					
+					docklets_menu.show_all ();
+					docklets_item.set_submenu (docklets_menu);
+					items.add (docklets_item);
+					items.add (new Gtk.SeparatorMenuItem ());
+				}
+			}
 			
 			item = create_menu_item (_("_Preferences"), "preferences-system", true);
 			item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));

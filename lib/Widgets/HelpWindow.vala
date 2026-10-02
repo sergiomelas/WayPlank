@@ -65,15 +65,32 @@ namespace Plank
 			add_shortcut_row (grid_tools, 4, _("Ctrl + Alt + Shift + Right Click"), _("Open Developer Tools submenu (inspect launcher, config, theme)"));
 			stack.add_titled (create_page (_("Dynamic zoom, dock settings and hidden developer tools"), grid_tools), "tools", _("Shortcuts & Tools"));
 
-			// HeaderBar with StackSwitcher (Identical to PreferencesWindow)
+			// HeaderBar with StackSwitcher spanning full width
 			var header = new Gtk.HeaderBar ();
 			header.show_close_button = true;
-			header.title = _("Shortcuts & Gestures");
 
 			var switcher = new Gtk.StackSwitcher ();
 			switcher.set_stack (stack);
-			switcher.set_halign (Gtk.Align.CENTER);
+			switcher.set_homogeneous (true);
+			switcher.set_hexpand (true);
+			switcher.set_halign (Gtk.Align.FILL);
+			foreach (var child in switcher.get_children ()) {
+				child.hexpand = true;
+				child.halign = Gtk.Align.FILL;
+			}
 			header.set_custom_title (switcher);
+			
+			var css = new Gtk.CssProvider ();
+			try {
+				css.load_from_data (
+					"headerbar stackswitcher, headerbar .stack-switcher { margin-left: 2px; margin-right: 2px; }\n" +
+					"headerbar stackswitcher button, headerbar .stack-switcher button { padding-left: 14px; padding-right: 14px; font-weight: bold; }\n"
+				);
+				Gtk.StyleContext.add_provider_for_screen (get_screen (), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+			} catch (GLib.Error e) {
+				warning ("Unable to load help window CSS: %s", e.message);
+			}
+
 			header.show_all ();
 			set_titlebar (header);
 

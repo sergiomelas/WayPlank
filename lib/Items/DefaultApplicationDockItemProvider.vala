@@ -90,7 +90,7 @@ namespace Plank
 					transient_count++;
 					if (first_transient_idx < 0)
 						first_transient_idx = i;
-				} else if (element is ApplicationDockItem) {
+				} else if (!(element is TransientDockItem)) {
 					pinned_count++;
 				}
 			}

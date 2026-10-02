@@ -57,6 +57,7 @@ namespace Plank
 		Gee.HashMap<string, string> desktop_action_ids;
 		
 		string? unity_dbusname = null;
+		int prev_window_count = 0;
 		
 		/**
 		 * {@inheritDoc}
@@ -84,6 +85,7 @@ namespace Plank
 			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
 			
 			load_from_launcher ();
+			prev_window_count = WindowManager.get_default ().window_count_for_app (Launcher);
 		}
 		
 		~ApplicationDockItem ()
@@ -137,6 +139,9 @@ namespace Plank
 			var window_count = window_manager.window_count_for_app (Launcher);
 			var running = (window_count > 0 || (scan_process && is_running ()));
 			
+			var had_open_windows = (prev_window_count > 0);
+			prev_window_count = window_count;
+			
 			if (!show_running || !running)
 				Indicator = IndicatorState.NONE;
 			else
@@ -146,6 +151,12 @@ namespace Plank
 				set_urgent (true);
 			else if ((State & ItemState.URGENT) != 0)
 				set_urgent (false);
+			
+			// Only bounce if THIS specific app had open windows and its last window was closed
+			if (had_open_windows && window_count == 0) {
+				ClickedAnimation = AnimationType.BOUNCE;
+				LastClicked = GLib.get_monotonic_time ();
+			}
 		}
 		
 		void launch ()

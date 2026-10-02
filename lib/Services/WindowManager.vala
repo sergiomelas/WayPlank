@@ -109,7 +109,7 @@ namespace Plank
 		public bool app_demands_attention (string launcher_uri)
 		{
 			foreach (var window in matching_windows (launcher_uri))
-				if (window.DemandsAttention)
+				if (window.DemandsAttention && !window.Active)
 					return true;
 			return false;
 		}

@@ -21,7 +21,7 @@ To overcome these structural restrictions and build a high-performance, lightwei
 2. **Hardware / Compositor Abstraction Layer (HAL):** An extensible backend architecture (`WindowBackend`, `WindowInfo`, `WindowCapabilities`, `WindowManager`).
 3. **Bi-Directional KWin D-Bus Scripting Bridge:** Event-driven, push-based synchronization with zero polling (**0.0% CPU at idle**) between KWin (KDE Plasma) and WayPlank, delivering window states, geometry intersection, stacking order, and multi-window activation/minimization.
 4. **Real-Time Application Discovery & Identity Engine:** Inotify-based filesystem monitoring with **300ms debounce** (`GLib.FileMonitor`), paired with a multi-attribute heuristic scoring engine matching Wayland `app_id`, `StartupWMClass`, `/proc/[pid]/cmdline`, and wrapper scripts without external daemons.
-5. **Monolithic Core Stabilization:** Complete removal of fragile external dynamic docklet plugins (`lib/Docklets/`), replaced by built-in native items like [`SeparatorDockItem.vala`](file:///home/sergio/Others/WayPlank/_Wayland/lib/Items/SeparatorDockItem.vala).
+5. **Monolithic Core Stabilization:** Complete removal of fragile external dynamic docklet plugins (`lib/Docklets/`), replaced by high-performance built-in native items like [`SeparatorDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/SeparatorDockItem.vala), [`TrashDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/TrashDockItem.vala), and [`ClockDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/ClockDockItem.vala).
 
 ---
 
@@ -665,6 +665,46 @@ The transformation from **Plank 0.1_X11** to **WayPlank 0.4.2_Wayland** successf
   - Placed the "Wayland Migration Report..." entry inside the dedicated Preferences & About menu group in `PlankDockItem.get_menu_items()`.
   - Connected the `"report"` action to `AbstractMain.show_report()`, ensuring instant one-click access.
 
+### 9.11. MIME-Type File Launching & Packaging Infrastructure
+- **MIME-Type & Portal-Driven File Launching in Folder Stacks (`System.open`):**
+  - **Issue:** Clicking non-`.desktop` files (e.g., images, PDFs, text files, subdirectories) inside pinned folder menus/stacks failed to open under modern Wayland compositors.
+  - **Root Cause:** Legacy 2011 code relied on GIO's direct handler query (`g_file_query_default_handler`) and spawned apps via GTK3's `GdkAppLaunchContext`. Under Wayland (specifically KWin / KDE Plasma), this lacked modern `xdg_activation_v1` tokens and bypassed desktop portals, causing compositors to reject or ignore the launch request.
+  - **Resolution:** Replaced legacy launching in `lib/Services/System.vala` with `GLib.AppInfo.launch_default_for_uri(uri, null)`, delegating directly to `xdg-desktop-portal` (`org.freedesktop.portal.OpenURI`) and the system MIME database with robust `xdg-open` fallback. Items now open instantly with their user-configured default application.
+- **Restored Standard Drag & Grab Mechanics for Dock Folders (`FileDockItem`):**
+  - **Issue:** Pressing the left mouse button on a folder icon immediately opened the context menu, making it impossible to grab the icon to reposition it or drag it off the dock to unpin it.
+  - **Resolution:** Purged the legacy `PopupButton.LEFT` assignment, restoring `Button = PopupButton.RIGHT`. Folder icons can now be cleanly grabbed with left-click and dragged to move or unpin with smoke poof animation, simple left-click triggers a bounce animation without opening the folder, and right-click displays the contextual stack menu (which includes "Open in File Browser").
+- **Multi-Distribution Packaging Infrastructure:**
+  - Modernized `BuildDeb.sh` dependencies to support the 64-bit `time_t` transition (`libgtk-3-0t64 | libgtk-3-0`, `libglib2.0-0t64 | libglib2.0-0`), ensuring seamless installation on Ubuntu 24.04+, Debian 13 (Trixie/Sid), and previous LTS releases.
+  - Added scalable vector app icons into `/usr/share/icons/hicolor/scalable/apps/` and a `/usr/share/plank` compatibility symlink.
 
+### 9.12. Monolithic Docklet Suite Architecture
+- **Purge of Dynamic Plugin Engine:** Completely replaced the unmaintained, fragile shared-library plugin architecture (`lib/Docklets/`) with an embedded suite of 8 monolithic items compiled directly into the binary with zero `.so` runtime dependencies.
+- **Implemented Docklets:**
+  - `TrashDockItem` (`docklet://trash`): Dynamic real-time item count, drag & drop trashing with bounce feedback, KWin/Plasma D-Bus synchronization via `org.kde.KDirNotify`, and multi-theme icon fallback.
+  - `ClockDockItem` (`docklet://clock`): High-precision vector Cairo analog clock with live sweeping second hand.
+  - `DigitalClockDockItem` (`docklet://digital-clock`): High-contrast glassy rounded dial card with localized date badge.
+  - `BatteryDockItem` (`docklet://battery`): Hardware `/sys/class/power_supply` introspection with colored level capsule and charging animation.
+  - `CpuDockItem` (`docklet://cpu`): Real-time differential `/proc/stat` and `/proc/meminfo` circular usage gauges.
+  - `MprisDockItem` (`docklet://mpris`): Session D-Bus MPRIS2 player tracking with dynamic play/pause state and track controls.
+  - `VolumeDockItem` (`docklet://volume`): PulseAudio/PipeWire volume control with smooth mouse-wheel scrolling adjustments.
+  - `ShowDesktopDockItem` (`docklet://desktop`): Two-way atomic toggle to reveal and restore the desktop.
 
+### 9.13. Show Desktop Two-Way Atomic Toggle & Focus Restoration
+- **Issue:** Previously under Wayland, clicking Show Desktop only minimized windows unidirectionally; clicking it a second time failed to restore them, requiring the user to unminimize every application manually.
+- **Root Cause:**
+  - Non-minimizable windows and background surfaces caused unminimized window counts to always remain non-zero.
+  - In KWin scripting, minimized windows were improperly filtered out during restore checks.
+- **Resolution:**
+  - In `lib/Services/KWinBridge.vala`, implemented an atomic state machine:
+    - **1st Click:** Minimizes all normal user windows, preserves the dock and desktop widgets, and records the exact array of window UUIDs (`wayplankDesktopHiddenClients`).
+    - **2nd Click:** Atomically restores all previously hidden windows by UUID and restores active focus (`workspace.activeWindow`) to the topmost window.
+    - **User Interaction Guard:** Automatically resets the toggle state if the user manually activates an application window while in Show Desktop mode.
+
+### 9.14. Window Focus & Anti-Bounce Stabilization
+- **Issue:** Closing the last window of an application caused neighboring dock icons to bounce spuriously; similarly, closing WayPlank dialogs (Preferences or Shortcuts) caused the last focused application icon to bounce.
+- **Root Cause:** Signal handling on window removal and focus transitions dispatched spurious activation/urgent notifications across adjacent dock items.
+- **Resolution:** Hardened item state filtering during window destruction and dialog dismissal so only genuine user-requested application launches or explicit notification events trigger bounce animations.
+
+### 9.15. Seamless Process Replacement (`--replace` / `-r`)
+- **Implementation:** Added native command-line option `--replace` / `-r` in `src/Main.vala` using `killall -q -o 1s -9 wayplank` before session initialization, preventing duplicate background instances, conflicting D-Bus registrations, and redundant KWin bridge scripts.
 

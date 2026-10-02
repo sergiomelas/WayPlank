@@ -65,23 +65,53 @@ namespace Plank
 		}
 		
 		/**
-		 * Opens a file based on a URI.
+		 * Opens a file based on a URI according to its MIME type.
 		 *
 		 * @param uri the URI to open
 		 */
 		public void open_uri (string uri)
 		{
-			open (File.new_for_uri (uri));
+			try {
+				if (!AppInfo.launch_default_for_uri (uri, null)) {
+					AppInfo.launch_default_for_uri (uri, context);
+				}
+			} catch (Error e) {
+				try {
+					AppInfo.launch_default_for_uri (uri, context);
+				} catch (Error e2) {
+					try {
+						Process.spawn_async (null, { "xdg-open", uri }, null, SpawnFlags.SEARCH_PATH, null, null);
+					} catch (Error e3) {
+						critical ("Failed to open URI '%s': %s", uri, e3.message);
+					}
+				}
+			}
 		}
 		
 		/**
-		 * Opens a file based on a {@link GLib.File}.
+		 * Opens a file based on a {@link GLib.File} according to its MIME type.
 		 *
 		 * @param file the {@link GLib.File} to open
 		 */
 		public void open (File file)
 		{
-			launch_with_files (null, { file });
+			var uri = file.get_uri ();
+			try {
+				if (!AppInfo.launch_default_for_uri (uri, null)) {
+					AppInfo.launch_default_for_uri (uri, context);
+				}
+			} catch (Error e) {
+				try {
+					AppInfo.launch_default_for_uri (uri, context);
+				} catch (Error e2) {
+					try {
+						var path = file.get_path ();
+						Process.spawn_async (null, { "xdg-open", path != null ? path : uri }, null, SpawnFlags.SEARCH_PATH, null, null);
+					} catch (Error e3) {
+						critical ("Failed to open file '%s': %s", uri, e3.message);
+					}
+				}
+			}
 		}
 		
 		/**
@@ -91,7 +121,9 @@ namespace Plank
 		 */
 		public void open_files (File[] files)
 		{
-			launch_with_files (null, files);
+			foreach (var f in files) {
+				open (f);
+			}
 		}
 		
 		/**

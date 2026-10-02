@@ -2,6 +2,7 @@
 <!-- Generated with glade 3.19.0 
 
 Copyright (C) 2016 Rico Tzschichholz
+Copyright (C) 2026 Sergio Melas
 
 This file is part of Plank.
 
@@ -52,6 +53,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
   <template class="PlankPreferencesWindow" parent="GtkWindow">
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
+    <property name="default_width">520</property>
+    <property name="default_height">390</property>
     <property name="window_position">center</property>
     <property name="icon_name">plank</property>
     <property name="type_hint">dialog</property>
@@ -62,18 +65,19 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
       <object class="GtkStack" id="dock_preferences">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="transition_type">slide-left-right</property>
+        <property name="transition_duration">200</property>
         <child>
           <object class="GtkGrid" id="grid_appearance">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="valign">start</property>
-            <property name="margin_left">16</property>
-            <property name="margin_right">16</property>
-            <property name="margin_top">16</property>
-            <property name="margin_bottom">16</property>
-            <property name="row_spacing">8</property>
-            <property name="column_spacing">12</property>
-            <property name="row_homogeneous">True</property>
+            <property name="valign">center</property>
+            <property name="margin_left">24</property>
+            <property name="margin_right">24</property>
+            <property name="margin_top">18</property>
+            <property name="margin_bottom">18</property>
+            <property name="row_spacing">10</property>
+            <property name="column_spacing">14</property>
             <child>
               <object class="GtkLabel" id="l_theme">
                 <property name="visible">True</property>
@@ -84,6 +88,18 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="cb_theme">
+                <property name="width_request">200</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -101,23 +117,11 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="cb_theme">
-                <property name="width_request">200</property>
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="hexpand">True</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">0</property>
-                <property name="width">3</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkComboBoxText" id="cb_position">
                 <property name="width_request">200</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
                 <items>
                   <item id="0" translatable="yes">Left</item>
                   <item id="1" translatable="yes">Right</item>
@@ -128,7 +132,56 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">1</property>
-                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_primary_display">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">On Primary Display:</property>
+                <property name="justify">right</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_primary_display">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkSwitch" id="sw_primary_display">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="cb_display_plug">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
@@ -145,59 +198,50 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="cb_alignment">
+              <object class="GtkBox" id="box_alignment">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <items>
-                  <item id="0" translatable="yes">Fill</item>
-                  <item id="1" translatable="yes">Start</item>
-                  <item id="2" translatable="yes">End</item>
-                  <item id="3" translatable="yes">Center</item>
-                </items>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkComboBoxText" id="cb_alignment">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
+                    <items>
+                      <item id="0" translatable="yes">Fill</item>
+                      <item id="1" translatable="yes">Start</item>
+                      <item id="2" translatable="yes">End</item>
+                      <item id="3" translatable="yes">Center</item>
+                    </items>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScale" id="s_offset">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="tooltip_text" translatable="yes">Offset in percent from the center of the screen-edge</property>
+                    <property name="adjustment">adj_offset</property>
+                    <property name="round_digits">0</property>
+                    <property name="digits">0</property>
+                    <property name="value_pos">right</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_primary_display">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">On Primary Display:</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="cb_display_plug">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="hexpand">True</property>
-              </object>
-              <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScale" id="s_offset">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="tooltip_text" translatable="yes">Offset in percent from the center of the screen-edge</property>
-                <property name="adjustment">adj_offset</property>
-                <property name="round_digits">0</property>
-                <property name="digits">0</property>
-                <property name="value_pos">right</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">3</property>
-                <property name="width">2</property>
               </packing>
             </child>
             <child>
@@ -211,13 +255,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">4</property>
-                <property name="width">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkComboBoxText" id="cb_items_alignment">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
                 <items>
                   <item id="1" translatable="yes">Start</item>
                   <item id="2" translatable="yes">End</item>
@@ -225,9 +269,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 </items>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">1</property>
                 <property name="top_attach">4</property>
-                <property name="width">2</property>
               </packing>
             </child>
             <child>
@@ -244,56 +287,45 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkSpinButton" id="sp_iconsize">
+              <object class="GtkBox" id="box_iconsize">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">•</property>
-                <property name="adjustment">adj_iconsize</property>
-                <property name="numeric">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkSpinButton" id="sp_iconsize">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="invisible_char">•</property>
+                    <property name="adjustment">adj_iconsize</property>
+                    <property name="numeric">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScale" id="s_iconsize">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="adjustment">adj_iconsize</property>
+                    <property name="digits">0</property>
+                    <property name="draw_value">False</property>
+                    <property name="value_pos">left</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">5</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScale" id="s_iconsize">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="adjustment">adj_iconsize</property>
-                <property name="digits">0</property>
-                <property name="draw_value">False</property>
-                <property name="value_pos">left</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">5</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScale" id="s_zoom_percent">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="adjustment">adj_zoom_percent</property>
-                <property name="digits">0</property>
-                <property name="value_pos">right</property>
-              </object>
-              <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_zoom_enabled">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">6</property>
               </packing>
             </child>
             <child>
@@ -307,19 +339,46 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">6</property>
-                <property name="width">2</property>
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="sw_primary_display">
+              <object class="GtkBox" id="box_iconzoom">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkSwitch" id="sw_zoom_enabled">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScale" id="s_zoom_percent">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="adjustment">adj_zoom_percent</property>
+                    <property name="digits">0</property>
+                    <property name="value_pos">right</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">2</property>
+                <property name="left_attach">1</property>
+                <property name="top_attach">6</property>
               </packing>
             </child>
           </object>
@@ -332,13 +391,68 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
           <object class="GtkGrid" id="grid_behaviour">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="valign">start</property>
-            <property name="margin_left">16</property>
-            <property name="margin_right">16</property>
-            <property name="margin_top">16</property>
-            <property name="margin_bottom">16</property>
-            <property name="row_spacing">8</property>
-            <property name="column_spacing">12</property>
+            <property name="valign">center</property>
+            <property name="margin_left">24</property>
+            <property name="margin_right">24</property>
+            <property name="margin_top">18</property>
+            <property name="margin_bottom">18</property>
+            <property name="row_spacing">10</property>
+            <property name="column_spacing">14</property>
+            <!-- Section 1: Hide Dock -->
+            <child>
+              <object class="GtkLabel" id="l_hide_dock">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin_bottom">4</property>
+                <property name="label" translatable="yes">Hide Dock</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+                <property name="width">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_enable_hide">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Hide Dock:</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_hide">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_hide_mode">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="label" translatable="yes">Hide Mode:</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
             <child>
               <object class="GtkComboBoxText" id="cb_hidemode">
                 <property name="visible">True</property>
@@ -353,37 +467,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 </items>
               </object>
               <packing>
-                <property name="left_attach">1</property>
+                <property name="left_attach">3</property>
                 <property name="top_attach">1</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_hide">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">end</property>
-                <property name="valign">center</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_hide_dock">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Hide Dock</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">0</property>
-                <property name="width">4</property>
               </packing>
             </child>
             <child>
@@ -391,7 +476,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Hide Delay:</property>
+                <property name="label" translatable="yes">Hide Delay (ms):</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -418,7 +503,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Unhide Delay:</property>
+                <property name="margin_left">12</property>
+                <property name="label" translatable="yes">Unhide Delay (ms):</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -448,7 +534,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="label" translatable="yes">Pressure Reveal:</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">0</property>
                 <property name="top_attach">3</property>
               </packing>
             </child>
@@ -460,15 +546,18 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="valign">center</property>
               </object>
               <packing>
-                <property name="left_attach">3</property>
+                <property name="left_attach">1</property>
                 <property name="top_attach">3</property>
               </packing>
             </child>
+            <!-- Section 2: Item Management -->
             <child>
               <object class="GtkLabel" id="l_application_windows">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
+                <property name="margin_top">14</property>
+                <property name="margin_bottom">4</property>
                 <property name="label" translatable="yes">Item Management</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -505,11 +594,36 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="l_lock_items">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="label" translatable="yes">Lock Icons:</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_lock_items">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">5</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel" id="l_workspace_only">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Restrict to Workspace:</property>
+                <property name="label" translatable="yes">Workspace Only:</property>
                 <property name="justify">right</property>
               </object>
               <packing>
@@ -534,6 +648,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
+                <property name="margin_left">12</property>
                 <property name="label" translatable="yes">Start on Login:</property>
               </object>
               <packing>
@@ -553,57 +668,6 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="top_attach">6</property>
               </packing>
             </child>
-            <child>
-              <object class="GtkLabel" id="l_lock_items">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Lock Icons:</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">5</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_lock_items">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-              </object>
-              <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">5</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
           </object>
           <packing>
             <property name="name">grid_behaviour</property>
@@ -615,21 +679,27 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
           <object class="GtkGrid" id="grid_windows">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="valign">start</property>
-            <property name="margin_left">16</property>
-            <property name="margin_right">16</property>
-            <property name="margin_top">16</property>
-            <property name="margin_bottom">16</property>
-            <property name="row_spacing">8</property>
-            <property name="column_spacing">12</property>
+            <property name="valign">center</property>
+            <property name="margin_left">24</property>
+            <property name="margin_right">24</property>
+            <property name="margin_top">18</property>
+            <property name="margin_bottom">18</property>
+            <property name="row_spacing">12</property>
+            <property name="column_spacing">16</property>
+            <!-- Section 1: Window Management -->
             <child>
               <object class="GtkLabel" id="l_activation">
                 <property name="visible">True</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">Activation</property>
+                <property name="margin_bottom">4</property>
+                <property name="label" translatable="yes">Window Management</property>
                 <attributes><attribute name="weight" value="bold"/></attributes>
               </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">0</property><property name="width">4</property></packing>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+                <property name="width">2</property>
+              </packing>
             </child>
             <child>
               <object class="GtkLabel" id="l_window_click_behavior">
@@ -637,28 +707,26 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Click Behavior:</property>
               </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">1</property></packing>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
             </child>
             <child>
               <object class="GtkComboBoxText" id="cb_window_click_behavior">
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
+                <property name="width_request">200</property>
                 <items>
                   <item id="0" translatable="yes">Smart</item>
                   <item id="1" translatable="yes">Focus</item>
                   <item id="2" translatable="yes">Cycle</item>
                 </items>
               </object>
-              <packing><property name="left_attach">1</property><property name="top_attach">1</property><property name="width">3</property></packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_cycling">
-                <property name="visible">True</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Cycling</property>
-                <attributes><attribute name="weight" value="bold"/></attributes>
-              </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">2</property><property name="width">4</property></packing>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
             </child>
             <child>
               <object class="GtkLabel" id="l_restore_minimized">
@@ -666,7 +734,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Restore Minimized:</property>
               </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">3</property><property name="width">3</property></packing>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
             </child>
             <child>
               <object class="GtkSwitch" id="sw_restore_minimized">
@@ -674,16 +745,26 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">start</property>
                 <property name="valign">center</property>
               </object>
-              <packing><property name="left_attach">3</property><property name="top_attach">3</property></packing>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+              </packing>
             </child>
+            <!-- Section 2: Indicators -->
             <child>
               <object class="GtkLabel" id="l_indicators">
                 <property name="visible">True</property>
                 <property name="halign">start</property>
+                <property name="margin_top">14</property>
+                <property name="margin_bottom">4</property>
                 <property name="label" translatable="yes">Indicators</property>
                 <attributes><attribute name="weight" value="bold"/></attributes>
               </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">4</property><property name="width">4</property></packing>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+                <property name="width">2</property>
+              </packing>
             </child>
             <child>
               <object class="GtkLabel" id="l_show_running_indicators">
@@ -691,7 +772,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Show Running:</property>
               </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">5</property><property name="width">3</property></packing>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">4</property>
+              </packing>
             </child>
             <child>
               <object class="GtkSwitch" id="sw_show_running_indicators">
@@ -699,7 +783,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">start</property>
                 <property name="valign">center</property>
               </object>
-              <packing><property name="left_attach">3</property><property name="top_attach">5</property></packing>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">4</property>
+              </packing>
             </child>
             <child>
               <object class="GtkLabel" id="l_show_attention_indicators">
@@ -707,7 +794,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Show Attention:</property>
               </object>
-              <packing><property name="left_attach">0</property><property name="top_attach">6</property><property name="width">3</property></packing>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">5</property>
+              </packing>
             </child>
             <child>
               <object class="GtkSwitch" id="sw_show_attention_indicators">
@@ -715,13 +805,349 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">start</property>
                 <property name="valign">center</property>
               </object>
-              <packing><property name="left_attach">3</property><property name="top_attach">6</property></packing>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">5</property>
+              </packing>
             </child>
           </object>
           <packing>
             <property name="name">grid_windows</property>
             <property name="title" translatable="yes">Applications</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkGrid" id="grid_docklets">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="valign">center</property>
+            <property name="margin_left">28</property>
+            <property name="margin_right">28</property>
+            <property name="margin_top">18</property>
+            <property name="margin_bottom">18</property>
+            <property name="row_spacing">14</property>
+            <property name="column_spacing">36</property>
+            <property name="column_homogeneous">True</property>
+            <child>
+              <object class="GtkLabel" id="l_docklets_header">
+                <property name="visible">True</property>
+                <property name="halign">start</property>
+                <property name="margin_bottom">6</property>
+                <property name="label" translatable="yes">Built-in Docklets</property>
+                <attributes><attribute name="weight" value="bold"/></attributes>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <!-- Row 1: Trash Bin (Col 0) & CPU & RAM Monitor (Col 1) -->
+            <child>
+              <object class="GtkBox" id="box_docklet_trash">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_trash">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Trash Bin</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_trash">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_cpu">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_cpu">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">CPU &amp; RAM Monitor</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_cpu">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <!-- Row 2: Analog Clock (Col 0) & Show Desktop (Col 1) -->
+            <child>
+              <object class="GtkBox" id="box_docklet_clock">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_clock">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Analog Clock</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_clock">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_desktop">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_desktop">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Show Desktop</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_desktop">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <!-- Row 3: Digital Clock (Col 0) & Media Player (Col 1) -->
+            <child>
+              <object class="GtkBox" id="box_docklet_digital_clock">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_digital_clock">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Digital Clock</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_digital_clock">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_mpris">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_mpris">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Media Player</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_mpris">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <!-- Row 4: Battery Monitor (Col 0) & Volume Control (Col 1) -->
+            <child>
+              <object class="GtkBox" id="box_docklet_battery">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_battery">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Battery Monitor</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_battery">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_volume">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_volume">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Volume Control</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_volume">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">4</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">grid_docklets</property>
+            <property name="title" translatable="yes">Docklets</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
@@ -731,14 +1157,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="show_close_button">True</property>
-        <child>
-          <placeholder/>
-        </child>
         <child type="title">
           <object class="GtkStackSwitcher" id="dock_preferences_switcher">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">center</property>
+            <property name="halign">fill</property>
+            <property name="hexpand">True</property>
+            <property name="homogeneous">True</property>
             <property name="stack">dock_preferences</property>
           </object>
         </child>

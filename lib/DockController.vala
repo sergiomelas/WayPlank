@@ -407,5 +407,19 @@ namespace Plank
 
 			return false;
 		}
+
+		public void handle_system_resume ()
+		{
+			message ("DockController '%s': handling system resume / wake-up", name);
+			KWinBridge.reload_script ();
+			window.update_layer_shell_monitor ();
+			position_manager.update_dock_position ();
+			window.update_size_and_position ();
+			renderer.reset_buffers ();
+			hide_manager.wake_up ();
+			window.show_all ();
+			window.present ();
+			renderer.animated_draw ();
+		}
 	}
 }

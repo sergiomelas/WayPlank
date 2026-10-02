@@ -60,6 +60,10 @@ namespace Plank
 		bool long_press_active = false;
 		uint long_press_button = 0U;
 
+		double smooth_scroll_dy = 0.0;
+		double smooth_scroll_dx = 0.0;
+		uint32 last_scroll_time = 0U;
+
 		int window_position_retry = 0;
 
 		/**
@@ -257,12 +261,6 @@ namespace Plank
 
 		public override bool enter_notify_event (Gdk.EventCrossing event)
 		{
-			// Force focus and immediate renderer tick on Wayland enter event
-			var win = get_window ();
-			if (win != null && !win.has_native ()) {
-				// Ensures the compositor registers the surface state immediately
-			}
-			
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.renderer.animated_draw ();
@@ -310,13 +308,49 @@ namespace Plank
 			if (controller.drag_manager.InternalDragActive)
 				return Gdk.EVENT_STOP;
 
-			if (event.direction >= 4)
+			Gdk.ScrollDirection direction = event.direction;
+			if (direction == Gdk.ScrollDirection.SMOOTH) {
+				double dx, dy;
+				if (event.get_scroll_deltas (out dx, out dy)) {
+					if (event.time - last_scroll_time > 400U) {
+						smooth_scroll_dx = 0.0;
+						smooth_scroll_dy = 0.0;
+					}
+					last_scroll_time = event.time;
+
+					smooth_scroll_dx += dx;
+					smooth_scroll_dy += dy;
+
+					if (smooth_scroll_dy <= -0.7) {
+						direction = Gdk.ScrollDirection.UP;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else if (smooth_scroll_dy >= 0.7) {
+						direction = Gdk.ScrollDirection.DOWN;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else if (smooth_scroll_dx <= -0.7) {
+						direction = Gdk.ScrollDirection.LEFT;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else if (smooth_scroll_dx >= 0.7) {
+						direction = Gdk.ScrollDirection.RIGHT;
+						smooth_scroll_dy = 0.0;
+						smooth_scroll_dx = 0.0;
+					} else {
+						return Gdk.EVENT_STOP;
+					}
+				} else {
+					return Gdk.EVENT_STOP;
+				}
+			} else if ((uint) direction >= 4) {
 				return Gdk.EVENT_STOP;
+			}
 
 			if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0) {
-				if (event.direction == Gdk.ScrollDirection.UP)
+				if (direction == Gdk.ScrollDirection.UP)
 					controller.prefs.increase_icon_size ();
-				else if (event.direction == Gdk.ScrollDirection.DOWN)
+				else if (direction == Gdk.ScrollDirection.DOWN)
 					controller.prefs.decrease_icon_size ();
 
 				return Gdk.EVENT_STOP;
@@ -324,7 +358,7 @@ namespace Plank
 
 			if (HoveredItem != null) {
 				controller.hover.hide ();
-				HoveredItem.scrolled (event.direction, event.state, event.time);
+				HoveredItem.scrolled (direction, event.state, event.time);
 				controller.renderer.animated_draw ();
 			}
 
@@ -629,21 +663,27 @@ namespace Plank
 			var debug_items = new Gee.ArrayList<Gtk.MenuItem> ();
 
 			debug_items.add (new Gtk.SeparatorMenuItem ());
-			debug_items.add (new TitledSeparatorMenuItem.no_line ("debug this dock"));
+
+			var dev_item = new Gtk.MenuItem.with_mnemonic (_("Developer _Tools"));
+			var dev_submenu = new Gtk.Menu ();
+			dev_item.set_submenu (dev_submenu);
 
 			Gtk.MenuItem menu_item;
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open config folder");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open config folder"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (controller.config_folder);
 			});
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open current theme file");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open current theme file"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (controller.renderer.theme.get_backing_file ());
 			});
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
+
+			dev_submenu.show_all ();
+			debug_items.add (dev_item);
 
 			return debug_items;
 		}
@@ -653,32 +693,38 @@ namespace Plank
 			var debug_items = new Gee.ArrayList<Gtk.MenuItem> ();
 
 			debug_items.add (new Gtk.SeparatorMenuItem ());
-			debug_items.add (new TitledSeparatorMenuItem.no_line ("debug this item"));
+
+			var dev_item = new Gtk.MenuItem.with_mnemonic (_("Developer _Tools"));
+			var dev_submenu = new Gtk.Menu ();
+			dev_item.set_submenu (dev_submenu);
 
 			Gtk.MenuItem menu_item;
 
 			var dock_item_file = item.Prefs.get_backing_file ();
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Print info to stdout");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print info to stdout"));
 			menu_item.activate.connect (() => {
 				print ("DockItemFile: '%s'\nText = '%s'\nIcon = '%s'\nLauncher = '%s'\n",
 					dock_item_file != null ? dock_item_file.get_uri () : "",
 					item.Text, item.Icon, item.Launcher);
 			});
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open dockitem file");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open dockitem file"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (dock_item_file);
 			});
 			menu_item.sensitive = (dock_item_file != null && dock_item_file.query_exists ());
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
 
-			menu_item = new Gtk.MenuItem.with_mnemonic ("Open launcher file");
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open launcher file"));
 			menu_item.activate.connect (() => {
 				System.get_default ().open (File.new_for_uri (item.Launcher));
 			});
 			menu_item.sensitive = (item.Launcher != "");
-			debug_items.add (menu_item);
+			dev_submenu.append (menu_item);
+
+			dev_submenu.show_all ();
+			debug_items.add (dev_item);
 
 			return debug_items;
 		}

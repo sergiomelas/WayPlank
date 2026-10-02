@@ -112,8 +112,8 @@ namespace Plank
 			
 			widget.queue_draw ();
 			
-			if (animation_needed (frame_time)) {
-				unowned Gdk.FrameClock? frame_clock = widget.get_frame_clock ();
+			unowned Gdk.FrameClock? frame_clock = widget.get_frame_clock ();
+			if (frame_clock != null) {
 				frame_clock.begin_updating ();
 				is_updating = true;
 			}

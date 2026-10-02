@@ -54,8 +54,10 @@ namespace Plank
 		Gee.ArrayList<string> supported_mime_types;
 		Gee.ArrayList<string> actions;
 		Gee.HashMap<string, string> actions_map;
+		Gee.HashMap<string, string> desktop_action_ids;
 		
 		string? unity_dbusname = null;
+		int prev_window_count = 0;
 		
 		/**
 		 * {@inheritDoc}
@@ -78,10 +80,12 @@ namespace Plank
 			supported_mime_types = new Gee.ArrayList<string> ();
 			actions = new Gee.ArrayList<string> ();
 			actions_map = new Gee.HashMap<string, string> ();
+			desktop_action_ids = new Gee.HashMap<string, string> ();
 			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
-			WindowControl.get_default ().state_changed.connect (handle_window_state_changed);
+			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
 			
 			load_from_launcher ();
+			prev_window_count = WindowManager.get_default ().window_count_for_app (Launcher);
 		}
 		
 		~ApplicationDockItem ()
@@ -89,9 +93,10 @@ namespace Plank
 			supported_mime_types = null;
 			actions = null;
 			actions_map = null;
+			desktop_action_ids = null;
 			
 			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
-			WindowControl.get_default ().state_changed.disconnect (handle_window_state_changed);
+			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
 #if HAVE_DBUSMENU
 			Quicklist = null;
 #endif
@@ -134,6 +139,9 @@ namespace Plank
 			var window_count = window_manager.window_count_for_app (Launcher);
 			var running = (window_count > 0 || (scan_process && is_running ()));
 			
+			var had_open_windows = (prev_window_count > 0);
+			prev_window_count = window_count;
+			
 			if (!show_running || !running)
 				Indicator = IndicatorState.NONE;
 			else
@@ -143,6 +151,12 @@ namespace Plank
 				set_urgent (true);
 			else if ((State & ItemState.URGENT) != 0)
 				set_urgent (false);
+			
+			// Only bounce if THIS specific app had open windows and its last window was closed
+			if (had_open_windows && window_count == 0) {
+				ClickedAnimation = AnimationType.BOUNCE;
+				LastClicked = GLib.get_monotonic_time ();
+			}
 		}
 		
 		void launch ()
@@ -174,11 +188,9 @@ namespace Plank
 					WindowControl.queue_command (uuid, action);
 					return AnimationType.BOUNCE;
 				}
-				if (!is_running ()) {
-					message ("Wayplank: click on '%s' -> no matching window, launching new instance", Text);
-					launch ();
-					return AnimationType.BOUNCE;
-				}
+				message ("Wayplank: click on '%s' -> no matching window, launching new instance", Text);
+				launch ();
+				return AnimationType.BOUNCE;
 			}
 			
 			return AnimationType.NONE;
@@ -189,6 +201,13 @@ namespace Plank
 		 */
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{
+			base.on_scrolled (direction, mod, event_time);
+			bool forward = (direction == Gdk.ScrollDirection.UP || direction == Gdk.ScrollDirection.RIGHT);
+			string? uuid;
+			if (WindowManager.get_default ().cycle_window (Launcher, forward, out uuid)) {
+				message ("Wayplank: scroll on '%s' -> cycle window uuid=%s (forward=%s)", Text, uuid, forward.to_string ());
+				WindowControl.queue_command (uuid, "activate");
+			}
 			return AnimationType.NONE;
 		}
 		
@@ -229,9 +248,19 @@ namespace Plank
 				
 				foreach (var s in actions) {
 					var values = actions_map.get (s).split (";;");
+					var action_id = desktop_action_ids.get (s);
 					
 					var item = create_menu_item (s, values[1], true);
 					item.activate.connect (() => {
+						if (action_id != null) {
+							var path = File.new_for_uri (Launcher).get_path ();
+							if (path != null) {
+								var desktop_info = new DesktopAppInfo.from_filename (path);
+								if (desktop_info != null)
+									desktop_info.launch_action (action_id, System.get_default ().context);
+							}
+							return;
+						}
 						try {
 							AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
 						} catch { }
@@ -311,7 +340,7 @@ namespace Plank
 				return;
 			
 			string icon, text;
-			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types);
+			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types, desktop_action_ids);
 			Icon = icon;
 			ForcePixbuf = null;
 			Text = text;
@@ -327,7 +356,7 @@ namespace Plank
 		 * @param actions_map a map of actions from name to exec;;icon
 		 * @param mimes a list of all supported mime types
 		 */
-		public static void parse_launcher (string launcher, out string icon, out string text, Gee.ArrayList<string>? actions = null, Gee.Map<string, string>? actions_map = null, Gee.ArrayList<string>? mimes = null)
+		public static void parse_launcher (string launcher, out string icon, out string text, Gee.ArrayList<string>? actions = null, Gee.Map<string, string>? actions_map = null, Gee.ArrayList<string>? mimes = null, Gee.Map<string, string>? desktop_action_ids = null)
 		{
 			icon = "";
 			text = "";
@@ -391,6 +420,8 @@ namespace Plank
 				if (actions != null && actions_map != null) {
 					actions.clear ();
 					actions_map.clear ();
+					if (desktop_action_ids != null)
+						desktop_action_ids.clear ();
 					
 					string[] keys = {DESKTOP_ACTION_KEY, UNITY_QUICKLISTS_KEY};
 					
@@ -457,6 +488,12 @@ namespace Plank
 							
 							actions.add (action_name);
 							actions_map.set (action_name, "%s;;%s".printf (action_exec, action_icon));
+							if (desktop_action_ids != null) {
+								if (key == DESKTOP_ACTION_KEY && group == DESKTOP_ACTION_GROUP_NAME.printf (action))
+									desktop_action_ids.set (action_name, action);
+								else
+									desktop_action_ids.unset (action_name);
+							}
 						}
 					}
 				}

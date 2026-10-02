@@ -27,6 +27,8 @@ namespace Plank
 	{
 		Gee.HashSet<string> tokens = new Gee.HashSet<string> ();
 		Gee.HashSet<string> executable_tokens = new Gee.HashSet<string> ();
+		Gee.ArrayList<string> argument_tokens = new Gee.ArrayList<string> ();
+		string app_name = "";
 		
 		public ApplicationIdentity (File desktop_file)
 		{
@@ -38,12 +40,40 @@ namespace Plank
 					add_token (key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass"));
 				if (key_file.has_key (KeyFileDesktop.GROUP, "X-GNOME-WMClass"))
 					add_token (key_file.get_string (KeyFileDesktop.GROUP, "X-GNOME-WMClass"));
+				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
+					var raw_name = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
+					if (raw_name != "") {
+						app_name = raw_name.down ();
+						add_token (app_name);
+					}
+				}
 				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
 					var command = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
 					if (command != "") {
-						var executable = File.new_for_path (command.split (" ")[0].replace ("\"", "").replace ("'", "")).get_basename ();
-						if (executable != null && executable != "")
-							executable_tokens.add (normalize (executable));
+						string[] parts;
+						try {
+							GLib.Shell.parse_argv (command, out parts);
+						} catch (Error e) {
+							parts = command.split (" ");
+						}
+						if (parts.length > 0) {
+							var executable = File.new_for_path (parts[0].replace ("\"", "").replace ("'", "")).get_basename ();
+							if (executable != null && executable != "")
+								executable_tokens.add (normalize (executable));
+
+							for (int i = 1; i < parts.length; i++) {
+								var part = parts[i].strip ().replace ("\"", "").replace ("'", "");
+								if (part == "" || part.has_prefix ("-") || part.has_prefix ("%"))
+									continue;
+								var target_name = File.new_for_path (part).get_basename ().down ();
+								if (target_name != "" && target_name != ".") {
+									argument_tokens.add (target_name);
+									var dot = target_name.last_index_of_char ('.');
+									if (dot > 0)
+										argument_tokens.add (target_name.substring (0, dot));
+								}
+							}
+						}
 					}
 				}
 			} catch (Error e) {
@@ -88,8 +118,41 @@ namespace Plank
 				if (separator >= 0 && tokens.contains (normalized.substring (separator + 1)))
 					best = int.max (best, scores[i] - 20);
 			}
-			if (window.Executable != "" && executable_tokens.contains (normalize (window.Executable)))
-				best = int.max (best, 60);
+
+			// If launcher has specific target arguments (e.g. Windows 10 x64.vmx), check window cmdline
+			if (window.Cmdline != "" && argument_tokens.size > 0) {
+				var cmdline_down = window.Cmdline.down ();
+				foreach (var arg in argument_tokens) {
+					if (arg.length >= 3 && cmdline_down.contains (arg)) {
+						best = int.max (best, 95);
+						break;
+					}
+				}
+			}
+
+			// Match window Caption (Title) against desktop Name or argument tokens
+			if (window.Caption != "") {
+				var caption_down = window.Caption.down ();
+				if (app_name != "" && app_name.length >= 3 && caption_down.contains (app_name)) {
+					if (window.Executable != "" && executable_tokens.contains (normalize (window.Executable)))
+						best = int.max (best, 90);
+					else if (executable_tokens.size == 0)
+						best = int.max (best, 75);
+					else
+						best = int.max (best, 70);
+				}
+				foreach (var arg in argument_tokens) {
+					if (arg.length >= 3 && caption_down.contains (arg)) {
+						best = int.max (best, 90);
+						break;
+					}
+				}
+			}
+
+			if (window.Executable != "" && executable_tokens.contains (normalize (window.Executable))) {
+				if (argument_tokens.size == 0)
+					best = int.max (best, 60);
+			}
 			return best;
 		}
 	}

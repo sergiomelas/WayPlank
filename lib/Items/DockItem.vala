@@ -213,7 +213,7 @@ namespace Plank
 		/**
 		 * Deletes the underlying preferences file.
 		 */
-		public void delete ()
+		public virtual void @delete ()
 		{
 			launcher_file_monitor_stop ();
 			
@@ -377,7 +377,8 @@ namespace Plank
 				return;
 			
 			unowned string? launcher = Prefs.Launcher;
-			if (launcher == null || launcher == "") {
+			if (launcher == null || launcher == "" || launcher.has_prefix ("docklet://")) {
+				launcher_exists = true;
 				State &= ~ItemState.INVALID;
 				return;
 			}
@@ -611,7 +612,7 @@ namespace Plank
 		 */
 		public virtual bool is_valid ()
 		{
-			return launcher_exists || Prefs.Launcher == "";
+			return launcher_exists || Prefs.Launcher == "" || Prefs.Launcher.has_prefix ("docklet://");
 		}
 		
 		/**

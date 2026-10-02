@@ -208,7 +208,7 @@ namespace Plank
 		
 		static void set_color (ConsoleColor color, bool isForeground)
 		{
-			var color_code = color + 30 + 60;
+			int color_code = (int) color + 30 + 60;
 			if (!isForeground)
 				color_code += 10;
 			stdout.printf ("\x001b[%dm", color_code);

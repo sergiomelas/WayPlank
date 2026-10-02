@@ -90,12 +90,33 @@ namespace Plank
 		
 		public static string[] get_monitor_plug_names (Gdk.Display display)
 		{
-			var screen = display.get_default_screen ();
 			int n_monitors = display.get_n_monitors ();
 			var result = new string[n_monitors];
 			
-			for (int i = 0; i < n_monitors; i++)
-				result[i] = screen.get_monitor_plug_name (i) ?? "PLUG_MONITOR_%i".printf (i);
+			// 1. Count occurrences to detect identical monitor models
+			var model_counts = new Gee.HashMap<string, int> ();
+			for (int i = 0; i < n_monitors; i++) {
+				var monitor = display.get_monitor (i);
+				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "")
+					? monitor.get_model () : "Monitor";
+				model_counts.set (model, model_counts.has_key (model) ? model_counts.get (model) + 1 : 1);
+			}
+
+			// 2. Assign unique labels, numbering only duplicates
+			var seen_counts = new Gee.HashMap<string, int> ();
+			for (int i = 0; i < n_monitors; i++) {
+				var monitor = display.get_monitor (i);
+				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "")
+					? monitor.get_model () : "Monitor";
+				
+				if (model_counts.get (model) > 1) {
+					int count = seen_counts.has_key (model) ? seen_counts.get (model) + 1 : 1;
+					seen_counts.set (model, count);
+					result[i] = "%s (%d)".printf (model, count);
+				} else {
+					result[i] = model;
+				}
+			}
 			
 			return result;
 		}
@@ -108,13 +129,27 @@ namespace Plank
 			if (plug_name == "")
 				return primary;
 
-			var screen = display.get_default_screen ();
+			var names = get_monitor_plug_names (display);
 			int n_monitors = display.get_n_monitors ();
 			
+			// 1. Exact match with generated unique name (e.g. "DELL U2720Q (2)")
 			for (int i = 0; i < n_monitors; i++) {
-				var name = screen.get_monitor_plug_name (i) ?? "PLUG_MONITOR_%i".printf (i);
-				if (plug_name == name)
+				if (plug_name == names[i])
 					return display.get_monitor (i);
+			}
+
+			// 2. Fallback to legacy "PLUG_MONITOR_X" or numeric index "X"
+			for (int i = 0; i < n_monitors; i++) {
+				var fallback = "PLUG_MONITOR_%i".printf (i);
+				if (plug_name == fallback || plug_name == i.to_string ())
+					return display.get_monitor (i);
+			}
+
+			// 3. Fallback to matching raw model name
+			for (int i = 0; i < n_monitors; i++) {
+				var monitor = display.get_monitor (i);
+				if (monitor != null && monitor.get_model () == plug_name)
+					return monitor;
 			}
 			
 			return primary;
@@ -125,13 +160,18 @@ namespace Plank
 			screen_changed (controller.window.get_screen ());
 		}
 
+		weak Gdk.Monitor? current_monitor = null;
+
 		void screen_changed (Gdk.Screen screen)
 		{
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = monitor != null ? monitor.get_workarea () : Gdk.Rectangle ();
-			
-			if (old_monitor_geo.x == monitor_geo.x
+			bool monitor_changed = (monitor != current_monitor);
+			current_monitor = monitor;
+
+			if (!monitor_changed
+				&& old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
 				&& old_monitor_geo.width == monitor_geo.width
 				&& old_monitor_geo.height == monitor_geo.height)

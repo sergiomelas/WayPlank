@@ -31,6 +31,9 @@ namespace Plank
 		public string ResourceClass { get; set; default = ""; }
 		public string ResourceName { get; set; default = ""; }
 		public string Executable { get; set; default = ""; }
+		public string Caption { get; set; default = ""; }
+		public int Pid { get; set; default = 0; }
+		public string Cmdline { get; set; default = ""; }
 		public bool Minimized { get; set; default = false; }
 		public bool Active { get; set; default = false; }
 		public bool Maximized { get; set; default = false; }

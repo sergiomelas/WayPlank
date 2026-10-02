@@ -40,7 +40,12 @@ namespace Plank
 		 */
 		public virtual bool item_exists_for_uri (string uri)
 		{
-			return (item_for_uri (uri) != null);
+			unowned DockItem? item = item_for_uri (uri);
+			if (item == null)
+				return false;
+			if (item is TransientDockItem)
+				return false;
+			return true;
 		}
 		
 		/**
@@ -88,7 +93,7 @@ namespace Plank
 			
 			unowned DockItem? target_item = null;
 			unowned DockController? controller = get_dock ();
-			if (controller != null && controller.window.HoveredItemProvider == this) {
+			if (controller != null) {
 				target_item = controller.position_manager.get_current_target_item (this);
 			}
 			

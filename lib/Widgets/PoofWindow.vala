@@ -89,12 +89,15 @@ namespace Plank
 		}
 		
 		/**
-		 * Show the animated poof-window at the given coordinates
+		 * Show the animated poof-window at the given dock-relative coordinates.
 		 *
 		 * @param x the x position of the poof window
 		 * @param y the y position of the poof window
+		 * @param position the dock position
+		 * @param dock_thickness thickness of the dock window
+		 * @param monitor the monitor where the dock resides
 		 */
-		public void show_at (int x, int y)
+		public void show_at (int x, int y, Gtk.PositionType position = Gtk.PositionType.BOTTOM, int dock_thickness = 0, Gdk.Monitor? monitor = null)
 		{
 			if (animation_timer_id > 0U)
 				GLib.Source.remove (animation_timer_id);
@@ -106,28 +109,65 @@ namespace Plank
 			
 			start_time = GLib.get_monotonic_time ();
 			frame_time = start_time;
-						
+			
 			var display = get_display ();
-			var monitor = display != null ? display.get_monitor_at_point (x, y) : null;
-			if (monitor == null && display != null)
-				monitor = display.get_primary_monitor () ?? display.get_monitor (0);
-			if (monitor != null) {
-				var geometry = monitor.get_geometry ();
-				var local_x = int.max (0, int.min (geometry.width - poof_size, x - geometry.x - poof_size / 2));
-				var local_y = int.max (0, int.min (geometry.height - poof_size, y - geometry.y - poof_size / 2));
+			if (monitor == null && display != null) {
+				monitor = display.get_monitor_at_point (x, y);
+				if (monitor == null)
+					monitor = display.get_primary_monitor () ?? display.get_monitor (0);
+			}
+			
+			if (monitor != null)
 				GtkLayerShell.set_monitor (this, monitor);
-				GtkLayerShell.set_exclusive_zone (this, 0);
+			
+			GtkLayerShell.set_exclusive_zone (this, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
+			set_size_request (poof_size, poof_size);
+			
+			var geo = monitor != null ? monitor.get_geometry () : Gdk.Rectangle ();
+			var mon_w = geo.width > 0 ? geo.width : 1920;
+			var mon_h = geo.height > 0 ? geo.height : 1080;
+			
+			var clamped_x = int.max (0, int.min (mon_w - poof_size, x - poof_size / 2));
+			var clamped_y = int.max (0, int.min (mon_h - poof_size, y - poof_size / 2));
+			var edge_margin = int.max (0, (dock_thickness - poof_size) / 2);
+			
+			switch (position) {
+			case Gtk.PositionType.BOTTOM:
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, edge_margin);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
+				break;
+			case Gtk.PositionType.TOP:
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
-				set_size_request (poof_size, poof_size);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, local_y);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, local_x);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, edge_margin);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
+				break;
+			case Gtk.PositionType.LEFT:
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, edge_margin);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_y);
+				break;
+			case Gtk.PositionType.RIGHT:
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, false);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
+				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, edge_margin);
+				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_y);
+				break;
 			}
 			show ();
 

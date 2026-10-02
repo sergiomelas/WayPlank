@@ -95,10 +95,7 @@ namespace Plank
 			
 			Text = get_display_name (OwnedFile);
 			
-			// pop up the dir contents on a left click too
 			if (OwnedFile.query_file_type (0) == FileType.DIRECTORY) {
-				Button = PopupButton.RIGHT | PopupButton.LEFT;
-				
 				try {
 					dir_monitor = OwnedFile.monitor_directory (0);
 					dir_monitor.changed.connect (handle_dir_changed);
@@ -246,13 +243,111 @@ namespace Plank
 				return AnimationType.BOUNCE;
 			}
 			
-			// this actually only happens if its a file, not a directory
 			if (button == PopupButton.LEFT) {
+				if (is_directory ())
+					return AnimationType.BOUNCE;
+				
 				launch ();
 				return AnimationType.BOUNCE;
 			}
 			
 			return AnimationType.NONE;
+		}
+
+		public bool is_directory ()
+		{
+			return OwnedFile.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY;
+		}
+
+		public override string get_drop_text ()
+		{
+			if (is_directory ())
+				return _("Drop to copy into %s").printf (Text);
+			return base.get_drop_text ();
+		}
+
+		public override bool can_accept_drop (Gee.ArrayList<string> uris)
+		{
+			if (uris == null || uris.size == 0)
+				return false;
+			
+			if (!is_directory ())
+				return false;
+			
+			if (!OwnedFile.query_exists ())
+				return false;
+
+			return true;
+		}
+
+		static void copy_file_or_dir (File src, File dest) throws Error
+		{
+			var type = src.query_file_type (FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null);
+			if (type == FileType.DIRECTORY) {
+				if (!dest.query_exists ())
+					dest.make_directory_with_parents (null);
+				var enumerator = src.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null);
+				FileInfo info;
+				while ((info = enumerator.next_file (null)) != null) {
+					var child_name = info.get_name ();
+					copy_file_or_dir (src.get_child (child_name), dest.get_child (child_name));
+				}
+			} else {
+				src.copy (dest, FileCopyFlags.OVERWRITE, null, null);
+			}
+		}
+
+		public override bool accept_drop (Gee.ArrayList<string> uris)
+		{
+			if (!is_directory ())
+				return false;
+			
+			bool any_copied = false;
+			foreach (var uri in uris) {
+				try {
+					File src;
+					if (uri.has_prefix ("application://")) {
+						var desktop_id = uri.replace ("application://", "");
+						var app_info = new DesktopAppInfo (desktop_id);
+						if (app_info != null && app_info.get_filename () != null)
+							src = File.new_for_path (app_info.get_filename ());
+						else
+							continue;
+					} else {
+						src = File.new_for_uri (uri);
+					}
+					
+					if (!src.query_exists ())
+						continue;
+					
+					var basename = src.get_basename ();
+					if (basename == null || basename == "")
+						continue;
+					
+					var dest = OwnedFile.get_child (basename);
+					
+					// Avoid copying onto itself
+					if (src.equal (dest))
+						continue;
+					
+					copy_file_or_dir (src, dest);
+					if (basename.has_suffix (".desktop") && dest.get_path () != null) {
+						FileUtils.chmod (dest.get_path (), 0755);
+					}
+					any_copied = true;
+				} catch (Error e) {
+					warning ("Failed to copy '%s' into '%s': %s", uri, OwnedFile.get_path () ?? "", e.message);
+				}
+			}
+			
+			if (any_copied) {
+				reset_icon_buffer ();
+				needs_redraw ();
+				ClickedAnimation = AnimationType.BOUNCE;
+				LastClicked = GLib.get_monotonic_time ();
+			}
+			
+			return any_copied;
 		}
 		
 		/**

@@ -30,9 +30,18 @@ namespace Plank
 			+ "var wayplankMinimizedWindows = {};\n"
 			+ "\n"
 			+ "function sendWindowState () {\n"
+			+ "    sendWindowStateEx(null);\n"
+			+ "}\n"
+			+ "\n"
+			+ "function sendWindowStateEx (removedClient) {\n"
+			+ "    var removedUuid = (removedClient && removedClient.internalId) ? String(removedClient.internalId) : null;\n"
 			+ "    var windows = [];\n"
 			+ "    workspace.stackingOrder.forEach(function (client) {\n"
+			+ "        if (!client || client.deleted === true)\n"
+			+ "            return;\n"
 			+ "        var uuid = String(client.internalId);\n"
+			+ "        if (removedUuid && uuid === removedUuid)\n"
+			+ "            return;\n"
 			+ "        if (client.minimized === true && !wayplankMinimizedWindows[uuid])\n"
 			+ "            wayplankMinimizedWindows[uuid] = ++wayplankMinimizeSequence;\n"
 			+ "        else if (client.minimized !== true)\n"
@@ -50,7 +59,7 @@ namespace Plank
 			+ "            height: client.frameGeometry.height,\n"
 			+ "            minimized: client.minimized === true,\n"
 			+ "            minimizedSequence: wayplankMinimizedWindows[uuid] || 0,\n"
-			+ "            demandsAttention: client.demandsAttention === true,\n"
+			+ "            demandsAttention: (client.demandsAttention === true && client !== workspace.activeWindow),\n"
 			+ "            maximized: (typeof client.maximizeMode === \"number\" && client.maximizeMode !== 0),\n"
 			+ "            active: client === workspace.activeWindow,\n"
 			+ "            normal: client.normalWindow !== false,\n"
@@ -63,18 +72,28 @@ namespace Plank
 			+ "}\n"
 			+ "\n"
 			+ "function connectWindow (window) {\n"
-			+ "    window.frameGeometryChanged.connect(sendWindowState);\n"
-			+ "    window.minimizedChanged.connect(sendWindowState);\n"
-			+ "    window.maximizedChanged.connect(sendWindowState);\n"
-			+ "    window.activeChanged.connect(sendWindowState);\n"
+			+ "    window.frameGeometryChanged.connect(function () { sendWindowState(); });\n"
+			+ "    window.minimizedChanged.connect(function () { sendWindowState(); });\n"
+			+ "    window.maximizedChanged.connect(function () { sendWindowState(); });\n"
+			+ "    window.activeChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (window.demandsAttentionChanged) {\n"
+			+ "        window.demandsAttentionChanged.connect(function () { sendWindowState(); });\n"
+			+ "    }\n"
 			+ "}\n"
 			+ "\n"
 			+ "workspace.windowAdded.connect(function (window) {\n"
 			+ "    connectWindow(window);\n"
 			+ "    sendWindowState();\n"
 			+ "});\n"
-			+ "workspace.windowRemoved.connect(sendWindowState);\n"
-			+ "workspace.windowActivated.connect(sendWindowState);\n"
+			+ "workspace.windowRemoved.connect(function (w) {\n"
+			+ "    sendWindowStateEx(w);\n"
+			+ "});\n"
+			+ "workspace.windowActivated.connect(function (client) {\n"
+			+ "    sendWindowState();\n"
+			+ "    if (wayplankShowingDesktop && client && client.normalWindow && !client.minimized && client.specialWindow !== true) {\n"
+			+ "        wayplankShowingDesktop = false;\n"
+			+ "    }\n"
+			+ "});\n"
 			+ "workspace.stackingOrder.forEach(connectWindow);\n"
 			+ "sendWindowState();\n"
 			+ "\n"
@@ -95,7 +114,55 @@ namespace Plank
 			+ "    return false;\n"
 			+ "}\n"
 			+ "\n"
+			+ "var wayplankDesktopHiddenClients = [];\n"
+			+ "var wayplankShowingDesktop = false;\n"
+			+ "\n"
+			+ "function getAllWindows () {\n"
+			+ "    if (typeof workspace.windows !== \"undefined\" && workspace.windows && workspace.windows.length > 0)\n"
+			+ "        return workspace.windows;\n"
+			+ "    return workspace.stackingOrder;\n"
+			+ "}\n"
+			+ "\n"
+			+ "function toggleDesktop () {\n"
+			+ "    var allClients = getAllWindows();\n"
+			+ "    if (!wayplankShowingDesktop) {\n"
+			+ "        wayplankDesktopHiddenClients = [];\n"
+			+ "        allClients.forEach(function (client) {\n"
+			+ "            if (!client || client.deleted === true || client.specialWindow === true)\n"
+			+ "                return;\n"
+			+ "            if (client.normalWindow !== false && client.minimized !== true && client.minimizable !== false) {\n"
+			+ "                wayplankDesktopHiddenClients.push(String(client.internalId));\n"
+			+ "                client.minimized = true;\n"
+			+ "            }\n"
+			+ "        });\n"
+			+ "        wayplankShowingDesktop = true;\n"
+			+ "        print(\"Wayplank: entered show desktop mode, minimized \" + wayplankDesktopHiddenClients.length + \" windows\");\n"
+			+ "    } else {\n"
+			+ "        var toRestore = wayplankDesktopHiddenClients;\n"
+			+ "        wayplankDesktopHiddenClients = [];\n"
+			+ "        wayplankShowingDesktop = false;\n"
+			+ "        var lastClient = null;\n"
+			+ "        allClients.forEach(function (client) {\n"
+			+ "            if (!client || client.deleted === true)\n"
+			+ "                return;\n"
+			+ "            var uuid = String(client.internalId);\n"
+			+ "            if (toRestore.indexOf(uuid) !== -1) {\n"
+			+ "                client.minimized = false;\n"
+			+ "                lastClient = client;\n"
+			+ "            }\n"
+			+ "        });\n"
+			+ "        if (lastClient) {\n"
+			+ "            workspace.activeWindow = lastClient;\n"
+			+ "        }\n"
+			+ "        print(\"Wayplank: exited show desktop mode, restored \" + toRestore.length + \" windows\");\n"
+			+ "    }\n"
+			+ "}\n"
+			+ "\n"
 			+ "function applyWindowCommand (uuid, action) {\n"
+			+ "    if (action === \"toggle_desktop\" || uuid === \"desktop\") {\n"
+			+ "        toggleDesktop();\n"
+			+ "        return;\n"
+			+ "    }\n"
 			+ "    var target = null;\n"
 			+ "    workspace.stackingOrder.forEach(function (client) {\n"
 			+ "        if (String(client.internalId) === uuid)\n"
@@ -147,6 +214,7 @@ namespace Plank
 		static string? window_state;
 		static Gee.ArrayList<WindowInfo> window_infos = new Gee.ArrayList<WindowInfo> ();
 		static string? script_path;
+		static int script_id = -1;
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
 		public signal void state_changed ();
@@ -215,6 +283,18 @@ namespace Plank
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
+					info.Caption = json.has_member ("caption") ? json.get_string_member ("caption") : "";
+					info.Pid = json.has_member ("pid") ? (int) json.get_int_member ("pid") : 0;
+					if (info.Pid > 0) {
+						string cmd = "";
+						if (GLib.FileUtils.get_contents ("/proc/%d/cmdline".printf (info.Pid), out cmd)) {
+							info.Cmdline = cmd.replace ("\0", " ").strip ();
+						}
+						string comm = "";
+						if (GLib.FileUtils.get_contents ("/proc/%d/comm".printf (info.Pid), out comm)) {
+							info.Executable = comm.strip ();
+						}
+					}
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height"))
 						info.Geometry = { (int) json.get_double_member ("x"), (int) json.get_double_member ("y"),
 							(int) json.get_double_member ("width"), (int) json.get_double_member ("height") };
@@ -253,7 +333,7 @@ namespace Plank
 				connection.call_sync ("org.kde.kglobalaccel", "/component/kwin",
 					"org.kde.kglobalaccel.Component", "invokeShortcut",
 					new Variant ("(s)", "WayplankApplyCommand"),
-					null, DBusCallFlags.NONE, -1, null);
+					null, DBusCallFlags.NONE, 250, null);
 				message ("Wayplank: invoked KWin shortcut to apply pending command");
 			} catch (Error e) {
 				warning ("Wayplank: unable to invoke KWin shortcut (%s)", e.message);
@@ -302,12 +382,56 @@ namespace Plank
 				dbus_registration_id = 0U;
 			}
 			dbus_connection = null;
+
+			if (script_id >= 0) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
+						"org.kde.kwin.Script", "stop", null, null,
+						DBusCallFlags.NONE, 500, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting",
+						"org.kde.kwin.Scripting", "unloadScript",
+						new Variant ("(s)", script_path), null,
+						DBusCallFlags.NONE, 500, null);
+				} catch (Error e) {
+					debug ("Unable to stop KWin script: %s", e.message);
+				}
+				script_id = -1;
+			}
+
 			if (script_path == null)
 				return;
 
 			if (FileUtils.remove (script_path) != 0)
 				debug ("Unable to remove temporary KWin script '%s'", script_path);
 			script_path = null;
+		}
+
+		public static void reload_script ()
+		{
+			if (script_id >= 0) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
+						"org.kde.kwin.Script", "stop", null, null,
+						DBusCallFlags.NONE, 500, null);
+					connection.call_sync ("org.kde.KWin", "/Scripting",
+						"org.kde.kwin.Scripting", "unloadScript",
+						new Variant ("(s)", script_path), null,
+						DBusCallFlags.NONE, 500, null);
+				} catch (Error e) {
+					debug ("Unable to stop KWin script: %s", e.message);
+				}
+				script_id = -1;
+			}
+
+			if (script_path != null) {
+				if (FileUtils.remove (script_path) != 0)
+					debug ("Unable to remove temporary KWin script '%s'", script_path);
+				script_path = null;
+			}
+
+			start ();
 		}
 
 		public static bool any_window_intersects (Gdk.Rectangle dock_rect)
@@ -386,6 +510,8 @@ namespace Plank
 					"org.kde.kwin.Scripting", "start", null, null,
 					DBusCallFlags.NONE, -1, null);
 				debug ("KWin bridge script loaded (id %d)", result.get_child_value (0).get_int32 ());
+				script_id = result.get_child_value (0).get_int32 ();
+				debug ("KWin bridge script loaded (id %d)", script_id);
 			} catch (Error e) {
 				warning ("Unable to start KWin bridge: %s", e.message);
 			}

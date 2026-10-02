@@ -27,6 +27,8 @@ I always had KDE with plank at bottom but X11 is dying (what a pity bat was nece
 functionality will need testing for compositor integration.
 I hope the comunity Will support on testing on compositors out of KDE/Kwin.
 
+👉 *For the complete, staus report of the micration plese refer to  [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*
+
 ### ⚠️ Reality Check: Where Wayplank Stands Today
 
 To be completely transparent: **Wayplank right now is full wayland based, but it fully works only in kwin**.
@@ -60,6 +62,10 @@ To compile Wayplank from source, ensure your distribution provides:
 - GLib 2.0 (glib2 / libglib2.0-dev, includes glib-compile-resources)
 - pkg-config
 
+WayPlank supports the GTK 3 series through `gtk+-3.0`, together with GTK 3 `gtk-layer-shell` for native Wayland integration.
+
+GTK 4 migration may be considered later, but GTK 3 remains the supported toolkit for the current release line.
+
 ## 2. UNIVERSAL MANUAL COMPILATION
 
 Compile the embedded resource binary directly on any Linux distribution:
@@ -75,7 +81,7 @@ valac -g \
     --vapidir=vapi \
     --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
     --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config \
-    -X -DWNCK_I_KNOW_THIS_IS_UNSTABLE -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
+    -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" -X -Ilib -X -Iinclude -X -w -X -lm \
     $(find lib src -name "*.vala") lib/resources.c -o wayplank
 ```
@@ -167,14 +173,28 @@ wayplank -d
 
 # Change log
 
+## V0.4.2: 2026-09-28
+
+**Major Milestone Release — Wayland Stabilization, Feature Polish & Performance Modernization**:
+Version 0.4.2 represents a massive leap forward in making Wayplank a fully native, robust, and polished Wayland dock. Key highlights include native drag & drop of `.desktop` shortcuts and files directly into dock folders with automatic `0755` executable permissions and real-time stack preview invalidation; dynamic transient dock item tracking that instantly mirrors running unpinned windows under KWin; zero-latency (0ms) running indicator dots synchronized directly with Wayland compositor frame callbacks; a functional visual separator serving as a dynamic pinning boundary; robust desktop launcher parsing for paths with spaces and quotes via `GLib.Shell.parse_argv`; standardized CLI options (`-p` for preferences, `-v` for version, `-V` for verbose); an embedded monolithic vector Wayplank logo for the About dialog; an integrated in-app Wayland architecture report viewer; purging of community-reported prototyping artifacts; and complete severance of all remaining legacy X11/Wnck dependencies with 0 compiler warnings.
+
+👉 *For the complete, itemized technical changelog detailing all bug fixes and enhancements in this release, see [`src/CHANGELOG_v0.4.2.md`](src/CHANGELOG_v0.4.2.md).*
+
 ## V0.4.1: 2026-09-25
 
+
 KWin multi-monitor fixes:
+
+
 - Fixed dock placement not updating after selecting a different monitor.
 - Persisted the selected monitor across restarts.
 - Fixed the bug where tooltips on secondary monitors appeared on the primary monitor.
 - Added a fallback to the primary monitor if the selected monitor is disconnected.
+
+
 Core fixes:
+
+
 - Deactivated system configuration polling during icon zoom to avoid UI freezes.
 - Adjusted the zoom level to prevent icons from being clipped.
 - Removed leftover X11 code that generated XWayland calls.

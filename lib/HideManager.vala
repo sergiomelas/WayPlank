@@ -129,6 +129,8 @@ namespace Plank
 			window.leave_notify_event.connect (handle_leave_notify_event);
 			WindowControl.get_default ().state_changed.connect (window_state_changed);
 			pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
+			if (!environment_is_session_type (XdgSessionType.WAYLAND))
+				pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
 			update_window_intersect ();
 		}
 
@@ -250,6 +252,9 @@ namespace Plank
 		
 		bool pressure_reveal_tick ()
 		{
+			if (environment_is_session_type (XdgSessionType.WAYLAND))
+				return true;
+
 			if (!controller.prefs.PressureReveal || controller.prefs.HideMode == HideType.NONE || !Hidden) {
 				if (pressure_reveal_active) {
 					pressure_reveal_active = false;
@@ -292,6 +297,13 @@ namespace Plank
 				update_hidden ();
 			}
 			return true;
+		}
+
+		public void wake_up ()
+		{
+			pointer_update = false;
+			show ();
+			update_window_intersect ();
 		}
 
 		void update_hidden ()

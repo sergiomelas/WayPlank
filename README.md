@@ -6,32 +6,27 @@
 >
 > Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
 
----
-
-🚀 CURRENT RUNTIME: Full Wayland with Kwin support | 🎯 TARGET GOAL: Support all major Compositors
+![Wayplank v0.4.3 Release Banner](Release%20Pic.png)
 
 ---
 
-## 📢 ## 📢 Current Status
-I developed the core engine to discover the running apps (because Wayland segregates evriting)
-based on process list matching it with the content of the .desktop files of the user and system. To cope
-with the nightmarish traps that Wayland exposes programmers (because of the legitimate segregation of
-Wayland for security) i used AI to help me. Anyway this is a prototype and for version 1.0
-the code will be human written or human reviewed.
+🚀 CURRENT RUNTIME: Full Wayland with KWin & Labwc (wlroots) support | 🎯 TARGET GOAL: Support all major Compositors
 
-Important notice: my contribution is just 10% of the code. all the rest is the original Plank code
-with is look and feel we all love from the original developers of the Docky Core Team.
-But i added some functionality i always wanted in Plank
+---
 
-I always had KDE with plank at bottom but X11 is dying (what a pity bat was necessary). Some
-functionality will need testing for compositor integration.
-I hope the comunity Will support on testing on compositors out of KDE/Kwin.
+## 📢 Current Status
 
-👉 *For the complete, staus report of the micration plese refer to  [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*
+I developed the core engine to discover running applications (since Wayland isolates and segregates window introspection by design) based on process list matching against the content of user and system `.desktop` files. To overcome the challenges of Wayland security boundaries, I utilized AI assistance during early prototyping. The codebase has undergone comprehensive human review, bug hunting, and code purging for high performance and stability.
+
+Important notice: core dock rendering and layout inherit the beloved look and feel from the original Plank developers (Docky Core Team), representing roughly 90% of the baseline code, while the remaining 10% introduces native Wayland architecture, compositor bridges, and modern features.
+
+Having used KDE with Plank for years, Wayplank provides a true native Wayland successor as X11 phases out. Starting with version 0.4.3, Wayplank features a modular Hardware Abstraction Layer (HAL) with native support for both **KWin (KDE Plasma)** and **Labwc (wlroots)** compositors! Testing and feedback across different Wayland environments are warmly welcome.
+
+👉 *For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*
 
 ### ⚠️ Reality Check: Where Wayplank Stands Today
 
-To be completely transparent: **Wayplank right now is full wayland based, but it fully works only in kwin**.
+To be completely transparent: **Wayplank is fully Wayland-native, with window-management and dock integration tested and verified on both KWin (KDE Plasma) and Labwc (wlroots)**. Support for additional compositors (Sway, Hyprland, GNOME/Mutter) is progressing along the roadmap.
 
 ### 🔍 Keep an Eye on This Repository!
 
@@ -57,12 +52,13 @@ To compile Wayplank from source, ensure your distribution provides:
 - Vala compiler (valac >= 0.40)
 - GTK+ 3.0 (gtk3 / libgtk-3-dev)
 - GTK Layer Shell (gtk-layer-shell-0 / libgtk-layer-shell-dev)
+- Wayland Client library (libwayland-client0 / libwayland-dev)
 - JSON-GLib 1.0 (json-glib-1.0 / libjson-glib-dev)
 - LibGee 0.8 (libgee-0.8 / libgee-0.8-dev)
 - GLib 2.0 (glib2 / libglib2.0-dev, includes glib-compile-resources)
 - pkg-config
 
-WayPlank supports the GTK 3 series through `gtk+-3.0`, together with GTK 3 `gtk-layer-shell` for native Wayland integration.
+WayPlank supports the GTK 3 series through `gtk+-3.0`, together with GTK 3 `gtk-layer-shell` and `libwayland-client` for native Wayland integration.
 
 GTK 4 migration may be considered later, but GTK 3 remains the supported toolkit for the current release line.
 
@@ -74,16 +70,17 @@ Compile the embedded resource binary directly on any Linux distribution:
 # Step 1: Compile embedded GLib resources
 glib-compile-resources --sourcedir=data --target=lib/resources.c --generate-source data/plank.gresource.xml
 
-# Step 2: Compile native Wayplank binary
+# Step 2: Compile native Wayplank binary (or simply run ./BuilsBin.sh)
 valac -g \
     --gresources=data/plank.gresource.xml \
     --gresourcesdir=data \
     --vapidir=vapi \
     --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
-    --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config \
+    --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config --pkg wlr-bridge \
     -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
-    -X -DGETTEXT_PACKAGE=\"wayplank\" -X -Ilib -X -Iinclude -X -w -X -lm \
-    $(find lib src -name "*.vala") lib/resources.c -o wayplank
+    -X -DGETTEXT_PACKAGE=\"wayplank\" \
+    -X -Ilib -X -Ilib/Protocols -X -Ilib/Services -X -Iinclude -X -w -X -lm -X -lwayland-client \
+    $(find lib src -name "*.vala") lib/resources.c lib/Protocols/wlr-foreign-toplevel-management-protocol.c lib/Services/wlr-toplevel-bridge.c -o wayplank
 ```
 
 ```bash
@@ -103,7 +100,7 @@ If running Debian, Ubuntu, or derivative distributions, run the automated builde
 ```bash
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
-sudo dpkg -i build/wayplank_1:1.0.0_amd64.deb
+sudo dpkg -i build/wayplank_0.4.3_amd64.deb
 ```
 
 ---
@@ -146,23 +143,27 @@ wayplank -d
   - Added persistent pinned application handling and temporary running application icons.
   - Implemented running-instance marking and multi-instance application management.
 
-- [x] Phase 3 (Completed) WayPlank Fully works with no X11 dependency: Native Wayland Integration
+- [x] Phase 3 (Completed): Declaration of Independence from X11 & Native Wayland Integration
   - Implementation of Wayland native protocols.
   - Complete phasing out of X11/XWayland dependencies. Support one compositor.
     This will be Kwin because it is the one I know the best.
   - Full fractional scaling and native Wayland compositor window tracking.
 
-- [ ] Phase 4 (In Progress): KWin Stabilization and Bug Fixes
-  - Define and implement the HAL architecture to support multiple compositors.
-  - Implement Multi Monitor Support: Verify monitor selection, persistence, and fallback when a display disconnects.
-  - Fix and test reported KWin bugs across hide modes and dock interactions.
-  - Stop mass development; receive user feedback and debugging.
+- [x] Phase 4 (Completed): KWin Stabilization, Monolithic Docklets & Bug Fixes
+  - Hardened KWin scripting bridge, overlap detection, and multi-monitor tracking.
+  - Implemented 8 embedded monolithic docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
+  - Bi-directional KWin & Plasma D-Bus trash bridge synchronization.
+  - Resolved icon bounce regressions, portal file launching, and process replacement (`--replace` / `-r`).
 
-- [ ] Phase 5 (Next): Add Support for Other Compositors
-  - Import existing Plank settings, launchers, themes, and pinned items.
-  - Add and test support for selected wlroots compositors, such as Sway, Hyprland, Wayfire, and Labwc.
-  - Develop Mutter support separately, including the required GNOME Shell bridge and dock integration.
-  - Test the new compositor support and fix compatibility issues.
+- [ ] Phase 5 (In Progress): Multi-Compositor HAL & Support for Other Compositors (Labwc, wlroots, Mutter)
+  - [x] Defined and implemented the modular Hardware Abstraction Layer (`WindowBackend` / `WindowControl`).
+  - [x] Added native Labwc & wlroots support via `zwlr_foreign_toplevel_manager_v1` protocol and C bridge (v0.4.3).
+  - [x] Zero-configuration runtime dynamic compositor auto-probing (Labwc vs KWin).
+  - [x] Reactive Cairo indicator dots and cross-compositor Show Desktop toggle engine.
+  - [x] State-based Dodge & Honest UI Matrix for Labwc (`DODGE_MAXIMIZED`, UI filtering, transparent fallback; validated on LXQt 2.x and XFCE 4.20).
+  - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
+  - [ ] Develop native GNOME Shell / Mutter bridge integration.
+  - [ ] Multi-monitor selection persistence and edge placement fine-tuning across all compositors.
 
 - [ ] Phase 6 (Final): Publish Version 1.0 and Move to Maintenance
   - Finish documentation, packaging, and configuration migration.
@@ -173,82 +174,65 @@ wayplank -d
 
 # Change log
 
-## V0.4.2: 2026-09-28
+## V0.4.3: 2026-10-03
 
-**Major Milestone Release — Wayland Stabilization, Feature Polish & Performance Modernization**:
-Version 0.4.2 represents a massive leap forward in making Wayplank a fully native, robust, and polished Wayland dock. Key highlights include native drag & drop of `.desktop` shortcuts and files directly into dock folders with automatic `0755` executable permissions and real-time stack preview invalidation; dynamic transient dock item tracking that instantly mirrors running unpinned windows under KWin; zero-latency (0ms) running indicator dots synchronized directly with Wayland compositor frame callbacks; a functional visual separator serving as a dynamic pinning boundary; robust desktop launcher parsing for paths with spaces and quotes via `GLib.Shell.parse_argv`; standardized CLI options (`-p` for preferences, `-v` for version, `-V` for verbose); an embedded monolithic vector Wayplank logo for the About dialog; an integrated in-app Wayland architecture report viewer; purging of community-reported prototyping artifacts; and complete severance of all remaining legacy X11/Wnck dependencies with 0 compiler warnings.
+**Multi-Compositor HAL Release (KWin & Labwc/wlroots)**:
+- **Modular Hardware Abstraction Layer**: Compositor-agnostic HAL auto-probing between KWin and Labwc at startup.
+- **Native Labwc & wlroots Protocol Engine**: Built-in C bridge implementing `wlr-foreign-toplevel-management`.
+- **Zero-Latency Application Indicators**: Instantaneous indicator rendering via reactive Cairo buffer invalidation.
+- **Bi-Directional Show Desktop**: State-based bulk minimize and atomic restore across all compositors.
+- **Adaptive Dodge & Honest UI**: Native `DODGE_MAXIMIZED` support on Labwc with runtime fallback and UI filtering for unsupported modes. Validated on LXQt 2.x and XFCE 4.20.
 
-👉 *For the complete, itemized technical changelog detailing all bug fixes and enhancements in this release, see [`src/CHANGELOG_v0.4.2.md`](src/CHANGELOG_v0.4.2.md).*
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.3.md`](src/CHANGELOG_v0.4.3.md).
+
+## V0.4.2: 2026-10-02
+
+**Wayland Stabilization, Monolithic Docklets & Architecture Polish**:
+- **Total Independence from X11**: Completely purged X11/XWayland libraries, building with zero warnings and zero errors.
+- **Monolithic Built-in Docklets**: Replaced external plugins with 8 static docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
+- **KWin & Plasma D-Bus Trash Bridge**: Real-time trash synchronization with Dolphin and KDE Plasma widgets.
+- **Transient Items & Multi-Window Cycling**: Zero-latency tracking of unpinned windows and scroll-wheel window cycling.
+- **Anti-Bounce & Process Takeover**: Eliminated spurious bounce animations and added `--replace` / `-r` support.
+
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.2.md`](src/CHANGELOG_v0.4.2.md).
 
 ## V0.4.1: 2026-09-25
 
-
-KWin multi-monitor fixes:
-
-
-- Fixed dock placement not updating after selecting a different monitor.
-- Persisted the selected monitor across restarts.
-- Fixed the bug where tooltips on secondary monitors appeared on the primary monitor.
-- Added a fallback to the primary monitor if the selected monitor is disconnected.
-
-
-Core fixes:
-
-
-- Deactivated system configuration polling during icon zoom to avoid UI freezes.
-- Adjusted the zoom level to prevent icons from being clipped.
-- Removed leftover X11 code that generated XWayland calls.
-- Removed a ton of deprecated code, fully modernizing the stack.
-- Cleaned most compiler warnings caused by stale and obsolete code.
+**KWin Multi-Monitor Stabilization & Core Modernization**:
+- **Multi-Monitor Display Tracking**: Fixed dock placement when switching monitors, persisted monitor selection across reboots, and added primary monitor fallback on disconnect.
+- **Tooltip Positioning**: Fixed tooltips on secondary screens incorrectly rendering on the primary monitor.
+- **Zoom & UI Smoothness**: Disabled system config polling during icon zoom to eliminate micro-stutters and adjusted zoom bounds to avoid icon clipping.
+- **Legacy Code Purge**: Removed leftover X11/XWayland calls, stripped deprecated APIs, and eliminated compiler warnings.
 
 ## V0.4.0: 2026-09-24
 
-Finalized KWin Wayland :
-- Added KDE/KWin Wayland window-state integration through a KWin scripting bridge.
-- Implemented Intellihide using active-window overlap detection.
-- Implemented Window Dodge using live KWin window geometry and overlap detection.
-- Implemented Dodge Active Window and Dodge Maximized Window modes for KWin.
-- Added dynamic layer-shell exclusive-zone and input-region handling so dodge modes
-  allow windows to receive input while Autohide and dock interactions remain stable.
-- Tray icons do not appear as temporary icons
+**KWin Wayland Scripting Bridge & Window Dodge Engine**:
+- **KWin Scripting Bridge**: Integrated Wayland window state tracking via native KWin D-Bus scripting interface.
+- **Window Dodge & Intellihide**: Implemented real-time window overlap detection supporting Dodge Active Window and Dodge Maximized Window modes.
+- **Dynamic Layer-Shell Negotiation**: Handled dynamic layer-shell exclusive zones and input regions to ensure seamless window interaction alongside dock auto-hide.
+- **Transient Icon Filtering**: Prevented system tray icons from incorrectly spawning as temporary dock items.
 
 ## V0.3.0: 2026-09-23
 
-Wayland hover and hide stabilization:
-
-- Implemented drag icon pinning
-- Implemented running app marking and multi instance management
-- Fixed dock hover zoom when the cursor enters the dock surface, restored the proper hidden/show state logic, and removed unsafe X11 overlap assumptions from the live Wayland path.
-- Kept the architecture compositor-safe by reserving real overlap detection for future compositor-specific integrations instead of forcing legacy X11 logic onto Wayland.
+**Wayland Hover Stabilization & Application Management**:
+- **Icon Pinning & Instance Marking**: Implemented drag-and-drop icon pinning, running application markers, and multi-instance management.
+- **Hover & Surface Lifecycle**: Fixed dock hover zoom when cursor enters the dock surface, restored show/hide logic, and eliminated unsafe X11 overlap assumptions.
+- **Compositor-Safe Architecture**: Replaced legacy X11 window queries with Wayland compositor-safe abstractions.
 
 ## V0.2.0: 2026-09-22
 
-Phase 2 Native Wayland & Labwc Transition:
-
-- Partial removal of X11 session-type startup checks: Stripped out the strict initialization block in AbstractMain.vala that previously prevented the dock from launching in non-X11 environments.
-- Native gtk-layer-shell integration: Integrated native surface layer management tailored specifically for Wayland compositors.
-- Wayland DND protocol resolution: Fixed drag-and-drop protocol mismatches to ensure seamless file drops from native Wayland clients like Dolphin.
-- Native Wayland drag-and-drop: Drag-and-drop operations from native Wayland clients are currently non-functional under wlroots/Labwc; file/item drops are disabled, restricting users to pinning and opening apps normally for now.
-- Build pipeline modularization: Extracted pure binary compilation into a dedicated, shared BuilsBin.sh script to streamline maintenance.
-- Right-click context menu refactoring: Completely redesigned the right-click handling to remove legacy window control dependencies, eliminating the need for external controls.
-- Cross-distribution compatibility: Established a clean, distribution-agnostic compilation pipeline supporting both Debian and Arch Linux environments.
-- Refactored Debian packaging script: Updated BuildDeb.sh to cleanly invoke the shared binary builder prior to packaging.
-- Updated system dependencies: Replaced legacy X11 packages with native requirements, explicitly adding libgtk-layer-shell0 to the Debian control manifest.
-- Legacy X11 cleanup: Purged obsolete display server backends, environment override variables (GDK_BACKEND=x11, QT_QPA_PLATFORM=xcb), and version-pinning restrictions from the system.
-- V0.2.0 Milestone Achievement: Formally advanced the project version to reflect a fully native, X11-free architecture running smoothly on Labwc.
-- Modularized build pipeline by separating core binary compilation into BuilsBin.sh for cross-distribution compatibility (Debian/Arch).
-- Updated Debian packaging script (BuildDeb.sh) to depend on libgtk-layer-shell0 and invoke the shared binary builder.
-- Process Scanner & Generic Desktop Matching: Implemented a robust `/proc`-based process scanner in Matcher.vala with automatic cleanup of dead PIDs and generic, distribution-agnostic desktop file pattern resolution supporting KDE, GNOME, and standard applications.
-- Persistent Pinning & Lifecycle Management: Fixed application transient item tracking on close and enabled reliable persistence of pinned items through custom `.dockitem` configurations.
+**Native Wayland & GTK Layer Shell Transition**:
+- **GTK Layer Shell Integration**: Implemented native Wayland surface layer management (`gtk-layer-shell`) and removed X11 startup blocks.
+- **Process Scanner & Desktop Matching**: Implemented `/proc`-based process scanner with automatic dead PID cleanup and generic `.desktop` file resolution.
+- **Context Menus & Pinning**: Redesigned right-click context menu handling and enabled persistent pinned items via custom `.dockitem` configurations.
+- **Build Pipeline & Packaging**: Modularized build scripts (`BuilsBin.sh`, `BuildDeb.sh`), updated dependencies to `libgtk-layer-shell0`, and established cross-distro compatibility.
+- **Legacy Cleanup**: Purged obsolete X11 backends, environment overrides (`GDK_BACKEND=x11`), and legacy display server restrictions.
 
 ## V0.1.0: 2026-09-19
 
-Phase 1 Architecture Decoupling & Baseline Release:
+**Phase 1 Architecture Decoupling & Baseline Release**:
+- **Standalone Fork**: Forked from original Plank codebase to establish clean foundations for Wayland migration.
+- **Namespace Migration**: Renamed binary and data namespaces to `wayplank` with transparent symlink compatibility.
+- **XDG Directory Isolation**: Relocated configs to `~/.config/wayplank` and themes to `~/.local/share/wayplank/themes`.
+- **Packaging Pipeline**: Created universal manual compilation sequence and standalone Debian packaging script.
 
-- Forked from original Plank codebase to establish clean foundations for future Wayland porting.
-- Full namespace migration: renamed binary target to 'wayplank' with transparent symlink fallback.
-- Relocated system assets to '/usr/share/wayplank' via PKGDATADIR redefinition.
-- Isolated user configurations under '~/.config/wayplank'.
-- Updated Theme loader to dynamically inspect '~/.local/share/wayplank/themes'.
-- Created universal manual compile sequence for non-Debian distributions.
-- Integrated standalone Debian packaging pipeline (BuildDeb.sh)

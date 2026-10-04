@@ -39,6 +39,12 @@ C_SOURCES="${BASE_DIR}/lib/resources.c"
 if [ -f "${BASE_DIR}/lib/gtk-compat.c" ]; then
     C_SOURCES="${C_SOURCES} ${BASE_DIR}/lib/gtk-compat.c"
 fi
+if [ -f "${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c" ]; then
+    C_SOURCES="${C_SOURCES} ${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c"
+fi
+if [ -f "${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c" ]; then
+    C_SOURCES="${C_SOURCES} ${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c"
+fi
 
 if valac -g \
     --gresources="${BASE_DIR}/data/plank.gresource.xml" \
@@ -52,13 +58,17 @@ if valac -g \
     --pkg gee-0.8 \
     --pkg compat \
     --pkg config \
+    --pkg wlr-bridge \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
     -X -I"${BASE_DIR}/lib" \
+    -X -I"${BASE_DIR}/lib/Protocols" \
+    -X -I"${BASE_DIR}/lib/Services" \
     -X -I"${BASE_DIR}/include" \
     -X -w \
     -X -lm \
+    -X -lwayland-client \
     "${VALA_FILES[@]}" \
     ${C_SOURCES} \
     -o "${OUT_DIR}/wayplank"; then

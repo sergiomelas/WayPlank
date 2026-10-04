@@ -47,30 +47,57 @@ If you are waiting for a true, lightweight, native Wayland dock experience to re
 
 ## 1. CORE DEPENDENCIES
 
-To compile Wayplank from source, ensure your distribution provides:
+To compile Wayplank from source, ensure your distribution provides the required development libraries:
 
-- Vala compiler (valac >= 0.40)
-- GTK+ 3.0 (gtk3 / libgtk-3-dev)
-- GTK Layer Shell (gtk-layer-shell-0 / libgtk-layer-shell-dev)
-- Wayland Client library (libwayland-client0 / libwayland-dev)
-- JSON-GLib 1.0 (json-glib-1.0 / libjson-glib-dev)
-- LibGee 0.8 (libgee-0.8 / libgee-0.8-dev)
-- GLib 2.0 (glib2 / libglib2.0-dev, includes glib-compile-resources)
-- pkg-config
+- Vala compiler (`valac >= 0.40`)
+- GTK+ 3.0 development headers (`gtk3` / `libgtk-3-dev`)
+- GTK Layer Shell (`gtk-layer-shell` / `libgtk-layer-shell-dev`)
+- Wayland Client library (`wayland` / `libwayland-client0` / `libwayland-dev`)
+- JSON-GLib 1.0 (`json-glib` / `libjson-glib-dev`)
+- LibGee 0.8 (`libgee` / `libgee-0.8-dev`)
+- GLib 2.0 (`glib2` / `libglib2.0-dev`, includes `glib-compile-resources`)
+- `pkg-config` / `base-devel` / `build-essential`
 
-WayPlank supports the GTK 3 series through `gtk+-3.0`, together with GTK 3 `gtk-layer-shell` and `libwayland-client` for native Wayland integration.
+**Quick Install Commands:**
+- **Arch Linux:**
+  ```bash
+  sudo pacman -S --needed base-devel vala gtk3 gtk-layer-shell wayland json-glib libgee glib2
+  ```
+- **Debian / Ubuntu:**
+  ```bash
+  sudo apt install build-essential valac libgtk-3-dev libgtk-layer-shell-dev libwayland-dev libjson-glib-dev libgee-0.8-dev libglib2.0-dev
+  ```
+- **Fedora:**
+  ```bash
+  sudo dnf install gcc vala gtk3-devel gtk-layer-shell-devel wayland-devel json-glib-devel libgee-devel glib2-devel
+  ```
 
-GTK 4 migration may be considered later, but GTK 3 remains the supported toolkit for the current release line.
+---
 
-## 2. UNIVERSAL MANUAL COMPILATION
+## 2. COMPILATION
 
-Compile the embedded resource binary directly on any Linux distribution:
+### Option A: Universal Automated Build Script (Recommended for Any Distro)
+
+Wayplank includes an automated standalone build script that compiles all Vala sources, C bridges, and GLib resources directly without distribution-specific dependencies:
+
+```bash
+chmod +x BuilsBin.sh
+./BuilsBin.sh
+```
+
+The resulting standalone binary is generated in `build/wayplank`.
+
+---
+
+### Option B: Manual Step-by-Step Compilation
+
+If you prefer building manually in your terminal:
 
 ```bash
 # Step 1: Compile embedded GLib resources
 glib-compile-resources --sourcedir=data --target=lib/resources.c --generate-source data/plank.gresource.xml
 
-# Step 2: Compile native Wayplank binary (or simply run ./BuilsBin.sh)
+# Step 2: Compile native Wayplank binary (Vala + C bridges)
 valac -g \
     --gresources=data/plank.gresource.xml \
     --gresourcesdir=data \
@@ -80,22 +107,40 @@ valac -g \
     -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
     -X -Ilib -X -Ilib/Protocols -X -Ilib/Services -X -Iinclude -X -w -X -lm -X -lwayland-client \
-    $(find lib src -name "*.vala") lib/resources.c lib/Protocols/wlr-foreign-toplevel-management-protocol.c lib/Services/wlr-toplevel-bridge.c -o wayplank
+    $(find lib src -name "*.vala") \
+    lib/resources.c \
+    lib/gtk-compat.c \
+    lib/Protocols/wlr-foreign-toplevel-management-protocol.c \
+    lib/Services/wlr-toplevel-bridge.c \
+    -o wayplank
 ```
 
+---
+
+### Step 3: Install Binary and Desktop Assets
+
+Once built (via Option A or Option B), install the binary, themes, icons, and GSettings schemas:
+
 ```bash
-# Step 3: Install binary and data
-sudo install -Dm755 wayplank /usr/local/bin/wayplank
+# Install binary into /usr/local/bin
+[ -f build/wayplank ] && sudo install -Dm755 build/wayplank /usr/local/bin/wayplank || sudo install -Dm755 wayplank /usr/local/bin/wayplank
 sudo ln -sf /usr/local/bin/wayplank /usr/local/bin/plank
-sudo cp -r data/themes /usr/local/share/wayplank/
+
+# Install themes and icons
+sudo mkdir -p /usr/local/share/wayplank/themes
+sudo cp -r data/themes/* /usr/local/share/wayplank/themes/
 sudo cp -r data/icons/* /usr/local/share/icons/hicolor/
+
+# Install and compile GSettings schemas
 sudo cp data/glib-2.0/schemas/* /usr/local/share/glib-2.0/schemas/
 sudo glib-compile-schemas /usr/local/share/glib-2.0/schemas/
 ```
 
+---
+
 ## 3. AUTOMATED DEBIAN/UBUNTU PACKAGE CREATION
 
-If running Debian, Ubuntu, or derivative distributions, run the automated builder:
+If running Debian, Ubuntu, or derivative distributions, run the automated packager to create a native `.deb`:
 
 ```bash
 chmod +x BuildDeb.sh

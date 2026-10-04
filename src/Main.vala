@@ -41,7 +41,7 @@ namespace Plank
                 print_shortcuts_cheatsheet ();
                 return 0;
             }
-            if (argv[i] == "--replace" || argv[i] == "-r") {
+            if (argv[i] == "--replace" || argv[i] == "--reload" || argv[i] == "-r") {
                 replace_requested = true;
             }
         }
@@ -133,7 +133,7 @@ namespace Plank
         print ("  -v, --version             Show application version\n\n");
         print ("Application Options:\n");
         print ("  -p, --preferences         Show preferences dialog of the running or started instance\n");
-        print ("  -r, --reload              Reload and refresh running dock instance\n");
+        print ("  -r, --replace, --reload   Restart and replace running dock instance\n");
         print ("  -d, --debug               Enable debug logging\n");
         print ("  -V, --verbose             Enable verbose logging\n");
         print ("  -n, --name=NAME           The name of this dock. Defaults to \"dock1\"\n\n");

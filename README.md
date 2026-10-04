@@ -207,7 +207,9 @@ wayplank -d
   - [x] Reactive Cairo indicator dots and cross-compositor Show Desktop toggle engine.
   - [x] State-based Dodge & Honest UI Matrix for Labwc (`DODGE_MAXIMIZED`, UI filtering, transparent fallback; validated on LXQt 2.x and XFCE 4.20).
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-  - [ ] Develop native GNOME Shell / Mutter bridge integration.
+  - [x] Develop foundational GNOME Shell / Mutter bridge integration: core HAL backend (`MutterBackend`), safe non-layer-shell surface fallback, and clean standalone rendering *(Completed in local staging / landing in upcoming update)*.
+  - [ ] Extend native GNOME Shell / Mutter bridge integration (Full Version): monolithic GNOME Shell extension to supply window geometries, active focus tracking, and edge dock positioning.
+  - [ ] Broaden community testing across Mutter-based desktop environments (GNOME Shell, Ubuntu Desktop, etc.).
   - [ ] Multi-monitor selection persistence and edge placement fine-tuning across all compositors.
 
 - [ ] Phase 6 (Final): Publish Version 1.0 and Move to Maintenance

@@ -1,0 +1,117 @@
+================================================================================
+                    WAYPLANK COMPOSITORS & DESKTOPS CHEATSHEET
+================================================================================
+# ------------------------------------------------------------------------------
+# 1. MUTTER 50+ (Minimal Compositor Only - Standalone 800x600 Window)
+# ------------------------------------------------------------------------------
+
+# Installation:
+sudo apt install --no-install-recommends mutter mutter-dev-bin
+
+# Test Method A (Recommended: Two Terminals):
+# Terminal 1 - Start persistent nested Mutter 800x600 window:
+MUTTER_DEBUG_DUMMY_MODE_SPECS=800x600 env -u LD_PRELOAD GTK_CSD=1 mutter --wayland --devkit --no-x11 --virtual-monitor=800x600 --wayland-display=wayland-9
+
+# Terminal 2 - Launch Wayplank inside that Mutter window (loads standard dock1):
+WAYLAND_DISPLAY=wayland-9 env -u LD_PRELOAD GTK_CSD=1 /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -r -d
+
+# Test Method B (Single-Command One-Liner):
+MUTTER_DEBUG_DUMMY_MODE_SPECS=800x600 env -u LD_PRELOAD GTK_CSD=1 mutter --wayland --devkit --no-x11 --virtual-monitor=800x600 --wayland-display=wayland-9 -- sh -c "env -u LD_PRELOAD GTK_CSD=1 /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -r -d"
+
+#For screene shot use:
+WAYLAND_DISPLAY=wayland-0 spectacle -b -f -o /home/sergio/Others/WayPlank/0.4_Wayland/screenshot.png
+
+# Purge:
+sudo apt purge mutter mutter-dev-bin
+sudo apt autoremove --purge
+
+
+# ------------------------------------------------------------------------------
+# 2. GNOME SHELL & MUTTER (Full GNOME Desktop with Extensions Support)
+# ------------------------------------------------------------------------------
+
+# Installation:
+sudo apt install --no-install-recommends \
+    gnome-session \
+    gnome-shell \
+    gnome-shell-extension-prefs \
+    gnome-terminal
+
+# Test Command (Runs full GNOME UI inside a 1280x720 nested window):
+MUTTER_DEBUG_DUMMY_MODE_SPECS=1280x720 dbus-run-session gnome-shell --nested --wayland
+
+# To launch Wayplank inside that GNOME window (from a second terminal):
+WAYLAND_DISPLAY=wayland-9 /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d
+
+# Purge:
+sudo apt purge \
+    gnome-session \
+    gnome-shell \
+    gnome-shell-extension-prefs \
+    gnome-terminal
+sudo apt autoremove --purge
+
+
+# ------------------------------------------------------------------------------
+# 3. LABWC (wlroots Standalone Compositor)
+# ------------------------------------------------------------------------------
+
+# Installation:
+sudo apt install --no-install-recommends labwc
+
+# Test Command (Nested window with Wayplank and terminal):
+dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d & konsole'"
+
+# Purge:
+sudo apt purge labwc
+sudo apt autoremove --purge
+
+
+# ------------------------------------------------------------------------------
+# 4. DESKTOPS ON LABWC
+# ------------------------------------------------------------------------------
+
+### --- LXQt (Wayland session on Labwc) ---
+
+# Installation:
+sudo apt install --no-install-recommends \
+    lxqt-core \
+    lxqt-wayland-session \
+    pcmanfm-qt \
+    lxqt-panel \
+    qterminal
+
+# Test Command (Runs LXQt session inside a nested Labwc window with Wayplank):
+dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d & startlxqt'"
+
+# Purge:
+sudo apt purge \
+    lxqt-core \
+    lxqt-wayland-session \
+    pcmanfm-qt \
+    lxqt-panel \
+    qterminal
+sudo apt autoremove --purge
+
+
+### --- XFCE (Desktop session on Labwc) ---
+
+# Installation:
+sudo apt install --no-install-recommends \
+    xfce4-session \
+    xfce4-panel \
+    xfdesktop4 \
+    thunar \
+    xfce4-terminal
+
+# Test Command (Runs XFCE desktop inside a nested Labwc window with Wayplank):
+dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d & xfce4-session'"
+
+# Purge:
+sudo apt purge \
+    xfce4-session \
+    xfce4-panel \
+    xfdesktop4 \
+    thunar \
+    xfce4-terminal
+sudo apt autoremove --purge

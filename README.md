@@ -10,7 +10,7 @@
 
 ---
 
-🚀 CURRENT RUNTIME: Full Wayland with KWin & Labwc (wlroots) support | 🎯 TARGET GOAL: Support all major Compositors
+🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 TARGET GOAL: Support all major Compositors
 
 ---
 
@@ -20,13 +20,13 @@ I developed the core engine to discover running applications (since Wayland isol
 
 Important notice: core dock rendering and layout inherit the beloved look and feel from the original Plank developers (Docky Core Team), representing roughly 90% of the baseline code, while the remaining 10% introduces native Wayland architecture, compositor bridges, and modern features.
 
-Having used KDE with Plank for years, Wayplank provides a true native Wayland successor as X11 phases out. Starting with version 0.4.3, Wayplank features a modular Hardware Abstraction Layer (HAL) with native support for both **KWin (KDE Plasma)** and **Labwc (wlroots)** compositors! Testing and feedback across different Wayland environments are warmly welcome.
+Having used KDE with Plank for years, Wayplank provides a true native Wayland successor as X11 phases out. Starting with version 0.4.3, Wayplank features a modular Hardware Abstraction Layer (HAL) with native support for **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)** compositors! Testing and feedback across different Wayland environments are warmly welcome.
 
 👉 *For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*
 
 ### ⚠️ Reality Check: Where Wayplank Stands Today
 
-To be completely transparent: **Wayplank is fully Wayland-native, with window-management and dock integration tested and verified on both KWin (KDE Plasma) and Labwc (wlroots)**. Support for additional compositors (Sway, Hyprland, GNOME/Mutter) is progressing along the roadmap.
+To be completely transparent: **Wayplank is fully Wayland-native, with window-management and dock integration tested and verified on KWin (KDE Plasma), Labwc (wlroots), and GNOME Shell (Mutter)**. Support for additional compositors (Sway, Hyprland) is progressing along the roadmap.
 
 ### 🔍 Keep an Eye on This Repository!
 
@@ -81,8 +81,8 @@ To compile Wayplank from source, ensure your distribution provides the required 
 Wayplank includes an automated standalone build script that compiles all Vala sources, C bridges, and GLib resources directly without distribution-specific dependencies:
 
 ```bash
-chmod +x BuilsBin.sh
-./BuilsBin.sh
+chmod +x BuildBin.sh
+./BuildBin.sh
 ```
 
 The resulting standalone binary is generated in `build/wayplank`.
@@ -203,13 +203,13 @@ wayplank -d
 - [ ] Phase 5 (In Progress): Multi-Compositor HAL & Support for Other Compositors (Labwc, wlroots, Mutter)
   - [x] Defined and implemented the modular Hardware Abstraction Layer (`WindowBackend` / `WindowControl`).
   - [x] Added native Labwc & wlroots support via `zwlr_foreign_toplevel_manager_v1` protocol and C bridge (v0.4.3).
-  - [x] Zero-configuration runtime dynamic compositor auto-probing (Labwc vs KWin).
+  - [x] Zero-configuration runtime dynamic compositor auto-probing (Labwc vs KWin vs Mutter).
   - [x] Reactive Cairo indicator dots and cross-compositor Show Desktop toggle engine.
   - [x] State-based Dodge & Honest UI Matrix for Labwc (`DODGE_MAXIMIZED`, UI filtering, transparent fallback; validated on LXQt 2.x and XFCE 4.20).
+  - [x] Native GNOME Shell / Mutter bridge integration (Phase 1): monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`), window state tracking, zero-notification banners, centered dialogs, and edge positioning (v0.4.3).
+  - [x] Strict HAL coordinate isolation: native Layer Shell margins for KWin/Labwc and dedicated absolute screen positioning for Mutter (v0.4.3).
+  - [ ] Finalize GNOME Shell extension bridge for window geometry retrieval to support Intellihide & Dodge on Mutter.
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-  - [x] Develop foundational GNOME Shell / Mutter bridge integration: core HAL backend (`MutterBackend`), safe non-layer-shell surface fallback, and clean standalone rendering *(Completed in local staging / landing in upcoming update)*.
-  - [ ] Extend native GNOME Shell / Mutter bridge integration (Full Version): monolithic GNOME Shell extension to supply window geometries, active focus tracking, and edge dock positioning.
-  - [ ] Broaden community testing across Mutter-based desktop environments (GNOME Shell, Ubuntu Desktop, etc.).
   - [ ] Multi-monitor selection persistence and edge placement fine-tuning across all compositors.
 
 - [ ] Phase 6 (Final): Publish Version 1.0 and Move to Maintenance
@@ -221,14 +221,15 @@ wayplank -d
 
 # Change log
 
-## V0.4.3: 2026-10-03
+## V0.4.3: 2026-10-05
 
-**Multi-Compositor HAL Release (KWin & Labwc/wlroots)**:
-- **Modular Hardware Abstraction Layer**: Compositor-agnostic HAL auto-probing between KWin and Labwc at startup.
-- **Native Labwc & wlroots Protocol Engine**: Built-in C bridge implementing `wlr-foreign-toplevel-management`.
-- **Zero-Latency Application Indicators**: Instantaneous indicator rendering via reactive Cairo buffer invalidation.
-- **Bi-Directional Show Desktop**: State-based bulk minimize and atomic restore across all compositors.
-- **Adaptive Dodge & Honest UI**: Native `DODGE_MAXIMIZED` support on Labwc with runtime fallback and UI filtering for unsupported modes. Validated on LXQt 2.x and XFCE 4.20.
+**Multi-Compositor HAL Release (KWin, Labwc/wlroots & GNOME/Mutter)**:
+- **Modular Multi-Compositor HAL**: Dynamic runtime auto-probing across KWin, Labwc, and GNOME/Mutter at startup with zero configuration.
+- **Native Labwc & wlroots Support**: Integrated asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1`.
+- **Native GNOME/Mutter Integration (Phase 1)**: Monolithic self-deploying GNOME Shell extension via D-Bus; complete suppression of notification banners, centered dialogs, and dock edge placement.
+- **Strict HAL Coordinate Isolation**: Pure relative Layer Shell margins preserved for KWin/Labwc, and dedicated absolute screen positioning with real frame anchoring for Mutter.
+- **Zero-Latency Reactive Indicators**: Immediate Cairo buffer invalidation and lifecycle synchronization for active app markers.
+- **Bi-Directional Show Desktop & Intelligent Dodge**: Atomic bulk minimization/restore across all compositors; `DODGE_MAXIMIZED` state-based dodge with transparent fallback on Labwc.
 
 👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.3.md`](src/CHANGELOG_v0.4.3.md).
 
@@ -272,7 +273,7 @@ wayplank -d
 - **GTK Layer Shell Integration**: Implemented native Wayland surface layer management (`gtk-layer-shell`) and removed X11 startup blocks.
 - **Process Scanner & Desktop Matching**: Implemented `/proc`-based process scanner with automatic dead PID cleanup and generic `.desktop` file resolution.
 - **Context Menus & Pinning**: Redesigned right-click context menu handling and enabled persistent pinned items via custom `.dockitem` configurations.
-- **Build Pipeline & Packaging**: Modularized build scripts (`BuilsBin.sh`, `BuildDeb.sh`), updated dependencies to `libgtk-layer-shell0`, and established cross-distro compatibility.
+- **Build Pipeline & Packaging**: Modularized build scripts (`BuildBin.sh`, `BuildDeb.sh`), updated dependencies to `libgtk-layer-shell0`, and established cross-distro compatibility.
 - **Legacy Cleanup**: Purged obsolete X11 backends, environment overrides (`GDK_BACKEND=x11`), and legacy display server restrictions.
 
 ## V0.1.0: 2026-09-19

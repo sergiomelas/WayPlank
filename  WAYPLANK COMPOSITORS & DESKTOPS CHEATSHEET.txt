@@ -30,22 +30,31 @@ sudo apt autoremove --purge
 # 2. GNOME SHELL & MUTTER (Full GNOME Desktop with Extensions Support)
 # ------------------------------------------------------------------------------
 
-# Installation:
+# Minimal Installation (Debian Sid GNOME 50+):
 sudo apt install --no-install-recommends \
-    gnome-session \
     gnome-shell \
     gnome-shell-extension-prefs \
     gnome-terminal
 
-# Test Command (Runs full GNOME UI inside a 1280x720 nested window):
-MUTTER_DEBUG_DUMMY_MODE_SPECS=1280x720 dbus-run-session gnome-shell --nested --wayland
+# Optional: Add full session if you want to log in directly from SDDM/GDM:
+# sudo apt install --no-install-recommends gnome-session
 
-# To launch Wayplank inside that GNOME window (from a second terminal):
-WAYLAND_DISPLAY=wayland-9 /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d
+# Test Method (Runs GNOME Shell 50+ inside a 1280x720 nested window on host Wayland):
+# Terminal 1 - Start nested GNOME Shell:
+MUTTER_DEBUG_DUMMY_MODE_SPECS=1280x720 dbus-run-session gnome-shell --wayland --no-x11 --virtual-monitor=1280x720 --wayland-display=wayland-9
+
+# Terminal 2 - Launch Wayplank inside that GNOME nested window:
+WAYLAND_DISPLAY=wayland-9 dbus-run-session /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d
+
+# Managing Wayplank GNOME Shell Extension:
+# Extensions directory: ~/.local/share/gnome-shell/extensions/
+# List installed extensions:
+# gnome-extensions list
+# Enable extension:
+# gnome-extensions enable wayplank-bridge@wayplank.org
 
 # Purge:
 sudo apt purge \
-    gnome-session \
     gnome-shell \
     gnome-shell-extension-prefs \
     gnome-terminal

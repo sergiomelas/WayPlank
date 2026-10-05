@@ -29,14 +29,14 @@ To overcome these structural restrictions and build a high-performance, lightwei
 
 | Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank (Wayland Multi-Compositor) | Net Variance |
 | :--- | :--- | :--- | :--- |
-| **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell | Full replacement |
-| **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | Multi-Compositor HAL: KWin D-Bus Bridge + Labwc/wlroots (`zwlr_foreign_toplevel_manager_v1`) | Wnck & X11 stripped |
+| **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell / Mutter Fallback | Full replacement |
+| **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | Multi-Compositor HAL: KWin D-Bus Bridge + Labwc/wlroots (`zwlr_foreign_toplevel_manager_v1`) + GNOME Shell (`MutterBackend`) | Wnck & X11 stripped |
 | **App Resolution** | `libbamf3` (Ubuntu Unity) | `ApplicationDiscovery` + `ApplicationIdentity` + `/proc` | BAMF daemon removed |
-| **Total Changed Lines** | - | +5,420 insertions / -5,353 deletions | Modernized codebase |
-| **Added Files** | - | 18 files | HAL backends, C protocols, bridges & services |
+| **Total Changed Lines** | - | +5,750 insertions / -5,353 deletions | Modernized codebase |
+| **Added Files** | - | 19 files | HAL backends, C protocols, bridges & services |
 | **Deleted Files** | 13 legacy files | - | Removed BAMF, X11 VAPIs & Docklets |
-| **Modified Files** | - | 74 files | Multi-compositor HAL, reactive Cairo redraw |
-| **Build Status** | Hardcoded X11 / Wnck toolchains | Native `BuilsBin.sh`: 0 Errors, 0 Warnings | Standalone Debian package |
+| **Modified Files** | - | 76 files | Multi-compositor HAL, reactive Cairo redraw |
+| **Build Status** | Hardcoded X11 / Wnck toolchains | Native `BuildBin.sh`: 0 Errors, 0 Warnings | Standalone Debian package |
 
 ---
 
@@ -49,12 +49,14 @@ flowchart TD
     subgraph Compositors ["Wayland Compositor Layer"]
         KWinComp["KWin / KDE Plasma\n(KWin Scripting Engine & Workspace API)"]
         WlrComp["Labwc / wlroots Compositors\n(zwlr_foreign_toplevel_manager_v1)"]
+        MutterComp["GNOME Shell / Mutter\n(Native Monolithic Extension)"]
         LayerCompositor["Layer Surface Compositor\n(wlr-layer-shell / gtk-layer-shell)"]
     end
 
     subgraph Bridges ["Compositor Bridge Layer"]
         DBusIface["KWin D-Bus Bridge (KWinBridge)\nMethods: update_window_state, fetch_pending_command"]
         WlrBridge["Native C Protocol Bridge (wlr-toplevel-bridge.c)\nDirect libwayland-client event loop integration"]
+        MutterBridge["Mutter D-Bus Bridge (org.wayplank.GnomeBridge)\nEmbedded extension IPC"]
     end
 
     subgraph WayPlankCore ["WayPlank Core Layer"]
@@ -62,6 +64,7 @@ flowchart TD
         WindowBackend["WindowBackend (HAL Interface)"]
         KWinBackend["KWinBackend Implementation"]
         LabwcBackend["LabwcBackend Implementation"]
+        MutterBackend["MutterBackend Implementation"]
         WindowManager["WindowManager\n(Cycle / Minimize / Stacking Resolution)"]
         AppDiscovery["ApplicationDiscovery\n(FileMonitor inotify + 300ms debounce)"]
         AppIdentity["ApplicationIdentity\n(Multi-Attribute Heuristic Matcher)"]
@@ -80,9 +83,12 @@ flowchart TD
     DBusIface <--> KWinBackend
     WlrComp <-->|Wayland Wire Protocol| WlrBridge
     WlrBridge <--> LabwcBackend
+    MutterComp <-->|D-Bus Session Bus| MutterBridge
+    MutterBridge <--> MutterBackend
 
     KWinBackend --> WindowBackend
     LabwcBackend --> WindowBackend
+    MutterBackend --> WindowBackend
     WindowControl --> WindowBackend
     WindowBackend --> WindowManager
     Matcher --> WindowManager
@@ -180,7 +186,7 @@ The following 13 files were completely eliminated from the source repository:
 
 ### 4.4. `vapi/Makefile.am` & `vapi/Makefile.in`
 - **Original Purpose:** Autotools build automation templates for compiling custom VAPI files.
-- **Reason for Removal:** Build pipeline modernized into self-contained compilation scripts (`BuilsBin.sh`, `BuildDeb.sh`).
+- **Reason for Removal:** Build pipeline modernized into self-contained compilation scripts (`BuildBin.sh`, `BuildDeb.sh`).
 
 ### 4.5. `lib/Docklets/Docklet.vala`, `DockletItem.vala`, `DockletManager.vala` & `lib/Widgets/DockletViewModel.vala`
 - **Original Purpose:** Plank's external C/Vala plugin architecture (`.so` modules loaded dynamically from `/usr/lib/plank/docklets` via `GModule`).
@@ -557,7 +563,7 @@ The following section covers every modified file across the codebase, documentin
   - Calls `WindowControl.start()` to connect KWin and D-Bus.
   - Clean shutdown sequence on application quit.
 
-#### Build & Configuration Pipeline (`BuildDeb.sh`, `BuilsBin.sh`, `include/config.h`, `vapi/compat.vapi`, `vapi/config.vapi`)
+#### Build & Configuration Pipeline (`BuildDeb.sh`, `BuildBin.sh`, `include/config.h`, `vapi/compat.vapi`, `vapi/config.vapi`)
 - **Diff Summary:**
   - Replaced build dependencies: removed `libwnck-3-dev`, `libbamf3-dev`, `libx11-dev`, `libxfixes-dev`, `libxi-dev`.
   - Added dependencies: `libgtk-layer-shell-dev`, `libgee-0.8-dev`, `libjson-glib-1.0-dev`.
@@ -659,5 +665,49 @@ The transformation from **Plank 0.1_X11** to **WayPlank Wayland** successfully m
     - **Preferences UI Filtering**: Unsupported geometric collision modes (`Intelligent`, `Window Dodge`, `Dodge Active`) are made insensitive in the Preferences dialog and clearly labeled `(Requires KWin)`.
     - **Transparent Runtime Fallback**: If an unsupported mode was stored in GSettings (e.g., when switching from KDE Plasma to Labwc), Wayplank transparently falls back to `DODGE_MAXIMIZED` at runtime without altering or corrupting the user's stored preferences on disk.
     - **Field Validation**: Fully tested and validated in production desktop sessions across both LXQt 2.x and XFCE 4.20 running natively on Labwc under Debian Sid.
+
+---
+
+## 10. Native GNOME Shell / Mutter Architecture & Monolithic Bridge (v0.4.3)
+
+### 10.1. The Mutter Architectural Challenge & Monolithic Solution
+- **The Core Problem on GNOME Wayland:**
+  - GNOME Shell (Mutter) intentionally does not implement `wlr-layer-shell-unstable-v1` and rejects foreign toplevel protocols. Standard GTK windows on Mutter are treated as unmanaged or normal client windows, subject to GNOME's window manager policies (such as `center-new-windows`).
+  - Traditional Plank plugins or standalone helper daemons create brittle packaging requirements, break across GNOME Shell version updates, and fail security reviews.
+- **Wayplank's Monolithic Embedded Extension Approach:**
+  - In `lib/Services/MutterBackend.vala`, the entire GNOME Shell extension source code (`extension.js`), metadata (`metadata.json`), and D-Bus interface definition (`IFACE_XML`) are embedded directly within the compiled binary as string constants.
+  - At startup, if Wayplank detects it is running under Mutter and the bridge extension is not installed or requires updating, `ensure_extension_installed()` autonomously writes the extension into `~/.local/share/gnome-shell/extensions/wayplank-bridge@wayplank.org/` and enables it via `gnome-extensions`.
+  - Zero external installer scripts, zero manual user intervention, and zero packaging fragmentation.
+
+### 10.2. D-Bus Session Bridge & Live Window State Synchronization
+- **Bi-Directional IPC (`org.wayplank.GnomeBridge`):**
+  - Exported on the user session bus, the bridge provides full programmatic window inspection and control:
+    - `GetWindows()`: Returns a serialized JSON array of active, minimized, maximized, and attention-demanding windows with stable UUIDs, desktop file associations, and window titles.
+    - `ActivateWindow(uuid)` / `MinimizeWindow(uuid)` / `ToggleWindow(uuid)` / `CloseWindow(uuid)`: Dispatch atomic compositor actions directly through `Meta.Window`.
+    - `ToggleDesktop()`: Evaluates workspace visibility and minimizes or unminimizes all normal windows atomically.
+    - `WindowsChanged`: Emitted in real time on window creation, focus changes, minimization, restacking, and destruction, allowing Wayplank to update its dock running indicators and transient items with zero polling.
+
+### 10.3. Permanent Elimination of GNOME Window Attention Notifications
+- **Root Cause:**
+  - When Wayplank displays tooltip windows or dialogs without decorations under Wayland, GNOME Shell's `WindowAttentionHandler` frequently classifies them as unmanaged surfaces demanding attention, generating annoying system notification banners (*"wayplank-hover is ready"*).
+- **Resolution:**
+  - The extension actively monkey-patches `Meta.Window.prototype.is_skip_taskbar` for all Wayplank window roles (`dock`, `hover`, `preferences`, `help`, `poof`), guaranteeing that GNOME Shell never generates taskbar entries or notification banners for Wayplank surfaces.
+  - Connects to `window-demands-attention` and `window-marked-urgent` display events to immediately clear `demands_attention = false`.
+
+### 10.4. Strict HAL Coordinate Isolation & Tooltip Framing
+- **Zero Regressions on Layer Shell Compositors:**
+  - **KWin & Labwc**: Retain pure relative margin calculations (`x - width / 2`, `y - height / 2`) through `GtkLayerShell.set_margin()`. Zero screen coordinate contamination.
+  - **Mutter**: Confined strictly inside `!GtkLayerShell.is_supported()` code paths. Calculates monitor-relative absolute coordinates (`mon_x + ...`, `mon_y + ...`).
+  - Tooltips measure the real frame rect of the dock window (`dockWin.get_frame_rect()`) to guarantee clean 6px spacing and prevent overlap with the dock bar and GNOME panel across all four screen edges (`Bottom`, `Top`, `Left`, `Right`).
+
+### 10.5. Phase 1 Milestones & Roadmap for Full Spatial Dodge & Intellihide
+- **Phase 1 Delivered in v0.4.3:**
+  - Monolithic extension auto-deployment, D-Bus session communication, live window list tracking, activation, minimization, closing, Show Desktop toggle, total suppression of unwanted notification banners, dialog centering, and dock edge placement.
+- **Roadmap for Full Spatial Dodge & Intellihide:**
+  - Full spatial Dodge (`Dodge Active`, `Window Dodge`) and Intellihide under GNOME Shell require real-time knowledge of client window geometries across the active workspace.
+  - The next development milestone will expand the extension D-Bus bridge interface (`org.wayplank.GnomeBridge`) to stream window bounding boxes (`MetaWindow.get_frame_rect()`) directly to `MutterBackend`:
+    - Track active and maximized window bounding boxes across monitors in real time.
+    - Feed live geometry data into `active_window_intersects()` and `maximized_window_intersects()` predicates.
+    - Finalize poof animation and dodge state transitions in the next iteration.
 
 

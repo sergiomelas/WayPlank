@@ -49,20 +49,20 @@ echo "🚀 Wayplank Standalone Builder — V${PKG_VER} (Debian Integration)"
 echo "─────────────────────────────────────────────────────────────────"
 echo ""
 
-# 1. Call the binary build script (BuilsBin.sh)
-if [ -f "${BASE_DIR}/BuilsBin.sh" ]; then
-    if ! bash "${BASE_DIR}/BuilsBin.sh"; then
+# 1. Call the binary build script (BuildBin.sh)
+if [ -f "${BASE_DIR}/BuildBin.sh" ]; then
+    if ! WAYPLANK_NO_PROMPT=1 bash "${BASE_DIR}/BuildBin.sh"; then
         echo ""
-        echo "❌ Build failed! Compilation error in BuilsBin.sh"
+        echo "❌ Build failed! Compilation error in BuildBin.sh"
         echo ""
-        if [ -t 0 ]; then
+        if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
             read -rp "👋 Press Enter to close..."
         fi
         exit 1
     fi
 else
-    echo "❌ Error: BuilsBin.sh not found!"
-    if [ -t 0 ]; then
+    echo "❌ Error: BuildBin.sh not found!"
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -72,7 +72,7 @@ if [ ! -f "${OUT_DIR}/wayplank" ]; then
     echo ""
     echo "❌ Build failed! Binary '${OUT_DIR}/wayplank' was not generated."
     echo ""
-    if [ -t 0 ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -171,7 +171,7 @@ if ! dpkg-deb --build --root-owner-group "$BUILD_DIR" "$DEB_FILE"; then
     echo "❌ Build failed! Error creating Debian package with dpkg-deb."
     echo ""
     rm -rf "$BUILD_DIR"
-    if [ -t 0 ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -188,12 +188,12 @@ else
     echo ""
     echo "❌ Build failed! Package file '${DEB_FILE}' was not created."
     echo ""
-    if [ -t 0 ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
 fi
 
-if [ -t 0 ]; then
+if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
     read -rp "👋 Press Enter to close..."
 fi

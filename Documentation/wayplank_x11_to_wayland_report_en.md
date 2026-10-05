@@ -694,11 +694,14 @@ The transformation from **Plank 0.1_X11** to **WayPlank Wayland** successfully m
   - The extension actively monkey-patches `Meta.Window.prototype.is_skip_taskbar` for all Wayplank window roles (`dock`, `hover`, `preferences`, `help`, `poof`), guaranteeing that GNOME Shell never generates taskbar entries or notification banners for Wayplank surfaces.
   - Connects to `window-demands-attention` and `window-marked-urgent` display events to immediately clear `demands_attention = false`.
 
-### 10.4. Strict HAL Coordinate Isolation & Tooltip Framing
-- **Zero Regressions on Layer Shell Compositors:**
-  - **KWin & Labwc**: Retain pure relative margin calculations (`x - width / 2`, `y - height / 2`) through `GtkLayerShell.set_margin()`. Zero screen coordinate contamination.
-  - **Mutter**: Confined strictly inside `!GtkLayerShell.is_supported()` code paths. Calculates monitor-relative absolute coordinates (`mon_x + ...`, `mon_y + ...`).
-  - Tooltips measure the real frame rect of the dock window (`dockWin.get_frame_rect()`) to guarantee clean 6px spacing and prevent overlap with the dock bar and GNOME panel across all four screen edges (`Bottom`, `Top`, `Left`, `Right`).
+### 10.4. Strict HAL Coordinate Isolation & Bow-Tie Barrier Model
+- **Zero Regressions on Layer Shell Compositors (KWin & Labwc):**
+  - **Bow-Tie Analysis Barrier**: LayerShell compositors (`GtkLayerShell.is_supported() == true`) and GNOME Shell / Mutter (`WindowControl.is_mutter()`) are strictly segregated at the HAL boundary.
+  - **KWin & Labwc**: Retain pure relative margin calculations (`x - width / 2`, `y - height / 2`) through `GtkLayerShell.set_margin()`. The ironclad LayerShell coordinate logic is 100% preserved with zero contamination from non-LayerShell fallbacks.
+  - **Mutter HAL Backend**: Confined strictly inside `!GtkLayerShell.is_supported()` and `MutterBackend.vala`.
+  - **GNOME Top Dock Positioning**: `_applyDockPosition()` in `MutterBackend` automatically detects GNOME's top panel (`Main.panel.height` / workarea) and places top-aligned docks cleanly below the top bar (`y = monGeo.y + topBarH`) using `move_resize_frame()`, guaranteeing full pointer reveal and hover accessibility.
+  - **GNOME Dock Tooltip Orientation Segregation**: Added strict `isHorizontal` (`width >= height`) vs `isVertical` (`height > width`) checks in `_applyHoverPosition()`. This prevents horizontal docks (`BOTTOM`, `TOP`) whose `dockRect.x == 0 < 120` from being falsely evaluated as `isLeft`, ensuring their horizontal center `targetX` is never pushed to the far right edge, while vertical docks (`LEFT`, `RIGHT`) are cleanly offset horizontally beside the dock bar.
+  - **Restored Proven Non-LayerShell Coordinate Pipeline**: Kept the exact proven non-LayerShell `get_hover_position()` and `dock_thickness` calculations for GNOME, while preserving the validated LayerShell origin-anchoring pipeline for KWin and Labwc without cross-contamination.
 
 ### 10.5. Phase 1 Milestones & Roadmap for Full Spatial Dodge & Intellihide
 - **Phase 1 Delivered in v0.4.3:**
@@ -709,5 +712,31 @@ The transformation from **Plank 0.1_X11** to **WayPlank Wayland** successfully m
     - Track active and maximized window bounding boxes across monitors in real time.
     - Feed live geometry data into `active_window_intersects()` and `maximized_window_intersects()` predicates.
     - Finalize poof animation and dodge state transitions in the next iteration.
+
+---
+
+## 11. Multi-Compositor Layer Shell Geometry Synchronization & Dynamic Separators
+
+### 11.1. Universal Origin Alignment on Layer Shell (KWin & Labwc)
+- **Problem Formulation:**
+  - In Labwc, `monitor.get_workarea()` and `monitor.get_geometry()` are identical (`1920x1080`), so `DockWindow` (layer `TOP`) and `HoverWindow` (layer `OVERLAY`) shared a common origin `(0, 0)`.
+  - In KWin (KDE Plasma), the presence of a top panel (e.g. 28px) causes `monitor.get_workarea()` to return `(0, 28, 1920, 1052)`. When `PositionManager` sized `DockWindow` to `1052px` without anchoring `TOP` and `BOTTOM` edges, KWin centered the dock surface vertically with an offset, while `HoverWindow` anchored directly to physical `TOP` (`y = 0`).
+  - This created a linear vertical drift for tooltips on `LEFT` and `RIGHT` docks.
+- **Architectural Solution:**
+  1. **Direct Geometry Binding (`PositionManager.vala`):** When `GtkLayerShell.is_supported ()`, `monitor_geo` binds directly to `monitor.get_geometry()`, guaranteeing that `DockWindow` requests and centers within the physical monitor dimensions across all compositors.
+  2. **Full Span Anchoring (`DockWindow.vala`):** In `update_layer_shell_anchors ()`, vertical docks (`LEFT`, `RIGHT`) anchor both `Edge.TOP = true` and `Edge.BOTTOM = true`, and horizontal docks (`BOTTOM`, `TOP`) anchor both `Edge.LEFT = true` and `Edge.RIGHT = true`.
+  3. **Zero-Drift Centering:** Tooltip margins in `HoverWindow.vala` anchor to `val.center.x` and `val.center.y`, aligning 1:1 with icon centers on all four screen edges.
+
+### 11.2. Dynamic Dual Separators & Boundary Protection
+- **Modern Half-Width Dividers:** Separator slots are halved to `(IconSize + ItemPadding) / 2` for visual elegance.
+- **Section Grouping:**
+  - Pinned applications (`[0 .. sep1 - 1]`) | `Separator 1` | Transient running applications (`[sep1 + 1 .. sep2 - 1]`) | `Separator 2` | Trash.
+- **Strict Drag Boundaries (`DragManager.vala`):**
+  - Identified `sep_trash_idx` (the separator preceding Trash). Enforced a strict barrier ensuring no application item (pinned or unpinned, running or not running) can ever move to or beyond `sep_trash_idx`.
+  - Hovering over Trash or `sep_trash` keeps the dragged item strictly in the transient section (immediately before `sep_trash`).
+  - Neither Separator 2 nor Trash can ever be displaced.
+  - Crossing Separator 1 cleanly supports drag-to-pin (dragging a transient app leftward pins it) and drag-to-unpin (dragging a pinned app across Separator 1 or onto Trash unpins it).
+  - Calling `refresh_separators ()` at drag completion guarantees consistent group layout restoration.
+
 
 

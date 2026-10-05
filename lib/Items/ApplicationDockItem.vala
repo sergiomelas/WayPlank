@@ -86,6 +86,7 @@ namespace Plank
 			
 			load_from_launcher ();
 			prev_window_count = WindowManager.get_default ().window_count_for_app (Launcher);
+			update_indicator (!WindowControl.has_state ());
 		}
 		
 		~ApplicationDockItem ()
@@ -130,7 +131,7 @@ namespace Plank
 				State &= ~ItemState.URGENT;
 		}
 		
-		void update_indicator (bool scan_process)
+		protected void update_indicator (bool scan_process)
 		{
 			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
 			var show_running = (provider == null || provider.Prefs.ShowRunningIndicators);

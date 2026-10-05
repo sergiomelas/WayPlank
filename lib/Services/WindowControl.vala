@@ -49,10 +49,50 @@ namespace Plank
 		{
 			unowned WindowControl self = get_default ();
 			
-			if (environment_is_session_desktop (XdgSessionDesktop.KDE)
-				&& environment_is_session_type (XdgSessionType.WAYLAND)) {
+			if (!environment_is_session_type (XdgSessionType.WAYLAND))
+				return;
+
+			// 1. Explicit override via WAYPLANK_BACKEND environment variable
+			var backend_env = (Environment.get_variable ("WAYPLANK_BACKEND") ?? "").down ();
+			if (backend_env == "mutter") {
+				var mutter = new MutterBackend ();
+				if (mutter.start ()) {
+					self.backend = mutter;
+					self.backend.state_changed.connect (() => self.state_changed ());
+					message ("Wayplank: activated Mutter window backend (explicit override)");
+					return;
+				}
+				mutter.cleanup ();
+			}
+
+			// 2. Probe for native wlroots/Labwc foreign toplevel protocol on current Wayland display
+			var labwc = new LabwcBackend ();
+			if (labwc.start ()) {
+				self.backend = labwc;
+				self.backend.state_changed.connect (() => self.state_changed ());
+				message ("Wayplank: activated Labwc/wlroots window backend (wlr-foreign-toplevel)");
+				return;
+			}
+			labwc.cleanup ();
+
+			// 3. If under KDE Plasma AND Layer Shell is supported on this display, use KWin backend
+			if (environment_is_session_desktop (XdgSessionDesktop.KDE) && GtkLayerShell.is_supported ()) {
 				self.backend = new KWinBackend ();
 				self.backend.state_changed.connect (() => self.state_changed ());
+				message ("Wayplank: activated KWin window backend (KDE Plasma)");
+				return;
+			}
+
+			// 4. GNOME / Mutter fallback (if Layer Shell is not supported or GNOME session)
+			if (backend_env == "mutter" || environment_is_session_desktop (XdgSessionDesktop.GNOME) || !GtkLayerShell.is_supported ()) {
+				var mutter = new MutterBackend ();
+				if (mutter.start ()) {
+					self.backend = mutter;
+					self.backend.state_changed.connect (() => self.state_changed ());
+					message ("Wayplank: activated Mutter window backend (GNOME / non-layer-shell)");
+					return;
+				}
+				mutter.cleanup ();
 			}
 		}
 
@@ -129,6 +169,26 @@ namespace Plank
 				get_default ().backend.queue_command (target, action);
 		}
 
+		public static void handle_system_resume ()
+		{
+			if (get_default ().backend != null)
+				get_default ().backend.handle_system_resume ();
+		}
+
+		public static bool is_kwin ()
+		{
+			return get_default ().backend is KWinBackend;
+		}
+
+		public static bool is_labwc ()
+		{
+			return get_default ().backend is LabwcBackend;
+		}
+
+		public static bool is_mutter ()
+		{
+			return get_default ().backend is MutterBackend;
+		}
 	}
 }
 

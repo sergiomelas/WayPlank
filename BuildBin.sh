@@ -20,6 +20,15 @@
 #
 set -euo pipefail
 
+# --- Dolphin Auto-Spawn GUI Terminal ---
+if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
+    if command -v konsole >/dev/null 2>&1; then
+        exec konsole -e bash "$0" "$@"
+    elif command -v x-terminal-emulator >/dev/null 2>&1; then
+        exec x-terminal-emulator -e bash "$0" "$@"
+    fi
+fi
+
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_DIR="${BASE_DIR}/build"
 mkdir -p "$OUT_DIR"
@@ -35,9 +44,15 @@ glib-compile-resources \
 echo "🏗️ Compiling Vala & C sources to native binary..."
 mapfile -t VALA_FILES < <(find "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala")
 
-C_SOURCES="${BASE_DIR}/lib/resources.c"
+C_SOURCES=("${BASE_DIR}/lib/resources.c")
 if [ -f "${BASE_DIR}/lib/gtk-compat.c" ]; then
-    C_SOURCES="${C_SOURCES} ${BASE_DIR}/lib/gtk-compat.c"
+    C_SOURCES+=("${BASE_DIR}/lib/gtk-compat.c")
+fi
+if [ -f "${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c" ]; then
+    C_SOURCES+=("${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c")
+fi
+if [ -f "${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c" ]; then
+    C_SOURCES+=("${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c")
 fi
 
 if valac -g \
@@ -52,21 +67,31 @@ if valac -g \
     --pkg gee-0.8 \
     --pkg compat \
     --pkg config \
+    --pkg wlr-bridge \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
     -X -I"${BASE_DIR}/lib" \
+    -X -I"${BASE_DIR}/lib/Protocols" \
+    -X -I"${BASE_DIR}/lib/Services" \
     -X -I"${BASE_DIR}/include" \
     -X -w \
     -X -lm \
+    -X -lwayland-client \
     "${VALA_FILES[@]}" \
-    ${C_SOURCES} \
+    "${C_SOURCES[@]}" \
     -o "${OUT_DIR}/wayplank"; then
     rm -f "${BASE_DIR}/lib/resources.c"
     echo "✅ Binary ready: ${OUT_DIR}/wayplank"
+    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ]; then
+        read -rp "👋 Press Enter to close..."
+    fi
 else
     rm -f "${BASE_DIR}/lib/resources.c"
     echo ""
     echo "❌ Error: Compilation failed!"
+    if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ]; then
+        read -rp "👋 Press Enter to close..."
+    fi
     exit 1
 fi

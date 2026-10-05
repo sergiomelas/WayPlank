@@ -128,7 +128,6 @@ namespace Plank
 			window.enter_notify_event.connect (handle_enter_notify_event);
 			window.leave_notify_event.connect (handle_leave_notify_event);
 			WindowControl.get_default ().state_changed.connect (window_state_changed);
-			pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
 			if (!environment_is_session_type (XdgSessionType.WAYLAND))
 				pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
 			update_window_intersect ();
@@ -195,17 +194,12 @@ namespace Plank
 			
 			bool update_needed = false;
 			
+			// compute rect of the window
 			var dock_rect = position_manager.get_cursor_region ();
-			var window_rect = position_manager.get_dock_window_region ();
-			var composited = (window.get_screen () != null && window.get_screen ().is_composited ());
 			
-			// On Wayland/layer-shell the dock can receive pointer events over the full shell window
-			// even when the reduced hover region is smaller or translated at the edge. Using the
-			// full dock rect here keeps the hover state stable at the bottom edge and while zooming.
-			var hovered = (composited)
-				? (x >= 0 && x < window_rect.width && y >= 0 && y < window_rect.height)
-				: (x >= dock_rect.x && x < dock_rect.x + dock_rect.width
-					&& y >= dock_rect.y && y < dock_rect.y + dock_rect.height);
+			// use the dock rect and cursor location to determine if dock is hovered
+			var hovered = (x >= dock_rect.x && x < dock_rect.x + dock_rect.width
+				&& y >= dock_rect.y && y < dock_rect.y + dock_rect.height);
 			
 			if (Hovered != hovered) {
 				Hovered = hovered;
@@ -250,12 +244,20 @@ namespace Plank
 			}
 		}
 		
+		public HideType get_effective_hide_mode ()
+		{
+			var mode = controller.prefs.HideMode;
+			if (mode != HideType.NONE && !WindowCapabilities.hide_mode_supported (mode))
+				return WindowControl.is_mutter () ? HideType.AUTO : HideType.DODGE_MAXIMIZED;
+			return mode;
+		}
+
 		bool pressure_reveal_tick ()
 		{
 			if (environment_is_session_type (XdgSessionType.WAYLAND))
-				return true;
+				return false;
 
-			if (!controller.prefs.PressureReveal || controller.prefs.HideMode == HideType.NONE || !Hidden) {
+			if (!controller.prefs.PressureReveal || get_effective_hide_mode () == HideType.NONE || !Hidden) {
 				if (pressure_reveal_active) {
 					pressure_reveal_active = false;
 					update_hidden ();
@@ -314,7 +316,7 @@ namespace Plank
 				return;
 			}
 			
-			switch (controller.prefs.HideMode) {
+			switch (get_effective_hide_mode ()) {
 			default:
 			case HideType.NONE:
 				show ();
@@ -415,10 +417,6 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool handle_enter_notify_event (Gtk.Widget widget, Gdk.EventCrossing event)
 		{
-			if (event.detail == Gdk.NotifyType.INFERIOR)
-				return Hidden;
-			
-			
 			if (!Hovered)
 				update_hovered_with_coords ((int) event.x, (int) event.y);
 			
@@ -428,13 +426,6 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool handle_leave_notify_event (Gtk.Widget widget, Gdk.EventCrossing event)
 		{
-			if (event.detail == Gdk.NotifyType.INFERIOR)
-				return Gdk.EVENT_PROPAGATE;
-			
-			// ignore this event if it was sent explicitly
-			if ((bool) event.send_event)
-				return Gdk.EVENT_PROPAGATE;
-			
 			if (Hovered)
 				update_hovered_with_coords (-1, -1);
 			

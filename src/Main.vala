@@ -27,6 +27,7 @@ namespace Plank
         Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
         Intl.textdomain (Build.GETTEXT_PACKAGE);
 
+        bool replace_requested = false;
         for (int i = 1; i < argv.length; i++) {
             if (argv[i] == "--help" || argv[i] == "-h" || argv[i] == "-?") {
                 print_clean_help ();
@@ -40,6 +41,16 @@ namespace Plank
                 print_shortcuts_cheatsheet ();
                 return 0;
             }
+            if (argv[i] == "--replace" || argv[i] == "--reload" || argv[i] == "-r") {
+                replace_requested = true;
+            }
+        }
+
+        if (replace_requested) {
+            try {
+                Process.spawn_command_line_sync ("killall -q -o 1s -9 wayplank");
+            } catch (Error e) { }
+            Thread.usleep (250000);
         }
 
         Gtk.init (ref argv);
@@ -122,7 +133,7 @@ namespace Plank
         print ("  -v, --version             Show application version\n\n");
         print ("Application Options:\n");
         print ("  -p, --preferences         Show preferences dialog of the running or started instance\n");
-        print ("  -r, --reload              Reload and refresh running dock instance\n");
+        print ("  -r, --replace, --reload   Restart and replace running dock instance\n");
         print ("  -d, --debug               Enable debug logging\n");
         print ("  -V, --verbose             Enable verbose logging\n");
         print ("  -n, --name=NAME           The name of this dock. Defaults to \"dock1\"\n\n");

@@ -108,8 +108,7 @@ namespace Plank
 	{
 		UNSPECIFIED,
 		TTY,
-		WAYLAND,
-		MIR;
+		WAYLAND;
 		
 		public static XdgSessionType from_string (string s)
 		{
@@ -120,7 +119,6 @@ namespace Plank
 			case "unspecified": result = XdgSessionType.UNSPECIFIED; break;
 			case "tty": result = XdgSessionType.TTY; break;
 			case "wayland": result = XdgSessionType.WAYLAND; break;
-			case "mir": result = XdgSessionType.MIR; break;
 			}
 			
 			return result;
@@ -192,8 +190,11 @@ namespace Plank
 		if (result != null)
 			return XdgSessionType.from_string (result);
 		
+		if (Environment.get_variable ("WAYLAND_DISPLAY") != null)
+			return XdgSessionType.WAYLAND;
+		
 		warning ("XDG_SESSION_TYPE not set in this environment!");
 		
-		error ("XdgSessionType could not be determined!");
+		return XdgSessionType.UNSPECIFIED;
 	}
 }

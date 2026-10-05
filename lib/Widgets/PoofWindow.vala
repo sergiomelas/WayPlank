@@ -52,20 +52,30 @@ namespace Plank
 		 */
 		public PoofWindow ()
 		{
-			GLib.Object (type: Gtk.WindowType.TOPLEVEL, type_hint: Gdk.WindowTypeHint.DOCK);
+			GLib.Object (type: Gtk.WindowType.TOPLEVEL);
 		}
 		
 		construct
 		{
-			GtkLayerShell.init_for_window (this);
-			GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
-			GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
-			GtkLayerShell.set_namespace (this, "wayplank-poof");
 			decorated = false;
 			resizable = false;
 			accept_focus = false;
 			can_focus = false;
-			set_keep_above (true);
+
+			if (GtkLayerShell.is_supported ()) {
+				GtkLayerShell.init_for_window (this);
+				GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
+				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
+				GtkLayerShell.set_namespace (this, "wayplank-poof");
+			} else {
+				set_decorated (false);
+				set_type_hint (Gdk.WindowTypeHint.UTILITY);
+				set_skip_taskbar_hint (true);
+				set_skip_pager_hint (true);
+				set_keep_above (true);
+				set_title ("wayplank-poof");
+				set_role ("poof");
+			}
 			
 			try {
 				poof_image = new Gdk.Pixbuf.from_resource ("%s/img/poof.svg".printf (Plank.G_RESOURCE_PATH));
@@ -117,15 +127,8 @@ namespace Plank
 					monitor = display.get_primary_monitor () ?? display.get_monitor (0);
 			}
 			
-			if (monitor != null)
+			if (monitor != null && GtkLayerShell.is_supported ())
 				GtkLayerShell.set_monitor (this, monitor);
-			
-			GtkLayerShell.set_exclusive_zone (this, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
-			set_size_request (poof_size, poof_size);
 			
 			var geo = monitor != null ? monitor.get_geometry () : Gdk.Rectangle ();
 			var mon_w = geo.width > 0 ? geo.width : 1920;
@@ -133,7 +136,64 @@ namespace Plank
 			
 			var clamped_x = int.max (0, int.min (mon_w - poof_size, x - poof_size / 2));
 			var clamped_y = int.max (0, int.min (mon_h - poof_size, y - poof_size / 2));
-			var edge_margin = int.max (0, (dock_thickness - poof_size) / 2);
+			var edge_margin = 0;
+
+			if (!GtkLayerShell.is_supported ()) {
+				int mon_x = geo.x;
+				int mon_y = geo.y;
+
+				int target_x = mon_x + x - poof_size / 2;
+				int target_y = mon_y + y - poof_size / 2;
+
+				switch (position) {
+				case Gtk.PositionType.BOTTOM:
+					target_y = mon_y + mon_h - poof_size;
+					break;
+				case Gtk.PositionType.TOP:
+					target_y = mon_y;
+					break;
+				case Gtk.PositionType.LEFT:
+					target_x = mon_x;
+					break;
+				case Gtk.PositionType.RIGHT:
+					target_x = mon_x + mon_w - poof_size;
+					break;
+				}
+
+				var abs_x = int.max (mon_x, int.min (mon_x + mon_w - poof_size, target_x));
+				var abs_y = int.max (mon_y, int.min (mon_y + mon_h - poof_size, target_y));
+
+				if (WindowControl.is_mutter ()) {
+					MutterBackend.get_default ().position_poof (abs_x, abs_y, poof_size, poof_size);
+				}
+				move (abs_x, abs_y);
+				show ();
+				if (WindowControl.is_mutter ()) {
+					MutterBackend.get_default ().position_poof (abs_x, abs_y, poof_size, poof_size);
+					GLib.Timeout.add (25, () => {
+						MutterBackend.get_default ().position_poof (abs_x, abs_y, poof_size, poof_size);
+						return false;
+					});
+				}
+				animation_timer_id = Gdk.threads_add_timeout (30, () => {
+					frame_time = GLib.get_monotonic_time ();
+					if (frame_time - start_time <= RUN_LENGTH) {
+						queue_draw ();
+						return true;
+					}
+					animation_timer_id = 0U;
+					hide ();
+					return false;
+				});
+				return;
+			}
+			
+			GtkLayerShell.set_exclusive_zone (this, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
+			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
+			set_size_request (poof_size, poof_size);
 			
 			switch (position) {
 			case Gtk.PositionType.BOTTOM:

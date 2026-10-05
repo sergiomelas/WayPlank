@@ -1150,6 +1150,11 @@ namespace Plank
 			return false;
 		}
 
+		protected override void animation_finished ()
+		{
+			controller.window.set_input_mask ();
+		}
+
 		inline bool item_animation_needed (DockItem item, int64 render_time)
 		{
 			if (item.ClickedAnimation != AnimationType.NONE

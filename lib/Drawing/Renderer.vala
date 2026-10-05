@@ -119,6 +119,10 @@ namespace Plank
 			}
 		}
 		
+		protected virtual void animation_finished ()
+		{
+		}
+
 		[CCode (instance_pos = -1)]
 		bool draw_timeout (Gtk.Widget widget, Gdk.FrameClock frame_clock)
 		{
@@ -131,6 +135,7 @@ namespace Plank
 			
 			frame_clock.end_updating ();
 			is_updating = false;
+			animation_finished ();
 			return true;
 		}
 		

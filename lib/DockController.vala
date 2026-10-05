@@ -411,7 +411,7 @@ namespace Plank
 		public void handle_system_resume ()
 		{
 			message ("DockController '%s': handling system resume / wake-up", name);
-			KWinBridge.reload_script ();
+			WindowControl.handle_system_resume ();
 			window.update_layer_shell_monitor ();
 			position_manager.update_dock_position ();
 			window.update_size_and_position ();

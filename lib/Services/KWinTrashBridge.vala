@@ -71,7 +71,7 @@ namespace Plank
 			if (desktop != null && (desktop.down ().contains ("kde") || desktop.down ().contains ("plasma")))
 				return true;
 			
-			return WindowControl.has_state ();
+			return WindowControl.is_kwin ();
 		}
 
 		void initialize_listener ()

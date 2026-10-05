@@ -46,11 +46,14 @@ namespace Plank
 
 		Gee.HashMap<string, Gee.HashSet<int>> app_pids;
 		Gee.HashSet<string> active_apps;
+		Gee.HashSet<int> known_pids;
+		bool initial_scan_done = false;
 
 		private Matcher ()
 		{
 			app_pids = new Gee.HashMap<string, Gee.HashSet<int>> ();
 			active_apps = new Gee.HashSet<string> ();
+			known_pids = new Gee.HashSet<int> ();
 		}
 
 		uint scan_timer_id = 0U;
@@ -59,7 +62,8 @@ namespace Plank
 		{
 			// Only scan /proc if no compositor window-control is providing live state
 			if (!WindowControl.has_state ()) {
-				scan_timer_id = GLib.Timeout.add_seconds (3, () => {
+				scan_running_applications ();
+				scan_timer_id = GLib.Timeout.add_seconds (1, () => {
 					if (!WindowControl.has_state ())
 						scan_running_applications ();
 					return true;
@@ -70,6 +74,13 @@ namespace Plank
 				if (WindowControl.has_state () && scan_timer_id > 0U) {
 					GLib.Source.remove (scan_timer_id);
 					scan_timer_id = 0U;
+				} else if (!WindowControl.has_state () && scan_timer_id == 0U) {
+					scan_running_applications ();
+					scan_timer_id = GLib.Timeout.add_seconds (1, () => {
+						if (!WindowControl.has_state ())
+							scan_running_applications ();
+						return true;
+					});
 				}
 			});
 		}
@@ -138,7 +149,22 @@ namespace Plank
 					}
 				}
 
-				processes_changed ();
+				bool pids_changed = !initial_scan_done || (current_pids.size != known_pids.size);
+				if (!pids_changed) {
+					foreach (var pid in current_pids) {
+						if (!known_pids.contains (pid)) {
+							pids_changed = true;
+							break;
+						}
+					}
+				}
+
+				if (pids_changed) {
+					known_pids.clear ();
+					known_pids.add_all (current_pids);
+					initial_scan_done = true;
+					processes_changed ();
+				}
 			} catch (Error e) {
 				warning ("Errors during Process Scan: %s", e.message);
 			}
@@ -212,11 +238,18 @@ namespace Plank
 				candidates.add (launcher_name);
 
 				var exec = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-				var parts = exec.split (" ");
-				var executable = parts[0].replace ("\"", "").replace ("'", "");
-				if (executable != "") {
-					candidates.add (File.new_for_path (executable).get_basename ().down ());
-					add_script_candidates (executable, candidates, 0);
+				string[] parts;
+				try {
+					GLib.Shell.parse_argv (exec, out parts);
+				} catch (Error e) {
+					parts = exec.split (" ");
+				}
+				if (parts.length > 0) {
+					var executable = parts[0].replace ("\"", "").replace ("'", "");
+					if (executable != "") {
+						candidates.add (File.new_for_path (executable).get_basename ().down ());
+						add_script_candidates (executable, candidates, 0);
+					}
 				}
 
 				string? specific_arg = null;
@@ -259,7 +292,7 @@ namespace Plank
 					var argv0 = cmdline_down.split (" ")[0];
 					var bin_name = File.new_for_path (argv0).get_basename ();
 					foreach (var candidate in candidates) {
-						if (candidate != "" && (comm == candidate || bin_name == candidate))
+						if (candidate != "" && (comm == candidate || bin_name == candidate || (comm.length >= 15 && candidate.has_prefix (comm))))
 							return true;
 					}
 				}

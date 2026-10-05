@@ -125,7 +125,16 @@ namespace Plank
 			+ "\n"
 			+ "function toggleDesktop () {\n"
 			+ "    var allClients = getAllWindows();\n"
-			+ "    if (!wayplankShowingDesktop) {\n"
+			+ "    var anyVisible = false;\n"
+			+ "    allClients.forEach(function (client) {\n"
+			+ "        if (!client || client.deleted === true || client.specialWindow === true)\n"
+			+ "            return;\n"
+			+ "        if (client.normalWindow !== false && client.minimized !== true && client.minimizable !== false) {\n"
+			+ "            anyVisible = true;\n"
+			+ "        }\n"
+			+ "    });\n"
+			+ "\n"
+			+ "    if (anyVisible) {\n"
 			+ "        wayplankDesktopHiddenClients = [];\n"
 			+ "        allClients.forEach(function (client) {\n"
 			+ "            if (!client || client.deleted === true || client.specialWindow === true)\n"
@@ -146,7 +155,7 @@ namespace Plank
 			+ "            if (!client || client.deleted === true)\n"
 			+ "                return;\n"
 			+ "            var uuid = String(client.internalId);\n"
-			+ "            if (toRestore.indexOf(uuid) !== -1) {\n"
+			+ "            if (toRestore.length === 0 || toRestore.indexOf(uuid) !== -1) {\n"
 			+ "                client.minimized = false;\n"
 			+ "                lastClient = client;\n"
 			+ "            }\n"
@@ -492,15 +501,32 @@ namespace Plank
 			return false;
 		}
 
+		static void clean_old_script_files ()
+		{
+			try {
+				var tmp_dir = File.new_for_path ("/tmp");
+				var enumerator = tmp_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE);
+				FileInfo? info = null;
+				while ((info = enumerator.next_file ()) != null) {
+					var name = info.get_name ();
+					if (name.has_prefix ("wayplank-kwin-") && name.has_suffix (".js")) {
+						FileUtils.remove ("/tmp/" + name);
+					}
+				}
+			} catch (Error e) {}
+		}
+
 		public static void start ()
 		{
 			if (!environment_is_session_desktop (XdgSessionDesktop.KDE)
 				|| !environment_is_session_type (XdgSessionType.WAYLAND))
 				return;
 
+			clean_old_script_files ();
+
 			try {
-			script_path = "/tmp/wayplank-kwin-%i.js".printf (Posix.getpid ());
-			FileUtils.set_contents (script_path, KWIN_SCRIPT);
+				script_path = "/tmp/wayplank-kwin-%i.js".printf (Posix.getpid ());
+				FileUtils.set_contents (script_path, KWIN_SCRIPT);
 				var connection = Bus.get_sync (BusType.SESSION, null);
 				var result = connection.call_sync ("org.kde.KWin", "/Scripting",
 					"org.kde.kwin.Scripting", "loadScript",

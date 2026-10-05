@@ -35,10 +35,12 @@ namespace Plank
 		
 		construct
 		{
-			if (Prefs.Launcher != "")
+			if (Prefs.Launcher != "") {
 				load_from_launcher ();
-			else
+				update_indicator (false);
+			} else {
 				critical ("No source of information for this item available");
+			}
 		}
 		
 		/**

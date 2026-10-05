@@ -204,6 +204,7 @@ namespace Plank
 		void drag_begin (Gtk.Widget w, Gdk.DragContext context)
 		{
 			unowned DockWindow window = controller.window;
+			window.cancel_long_press ();
 			
 			window.notify["HoveredItem"].connect (hovered_item_changed);
 			
@@ -215,7 +216,7 @@ namespace Plank
 			
 			DragItem = window.HoveredItem;
 			
-			if (RepositionMode || DragItem is SeparatorDockItem)
+			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem)
 				DragItem = null;
 			
 			if (DragItem == null) {
@@ -453,7 +454,11 @@ namespace Plank
 								}
 							}
 							
-							if (sep_index >= 0) {
+							if (drop_target_item is TrashDockItem) {
+								if (!(DragItem is TransientDockItem)) {
+									provider.pin_item (DragItem);
+								}
+							} else if (sep_index >= 0) {
 								if (DragItem is TransientDockItem && drag_index < sep_index) {
 									provider.pin_item (DragItem);
 								} else if (!(DragItem is TransientDockItem) && drag_index > sep_index) {
@@ -484,6 +489,7 @@ namespace Plank
 								}
 							}
 						}
+						provider.refresh_separators ();
 					}
 				}
 			}
@@ -606,6 +612,65 @@ namespace Plank
 			if (InternalDragActive && DragItem != null && hovered_item != null
 				&& DragItem != hovered_item
 				&& DragItem.Container == hovered_item.Container) {
+				unowned Gee.ArrayList<DockElement> elements = DragItem.Container.Elements;
+				int drag_idx = elements.index_of (DragItem);
+				int hover_idx = elements.index_of (hovered_item);
+				
+				// Identify separators and Trash markers
+				int sep1_idx = -1;
+				int sep2_idx = -1;
+				int trash_idx = -1;
+				for (int i = 0; i < elements.size; i++) {
+					var el = elements.get (i);
+					if (el is SeparatorDockItem) {
+						if (sep1_idx < 0)
+							sep1_idx = i;
+						else
+							sep2_idx = i;
+					} else if (el is TrashDockItem) {
+						trash_idx = i;
+					}
+				}
+				
+				// Identify separator preceding Trash
+				int sep_trash_idx = -1;
+				if (trash_idx >= 0) {
+					if (sep2_idx >= 0)
+						sep_trash_idx = sep2_idx;
+					else if (sep1_idx >= 0)
+						sep_trash_idx = sep1_idx;
+				}
+				
+				// Rule 1: No app (pinned or unpinned, running or not) can ever move to or beyond the separator before Trash.
+				if (sep_trash_idx >= 0 && hover_idx >= sep_trash_idx) {
+					// Move DragItem to immediately before sep_trash if it isn't already there
+					if (sep_trash_idx > 0 && drag_idx != sep_trash_idx - 1) {
+						var target = elements.get (sep_trash_idx - 1);
+						if (target != DragItem && !(target is SeparatorDockItem))
+							DragItem.Container.move_to (DragItem, target);
+					}
+					return;
+				}
+				
+				// Rule 2: Crossing Separator 1 (between pinned and transient):
+				if (hovered_item is SeparatorDockItem) {
+					if (hover_idx == sep1_idx) {
+						if (drag_idx < sep1_idx && sep1_idx + 1 < elements.size) {
+							// Moving right across Separator 1 into transient section
+							var target = elements.get (sep1_idx + 1);
+							if (target != DragItem && !(target is SeparatorDockItem) && !(target is TrashDockItem))
+								DragItem.Container.move_to (DragItem, target);
+						} else if (drag_idx > sep1_idx && sep1_idx > 0) {
+							// Moving left across Separator 1 into pinned section
+							var target = elements.get (sep1_idx - 1);
+							if (target != DragItem && !(target is SeparatorDockItem))
+								DragItem.Container.move_to (DragItem, target);
+						}
+					}
+					return;
+				}
+				
+				// Rule 3: Ordinary item hover within allowed bounds
 				DragItem.Container.move_to (DragItem, hovered_item);
 			}
 			

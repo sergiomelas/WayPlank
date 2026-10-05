@@ -35,5 +35,6 @@ namespace Plank
 		public abstract bool any_window_intersects (Gdk.Rectangle rect);
 		public abstract bool active_window_intersects (Gdk.Rectangle rect);
 		public abstract bool maximized_window_intersects (Gdk.Rectangle rect);
+		public virtual void handle_system_resume () { }
 	}
 }

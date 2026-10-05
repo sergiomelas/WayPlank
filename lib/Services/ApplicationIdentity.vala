@@ -88,8 +88,10 @@ namespace Plank
 			tokens.add (normalize (value));
 		}
 		
-		public static string normalize (string value)
+		public static string normalize (string? value)
 		{
+			if (value == null || value == "")
+				return "";
 			var normalized = value.strip ().down ();
 			if (normalized.has_suffix (".desktop"))
 				normalized = normalized.substring (0, normalized.length - ".desktop".length);
@@ -106,12 +108,16 @@ namespace Plank
 
 		public int match_score (WindowInfo window)
 		{
-			var values = new string[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+			var values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			var scores = new int[] { 100, 95, 85, 80 };
 			var best = 0;
 			for (var i = 0; i < values.length; i++) {
 				var value = values[i];
+				if (value == null || value == "")
+					continue;
 				var normalized = normalize (value);
+				if (normalized == "")
+					continue;
 				if (tokens.contains (normalized))
 					best = int.max (best, scores[i]);
 				var separator = normalized.last_index_of_char ('.');

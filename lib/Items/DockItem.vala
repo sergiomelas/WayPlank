@@ -95,7 +95,17 @@ namespace Plank
 		/**
 		 * The indicator shown for the item.
 		 */
-		public IndicatorState Indicator { get; protected set; default = IndicatorState.NONE; }
+		IndicatorState indicator = IndicatorState.NONE;
+		public IndicatorState Indicator {
+			get { return indicator; }
+			protected set {
+				if (indicator != value) {
+					indicator = value;
+					reset_foreground_buffer ();
+					needs_redraw ();
+				}
+			}
+		}
 		
 		/**
 		 * The average color of this item's icon.

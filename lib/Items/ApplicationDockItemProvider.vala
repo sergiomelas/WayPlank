@@ -91,6 +91,15 @@ namespace Plank
 			if (target != null && target != placeholder_item && !internal_elements.contains (target))
 				target = null;
 
+			if (target == null) {
+				foreach (var el in internal_elements) {
+					if (el is SeparatorDockItem || el is TransientDockItem) {
+						target = el as DockItem;
+						break;
+					}
+				}
+			}
+
 			unowned DockItem? existing = item_for_uri (uri);
 			if (existing != null) {
 				if (existing is TransientDockItem) {
@@ -250,10 +259,15 @@ namespace Plank
 
 				var element = Factory.item_factory.make_element (file);
 				unowned DockItem? item = (element as DockItem);
-				if (item == null)
-					continue;
+				DockItem? target = null;
+				foreach (var el in internal_elements) {
+					if (el is SeparatorDockItem || el is TransientDockItem) {
+						target = el as DockItem;
+						break;
+					}
+				}
 
-				add (item);
+				add (item, target);
 			}
 			queued_files.clear ();
 		}

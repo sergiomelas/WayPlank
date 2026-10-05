@@ -57,98 +57,138 @@ namespace Plank
 
 			base.update_visible_elements ();
 		}
+
+		public void refresh_separators ()
+		{
+			update_visible_elements ();
+		}
 		
 		/**
 		 * Keeps a real SeparatorDockItem present exactly between the pinned and
 		 * temporary items, so its layout/animation is handled by the normal
 		 * per-item positioning instead of derived overlay coordinates.
+		/**
+		 * Maintains clean grouping and dynamic separators:
+		 * - Pinned items (apps, folders, docklets) are grouped on the left.
+		 * - Transient (running unpinned) items are grouped in the middle.
+		 * - TrashDockItem is permanently anchored at the far right.
+		 * - Dynamic separators:
+		 *     * With Trash:
+		 *         - If transient items exist: 2 separators [Pinned] | [Transient] | [Trash]
+		 *         - If no transient items:    1 separator  [Pinned] | [Trash]
+		 *     * Without Trash:
+		 *         - If transient items exist: 1 separator  [Pinned] | [Transient]
+		 *         - If no transient items:    0 separators [Pinned]
 		 */
 		void maintain_separator ()
 		{
-			SeparatorDockItem? existing = null;
-			int first_transient_idx = -1;
-			int pinned_count = 0;
-			int transient_count = 0;
-			
-			// If an internal drag is in progress, exclude the dragged item from
-			// deciding where the separator should be anchored so it doesn't jump during drag.
 			unowned DockController? dock = get_dock ();
 			unowned DockItem? dragging_item = (dock != null && dock.drag_manager.InternalDragActive)
 				? dock.drag_manager.DragItem : null;
-			
-			var all_separators = new Gee.ArrayList<SeparatorDockItem> ();
+
+			// Step 1: Collect existing separators and identify Trash item
+			var existing_separators = new Gee.ArrayList<SeparatorDockItem> ();
+			TrashDockItem? trash_item = null;
+
 			for (int i = 0; i < internal_elements.size; i++) {
-				var element = internal_elements.get (i);
-				if (element is SeparatorDockItem) {
-					all_separators.add ((SeparatorDockItem) element);
-					continue;
+				var el = internal_elements.get (i);
+				if (el is SeparatorDockItem) {
+					existing_separators.add ((SeparatorDockItem) el);
+				} else if (el is TrashDockItem) {
+					trash_item = (TrashDockItem) el;
 				}
-				if (element == dragging_item)
-					continue;
-				
-				if (element is TransientDockItem) {
-					transient_count++;
-					if (first_transient_idx < 0)
-						first_transient_idx = i;
-				} else if (!(element is TransientDockItem)) {
+			}
+
+			// Step 2: Remove existing separators temporarily so we work on clean item slots
+			foreach (var sep in existing_separators) {
+				disconnect_element (sep);
+				internal_elements.remove (sep);
+				sep.Container = null;
+			}
+
+			// Step 3: Anchor Trash permanently at the very end of internal_elements
+			if (trash_item != null && dragging_item == null) {
+				int trash_idx = internal_elements.index_of (trash_item);
+				if (trash_idx >= 0 && trash_idx != internal_elements.size - 1) {
+					move_element (internal_elements, trash_idx, internal_elements.size - 1);
+				}
+			}
+
+			// Step 4: Ensure all pinned items precede transient items
+			if (dragging_item == null) {
+				int first_transient = -1;
+				for (int i = 0; i < internal_elements.size; i++) {
+					var el = internal_elements.get (i);
+					if (el is TransientDockItem) {
+						if (first_transient < 0)
+							first_transient = i;
+					} else if (first_transient >= 0 && !(el is TrashDockItem)) {
+						move_element (internal_elements, i, first_transient);
+						first_transient++;
+					}
+				}
+			}
+
+			// Step 5: Count items
+			int pinned_count = 0;
+			int transient_count = 0;
+			int first_transient_idx = -1;
+			int trash_idx = -1;
+
+			for (int i = 0; i < internal_elements.size; i++) {
+				var el = internal_elements.get (i);
+				if (el is TrashDockItem) {
+					trash_idx = i;
+				} else if (el is TransientDockItem) {
+					if (!Prefs.PinnedOnly) {
+						transient_count++;
+						if (first_transient_idx < 0)
+							first_transient_idx = i;
+					}
+				} else {
 					pinned_count++;
 				}
 			}
-			
-			// Clean up any extraneous separators if more than one ever slipped in
-			if (all_separators.size > 1) {
-				for (int i = 1; i < all_separators.size; i++) {
-					var extra = all_separators.get (i);
-					disconnect_element (extra);
-					internal_elements.remove (extra);
-					extra.Container = null;
+
+			// Step 6: Determine separator insertion positions
+			// Insert from highest index to lowest so earlier target indices remain valid
+			var insert_positions = new Gee.ArrayList<int> ();
+
+			if (trash_item != null) {
+				if (transient_count > 0 && pinned_count > 0) {
+					// 2 separators: [Pinned] | [Transient] | [Trash]
+					insert_positions.add (trash_idx);
+					insert_positions.add (first_transient_idx);
+				} else if (transient_count > 0 && pinned_count == 0) {
+					// 1 separator: [Transient] | [Trash]
+					insert_positions.add (trash_idx);
+				} else if (pinned_count > 0) {
+					// 1 separator: [Pinned] | [Trash]
+					insert_positions.add (trash_idx);
+				}
+			} else {
+				if (transient_count > 0 && pinned_count > 0) {
+					// 1 separator: [Pinned] | [Transient]
+					insert_positions.add (first_transient_idx);
 				}
 			}
-			
-			if (all_separators.size > 0)
-				existing = all_separators.get (0);
-			
-			bool need_separator = (!Prefs.PinnedOnly && pinned_count > 0 && transient_count > 0);
-			
-			if (!need_separator) {
-				if (existing != null) {
-					disconnect_element (existing);
-					internal_elements.remove (existing);
-					existing.Container = null;
-				}
-				return;
-			}
-			
-			if (existing != null) {
-				int current_sep_idx = internal_elements.index_of (existing);
-				if (current_sep_idx == first_transient_idx - 1)
-					return;
-				
-				disconnect_element (existing);
-				internal_elements.remove (existing);
-				existing.Container = null;
-			}
-			
-			int target_idx = -1;
-			for (int i = 0; i < internal_elements.size; i++) {
-				var el = internal_elements.get (i);
-				if (el == dragging_item)
+
+			// Step 7: Insert separators at target positions (reusing pool or instantiating new)
+			int sep_pool_idx = 0;
+			foreach (int pos in insert_positions) {
+				if (pos < 0 || pos > internal_elements.size)
 					continue;
-				if (el is TransientDockItem) {
-					target_idx = i;
-					break;
+				SeparatorDockItem sep;
+				if (sep_pool_idx < existing_separators.size) {
+					sep = existing_separators.get (sep_pool_idx++);
+				} else {
+					sep = new SeparatorDockItem ();
 				}
-			}
-			
-			if (target_idx >= 0) {
-				if (existing == null) {
-					existing = new SeparatorDockItem ();
-				}
-				existing.AddTime = 0;
-				existing.RemoveTime = 0;
-				internal_elements.insert (target_idx, existing);
-				existing.Container = this;
-				connect_element (existing);
+				sep.AddTime = 0;
+				sep.RemoveTime = 0;
+				internal_elements.insert (pos, sep);
+				sep.Container = this;
+				connect_element (sep);
 			}
 		}
 

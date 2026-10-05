@@ -47,8 +47,8 @@ namespace Plank
 		
 		public void toggle_desktop ()
 		{
-			// Direct KWin command via KWinBridge (bidirectional minimize / restore toggle)
-			KWinBridge.queue_command ("desktop", "toggle_desktop");
+			// Neutral compositor command via WindowControl (bidirectional minimize / restore toggle)
+			WindowControl.queue_command ("desktop", "toggle_desktop");
 		}
 		
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)

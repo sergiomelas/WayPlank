@@ -86,5 +86,10 @@ namespace Plank
 		{
 			return KWinBridge.maximized_window_intersects (rect);
 		}
+
+		public void handle_system_resume ()
+		{
+			KWinBridge.reload_script ();
+		}
 	}
 }

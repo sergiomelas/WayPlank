@@ -56,7 +56,7 @@ namespace Plank
 			
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			if (monitor != null)
-				monitor_geo = monitor.get_workarea ();
+				monitor_geo = GtkLayerShell.is_supported () ? monitor.get_geometry () : monitor.get_workarea ();
 			
 			screen_is_composited = screen.is_composited ();
 		}
@@ -166,7 +166,7 @@ namespace Plank
 		{
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
-			monitor_geo = monitor != null ? monitor.get_workarea () : Gdk.Rectangle ();
+			monitor_geo = monitor != null ? (GtkLayerShell.is_supported () ? monitor.get_geometry () : monitor.get_workarea ()) : Gdk.Rectangle ();
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
 
@@ -357,6 +357,26 @@ namespace Plank
 			update_max_icon_size (theme);
 		}
 		
+		int get_items_total_span ()
+		{
+			var sep_slot = (int) Math.round ((ItemPadding + IconSize) / 2.0);
+			var total = 0;
+			foreach (var item in controller.VisibleItems) {
+				if (item is SeparatorDockItem)
+					total += sep_slot;
+				else
+					total += (ItemPadding + IconSize);
+			}
+			return total;
+		}
+
+		double get_item_slot (DockItem item)
+		{
+			if (item is SeparatorDockItem)
+				return Math.round ((ItemPadding + IconSize) / 2.0);
+			return (double) (ItemPadding + IconSize);
+		}
+
 		void update_dimensions ()
 		{
 			Logger.verbose ("PositionManager.update_dimensions ()");
@@ -375,7 +395,7 @@ namespace Plank
 			case Gtk.Align.START:
 			case Gtk.Align.END:
 			case Gtk.Align.CENTER:
-				width = controller.VisibleItems.size * (ItemPadding + IconSize) + 2 * HorizPadding + 4 * LineWidth;
+				width = get_items_total_span () + 2 * HorizPadding + 4 * LineWidth;
 				break;
 			case Gtk.Align.FILL:
 				if (is_horizontal_dock ())
@@ -486,7 +506,7 @@ namespace Plank
 			
 			var old_region = static_dock_region;
 			
-			items_width = controller.VisibleItems.size * (ItemPadding + IconSize);
+			items_width = get_items_total_span ();
 			
 			static_dock_region.width = VisibleDockWidth;
 			static_dock_region.height = VisibleDockHeight;
@@ -613,7 +633,8 @@ namespace Plank
 			
 			double center_y = (is_horizontal_dock () ? static_dock_region.height / 2.0 : static_dock_region.width / 2.0);
 			
-			double center_x = (icon_size + ItemPadding) / 2.0 + items_offset;
+			double first_slot = (items.size > 0) ? get_item_slot (items.first ()) : (icon_size + ItemPadding);
+			double center_x = first_slot / 2.0 + items_offset;
 			if (Alignment == Gtk.Align.FILL) {
 				switch (ItemsAlignment) {
 				default:
@@ -648,7 +669,8 @@ namespace Plank
 			double zoom_in_percent = (zoom_enabled ? 1.0 + (ZoomPercent - 1.0) * zoom_in_progress : 1.0);
 			double zoom_icon_size = ZoomIconSize;
 			
-			foreach (unowned DockItem item in items) {
+			for (int i = 0; i < items.size; i++) {
+				unowned DockItem item = items[i];
 				DockItemDrawValue val = new DockItemDrawValue ();
 				val.opacity = 1.0;
 				val.darken = 0.0;
@@ -735,8 +757,10 @@ namespace Plank
 				
 				draw_values[item] = val;
 				
-				if (item.RemoveTime == 0)
-					center.x += icon_size + ItemPadding;
+				if (item.RemoveTime == 0 && i + 1 < items.size) {
+					unowned DockItem next_item = items[i + 1];
+					center.x += (get_item_slot (item) + get_item_slot (next_item)) / 2.0;
+				}
 			}
 			
 			if (post_func != null)
@@ -934,45 +958,60 @@ namespace Plank
 			}
 		}
 
+		public int get_visual_thickness ()
+		{
+			return is_horizontal_dock () ? VisibleDockHeight : VisibleDockWidth;
+		}
+
+		public int get_visual_thickness_for_item (DockElement? item)
+		{
+			unowned DockItem? dock_item = item as DockItem;
+			double icon_sz = IconSize;
+			if (dock_item != null) {
+				var val = get_draw_value_for_item (dock_item);
+				if (val != null && val.icon_size > 0)
+					icon_sz = val.icon_size;
+			}
+			int offset = (top_offset > 0 ? top_offset : 0) + (bottom_offset > 0 ? bottom_offset : 0);
+			return (int) Math.round (icon_sz) + offset;
+		}
+
 		public void get_hover_position (DockElement item, out int x, out int y)
 		{
-			var rect = get_hover_region_for_element (item);
-
-			var display = controller.window.get_display ();
-			var gdk_win = controller.window.get_window ();
-			Gdk.Monitor? monitor = null;
-			if (display != null && gdk_win != null) {
-				monitor = display.get_monitor_at_window (gdk_win);
+			// =========================================================================
+			// 1. NATIVE LAYER SHELL COMPOSITORS: KWIN (PLASMA) & LABWC (WLROOTS)
+			// =========================================================================
+			if (GtkLayerShell.is_supported ()) {
+				unowned DockItem? dock_item = (item as DockItem);
+				if (dock_item != null) {
+					var val = get_draw_value_for_item (dock_item);
+					x = (int) Math.round (val.center.x);
+					y = (int) Math.round (val.center.y);
+				} else {
+					var rect = get_hover_region_for_element (item);
+					x = rect.x + rect.width / 2;
+					y = rect.y + rect.height / 2;
+				}
+				return;
 			}
-			if (monitor == null && display != null) {
-				monitor = display.get_primary_monitor () ?? display.get_monitor (0);
-			}
 
-			Gdk.Rectangle mon_geo = { 0, 0, 1920, 1080 };
-			if (monitor != null) {
-				mon_geo = monitor.get_geometry ();
-			}
-
-			int dock_w = controller.window.get_allocated_width ();
-			int dock_h = controller.window.get_allocated_height ();
-
-			int visual_thickness = IconSize + top_offset + bottom_offset;
-
-			switch (Position) {
-			default:
-			case Gtk.PositionType.BOTTOM:
-			case Gtk.PositionType.TOP:
-				int dock_start_x = (mon_geo.width - dock_w) / 2;
-				x = dock_start_x + rect.x + rect.width / 2;
-				y = visual_thickness;
-				break;
-
-			case Gtk.PositionType.LEFT:
-			case Gtk.PositionType.RIGHT:
-				int dock_start_y = (mon_geo.height - dock_h) / 2;
-				x = visual_thickness;
-				y = dock_start_y + rect.y + rect.height / 2;
-				break;
+			// =========================================================================
+			// 2. NON-LAYER SHELL COMPOSITOR: GNOME SHELL / MUTTER ONLY
+			// =========================================================================
+			unowned DockItem? dock_item = (item as DockItem);
+			if (dock_item != null) {
+				var val = get_draw_value_for_item (dock_item);
+				x = (int) Math.round (val.static_center.x > 0 ? val.static_center.x : val.center.x);
+				if (is_horizontal_dock ()) {
+					y = (int) Math.round (val.center.y);
+				} else {
+					int half_icon = (int) Math.round (IconSize / 2.0);
+					y = (int) Math.round (val.static_center.y > 0 ? val.static_center.y : val.center.y) + half_icon;
+				}
+			} else {
+				var rect = get_hover_region_for_element (item);
+				x = rect.x + rect.width / 2;
+				y = rect.y + rect.height / 2;
 			}
 		}
 		

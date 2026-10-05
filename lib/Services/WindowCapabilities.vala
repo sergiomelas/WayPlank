@@ -25,11 +25,16 @@ namespace Plank
 	 */
 	public class WindowCapabilities : GLib.Object
 	{
-		const string MATRIX = "KDE=11111;GNOME=01000;UBUNTU=01000;CINNAMON=01000;PANTHEON=01000;OTHER=01000";
+		const string MATRIX = "KDE=11111;LABWC=11111;WLROOTS=11100";
 		
 		static string display_name (string desktop)
 		{
-			return desktop == "KDE" ? "KWin" : desktop;
+			switch (desktop) {
+			case "KDE": return "KWin (KDE Plasma)";
+			case "LABWC": return "Labwc";
+			case "WLROOTS": return "wlroots-compatible compositors";
+			default: return desktop;
+			}
 		}
 		
 		static string supported_compositors (bool fully)
@@ -62,12 +67,33 @@ namespace Plank
 		
 		public static bool hide_mode_supported (HideType mode)
 		{
-			return mode == HideType.AUTO
-				|| (mode == HideType.INTELLIGENT
+			if (mode == HideType.NONE || mode == HideType.AUTO)
+				return true;
+			
+			if (WindowControl.is_kwin ()) {
+				return mode == HideType.INTELLIGENT
 					|| mode == HideType.DODGE_MAXIMIZED
-					|| mode == HideType.WINDOW_DODGE || mode == HideType.DODGE_ACTIVE)
-				&& environment_is_session_desktop (XdgSessionDesktop.KDE)
-				&& environment_is_session_type (XdgSessionType.WAYLAND);
+					|| mode == HideType.WINDOW_DODGE
+					|| mode == HideType.DODGE_ACTIVE;
+			}
+			
+			if (WindowControl.is_labwc ()) {
+				return mode == HideType.DODGE_MAXIMIZED;
+			}
+
+			if (WindowControl.is_mutter ()) {
+				return mode == HideType.AUTO || mode == HideType.NONE;
+			}
+
+			if (environment_is_session_desktop (XdgSessionDesktop.KDE)
+				&& environment_is_session_type (XdgSessionType.WAYLAND)) {
+				return mode == HideType.INTELLIGENT
+					|| mode == HideType.DODGE_MAXIMIZED
+					|| mode == HideType.WINDOW_DODGE
+					|| mode == HideType.DODGE_ACTIVE;
+			}
+			
+			return mode == HideType.DODGE_MAXIMIZED;
 		}
 	}
 }

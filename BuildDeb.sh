@@ -34,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.4.2"
+PKG_VER="0.4.3"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -49,20 +49,20 @@ echo "🚀 Wayplank Standalone Builder — V${PKG_VER} (Debian Integration)"
 echo "─────────────────────────────────────────────────────────────────"
 echo ""
 
-# 1. Call the binary build script (BuilsBin.sh)
-if [ -f "${BASE_DIR}/BuilsBin.sh" ]; then
-    if ! bash "${BASE_DIR}/BuilsBin.sh"; then
+# 1. Call the binary build script (BuildBin.sh)
+if [ -f "${BASE_DIR}/BuildBin.sh" ]; then
+    if ! WAYPLANK_NO_PROMPT=1 bash "${BASE_DIR}/BuildBin.sh"; then
         echo ""
-        echo "❌ Build failed! Compilation error in BuilsBin.sh"
+        echo "❌ Build failed! Compilation error in BuildBin.sh"
         echo ""
-        if [ -t 0 ]; then
+        if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
             read -rp "👋 Press Enter to close..."
         fi
         exit 1
     fi
 else
-    echo "❌ Error: BuilsBin.sh not found!"
-    if [ -t 0 ]; then
+    echo "❌ Error: BuildBin.sh not found!"
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -72,7 +72,7 @@ if [ ! -f "${OUT_DIR}/wayplank" ]; then
     echo ""
     echo "❌ Build failed! Binary '${OUT_DIR}/wayplank' was not generated."
     echo ""
-    if [ -t 0 ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -91,7 +91,11 @@ cp "${OUT_DIR}/wayplank" "${BUILD_DIR}/usr/bin/wayplank"
 ln -s wayplank "${BUILD_DIR}/usr/bin/plank"
 
 cp -r "${BASE_DIR}/data/themes/"* "${BUILD_DIR}/usr/share/wayplank/themes/"
+ln -s wayplank "${BUILD_DIR}/usr/share/plank"
 cp -r "${BASE_DIR}/data/icons/"* "${BUILD_DIR}/usr/share/icons/hicolor/"
+mkdir -p "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps"
+cp "${BASE_DIR}/data/wayplank.svg" "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/wayplank.svg"
+cp "${BASE_DIR}/data/wayplank.svg" "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/plank.svg"
 cp "${BASE_DIR}/data/glib-2.0/schemas/net.launchpad.plank.gschema.xml" "${BUILD_DIR}/usr/share/glib-2.0/schemas/"
 
 cat << 'EOF' > "${BUILD_DIR}/usr/share/applications/wayplank.desktop"
@@ -120,7 +124,7 @@ Provides: plank (= ${PKG_VER}), libplank-common, libplank1
 Replaces: plank, libplank-common, libplank1
 Conflicts: plank, libplank-common, libplank1
 Breaks: plank, libplank-common, libplank1
-Depends: libgtk-3-0, libgtk-layer-shell0, libjson-glib-1.0-0, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend
+Depends: libgtk-3-0t64 | libgtk-3-0, libgtk-layer-shell0, libwayland-client0, libglib2.0-0t64 | libglib2.0-0, libjson-glib-1.0-0, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend
 Description: Wayplank dock - Modern Standalone Fork
  Wayplank is a monolithic, standalone dock for modern desktop environments.
  Drop-in replacement for the original Plank dock with native enhancements.
@@ -167,7 +171,7 @@ if ! dpkg-deb --build --root-owner-group "$BUILD_DIR" "$DEB_FILE"; then
     echo "❌ Build failed! Error creating Debian package with dpkg-deb."
     echo ""
     rm -rf "$BUILD_DIR"
-    if [ -t 0 ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
@@ -184,12 +188,12 @@ else
     echo ""
     echo "❌ Build failed! Package file '${DEB_FILE}' was not created."
     echo ""
-    if [ -t 0 ]; then
+    if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
     exit 1
 fi
 
-if [ -t 0 ]; then
+if [ -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
     read -rp "👋 Press Enter to close..."
 fi

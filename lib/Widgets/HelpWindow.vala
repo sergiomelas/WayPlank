@@ -24,6 +24,8 @@ namespace Plank
 	{
 		public HelpWindow ()
 		{
+			set_title (_("Wayplank Shortcuts & Gestures"));
+			set_role ("help");
 			set_decorated (true);
 			set_destroy_with_parent (true);
 			set_position (Gtk.WindowPosition.CENTER);

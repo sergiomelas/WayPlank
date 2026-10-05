@@ -215,8 +215,10 @@ namespace Plank
 				return 0;
 			}
 			
-			refresh_docks ();
-			command_line.print ("Wayplank is already running. Refreshing dock surface and position.\n");
+			if (command_line.is_remote) {
+				refresh_docks ();
+				command_line.print ("Wayplank is already running. Refreshing dock surface and position.\n");
+			}
 
 			return 0;
 		}
@@ -480,7 +482,9 @@ namespace Plank
 				preferences_dlg = null;
 			});
 			
-			preferences_dlg.show ();
+			preferences_dlg.show_all ();
+			preferences_dlg.present ();
+			preferences_dlg.grab_focus ();
 		}
 
 		void show_help ()
@@ -504,6 +508,8 @@ namespace Plank
 			});
 
 			help_dlg.show_all ();
+			help_dlg.present ();
+			help_dlg.grab_focus ();
 		}
 
 		void show_report ()

@@ -120,13 +120,16 @@ namespace Plank
 		
 		construct
 		{
+			set_title (_("Wayplank Preferences"));
+			set_role ("preferences");
 			configure_hide_mode_rows ();
 			set_decorated (true);
 			set_destroy_with_parent (true);
-			set_position (Gtk.WindowPosition.CENTER_ON_PARENT);
+			set_position (Gtk.WindowPosition.CENTER);
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
 			set_focus_on_map (true);
+			set_default_size (640, 520);
 			
 			dock_preferences.set_transition_type (Gtk.StackTransitionType.SLIDE_LEFT_RIGHT);
 			dock_preferences.set_transition_duration (200);
@@ -189,12 +192,23 @@ namespace Plank
 
 		void configure_hide_mode_rows ()
 		{
-			foreach (unowned Gtk.CellRenderer renderer in cb_hidemode.get_cells ())
+			foreach (unowned Gtk.CellRenderer renderer in cb_hidemode.get_cells ()) {
 				cb_hidemode.set_cell_data_func (renderer, (layout, cell, model, iter) => {
 					string id = "";
 					model.get (iter, 1, out id);
-					cell.sensitive = WindowCapabilities.hide_mode_supported ((HideType) int.parse (id));
+					if (id != "") {
+						var mode = (HideType) int.parse (id);
+						bool supported = WindowCapabilities.hide_mode_supported (mode);
+						cell.sensitive = supported;
+						if (cell is Gtk.CellRendererText && WindowControl.is_labwc () && !supported) {
+							string text = "";
+							model.get (iter, 0, out text);
+							if (!text.contains ("(Requires KWin)"))
+								((Gtk.CellRendererText) cell).text = text + " (Requires KWin)";
+						}
+					}
 				});
+			}
 		}
 
 		void controller_changed ()
@@ -233,9 +247,9 @@ namespace Plank
 				cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
 				break;
 			case "HideMode":
-				var hide_none = (prefs.HideMode != HideType.NONE);
-				sw_hide.set_active (hide_none);
-				if (!hide_none)
+				var hide_active = (prefs.HideMode != HideType.NONE);
+				sw_hide.set_active (hide_active);
+				if (hide_active)
 					cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
 				break;
 			case "LockItems":
@@ -314,7 +328,7 @@ namespace Plank
 			if (WindowCapabilities.hide_mode_supported (mode))
 				prefs.HideMode = mode;
 			else
-				cb_hidemode.active_id = ((int) HideType.AUTO).to_string ();
+				cb_hidemode.active_id = ((int) HideType.DODGE_MAXIMIZED).to_string ();
 		}
 		
 		void position_changed (Gtk.ComboBox widget)
@@ -337,7 +351,15 @@ namespace Plank
 		void hide_toggled (GLib.Object widget, ParamSpec param)
 		{
 			if (((Gtk.Switch) widget).get_active ()) {
-				prefs.HideMode = HideType.AUTO;
+				var active_id = cb_hidemode.get_active_id ();
+				var mode = (active_id != null && active_id != "") ? (HideType) int.parse (active_id) : HideType.INTELLIGENT;
+				if (mode == HideType.NONE)
+					mode = HideType.INTELLIGENT;
+				if (WindowCapabilities.hide_mode_supported (mode))
+					prefs.HideMode = mode;
+				else
+					prefs.HideMode = HideType.DODGE_MAXIMIZED;
+				cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
 				cb_hidemode.sensitive = true;
 				sp_hide_delay.sensitive = true;
 				sp_unhide_delay.sensitive = true;
@@ -572,9 +594,10 @@ namespace Plank
 				pos++;
 			}
 
-			if (prefs.HideMode != HideType.NONE && !WindowCapabilities.hide_mode_supported (prefs.HideMode))
-				prefs.HideMode = HideType.AUTO;
-			cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
+			var effective_mode = (prefs.HideMode != HideType.NONE && !WindowCapabilities.hide_mode_supported (prefs.HideMode))
+				? HideType.DODGE_MAXIMIZED
+				: prefs.HideMode;
+			cb_hidemode.active_id = ((int) effective_mode).to_string ();
 			cb_hidemode.sensitive = (prefs.HideMode != HideType.NONE);
 			cb_position.active_id = ((int) prefs.Position).to_string ();
 			adj_hide_delay.value = prefs.HideDelay;

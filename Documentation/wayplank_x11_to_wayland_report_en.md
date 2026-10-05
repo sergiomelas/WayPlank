@@ -27,16 +27,16 @@ To overcome these structural restrictions and build a high-performance, lightwei
 
 ## 2. Quantitative Metric Overview
 
-| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank  (Wayland Current) | Net Variance |
+| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank (Wayland Multi-Compositor) | Net Variance |
 | :--- | :--- | :--- | :--- |
-| **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell | Full replacement |
-| **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | `WindowBackend` + KWin D-Bus Bridge | Wnck & X11 stripped |
+| **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell / Mutter Fallback | Full replacement |
+| **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | Multi-Compositor HAL: KWin D-Bus Bridge + Labwc/wlroots (`zwlr_foreign_toplevel_manager_v1`) + GNOME Shell (`MutterBackend`) | Wnck & X11 stripped |
 | **App Resolution** | `libbamf3` (Ubuntu Unity) | `ApplicationDiscovery` + `ApplicationIdentity` + `/proc` | BAMF daemon removed |
-| **Total Changed Lines** | - | +4,285 insertions / -5,353 deletions | Net code reduction: -1,068 lines |
-| **Added Files** | - | 14 files | New services & HAL modules |
+| **Total Changed Lines** | - | +5,750 insertions / -5,353 deletions | Modernized codebase |
+| **Added Files** | - | 19 files | HAL backends, C protocols, bridges & services |
 | **Deleted Files** | 13 legacy files | - | Removed BAMF, X11 VAPIs & Docklets |
-| **Modified Files** | - | 69 files | Ported to Wayland & modern GLib |
-| **Build Status** | Hardcoded X11 / Wnck toolchains | Native `BuilsBin.sh`: 0 Errors, 0 Warnings | Modern Debian package |
+| **Modified Files** | - | 76 files | Multi-compositor HAL, reactive Cairo redraw |
+| **Build Status** | Hardcoded X11 / Wnck toolchains | Native `BuildBin.sh`: 0 Errors, 0 Warnings | Standalone Debian package |
 
 ---
 
@@ -46,18 +46,25 @@ To overcome these structural restrictions and build a high-performance, lightwei
 
 ```mermaid
 flowchart TD
-    subgraph Compositor ["Wayland Compositor (KWin / Plasma)"]
-        KWinEngine["KWin Scripting Engine\n(workspace.windowList, windowAdded, windowActivated)"]
-        LayerCompositor["Layer Surface Compositor\n(wlr-layer-shell)"]
+    subgraph Compositors ["Wayland Compositor Layer"]
+        KWinComp["KWin / KDE Plasma\n(KWin Scripting Engine & Workspace API)"]
+        WlrComp["Labwc / wlroots Compositors\n(zwlr_foreign_toplevel_manager_v1)"]
+        MutterComp["GNOME Shell / Mutter\n(Native Monolithic Extension)"]
+        LayerCompositor["Layer Surface Compositor\n(wlr-layer-shell / gtk-layer-shell)"]
     end
 
-    subgraph DbusIPC ["D-Bus Session Bus IPC"]
-        DBusIface["net.launchpad.plank / KWinBridge\nMethods: update_window_state(JSON), fetch_pending_command()"]
+    subgraph Bridges ["Compositor Bridge Layer"]
+        DBusIface["KWin D-Bus Bridge (KWinBridge)\nMethods: update_window_state, fetch_pending_command"]
+        WlrBridge["Native C Protocol Bridge (wlr-toplevel-bridge.c)\nDirect libwayland-client event loop integration"]
+        MutterBridge["Mutter D-Bus Bridge (org.wayplank.GnomeBridge)\nEmbedded extension IPC"]
     end
 
     subgraph WayPlankCore ["WayPlank Core Layer"]
+        WindowControl["WindowControl\n(Runtime Compositor Discovery & Dispatcher)"]
         WindowBackend["WindowBackend (HAL Interface)"]
         KWinBackend["KWinBackend Implementation"]
+        LabwcBackend["LabwcBackend Implementation"]
+        MutterBackend["MutterBackend Implementation"]
         WindowManager["WindowManager\n(Cycle / Minimize / Stacking Resolution)"]
         AppDiscovery["ApplicationDiscovery\n(FileMonitor inotify + 300ms debounce)"]
         AppIdentity["ApplicationIdentity\n(Multi-Attribute Heuristic Matcher)"]
@@ -66,15 +73,23 @@ flowchart TD
 
     subgraph UI ["GTK3 & Layer Shell Interface"]
         DockWindow["DockWindow\n(GtkLayerShell: TOP layer, Exclusive Zone)"]
-        AppItem["ApplicationDockItem\n(Badges, Running Indicators, Actions)"]
+        AppItem["ApplicationDockItem\n(Reactive Badges, Indicator Dots, Actions)"]
         SepItem["SeparatorDockItem\n(Themed Native Divider)"]
         HoverWin["HoverWindow (OVERLAY tooltip)"]
         PoofWin["PoofWindow (OVERLAY animation)"]
     end
 
-    KWinEngine <-->|D-Bus Push / Pull| DBusIface
+    KWinComp <-->|D-Bus Push / Pull| DBusIface
     DBusIface <--> KWinBackend
+    WlrComp <-->|Wayland Wire Protocol| WlrBridge
+    WlrBridge <--> LabwcBackend
+    MutterComp <-->|D-Bus Session Bus| MutterBridge
+    MutterBridge <--> MutterBackend
+
     KWinBackend --> WindowBackend
+    LabwcBackend --> WindowBackend
+    MutterBackend --> WindowBackend
+    WindowControl --> WindowBackend
     WindowBackend --> WindowManager
     Matcher --> WindowManager
     AppDiscovery --> AppIdentity
@@ -171,7 +186,7 @@ The following 13 files were completely eliminated from the source repository:
 
 ### 4.4. `vapi/Makefile.am` & `vapi/Makefile.in`
 - **Original Purpose:** Autotools build automation templates for compiling custom VAPI files.
-- **Reason for Removal:** Build pipeline modernized into self-contained compilation scripts (`BuilsBin.sh`, `BuildDeb.sh`).
+- **Reason for Removal:** Build pipeline modernized into self-contained compilation scripts (`BuildBin.sh`, `BuildDeb.sh`).
 
 ### 4.5. `lib/Docklets/Docklet.vala`, `DockletItem.vala`, `DockletManager.vala` & `lib/Widgets/DockletViewModel.vala`
 - **Original Purpose:** Plank's external C/Vala plugin architecture (`.so` modules loaded dynamically from `/usr/lib/plank/docklets` via `GModule`).
@@ -548,7 +563,7 @@ The following section covers every modified file across the codebase, documentin
   - Calls `WindowControl.start()` to connect KWin and D-Bus.
   - Clean shutdown sequence on application quit.
 
-#### Build & Configuration Pipeline (`BuildDeb.sh`, `BuilsBin.sh`, `include/config.h`, `vapi/compat.vapi`, `vapi/config.vapi`)
+#### Build & Configuration Pipeline (`BuildDeb.sh`, `BuildBin.sh`, `include/config.h`, `vapi/compat.vapi`, `vapi/config.vapi`)
 - **Diff Summary:**
   - Replaced build dependencies: removed `libwnck-3-dev`, `libbamf3-dev`, `libx11-dev`, `libxfixes-dev`, `libxi-dev`.
   - Added dependencies: `libgtk-layer-shell-dev`, `libgee-0.8-dev`, `libjson-glib-1.0-dev`.
@@ -571,140 +586,157 @@ The following section covers every modified file across the codebase, documentin
 
 ## 8. Summary & Future Outlook
 
-The transformation from **Plank 0.1_X11** to **WayPlank 0.4.2_Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.
+The transformation from **Plank 0.1_X11** to **WayPlank Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.
+
+> **Release Changelogs:** Detailed release-by-release bug fixes, docklet implementations, and itemized technical notes are documented in the dedicated changelog files:
+> - [`src/CHANGELOG_v0.4.2.md`](../src/CHANGELOG_v0.4.2.md) (Monolithic Docklets, Focus Stabilization, Plasma D-Bus Trash Bridge)
+> - [`src/CHANGELOG_v0.4.3.md`](../src/CHANGELOG_v0.4.3.md) (Labwc/wlroots Engine, Reactive Indicator Dots, Cross-Compositor Show Desktop)
 
 ---
 
-## 9. Bug Fixes & Refinements Changelog (v0.4.2 Post-Release)
+## 9. Multi-Compositor Hardware Abstraction Layer (HAL) & wlroots Architecture (v0.4.3)
 
-### 9.1. Wayland Rendering Pipeline & Instant Indicator Updates (0ms FrameClock)
-- **Issue:** When closing all instances of an application, the running indicator (blue dot) and temporary/transient launcher icons failed to update or disappear until the user manually hovered the mouse pointer over the dock.
+### 9.1. Evolution from Single-Compositor to HAL Architecture
+- **Context & Motivation:**
+  - Up through version 0.4.2, Wayplank's Wayland window introspection and control relied exclusively on the KDE KWin scripting bridge communicating over D-Bus (`org.kde.KWin.Scripting`).
+  - While this delivered rich window management on KDE Plasma, it prevented Wayplank from functioning on minimal, tiling, or stacking compositors such as Labwc, Sway, Wayfire, and Hyprland.
+  - To fulfill Wayplank's architectural goal of universal Wayland support, version 0.4.3 introduced a modular Hardware Abstraction Layer (`WindowBackend`), decoupling core dock UI, items, and animations from compositor-specific mechanisms.
+
+### 9.2. Wayland Foreign Toplevel Management Protocol (`zwlr_foreign_toplevel_manager_v1`)
+- **Standard Protocol Integration:**
+  - Labwc and wlroots-based compositors expose window management through the standard `wlr-foreign-toplevel-management-unstable-v1` protocol extension.
+  - Unlike X11's unconstrained `_NET_CLIENT_LIST` or KWin's full JavaScript workspace access, `zwlr_foreign_toplevel_manager_v1` is an asynchronous event-driven protocol designed specifically for panels, docks, and task switchers:
+    - `zwlr_foreign_toplevel_manager_v1.toplevel`: Emitted when a new toplevel window surface appears.
+    - `zwlr_foreign_toplevel_handle_v1.title` & `app_id`: Emitted whenever the window title or application identifier changes.
+    - `zwlr_foreign_toplevel_handle_v1.state`: Broadcasts an array of state bitmasks (`MAXIMIZED`, `MINIMIZED`, `ACTIVATED`, `FULLSCREEN`).
+    - `zwlr_foreign_toplevel_handle_v1.closed`: Emitted when the window is destroyed.
+- **Protocol Generation:**
+  - Integrated `wayland-scanner` outputs directly into the source tree:
+    - `lib/Protocols/wlr-foreign-toplevel-management-client-protocol.h`
+    - `lib/Protocols/wlr-foreign-toplevel-management-protocol.c`
+
+### 9.3. Native C Protocol Bridge & Vala Bindings Architecture
+- **Bridge Design (`lib/Services/wlr-toplevel-bridge.c`):**
+  - High-performance, thread-safe C engine interacting directly with `libwayland-client`.
+  - Maintains a tracked doubly linked list of toplevel handles (`wlr_toplevel_entry_t`), mapping string handles to client state.
+  - Integrates seamlessly with the GLib main event loop via `g_idle_add` dispatchers (`wlr_toplevel_bridge_step`), preventing event loop starvation or GTK thread conflicts.
+  - Provides Vala-friendly entry points and function pointers wrapped cleanly via `vapi/wlr-bridge.vapi`.
+- **Backend Implementation (`lib/Services/LabwcBackend.vala`):**
+  - Implements the complete `WindowBackend` abstract contract:
+    - Translates C callbacks into high-level Vala signals (`window_list_changed`, `active_window_changed`, `window_state_changed`, `intellihide_state_changed`).
+    - Provides window raising, minimizing, closing, and multi-window cycling across open instances.
+
+### 9.4. Zero-Configuration Dynamic Runtime Compositor Discovery
+- **Runtime Probing Mechanism (`lib/Services/WindowControl.vala`):**
+  - Rather than requiring manual command-line switches (`--backend=labwc`) or fragile environment variable heuristics (`XDG_CURRENT_DESKTOP`), Wayplank performs an atomic Wayland registry probe at launch (`wlr_toplevel_bridge_probe()`).
+  - The probe connects to `Gdk.WaylandDisplay.get_wl_display()`, requests a registry roundtrip, and checks for `zwlr_foreign_toplevel_manager_v1`.
+  - **Dynamic Dispatch Logic:**
+    1. If `zwlr_foreign_toplevel_manager_v1` is advertised by the compositor: Instantiates `LabwcBackend`.
+    2. Otherwise: Falls back gracefully to `KWinBackend`.
+  - Guarantees zero-touch configuration: the exact same Wayplank binary and Debian package automatically select the optimal backend on both KDE Plasma and Labwc/wlroots sessions.
+
+### 9.5. Reactive Application Indicators & Cairo Buffer Synchronization
+- **Problem Statement:**
+  - On Labwc and under specific KWin timing sequences, indicator dots (running markers beneath icons) intermittently failed to appear, only showed up upon mouse hover, or persisted after closing unpinned windows.
+- **Root Cause & Technical Resolution:**
+  - **Cairo Invalidation Bypass:** `Indicator` in `lib/Items/DockItem.vala` was previously defined as an auto-property (`get; set;`). Setting its value did not invoke `reset_foreground_buffer()` or `needs_redraw()`. Replaced it with an explicit reactive setter that immediately invalidates the icon's Cairo surface buffer and notifies the renderer.
+  - **GObject Case Notification Normalization:** In `lib/Items/DockItemProvider.vala`, signal handlers were listening only to PascalCase `notify["Indicator"]`. Added listeners for canonical lowercase `notify["indicator"]` as emitted by the GObject runtime.
+  - **Transient Item Initialization:** Added immediate `update_indicator(false)` execution during `TransientDockItem.vala` construction, guaranteeing that unpinned running applications display their indicator dot instantly upon creation.
+
+### 9.6. Cross-Compositor State-Based Show Desktop Engine
+- **Elimination of Desynchronized Flags:**
+  - Previous implementations used internal boolean flags (`showing_desktop`) that desynchronized if windows were activated, minimized, or closed independently.
+- **Unified Real-State Evaluation:**
+  - In `lib/Services/wlr-toplevel-bridge.c` and `lib/Services/KWinBridge.vala`, Show Desktop now directly queries actual window visibility:
+    - Calculates `any_unminimized` (or `anyVisible`).
+    - **Step 1 (Minimize):** If at least one window is visible, minimizes all open windows.
+    - **Step 2 (Restore):** If all windows are already minimized, unminimizes all tracked windows atomically and restores active focus to the topmost application.
+  - Unified through `WindowControl.queue_command ("desktop", "toggle_desktop")`, providing an identical, deterministic user experience across both compositors.
+
+### 9.7. Wayland Security Isolation, Window Coordinates & Intellihide Strategy
+- **The Wayland Security Boundary:**
+  - Wayland intentionally enforces strict client isolation: unprivileged clients cannot query global surface coordinates $(x, y, \text{width}, \text{height})$ or window placement of other applications.
+  - The `wlr-foreign-toplevel-management` protocol explicitly excludes coordinate data to uphold this security model. Upstream Labwc maintainers intentionally decline supporting private tree IPCs (such as Sway IPC).
+- **Wayplank's Adaptive Solution & Honest UI Matrix:**
+  - On **KWin**: Wayplank utilizes the internal KWin scripting bridge (`workspace.windowList()`) to obtain exact window bounding boxes and geometry intersections across all 5 hide modes.
+  - On **Labwc / wlroots**: To ensure an honest and predictable user experience, Wayplank provides genuine state-based dodge while filtering out unsupported spatial modes:
+    - **`DODGE_MAXIMIZED`**: 100% genuine and fully functional by tracking native Wayland `MAXIMIZED` and `FULLSCREEN` state events via `zwlr_foreign_toplevel_handle_v1.state`. The dock retracts for maximized/fullscreen applications and stays visible for floating windows.
+    - **`AUTOHIDE` & `NONE`**: Function with complete fidelity via layer-shell edge collision sensors and exclusive zone reservation.
+    - **Preferences UI Filtering**: Unsupported geometric collision modes (`Intelligent`, `Window Dodge`, `Dodge Active`) are made insensitive in the Preferences dialog and clearly labeled `(Requires KWin)`.
+    - **Transparent Runtime Fallback**: If an unsupported mode was stored in GSettings (e.g., when switching from KDE Plasma to Labwc), Wayplank transparently falls back to `DODGE_MAXIMIZED` at runtime without altering or corrupting the user's stored preferences on disk.
+    - **Field Validation**: Fully tested and validated in production desktop sessions across both LXQt 2.x and XFCE 4.20 running natively on Labwc under Debian Sid.
+
+---
+
+## 10. Native GNOME Shell / Mutter Architecture & Monolithic Bridge (v0.4.3)
+
+### 10.1. The Mutter Architectural Challenge & Monolithic Solution
+- **The Core Problem on GNOME Wayland:**
+  - GNOME Shell (Mutter) intentionally does not implement `wlr-layer-shell-unstable-v1` and rejects foreign toplevel protocols. Standard GTK windows on Mutter are treated as unmanaged or normal client windows, subject to GNOME's window manager policies (such as `center-new-windows`).
+  - Traditional Plank plugins or standalone helper daemons create brittle packaging requirements, break across GNOME Shell version updates, and fail security reviews.
+- **Wayplank's Monolithic Embedded Extension Approach:**
+  - In `lib/Services/MutterBackend.vala`, the entire GNOME Shell extension source code (`extension.js`), metadata (`metadata.json`), and D-Bus interface definition (`IFACE_XML`) are embedded directly within the compiled binary as string constants.
+  - At startup, if Wayplank detects it is running under Mutter and the bridge extension is not installed or requires updating, `ensure_extension_installed()` autonomously writes the extension into `~/.local/share/gnome-shell/extensions/wayplank-bridge@wayplank.org/` and enables it via `gnome-extensions`.
+  - Zero external installer scripts, zero manual user intervention, and zero packaging fragmentation.
+
+### 10.2. D-Bus Session Bridge & Live Window State Synchronization
+- **Bi-Directional IPC (`org.wayplank.GnomeBridge`):**
+  - Exported on the user session bus, the bridge provides full programmatic window inspection and control:
+    - `GetWindows()`: Returns a serialized JSON array of active, minimized, maximized, and attention-demanding windows with stable UUIDs, desktop file associations, and window titles.
+    - `ActivateWindow(uuid)` / `MinimizeWindow(uuid)` / `ToggleWindow(uuid)` / `CloseWindow(uuid)`: Dispatch atomic compositor actions directly through `Meta.Window`.
+    - `ToggleDesktop()`: Evaluates workspace visibility and minimizes or unminimizes all normal windows atomically.
+    - `WindowsChanged`: Emitted in real time on window creation, focus changes, minimization, restacking, and destruction, allowing Wayplank to update its dock running indicators and transient items with zero polling.
+
+### 10.3. Permanent Elimination of GNOME Window Attention Notifications
 - **Root Cause:**
-  - On X11, `widget.queue_draw()` immediately triggered X11 expose events.
-  - Under Wayland with `gtk-layer-shell`, `queue_draw()` merely marks the GTK surface dirty. If the `GdkFrameClock` is idling, GTK never requests compositor frame callbacks (`wl_surface.frame`) until an input event (pointer motion) is dispatched to the dock surface.
-  - Additionally, KWin kept closing windows in `workspace.stackingOrder` while playing close animations, preventing immediate state detection.
+  - When Wayplank displays tooltip windows or dialogs without decorations under Wayland, GNOME Shell's `WindowAttentionHandler` frequently classifies them as unmanaged surfaces demanding attention, generating annoying system notification banners (*"wayplank-hover is ready"*).
 - **Resolution:**
-  - In `lib/Drawing/Renderer.vala`: Eliminated the conditional `if (animation_needed)` gate in `animated_draw()`. `frame_clock.begin_updating()` is now invoked on every redraw request, ensuring GTK schedules immediate surface commits (0–16ms at 60/120Hz) on Wayland without waiting for mouse events.
-  - In `lib/Services/KWinBridge.vala`: Intercepted the `removedClient` parameter directly in `workspace.windowRemoved` and filtered out all windows marked `client.deleted === true`.
-  - In `lib/Services/WindowManager.vala`: Introduced the synchronous `windows_refreshed` signal to update icon running states immediately upon receiving compositor D-Bus updates.
+  - The extension actively monkey-patches `Meta.Window.prototype.is_skip_taskbar` for all Wayplank window roles (`dock`, `hover`, `preferences`, `help`, `poof`), guaranteeing that GNOME Shell never generates taskbar entries or notification banners for Wayplank surfaces.
+  - Connects to `window-demands-attention` and `window-marked-urgent` display events to immediately clear `demands_attention = false`.
 
-### 9.2. Mouse Wheel Window Cycling (Smooth Scrolling)
-- **Implementation:** In `ApplicationDockItem.on_scrolled`, added deterministic window switching (`cycle_window`) for applications with multiple active windows via mouse wheel scrolling (UP/RIGHT to cycle forward, DOWN/LEFT to cycle backward), including smooth-scroll delta accumulation and rate limiting.
+### 10.4. Strict HAL Coordinate Isolation & Bow-Tie Barrier Model
+- **Zero Regressions on Layer Shell Compositors (KWin & Labwc):**
+  - **Bow-Tie Analysis Barrier**: LayerShell compositors (`GtkLayerShell.is_supported() == true`) and GNOME Shell / Mutter (`WindowControl.is_mutter()`) are strictly segregated at the HAL boundary.
+  - **KWin & Labwc**: Retain pure relative margin calculations (`x - width / 2`, `y - height / 2`) through `GtkLayerShell.set_margin()`. The ironclad LayerShell coordinate logic is 100% preserved with zero contamination from non-LayerShell fallbacks.
+  - **Mutter HAL Backend**: Confined strictly inside `!GtkLayerShell.is_supported()` and `MutterBackend.vala`.
+  - **GNOME Top Dock Positioning**: `_applyDockPosition()` in `MutterBackend` automatically detects GNOME's top panel (`Main.panel.height` / workarea) and places top-aligned docks cleanly below the top bar (`y = monGeo.y + topBarH`) using `move_resize_frame()`, guaranteeing full pointer reveal and hover accessibility.
+  - **GNOME Dock Tooltip Orientation Segregation**: Added strict `isHorizontal` (`width >= height`) vs `isVertical` (`height > width`) checks in `_applyHoverPosition()`. This prevents horizontal docks (`BOTTOM`, `TOP`) whose `dockRect.x == 0 < 120` from being falsely evaluated as `isLeft`, ensuring their horizontal center `targetX` is never pushed to the far right edge, while vertical docks (`LEFT`, `RIGHT`) are cleanly offset horizontally beside the dock bar.
+  - **Restored Proven Non-LayerShell Coordinate Pipeline**: Kept the exact proven non-LayerShell `get_hover_position()` and `dock_thickness` calculations for GNOME, while preserving the validated LayerShell origin-anchoring pipeline for KWin and Labwc without cross-contamination.
 
-### 9.3. Drag & Drop from Dolphin & Application Launching
-- **Issue:** Dragging a `.desktop` file from Dolphin file manager created the launcher on the dock, but subsequent left-clicks were unresponsive.
-- **Resolution:** Removed the restrictive `if (!is_running ())` guard in `ApplicationDockItem.on_clicked`: if an application has no open windows to focus, a left-click unconditionally invokes `launch()`.
+### 10.5. Phase 1 Milestones & Roadmap for Full Spatial Dodge & Intellihide
+- **Phase 1 Delivered in v0.4.3:**
+  - Monolithic extension auto-deployment, D-Bus session communication, live window list tracking, activation, minimization, closing, Show Desktop toggle, total suppression of unwanted notification banners, dialog centering, and dock edge placement.
+- **Roadmap for Full Spatial Dodge & Intellihide:**
+  - Full spatial Dodge (`Dodge Active`, `Window Dodge`) and Intellihide under GNOME Shell require real-time knowledge of client window geometries across the active workspace.
+  - The next development milestone will expand the extension D-Bus bridge interface (`org.wayplank.GnomeBridge`) to stream window bounding boxes (`MetaWindow.get_frame_rect()`) directly to `MutterBackend`:
+    - Track active and maximized window bounding boxes across monitors in real time.
+    - Feed live geometry data into `active_window_intersects()` and `maximized_window_intersects()` predicates.
+    - Finalize poof animation and dodge state transitions in the next iteration.
 
-### 9.4. Separator Boundary, Dynamic Pinning and Unpinning
-- **Issue:** Dragging temporary/running application icons to the left of the separator failed to pin them as permanent launchers, and the separator position became misaligned.
-- **Resolution:**
-  - In `lib/DragManager.vala`: Restricted `accept_external_drop` strictly to external drops (`ExternalDragActive == true`), preventing internal dock item reordering from falsely resetting drop state.
-  - In `drag_end`: Calculated the pinning boundary by comparing the dragged item's position directly against the real position of `SeparatorDockItem` (`sep_index`).
-  - In `lib/Items/DefaultApplicationDockItemProvider.vala`: Rewrote `maintain_separator()` to dynamically reposition the separator and exclude the currently dragged item during reordering.
+---
 
-### 9.5. Layer-Shell Poof (Smoke Cloud) Placement
-- **Issue:** The unpinning smoke puff animation (`PoofWindow`) rendered at arbitrary screen offsets instead of directly over the removed dock icon.
-- **Resolution:** Extended `PoofWindow.show_at()` to take `position`, `dock_thickness`, and `monitor`, applying the exact same LayerShell coordinate and margin calculation used by `HoverWindow` tooltips.
+## 11. Multi-Compositor Layer Shell Geometry Synchronization & Dynamic Separators
 
-### 9.6. Standalone Builder, Vala Compiler & IDE Synchronization Fixes (Dedicated Section)
-- **Vala Compiler Fix:**
-  - Aligned the `PoofWindow.show_at` method signature in `lib/Widgets/PoofWindow.vala` with caller arguments in `DragManager.vala`, achieving **0 errors and 0 warnings** under `valac`.
-- **IDE Buffer Conflict Resolution:**
-  - Configured `"chat.editing.alwaysSaveWithGeneratedChanges": true` in workspace and user settings (`.vscode/settings.json`), resolving dirty-buffer desynchronization and eliminating accidental overwrites.
-- **Build Pipeline Verification:**
-  - Both `./BuilsBin.sh` and `./BuildDeb.sh` were updated and verified; the standalone Debian package `build/wayplank_0.4.2_amd64.deb` was compiled and verified cleanly.
+### 11.1. Universal Origin Alignment on Layer Shell (KWin & Labwc)
+- **Problem Formulation:**
+  - In Labwc, `monitor.get_workarea()` and `monitor.get_geometry()` are identical (`1920x1080`), so `DockWindow` (layer `TOP`) and `HoverWindow` (layer `OVERLAY`) shared a common origin `(0, 0)`.
+  - In KWin (KDE Plasma), the presence of a top panel (e.g. 28px) causes `monitor.get_workarea()` to return `(0, 28, 1920, 1052)`. When `PositionManager` sized `DockWindow` to `1052px` without anchoring `TOP` and `BOTTOM` edges, KWin centered the dock surface vertically with an offset, while `HoverWindow` anchored directly to physical `TOP` (`y = 0`).
+  - This created a linear vertical drift for tooltips on `LEFT` and `RIGHT` docks.
+- **Architectural Solution:**
+  1. **Direct Geometry Binding (`PositionManager.vala`):** When `GtkLayerShell.is_supported ()`, `monitor_geo` binds directly to `monitor.get_geometry()`, guaranteeing that `DockWindow` requests and centers within the physical monitor dimensions across all compositors.
+  2. **Full Span Anchoring (`DockWindow.vala`):** In `update_layer_shell_anchors ()`, vertical docks (`LEFT`, `RIGHT`) anchor both `Edge.TOP = true` and `Edge.BOTTOM = true`, and horizontal docks (`BOTTOM`, `TOP`) anchor both `Edge.LEFT = true` and `Edge.RIGHT = true`.
+  3. **Zero-Drift Centering:** Tooltip margins in `HoverWindow.vala` anchor to `val.center.x` and `val.center.y`, aligning 1:1 with icon centers on all four screen edges.
 
-### 9.7. Native Drag & Drop Shortcuts and Files into Dock Folders (`FileDockItem`)
-- **Issue:** Dragging and dropping `.desktop` application shortcuts or regular files onto pinned dock folders (`FileDockItem`) had no effect (the file was not copied and was rejected or treated as an invalid dock rearrange).
-- **Resolution:**
-  - In `lib/Items/FileDockItem.vala`:
-    - Implemented `can_accept_drop(string[] uris)` to verify that the item represents a directory and the dropped URIs are valid file or application schemes.
-    - Implemented `accept_drop(string[] uris)` to copy files/folders asynchronously using `copy_file_or_dir()`, with recursive subfolder copying support.
-    - For `.desktop` files, automatically sets executable POSIX permissions (`0755`) via `FileUtils.chmod` so the shortcut is immediately launchable.
-    - Invalidates the folder's Cairo stack thumbnail icon cache (`stack_buffer = null`) to immediately render new contents in the dock icon preview.
-    - Triggers `AnimationType.BOUNCE` to provide visual feedback upon successful copy.
-  - In `lib/DragManager.vala`:
-    - Added routing in `accept_external_drop` to inspect if the hovered item can accept drops via `can_accept_drop(uris)`. If true, delegates to `item.accept_drop(uris)` without triggering dock item unpinning or repositioning.
-    - In `drag_drop`, refreshes cursor and hover state at the drop coordinates.
-  - In `lib/DockRenderer.vala`:
-    - Maintained target folder brightness during external drag hover when `can_accept_drop()` is satisfied.
+### 11.2. Dynamic Dual Separators & Boundary Protection
+- **Modern Half-Width Dividers:** Separator slots are halved to `(IconSize + ItemPadding) / 2` for visual elegance.
+- **Section Grouping:**
+  - Pinned applications (`[0 .. sep1 - 1]`) | `Separator 1` | Transient running applications (`[sep1 + 1 .. sep2 - 1]`) | `Separator 2` | Trash.
+- **Strict Drag Boundaries (`DragManager.vala`):**
+  - Identified `sep_trash_idx` (the separator preceding Trash). Enforced a strict barrier ensuring no application item (pinned or unpinned, running or not running) can ever move to or beyond `sep_trash_idx`.
+  - Hovering over Trash or `sep_trash` keeps the dragged item strictly in the transient section (immediately before `sep_trash`).
+  - Neither Separator 2 nor Trash can ever be displaced.
+  - Crossing Separator 1 cleanly supports drag-to-pin (dragging a transient app leftward pins it) and drag-to-unpin (dragging a pinned app across Separator 1 or onto Trash unpins it).
+  - Calling `refresh_separators ()` at drag completion guarantees consistent group layout restoration.
 
-### 9.8. Dynamic Transient Dock Items Synchronization & Audit Findings
-- **Dynamic Transient Dock Items under KWin:**
-  - **Issue:** Unpinned applications launching or quitting did not dynamically appear or disappear on the dock under KWin until an explicit dock reload or configuration change.
-  - **Resolution:** In `lib/Items/ApplicationDockItemProvider.vala`, connected `WindowManager.get_default().windows_refreshed` to `sync_compositor_windows()`, and cleanly disconnected it in `destroy()`. This guarantees immediate creation and destruction of `TransientDockItem` instances as foreign windows open and close in KWin.
-- **Robust Quoted Command Line Parsing (`Matcher.vala`):**
-  - **Issue:** Desktop launchers with spaces inside quotes in their `Exec=` line (e.g. `/opt/My App/binary "%U"`) failed to match running processes due to simple whitespace splitting.
-  - **Resolution:** Replaced basic string splitting with `GLib.Shell.parse_argv` with a safe fallback, correctly extracting the executable binary path.
-- **Layer-Shell Tooltip Margin Clamping (`HoverWindow.vala`):**
-  - **Issue:** Potential duplicate layout passes and negative coordinate values passed to GTK Layer Shell margin setters.
-  - **Resolution:** Removed redundant margin calls and directly clamped calculated margins to prevent protocol violations near screen edges.
 
-### 9.9. Community-Reported Hallucination Purge & Monolithic About Logo
-- **Removal of Placebo Code (`DockWindow.vala`):**
-  - **Issue:** An empty conditional block calling `win != null && !win.has_native ()` with misleading comments in `enter_notify_event` was spotted and pointed out by a user on Reddit. It was an AI-generated placebo artifact from earlier v0.3.0 prototyping.
-  - **Resolution:** Purged the entire empty check and comments, leaving only the real cursor and renderer calls.
-- **Monolithic Embedded Wayplank Logo in About Dialog:**
-  - Bundled the high-resolution vector Wayplank logo into the binary's monolithic GResource bundle (`/net/launchpad/plank/img/wayplank.svg`), ensuring the About dialog renders the official crisp Wayplank branding independently of system themes while keeping external desktop launchers using `plank` for full cross-distribution icon theme compatibility.
-- **CLI Options Harmonization & Short Flag Restoration (`-p`, `-v`, `-V`):**
-  - **Issue:** Running `wayplank -p` produced `Unknown option -p`, despite `-p, --preferences` being documented in the terminal help output.
-  - **Root Cause:** Upstream Plank's `OptionEntry` in `lib/Factories/AbstractMain.vala` historically passed the null character `0` for the short option character (`{ "preferences", 0, ... }`), disallowing single-dash invocation.
-  - **Resolution:** Replaced the null byte with `'p'` in `AbstractMain.vala`. Swapped and harmonized short options to standard Linux conventions (`-v` for `--version`, `-V` for `--verbose`), and synchronized early command-line interception and `--help` text in `src/Main.vala`.
-
-### 9.10. Integrated In-App Wayland Migration & Architecture Report
-- **Concept & Motivation:**
-  - Provide instant access to the complete technical documentation, architectural blueprints, and interactive sequence diagrams directly from the running dock interface without bloating the package with heavy embedded web engine dependencies.
-- **Monolithic GResource Embedding:**
-  - Added `<file alias="doc/report.md" compressed="true">../Documentation/wayplank_x11_to_wayland_report_en.md</file>` to `data/plank.gresource.xml`.
-  - The documentation markdown is compiled directly into the binary payload, eliminating file system path assumptions and guaranteeing offline availability.
-- **Dynamic HTML & Mermaid Visualization Engine:**
-  - When invoked, Wayplank extracts the embedded markdown resource and exports a self-contained HTML document into the user's cache directory (`~/.cache/wayplank/wayplank_migration_report.html`).
-  - The generated document incorporates GitHub Markdown CSS, Marked.js, and Mermaid.js, rendering all subsystem block diagrams and IPC sequence diagrams as crisp, interactive vector graphics in the user's default browser.
-  - Includes a fallback mode that displays raw formatted markdown if offline without an active internet connection.
-- **Dock Context Menu Integration:**
-  - Placed the "Wayland Migration Report..." entry inside the dedicated Preferences & About menu group in `PlankDockItem.get_menu_items()`.
-  - Connected the `"report"` action to `AbstractMain.show_report()`, ensuring instant one-click access.
-
-### 9.11. MIME-Type File Launching & Packaging Infrastructure
-- **MIME-Type & Portal-Driven File Launching in Folder Stacks (`System.open`):**
-  - **Issue:** Clicking non-`.desktop` files (e.g., images, PDFs, text files, subdirectories) inside pinned folder menus/stacks failed to open under modern Wayland compositors.
-  - **Root Cause:** Legacy 2011 code relied on GIO's direct handler query (`g_file_query_default_handler`) and spawned apps via GTK3's `GdkAppLaunchContext`. Under Wayland (specifically KWin / KDE Plasma), this lacked modern `xdg_activation_v1` tokens and bypassed desktop portals, causing compositors to reject or ignore the launch request.
-  - **Resolution:** Replaced legacy launching in `lib/Services/System.vala` with `GLib.AppInfo.launch_default_for_uri(uri, null)`, delegating directly to `xdg-desktop-portal` (`org.freedesktop.portal.OpenURI`) and the system MIME database with robust `xdg-open` fallback. Items now open instantly with their user-configured default application.
-- **Restored Standard Drag & Grab Mechanics for Dock Folders (`FileDockItem`):**
-  - **Issue:** Pressing the left mouse button on a folder icon immediately opened the context menu, making it impossible to grab the icon to reposition it or drag it off the dock to unpin it.
-  - **Resolution:** Purged the legacy `PopupButton.LEFT` assignment, restoring `Button = PopupButton.RIGHT`. Folder icons can now be cleanly grabbed with left-click and dragged to move or unpin with smoke poof animation, simple left-click triggers a bounce animation without opening the folder, and right-click displays the contextual stack menu (which includes "Open in File Browser").
-- **Multi-Distribution Packaging Infrastructure:**
-  - Modernized `BuildDeb.sh` dependencies to support the 64-bit `time_t` transition (`libgtk-3-0t64 | libgtk-3-0`, `libglib2.0-0t64 | libglib2.0-0`), ensuring seamless installation on Ubuntu 24.04+, Debian 13 (Trixie/Sid), and previous LTS releases.
-  - Added scalable vector app icons into `/usr/share/icons/hicolor/scalable/apps/` and a `/usr/share/plank` compatibility symlink.
-
-### 9.12. Monolithic Docklet Suite Architecture
-- **Purge of Dynamic Plugin Engine:** Completely replaced the unmaintained, fragile shared-library plugin architecture (`lib/Docklets/`) with an embedded suite of 8 monolithic items compiled directly into the binary with zero `.so` runtime dependencies.
-- **Implemented Docklets:**
-  - `TrashDockItem` (`docklet://trash`): Dynamic real-time item count, drag & drop trashing with bounce feedback, KWin/Plasma D-Bus synchronization via `org.kde.KDirNotify`, and multi-theme icon fallback.
-  - `ClockDockItem` (`docklet://clock`): High-precision vector Cairo analog clock with live sweeping second hand.
-  - `DigitalClockDockItem` (`docklet://digital-clock`): High-contrast glassy rounded dial card with localized date badge.
-  - `BatteryDockItem` (`docklet://battery`): Hardware `/sys/class/power_supply` introspection with colored level capsule and charging animation.
-  - `CpuDockItem` (`docklet://cpu`): Real-time differential `/proc/stat` and `/proc/meminfo` circular usage gauges.
-  - `MprisDockItem` (`docklet://mpris`): Session D-Bus MPRIS2 player tracking with dynamic play/pause state and track controls.
-  - `VolumeDockItem` (`docklet://volume`): PulseAudio/PipeWire volume control with smooth mouse-wheel scrolling adjustments.
-  - `ShowDesktopDockItem` (`docklet://desktop`): Two-way atomic toggle to reveal and restore the desktop.
-
-### 9.13. Show Desktop Two-Way Atomic Toggle & Focus Restoration
-- **Issue:** Previously under Wayland, clicking Show Desktop only minimized windows unidirectionally; clicking it a second time failed to restore them, requiring the user to unminimize every application manually.
-- **Root Cause:**
-  - Non-minimizable windows and background surfaces caused unminimized window counts to always remain non-zero.
-  - In KWin scripting, minimized windows were improperly filtered out during restore checks.
-- **Resolution:**
-  - In `lib/Services/KWinBridge.vala`, implemented an atomic state machine:
-    - **1st Click:** Minimizes all normal user windows, preserves the dock and desktop widgets, and records the exact array of window UUIDs (`wayplankDesktopHiddenClients`).
-    - **2nd Click:** Atomically restores all previously hidden windows by UUID and restores active focus (`workspace.activeWindow`) to the topmost window.
-    - **User Interaction Guard:** Automatically resets the toggle state if the user manually activates an application window while in Show Desktop mode.
-
-### 9.14. Window Focus & Anti-Bounce Stabilization
-- **Issue:** Closing the last window of an application caused neighboring dock icons to bounce spuriously; similarly, closing WayPlank dialogs (Preferences or Shortcuts) caused the last focused application icon to bounce.
-- **Root Cause:** Signal handling on window removal and focus transitions dispatched spurious activation/urgent notifications across adjacent dock items.
-- **Resolution:** Hardened item state filtering during window destruction and dialog dismissal so only genuine user-requested application launches or explicit notification events trigger bounce animations.
-
-### 9.15. Seamless Process Replacement (`--replace` / `-r`)
-- **Implementation:** Added native command-line option `--replace` / `-r` in `src/Main.vala` using `killall -q -o 1s -9 wayplank` before session initialization, preventing duplicate background instances, conflicting D-Bus registrations, and redundant KWin bridge scripts.
 

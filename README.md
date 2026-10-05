@@ -227,9 +227,10 @@ wayplank -d
 - **Modular Multi-Compositor HAL**: Dynamic runtime auto-probing across KWin, Labwc, and GNOME/Mutter at startup with zero configuration.
 - **Native Labwc & wlroots Support**: Integrated asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1`.
 - **Native GNOME/Mutter Integration (Phase 1)**: Monolithic self-deploying GNOME Shell extension via D-Bus; complete suppression of notification banners, centered dialogs, and dock edge placement.
-- **Strict HAL Coordinate Isolation**: Pure relative Layer Shell margins preserved for KWin/Labwc, and dedicated absolute screen positioning with real frame anchoring for Mutter.
+- **Strict HAL Coordinate Isolation & Tooltip Alignment**: Pure relative Layer Shell margins for KWin/Labwc with full opposite-edge anchoring eliminating vertical/horizontal drift; dedicated absolute screen positioning with real frame anchoring for Mutter.
 - **Zero-Latency Reactive Indicators**: Immediate Cairo buffer invalidation and lifecycle synchronization for active app markers.
 - **Bi-Directional Show Desktop & Intelligent Dodge**: Atomic bulk minimization/restore across all compositors; `DODGE_MAXIMIZED` state-based dodge with transparent fallback on Labwc.
+- **Dynamic Dual Separator Architecture & Drag Boundary Enforcement**: Modern half-icon width separators (`[Pinned] | [Transient] | [Trash]`), strict drag boundary preventing any app from moving beyond the separator preceding Trash, and intuitive drag-to-pin / drag-to-unpin across Separator 1.
 
 👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.3.md`](src/CHANGELOG_v0.4.3.md).
 

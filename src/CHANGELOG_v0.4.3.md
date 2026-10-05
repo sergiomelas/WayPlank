@@ -127,28 +127,54 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
   - GNOME Shell's `WindowAttentionHandler` normally generates unwanted notification banners ("wayplank-hover is ready", "Wayplank Preferences is ready") when Wayplank maps utility or tooltip windows without decoration.
   - Implemented proactive monkey-patching of `Meta.Window.prototype.is_skip_taskbar` inside the GNOME Shell extension for all Wayplank window roles (`dock`, `hover`, `preferences`, `help`), ensuring `WindowAttentionHandler` ignores them completely.
   - Connected `window-demands-attention` and `window-marked-urgent` signals to instantly reset `demands_attention = false`.
-- **Strict HAL Coordinate Isolation (Zero Regressions on Layer Shell)**:
+- **Strict HAL Coordinate Isolation (Zero Regressions on Layer Shell via Bow-Tie Barrier Model)**:
   - **KWin & Labwc / wlroots (`GtkLayerShell.is_supported()` == `true`)**:
     - Retains 100% pure relative margin calculations (`x - width / 2`, `y - height / 2`) anchored to the monitor edge via `GtkLayerShell.set_margin()`. Zero screen-offset contamination.
+    - Verified and validated: full origin anchoring and indicator rendering remain 100% pristine and untouched.
   - **GNOME Shell / Mutter (`!GtkLayerShell.is_supported()` && `WindowControl.is_mutter()`)**:
-    - Confined absolute screen coordinate transformations (`mon_x + ...`, `mon_y + ...`) and D-Bus calls strictly inside the non-Layer Shell fallback branch.
-    - Enhanced GNOME Shell extension `_applyHoverPosition()` to dynamically measure the real frame rect of the dock window (`dockWin.get_frame_rect()`), adjusting tooltip margins to eliminate overlap with the dock bar and GNOME panel across all four screen edges (`Top`, `Bottom`, `Left`, `Right`).
+    - Confined absolute screen coordinate transformations (`mon_x + ...`, `mon_y + ...`) and D-Bus calls strictly inside the non-Layer Shell HAL fallback.
+    - **GNOME Top Dock Positioning Fix**: In GNOME Shell, `Main.panel` occupies `y = 0..32`. When the dock is positioned at `TOP`, `MutterBackend`'s `_applyDockPosition()` automatically detects `Main.panel` height or work area offset, positioning the dock window directly below the panel (`targetY = monGeo.y + topBarH`) using `move_resize_frame()`. This prevents the dock from being hidden behind the top panel and guarantees pointer reveal and hover accessibility.
+    - **GNOME Dock Tooltip Orientation Segregation**: Added strict `isHorizontal` (`width >= height`) vs `isVertical` (`height > width`) checks in `_applyHoverPosition()`. This prevents horizontal docks (`BOTTOM`, `TOP`) whose `dockRect.x == 0 < 120` from being falsely evaluated as `isLeft`, ensuring their horizontal center `targetX` is never pushed to the far right edge, while vertical docks (`LEFT`, `RIGHT`) are cleanly offset horizontally beside the dock bar.
+    - **Restored Proven Non-LayerShell Coordinate Pipeline**: Kept the exact proven non-LayerShell `get_hover_position()` and `dock_thickness` calculations for GNOME, while preserving the validated LayerShell origin-anchoring pipeline for KWin and Labwc without cross-contamination.
 - **Clean Dialog Classification & Window Centering**:
   - Hardened `_classifyWindow()` to prevent Preferences and Shortcuts windows from being misclassified as dock surfaces during early GTK allocation.
   - Implemented dynamic first-frame centering (`_centerWindow()`) for Preferences and Help dialogs on GNOME Shell Wayland.
 
 ---
 
-## 8. 🔮 GNOME / Mutter Next Steps & Roadmap (Window Geometry for Full Dodge & Intellihide)
+## 9. 📐 Universal Origin Alignment for Tooltips & Overlays (KWin & Labwc / wlroots)
 
-- **Phase 1 Mutter Integration Completed**:
-  - Successfully delivered the foundational GNOME Shell / Mutter integration milestone: monolithic embedded extension auto-deployment, D-Bus session communication, live window list tracking, activation, minimization, closing, Show Desktop toggle, total suppression of unwanted notification banners, dialog centering, and dock edge placement.
-- **Roadmap for Full Spatial Dodge & Intellihide**:
-  - Full spatial Dodge (`Dodge Active`, `Window Dodge`) and Intellihide under GNOME Shell require real-time knowledge of client window geometries across the active workspace.
-  - The next development milestone will expand the extension D-Bus bridge interface (`org.wayplank.GnomeBridge`) to stream window bounding boxes (`MetaWindow.get_frame_rect()`) directly to `MutterBackend`:
-    - Track active and maximized window bounding boxes across monitors in real time.
-    - Feed live geometry data into `active_window_intersects()` and `maximized_window_intersects()` predicates.
-    - Finalize poof animation and dodge state transitions in the next iteration.
+- **Elimination of Coordinate & Exclusive Zone Mismatch on Vertical Docks**:
+  - Previously on KWin with a top plasma panel (e.g. 28px height), `monitor.get_workarea()` reduced `DockHeight` to 1052px while `HoverWindow` (on `Layer.OVERLAY`) clamped against the monitor's physical geometry (1080px). Furthermore, `DockWindow` did not anchor opposite edges (`TOP`/`BOTTOM` on vertical docks), causing KWin to center the 1052px window vertically with an offset.
+  - As a result, tooltips on `LEFT` and `RIGHT` dock positions exhibited a linear vertical drift from top to bottom.
+- **Architectural Resolution**:
+  - In `lib/PositionManager.vala`: When LayerShell is supported (`GtkLayerShell.is_supported ()`), `monitor_geo` now directly binds to `monitor.get_geometry()` instead of `get_workarea()`, ensuring the dock window's requested size and coordinate space match the exact physical monitor geometry (1920x1080) across all compositors.
+  - In `lib/Widgets/DockWindow.vala` (`update_layer_shell_anchors`):
+    - Vertical docks (`LEFT`, `RIGHT`) anchor both `Edge.TOP = true` and `Edge.BOTTOM = true`.
+    - Horizontal docks (`BOTTOM`, `TOP`) anchor both `Edge.LEFT = true` and `Edge.RIGHT = true`.
+    - Spanning both opposite edges guarantees that `DockWindow` is anchored at `y = 0` (or `x = 0`) on every compositor (KWin, Labwc, Sway), matching the LayerShell overlay origin of `HoverWindow`.
+  - Tooltips now anchor to the exact center of icons (`val.center.x`, `val.center.y`) on all four dock edges with 100% precision.
+  - Enhanced tooltip rendering with Cairo clear operator and polished dark translucent styling (`rgba(28, 28, 30, 0.94)`, 7px radius, 11px font).
+
+---
+
+## 10. 🧱 Dynamic Dual Separator Architecture & Drag Boundary Enforcement
+
+- **Modern Half-Width Separators**:
+  - Halved the separator slot width to `(IconSize + ItemPadding) / 2` in `PositionManager.vala` (`get_items_total_span`, `get_item_slot`), delivering a clean, compact macOS-style visual separation.
+- **Dynamic 2-Separator Layout (`DefaultApplicationDockItemProvider.vala`)**:
+  - `[ Pinned Apps ]` | `Separator 1` | `[ Transient (Unpinned Running) Apps ]` | `Separator 2` | `[ Trash ]`.
+  - With Trash present and both pinned and transient apps running, 2 dynamic separators are cleanly maintained.
+  - Fixed item counting in `maintain_separator ()` by removing the skip of `dragging_item`, ensuring separator positions never collapse during drag.
+- **Strict Boundary Protection for Separator 2 (`lib/DragManager.vala`)**:
+  - Addressed the bug where running unpinned apps (or pinned apps) could be dragged past the second separator into the Trash/docklets section:
+    - Identified the separator preceding Trash (`sep_trash_idx`).
+    - Enforced a hard boundary: no application item (pinned or unpinned, running or not running) can ever move to or beyond `sep_trash_idx`.
+    - Hovering over Trash or `sep_trash` keeps the dragged item strictly in the transient section (immediately before `sep_trash`).
+    - Neither Separator 2 nor Trash can ever be displaced.
+  - Crossing Separator 1 cleanly supports drag-to-pin (dragging a transient app to the left pins it) and drag-to-unpin (dragging a pinned app across Separator 1 or onto Trash unpins it).
+  - Added `refresh_separators ()` called upon `drag_end ()` to guarantee clean group layout restoration.
+  - Prevented drag crashes by calling `cancel_long_press ()` on drag begin and destruction.
 
 
 

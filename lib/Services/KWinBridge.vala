@@ -102,39 +102,52 @@ namespace Plank
 			+ "        \"UpdateWindowState\", JSON.stringify(windows));\n"
 			+ "}\n"
 			+ "\n"
+			+ "var wayplankDebounceTimer = new QTimer();\n"
+			+ "wayplankDebounceTimer.interval = 50;\n"
+			+ "wayplankDebounceTimer.singleShot = true;\n"
+			+ "wayplankDebounceTimer.timeout.connect(function () {\n"
+			+ "    sendWindowState();\n"
+			+ "});\n"
+			+ "\n"
+			+ "function scheduleWindowState () {\n"
+			+ "    if (wayplankDebounceTimer && !wayplankDebounceTimer.active) {\n"
+			+ "        wayplankDebounceTimer.start();\n"
+			+ "    }\n"
+			+ "}\n"
+			+ "\n"
 			+ "function connectWindow (window) {\n"
 			+ "    if (!window) return;\n"
+			+ "    if (window.resourceClass === \"wayplank\" || window.resourceName === \"wayplank\" || window.caption === \"wayplank\")\n"
+			+ "        return;\n"
 			+ "    if (window.frameGeometryChanged)\n"
-			+ "        window.frameGeometryChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.frameGeometryChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.minimizedChanged)\n"
-			+ "        window.minimizedChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.minimizedChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.maximizedChanged)\n"
-			+ "        window.maximizedChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.maximizedChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.activeChanged)\n"
-			+ "        window.activeChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.activeChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.desktopsChanged)\n"
-			+ "        window.desktopsChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.desktopsChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.desktopChanged)\n"
-			+ "        window.desktopChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.desktopChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.demandsAttentionChanged) {\n"
-			+ "        window.demandsAttentionChanged.connect(function () { sendWindowState(); });\n"
+			+ "        window.demandsAttentionChanged.connect(scheduleWindowState);\n"
 			+ "    }\n"
 			+ "}\n"
 			+ "\n"
 			+ "if (workspace.currentDesktopChanged) {\n"
-			+ "    workspace.currentDesktopChanged.connect(function () {\n"
-			+ "        sendWindowState();\n"
-			+ "    });\n"
+			+ "    workspace.currentDesktopChanged.connect(scheduleWindowState);\n"
 			+ "}\n"
 			+ "workspace.windowAdded.connect(function (window) {\n"
 			+ "    connectWindow(window);\n"
-			+ "    sendWindowState();\n"
+			+ "    scheduleWindowState();\n"
 			+ "});\n"
 			+ "workspace.windowRemoved.connect(function (w) {\n"
 			+ "    sendWindowStateEx(w);\n"
 			+ "});\n"
 			+ "workspace.windowActivated.connect(function (client) {\n"
-			+ "    sendWindowState();\n"
+			+ "    scheduleWindowState();\n"
 			+ "    if (wayplankShowingDesktop && client && client.normalWindow && !client.minimized && client.specialWindow !== true) {\n"
 			+ "        wayplankShowingDesktop = false;\n"
 			+ "    }\n"
@@ -520,6 +533,29 @@ namespace Plank
 			}
 
 			start ();
+		}
+
+		public static void handle_system_resume ()
+		{
+			if (script_id >= 0 && script_path != null) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					var result = connection.call_sync ("org.kde.KWin", "/Scripting",
+						"org.kde.kwin.Scripting", "isScriptLoaded",
+						new Variant ("(s)", script_path),
+						new VariantType ("(b)"), DBusCallFlags.NONE, 250, null);
+					bool is_loaded = false;
+					result.get ("(b)", out is_loaded);
+					if (is_loaded) {
+						debug ("Wayplank: KWin bridge script is already alive across resume, skipping reload");
+						return;
+					}
+				} catch (Error e) {
+					debug ("Wayplank: KWin script check failed: %s", e.message);
+				}
+			}
+
+			reload_script ();
 		}
 
 		public static bool any_window_intersects (Gdk.Rectangle dock_rect)

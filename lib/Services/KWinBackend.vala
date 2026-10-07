@@ -89,7 +89,7 @@ namespace Plank
 
 		public void handle_system_resume ()
 		{
-			KWinBridge.reload_script ();
+			KWinBridge.handle_system_resume ();
 		}
 	}
 }

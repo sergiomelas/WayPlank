@@ -145,7 +145,7 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 ```bash
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
-sudo dpkg -i build/wayplank_0.5.0_amd64.deb
+sudo dpkg -i build/wayplank_0.5.1_amd64.deb
 ```
 
 ---
@@ -222,6 +222,16 @@ wayplank -d
 ---
 
 # Change log
+
+## V0.5.1: 2026-10-08
+
+**KWin Resume Event Storm Hotfix & QTimer Debouncing**:
+- **KWin Event Loop Starvation Hotfix**: Fixed a severe compositor freeze in KDE Plasma 6.x upon system resume from sleep where KWin server-side decorations (title bars, window movement, minimize/maximize buttons) stopped responding while client windows remained interactive.
+- **50ms QTimer Single-Shot Debounce**: Replaced direct, synchronous `sendWindowState()` invocations across rapid window geometry and desktop signals with an asynchronous 50ms debounced queue in `KWinBridge.vala`.
+- **Zombie Script & Shortcut Collision Prevention**: Added `isScriptLoaded` check in `KWinBridge.handle_system_resume()`; preserves existing script instances across system sleep instead of re-registering duplicate scripts and colliding with `kglobalaccel`.
+- **Dock Self-Filtering**: Excluded Wayplank's own surface from KWin script signal connections to prevent circular window state emissions.
+
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.5.1.md`](src/CHANGELOG_v0.5.1.md).
 
 ## V0.5.0: 2026-10-07
 

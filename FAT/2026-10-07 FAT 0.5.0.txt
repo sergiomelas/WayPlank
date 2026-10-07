@@ -1,0 +1,220 @@
+================================================================================
+                    WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
+================================================================================
+Date: 2026-10-06
+
+
+================================================================================
+SESSION 1: GNOME (Mutter Backend)
+================================================================================
+
+0. Crashes during test
+   [ok] : Situation
+
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in Dock"
+   [ok] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in Dock"
+   [ko] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder:
+        Sometimes rearranging the moving icon loose icon media
+   [ok] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files onto dock
+   [ok] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof animation
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window): Click running app icon -> activates & brings to front
+   [ok] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
+   [ok] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
+   [ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
+   [ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+   [ok] 2.10 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the overlap of the non focused window
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock immediately
+
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ko] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
+   [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
+
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
+   [ok] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+
+6. DOCKLETS & SPECIAL ITEMS
+   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ok] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
+   [ok] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
+
+7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+   [ok] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [ok] 7.5 Theme Switching: Instant visual theme change
+   [ko] 7.6 Multi-Monitor: Output monitor selector works correctly:
+        in multimonitor is some occasions the dock stick to wrong scree
+
+8. MULTI MONITOR VALIDATION MATRIX
+   [ko] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
+        At least change monitor at each few bullets
+
+
+GNOME BUGS / NOTES:
+In Gnome still problems on multimonitor but getting better
+
+
+
+================================================================================
+SESSION 2: KDE PLASMA (KWin Backend)
+================================================================================
+
+0. Crashes during test
+   [ok] : Situation
+
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in Dock"
+   [ok] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+   [ok] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files onto dock
+   [ok] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof animation
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window): Click running app icon -> activates & brings to front
+   [ok] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
+   [ok] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
+   [ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
+   [ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+   [ok] 2.10 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the overlap of the non focused window
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock immediately
+
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ko] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
+   [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
+
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
+   [ok] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+
+6. DOCKLETS & SPECIAL ITEMS
+   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ok] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
+   [ok] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
+
+7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+   [ok] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [ok] 7.5 Theme Switching: Instant visual theme change
+   [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
+
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
+        At least change monitor at each few bullets
+
+
+PLASMA BUGS / NOTES:
+In plasma still some problems in virtual desktops but getting better
+
+
+================================================================================
+SESSION 3: LABWC (wlroots Backend)
+================================================================================
+
+
+0. Crashes during test
+   [ok] : Situation
+
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in Dock"
+   [ok] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+   [ok] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files onto dock
+   [ok] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof animation
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window): Click running app icon -> activates & brings to front
+   [ok] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
+   [ok] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
+   [ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
+   [ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+   [ok] 2.10 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the overlap of the non focused window
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock immediately
+
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ko] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
+   [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
+
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
+   [ok] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+
+6. DOCKLETS & SPECIAL ITEMS
+   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ok] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
+   [ok] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
+
+7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+   [ko] 7.1 Window Opening: Preferences dialog opens centered without glitch:
+        the preference windows appears on the to left
+   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [ok] 7.5 Theme Switching: Instant visual theme change
+   [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
+
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
+        At least change monitor at each few bullets
+
+
+LABWC BUGS / NOTES:
+In LABWC still some problems in virtual desktops but getting better
+Still problems in section 4 and 7
+
+
+================================================================================

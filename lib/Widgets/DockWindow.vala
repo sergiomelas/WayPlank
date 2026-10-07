@@ -114,6 +114,7 @@ namespace Plank
 				set_visual (visual);
 
 			set_app_paintable (true);
+			stick ();
 
 			accept_focus = false;
 			can_focus = false;
@@ -247,21 +248,25 @@ namespace Plank
 			if (show_menu (HoveredItem, button, event.state, (int) event.x, (int) event.y, (Gdk.Event) event))
 				return Gdk.EVENT_STOP;
 
-			long_press_active = false;
-			long_press_button = event.button;
-			Gdk.ModifierType ev_state = event.state;
-			int ex = (int) event.x;
-			int ey = (int) event.y;
+			cancel_long_press ();
 
-			if (long_press_timer_id > 0U)
-				Source.remove (long_press_timer_id);
-			long_press_timer_id = Gdk.threads_add_timeout (LONG_PRESS_TIME, () => {
-				long_press_active = true;
-				long_press_timer_id = 0U;
-				if (HoveredItem != null)
-					show_menu (HoveredItem, PopupButton.RIGHT, ev_state, ex, ey, null);
-				return false;
-			});
+			if (event.button == Gdk.BUTTON_PRIMARY) {
+				long_press_active = false;
+				long_press_button = event.button;
+				Gdk.ModifierType ev_state = event.state;
+				int ex = (int) event.x;
+				int ey = (int) event.y;
+
+				long_press_timer_id = Timeout.add (LONG_PRESS_TIME, () => {
+					long_press_timer_id = 0U;
+					if (controller.drag_manager.InternalDragActive || controller.drag_manager.ExternalDragActive)
+						return false;
+					long_press_active = true;
+					if (HoveredItem != null)
+						show_menu (HoveredItem, PopupButton.RIGHT, ev_state, ex, ey, null);
+					return false;
+				});
+			}
 
 			return Gdk.EVENT_PROPAGATE;
 		}
@@ -311,6 +316,9 @@ namespace Plank
 			if ((bool) event.send_event)
 				return Gdk.EVENT_PROPAGATE;
 
+			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
+				return Gdk.EVENT_PROPAGATE;
+
 			if (!menu_is_visible ()) {
 				set_hovered_provider (null);
 				set_hovered (null);
@@ -323,6 +331,9 @@ namespace Plank
 
 		public override bool enter_notify_event (Gdk.EventCrossing event)
 		{
+			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
+				return Gdk.EVENT_PROPAGATE;
+
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
@@ -339,6 +350,9 @@ namespace Plank
 			if (menu_is_visible ())
 				return Gdk.EVENT_STOP;
 
+			if (long_press_timer_id > 0U)
+				cancel_long_press ();
+
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
@@ -354,11 +368,7 @@ namespace Plank
 		 */
 		public override void drag_begin (Gdk.DragContext context)
 		{
-			long_press_active = false;
-			if (long_press_timer_id > 0U) {
-				Source.remove (long_press_timer_id);
-				long_press_timer_id = 0U;
-			}
+			cancel_long_press ();
 		}
 
 		/**
@@ -631,6 +641,9 @@ namespace Plank
 			if (needs_resize || width_current <= 0) {
 				Logger.verbose ("DockWindow.set_size_request (width = %i, height = %i)", win_rect.width, win_rect.height);
 				set_size_request (win_rect.width, win_rect.height);
+				if (!GtkLayerShell.is_supported ()) {
+					resize (win_rect.width, win_rect.height);
+				}
 				controller.renderer.reset_buffers ();
 
 				update_icon_regions ();
@@ -640,13 +653,17 @@ namespace Plank
 			}
 
 			if (!GtkLayerShell.is_supported ()) {
-				move (win_rect.x, win_rect.y);
-				if (WindowControl.is_mutter ()) {
-					MutterBackend.get_default ().position_dock (win_rect.x, win_rect.y, win_rect.width, win_rect.height);
+				int cur_w, cur_h;
+				get_size (out cur_w, out cur_h);
+				if (cur_w != win_rect.width || cur_h != win_rect.height) {
+					resize (win_rect.width, win_rect.height);
 				}
+				move (win_rect.x, win_rect.y);
+				WindowControl.position_dock (win_rect.x, win_rect.y, win_rect.width, win_rect.height);
 			}
 
 			show_all ();
+			stick ();
 			if (GtkLayerShell.is_supported ())
 				present (); 
 			queue_draw ();

@@ -6,7 +6,7 @@
 >
 > Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
 
-![Wayplank v0.4.3 Release Banner](Release%20Pic.png)
+![Wayplank v0.5.0 Release Banner](Release%20Pic.png)
 
 ---
 
@@ -145,7 +145,7 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 ```bash
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
-sudo dpkg -i build/wayplank_0.4.3_amd64.deb
+sudo dpkg -i build/wayplank_0.5.0_amd64.deb
 ```
 
 ---
@@ -177,30 +177,30 @@ wayplank -d
 
 # PROJECT ROADMAP & THE WAYLAND MILESTONES
 
-- [x] Phase 1 (Completed): Decoupled Standalone Fork
-  - Complete breakaway from unmaintained upstream Plank.
-  - Full namespace migration to 'wayplank' (configs, directories, launchers).
-  - Modern monolithic build system replacing broken autotools/autogen scripts.
-  - Multi-distro compatibility and standalone Debian packaging pipeline.
+- [x] Phase 1 (Completed) v0.1.0: Decoupled Standalone Fork
+  - [x] Complete breakaway from unmaintained upstream Plank.
+  - [x] Full namespace migration to 'wayplank' (configs, directories, launchers).
+  - [x] Modern monolithic build system replacing broken autotools/autogen scripts.
+  - [x] Multi-distro compatibility and standalone Debian packaging pipeline.
 
-- [x] Phase 2 (Completed): Application Discovery and Dock Lifecycle
-  - Implemented generic application discovery from running processes and desktop files.
-  - Added persistent pinned application handling and temporary running application icons.
-  - Implemented running-instance marking and multi-instance application management.
+- [x] Phase 2 (Completed) v0.2.0: Application Discovery and Dock Lifecycle
+  - [x] Implemented generic application discovery from running processes and desktop files.
+  - [x] Added persistent pinned application handling and temporary running application icons.
+  - [x] Implemented running-instance marking and multi-instance application management.
 
-- [x] Phase 3 (Completed): Declaration of Independence from X11 & Native Wayland Integration
-  - Implementation of Wayland native protocols.
-  - Complete phasing out of X11/XWayland dependencies. Support one compositor.
+- [x] Phase 3 (Completed) v0.3.0: Declaration of Independence from X11 & Native Wayland Integration
+  - [x] Implementation of Wayland native protocols.
+  - [x] Complete phasing out of X11/XWayland dependencies. Support one compositor.
     This will be Kwin because it is the one I know the best.
-  - Full fractional scaling and native Wayland compositor window tracking.
+  - [x] Full fractional scaling and native Wayland compositor window tracking.
 
-- [x] Phase 4 (Completed): KWin Stabilization, Monolithic Docklets & Bug Fixes
-  - Hardened KWin scripting bridge, overlap detection, and multi-monitor tracking.
-  - Implemented 8 embedded monolithic docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
-  - Bi-directional KWin & Plasma D-Bus trash bridge synchronization.
-  - Resolved icon bounce regressions, portal file launching, and process replacement (`--replace` / `-r`).
+- [x] Phase 4 (Completed) v0.4.0, v0.4.1, v0.4.2: KWin Stabilization, Monolithic Docklets & Bug Fixes
+  - [x] Hardened KWin scripting bridge, overlap detection, and multi-monitor tracking.
+  - [x] Implemented 8 embedded monolithic docklets (Trash, Clocks, Battery, CPU/RAM, Show Desktop, MPRIS, Volume).
+  - [x] Bi-directional KWin & Plasma D-Bus trash bridge synchronization.
+  - [x] Resolved icon bounce regressions, portal file launching, and process replacement (`--replace` / `-r`).
 
-- [ ] Phase 5 (In Progress): Multi-Compositor HAL & Support for Other Compositors (Labwc, wlroots, Mutter)
+- [x] Phase 5 (Completed) v0.4.3: Multi-Compositor HAL & Support for Other Compositors (Labwc, wlroots, Mutter)
   - [x] Defined and implemented the modular Hardware Abstraction Layer (`WindowBackend` / `WindowControl`).
   - [x] Added native Labwc & wlroots support via `zwlr_foreign_toplevel_manager_v1` protocol and C bridge (v0.4.3).
   - [x] Zero-configuration runtime dynamic compositor auto-probing (Labwc vs KWin vs Mutter).
@@ -208,29 +208,42 @@ wayplank -d
   - [x] State-based Dodge & Honest UI Matrix for Labwc (`DODGE_MAXIMIZED`, UI filtering, transparent fallback; validated on LXQt 2.x and XFCE 4.20).
   - [x] Native GNOME Shell / Mutter bridge integration (Phase 1): monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`), window state tracking, zero-notification banners, centered dialogs, and edge positioning (v0.4.3).
   - [x] Strict HAL coordinate isolation: native Layer Shell margins for KWin/Labwc and dedicated absolute screen positioning for Mutter (v0.4.3).
-  - [ ] Finalize GNOME Shell extension bridge for window geometry retrieval to support Intellihide & Dodge on Mutter.
+  - [x] Finalize GNOME Shell extension bridge for window geometry retrieval to support Intellihide & Dodge on Mutter.
+
+- [ ] Phase 6 (Ongoing) v0.5,..,v0.9: Move to Maintenance and Bugfixing
+  - [x] Multi-monitor selection persistence and edge placement fine-tuning across all compositors. 
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-  - [ ] Multi-monitor selection persistence and edge placement fine-tuning across all compositors.
+  - [ ] Finish documentation, packaging, and configuration migration.
+  - [ ] After release, focus on bug fixes and compatibility updates.
 
-- [ ] Phase 6 (Final): Publish Version 1.0 and Move to Maintenance
-  - Finish documentation, packaging, and configuration migration.
-  - Publish Version 1.0 with a clear list of supported compositors.
-  - After release, focus on bug fixes and compatibility updates.
-
+- [ ] Phase 7 (Final) v1.0.0: Publish Version 1.0 as first stable
+  - [ ] Publish Version 1.0 with a clear list of supported compositors.
+  - [ ] After release, focus on bug fixes and compatibility updates.
 ---
 
 # Change log
+
+## V0.5.0: 2026-10-07
+
+**Phase 6 Hardening, Multi-Monitor Unique Tagging & Cross-Compositor FAT**:
+- **Cross-Compositor FAT Validation Matrix**: Full Factory Acceptance Testing executed across GNOME/Mutter, KDE/KWin, and Labwc covering 25+ validation scenarios.
+- **Unique Multi-Monitor Geometry Tagging**: Solved multi-display collisions between identical hardware monitors via `%s (%d) [%dx%d @ %d,%d]` spatial tags in `PositionManager.vala`.
+- **Dynamic Monitor Hotplugging & Unlocked UI**: Connected `monitors_changed` signal to rebuild display lists in real time; unlocked display dropdown with re-entrancy guards.
+- **KWin FIFO Queue & Desktop Traversal**: Solved dropped bulk actions ("Close All") via serialized JSON queue in `KWinBridge.vala`; added automatic virtual desktop switching.
+- **GNOME Shell Bridge & Drag Safety**: Resolved frame positioning race conditions via explicit monitor assignment and eliminated pointer timer use-after-free crashes.
+- **Release status**: Still some bugs persists but good enough for publishing see fat status: [`FAT/2026-10-07 FAT 0.5.0.txt`](FAT/2026-10-07%20FAT%200.5.0.txt)
+
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.5.0.md`](src/CHANGELOG_v0.5.0.md).
 
 ## V0.4.3: 2026-10-05
 
 **Multi-Compositor HAL Release (KWin, Labwc/wlroots & GNOME/Mutter)**:
 - **Modular Multi-Compositor HAL**: Dynamic runtime auto-probing across KWin, Labwc, and GNOME/Mutter at startup with zero configuration.
-- **Native Labwc & wlroots Support**: Integrated asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1`.
-- **Native GNOME/Mutter Integration (Phase 1)**: Monolithic self-deploying GNOME Shell extension via D-Bus; complete suppression of notification banners, centered dialogs, and dock edge placement.
-- **Strict HAL Coordinate Isolation & Tooltip Alignment**: Pure relative Layer Shell margins for KWin/Labwc with full opposite-edge anchoring eliminating vertical/horizontal drift; dedicated absolute screen positioning with real frame anchoring for Mutter.
-- **Zero-Latency Reactive Indicators**: Immediate Cairo buffer invalidation and lifecycle synchronization for active app markers.
-- **Bi-Directional Show Desktop & Intelligent Dodge**: Atomic bulk minimization/restore across all compositors; `DODGE_MAXIMIZED` state-based dodge with transparent fallback on Labwc.
-- **Dynamic Dual Separator Architecture & Drag Boundary Enforcement**: Modern half-icon width separators (`[Pinned] | [Transient] | [Trash]`), strict drag boundary preventing any app from moving beyond the separator preceding Trash, and intuitive drag-to-pin / drag-to-unpin across Separator 1.
+- **Native Labwc & wlroots Support**: Integrated asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1` with zero-latency Cairo dot indicators.
+- **Native GNOME/Mutter D-Bus Bridge**: Monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`) with window state tracking and edge positioning.
+- **Strict HAL Coordinate Isolation**: Pure relative Layer Shell margins for KWin/Labwc; dedicated absolute screen positioning with real frame anchoring for Mutter.
+- **Bi-Directional Show Desktop & Dynamic Separators**: Atomic bulk minimize/restore across all backends; dual visual separators (`[Pinned] | [Transient] | [Trash]`).
+- **Release status**: Still some bugs persists but good enough for publishing see fat status: [`FAT/2026-10-06 FAT 0.4.3.txt`](FAT/2026-10-06%20FAT%200.4.3.txt)
 
 👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.3.md`](src/CHANGELOG_v0.4.3.md).
 
@@ -253,6 +266,8 @@ wayplank -d
 - **Zoom & UI Smoothness**: Disabled system config polling during icon zoom to eliminate micro-stutters and adjusted zoom bounds to avoid icon clipping.
 - **Legacy Code Purge**: Removed leftover X11/XWayland calls, stripped deprecated APIs, and eliminated compiler warnings.
 
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.1.md`](src/CHANGELOG_v0.4.1.md).
+
 ## V0.4.0: 2026-09-24
 
 **KWin Wayland Scripting Bridge & Window Dodge Engine**:
@@ -261,12 +276,16 @@ wayplank -d
 - **Dynamic Layer-Shell Negotiation**: Handled dynamic layer-shell exclusive zones and input regions to ensure seamless window interaction alongside dock auto-hide.
 - **Transient Icon Filtering**: Prevented system tray icons from incorrectly spawning as temporary dock items.
 
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.0.md`](src/CHANGELOG_v0.4.0.md).
+
 ## V0.3.0: 2026-09-23
 
 **Wayland Hover Stabilization & Application Management**:
 - **Icon Pinning & Instance Marking**: Implemented drag-and-drop icon pinning, running application markers, and multi-instance management.
 - **Hover & Surface Lifecycle**: Fixed dock hover zoom when cursor enters the dock surface, restored show/hide logic, and eliminated unsafe X11 overlap assumptions.
 - **Compositor-Safe Architecture**: Replaced legacy X11 window queries with Wayland compositor-safe abstractions.
+
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.3.0.md`](src/CHANGELOG_v0.3.0.md).
 
 ## V0.2.0: 2026-09-22
 
@@ -277,6 +296,8 @@ wayplank -d
 - **Build Pipeline & Packaging**: Modularized build scripts (`BuildBin.sh`, `BuildDeb.sh`), updated dependencies to `libgtk-layer-shell0`, and established cross-distro compatibility.
 - **Legacy Cleanup**: Purged obsolete X11 backends, environment overrides (`GDK_BACKEND=x11`), and legacy display server restrictions.
 
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.2.0.md`](src/CHANGELOG_v0.2.0.md).
+
 ## V0.1.0: 2026-09-19
 
 **Phase 1 Architecture Decoupling & Baseline Release**:
@@ -284,4 +305,6 @@ wayplank -d
 - **Namespace Migration**: Renamed binary and data namespaces to `wayplank` with transparent symlink compatibility.
 - **XDG Directory Isolation**: Relocated configs to `~/.config/wayplank` and themes to `~/.local/share/wayplank/themes`.
 - **Packaging Pipeline**: Created universal manual compilation sequence and standalone Debian packaging script.
+
+👉 **Full Technical Details:** See [`src/CHANGELOG_v0.1.0.md`](src/CHANGELOG_v0.1.0.md).
 

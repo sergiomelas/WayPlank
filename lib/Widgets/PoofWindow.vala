@@ -163,18 +163,14 @@ namespace Plank
 				var abs_x = int.max (mon_x, int.min (mon_x + mon_w - poof_size, target_x));
 				var abs_y = int.max (mon_y, int.min (mon_y + mon_h - poof_size, target_y));
 
-				if (WindowControl.is_mutter ()) {
-					MutterBackend.get_default ().position_poof (abs_x, abs_y, poof_size, poof_size);
-				}
+				WindowControl.position_poof (abs_x, abs_y, poof_size, poof_size);
 				move (abs_x, abs_y);
 				show ();
-				if (WindowControl.is_mutter ()) {
-					MutterBackend.get_default ().position_poof (abs_x, abs_y, poof_size, poof_size);
-					GLib.Timeout.add (25, () => {
-						MutterBackend.get_default ().position_poof (abs_x, abs_y, poof_size, poof_size);
-						return false;
-					});
-				}
+				WindowControl.position_poof (abs_x, abs_y, poof_size, poof_size);
+				GLib.Timeout.add (25, () => {
+					WindowControl.position_poof (abs_x, abs_y, poof_size, poof_size);
+					return false;
+				});
 				animation_timer_id = Gdk.threads_add_timeout (30, () => {
 					frame_time = GLib.get_monotonic_time ();
 					if (frame_time - start_time <= RUN_LENGTH) {

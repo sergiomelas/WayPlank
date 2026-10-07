@@ -13,13 +13,13 @@ sudo apt install --no-install-recommends mutter mutter-dev-bin
 MUTTER_DEBUG_DUMMY_MODE_SPECS=800x600 env -u LD_PRELOAD GTK_CSD=1 mutter --wayland --devkit --no-x11 --virtual-monitor=800x600 --wayland-display=wayland-9
 
 # Terminal 2 - Launch Wayplank inside that Mutter window (loads standard dock1):
-WAYLAND_DISPLAY=wayland-9 env -u LD_PRELOAD GTK_CSD=1 /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -r -d
+WAYLAND_DISPLAY=wayland-9 env -u LD_PRELOAD GTK_CSD=1 /home/sergio/Others/WayPlank/WayPlank/build/wayplank -r -d
 
 # Test Method B (Single-Command One-Liner):
-MUTTER_DEBUG_DUMMY_MODE_SPECS=800x600 env -u LD_PRELOAD GTK_CSD=1 mutter --wayland --devkit --no-x11 --virtual-monitor=800x600 --wayland-display=wayland-9 -- sh -c "env -u LD_PRELOAD GTK_CSD=1 /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -r -d"
+MUTTER_DEBUG_DUMMY_MODE_SPECS=800x600 env -u LD_PRELOAD GTK_CSD=1 mutter --wayland --devkit --no-x11 --virtual-monitor=800x600 --wayland-display=wayland-9 -- sh -c "env -u LD_PRELOAD GTK_CSD=1 /home/sergio/Others/WayPlank/WayPlank/build/wayplank -r -d"
 
-#For screene shot use:
-WAYLAND_DISPLAY=wayland-0 spectacle -b -f -o /home/sergio/Others/WayPlank/0.4_Wayland/screenshot.png
+# For screenshot use:
+WAYLAND_DISPLAY=wayland-0 spectacle -b -f -o /home/sergio/Others/WayPlank/WayPlank/screenshot.png
 
 # Purge:
 sudo apt purge mutter mutter-dev-bin
@@ -30,21 +30,23 @@ sudo apt autoremove --purge
 # 2. GNOME SHELL & MUTTER (Full GNOME Desktop with Extensions Support)
 # ------------------------------------------------------------------------------
 
-# Minimal Installation (Debian Sid GNOME 50+):
+# Option A - Full Session for SDDM / GDM login menu (Recommended):
+# Installs GNOME Shell and the session file (/usr/share/wayland-sessions/gnome.desktop)
 sudo apt install --no-install-recommends \
+    gnome-session \
     gnome-shell \
     gnome-shell-extension-prefs \
     gnome-terminal
 
-# Optional: Add full session if you want to log in directly from SDDM/GDM:
-# sudo apt install --no-install-recommends gnome-session
+# Option B - Minimal for Nested Window Testing Only (No SDDM menu entry):
+# sudo apt install --no-install-recommends gnome-shell gnome-shell-extension-prefs gnome-terminal
 
 # Test Method (Runs GNOME Shell 50+ inside a 1280x720 nested window on host Wayland):
 # Terminal 1 - Start nested GNOME Shell:
 MUTTER_DEBUG_DUMMY_MODE_SPECS=1280x720 dbus-run-session gnome-shell --wayland --no-x11 --virtual-monitor=1280x720 --wayland-display=wayland-9
 
 # Terminal 2 - Launch Wayplank inside that GNOME nested window:
-WAYLAND_DISPLAY=wayland-9 dbus-run-session /home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d
+WAYLAND_DISPLAY=wayland-9 dbus-run-session /home/sergio/Others/WayPlank/WayPlank/build/wayplank -d
 
 # Managing Wayplank GNOME Shell Extension:
 # Extensions directory: ~/.local/share/gnome-shell/extensions/
@@ -55,6 +57,7 @@ WAYLAND_DISPLAY=wayland-9 dbus-run-session /home/sergio/Others/WayPlank/0.4_Wayl
 
 # Purge:
 sudo apt purge \
+    gnome-session \
     gnome-shell \
     gnome-shell-extension-prefs \
     gnome-terminal
@@ -69,7 +72,7 @@ sudo apt autoremove --purge
 sudo apt install --no-install-recommends labwc
 
 # Test Command (Nested window with Wayplank and terminal):
-dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d & konsole'"
+dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/WayPlank/build/wayplank -d & konsole'"
 
 # Purge:
 sudo apt purge labwc
@@ -83,6 +86,7 @@ sudo apt autoremove --purge
 ### --- LXQt (Wayland session on Labwc) ---
 
 # Installation:
+# (Note: lxqt-wayland-session provides /usr/share/wayland-sessions/lxqt-wayland.desktop for SDDM)
 sudo apt install --no-install-recommends \
     lxqt-core \
     lxqt-wayland-session \
@@ -91,7 +95,7 @@ sudo apt install --no-install-recommends \
     qterminal
 
 # Test Command (Runs LXQt session inside a nested Labwc window with Wayplank):
-dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d & startlxqt'"
+dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/WayPlank/build/wayplank -d & startlxqt'"
 
 # Purge:
 sudo apt purge \
@@ -114,7 +118,7 @@ sudo apt install --no-install-recommends \
     xfce4-terminal
 
 # Test Command (Runs XFCE desktop inside a nested Labwc window with Wayplank):
-dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/0.4_Wayland/build/wayplank -d & xfce4-session'"
+dbus-run-session labwc -s "sh -c '/home/sergio/Others/WayPlank/WayPlank/build/wayplank -d & xfce4-session'"
 
 # Purge:
 sudo apt purge \

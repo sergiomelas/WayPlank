@@ -25,7 +25,7 @@ namespace Plank
 	 */
 	public class WindowCapabilities : GLib.Object
 	{
-		const string MATRIX = "KDE=11111;LABWC=11111;WLROOTS=11100";
+		const string MATRIX = "KDE=11111;LABWC=11111;WLROOTS=11100;GNOME=11111";
 		
 		static string display_name (string desktop)
 		{
@@ -33,6 +33,7 @@ namespace Plank
 			case "KDE": return "KWin (KDE Plasma)";
 			case "LABWC": return "Labwc";
 			case "WLROOTS": return "wlroots-compatible compositors";
+			case "GNOME": return "GNOME Shell (Mutter)";
 			default: return desktop;
 			}
 		}
@@ -82,7 +83,10 @@ namespace Plank
 			}
 
 			if (WindowControl.is_mutter ()) {
-				return mode == HideType.AUTO || mode == HideType.NONE;
+				return mode == HideType.INTELLIGENT
+					|| mode == HideType.DODGE_MAXIMIZED
+					|| mode == HideType.WINDOW_DODGE
+					|| mode == HideType.DODGE_ACTIVE;
 			}
 
 			if (environment_is_session_desktop (XdgSessionDesktop.KDE)

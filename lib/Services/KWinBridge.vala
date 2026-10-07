@@ -29,6 +29,16 @@ namespace Plank
 			+ "var wayplankMinimizeSequence = 0;\n"
 			+ "var wayplankMinimizedWindows = {};\n"
 			+ "\n"
+			+ "function getAllWindows () {\n"
+			+ "    if (typeof workspace.windowList === \"function\")\n"
+			+ "        return workspace.windowList();\n"
+			+ "    if (typeof workspace.clientList === \"function\")\n"
+			+ "        return workspace.clientList();\n"
+			+ "    if (typeof workspace.windows !== \"undefined\" && workspace.windows && workspace.windows.length > 0)\n"
+			+ "        return workspace.windows;\n"
+			+ "    return workspace.stackingOrder;\n"
+			+ "}\n"
+			+ "\n"
 			+ "function sendWindowState () {\n"
 			+ "    sendWindowStateEx(null);\n"
 			+ "}\n"
@@ -36,9 +46,18 @@ namespace Plank
 			+ "function sendWindowStateEx (removedClient) {\n"
 			+ "    var removedUuid = (removedClient && removedClient.internalId) ? String(removedClient.internalId) : null;\n"
 			+ "    var windows = [];\n"
-			+ "    workspace.stackingOrder.forEach(function (client) {\n"
+			+ "    var allClients = getAllWindows();\n"
+			+ "    allClients.forEach(function (client) {\n"
 			+ "        if (!client || client.deleted === true)\n"
 			+ "            return;\n"
+			+ "        if (client.resourceClass === \"wayplank\" || client.resourceName === \"wayplank\" || client.caption === \"wayplank\") {\n"
+			+ "            try {\n"
+			+ "                client.onAllDesktops = true;\n"
+			+ "                client.skipTaskbar = true;\n"
+			+ "                client.skipPager = true;\n"
+			+ "            } catch (e) { }\n"
+			+ "            return;\n"
+			+ "        }\n"
 			+ "        var uuid = String(client.internalId);\n"
 			+ "        if (removedUuid && uuid === removedUuid)\n"
 			+ "            return;\n"
@@ -46,6 +65,18 @@ namespace Plank
 			+ "            wayplankMinimizedWindows[uuid] = ++wayplankMinimizeSequence;\n"
 			+ "        else if (client.minimized !== true)\n"
 			+ "            delete wayplankMinimizedWindows[uuid];\n"
+			+ "\n"
+			+ "        var onCurr = false;\n"
+			+ "        if (client.onAllDesktops === true) {\n"
+			+ "            onCurr = true;\n"
+			+ "        } else if (typeof client.isOnDesktop === \"function\" && workspace.currentDesktop) {\n"
+			+ "            onCurr = client.isOnDesktop(workspace.currentDesktop);\n"
+			+ "        } else if (typeof client.onCurrentDesktop !== \"undefined\") {\n"
+			+ "            onCurr = (client.onCurrentDesktop !== false);\n"
+			+ "        } else {\n"
+			+ "            onCurr = true;\n"
+			+ "        }\n"
+			+ "\n"
 			+ "        windows.push({\n"
 			+ "            uuid: uuid,\n"
 			+ "            caption: client.caption,\n"
@@ -64,7 +95,7 @@ namespace Plank
 			+ "            active: client === workspace.activeWindow,\n"
 			+ "            normal: client.normalWindow !== false,\n"
 			+ "            visible: client.visible !== false,\n"
-			+ "            currentDesktop: client.onCurrentDesktop !== false\n"
+			+ "            currentDesktop: onCurr\n"
 			+ "        });\n"
 			+ "    });\n"
 			+ "    callDBus(wayplankService, wayplankPath, wayplankInterface,\n"
@@ -72,15 +103,29 @@ namespace Plank
 			+ "}\n"
 			+ "\n"
 			+ "function connectWindow (window) {\n"
-			+ "    window.frameGeometryChanged.connect(function () { sendWindowState(); });\n"
-			+ "    window.minimizedChanged.connect(function () { sendWindowState(); });\n"
-			+ "    window.maximizedChanged.connect(function () { sendWindowState(); });\n"
-			+ "    window.activeChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (!window) return;\n"
+			+ "    if (window.frameGeometryChanged)\n"
+			+ "        window.frameGeometryChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (window.minimizedChanged)\n"
+			+ "        window.minimizedChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (window.maximizedChanged)\n"
+			+ "        window.maximizedChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (window.activeChanged)\n"
+			+ "        window.activeChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (window.desktopsChanged)\n"
+			+ "        window.desktopsChanged.connect(function () { sendWindowState(); });\n"
+			+ "    if (window.desktopChanged)\n"
+			+ "        window.desktopChanged.connect(function () { sendWindowState(); });\n"
 			+ "    if (window.demandsAttentionChanged) {\n"
 			+ "        window.demandsAttentionChanged.connect(function () { sendWindowState(); });\n"
 			+ "    }\n"
 			+ "}\n"
 			+ "\n"
+			+ "if (workspace.currentDesktopChanged) {\n"
+			+ "    workspace.currentDesktopChanged.connect(function () {\n"
+			+ "        sendWindowState();\n"
+			+ "    });\n"
+			+ "}\n"
 			+ "workspace.windowAdded.connect(function (window) {\n"
 			+ "    connectWindow(window);\n"
 			+ "    sendWindowState();\n"
@@ -94,7 +139,7 @@ namespace Plank
 			+ "        wayplankShowingDesktop = false;\n"
 			+ "    }\n"
 			+ "});\n"
-			+ "workspace.stackingOrder.forEach(connectWindow);\n"
+			+ "getAllWindows().forEach(connectWindow);\n"
 			+ "sendWindowState();\n"
 			+ "\n"
 			+ "function normalizeApplicationIdentity (value) {\n"
@@ -116,12 +161,6 @@ namespace Plank
 			+ "\n"
 			+ "var wayplankDesktopHiddenClients = [];\n"
 			+ "var wayplankShowingDesktop = false;\n"
-			+ "\n"
-			+ "function getAllWindows () {\n"
-			+ "    if (typeof workspace.windows !== \"undefined\" && workspace.windows && workspace.windows.length > 0)\n"
-			+ "        return workspace.windows;\n"
-			+ "    return workspace.stackingOrder;\n"
-			+ "}\n"
 			+ "\n"
 			+ "function toggleDesktop () {\n"
 			+ "    var allClients = getAllWindows();\n"
@@ -173,26 +212,51 @@ namespace Plank
 			+ "        return;\n"
 			+ "    }\n"
 			+ "    var target = null;\n"
-			+ "    workspace.stackingOrder.forEach(function (client) {\n"
+			+ "    var allClients = getAllWindows();\n"
+			+ "    allClients.forEach(function (client) {\n"
+			+ "        if (!client || client.deleted === true)\n"
+			+ "            return;\n"
 			+ "        if (String(client.internalId) === uuid)\n"
 			+ "            target = client;\n"
 			+ "    });\n"
 			+ "    if (!target)\n"
 			+ "        return;\n"
 			+ "\n"
+			+ "    var switchToDesktopIfNeeded = function (client) {\n"
+			+ "        if (!client || client.onAllDesktops)\n"
+			+ "            return;\n"
+			+ "        if (client.desktops && client.desktops.length > 0 && typeof workspace.currentDesktop !== \"undefined\") {\n"
+			+ "            if (typeof client.isOnDesktop === \"function\" ? !client.isOnDesktop(workspace.currentDesktop) : false) {\n"
+			+ "                workspace.currentDesktop = client.desktops[0];\n"
+			+ "            }\n"
+			+ "        } else if (typeof client.desktop !== \"undefined\" && typeof workspace.currentDesktop !== \"undefined\") {\n"
+			+ "            if (client.desktop > 0 && client.desktop !== workspace.currentDesktop) {\n"
+			+ "                workspace.currentDesktop = client.desktop;\n"
+			+ "            }\n"
+			+ "        }\n"
+			+ "    };\n"
+			+ "\n"
 			+ "    if (action === \"activate\") {\n"
 			+ "        if (target.minimized)\n"
 			+ "            target.minimized = false;\n"
+			+ "        switchToDesktopIfNeeded(target);\n"
 			+ "        workspace.activeWindow = target;\n"
 			+ "    } else if (action === \"toggle\") {\n"
 			+ "        if (target.minimized) {\n"
 			+ "            target.minimized = false;\n"
+			+ "            switchToDesktopIfNeeded(target);\n"
 			+ "            workspace.activeWindow = target;\n"
 			+ "        } else if (target === workspace.activeWindow) {\n"
 			+ "            target.minimized = true;\n"
 			+ "        } else {\n"
+			+ "            switchToDesktopIfNeeded(target);\n"
 			+ "            workspace.activeWindow = target;\n"
 			+ "        }\n"
+			+ "    } else if (action === \"close\") {\n"
+			+ "        if (typeof target.closeWindow === \"function\")\n"
+			+ "            target.closeWindow();\n"
+			+ "        else if (typeof workspace.closeWindow === \"function\")\n"
+			+ "            workspace.closeWindow(target);\n"
 			+ "    }\n"
 			+ "}\n"
 			+ "\n"
@@ -201,11 +265,16 @@ namespace Plank
 			+ "        function (reply) {\n"
 			+ "            if (!reply)\n"
 			+ "                return;\n"
-			+ "            print(\"Wayplank: received pending command: \" + reply);\n"
 			+ "            try {\n"
-			+ "                var cmd = JSON.parse(reply);\n"
-			+ "                if (cmd && cmd.uuid)\n"
-			+ "                    applyWindowCommand(cmd.uuid, cmd.action);\n"
+			+ "                var data = JSON.parse(reply);\n"
+			+ "                if (Array.isArray(data)) {\n"
+			+ "                    data.forEach(function (cmd) {\n"
+			+ "                        if (cmd && cmd.uuid)\n"
+			+ "                            applyWindowCommand(cmd.uuid, cmd.action);\n"
+			+ "                    });\n"
+			+ "                } else if (data && data.uuid) {\n"
+			+ "                    applyWindowCommand(data.uuid, data.action);\n"
+			+ "                }\n"
 			+ "            } catch (e) {\n"
 			+ "                print(\"Wayplank: invalid pending command: \" + e);\n"
 			+ "            }\n"
@@ -315,18 +384,27 @@ namespace Plank
 			return result;
 		}
 
-		static string? pending_command_uuid;
-		static string? pending_command_action;
+		class CommandEntry {
+			public string uuid;
+			public string action;
+
+			public CommandEntry (string uuid, string action)
+			{
+				this.uuid = uuid;
+				this.action = action;
+			}
+		}
+
+		static Gee.ArrayList<CommandEntry> pending_commands = new Gee.ArrayList<CommandEntry> ();
 
 		/**
-		 * Queues a window command (e.g. "activate" or "toggle") to be applied
+		 * Queues a window command (e.g. "activate", "toggle", or "close") to be applied
 		 * the next time the KWin script polls for pending commands.
 		 */
 		public static void queue_command (string uuid, string action)
 		{
 			message ("Wayplank: queued KWin command uuid=%s action=%s", uuid, action);
-			pending_command_uuid = uuid;
-			pending_command_action = action;
+			pending_commands.add (new CommandEntry (uuid, action));
 			invoke_apply_shortcut ();
 		}
 		
@@ -350,26 +428,27 @@ namespace Plank
 		}
 
 		/**
-		 * Returns and clears the currently queued command as a JSON string,
+		 * Returns and clears the currently queued commands as a JSON string array,
 		 * or an empty string if none is pending. Called by the KWin script.
 		 */
 		public static string fetch_pending_command ()
 		{
-			if (pending_command_uuid == null)
+			if (pending_commands.is_empty)
 				return "";
 			
-			message ("Wayplank: KWin script fetched pending command uuid=%s action=%s", pending_command_uuid, pending_command_action);
-
 			var builder = new Json.Builder ();
-			builder.begin_object ();
-			builder.set_member_name ("uuid");
-			builder.add_string_value (pending_command_uuid);
-			builder.set_member_name ("action");
-			builder.add_string_value (pending_command_action);
-			builder.end_object ();
-
-			pending_command_uuid = null;
-			pending_command_action = null;
+			builder.begin_array ();
+			foreach (var cmd in pending_commands) {
+				message ("Wayplank: KWin script fetched pending command uuid=%s action=%s", cmd.uuid, cmd.action);
+				builder.begin_object ();
+				builder.set_member_name ("uuid");
+				builder.add_string_value (cmd.uuid);
+				builder.set_member_name ("action");
+				builder.add_string_value (cmd.action);
+				builder.end_object ();
+			}
+			pending_commands.clear ();
+			builder.end_array ();
 
 			var generator = new Json.Generator ();
 			generator.set_root (builder.get_root ());

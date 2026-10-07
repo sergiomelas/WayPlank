@@ -21,7 +21,7 @@ To overcome these structural restrictions and build a high-performance, lightwei
 2. **Hardware / Compositor Abstraction Layer (HAL):** An extensible backend architecture (`WindowBackend`, `WindowInfo`, `WindowCapabilities`, `WindowManager`).
 3. **Bi-Directional KWin D-Bus Scripting Bridge:** Event-driven, push-based synchronization with zero polling (**0.0% CPU at idle**) between KWin (KDE Plasma) and WayPlank, delivering window states, geometry intersection, stacking order, and multi-window activation/minimization.
 4. **Real-Time Application Discovery & Identity Engine:** Inotify-based filesystem monitoring with **300ms debounce** (`GLib.FileMonitor`), paired with a multi-attribute heuristic scoring engine matching Wayland `app_id`, `StartupWMClass`, `/proc/[pid]/cmdline`, and wrapper scripts without external daemons.
-5. **Monolithic Core Stabilization:** Complete removal of fragile external dynamic docklet plugins (`lib/Docklets/`), replaced by high-performance built-in native items like [`SeparatorDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/SeparatorDockItem.vala), [`TrashDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/TrashDockItem.vala), and [`ClockDockItem.vala`](file:///home/sergio/Others/WayPlank/0.4_Wayland/lib/Items/ClockDockItem.vala).
+5. **Monolithic Core Stabilization:** Complete removal of fragile external dynamic docklet plugins, replaced by high-performance built-in native items like `SeparatorDockItem.vala`, `TrashDockItem.vala`, and `ClockDockItem.vala`.
 
 ---
 
@@ -194,7 +194,7 @@ The following 13 files were completely eliminated from the source repository:
 
 ### 4.6. `_Private/Howto.txt` & `Readme.txt`
 - **Original Purpose:** Legacy developer notes and outdated plain-text documentation.
-- **Reason for Removal:** Replaced by the comprehensive GitHub-flavored [`README.md`](file:///home/sergio/Others/WayPlank/_Wayland/README.md).
+- **Reason for Removal:** Replaced by the comprehensive GitHub-flavored `README.md`.
 
 ---
 
@@ -585,12 +585,18 @@ The following section covers every modified file across the codebase, documentin
 ---
 
 ## 8. Summary & Future Outlook
+====
+## 8. Summary, v0.4.3 & v0.5.0 Architectural Additions
 
-The transformation from **Plank 0.1_X11** to **WayPlank Wayland** successfully modernizes an aging X11 codebase into a lean, secure, and native Wayland dock. By isolating window management behind the `WindowBackend` HAL and utilizing `GtkLayerShell`, WayPlank achieves native Wayland compliance while outperforming its X11 predecessor in speed, resource efficiency, and stability.
+### 8.1. Version 0.4.3: Multi-Compositor HAL & GNOME/Mutter Extension
+- **Modular Multi-Compositor HAL**: Introduction of the Hardware Abstraction Layer allowing dynamic runtime auto-probing across KWin, Labwc, and GNOME/Mutter[cite: 3].
+- **Native Labwc & wlroots Support**: Integration of the asynchronous C protocol bridge implementing `zwlr_foreign_toplevel_manager_v1` with reactive Cairo dot indicators[cite: 3].
+- **Native GNOME/Mutter D-Bus Bridge**: Monolithic self-deploying GNOME Shell extension via D-Bus (`MutterBackend`) with window state tracking and edge positioning[cite: 3].
 
-> **Release Changelogs:** Detailed release-by-release bug fixes, docklet implementations, and itemized technical notes are documented in the dedicated changelog files:
-> - [`src/CHANGELOG_v0.4.2.md`](../src/CHANGELOG_v0.4.2.md) (Monolithic Docklets, Focus Stabilization, Plasma D-Bus Trash Bridge)
-> - [`src/CHANGELOG_v0.4.3.md`](../src/CHANGELOG_v0.4.3.md) (Labwc/wlroots Engine, Reactive Indicator Dots, Cross-Compositor Show Desktop)
+### 8.2. Version 0.5.0: Hardening, Widgets & Cross-Compositor FAT
+- **New UI Widgets**: Integration of `CalendarWindow.vala` and `HelpWindow.vala` to enrich the desktop user experience[cite: 3].
+- **Desktop Integration Improvements**: Addition of `KWinTrashBridge` for seamless interaction with KDE Plasma trash and workspace features[cite: 3].
+- **Cross-Compositor FAT Validation Matrix**: Full Factory Acceptance Testing executed across GNOME/Mutter, KDE/KWin, and Labwc covering 25+ validation scenarios.
 
 ---
 

@@ -30,6 +30,7 @@ namespace Plank
 		 * Fired whenever the active backend's window state changes.
 		 */
 		public signal void state_changed ();
+		public signal void primary_monitor_changed ();
 		
 		static WindowControl? instance;
 		WindowBackend? backend;
@@ -44,6 +45,13 @@ namespace Plank
 		WindowControl ()
 		{
 		}
+
+		void bind_backend (WindowBackend b)
+		{
+			backend = b;
+			backend.state_changed.connect (() => state_changed ());
+			backend.primary_monitor_changed.connect (() => primary_monitor_changed ());
+		}
 		
 		public static void initialize ()
 		{
@@ -57,8 +65,7 @@ namespace Plank
 			if (backend_env == "mutter") {
 				var mutter = new MutterBackend ();
 				if (mutter.start ()) {
-					self.backend = mutter;
-					self.backend.state_changed.connect (() => self.state_changed ());
+					self.bind_backend (mutter);
 					message ("Wayplank: activated Mutter window backend (explicit override)");
 					return;
 				}
@@ -68,8 +75,7 @@ namespace Plank
 			// 2. Probe for native wlroots/Labwc foreign toplevel protocol on current Wayland display
 			var labwc = new LabwcBackend ();
 			if (labwc.start ()) {
-				self.backend = labwc;
-				self.backend.state_changed.connect (() => self.state_changed ());
+				self.bind_backend (labwc);
 				message ("Wayplank: activated Labwc/wlroots window backend (wlr-foreign-toplevel)");
 				return;
 			}
@@ -77,8 +83,8 @@ namespace Plank
 
 			// 3. If under KDE Plasma AND Layer Shell is supported on this display, use KWin backend
 			if (environment_is_session_desktop (XdgSessionDesktop.KDE) && GtkLayerShell.is_supported ()) {
-				self.backend = new KWinBackend ();
-				self.backend.state_changed.connect (() => self.state_changed ());
+				var kwin = new KWinBackend ();
+				self.bind_backend (kwin);
 				message ("Wayplank: activated KWin window backend (KDE Plasma)");
 				return;
 			}
@@ -87,8 +93,7 @@ namespace Plank
 			if (backend_env == "mutter" || environment_is_session_desktop (XdgSessionDesktop.GNOME) || !GtkLayerShell.is_supported ()) {
 				var mutter = new MutterBackend ();
 				if (mutter.start ()) {
-					self.backend = mutter;
-					self.backend.state_changed.connect (() => self.state_changed ());
+					self.bind_backend (mutter);
 					message ("Wayplank: activated Mutter window backend (GNOME / non-layer-shell)");
 					return;
 				}
@@ -173,6 +178,39 @@ namespace Plank
 		{
 			if (get_default ().backend != null)
 				get_default ().backend.handle_system_resume ();
+		}
+
+		public static bool get_primary_monitor_geometry (out int x, out int y, out int width, out int height)
+		{
+			if (get_default ().backend != null) {
+				return get_default ().backend.get_primary_monitor_geometry (out x, out y, out width, out height);
+			}
+			x = 0; y = 0; width = 0; height = 0;
+			return false;
+		}
+
+		public static bool get_workarea_for_geometry (Gdk.Rectangle mon_geom, out Gdk.Rectangle workarea)
+		{
+			if (get_default ().backend != null) {
+				return get_default ().backend.get_workarea_for_geometry (mon_geom, out workarea);
+			}
+			workarea = mon_geom;
+			return false;
+		}
+
+		public static bool position_dock (int x, int y, int width, int height)
+		{
+			return get_default ().backend != null && get_default ().backend.position_dock (x, y, width, height);
+		}
+
+		public static bool position_hover (int x, int y, int width, int height)
+		{
+			return get_default ().backend != null && get_default ().backend.position_hover (x, y, width, height);
+		}
+
+		public static bool position_poof (int x, int y, int width, int height)
+		{
+			return get_default ().backend != null && get_default ().backend.position_poof (x, y, width, height);
 		}
 
 		public static bool is_kwin ()

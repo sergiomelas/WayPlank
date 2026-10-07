@@ -446,50 +446,30 @@ namespace Plank
 						unowned Gee.ArrayList<DockElement> elements = provider.Elements;
 						int drag_index = elements.index_of (DragItem);
 						if (drag_index >= 0) {
-							int sep_index = -1;
+							int sep1_index = -1;
+							int transient_count = 0;
 							for (int i = 0; i < elements.size; i++) {
-								if (elements.get (i) is SeparatorDockItem) {
-									sep_index = i;
-									break;
+								var el = elements.get (i);
+								if (el is SeparatorDockItem) {
+									if (sep1_index < 0)
+										sep1_index = i;
+								} else if (el is TransientDockItem) {
+									transient_count++;
 								}
 							}
 							
-							if (drop_target_item is TrashDockItem) {
-								if (!(DragItem is TransientDockItem)) {
+							// Only treat sep1 as pinned/transient divider if transient items exist.
+							// Never unpin an item just because it was dragged before Trash.
+							int divider_idx = (transient_count > 0) ? sep1_index : -1;
+
+							if (divider_idx >= 0) {
+								if (DragItem is TransientDockItem && drag_index < divider_idx) {
 									provider.pin_item (DragItem);
-								}
-							} else if (sep_index >= 0) {
-								if (DragItem is TransientDockItem && drag_index < sep_index) {
+								} else if (!(DragItem is TransientDockItem) && drag_index > divider_idx) {
 									provider.pin_item (DragItem);
-								} else if (!(DragItem is TransientDockItem) && drag_index > sep_index) {
-									provider.pin_item (DragItem);
-								}
-							} else {
-								// No separator: check against last pinned item
-								int last_pinned = -1;
-								int first_transient = -1;
-								for (int i = 0; i < elements.size; i++) {
-									var el = elements.get (i);
-									if (el == DragItem || el is SeparatorDockItem)
-										continue;
-									if (el is TransientDockItem) {
-										if (first_transient < 0)
-											first_transient = i;
-									} else {
-										last_pinned = i;
-									}
-								}
-								
-								if (DragItem is TransientDockItem) {
-									if (last_pinned >= 0 && drag_index <= last_pinned)
-										provider.pin_item (DragItem);
-								} else {
-									if (first_transient >= 0 && drag_index >= first_transient)
-										provider.pin_item (DragItem);
 								}
 							}
 						}
-						provider.refresh_separators ();
 					}
 				}
 			}
@@ -500,6 +480,10 @@ namespace Plank
 			dropped_on_target = false;
 			left_dock_during_drag = false;
 			context.get_device ().get_seat ().ungrab ();
+
+			unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+			if (default_app_provider != null)
+				default_app_provider.refresh_separators ();
 			
 			controller.window.notify["HoveredItem"].disconnect (hovered_item_changed);
 			controller.hover.hide ();

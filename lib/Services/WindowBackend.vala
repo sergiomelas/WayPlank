@@ -26,6 +26,7 @@ namespace Plank
 	public interface WindowBackend : GLib.Object
 	{
 		public signal void state_changed ();
+		public signal void primary_monitor_changed ();
 		public abstract bool start ();
 		public abstract void cleanup ();
 		public abstract bool has_state ();
@@ -36,5 +37,27 @@ namespace Plank
 		public abstract bool active_window_intersects (Gdk.Rectangle rect);
 		public abstract bool maximized_window_intersects (Gdk.Rectangle rect);
 		public virtual void handle_system_resume () { }
+		public virtual bool get_primary_monitor_geometry (out int x, out int y, out int width, out int height)
+		{
+			x = 0; y = 0; width = 0; height = 0;
+			return false;
+		}
+		public virtual bool get_workarea_for_geometry (Gdk.Rectangle mon_geom, out Gdk.Rectangle workarea)
+		{
+			workarea = mon_geom;
+			return false;
+		}
+		public virtual bool position_dock (int x, int y, int width, int height)
+		{
+			return false;
+		}
+		public virtual bool position_hover (int x, int y, int width, int height)
+		{
+			return false;
+		}
+		public virtual bool position_poof (int x, int y, int width, int height)
+		{
+			return false;
+		}
 	}
 }

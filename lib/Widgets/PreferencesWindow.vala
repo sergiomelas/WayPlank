@@ -109,6 +109,7 @@ namespace Plank
 		unowned Gtk.StackSwitcher dock_preferences_switcher;
 		
 		bool updating_docklets = false;
+		bool updating_monitors = false;
 		
 		Gtk.CssProvider popup_css;
 		Gdk.Screen popup_css_screen;
@@ -256,12 +257,7 @@ namespace Plank
 				sw_lock_items.set_active (prefs.LockItems);
 				break;
 			case "Monitor":
-				var pos = 0;
-				foreach (unowned string plug_name in Plank.PositionManager.get_monitor_plug_names (get_display ())) {
-					if (plug_name == prefs.Monitor)
-						cb_display_plug.set_active (pos);
-					pos++;
-				}
+				rebuild_monitor_list ();
 				break;
 			case "Offset":
 				adj_offset.value = prefs.Offset;
@@ -375,12 +371,23 @@ namespace Plank
 		
 		void primary_display_toggled (GLib.Object widget, ParamSpec param)
 		{
+			if (updating_monitors)
+				return;
 			if (((Gtk.Switch) widget).get_active ()) {
 				prefs.Monitor = "";
-				cb_display_plug.sensitive = false;
+				updating_monitors = true;
+				var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (get_display (), "");
+				for (int i = 0; i < get_display ().get_n_monitors (); i++) {
+					if (get_display ().get_monitor (i) == primary_mon) {
+						cb_display_plug.set_active (i);
+						break;
+					}
+				}
+				updating_monitors = false;
 			} else {
-				prefs.Monitor = cb_display_plug.get_active_text ();
-				cb_display_plug.sensitive = true;
+				var active_text = cb_display_plug.get_active_text ();
+				if (active_text != null && active_text != "")
+					prefs.Monitor = active_text;
 			}
 		}
 		
@@ -502,7 +509,15 @@ namespace Plank
 		
 		void monitor_changed (Gtk.ComboBox widget)
 		{
-			prefs.Monitor = ((Gtk.ComboBoxText) widget).get_active_text ();
+			if (updating_monitors)
+				return;
+			var text = ((Gtk.ComboBoxText) widget).get_active_text ();
+			if (text != null && text != "") {
+				prefs.Monitor = text;
+				updating_monitors = true;
+				sw_primary_display.set_active (false);
+				updating_monitors = false;
+			}
 		}
 		
 		void connect_signals ()
@@ -542,6 +557,7 @@ namespace Plank
 				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
+			get_screen ().monitors_changed.connect (rebuild_monitor_list);
 		}
 		
 		void disconnect_signals ()
@@ -581,8 +597,44 @@ namespace Plank
 				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
+			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
 		}
 		
+		void rebuild_monitor_list ()
+		{
+			updating_monitors = true;
+			cb_display_plug.remove_all ();
+			
+			var display = get_display ();
+			var names = Plank.PositionManager.get_monitor_plug_names (display);
+			int primary_pos = 0;
+			int active_pos = -1;
+			var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
+			var current_mon = Plank.PositionManager.get_monitor_for_plug_name (display, prefs.Monitor);
+			
+			for (int pos = 0; pos < names.length; pos++) {
+				cb_display_plug.append ("%i".printf (pos), names[pos]);
+				if (primary_mon != null && display.get_monitor (pos) == primary_mon)
+					primary_pos = pos;
+				if (current_mon != null && display.get_monitor (pos) == current_mon)
+					active_pos = pos;
+			}
+			
+			if (prefs.Monitor == "") {
+				cb_display_plug.set_active (primary_pos);
+				sw_primary_display.set_active (true);
+			} else if (active_pos >= 0) {
+				cb_display_plug.set_active (active_pos);
+				sw_primary_display.set_active (false);
+			} else if (names.length > 0) {
+				cb_display_plug.set_active (0);
+				sw_primary_display.set_active (false);
+			}
+			
+			cb_display_plug.sensitive = true;
+			updating_monitors = false;
+		}
+
 		void init_dock_tab ()
 		{
 			var pos = 0;
@@ -603,17 +655,7 @@ namespace Plank
 			adj_hide_delay.value = prefs.HideDelay;
 			adj_unhide_delay.value = prefs.UnhideDelay;
 
-			pos = 0;
-			cb_display_plug.remove_all ();
-			foreach (unowned string plug_name in Plank.PositionManager.get_monitor_plug_names (get_display ())) {
-				cb_display_plug.append ("%i".printf (pos), plug_name);
-				if (plug_name == prefs.Monitor)
-					cb_display_plug.set_active (pos);
-				pos++;
-			}
-			if (prefs.Monitor == "")
-				cb_display_plug.set_active (0);
-			cb_display_plug.sensitive = (prefs.Monitor != "");
+			rebuild_monitor_list ();
 			
 			sp_hide_delay.sensitive = (prefs.HideMode != HideType.NONE);
 			sp_unhide_delay.sensitive = (prefs.HideMode != HideType.NONE);

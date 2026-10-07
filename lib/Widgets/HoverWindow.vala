@@ -151,9 +151,7 @@ namespace Plank
 				var abs_y = int.max (mon_y + GAP, int.min (mon_y + mon_h - height - GAP, target_y));
 
 				move (abs_x, abs_y);
-				if (WindowControl.is_mutter ()) {
-					MutterBackend.get_default ().position_hover (abs_x, abs_y, width, height);
-				}
+				WindowControl.position_hover (abs_x, abs_y, width, height);
 				return;
 			}
 

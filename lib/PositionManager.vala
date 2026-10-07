@@ -53,10 +53,10 @@ namespace Plank
 			screen.monitors_changed.connect (screen_changed);
 			screen.size_changed.connect (screen_changed);
 			screen.composited_changed.connect (screen_composited_changed);
+			WindowControl.get_default ().primary_monitor_changed.connect (prefs_monitor_changed);
 			
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
-			if (monitor != null)
-				monitor_geo = GtkLayerShell.is_supported () ? monitor.get_geometry () : monitor.get_workarea ();
+			monitor_geo = get_effective_monitor_geometry (monitor);
 			
 			screen_is_composited = screen.is_composited ();
 		}
@@ -65,6 +65,7 @@ namespace Plank
 		{
 			unowned Gdk.Screen screen = controller.window.get_screen ();
 			
+			WindowControl.get_default ().primary_monitor_changed.disconnect (prefs_monitor_changed);
 			screen.monitors_changed.disconnect (screen_changed);
 			screen.size_changed.disconnect (screen_changed);
 			screen.composited_changed.disconnect (screen_composited_changed);
@@ -102,19 +103,20 @@ namespace Plank
 				model_counts.set (model, model_counts.has_key (model) ? model_counts.get (model) + 1 : 1);
 			}
 
-			// 2. Assign unique labels, numbering only duplicates
+			// 2. Assign unique, human-readable labels with geometry
 			var seen_counts = new Gee.HashMap<string, int> ();
 			for (int i = 0; i < n_monitors; i++) {
 				var monitor = display.get_monitor (i);
 				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "")
 					? monitor.get_model () : "Monitor";
+				var geom = monitor != null ? monitor.get_geometry () : Gdk.Rectangle ();
 				
 				if (model_counts.get (model) > 1) {
 					int count = seen_counts.has_key (model) ? seen_counts.get (model) + 1 : 1;
 					seen_counts.set (model, count);
-					result[i] = "%s (%d)".printf (model, count);
+					result[i] = "%s (%d) [%dx%d @ %d,%d]".printf (model, count, geom.width, geom.height, geom.x, geom.y);
 				} else {
-					result[i] = model;
+					result[i] = "%s [%dx%d @ %d,%d]".printf (model, geom.width, geom.height, geom.x, geom.y);
 				}
 			}
 			
@@ -123,36 +125,81 @@ namespace Plank
 		
 		public static Gdk.Monitor? get_monitor_for_plug_name (Gdk.Display display, string plug_name)
 		{
-			var primary = display.get_primary_monitor ();
-			if (primary == null && display.get_n_monitors () > 0)
-				primary = display.get_monitor (0);
-			if (plug_name == "")
-				return primary;
+			if (plug_name == "" || plug_name == "primary") {
+				var primary = display.get_primary_monitor ();
+				if (primary != null)
+					return primary;
+
+				int px, py, pw, ph;
+				if (WindowControl.get_primary_monitor_geometry (out px, out py, out pw, out ph)) {
+					for (int i = 0; i < display.get_n_monitors (); i++) {
+						var mon = display.get_monitor (i);
+						var geom = mon.get_geometry ();
+						if (geom.x == px && geom.y == py && (pw == 0 || (geom.width == pw && geom.height == ph)))
+							return mon;
+					}
+				}
+
+				// Fallback: look for monitor whose origin is at (0, 0)
+				for (int i = 0; i < display.get_n_monitors (); i++) {
+					var mon = display.get_monitor (i);
+					var geom = mon.get_geometry ();
+					if (geom.x == 0 && geom.y == 0)
+						return mon;
+				}
+
+				if (display.get_n_monitors () > 0)
+					return display.get_monitor (0);
+
+				return null;
+			}
 
 			var names = get_monitor_plug_names (display);
 			int n_monitors = display.get_n_monitors ();
 			
-			// 1. Exact match with generated unique name (e.g. "DELL U2720Q (2)")
+			// 1. Exact match with generated unique name (e.g. "DELL P2219H (1) [1920x1080 @ 0,0]")
 			for (int i = 0; i < n_monitors; i++) {
 				if (plug_name == names[i])
 					return display.get_monitor (i);
 			}
 
-			// 2. Fallback to legacy "PLUG_MONITOR_X" or numeric index "X"
+			// 2. Geometry coordinate match from string "[... @ X,Y]"
+			if (plug_name.contains ("@")) {
+				int at_idx = plug_name.index_of ("@");
+				int end_idx = plug_name.index_of ("]", at_idx);
+				if (at_idx >= 0 && end_idx > at_idx) {
+					var coord_str = plug_name.substring (at_idx + 1, end_idx - at_idx - 1).strip ();
+					var parts = coord_str.split (",");
+					if (parts.length == 2) {
+						int target_x = int.parse (parts[0].strip ());
+						int target_y = int.parse (parts[1].strip ());
+						for (int i = 0; i < n_monitors; i++) {
+							var geom = display.get_monitor (i).get_geometry ();
+							if (geom.x == target_x && geom.y == target_y)
+								return display.get_monitor (i);
+						}
+					}
+				}
+			}
+
+			// 3. Match numeric index "X" or legacy "PLUG_MONITOR_X"
 			for (int i = 0; i < n_monitors; i++) {
 				var fallback = "PLUG_MONITOR_%i".printf (i);
 				if (plug_name == fallback || plug_name == i.to_string ())
 					return display.get_monitor (i);
 			}
 
-			// 3. Fallback to matching raw model name
+			// 4. Fallback to matching raw model prefix or name
 			for (int i = 0; i < n_monitors; i++) {
 				var monitor = display.get_monitor (i);
-				if (monitor != null && monitor.get_model () == plug_name)
-					return monitor;
+				if (monitor != null) {
+					var m = monitor.get_model ();
+					if (m != null && m != "" && (plug_name == m || plug_name.has_prefix (m)))
+						return monitor;
+				}
 			}
 			
-			return primary;
+			return get_monitor_for_plug_name (display, "");
 		}
 		
 		void prefs_monitor_changed ()
@@ -162,11 +209,32 @@ namespace Plank
 
 		weak Gdk.Monitor? current_monitor = null;
 
+		Gdk.Rectangle get_effective_monitor_geometry (Gdk.Monitor? monitor)
+		{
+			if (monitor == null)
+				return Gdk.Rectangle ();
+
+			if (GtkLayerShell.is_supported ())
+				return monitor.get_geometry ();
+
+			var geom = monitor.get_geometry ();
+			Gdk.Rectangle wa;
+			if (WindowControl.get_workarea_for_geometry (geom, out wa)) {
+				message ("Wayplank: using Mutter workarea %d,%d %dx%d (monitor geom was %d,%d %dx%d)",
+					wa.x, wa.y, wa.width, wa.height, geom.x, geom.y, geom.width, geom.height);
+				return wa;
+			}
+
+			message ("Wayplank: fallback to monitor.get_workarea() %d,%d %dx%d",
+				monitor.get_workarea ().x, monitor.get_workarea ().y, monitor.get_workarea ().width, monitor.get_workarea ().height);
+			return monitor.get_workarea ();
+		}
+
 		void screen_changed (Gdk.Screen screen)
 		{
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
-			monitor_geo = monitor != null ? (GtkLayerShell.is_supported () ? monitor.get_geometry () : monitor.get_workarea ()) : Gdk.Rectangle ();
+			monitor_geo = get_effective_monitor_geometry (monitor);
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
 
@@ -185,6 +253,9 @@ namespace Plank
 			update_dimensions ();
 			controller.window.update_layer_shell_monitor ();
 			update_regions ();
+			if (!GtkLayerShell.is_supported ()) {
+				controller.window.update_size_and_position ();
+			}
 			
 			thaw_notify ();
 		}
@@ -439,8 +510,8 @@ namespace Plank
 		public Gdk.Rectangle get_cursor_region ()
 		{
 			var cursor_region = static_dock_region;
-			var progress = 1.0 - controller.renderer.hide_progress;
-			window_scale_factor = controller.window.get_window ().get_scale_factor ();
+			var gdk_win = controller.window.get_window ();
+			window_scale_factor = (gdk_win != null) ? gdk_win.get_scale_factor () : 1;
 			
 			if (controller.prefs.ZoomEnabled) {
 				unowned DockItem? hovered_item = controller.window.HoveredItem;
@@ -450,23 +521,28 @@ namespace Plank
 				}
 			}
 			
+			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
+				return cursor_region;
+			}
+			
+			int edge_size = controller.prefs.PressureReveal ? (5 * window_scale_factor) : (1 * window_scale_factor);
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
-				cursor_region.height = int.max (1 * window_scale_factor, (int) (progress * cursor_region.height));
-				cursor_region.y = DockHeight - cursor_region.height + (window_scale_factor - 1);
+				cursor_region.height = edge_size;
+				cursor_region.y = DockHeight - edge_size;
 				break;
 			case Gtk.PositionType.TOP:
-				cursor_region.height = int.max (1 * window_scale_factor, (int) (progress * cursor_region.height));
+				cursor_region.height = edge_size;
 				cursor_region.y = 0;
 				break;
 			case Gtk.PositionType.LEFT:
-				cursor_region.width = int.max (1 * window_scale_factor, (int) (progress * cursor_region.width));
+				cursor_region.width = edge_size;
 				cursor_region.x = 0;
 				break;
 			case Gtk.PositionType.RIGHT:
-				cursor_region.width = int.max (1 * window_scale_factor, (int) (progress * cursor_region.width));
-				cursor_region.x = DockWidth - cursor_region.width + (window_scale_factor - 1);
+				cursor_region.width = edge_size;
+				cursor_region.x = DockWidth - edge_size;
 				break;
 			}
 			
@@ -565,13 +641,17 @@ namespace Plank
 				break;
 			}
 			
+			var old_win_x = win_x;
+			var old_win_y = win_y;
 			update_dock_position ();
 			
 			if (!screen_is_composited
 				|| old_region.x != static_dock_region.x
 				|| old_region.y != static_dock_region.y
 				|| old_region.width != static_dock_region.width
-				|| old_region.height != static_dock_region.height) {
+				|| old_region.height != static_dock_region.height
+				|| win_x != old_win_x
+				|| win_y != old_win_y) {
 				controller.window.update_size_and_position ();
 				if (screen_is_composited)
 					controller.renderer.animated_draw ();

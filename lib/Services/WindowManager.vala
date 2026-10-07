@@ -80,7 +80,7 @@ namespace Plank
 			return ApplicationDiscovery.get_default ().identity_for_launcher (launcher_uri);
 		}
 		
-		Gee.ArrayList<WindowInfo> matching_windows (string launcher_uri)
+		public Gee.ArrayList<WindowInfo> matching_windows (string launcher_uri)
 		{
 			if (matches_cache.has_key (launcher_uri))
 				return matches_cache.get (launcher_uri);

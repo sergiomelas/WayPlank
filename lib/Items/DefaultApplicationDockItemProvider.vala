@@ -129,17 +129,24 @@ namespace Plank
 				}
 			}
 
-			// Step 5: Count items
+			// Step 5: Count items and prune orphan transient items with no windows
 			int pinned_count = 0;
 			int transient_count = 0;
 			int first_transient_idx = -1;
 			int trash_idx = -1;
 
+			var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
 				if (el is TrashDockItem) {
 					trash_idx = i;
 				} else if (el is TransientDockItem) {
+					var trans = (TransientDockItem) el;
+					var win_count = WindowManager.get_default ().window_count_for_app (trans.Launcher);
+					if (win_count <= 0 && dragging_item == null) {
+						orphan_transients.add (trans);
+						continue;
+					}
 					if (!Prefs.PinnedOnly) {
 						transient_count++;
 						if (first_transient_idx < 0)
@@ -149,6 +156,14 @@ namespace Plank
 					pinned_count++;
 				}
 			}
+
+			foreach (var orphan in orphan_transients) {
+				disconnect_element (orphan);
+				internal_elements.remove (orphan);
+				orphan.Container = null;
+			}
+			if (trash_item != null)
+				trash_idx = internal_elements.index_of (trash_item);
 
 			// Step 6: Determine separator insertion positions
 			// Insert from highest index to lowest so earlier target indices remain valid
@@ -287,11 +302,11 @@ namespace Plank
 				}
 			} else {
 				var launcher_uri = item.Launcher;
-				var still_running = app_item.is_running ();
+				var win_count = WindowManager.get_default ().window_count_for_app (item.Launcher);
 				item.delete ();
 				
-				// Re-add as a temporary item if the app is still running after unpinning
-				if (still_running) {
+				// Re-add as a temporary item only if the app has active open windows
+				if (win_count > 0) {
 					var new_item = new TransientDockItem.with_launcher (launcher_uri);
 					add (new_item);
 				}

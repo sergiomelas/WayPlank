@@ -219,6 +219,37 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 			
+			var windows = WindowManager.get_default ().matching_windows (Launcher);
+			if (windows.size > 0) {
+				if (windows.size > 1) {
+					foreach (var win in windows) {
+						var cap = (win.Caption != null && win.Caption != "") ? win.Caption : Text;
+						var win_item = create_literal_menu_item (cap, null, false);
+						string target_id = win.Id;
+						win_item.activate.connect (() => {
+							WindowControl.queue_command (target_id, "activate");
+						});
+						items.add (win_item);
+					}
+					var close_all_item = create_menu_item (_("Close _All"), "window-close", true);
+					close_all_item.activate.connect (() => {
+						foreach (var win in windows) {
+							WindowControl.queue_command (win.Id, "close");
+						}
+					});
+					items.add (close_all_item);
+				} else {
+					var win = windows[0];
+					var close_item = create_menu_item (_("_Close"), "window-close", true);
+					string target_id = win.Id;
+					close_item.activate.connect (() => {
+						WindowControl.queue_command (target_id, "close");
+					});
+					items.add (close_item);
+				}
+				items.add (new Gtk.SeparatorMenuItem ());
+			}
+			
 			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems

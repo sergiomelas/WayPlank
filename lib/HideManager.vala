@@ -101,6 +101,11 @@ namespace Plank
 		bool active_maximized_window_intersect = false;
 		bool dialog_windows_intersect = false;
 		
+		public bool unhide_pending ()
+		{
+			return unhide_timer_id > 0U;
+		}
+		
 		/**
 		 * Creates a new instance of a HideManager, which handles
 		 * checking if a dock should hide or not.
@@ -236,6 +241,7 @@ namespace Plank
 				});
 				break;
 			case "PressureReveal":
+				controller.window.set_input_mask ();
 				update_hidden ();
 				break;
 			default:
@@ -398,8 +404,10 @@ namespace Plank
 				return;
 			
 			if (!pointer_update || controller.prefs.UnhideDelay == 0U) {
-				if (Hidden)
+				if (Hidden) {
 					Hidden = false;
+					controller.window.set_input_mask ();
+				}
 				return;
 			}
 			
@@ -407,8 +415,10 @@ namespace Plank
 				return;
 			
 			unhide_timer_id = Gdk.threads_add_timeout (controller.prefs.UnhideDelay, () => {
-				if (Hidden)
+				if (Hidden) {
 					Hidden = false;
+					controller.window.set_input_mask ();
+				}
 				unhide_timer_id = 0U;
 				return false;
 			});
@@ -417,6 +427,9 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool handle_enter_notify_event (Gtk.Widget widget, Gdk.EventCrossing event)
 		{
+			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
+				return Gdk.EVENT_PROPAGATE;
+
 			if (!Hovered)
 				update_hovered_with_coords ((int) event.x, (int) event.y);
 			
@@ -426,6 +439,9 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool handle_leave_notify_event (Gtk.Widget widget, Gdk.EventCrossing event)
 		{
+			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
+				return Gdk.EVENT_PROPAGATE;
+
 			if (Hovered)
 				update_hovered_with_coords (-1, -1);
 			

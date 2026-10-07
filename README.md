@@ -6,7 +6,7 @@
 >
 > Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
 
-![Wayplank v0.5.0 Release Banner](Release%20Pic.png)
+![Wayplank v0.5.1 Release Banner](Release%20Pic.png)
 
 ---
 

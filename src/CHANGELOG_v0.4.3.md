@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🌐 Multi-Compositor Hardware Abstraction Layer (HAL) Architecture
+## 1. 🌐 (Cross-Compositor) Multi-Compositor Hardware Abstraction Layer (HAL) Architecture
 
 - **Unified Abstract Backend Contract (`WindowBackend.vala`)**:
   - Formalized the complete window management interface into a compositor-agnostic abstract class:
@@ -28,7 +28,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. ⚡ Native Labwc & wlroots Protocol Engine (`LabwcBackend` & C Protocol Bridge)
+## 2. ⚡ (Labwc / wlroots) Native Protocol Engine (`LabwcBackend` & C Protocol Bridge)
 
 - **Wayland Protocol Code Generation**:
   - Extracted and compiled the official `wlr-foreign-toplevel-management-unstable-v1.xml` specification into high-performance C source and client headers:
@@ -49,7 +49,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. 🎯 Application Indicator Reactive Buffer Invalidation & Lifecycle Fix
+## 3. 🎯 (Cross-Compositor: Labwc & KWin) Application Indicator Reactive Buffer Invalidation & Lifecycle Fix
 
 - **Root Cause Analysis**:
   - Diagnostic testing under both Labwc and KWin identified three interrelated failure modes that caused indicator dots (the running application markers beneath dock icons) to fail to render, require mouse hover to appear, or remain visible after window closure:
@@ -75,7 +75,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 🪟 Cross-Compositor Bi-Directional Show Desktop Engine
+## 4. 🪟 (Cross-Compositor) Bi-Directional Show Desktop Engine
 
 - **State Desynchronization Elimination**:
   - Previously, Show Desktop relied on internal boolean toggles (`showing_desktop`) that fell out of sync whenever a window minimized/restored outside of Wayplank's control or when state changes were received during bulk minimization.
@@ -91,7 +91,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 5. 🛡️ Wayland Security Isolation & wlroots Intellihide Strategy
+## 5. 🛡️ (Labwc / wlroots) Wayland Security Isolation & wlroots Intellihide Strategy
 
 - **Security Model Context**:
   - Under the Wayland security architecture, unprivileged client applications (including docks, panels, and taskbars) are strictly prohibited from inspecting the global coordinates ($x, y, \text{width}, \text{height}$) of other client windows to prevent keylogging and screen layout snooping.
@@ -106,7 +106,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 6. 🧹 Subsystem Decoupling & Clean Architecture Polish
+## 6. 🧹 (Cross-Compositor / Core) Subsystem Decoupling & Clean Architecture Polish
 
 - **Abstract System Resume (`handle_system_resume`)**:
   - Elevated sleep/wake recovery from KWin-specific code to the abstract `WindowBackend` and `WindowControl` classes.
@@ -119,7 +119,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 7. 🦊 Native GNOME Shell / Mutter Architecture & Monolithic Bridge (`MutterBackend.vala`)
+## 7. 🦊 (GNOME / Mutter) Native Architecture & Monolithic Bridge (`MutterBackend.vala`)
 
 - **100% Monolithic Architecture (Zero Loose Files)**:
   - The complete GNOME Shell extension JavaScript (`extension.js`), metadata (`metadata.json`), and D-Bus interface definition (`org.wayplank.GnomeBridge`) are embedded directly as raw string constants within `lib/Services/MutterBackend.vala`.
@@ -143,7 +143,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 9. 📐 Universal Origin Alignment for Tooltips & Overlays (KWin & Labwc / wlroots)
+## 8. 📐 (KWin & Labwc / wlroots) Universal Origin Alignment for Tooltips & Overlays
 
 - **Elimination of Coordinate & Exclusive Zone Mismatch on Vertical Docks**:
   - Previously on KWin with a top plasma panel (e.g. 28px height), `monitor.get_workarea()` reduced `DockHeight` to 1052px while `HoverWindow` (on `Layer.OVERLAY`) clamped against the monitor's physical geometry (1080px). Furthermore, `DockWindow` did not anchor opposite edges (`TOP`/`BOTTOM` on vertical docks), causing KWin to center the 1052px window vertically with an offset.
@@ -159,7 +159,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 10. 🧱 Dynamic Dual Separator Architecture & Drag Boundary Enforcement
+## 9. 🧱 (Cross-Compositor / Core) Dynamic Dual Separator Architecture & Drag Boundary Enforcement
 
 - **Modern Half-Width Separators**:
   - Halved the separator slot width to `(IconSize + ItemPadding) / 2` in `PositionManager.vala` (`get_items_total_span`, `get_item_slot`), delivering a clean, compact macOS-style visual separation.

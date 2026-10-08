@@ -654,8 +654,9 @@ namespace Plank
 			if (screen_is_composited && show_notifications && (item.State & ItemState.URGENT) != 0) {
 				var urgent_duration = theme.UrgentBounceTime * 1000;
 				var urgent_time = int64.max (0LL, frame_time - item.LastUrgent);
-				if (urgent_time < urgent_duration)
-					y_offset += position_manager.UrgentBounceHeight * easing_bounce (urgent_time, urgent_duration, 1.0);
+				var urgent_cycle = urgent_time % (2000 * 1000);
+				if (urgent_cycle < urgent_duration)
+					y_offset += position_manager.UrgentBounceHeight * easing_bounce (urgent_cycle, urgent_duration, 1.0);
 			}
 			
 			// animate addition/removal
@@ -1168,8 +1169,7 @@ namespace Plank
 				return true;
 			if (render_time - item.LastActive <= theme.ActiveTime * 1000)
 				return true;
-			if (show_notifications
-				&& render_time - item.LastUrgent <= (hide_progress == 1.0 ? theme.GlowTime : theme.UrgentBounceTime) * 1000)
+			if (show_notifications && (item.State & ItemState.URGENT) != 0)
 				return true;
 			if (render_time - item.LastMove <= theme.ItemMoveTime * 1000)
 				return true;

@@ -36,6 +36,7 @@ namespace Plank
 			{ "preferences", 'p', 0, OptionArg.NONE, null, "Show preferences dialog of the just started or already running instance", null },
 			{ "shortcuts", 's', 0, OptionArg.NONE, null, "Show shortcuts and gestures guide dialog", null },
 			{ "reload", 'r', 0, OptionArg.NONE, null, "Reload and refresh running dock instance", null },
+			{ "replace", 0, 0, OptionArg.NONE, null, "Restart and replace running dock instance", null },
 			{ "version", 'v', 0, OptionArg.NONE, null, "Show the application's version", null },
 			{ null }
 		};

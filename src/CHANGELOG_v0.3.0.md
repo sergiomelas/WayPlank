@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🌉 Inception of KWin Scripting Bridge (`lib/Services/KWinBridge.vala`)
+## 1. 🌉 (KWin / Wayland) Inception of KWin Scripting Bridge (`lib/Services/KWinBridge.vala`)
 
 - **First Integration with KDE KWin (+136 lines in `KWinBridge.vala`)**:
   - Recognizing that pure `/proc` process tracking lacks window focus and geometry awareness, Wayplank introduced its very first native compositor bridge: `KWinBridge.vala`.
@@ -15,7 +15,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. ✂️ Total Purge of XInput, XFixes & BAMF VAPIs (800+ Lines Excised)
+## 2. ✂️ (Cross-Compositor / Core) Total Purge of XInput, XFixes & BAMF VAPIs (800+ Lines Excised)
 
 - **Eradication of Obsolete X11 VAPI Bindings**:
   - Completely deleted legacy VAPI bindings from the `vapi/` tree:
@@ -27,7 +27,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. 🎯 Pointer Crossing Lifecycle & Hover Zoom Stabilization
+## 3. 🎯 (Cross-Compositor / Wayland) Pointer Crossing Lifecycle & Hover Zoom Stabilization
 
 - **Wayland Hover Zoom Stabilization (`DockWindow.vala` & `DockRenderer.vala`)**:
   - Fixed a persistent defect under Wayland where moving the cursor across the dock surface failed to trigger icon magnification or caused icons to remain stuck in an expanded state.
@@ -38,7 +38,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 📌 Application Pinning & Multi-Instance Indicators
+## 4. 📌 (Cross-Compositor) Application Pinning & Multi-Instance Indicators
 
 - **Refactoring `ApplicationDockItem.vala` (-294 lines of legacy code)**:
   - Stripped legacy Unity launcher API bindings and BAMF signal connections.

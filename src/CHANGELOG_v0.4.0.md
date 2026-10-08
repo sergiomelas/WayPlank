@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🌟 Modular Window Backend Architecture & KWin Scripting Bridge
+## 1. 🌟 (KWin / Wayland) Modular Window Backend Architecture & KWin Scripting Bridge
 
 - **Creation of the Modular Window Management Stack**:
   - Engineered a brand new modular window management subsystem in `lib/Services/`:
@@ -23,7 +23,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. 🛡️ Real-Time Window Dodge & Intellihide Engine (`HideManager.vala`)
+## 2. 🛡️ (KWin / Wayland) Real-Time Window Dodge & Intellihide Engine (`HideManager.vala`)
 
 - **Dynamic Overlap Calculation (+131 lines in `HideManager.vala`)**:
   - Implemented real-time geometric intersection tests between dock boundaries and active window frames:
@@ -35,7 +35,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. 🔍 Application Identity Resolution (`ApplicationDiscovery.vala` & `ApplicationIdentity.vala`)
+## 3. 🔍 (Cross-Compositor) Application Identity Resolution (`ApplicationDiscovery.vala` & `ApplicationIdentity.vala`)
 
 - **Robust App Discovery Engine (+354 lines)**:
   - Created `ApplicationDiscovery.vala` (+258 lines) and `ApplicationIdentity.vala` (+96 lines):
@@ -45,7 +45,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 🗑️ Purge of Legacy Dynamic Docklet Plugins & Introduction of Separators
+## 4. 🗑️ (Cross-Compositor / Core) Purge of Legacy Dynamic Docklet Plugins & Introduction of Separators
 
 - **Excision of 530+ Lines of Dead Plugin Infrastructure**:
   - Completely removed the unmaintained external plugin architecture:

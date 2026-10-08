@@ -26,12 +26,13 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
    [  ] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
-   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
+   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect using test_urgency.py in FAT folder
    [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
    [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
    [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
    [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -59,6 +60,7 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
    [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
+   [  ] 6.5 Screenshot Docklet: Click triggers rectangular selection; context menu triggers area/full/window/folder
 
 7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
@@ -68,6 +70,7 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
    [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
+        Use "gnome-control-center display"
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
@@ -83,6 +86,8 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
         ONE script instance alive, zero duplicate signal closures or shortcut collisions
    [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
+   [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
+   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
 GNOME BUGS / NOTES:
@@ -112,12 +117,13 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
    [  ] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
-   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
+   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect using test_urgency.py in FAT folder
    [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
    [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
    [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
    [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -145,6 +151,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
    [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
+   [  ] 6.5 Screenshot Docklet: Click triggers rectangular selection; context menu triggers area/full/window/folder
 
 7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
@@ -169,6 +176,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
         ONE script instance alive, zero duplicate signal closures or shortcut collisions
    [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
+   [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
+   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
 PLASMA BUGS / NOTES:
@@ -199,12 +208,13 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
    [  ] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
-   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
+   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect using test_urgency.py in FAT folder
    [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
    [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
    [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
    [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -218,6 +228,7 @@ SESSION 3: LABWC (wlroots Backend)
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+        (Note: On Labwc/wlroots without ext-workspace-v1 protocol, test using Dodge Active mode)
    [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
    [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
    [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
@@ -232,6 +243,7 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
    [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
+   [  ] 6.5 Screenshot Docklet: Click triggers rectangular selection; context menu triggers area/full/window/folder
 
 7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
@@ -256,6 +268,8 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
         ONE script instance alive, zero duplicate signal closures or shortcut collisions
    [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
+   [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
+   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
 LABWC BUGS / NOTES:

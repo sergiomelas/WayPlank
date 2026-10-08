@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🍴 Upstream Decoupling & Purge of Legacy Autotools (112,000+ Lines Removed)
+## 1. 🍴 (Cross-Compositor / Build) Upstream Decoupling & Purge of Legacy Autotools (112,000+ Lines Removed)
 
 - **The Upstream Baseline (`plank-0.11.89`)**:
   - The starting codebase was Debian's upstream `plank-0.11.89` package (authored by Robert Dyer, Rico Tzschichholz, and elementary OS), heavily constrained by obsolete X11 build infrastructure and broken m4 macros.
@@ -20,7 +20,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. 🏗️ Architectural Restructuring & Staging Workflow
+## 2. 🏗️ (Cross-Compositor / Architecture) Architectural Restructuring & Staging Workflow
 
 - **Clean Directory Hierarchy (`_Private/Howto.txt`)**:
   - Established a modern, streamlined project directory topology:
@@ -36,7 +36,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. 🏷️ Complete Namespace Migration to `wayplank`
+## 3. 🏷️ (Cross-Compositor / Core) Complete Namespace Migration to `wayplank`
 
 - **Binary & Symbolic Links**:
   - Renamed target executable from `plank` to `wayplank`.
@@ -48,7 +48,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 🧩 Wayland Bare-Launch Stubs & Display Abstraction
+## 4. 🧩 (Early Wayland Stubs) Wayland Bare-Launch Stubs & Display Abstraction
 
 - **Bare Launch in Wayland with Stubs**:
   - In `0.0`, Plank unconditionally failed or aborted with X11 connection errors when launched in pure Wayland sessions.

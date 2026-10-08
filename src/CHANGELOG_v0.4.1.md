@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🖥️ Multi-Monitor Tracking & Display Persistence (`PositionManager.vala`)
+## 1. 🖥️ (KWin / Wayland) Multi-Monitor Tracking & Display Persistence (`PositionManager.vala`)
 
 - **Resolution of Multi-Monitor Selection Bugs**:
   - In v0.4.0, selecting a different output monitor in Preferences did not immediately reposition the dock surface or persisted monitor choice across restarts.
@@ -18,7 +18,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. 🎯 Tooltip Coordinate Translation Across Displays (`DockWindow.vala`)
+## 2. 🎯 (KWin / Wayland) Tooltip Coordinate Translation Across Displays (`DockWindow.vala`)
 
 - **Secondary Monitor Tooltip Placement Fix**:
   - Addressed a major UX defect where hovering over icons on a secondary monitor caused tooltips to render on the primary monitor.
@@ -26,7 +26,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. 🚀 Animation Smoothness & De-Polling (`lib/Drawing/Easing.vala`)
+## 3. 🚀 (Cross-Compositor / Core) Animation Smoothness & De-Polling (`lib/Drawing/Easing.vala`)
 
 - **Elimination of Micro-Stutters During Zoom Animation**:
   - Refactored `lib/Drawing/Easing.vala` (87 lines) and `DockRenderer.vala`:
@@ -36,7 +36,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 🎨 Bundled Arian Themes & Legacy Unity Purge
+## 4. 🎨 (Cross-Compositor / Theming) Bundled Arian Themes & Legacy Unity Purge
 
 - **Introduction of Arian Themes**:
   - Bundled two high-contrast, modern themes:

@@ -69,8 +69,24 @@ namespace Plank
 			+ "        var onCurr = false;\n"
 			+ "        if (client.onAllDesktops === true) {\n"
 			+ "            onCurr = true;\n"
+			+ "        } else if (typeof client.isOnCurrentDesktop === \"function\") {\n"
+			+ "            try { onCurr = client.isOnCurrentDesktop(); } catch (e) { onCurr = false; }\n"
+			+ "        } else if (client.desktops && typeof client.desktops.length === \"number\") {\n"
+			+ "            try {\n"
+			+ "                if (client.desktops.length === 0) {\n"
+			+ "                    onCurr = false;\n"
+			+ "                } else if (workspace.currentDesktop) {\n"
+			+ "                    for (var dIdx = 0; dIdx < client.desktops.length; dIdx++) {\n"
+			+ "                        var cd = client.desktops[dIdx];\n"
+			+ "                        if (cd === workspace.currentDesktop || (cd && cd.id && workspace.currentDesktop.id && cd.id === workspace.currentDesktop.id)) {\n"
+			+ "                            onCurr = true;\n"
+			+ "                            break;\n"
+			+ "                        }\n"
+			+ "                    }\n"
+			+ "                }\n"
+			+ "            } catch (e) { onCurr = false; }\n"
 			+ "        } else if (typeof client.isOnDesktop === \"function\" && workspace.currentDesktop) {\n"
-			+ "            onCurr = client.isOnDesktop(workspace.currentDesktop);\n"
+			+ "            try { onCurr = client.isOnDesktop(workspace.currentDesktop); } catch (e) { onCurr = false; }\n"
 			+ "        } else if (typeof client.onCurrentDesktop !== \"undefined\") {\n"
 			+ "            onCurr = (client.onCurrentDesktop !== false);\n"
 			+ "        } else {\n"
@@ -144,7 +160,7 @@ namespace Plank
 			+ "    scheduleWindowState();\n"
 			+ "});\n"
 			+ "workspace.windowRemoved.connect(function (w) {\n"
-			+ "    sendWindowStateEx(w);\n"
+			+ "    scheduleWindowState();\n"
 			+ "});\n"
 			+ "workspace.windowActivated.connect(function (client) {\n"
 			+ "    scheduleWindowState();\n"
@@ -646,10 +662,10 @@ namespace Plank
 				var result = connection.call_sync ("org.kde.KWin", "/Scripting",
 					"org.kde.kwin.Scripting", "loadScript",
 					new Variant ("(s)", script_path),
-					new VariantType ("(i)"), DBusCallFlags.NONE, -1, null);
+					new VariantType ("(i)"), DBusCallFlags.NONE, 2000, null);
 				connection.call_sync ("org.kde.KWin", "/Scripting",
 					"org.kde.kwin.Scripting", "start", null, null,
-					DBusCallFlags.NONE, -1, null);
+					DBusCallFlags.NONE, 2000, null);
 				debug ("KWin bridge script loaded (id %d)", result.get_child_value (0).get_int32 ());
 				script_id = result.get_child_value (0).get_int32 ();
 				debug ("KWin bridge script loaded (id %d)", script_id);

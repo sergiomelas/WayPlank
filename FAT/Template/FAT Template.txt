@@ -29,7 +29,9 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
    [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
-   [  ] 2.10 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+   [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
+   [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
+   [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -45,6 +47,7 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
    [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
    [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
+   [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
 
 5. TOOLTIPS & HOVER VISUALS
    [  ] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
@@ -55,6 +58,7 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
    [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
+   [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
 
 7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
@@ -63,10 +67,22 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 7.4 Icon Size: Real-time slider resizing works smoothly
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
         At least change monitor at each few bullets
+
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
+   [  ] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement) remain 100% responsive
+   [  ] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event loop
+   [  ] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across displays -> updates are throttled
+        smoothly without compositor stutter or dropped commands
+   [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut collisions
+   [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
 
 
 GNOME BUGS / NOTES:
@@ -99,7 +115,9 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
    [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
-   [  ] 2.10 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+   [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
+   [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
+   [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -115,6 +133,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
    [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
    [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
+   [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
 
 5. TOOLTIPS & HOVER VISUALS
    [  ] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
@@ -125,6 +144,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
    [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
+   [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
 
 7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
@@ -133,10 +153,22 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 7.4 Icon Size: Real-time slider resizing works smoothly
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
         At least change monitor at each few bullets
+
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
+   [  ] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement) remain 100% responsive
+   [  ] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event loop
+   [  ] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across displays -> updates are throttled
+        smoothly without compositor stutter or dropped commands
+   [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut collisions
+   [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
 
 
 PLASMA BUGS / NOTES:
@@ -170,7 +202,9 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect
    [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
    [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
-   [  ] 2.10 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
+   [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
+   [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
+   [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -186,6 +220,7 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
    [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
    [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
+   [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
 
 5. TOOLTIPS & HOVER VISUALS
    [  ] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
@@ -196,6 +231,7 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
    [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
+   [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
 
 7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
@@ -204,10 +240,22 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 7.4 Icon Size: Real-time slider resizing works smoothly
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
 
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
         At least change monitor at each few bullets
+
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
+   [  ] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement) remain 100% responsive
+   [  ] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event loop
+   [  ] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across displays -> updates are throttled
+        smoothly without compositor stutter or dropped commands
+   [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut collisions
+   [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
 
 
 LABWC BUGS / NOTES:

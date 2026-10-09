@@ -125,10 +125,14 @@ namespace Plank
 
 		public void set_urgent (bool is_urgent)
 		{
-			if (is_urgent)
+			var was_urgent = (State & ItemState.URGENT) != 0;
+			if (is_urgent) {
+				if (!was_urgent)
+					LastUrgent = GLib.get_monotonic_time ();
 				State |= ItemState.URGENT;
-			else
+			} else {
 				State &= ~ItemState.URGENT;
+			}
 		}
 		
 		protected void update_indicator (bool scan_process)

@@ -315,6 +315,53 @@ wlr_toplevel_bridge_is_available (void)
     return (toplevel_manager != NULL);
 }
 
+static gchar *
+json_escape_string (const gchar *str)
+{
+    if (!str)
+        return g_strdup ("");
+
+    GString *out = g_string_sized_new (strlen (str) + 16);
+    const gchar *p = str;
+
+    while (*p) {
+        guchar c = (guchar)*p;
+        switch (c) {
+            case '"':
+                g_string_append (out, "\\\"");
+                break;
+            case '\\':
+                g_string_append (out, "\\\\");
+                break;
+            case '\b':
+                g_string_append (out, "\\b");
+                break;
+            case '\f':
+                g_string_append (out, "\\f");
+                break;
+            case '\n':
+                g_string_append (out, "\\n");
+                break;
+            case '\r':
+                g_string_append (out, "\\r");
+                break;
+            case '\t':
+                g_string_append (out, "\\t");
+                break;
+            default:
+                if (c < 0x20) {
+                    g_string_append_printf (out, "\\u%04x", c);
+                } else {
+                    g_string_append_c (out, (gchar)c);
+                }
+                break;
+        }
+        p++;
+    }
+
+    return g_string_free (out, FALSE);
+}
+
 gchar *
 wlr_toplevel_bridge_get_window_json (void)
 {
@@ -327,8 +374,8 @@ wlr_toplevel_bridge_get_window_json (void)
             g_string_append (json, ",");
         first = FALSE;
 
-        gchar *escaped_title = g_strescape (t->title ? t->title : "", NULL);
-        gchar *escaped_app_id = g_strescape (t->app_id ? t->app_id : "", NULL);
+        gchar *escaped_title = json_escape_string (t->title ? t->title : "");
+        gchar *escaped_app_id = json_escape_string (t->app_id ? t->app_id : "");
 
         g_string_append_printf (json,
             "{\"uuid\":\"%s\","

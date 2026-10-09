@@ -215,14 +215,12 @@ namespace Plank
 			if (monitor == null)
 				return;
 
-			var was_visible = get_visible ();
-			if (was_visible)
-				hide ();
+			if (GtkLayerShell.get_monitor (this) != monitor) {
+				GtkLayerShell.set_monitor (this, monitor);
+				update_layer_shell_anchors ();
+			}
 
-			GtkLayerShell.set_monitor (this, monitor);
-
-			if (was_visible)
-				update_size_and_position ();
+			update_size_and_position ();
 		}
 
 		/**

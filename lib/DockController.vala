@@ -41,6 +41,7 @@ namespace Plank
 		public DockRenderer renderer { get; protected set; }
 		public DockWindow window { get; protected set; }
 		public HoverWindow hover { get; protected set; }
+		public string last_explicit_monitor { get; set; default = ""; }
 		
 		public DockItemProvider? default_provider { get; private set; }
 		
@@ -93,6 +94,9 @@ namespace Plank
 			
 			prefs.notify["Position"].connect (update_visible_elements);
 			prefs.notify["ShowDockItem"].connect (update_show_dock_item);
+			if (prefs.Monitor != "")
+				last_explicit_monitor = prefs.Monitor;
+			prefs.notify["Monitor"].connect (update_explicit_monitor);
 			
 			dbus_manager = new DBusManager (this);
 			
@@ -104,8 +108,15 @@ namespace Plank
 			renderer = new DockRenderer (this, window);
 		}
 		
+		void update_explicit_monitor ()
+		{
+			if (prefs.Monitor != "")
+				last_explicit_monitor = prefs.Monitor;
+		}
+
 		~DockController ()
 		{
+			prefs.notify["Monitor"].disconnect (update_explicit_monitor);
 			prefs.notify["Position"].disconnect (update_visible_elements);
 			prefs.notify["ShowDockItem"].disconnect (update_show_dock_item);
 			

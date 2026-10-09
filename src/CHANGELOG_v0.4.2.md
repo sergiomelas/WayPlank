@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🌟 Monolithic Built-in Docklets Architecture (Complete Suite)
+## 1. 🌟 (Cross-Compositor: All Compositors / KWin) Monolithic Built-in Docklets Architecture (Complete Suite)
 
 - **Standalone Monolithic Docklet Engine**: Completely purged the legacy, unmaintained external dynamic shared-library plugin architecture (`lib/Docklets/`), replacing it with high-performance, statically compiled monolithic dock items embedded directly into Wayplank's core binary with zero external `.so` dependencies.
 - **Full Community-Requested Docklet Suite Implemented**:
@@ -54,7 +54,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. 📁 Folder Stacks & File Management (`FileDockItem`)
+## 2. 📁 (Cross-Compositor) Folder Stacks & File Management (`FileDockItem`)
 
 - **Standard Drag & Grab Mechanics Restored**: Removed legacy `Button = PopupButton.RIGHT | PopupButton.LEFT` override that previously opened the context menu on left press, restoring standard drag gestures: left-click and drag grabs the folder icon to reorder or drag it off the dock to delete/unpin with the smoke poof animation, a single click triggers a playful bounce animation, and right-click displays the contextual stack menu.
 - **Native Drag & Drop into Pinned Folders**: Dropping `.desktop` shortcuts, files, or directories onto a pinned folder automatically copies them into the target directory (with recursive subfolder support), applies executable permissions (`0755`) to `.desktop` files for instant launchability, invalidates Cairo thumbnail buffers, and animates a bounce.
@@ -62,7 +62,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. ⚡ Compositor Integration & Window Management (KWin / Wayland)
+## 3. ⚡ (KWin / Wayland) Compositor Integration & Window Management
 
 - **Dynamic Transient Dock Items Synchronization**: Connected `WindowManager.windows_refreshed` directly to `sync_compositor_windows()` in `ApplicationDockItemProvider.vala`. Unpinned running applications dynamically appear with temporary icons the instant their first window opens, and cleanly disappear when their last window closes.
 - **Real-Time Indicator Dots (0ms Latency)**: Connected `GdkFrameClock.begin_updating()` in `Renderer.vala` and filtered out `client.deleted` windows in KWin bridge, ensuring instantaneous indicator redraws synchronized with compositor frame callbacks (`wl_surface.frame`).
@@ -76,7 +76,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 🛠️ Desktop Matching & Process Scanner
+## 4. 🛠️ (Cross-Compositor) Desktop Matching & Process Scanner
 
 - **Robust Command Line Parsing (`GLib.Shell.parse_argv`)**: Replaced whitespace splitting on `Exec=` lines in `Matcher.vala` with `GLib.Shell.parse_argv`, eliminating false-negative running states for applications with spaces or quotes (e.g. `/opt/My App/binary`).
 - **UID-Isolated Process Scanning**: Scans are isolated to the user's UID to prevent system daemons from triggering false running indicators, with title and argument matching for custom launchers and web apps.
@@ -84,7 +84,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 5. 🎨 UI, Theming & CLI Modernization
+## 5. 🎨 (Cross-Compositor / CLI) UI, Theming & CLI Modernization
 
 - **Standardized CLI Flags**: Restored short flag `-p` for `--preferences`. Aligned flags to standard conventions: `-v` for `--version` and `-V` for `--verbose`.
 - **Seamless Process Replacement (`--replace` / `-r`)**: Added native command-line option `--replace` (short `-r`) that cleanly terminates previous background WayPlank instances (`killall -q -o 1s -9 wayplank`) before taking over the session, preventing duplicated docks and bridge script conflicts.
@@ -95,7 +95,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 6. 🧹 Codebase Health, Deprecation Removal & AI Slop Purge
+## 6. 🧹 (Cross-Compositor / Core) Codebase Health, Deprecation Removal & Clean Build
 
 - **Declaration of Independence from X11 & Native Modernization**: WayPlank has officially severed all ties with legacy X11: purged all remaining X11, XRandR, XInput, and libwnck dependencies, obsolete VAPIs, and build flags. The codebase compiles with **0 warnings and 0 errors**.
 - **AI Slop & Placebo Code Purged**: Removed dead placeholder checks (such as empty `win != null && !win.has_native ()` checks and redundant try/catch blocks on non-throwing methods), eliminating stale prototyping leftovers.

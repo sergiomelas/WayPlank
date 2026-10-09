@@ -119,6 +119,7 @@ namespace Plank
 			content.pack_end (actions, false, false, 0);
 			add (content);
 
+			ok_button.set_can_default (true);
 			set_default (ok_button);
 
 			// Close on Escape key

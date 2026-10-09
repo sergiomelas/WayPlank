@@ -119,6 +119,8 @@ namespace Plank
 			item.notify["state"].connect (handle_item_state_changed);
 			item.notify["LastClicked"].connect (handle_item_state_changed);
 			item.notify["last-clicked"].connect (handle_item_state_changed);
+			item.notify["LastUrgent"].connect (handle_item_state_changed);
+			item.notify["last-urgent"].connect (handle_item_state_changed);
 			item.needs_redraw.connect (handle_item_state_changed);
 			item.deleted.connect (handle_item_deleted);
 		}
@@ -135,6 +137,8 @@ namespace Plank
 			item.notify["state"].disconnect (handle_item_state_changed);
 			item.notify["LastClicked"].disconnect (handle_item_state_changed);
 			item.notify["last-clicked"].disconnect (handle_item_state_changed);
+			item.notify["LastUrgent"].disconnect (handle_item_state_changed);
+			item.notify["last-urgent"].disconnect (handle_item_state_changed);
 			item.needs_redraw.disconnect (handle_item_state_changed);
 			item.deleted.disconnect (handle_item_deleted);
 		}

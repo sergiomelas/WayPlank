@@ -53,8 +53,14 @@ namespace Plank
 			return started;
 		}
 
+		uint debounce_timer_id = 0;
+
 		public void cleanup ()
 		{
+			if (debounce_timer_id != 0) {
+				Source.remove (debounce_timer_id);
+				debounce_timer_id = 0;
+			}
 			if (started) {
 				WlrBridge.cleanup ();
 				started = false;
@@ -98,11 +104,24 @@ namespace Plank
 			return WlrBridge.maximized_window_intersects (rect.x, rect.y, rect.width, rect.height);
 		}
 
+		void schedule_state_changed ()
+		{
+			if (debounce_timer_id != 0) {
+				Source.remove (debounce_timer_id);
+				debounce_timer_id = 0;
+			}
+			debounce_timer_id = Timeout.add (50, () => {
+				debounce_timer_id = 0;
+				refresh_window_infos ();
+				state_changed ();
+				return Source.REMOVE;
+			});
+		}
+
 		static void on_wlr_state_changed ()
 		{
 			if (instance != null) {
-				instance.refresh_window_infos ();
-				instance.state_changed ();
+				instance.schedule_state_changed ();
 			}
 		}
 

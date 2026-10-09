@@ -139,6 +139,8 @@ namespace Plank
 				return new MprisDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://volume")
 				return new VolumeDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://screenshot")
+				return new ScreenshotDockItem.with_dockitem_file (file);
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);

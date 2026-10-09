@@ -1,0 +1,598 @@
+================================================================================
+                    WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
+================================================================================
+Date: 2026-10-08
+
+
+================================================================================
+SESSION 1: GNOME (Mutter Backend)
+================================================================================
+
+0. Crashes during test
+   [ok] : None
+
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in
+        Dock"
+   [ok] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in
+        Dock"
+   [ko->ok] 1.3 (GNOME) Drag & Drop Rearranging: Drag icon along dock to
+        reorder:
+        Bug: (0.5.0) Sometimes rearranging the moving icon lost icon media    fsrfgr
+        during drag animation.
+        To Test: Drag icons along the dock on GNOME to reorder; verify that the
+        dragged icon and adjacent placeholder remain visually solid and retain
+        their pixbuf/textures.
+   [ok] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files
+        onto dock
+   [ok] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof
+        animation
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window): Click running app icon -> activates &
+        brings to front
+   [ok] 2.4 Left Click (Minimize): Click icon of already active window ->
+        minimizes
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and
+        "Close"
+   [ok] 2.7 Attention / Urgent State: Window requesting attention ->
+        bounce/pulse effect using test_urgency.py in FAT folder
+   [ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows ->
+        "Close All" closes all instances
+   [ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click
+        window title in list brings that window to front
+   [ok] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+
+        windows -> cycles focus through instances
+   [ok] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) ->
+        dock stays hidden and never steals input
+   [ok] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running
+        indicator dot on pinned launcher (no duplicate icons)
+   [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact, no JSON parse errors or  vanished indicators
+
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away
+        -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the
+        overlap of the non focused window
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock
+        immediately
+
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ko->ok] 4.1 (GNOME) Empty Workspace Switch: Window covers dock on WS1 ->
+        switch to empty WS2 -> dock reveals:
+        Bug: (0.5.0) Dock remained hidden after switching to an empty workspace.
+        To Test: In GNOME Shell with extension active, overlap dock on Workspace
+        1 and switch to empty Workspace 2; verify active-workspace-changed
+        triggers WindowsChanged, updates onCurrentWorkspace, and unhides the
+        dock.
+   [ok] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again
+        immediately
+   [ok] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every
+        workspace
+   [ok] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly
+        -> handled without stale lookups or crashes
+
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct
+        arrow
+   [ok] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no
+        stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+
+6. DOCKLETS & SPECIAL ITEMS
+   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ok] 6.2 Trash Docklet: Displays state; click opens; drag files to trash;
+        right-click empty
+   [ok] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond
+        properly and system counterpart open if clicked
+   [ok] 6.4 External Trash Sync: Empty/fill trash from external file manager
+        (Dolphin/Nautilus) -> icon updates state via D-Bus
+   [ko->ok] 6.5 (Cross-Compositor) Screenshot Docklet: Click triggers
+        rectangular selection; context menu triggers area/full/window/folder:
+        Bug: (GNOME) The screenshot docklet unconditionally checked for
+        'spectacle' first; on systems with both KDE and GNOME installed, it
+        tried to launch Spectacle under GNOME Mutter, failing due to missing KDE
+        protocols.
+        Solution: In ScreenshotDockItem.vala, added desktop session detection
+        (is_gnome_session, is_kde_session). On GNOME, it now invokes the native
+        XDG Desktop Portal (org.freedesktop.portal.Screenshot) via D-Bus which
+        opens GNOME's built-in interactive screenshot UI; on KDE, it invokes
+        Spectacle; and on wlroots/Labwc, it invokes grim/slurp.
+
+7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+   [ok] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [ko->ok] 7.2 (Cross-Compositor) Position on Screen & "On Primary Display"
+        Toggle: Bottom, Top, Left, Right edge anchoring works:
+        Bug: (Cross-Compositor) When toggling the "On Primary Display" switch ON
+        and then disabling it, the dock did not return to the previous display
+        and remained stuck on the primary display.
+        Cause: In PreferencesWindow.vala, enabling "On Primary Display" forced
+        cb_display_plug to the primary monitor index, erasing the previous
+        explicit selection. When toggling it off, prefs.Monitor read
+        cb_display_plug, which was now the primary monitor.
+        Solution: In DockController.vala, added last_explicit_monitor tracking
+        across settings changes. In PreferencesWindow.vala, added
+        previous_monitor state and updated primary_display_toggled() to remember
+        the previous display before switching to primary, and restore it upon
+        disabling. Also disables the monitor combo dropdown when "On Primary
+        Display" is active.
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [ok] 7.5 Theme Switching: Instant visual theme change
+   [ko->ok] 7.6 (Cross-Compositor) Multi-Monitor: Output monitor selector works
+        correctly:
+        Bug: (0.5.0) In multi-monitor setups, dock occasionally stuck to the
+        wrong screen on output change.
+        Solution: (v0.5.1) PositionManager.vala was upgraded with stable monitor
+        model matching (ignoring volatile resolution/offset bracket strings) and
+        safe layer-shell monitor re-anchoring in DockWindow.vala. Test changing
+        target monitor in Preferences under GNOME.
+   [ok] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and
+        125%/150% displays -> crisp icons and aligned tooltips
+        Use "gnome-control-center display"
+
+8. MULTI MONITOR VALIDATION MATRIX
+   [ko->ok] 8.1 (Cross-Compositor) FAT Validation Matrix: Move to all screens
+        and all edges, for everyone of that verify 1 to 7:
+        Bug: (0.5.0) Edge/monitor switching previously experienced positioning
+        drift or wrong-output sticking.
+        To Test: Cycle dock through Bottom, Top, Left, Right across all
+        connected displays on GNOME to verify that the v0.5.1 PositionManager
+        fixes keep anchoring 100% accurate.
+
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
+   [ok] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across
+        screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement)
+        remain 100% responsive
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor
+        dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event
+        loop
+   [ok] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across
+        displays -> updates are throttled
+        smoothly without compositor stutter or dropped commands
+   [ok] 9.4 Single Script Instance: Check D-Bus scripting state after
+        resume/restart (isScriptLoaded) -> exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut
+        collisions
+   [ok] 9.5 (Cross-Compositor) Process Lifecycle (--replace / kill): Restart
+        dock via 'wayplank --replace' -> cleanly takes over without zombie
+        scripts
+   [ok] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid
+        scaling/DPI modifications -> zero compositor lockups or event stalls
+   [ok] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst
+        of window title changes or fast open/close cycle -> absorbed by
+        50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+
+
+GNOME BUGS / NOTES:
+- 1.3 Drag & Drop Rearranging: Moving icon media loss during drag animation
+  fixed and verified.
+- 4.1 Empty Workspace Switch: Dock reveal on empty workspace switch fixed via
+  active-workspace-changed signal. Verified.
+- 6.5 Screenshot Docklet: Switched from restricted org.gnome.Shell.Screenshot to
+  official XDG Desktop Portal (org.freedesktop.portal.Screenshot). Verified.
+- 7.2 Position & "On Primary Display" Toggle: Dock not restoring previous
+  display on switch toggle off fixed in PreferencesWindow/DockController.
+  Verified.
+- 7.6 & 8.1 Multi-Monitor: Output monitor selector and cross-screen edge
+  anchoring stability verified across all edges.
+
+
+
+
+================================================================================
+SESSION 2: KDE PLASMA (KWin Backend)
+================================================================================
+
+0. Crashes during test
+   [ok] : None
+
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in
+        Dock"
+   [ok] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in
+        Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+   [ok] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files
+        onto dock
+   [ok] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof
+        animation
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window): Click running app icon -> activates &
+        brings to front
+   [ok] 2.4 Left Click (Minimize): Click icon of already active window ->
+        minimizes
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and
+        "Close"
+   [ko->ok] 2.7 (KWin) Attention / Urgent State: Window requesting attention ->
+        bounce/pulse effect using test_urgency.py in FAT folder:
+        Bug: (KWin) When demandsAttention was asserted by KWin,
+        ApplicationDockItem.set_urgent(true) set State |= ItemState.URGENT
+        (which correctly displayed the red urgency indicator dot), but failed to
+        update LastUrgent timestamp (remaining 0). As a result, urgent_time
+        (frame_time - 0) overflowed in DockRenderer, causing the easing_bounce
+        condition to always evaluate to false and preventing icon bouncing.
+        Solution: In ApplicationDockItem.vala, set LastUrgent =
+        GLib.get_monotonic_time() upon transitioning to URGENT state. Added
+        LastUrgent notify signal handling in DockItemProvider.vala to trigger
+        animated_draw(). In DockRenderer.vala, implemented periodic bounce cycle
+        (2s cadence) and kept item_animation_needed active while
+        ItemState.URGENT is asserted, producing continuous bouncing until the
+        urgent window gains focus.
+   [ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows ->
+        "Close All" closes all instances
+   [ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click
+        window title in list brings that window to front
+   [ok] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+
+        windows -> cycles focus through instances
+   [ok] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) ->
+        dock stays hidden and never steals input
+   [ok] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running
+        indicator dot on pinned launcher (no duplicate icons)
+   [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact, no JSON parse errors or vanished indicators.
+
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away
+        -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the
+        overlap of the non focused window
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock
+        immediately
+
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ok] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty
+        WS2 -> dock reveals
+   [ok] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again
+        immediately
+   [ok] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every
+        workspace
+   [ok] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly
+        -> handled without stale lookups or crashes
+
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct
+        arrow
+   [ok] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no
+        stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+
+6. DOCKLETS & SPECIAL ITEMS
+   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ok] 6.2 Trash Docklet: Displays state; click opens; drag files to trash;
+        right-click empty
+   [ok] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond
+        properly and system counterpart open if clicked
+   [ok] 6.4 External Trash Sync: Empty/fill trash from external file manager
+        (Dolphin/Nautilus) -> icon updates state via D-Bus
+   [ok] 6.5 Screenshot Docklet: Click triggers rectangular selection; context
+        menu triggers area/full/window/folder
+
+7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+   [ok] 7.1 Window Opening: Preferences dialog opens centered without glitch
+   [ko->ok] 7.2 (Cross-Compositor) Position on Screen & "On Primary Display"
+        Toggle: Bottom, Top, Left, Right edge anchoring works:
+        Bug: (Cross-Compositor) When toggling the "On Primary Display" switch ON
+        and then disabling it, the dock did not return to the previous display
+        and remained stuck on the primary display.   Cause: In
+        PreferencesWindow.vala, enabling "On Primary Display" forced
+        cb_display_plug to the primary monitor index, erasing the previous
+        explicit selection. When toggling it off, prefs. Monitor read
+        cb_display_plug, which was now the primary monitor.
+        Solution: In DockController.vala, added last_explicit_monitor tracking
+        across settings changes. In PreferencesWindow.vala, added
+        previous_monitor state and updated primary_display_toggled() to remember
+        the previous display before switching to primary, and restore it upon
+        disabling. Also disables the monitor combo dropdown when "On Primary
+        Display" is active.
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [ok] 7.5 Theme Switching: Instant visual theme change
+   [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [ko->ok] 7.7 (KWin) HiDPI & Fractional Scaling: Move dock/windows between
+        100% and 125%/150% displays -> crisp icons and aligned tooltips:
+        after the dpi change the dock does go primary screen.
+        Bug: (KWin) When display scaling or DPI changed in KDE Plasma, the
+        logical resolutions and coordinates of connected displays changed (e.g.
+        1920x1080 -> 1536x864). PositionManager.get_monitor_for_plug_name()
+        evaluated monitor identity based on hardcoded geometry strings ("DELL
+        P2219H (1) [1920x1080 @ 0,0]"), failing exact and coordinate matching,
+        and either fell back to the first duplicate model or the default primary
+        screen. Additionally, DockWindow.update_layer_shell_monitor()
+        unconditionally invoked hide() on the layer surface, forcing KWin to
+        remap the recreated surface on the primary output.
+        Solution: In PositionManager.vala, introduced stable monitor label
+        matching (comparing model and instance count independent of volatile
+        geometry brackets) and dynamically refreshed prefs.Monitor with current
+        geometry. In DockWindow.vala, eliminated destructive hide() calls and
+        guarded GtkLayerShell.set_monitor() to only trigger when target monitor
+        changes, ensuring the dock surface remains anchored to its assigned
+        display across DPI and fractional scaling transitions.
+
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all
+        edges, for everyone of that verify 1 to 7
+        At least change monitor at each few bullets
+
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
+   [ok] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across
+        screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement)
+        remain 100% responsive
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor
+        dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event
+        loop
+   [ok] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across
+        displays -> updates are throttled
+        smoothly without compositor stutter or dropped commands
+   [ok] 9.4 Single Script Instance: Check D-Bus scripting state after
+        resume/restart (isScriptLoaded) -> exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut
+        collisions
+   [ko->ok] 9.5 (Cross-Compositor) Process Lifecycle (--replace / kill): Restart
+        dock via 'wayplank --replace' -> cleanly
+        takes over without zombie scripts: wayplank --replace => Unknown option
+        --replace.
+        Bug: (Cross-Compositor) The CLI option parser in AbstractMain.vala
+        registered {"reload", 'r'} in the GOptionEntry array, allowing 'wayplank
+        -r' and 'wayplank --reload' to parse correctly, but omitted {"replace",
+        0}. When invoked with '--replace', GLib.Application rejected the
+        argument with 'Unknown option --replace'.
+        Solution: Added {"replace", 0, 0, OptionArg.NONE, null, "Restart and
+        replace running dock instance", null} to the options table in
+        AbstractMain.vala. Now both 'wayplank -r' and 'wayplank --replace'
+        cleanly terminate any running instance and start a fresh dock lifecycle
+        without leaving zombie scripts or orphaned processes.
+   [ko->ok] 9.6 (KWin) Rapid Display Reconfiguration / DPI Storm: Repeated rapid
+        scaling/DPI modifications in KDE
+        System Settings -> zero compositor lockups or synchronous D-Bus stalls:
+        Freeze occurred during rapid multi-DPI slider adjustments in KDE.
+        Bug: (KWin) In KWinBridge.vala, workspace.windowRemoved was connected to
+        sendWindowStateEx(w) directly, bypassing the 50ms QTimer debouncer and
+        issuing synchronous D-Bus calls on KWin's main thread. During rapid
+        DPI/scaling changes, layer surface teardown triggered repeated
+        unthrottled IPC calls while KWin was reconfiguring DRM outputs. In
+        addition, DockWindow's update_layer_shell_monitor() unconditionally
+        unmapped the dock via hide(), provoking unnecessary surface destroy
+        cycles.
+        Solution: Routed workspace.windowRemoved through scheduleWindowState()
+        and eliminated destructive hide() calls in DockWindow.vala. 100% of KWin
+        window lifecycle events are now debounced through the single-shot
+        QTimer, D-Bus calls have bounded timeouts (2000ms), and PositionManager
+        has re-entrancy protection, guaranteeing zero event storms or compositor
+        stalls.
+   [ok] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst
+        of window title changes or
+       fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes,
+       JSON thrashing, or UI stutter
+
+
+
+PLASMA BUGS / NOTES:
+- 2.7 (KWin) Attention / Urgent State: Missing LastUrgent timestamp in
+  ApplicationDockItem caused bounce easing condition to underflow. Fixed.
+- 7.2 (Cross-Compositor) Position on Screen & "On Primary Display" Toggle: Dock
+  not restoring previous display on switch toggle off fixed in
+  PreferencesWindow/DockController. Verified.
+- 7.7 (KWin) HiDPI & Fractional Scaling: Monitor label identity dropped on DPI
+  change due to volatile geometry string matching and destructive hide() calls
+  in DockWindow. Fixed with stable model matching & safe anchoring.
+- 9.5 (Cross-Compositor) Process Lifecycle: CLI --replace option was missing
+  from GOptionEntry table in AbstractMain.vala. Fixed.
+- 9.6 (KWin) Rapid Display Reconfiguration / DPI Storm: workspace.windowRemoved
+  bypassed QTimer debouncer, flooding synchronous D-Bus IPC during multi-DPI
+  reconfiguration. Fixed by routing all signals through scheduleWindowState().
+
+
+================================================================================
+SESSION 3: LABWC (wlroots Backend)
+================================================================================
+
+0. Crashes during test
+   [ok] : None
+
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in
+        Dock"
+   [ok] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in
+        Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+   [ok] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files
+        onto dock
+   [ok] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof
+        animation
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window): Click running app icon -> activates &
+        brings to front
+   [ok] 2.4 Left Click (Minimize): Click icon of already active window ->
+        minimizes
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click): Shows window list, quicklists, and
+        "Close"
+   [ok] 2.7 Attention / Urgent State: Window requesting attention ->
+        bounce/pulse effect using test_urgency.py in FAT folder
+        (Note: zwlr_foreign_toplevel_management_unstable_v1 protocol does not
+        define demands_attention state)
+   [ok] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows ->
+        "Close All" closes all instances
+   [ok] 2.9 Window List Selection: Right-click app with 2+ windows -> click
+        window title in list brings that window to front
+   [ok] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+
+        windows -> cycles focus through instances
+   [ok] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) ->
+        dock stays hidden and never steals input
+   [ok] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running
+        indicator dot on pinned launcher (no duplicate icons)
+   [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact, no JSON parse errors or vanished indicators
+
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away
+        -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the
+        overlap of the non focused window
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock
+        immediately
+
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ko->ok] 4.1 (Labwc) Empty Workspace Switch: Window covers dock on WS1
+        -> switch to empty WS2 -> dock reveals:
+        Note: zwlr_foreign_toplevel_management_unstable_v1 protocol in wlroots
+        lacks native workspace tracking. Test using Dodge Active mode: when
+        moving focus away from overlapping window or switching workspace view,
+        verify dock unhides appropriately.
+   [ok] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again
+        immediately
+   [ok] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every
+        workspace
+   [ok] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly
+        -> handled without stale lookups or crashes
+
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct
+        arrow
+   [ok] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no
+        stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+
+6. DOCKLETS & SPECIAL ITEMS
+   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ok] 6.2 Trash Docklet: Displays state; click opens; drag files to trash;
+        right-click empty
+   [ok] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond
+        properly and system counterpart open if clicked
+   [ok] 6.4 External Trash Sync: Empty/fill trash from external file manager
+        (Dolphin/Nautilus) -> icon updates state via D-Bus
+   [ko->ok] 6.5 Screenshot Docklet: Click triggers rectangular selection; context
+        menu triggers area/full/window/folder:
+        Bug: (Labwc) Spectacle requires KDE Plasma, and xdg-desktop-portal lacks
+        a wlroots backend. On wlroots/Labwc, 'grim' and 'slurp' are the standard
+        tools.
+        Solution: Added 'Recommends: grim, slurp, spectacle' to Debian control
+        file in BuildDeb.sh. Installing 'grim' and 'slurp' provides instant native
+        rectangular selection and fullscreen capture on Labwc.
+
+7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+   [ko->ok] 7.1 (Labwc) Window Opening: Preferences dialog opens centered
+        without glitch:
+        Bug: (0.5.0) Preferences dialog opened at the top-left corner under
+        Labwc's default window placement.
+        To Test: Open Preferences dialog (Ctrl + Right-Click -> Preferences) and
+        verify window rendering, titlebar decor, and behavior under Labwc
+        compositor rules. So not a bug
+   [ko->ok] 7.2 (Cross-Compositor) Position on Screen & "On Primary
+        Display" Toggle: Bottom, Top, Left, Right edge anchoring works:
+        Bug: (Cross-Compositor) When toggling the "On Primary Display" switch ON
+        and then disabling it, the dock did not return to the previous display
+        and remained stuck on the primary display.
+        Cause: In PreferencesWindow.vala, enabling "On Primary Display" forced
+        cb_display_plug to the primary monitor index, erasing the previous
+        explicit selection. When toggling it off, prefs.Monitor read
+        cb_display_plug, which was now the primary monitor.
+        Solution: In DockController.vala, added last_explicit_monitor tracking
+        across settings changes. In PreferencesWindow.vala, added
+        previous_monitor state and updated primary_display_toggled() to remember
+        the previous display before switching to primary, and restore it upon
+        disabling. Also disables the monitor combo dropdown when "On Primary
+        Display" is active.
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [ok] 7.5 Theme Switching: Instant visual theme change
+   [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [ok] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and
+        125%/150% displays -> crisp icons and aligned tooltips
+
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all
+        edges, for everyone of that verify 1 to 7
+        At least change monitor at each few bullets
+
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
+   [ok] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across
+        screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement)
+        remain 100% responsive
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor
+        dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event
+        loop
+   [ok] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across
+        displays -> updates are throttled
+        smoothly without compositor stutter or dropped commands
+   [ok] 9.4 Single Script Instance: Check D-Bus scripting state after
+        resume/restart (isScriptLoaded) -> exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut
+        collisions
+   [ok] 9.5 (Cross-Compositor) Process Lifecycle (--replace / kill): Restart
+        dock via 'wayplank --replace' -> cleanly takes over without zombie
+        scripts
+   [ok] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid
+        scaling/DPI modifications -> zero compositor lockups or event stalls
+   [ok] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst
+        of window title changes or fast open/close cycle -> absorbed by 50ms
+        debouncer without CPU spikes, JSON thrashing, or UI stutter
+
+
+LABWC BUGS / NOTES:
+- 4.1 (Labwc) Virtual Desktops & Workspaces: zwlr_foreign_toplevel_management_unstable_v1
+  lacks spatial window coordinates; workspace dodging operates via Dodge Active mode.
+- 6.5 (Labwc) Screenshot Docklet: Requires 'grim' and 'slurp' on wlroots; added
+  Recommends in Debian package control so they are automatically installed.
+- 7.1 (Labwc) Preferences Dialog Centering: Solved by configuring Labwc windowRule
+  with AutoPlace policy="center" in rc.xml.
+- 2.7 (Labwc) Attention / Urgent State: Architectural note - The
+  zwlr_foreign_toplevel_management_unstable_v1 protocol specification only
+  defines MAXIMIZED, MINIMIZED, ACTIVATED, and FULLSCREEN states. It lacks an
+  urgency/attention notification event; hence native wlroots windows do not emit
+  protocol-level attention signals.
+- 2.13 (Labwc) Non-ASCII / UTF-8 Window Titles: In wlr-toplevel-bridge.c,
+  g_strescape() previously escaped UTF-8 bytes (>127) as octals (\303\250),
+  producing invalid JSON that caused Json.Parser in LabwcBackend.vala to fail
+  and clear all running indicators. Fixed with a dedicated RFC 8259 JSON
+  escaper.
+- 9.7 (Labwc) Window Title & State Flood Debounce: In LabwcBackend.vala, Wayland
+  toplevel callbacks previously triggered immediate synchronous JSON generation
+  and parsing on every event. Added a 50ms single-shot GLib.Timeout debouncer to
+  throttle event bursts.
+
+
+
+================================================================================

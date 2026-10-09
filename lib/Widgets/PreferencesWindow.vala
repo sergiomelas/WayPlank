@@ -104,12 +104,15 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_docklet_volume;
 		[GtkChild]
+		unowned Gtk.Switch sw_docklet_screenshot;
+		[GtkChild]
 		unowned Gtk.Stack dock_preferences;
 		[GtkChild]
 		unowned Gtk.StackSwitcher dock_preferences_switcher;
 		
 		bool updating_docklets = false;
 		bool updating_monitors = false;
+		string previous_monitor = "";
 		
 		Gtk.CssProvider popup_css;
 		Gdk.Screen popup_css_screen;
@@ -174,6 +177,7 @@ namespace Plank
 			actions.pack_end (ok_button, false, false, 0);
 			content.pack_end (actions, false, false, 0);
 			add (content);
+			ok_button.set_can_default (true);
 			set_default (ok_button);
 			content.show_all ();
 			
@@ -373,21 +377,77 @@ namespace Plank
 		{
 			if (updating_monitors)
 				return;
-			if (((Gtk.Switch) widget).get_active ()) {
+			var is_primary = ((Gtk.Switch) widget).get_active ();
+			var display = get_display ();
+			var names = Plank.PositionManager.get_monitor_plug_names (display);
+
+			if (is_primary) {
+				if (prefs.Monitor != "") {
+					previous_monitor = prefs.Monitor;
+					if (controller != null)
+						controller.last_explicit_monitor = prefs.Monitor;
+				}
 				prefs.Monitor = "";
 				updating_monitors = true;
-				var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (get_display (), "");
-				for (int i = 0; i < get_display ().get_n_monitors (); i++) {
-					if (get_display ().get_monitor (i) == primary_mon) {
+				var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
+				for (int i = 0; i < display.get_n_monitors (); i++) {
+					if (display.get_monitor (i) == primary_mon) {
 						cb_display_plug.set_active (i);
 						break;
 					}
 				}
+				cb_display_plug.sensitive = false;
 				updating_monitors = false;
 			} else {
-				var active_text = cb_display_plug.get_active_text ();
-				if (active_text != null && active_text != "")
-					prefs.Monitor = active_text;
+				cb_display_plug.sensitive = true;
+				string target_name = "";
+				if (previous_monitor != "") {
+					target_name = previous_monitor;
+				} else if (controller != null && controller.last_explicit_monitor != "") {
+					target_name = controller.last_explicit_monitor;
+				}
+
+				int target_pos = -1;
+				if (target_name != "") {
+					var target_mon = Plank.PositionManager.get_monitor_for_plug_name (display, target_name);
+					if (target_mon != null) {
+						for (int i = 0; i < display.get_n_monitors (); i++) {
+							if (display.get_monitor (i) == target_mon) {
+								target_pos = i;
+								break;
+							}
+						}
+					}
+				}
+
+				// If previous monitor was not found or no longer exists,
+				// pick the first monitor that is NOT the primary monitor!
+				if (target_pos < 0) {
+					var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
+					for (int i = 0; i < display.get_n_monitors (); i++) {
+						if (display.get_monitor (i) != primary_mon) {
+							target_pos = i;
+							break;
+						}
+					}
+				}
+
+				if (target_pos < 0 && names.length > 0)
+					target_pos = 0;
+
+				if (target_pos >= 0 && target_pos < names.length) {
+					updating_monitors = true;
+					cb_display_plug.set_active (target_pos);
+					prefs.Monitor = names[target_pos];
+					previous_monitor = names[target_pos];
+					if (controller != null)
+						controller.last_explicit_monitor = names[target_pos];
+					updating_monitors = false;
+				} else {
+					var active_text = cb_display_plug.get_active_text ();
+					if (active_text != null && active_text != "")
+						prefs.Monitor = active_text;
+				}
 			}
 		}
 		
@@ -513,9 +573,13 @@ namespace Plank
 				return;
 			var text = ((Gtk.ComboBoxText) widget).get_active_text ();
 			if (text != null && text != "") {
+				previous_monitor = text;
+				if (controller != null)
+					controller.last_explicit_monitor = text;
 				prefs.Monitor = text;
 				updating_monitors = true;
 				sw_primary_display.set_active (false);
+				cb_display_plug.sensitive = true;
 				updating_monitors = false;
 			}
 		}
@@ -553,6 +617,7 @@ namespace Plank
 			sw_docklet_desktop.notify["active"].connect (docklet_desktop_toggled);
 			sw_docklet_mpris.notify["active"].connect (docklet_mpris_toggled);
 			sw_docklet_volume.notify["active"].connect (docklet_volume_toggled);
+			sw_docklet_screenshot.notify["active"].connect (docklet_screenshot_toggled);
 			if (controller.default_provider != null)
 				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
@@ -593,6 +658,7 @@ namespace Plank
 			sw_docklet_desktop.notify["active"].disconnect (docklet_desktop_toggled);
 			sw_docklet_mpris.notify["active"].disconnect (docklet_mpris_toggled);
 			sw_docklet_volume.notify["active"].disconnect (docklet_volume_toggled);
+			sw_docklet_screenshot.notify["active"].disconnect (docklet_screenshot_toggled);
 			if (controller.default_provider != null)
 				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
@@ -623,20 +689,32 @@ namespace Plank
 			if (prefs.Monitor == "") {
 				cb_display_plug.set_active (primary_pos);
 				sw_primary_display.set_active (true);
+				cb_display_plug.sensitive = false;
 			} else if (active_pos >= 0) {
 				cb_display_plug.set_active (active_pos);
 				sw_primary_display.set_active (false);
+				cb_display_plug.sensitive = true;
+				if (prefs.Monitor != names[active_pos])
+					prefs.Monitor = names[active_pos];
 			} else if (names.length > 0) {
 				cb_display_plug.set_active (0);
 				sw_primary_display.set_active (false);
+				cb_display_plug.sensitive = true;
 			}
 			
-			cb_display_plug.sensitive = true;
 			updating_monitors = false;
 		}
 
 		void init_dock_tab ()
 		{
+			if (prefs.Monitor != "") {
+				previous_monitor = prefs.Monitor;
+				if (controller != null)
+					controller.last_explicit_monitor = prefs.Monitor;
+			} else if (controller != null && controller.last_explicit_monitor != "") {
+				previous_monitor = controller.last_explicit_monitor;
+			}
+
 			var pos = 0;
 			cb_theme.remove_all ();
 			foreach (unowned string theme in Plank.Theme.get_theme_list ()) {
@@ -747,6 +825,11 @@ namespace Plank
 			toggle_docklet_uri (widget, "docklet://volume");
 		}
 
+		void docklet_screenshot_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://screenshot");
+		}
+
 		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
 			init_docklets_tab ();
@@ -765,6 +848,7 @@ namespace Plank
 				sw_docklet_desktop.set_active (default_provider.item_for_uri ("docklet://desktop") != null);
 				sw_docklet_mpris.set_active (default_provider.item_for_uri ("docklet://mpris") != null);
 				sw_docklet_volume.set_active (default_provider.item_for_uri ("docklet://volume") != null);
+				sw_docklet_screenshot.set_active (default_provider.item_for_uri ("docklet://screenshot") != null);
 			} else {
 				sw_docklet_trash.set_active (false);
 				sw_docklet_clock.set_active (false);
@@ -774,6 +858,7 @@ namespace Plank
 				sw_docklet_desktop.set_active (false);
 				sw_docklet_mpris.set_active (false);
 				sw_docklet_volume.set_active (false);
+				sw_docklet_screenshot.set_active (false);
 			}
 			updating_docklets = false;
 		}

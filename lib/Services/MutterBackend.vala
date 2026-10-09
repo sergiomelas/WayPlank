@@ -752,8 +752,21 @@ export default class WayplankBridgeExtension extends Extension {
             const width = frameRect ? frameRect.width : 0;
             const height = frameRect ? frameRect.height : 0;
 
-            const onCurrentWorkspace = !ws || (win.is_on_all_workspaces && win.is_on_all_workspaces()) ||
-                                       (win.located_on_workspace ? win.located_on_workspace(ws) : (win.get_workspace && win.get_workspace() === ws));
+            let onCurrentWorkspace = false;
+            if (!ws || (win.is_on_all_workspaces && win.is_on_all_workspaces())) {
+                onCurrentWorkspace = true;
+            } else if (win.located_on_workspace && win.located_on_workspace(ws)) {
+                onCurrentWorkspace = true;
+            } else {
+                const winWs = win.get_workspace ? win.get_workspace() : null;
+                if (winWs) {
+                    if (typeof winWs.index === 'function' && typeof ws.index === 'function') {
+                        onCurrentWorkspace = (winWs.index() === ws.index());
+                    } else {
+                        onCurrentWorkspace = (winWs === ws);
+                    }
+                }
+            }
 
             result.push({
                 uuid: id,

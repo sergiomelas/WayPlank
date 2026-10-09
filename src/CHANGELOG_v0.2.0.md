@@ -7,7 +7,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 1. 🌐 Native Wayland Surface Architecture via GTK Layer Shell
+## 1. 🌐 (Cross-Compositor: Wayland / Layer Shell) Native Wayland Surface Architecture via GTK Layer Shell
 
 - **Excising Legacy X11 Dock Windows (`DockWindow.vala`)**:
   - In original Plank and v0.1, the dock was implemented as an X11 top-level window requesting `_NET_WM_WINDOW_TYPE_DOCK` with custom X11 struts (`_NET_WM_STRUT_PARTIAL`). In Wayland, window types and global screen struts are forbidden by the display protocol.
@@ -26,7 +26,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 2. 🔍 Introduction of `/proc` Process Scanner (`lib/Services/Matcher.vala`)
+## 2. 🔍 (Cross-Compositor) Introduction of `/proc` Process Scanner (`lib/Services/Matcher.vala`)
 
 - **The Problem of Wayland Application Introspection**:
   - Without the X11 root window tree or external window tracking daemons (BAMF / libwnck), a dock in Wayland has no global visibility into running desktop applications.
@@ -38,7 +38,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 3. 🧹 Elimination of 400+ Lines of X11 Strut & Workarea Logic (`PositionManager.vala`)
+## 3. 🧹 (Cross-Compositor / Core) Elimination of 400+ Lines of X11 Strut & Workarea Logic (`PositionManager.vala`)
 
 - **Decoupling PositionManager from X11 Screen Workareas**:
   - Excised over 400 lines of complex X11 screen workarea code from `lib/PositionManager.vala`:
@@ -49,7 +49,7 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
 
 ---
 
-## 4. 📦 Packaging Updates & Debian Dependency Management
+## 4. 📦 (Cross-Compositor / Packaging) Packaging Updates & Debian Dependency Management
 
 - **Build Pipeline Modularization**:
   - Maintained clear separation between binary compilation (`BuilsBin.sh`) and distribution packaging (`BuildDeb.sh`).

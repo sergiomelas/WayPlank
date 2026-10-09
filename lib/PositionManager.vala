@@ -163,7 +163,23 @@ namespace Plank
 					return display.get_monitor (i);
 			}
 
-			// 2. Geometry coordinate match from string "[... @ X,Y]"
+			// 2. Stable Label match ignoring volatile resolution/coordinates (e.g. "DELL P2219H (1)" or "eDP-1-0x0B58")
+			// This preserves monitor assignment across fractional scaling, DPI changes, and resolution switches.
+			string plug_label = plug_name;
+			if (plug_label.contains ("[")) {
+				plug_label = plug_label.split ("[")[0].strip ();
+			}
+			if (plug_label != "") {
+				for (int i = 0; i < n_monitors; i++) {
+					string cur_label = names[i];
+					if (cur_label.contains ("["))
+						cur_label = cur_label.split ("[")[0].strip ();
+					if (plug_label == cur_label)
+						return display.get_monitor (i);
+				}
+			}
+
+			// 3. Geometry coordinate match from string "[... @ X,Y]"
 			if (plug_name.contains ("@")) {
 				int at_idx = plug_name.index_of ("@");
 				int end_idx = plug_name.index_of ("]", at_idx);
@@ -182,14 +198,14 @@ namespace Plank
 				}
 			}
 
-			// 3. Match numeric index "X" or legacy "PLUG_MONITOR_X"
+			// 4. Match numeric index "X" or legacy "PLUG_MONITOR_X"
 			for (int i = 0; i < n_monitors; i++) {
 				var fallback = "PLUG_MONITOR_%i".printf (i);
 				if (plug_name == fallback || plug_name == i.to_string ())
 					return display.get_monitor (i);
 			}
 
-			// 4. Fallback to matching raw model prefix or name
+			// 5. Fallback to matching raw model prefix or name
 			for (int i = 0; i < n_monitors; i++) {
 				var monitor = display.get_monitor (i);
 				if (monitor != null) {
@@ -230,20 +246,39 @@ namespace Plank
 			return monitor.get_workarea ();
 		}
 
+		bool updating_screen = false;
+
 		void screen_changed (Gdk.Screen screen)
 		{
+			if (updating_screen)
+				return;
+			updating_screen = true;
+
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = get_effective_monitor_geometry (monitor);
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
 
+			if (monitor != null && controller.prefs.Monitor != "" && controller.prefs.Monitor != "primary") {
+				var names = get_monitor_plug_names (screen.get_display ());
+				for (int i = 0; i < names.length; i++) {
+					if (screen.get_display ().get_monitor (i) == monitor) {
+						if (controller.prefs.Monitor != names[i])
+							controller.prefs.Monitor = names[i];
+						break;
+					}
+				}
+			}
+
 			if (!monitor_changed
 				&& old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
 				&& old_monitor_geo.width == monitor_geo.width
-				&& old_monitor_geo.height == monitor_geo.height)
+				&& old_monitor_geo.height == monitor_geo.height) {
+				updating_screen = false;
 				return;
+			}
 			
 			Logger.verbose ("PositionManager.monitor_geo_changed (%i,%i-%ix%i)",
 				monitor_geo.x, monitor_geo.y, monitor_geo.width, monitor_geo.height);
@@ -258,6 +293,7 @@ namespace Plank
 			}
 			
 			thaw_notify ();
+			updating_screen = false;
 		}
 		
 		void screen_composited_changed (Gdk.Screen screen)

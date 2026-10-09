@@ -141,6 +141,10 @@ namespace Plank
 				return new VolumeDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://screenshot")
 				return new ScreenshotDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://session")
+				return new SessionDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://preferences")
+				return new PreferencesDockItem.with_dockitem_file (file);
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);
@@ -373,12 +377,18 @@ namespace Plank
 			if (target_dir == null)
 				target_dir = launchers_dir;
 			
+			if (target_dir != null && !target_dir.query_exists ()) {
+				try {
+					target_dir.make_directory_with_parents (null);
+				} catch { }
+			}
+			
 			var launcher_file = File.new_for_uri (uri);
 			bool is_docklet = uri.has_prefix ("docklet://");
 			bool is_valid = is_docklet || launcher_file.query_exists ();
 			string basename = is_docklet ? uri.replace ("docklet://", "") : (launcher_file.get_basename () ?? "unknown");
 			
-			if (is_valid) {
+			if (is_valid && target_dir != null) {
 				var file = new KeyFile ();
 				
 				file.set_string (typeof (DockItemPreferences).name (), "Launcher", uri);
@@ -401,7 +411,7 @@ namespace Plank
 					}
 					
 					// save the key file
-					var stream = new DataOutputStream (dockitem_file.create (FileCreateFlags.NONE));
+					var stream = new DataOutputStream (dockitem_file.replace (null, false, FileCreateFlags.NONE, null));
 					stream.put_string (file.to_data ());
 					stream.close ();
 					

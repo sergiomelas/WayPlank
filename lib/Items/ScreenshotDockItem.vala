@@ -57,6 +57,23 @@ namespace Plank
 			return desktop.down ().contains ("gnome") || desktop.down ().contains ("ubuntu");
 		}
 
+		static bool invoke_portal_screenshot (bool interactive)
+		{
+			try {
+				var bus = Bus.get_sync (BusType.SESSION, null);
+				var builder = new VariantBuilder (new VariantType ("a{sv}"));
+				builder.add ("{sv}", "interactive", new Variant.boolean (interactive));
+				bus.call_sync ("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
+					"org.freedesktop.portal.Screenshot", "Screenshot",
+					new Variant ("(sa{sv})", "", builder),
+					null, DBusCallFlags.NONE, 2000, null);
+				return true;
+			} catch (Error e) {
+				warning ("Failed to invoke XDG screenshot portal: %s", e.message);
+				return false;
+			}
+		}
+
 		public void capture_interactive ()
 		{
 			// 1. GNOME Session -> Native XDG Desktop Portal (Interactive UI)
@@ -69,12 +86,8 @@ namespace Plank
 						warning ("Failed to launch gnome-screenshot: %s", e.message);
 					}
 				}
-				try {
-					Process.spawn_command_line_async ("gdbus call --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop --method org.freedesktop.portal.Screenshot.Screenshot \"\" \"{'interactive': <true>}\"");
+				if (invoke_portal_screenshot (true))
 					return;
-				} catch (Error e) {
-					warning ("Failed to invoke XDG screenshot portal: %s", e.message);
-				}
 			}
 
 			// 2. KDE Plasma / Spectacle
@@ -111,11 +124,7 @@ namespace Plank
 			}
 			
 			// 5. Universal Wayland Desktop Portal via D-Bus
-			try {
-				Process.spawn_command_line_async ("gdbus call --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop --method org.freedesktop.portal.Screenshot.Screenshot \"\" \"{'interactive': <true>}\"");
-			} catch (Error e) {
-				warning ("Failed to invoke XDG screenshot portal: %s", e.message);
-			}
+			invoke_portal_screenshot (true);
 		}
 		
 		public void capture_fullscreen ()
@@ -128,12 +137,8 @@ namespace Plank
 						return;
 					} catch (Error e) { }
 				}
-				try {
-					Process.spawn_command_line_async ("gdbus call --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop --method org.freedesktop.portal.Screenshot.Screenshot \"\" \"{'interactive': <false>}\"");
+				if (invoke_portal_screenshot (false))
 					return;
-				} catch (Error e) {
-					warning ("Failed to invoke XDG screenshot portal: %s", e.message);
-				}
 			}
 
 			// 2. KDE Plasma / Spectacle
@@ -170,11 +175,7 @@ namespace Plank
 			}
 			
 			// 5. Universal Wayland Desktop Portal via D-Bus
-			try {
-				Process.spawn_command_line_async ("gdbus call --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop --method org.freedesktop.portal.Screenshot.Screenshot \"\" \"{'interactive': <false>}\"");
-			} catch (Error e) {
-				warning ("Failed to invoke XDG screenshot portal: %s", e.message);
-			}
+			invoke_portal_screenshot (false);
 		}
 		
 		public void capture_window ()
@@ -206,28 +207,25 @@ namespace Plank
 		
 		public void open_folder ()
 		{
+			string target_path = Environment.get_home_dir ();
 			var pic_dir = Environment.get_user_special_dir (UserDirectory.PICTURES);
 			if (pic_dir != null) {
 				var screenshots_dir = Path.build_filename (pic_dir, "Screenshots");
-				if (FileUtils.test (screenshots_dir, FileTest.IS_DIR)) {
-					try {
-						Process.spawn_command_line_async ("xdg-open \"%s\"".printf (screenshots_dir));
-						return;
-					} catch (Error e) {
-						warning ("Failed to open screenshots folder: %s", e.message);
-					}
-				}
-				try {
-					Process.spawn_command_line_async ("xdg-open \"%s\"".printf (pic_dir));
-					return;
-				} catch (Error e) {
-					warning ("Failed to open pictures folder: %s", e.message);
-				}
+				if (FileUtils.test (screenshots_dir, FileTest.IS_DIR))
+					target_path = screenshots_dir;
+				else
+					target_path = pic_dir;
 			}
+
 			try {
-				Process.spawn_command_line_async ("xdg-open \"%s\"".printf (Environment.get_home_dir ()));
+				if (Gtk.show_uri_on_window (null, Filename.to_uri (target_path), Gdk.CURRENT_TIME))
+					return;
+			} catch (Error e) { }
+
+			try {
+				Process.spawn_command_line_async ("xdg-open \"%s\"".printf (target_path));
 			} catch (Error e) {
-				warning ("Failed to open home directory: %s", e.message);
+				warning ("Failed to open screenshots folder: %s", e.message);
 			}
 		}
 		

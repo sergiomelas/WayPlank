@@ -2,3 +2,5 @@
 screenshot.png
 *~
 *.swp
+*.kate-swp
+.*.kate-swp

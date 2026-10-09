@@ -57,7 +57,7 @@ namespace Plank
 			if (timer_id != 0)
 				return;
 			
-			timer_id = Timeout.add_seconds (2, on_timer_tick);
+			timer_id = Timeout.add_seconds (3, on_timer_tick);
 		}
 		
 		void stop_timer ()
@@ -91,7 +91,7 @@ namespace Plank
 					null,
 					null,
 					DBusCallFlags.NONE,
-					500,
+					50,
 					null
 				);
 				
@@ -105,50 +105,43 @@ namespace Plank
 				}
 				
 				if (active_player_bus != null) {
-					// Query PlaybackStatus
-					var status_var = bus.call_sync (
+					// Query All Player Properties in a single round-trip with tight 50ms timeout
+					var all_props_var = bus.call_sync (
 						active_player_bus,
 						"/org/mpris/MediaPlayer2",
 						"org.freedesktop.DBus.Properties",
-						"Get",
-						new Variant ("(ss)", "org.mpris.MediaPlayer2.Player", "PlaybackStatus"),
+						"GetAll",
+						new Variant ("(s)", "org.mpris.MediaPlayer2.Player"),
 						null,
 						DBusCallFlags.NONE,
-						500,
+						50,
 						null
 					);
-					var inner = status_var.get_child_value (0).get_variant ();
-					playback_status = inner.get_string ();
+					var props_dict = all_props_var.get_child_value (0);
 					
-					// Query Metadata
-					var meta_var = bus.call_sync (
-						active_player_bus,
-						"/org/mpris/MediaPlayer2",
-						"org.freedesktop.DBus.Properties",
-						"Get",
-						new Variant ("(ss)", "org.mpris.MediaPlayer2.Player", "Metadata"),
-						null,
-						DBusCallFlags.NONE,
-						500,
-						null
-					);
-					var meta_dict = meta_var.get_child_value (0).get_variant ();
+					var status_val = props_dict.lookup_value ("PlaybackStatus", VariantType.ANY);
+					if (status_val != null) {
+						playback_status = status_val.get_variant ().get_string ();
+					}
 					
 					track_title = "";
 					track_artist = "";
-					
-					var title_val = meta_dict.lookup_value ("xesam:title", VariantType.ANY);
-					if (title_val != null)
-						track_title = title_val.get_variant ().get_string ();
-					
-					var artist_val = meta_dict.lookup_value ("xesam:artist", VariantType.ANY);
-					if (artist_val != null) {
-						var artist_variant = artist_val.get_variant ();
-						if (artist_variant.is_of_type (VariantType.STRING_ARRAY)) {
-							string[] artists = artist_variant.get_strv ();
-							if (artists.length > 0) track_artist = artists[0];
-						} else if (artist_variant.is_of_type (VariantType.STRING)) {
-							track_artist = artist_variant.get_string ();
+					var meta_val = props_dict.lookup_value ("Metadata", VariantType.ANY);
+					if (meta_val != null) {
+						var meta_dict = meta_val.get_variant ();
+						var title_val = meta_dict.lookup_value ("xesam:title", VariantType.ANY);
+						if (title_val != null)
+							track_title = title_val.get_variant ().get_string ();
+						
+						var artist_val = meta_dict.lookup_value ("xesam:artist", VariantType.ANY);
+						if (artist_val != null) {
+							var artist_variant = artist_val.get_variant ();
+							if (artist_variant.is_of_type (VariantType.STRING_ARRAY)) {
+								string[] artists = artist_variant.get_strv ();
+								if (artists.length > 0) track_artist = artists[0];
+							} else if (artist_variant.is_of_type (VariantType.STRING)) {
+								track_artist = artist_variant.get_string ();
+							}
 						}
 					}
 					

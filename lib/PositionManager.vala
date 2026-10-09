@@ -63,13 +63,19 @@ namespace Plank
 		
 		~PositionManager ()
 		{
-			unowned Gdk.Screen screen = controller.window.get_screen ();
-			
 			WindowControl.get_default ().primary_monitor_changed.disconnect (prefs_monitor_changed);
-			screen.monitors_changed.disconnect (screen_changed);
-			screen.size_changed.disconnect (screen_changed);
-			screen.composited_changed.disconnect (screen_composited_changed);
-			controller.prefs.notify.disconnect (prefs_changed);
+			
+			if (controller != null) {
+				controller.prefs.notify.disconnect (prefs_changed);
+				if (controller.window != null) {
+					unowned Gdk.Screen screen = controller.window.get_screen ();
+					if (screen != null) {
+						screen.monitors_changed.disconnect (screen_changed);
+						screen.size_changed.disconnect (screen_changed);
+						screen.composited_changed.disconnect (screen_composited_changed);
+					}
+				}
+			}
 			
 			draw_values.clear ();
 		}
@@ -220,7 +226,8 @@ namespace Plank
 		
 		void prefs_monitor_changed ()
 		{
-			screen_changed (controller.window.get_screen ());
+			if (controller != null && controller.window != null)
+				screen_changed (controller.window.get_screen ());
 		}
 
 		weak Gdk.Monitor? current_monitor = null;

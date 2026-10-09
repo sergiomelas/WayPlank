@@ -151,11 +151,22 @@ namespace Plank
 
 		~Unity ()
 		{
-			if (launcher_entries_timer_id > 0U)
+			if (launcher_entries_timer_id > 0U) {
 				Source.remove (launcher_entries_timer_id);
+				launcher_entries_timer_id = 0U;
+			}
+
+			if (launcher_entries != null) {
+				foreach (var entry in launcher_entries.values) {
+					if (entry.timer_id > 0U) {
+						Source.remove (entry.timer_id);
+						entry.timer_id = 0U;
+					}
+				}
+				launcher_entries = null;
+			}
 
 			clients = null;
-			launcher_entries = null;
 
 			if (unity_bus_id > 0U)
 				Bus.unown_name (unity_bus_id);
@@ -261,8 +272,13 @@ namespace Plank
 			var launcher_entries_it = launcher_entries.map_iterator ();
 			while (launcher_entries_it.next ()) {
 				var entry = launcher_entries_it.get_value ();
-				if (current_time - entry.last_update > 10 * UNITY_UPDATE_THRESHOLD_DURATION * 1000)
+				if (current_time - entry.last_update > 10 * UNITY_UPDATE_THRESHOLD_DURATION * 1000) {
+					if (entry.timer_id > 0U) {
+						Source.remove (entry.timer_id);
+						entry.timer_id = 0U;
+					}
 					launcher_entries_it.unset ();
+				}
 			}
 
 			var keep_running = (launcher_entries.size > 0);

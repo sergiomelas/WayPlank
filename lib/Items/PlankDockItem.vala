@@ -101,7 +101,9 @@ namespace Plank
 						{ _("_Show Desktop"), "docklet://desktop" },
 						{ _("_Media Player"), "docklet://mpris" },
 						{ _("_Volume Control"), "docklet://volume" },
-						{ _("_Screenshot"), "docklet://screenshot" }
+						{ _("_Screenshot"), "docklet://screenshot" },
+						{ _("_Session / Power"), "docklet://session" },
+						{ _("_Preferences"), "docklet://preferences" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;

@@ -65,12 +65,14 @@ namespace Plank
 		{
 			XdgSessionDesktop result;
 			
-			switch (s.down ()) {
+			switch (s.down ().strip ()) {
 			case "gnome": result = XdgSessionDesktop.GNOME; break;
 			case "gnome-xorg": result = XdgSessionDesktop.GNOME; break;
 			case "ubuntu": result = XdgSessionDesktop.UBUNTU; break;
 			case "ubuntu-xorg": result = XdgSessionDesktop.UBUNTU; break;
 			case "kde": result = XdgSessionDesktop.KDE; break;
+			case "plasma": result = XdgSessionDesktop.KDE; break;
+			case "plasmawayland": result = XdgSessionDesktop.KDE; break;
 			case "lxde": result = XdgSessionDesktop.LXDE; break;
 			case "mate": result = XdgSessionDesktop.MATE; break;
 			case "razor": result = XdgSessionDesktop.RAZOR; break;
@@ -92,12 +94,13 @@ namespace Plank
 		{
 			XdgSessionDesktop result = 0;
 			
-			if (s.contains (";")) {
-				foreach (unowned string e in s.split (";"))
-					if (e != null)
-						result |= from_single_string (e);
+			string normalized = s.replace (":", ";");
+			if (normalized.contains (";")) {
+				foreach (unowned string e in normalized.split (";"))
+					if (e != null && e.strip () != "")
+						result |= from_single_string (e.strip ());
 			} else {
-				result = from_single_string (s);
+				result = from_single_string (s.strip ());
 			}
 			
 			return result;

@@ -52,17 +52,12 @@ namespace Plank
 		
 		construct
 		{
-			switch (get_xdg_session_desktop ()) {
-			case XdgSessionDesktop.GNOME:
+			if (environment_is_session_desktop (XdgSessionDesktop.GNOME))
 				notifications = GnomeDesktopNotifications.try_get_instance ();
-				break;
-			case XdgSessionDesktop.PANTHEON:
+			else if (environment_is_session_desktop (XdgSessionDesktop.PANTHEON))
 				notifications = PantheonDesktopNotifications.try_get_instance ();
-				break;
-			default:
+			else
 				notifications = null;
-				break;
-			}
 			
 			if (notifications != null) {
 				notifications_changed ();

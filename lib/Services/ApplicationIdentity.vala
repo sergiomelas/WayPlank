@@ -33,9 +33,12 @@ namespace Plank
 		public ApplicationIdentity (File desktop_file)
 		{
 			add_token (desktop_file.get_basename ());
+			var path = desktop_file.get_path ();
+			if (path == null)
+				return;
 			try {
 				var key_file = new KeyFile ();
-				key_file.load_from_file (desktop_file.get_path (), KeyFileFlags.NONE);
+				key_file.load_from_file (path, KeyFileFlags.NONE);
 				if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass"))
 					add_token (key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass"));
 				if (key_file.has_key (KeyFileDesktop.GROUP, "X-GNOME-WMClass"))

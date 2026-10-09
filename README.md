@@ -5,12 +5,15 @@
 > Laying the Groundwork for Native Wayland Architecture
 >
 > Developed by Sergio Melas (sergiomelas@gmail.com) © 2026
+>
+> [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+> [![Release: v0.5.2 Alpha](https://img.shields.io/badge/Release-v0.5.2%20Alpha-orange.svg)](Changelogs/CHANGELOG_v0.5.2.md)
 
-![Wayplank v0.5.1 Release Banner](Release%20Pic.png)
+![Wayplank v0.5.2 Release Banner](Release%20Pic.png)
 
 ---
 
-🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 TARGET GOAL: Support all major Compositors
+🚀 CURRENT RUNTIME: Full Wayland with KWin, Labwc (wlroots) & GNOME (Mutter) support | 🎯 MILESTONE: First Official Alpha Release (v0.5.2)
 
 ---
 
@@ -22,7 +25,9 @@ Important notice: while the core dock rendering and layout inherit the beloved l
 
 Having used KDE with Plank for years, Wayplank provides a true native Wayland successor as X11 phases out. Starting with version 0.4.3, Wayplank features a modular Hardware Abstraction Layer (HAL) with native support for **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)** compositors! Testing and feedback across different Wayland environments are warmly welcome.
 
-👉 *For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*
+👉 *For the complete technical migration report, please refer to [`Documentation/wayplank_x11_to_wayland_report_en.md`](Documentation/wayplank_x11_to_wayland_report_en.md).*  
+👉 *For the complete Factory Acceptance Test (FAT) protocols and test matrix across compositors, see [`FAT/`](FAT/).*  
+👉 *For detailed technical changelogs for each release milestone, see [`Changelogs/`](Changelogs/).*
 
 ### ⚠️ Reality Check: Where Wayplank Stands Today
 
@@ -145,7 +150,7 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 ```bash
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
-sudo dpkg -i build/wayplank_0.5.1_amd64.deb
+sudo dpkg -i build/wayplank_0.5.2_amd64.deb
 ```
 
 ---
@@ -212,9 +217,11 @@ wayplank -d
 
 - [ ] Phase 6 (Ongoing) v0.5,..,v0.9: Move to Maintenance and Bugfixing
   - [x] Multi-monitor selection persistence and edge placement fine-tuning across all compositors. 
-  - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-  - [ ] Finish documentation, packaging, and configuration migration.
+  - [x] Native Session & Power Management Docklet (v0.5.2): Multi-compositor power controls (Logout, Switch User, Restart, Shutdown, Lock, Suspend) and centered GTK session dialog.
+  - [x] Dedicated Preferences Docklet (v0.5.2): One-click docklet launcher for Wayplank Preferences.
+  - [x] Finish documentation, packaging, and configuration migration.
   - [ ] After release, focus on bug fixes and compatibility updates.
+  - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
 
 - [ ] Phase 7 (Final) v1.0.0: Publish Version 1.0 as first stable
   - [ ] Publish Version 1.0 with a clear list of supported compositors.
@@ -222,6 +229,25 @@ wayplank -d
 ---
 
 # Change log
+
+## V0.5.2 (First Alpha Release): 2026-10-09
+
+> 📢 **FIRST OFFICIAL ALPHA RELEASE & FINAL MASS DEVELOPMENT MILESTONE**:  
+> Version **V0.5.2 marks the first official ALPHA release** and the conclusion of the "Mass Development" phase of Wayplank! The core foundation (Multi-Compositor HAL for KWin, Labwc, and Mutter; native Layer Shell integration; 11 monolithic docklets; self-contained binary fallback architecture; and deep crash/leak hardening) is now fully established and rock-solid.  
+> **From this point forward, Wayplank transitions to a user-driven maintenance phase: all future changes, enhancements, and new features will be developed exclusively upon user requests, bug reports, and community feedback.**
+
+**Native Session & Power Management Docklet, Preferences Docklet & 100% Internal Fallbacks**:
+- **(Cross-Compositor) Embedded Session Docklet (`docklet://session`)**: Added native docklet providing instant desktop session and power management (Lock Screen, Switch User, Log Out, Suspend, Restart, Shut Down) with multi-fallback vector icon resolution.
+- **(Cross-Compositor) Centered GTK Session Dialog (`SessionWindow`)**: Interactive centered dialog with current user/host banner, 6 ergonomic action buttons, and smooth in-place `GtkStack` confirmation transitions for Logout, Restart, and Shutdown (Escape to step back/dismiss, Cancel default-focused).
+- **(KDE Plasma 6 / KWin) Modernized Session & DisplayManager IPC**: Solved `UnknownMethod: openSwitchUser in KSMServer` by integrating `org.freedesktop.DisplayManager.Seat.SwitchToGreeter`; stabilized native shutdown/reboot via direct `systemctl` / `loginctl` / `login1` dispatching (bypassing Plasma 6's `KWin failed to complete logout` bug) and `loginctl lock-session`.
+- **(Cross-Compositor) Dedicated Preferences Docklet (`docklet://preferences`)**: Added native one-click docklet styled with the classic Plank anchor icon (`plank` / `wayplank`); right-click context menu provides instant deep-linking into all 4 preferences sections (*Appearance...*, *Behaviour...*, *Applications...*, *Docklets...*), followed by a visual separator.
+- **(Preferences) Docklets Tab & Context Menu Integration**: Added "Session / Power" and "Preferences" toggle switches in Preferences Docklets grid, equipped all 11 docklet switches with native 35px vector icons, and added entries to Plank dock item catalog.
+- **(Docklets / UI) Digital Clock Visual Fix**: Resolved visual duplication where Digital Clock showed an analog dial; Digital Clock now renders a crisp, dedicated digital tile icon with numerals (`org.kde.plasma.digitalclock` / `digital-clock.svg`).
+- **(Architecture / Portability) 100% Self-Contained Binary GResources**: Embedded complete vector fallback icons for all 11 docklets directly inside the `wayplank` executable (`/net/launchpad/plank/docklets/`), including full dynamic volume scale (muted, low, medium, high), full battery scale (12 levels & charging states), trash states, and MPRIS controls. Zero host filesystem pollution, ensuring universal standalone operation on any Linux distro.
+- **(Licensing) GPL-3.0 Compliance & Integrated Asset Attribution**: All integrated fallback assets and codebase are fully documented and licensed under GPL-3.0-or-later / LGPL-3.0-or-later.
+- **Release status**: 100% PASS on multi-compositor FAT validation protocol across GNOME, KDE Plasma, and Labwc; see FAT status: [`FAT/2026-10-09 FAT 0.5.2.txt`](FAT/2026-10-09%20FAT%200.5.2.txt).
+
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.2.md`](Changelogs/CHANGELOG_v0.5.2.md).
 
 ## V0.5.1: 2026-10-08
 
@@ -241,7 +267,7 @@ wayplank -d
 - **(GTK) Window Default Button Critical Assertion Fix**: Eliminated `gtk_window_set_default` assertion failure by ensuring `ok_button.set_can_default (true)`.
 - **Release status**: 100% FAT pass rate (159/159 test points verified across GNOME Mutter, KDE Plasma KWin, and Labwc wlroots), see FAT status: [`FAT/2026-10-08 FAT 0.5.1.txt`](FAT/2026-10-08%20FAT%200.5.1.txt)
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.5.1.md`](src/CHANGELOG_v0.5.1.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.1.md`](Changelogs/CHANGELOG_v0.5.1.md).
 
 ## V0.5.0: 2026-10-07
 
@@ -253,7 +279,7 @@ wayplank -d
 - **(GNOME / Mutter) Shell Bridge & Drag Safety**: Resolved frame positioning race conditions via explicit monitor assignment and eliminated pointer timer use-after-free crashes.
 - **Release status**: Still some bugs persists but good enough for publishing see fat status: [`FAT/2026-10-07 FAT 0.5.0.txt`](FAT/2026-10-07%20FAT%200.5.0.txt)
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.5.0.md`](src/CHANGELOG_v0.5.0.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.0.md`](Changelogs/CHANGELOG_v0.5.0.md).
 
 ## V0.4.3: 2026-10-05
 
@@ -265,7 +291,7 @@ wayplank -d
 - **(Cross-Compositor) Bi-Directional Show Desktop & Dynamic Separators**: Atomic bulk minimize/restore across all backends; dual visual separators (`[Pinned] | [Transient] | [Trash]`).
 - **Release status**: Still some bugs persists but good enough for publishing see fat status: [`FAT/2026-10-06 FAT 0.4.3.txt`](FAT/2026-10-06%20FAT%200.4.3.txt)
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.3.md`](src/CHANGELOG_v0.4.3.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.3.md`](Changelogs/CHANGELOG_v0.4.3.md).
 
 ## V0.4.2: 2026-10-02
 
@@ -276,7 +302,7 @@ wayplank -d
 - **(Cross-Compositor) Transient Items & Multi-Window Cycling**: Zero-latency tracking of unpinned windows and scroll-wheel window cycling.
 - **(Cross-Compositor / CLI) Anti-Bounce & Process Takeover (`--replace`)**: Eliminated spurious bounce animations and added `--replace` / `-r` support.
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.2.md`](src/CHANGELOG_v0.4.2.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.2.md`](Changelogs/CHANGELOG_v0.4.2.md).
 
 ## V0.4.1: 2026-09-25
 
@@ -286,7 +312,7 @@ wayplank -d
 - **(Cross-Compositor) Zoom & UI Smoothness**: Disabled system config polling during icon zoom to eliminate micro-stutters and adjusted zoom bounds to avoid icon clipping.
 - **(Cross-Compositor) Legacy Code Purge**: Removed leftover X11/XWayland calls, stripped deprecated APIs, and eliminated compiler warnings.
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.1.md`](src/CHANGELOG_v0.4.1.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.1.md`](Changelogs/CHANGELOG_v0.4.1.md).
 
 ## V0.4.0: 2026-09-24
 
@@ -296,7 +322,7 @@ wayplank -d
 - **(Cross-Compositor) Dynamic Layer-Shell Negotiation**: Handled dynamic layer-shell exclusive zones and input regions to ensure seamless window interaction alongside dock auto-hide.
 - **(Cross-Compositor) Transient Icon Filtering**: Prevented system tray icons from incorrectly spawning as temporary dock items.
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.4.0.md`](src/CHANGELOG_v0.4.0.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.4.0.md`](Changelogs/CHANGELOG_v0.4.0.md).
 
 ## V0.3.0: 2026-09-23
 
@@ -305,7 +331,7 @@ wayplank -d
 - **(Cross-Compositor) Hover & Surface Lifecycle**: Fixed dock hover zoom when cursor enters the dock surface, restored show/hide logic, and eliminated unsafe X11 overlap assumptions.
 - **(Cross-Compositor) Compositor-Safe Architecture**: Replaced legacy X11 window queries with Wayland compositor-safe abstractions.
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.3.0.md`](src/CHANGELOG_v0.3.0.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.3.0.md`](Changelogs/CHANGELOG_v0.3.0.md).
 
 ## V0.2.0: 2026-09-22
 
@@ -316,7 +342,7 @@ wayplank -d
 - **(Cross-Compositor) Build Pipeline & Packaging**: Modularized build scripts (`BuildBin.sh`, `BuildDeb.sh`), updated dependencies to `libgtk-layer-shell0`, and established cross-distro compatibility.
 - **(Cross-Compositor) Legacy Cleanup**: Purged obsolete X11 backends, environment overrides (`GDK_BACKEND=x11`), and legacy display server restrictions.
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.2.0.md`](src/CHANGELOG_v0.2.0.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.2.0.md`](Changelogs/CHANGELOG_v0.2.0.md).
 
 ## V0.1.0: 2026-09-19
 
@@ -326,5 +352,27 @@ wayplank -d
 - **(Cross-Compositor) XDG Directory Isolation**: Relocated configs to `~/.config/wayplank` and themes to `~/.local/share/wayplank/themes`.
 - **(Cross-Compositor) Packaging Pipeline**: Created universal manual compilation sequence and standalone Debian packaging script.
 
-👉 **Full Technical Details:** See [`src/CHANGELOG_v0.1.0.md`](src/CHANGELOG_v0.1.0.md).
+👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.1.0.md`](Changelogs/CHANGELOG_v0.1.0.md).
+
+---
+
+## ⚖️ License & Integrated Assets Attribution
+
+Wayplank is free software licensed under the **GNU General Public License v3.0 or later** ([GPL-3.0-or-later](LICENSE)).
+
+### 1. Core Project & Codebase
+* **License**: GNU General Public License v3.0 or later ([GPL-3.0-or-later](LICENSE)).
+* **Original Plank Codebase**: © 2011–2015 Robert Dyer, Michal Hruby, Rico Tzschichholz, and Plank contributors.
+* **Wayplank Fork & Architecture**: © 2026 Sergio Melas (<sergiomelas@gmail.com>).
+
+### 2. Integrated Fallback Assets & Vector Artwork
+Wayplank incorporates high-definition vector assets compiled directly into the binary executable via GLib GResources (`/net/launchpad/plank/docklets/`) to provide self-contained, standalone operation on any desktop or minimal distribution:
+* **Docklet Fallback Icons** (`data/docklets/`):
+  * **Volume Scale**: High, Medium, Low, Muted (`volume-*.svg`).
+  * **Battery Scale**: Full, Good, Low, Caution, Empty, Full-Charging, Good-Charging, Low-Charging, Caution-Charging, Empty-Charging, AC-Adapter, Missing (`battery-*.svg`).
+  * **Clock & Time**: Analog Clock (`clock.svg`), Digital LED Clock (`digital-clock.svg`).
+  * **System & Desktop**: Trash empty/full (`trash.svg`, `trash-full.svg`), CPU/RAM Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS play/pause (`mpris-*.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`).
+* **Attribution & Upstream**: Derived from FreeDesktop & KDE Breeze icon specifications © KDE Community / Breeze Icon Artists, licensed under **LGPL-3.0-or-later** / **GPL-3.0-or-later**.
+* **Zero Host Pollution**: All fallback icons are strictly compiled into the internal executable binary; no extra icon files are installed into `/usr/share/icons/hicolor/`, ensuring pure standalone behavior and complete distribution independence.
+
 

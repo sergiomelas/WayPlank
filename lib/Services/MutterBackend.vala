@@ -1236,6 +1236,13 @@ export default class WayplankBridgeExtension extends Extension {
 			started = false;
 		}
 
+		~MutterBackend ()
+		{
+			cleanup ();
+			if (instance == this)
+				instance = null;
+		}
+
 		public bool has_state ()
 		{
 			return started && proxy != null;

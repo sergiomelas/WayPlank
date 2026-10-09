@@ -50,6 +50,7 @@ namespace Plank
 		Gee.ArrayList<unowned DockItem> items;
 		DockItem? dock_itself_item;
 		uint serialize_item_positions_timer_id = 0U;
+		bool is_initialized = false;
 		
 		/**
 		 * List of all items on this dock
@@ -120,16 +121,25 @@ namespace Plank
 			prefs.notify["Position"].disconnect (update_visible_elements);
 			prefs.notify["ShowDockItem"].disconnect (update_show_dock_item);
 			
-			positions_changed.disconnect (handle_positions_changed);
-			states_changed.disconnect (handle_states_changed);
-			elements_changed.disconnect (handle_elements_changed);
+			if (is_initialized) {
+				positions_changed.disconnect (handle_positions_changed);
+				states_changed.disconnect (handle_states_changed);
+				elements_changed.disconnect (handle_elements_changed);
+			}
 			
-			if (serialize_item_positions_timer_id > 0U)
+			if (serialize_item_positions_timer_id > 0U) {
 				Source.remove (serialize_item_positions_timer_id);
+				serialize_item_positions_timer_id = 0U;
+			}
 			serialize_item_positions ();
 
 			items.clear ();
 			visible_items.clear ();
+
+			if (hover != null)
+				hover.destroy ();
+			if (window != null)
+				window.destroy ();
 		}
 		
 		/**
@@ -150,6 +160,7 @@ namespace Plank
 			positions_changed.connect (handle_positions_changed);
 			states_changed.connect (handle_states_changed);
 			elements_changed.connect (handle_elements_changed);
+			is_initialized = true;
 			
 			position_manager.initialize ();
 			drag_manager.initialize ();

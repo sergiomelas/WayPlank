@@ -36,7 +36,7 @@ namespace Plank
 		construct
 		{
 			Text = _("Digital Clock");
-			Icon = "preferences-system-time";
+			Icon = "org.kde.plasma.digitalclock;;preferences-system-time";
 			Button = PopupButton.RIGHT;
 			
 			update_clock_text ();

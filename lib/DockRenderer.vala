@@ -121,12 +121,19 @@ namespace Plank
 		
 		~DockRenderer ()
 		{
-			controller.prefs.notify.disconnect (prefs_changed);
-			theme.notify.disconnect (theme_changed);
-			
-			controller.hide_manager.notify["Hidden"].disconnect (hidden_changed);
-			controller.hide_manager.notify["Hovered"].disconnect (hovered_changed);
-			controller.window.notify["HoveredItem"].disconnect (animated_draw);
+			if (controller != null) {
+				controller.prefs.notify.disconnect (prefs_changed);
+				if (controller.hide_manager != null) {
+					controller.hide_manager.notify["Hidden"].disconnect (hidden_changed);
+					controller.hide_manager.notify["Hovered"].disconnect (hovered_changed);
+				}
+				if (controller.window != null) {
+					controller.window.notify["HoveredItem"].disconnect (animated_draw);
+				}
+			}
+			if (theme != null) {
+				theme.notify.disconnect (theme_changed);
+			}
 		}
 		
 		void prefs_changed (Object prefs, ParamSpec prop)

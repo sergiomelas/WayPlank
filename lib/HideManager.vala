@@ -145,12 +145,16 @@ namespace Plank
 		
 		~HideManager ()
 		{
-			unowned DockWindow window = controller.window;
+			if (controller != null) {
+				controller.prefs.notify.disconnect (prefs_changed);
+				
+				if (controller.window != null) {
+					unowned DockWindow window = controller.window;
+					window.enter_notify_event.disconnect (handle_enter_notify_event);
+					window.leave_notify_event.disconnect (handle_leave_notify_event);
+				}
+			}
 			
-			controller.prefs.notify.disconnect (prefs_changed);
-			
-			window.enter_notify_event.disconnect (handle_enter_notify_event);
-			window.leave_notify_event.disconnect (handle_leave_notify_event);
 			WindowControl.get_default ().state_changed.disconnect (window_state_changed);
 			if (pressure_reveal_timer_id > 0U) {
 				Source.remove (pressure_reveal_timer_id);

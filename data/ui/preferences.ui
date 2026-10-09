@@ -849,7 +849,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_trash">
+                    <property name="visible">True</property>
+                    <property name="icon_name">user-trash</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_trash">
                     <property name="visible">True</property>
@@ -860,7 +873,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -868,11 +881,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -886,7 +900,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_cpu">
+                    <property name="visible">True</property>
+                    <property name="icon_name">utilities-system-monitor</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_cpu">
                     <property name="visible">True</property>
@@ -897,7 +924,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -905,11 +932,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -924,7 +952,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_clock">
+                    <property name="visible">True</property>
+                    <property name="icon_name">preferences-system-time</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_clock">
                     <property name="visible">True</property>
@@ -935,7 +976,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -943,11 +984,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -961,7 +1003,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_desktop">
+                    <property name="visible">True</property>
+                    <property name="icon_name">user-desktop</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_desktop">
                     <property name="visible">True</property>
@@ -972,7 +1027,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -980,11 +1035,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -999,7 +1055,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_digital_clock">
+                    <property name="visible">True</property>
+                    <property name="icon_name">org.kde.plasma.digitalclock</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_digital_clock">
                     <property name="visible">True</property>
@@ -1010,7 +1079,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -1018,11 +1087,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -1036,7 +1106,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_mpris">
+                    <property name="visible">True</property>
+                    <property name="icon_name">multimedia-player</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_mpris">
                     <property name="visible">True</property>
@@ -1047,7 +1130,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -1055,11 +1138,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -1074,7 +1158,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_battery">
+                    <property name="visible">True</property>
+                    <property name="icon_name">battery-full</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_battery">
                     <property name="visible">True</property>
@@ -1085,7 +1182,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -1093,11 +1190,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -1111,7 +1209,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_volume">
+                    <property name="visible">True</property>
+                    <property name="icon_name">audio-volume-high</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_volume">
                     <property name="visible">True</property>
@@ -1122,7 +1233,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -1130,11 +1241,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -1143,13 +1255,26 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="top_attach">4</property>
               </packing>
             </child>
-            <!-- Row 5: Screenshot (Col 0) -->
+            <!-- Row 5: Screenshot (Col 0) & Session / Power (Col 1) -->
             <child>
               <object class="GtkBox" id="box_docklet_screenshot">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_screenshot">
+                    <property name="visible">True</property>
+                    <property name="icon_name">applets-screenshooter</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkLabel" id="l_docklet_screenshot">
                     <property name="visible">True</property>
@@ -1160,7 +1285,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -1168,17 +1293,121 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
+                    <property name="margin_right">10</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_session">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_session">
+                    <property name="visible">True</property>
+                    <property name="icon_name">system-shutdown</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_session">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Session / Power</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_session">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                    <property name="margin_right">10</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">5</property>
+              </packing>
+            </child>
+            <!-- Row 6: Preferences (Col 0) -->
+            <child>
+              <object class="GtkBox" id="box_docklet_preferences">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_preferences">
+                    <property name="visible">True</property>
+                    <property name="icon_name">plank</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_preferences">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Preferences</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_preferences">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                    <property name="margin_right">10</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">6</property>
               </packing>
             </child>
           </object>

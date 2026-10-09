@@ -2,7 +2,8 @@
 
 Release Milestone: **V0.5.1** (Hotfix — KWin System Resume Event Storm Prevention, QTimer Debouncing & Script Lifecycle Hardening)  
 Release Date: 2026-10-08  
-Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
+Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)  
+FAT Protocol: [`FAT/2026-10-08 FAT 0.5.1.txt`](../FAT/2026-10-08%20FAT%200.5.1.txt) (100% Pass Rate, 159/159 verified)
 
 ---
 

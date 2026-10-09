@@ -34,7 +34,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ]; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.5.1"
+PKG_VER="0.5.2"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -98,20 +98,55 @@ cp "${BASE_DIR}/data/wayplank.svg" "${BUILD_DIR}/usr/share/icons/hicolor/scalabl
 cp "${BASE_DIR}/data/wayplank.svg" "${BUILD_DIR}/usr/share/icons/hicolor/scalable/apps/plank.svg"
 cp "${BASE_DIR}/data/glib-2.0/schemas/net.launchpad.plank.gschema.xml" "${BUILD_DIR}/usr/share/glib-2.0/schemas/"
 
-cat << 'EOF' > "${BUILD_DIR}/usr/share/applications/wayplank.desktop"
-[Desktop Entry]
-Name=Wayplank
-GenericName=Dock
-Comment=Stupidly simple dock for Wayland
-Categories=Utility;
-Exec=wayplank
-Icon=plank
-Terminal=false
-Type=Application
-StartupNotify=true
-X-GNOME-Autostart-Delay=2
+mkdir -p "${BUILD_DIR}/usr/share/doc/wayplank"
+ln -s wayplank "${BUILD_DIR}/usr/share/doc/plank"
+cat << 'EOF' > "${BUILD_DIR}/usr/share/doc/wayplank/copyright"
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: wayplank
+Upstream-Contact: Sergio Melas <sergiomelas@gmail.com>
+Source: https://github.com/sergiomelas/WayPlank
+
+Files: *
+Copyright: 2011-2015 Robert Dyer, Michal Hruby, Rico Tzschichholz
+           2026 Sergio Melas <sergiomelas@gmail.com>
+License: GPL-3.0-or-later
+
+Files: data/docklets/*
+Copyright: 2014-2026 KDE Community / Breeze Icon Artists
+           2026 Sergio Melas <sergiomelas@gmail.com>
+License: LGPL-3.0-or-later or GPL-3.0-or-later
+Comment: Embedded fallback vector icons for Wayplank docklets (volume scale,
+ battery scale and charging states, analog/digital clocks, trash, mpris, system monitors).
+
+License: GPL-3.0-or-later
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the full text of the GNU General Public License version 3
+ can be found in `/usr/share/common-licenses/GPL-3'.
+
+License: LGPL-3.0-or-later
+ This library/asset is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 3 of the License, or (at your option) any later version.
+ .
+ On Debian systems, the full text of the GNU Lesser General Public License
+ version 3 can be found in `/usr/share/common-licenses/LGPL-3'.
 EOF
+chmod 644 "${BUILD_DIR}/usr/share/doc/wayplank/copyright"
+
+cp "${BASE_DIR}/data/wayplank.desktop" "${BUILD_DIR}/usr/share/applications/wayplank.desktop"
 chmod 644 "${BUILD_DIR}/usr/share/applications/wayplank.desktop"
+ln -s wayplank.desktop "${BUILD_DIR}/usr/share/applications/plank.desktop"
+
 
 cat << EOF > "$BUILD_DIR/DEBIAN/control"
 Package: ${PKG_NAME}
@@ -120,15 +155,18 @@ Section: misc
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: ${MAINTAINER}
+Homepage: https://github.com/sergiomelas/WayPlank
 Provides: plank (= ${PKG_VER}), libplank-common, libplank1
 Replaces: plank, libplank-common, libplank1
 Conflicts: plank, libplank-common, libplank1
 Breaks: plank, libplank-common, libplank1
 Depends: libgtk-3-0t64 | libgtk-3-0, libgtk-layer-shell0, libwayland-client0, libglib2.0-0t64 | libglib2.0-0, libjson-glib-1.0-0, libgee-0.8-2, libc6, dconf-gsettings-backend | gsettings-backend
 Recommends: grim, slurp, spectacle
-Description: Wayplank dock - Modern Standalone Fork
+Description: Wayplank dock - Modern Standalone Fork (GPL-3.0+)
  Wayplank is a monolithic, standalone dock for modern desktop environments.
  Drop-in replacement for the original Plank dock with native enhancements.
+ Released under the GNU General Public License v3.0 or later (GPL-3.0+).
+ Includes self-contained fallback assets for all docklets.
 EOF
 
 cat << 'EOF' > "$BUILD_DIR/DEBIAN/postinst"

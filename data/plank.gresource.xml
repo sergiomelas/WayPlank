@@ -22,6 +22,36 @@
 		<file alias="img/application-default-icon.svg" compressed="true" preprocess="xml-stripblanks">application-default-icon.svg</file>
 		<file alias="img/poof.svg" compressed="true" preprocess="xml-stripblanks">poof.svg</file>
 		<file alias="img/wayplank.svg" compressed="true" preprocess="xml-stripblanks">wayplank.svg</file>
+		<file alias="docklets/trash.svg" compressed="true" preprocess="xml-stripblanks">docklets/trash.svg</file>
+		<file alias="docklets/trash-full.svg" compressed="true" preprocess="xml-stripblanks">docklets/trash-full.svg</file>
+		<file alias="docklets/cpu.svg" compressed="true" preprocess="xml-stripblanks">docklets/cpu.svg</file>
+		<file alias="docklets/clock.svg" compressed="true" preprocess="xml-stripblanks">docklets/clock.svg</file>
+		<file alias="docklets/desktop.svg" compressed="true" preprocess="xml-stripblanks">docklets/desktop.svg</file>
+		<file alias="docklets/digital-clock.svg" compressed="true" preprocess="xml-stripblanks">docklets/digital-clock.svg</file>
+		<file alias="docklets/mpris.svg" compressed="true" preprocess="xml-stripblanks">docklets/mpris.svg</file>
+		<file alias="docklets/battery.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery.svg</file>
+		<file alias="docklets/battery-full.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-full.svg</file>
+		<file alias="docklets/battery-good.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-good.svg</file>
+		<file alias="docklets/battery-low.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-low.svg</file>
+		<file alias="docklets/battery-caution.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-caution.svg</file>
+		<file alias="docklets/battery-empty.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-empty.svg</file>
+		<file alias="docklets/battery-full-charging.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-full-charging.svg</file>
+		<file alias="docklets/battery-good-charging.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-good-charging.svg</file>
+		<file alias="docklets/battery-low-charging.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-low-charging.svg</file>
+		<file alias="docklets/battery-caution-charging.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-caution-charging.svg</file>
+		<file alias="docklets/battery-empty-charging.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-empty-charging.svg</file>
+		<file alias="docklets/battery-missing.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-missing.svg</file>
+		<file alias="docklets/battery-ac-adapter.svg" compressed="true" preprocess="xml-stripblanks">docklets/battery-ac-adapter.svg</file>
+		<file alias="docklets/volume.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume.svg</file>
+		<file alias="docklets/volume-muted.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-muted.svg</file>
+		<file alias="docklets/volume-low.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-low.svg</file>
+		<file alias="docklets/volume-medium.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-medium.svg</file>
+		<file alias="docklets/volume-high.svg" compressed="true" preprocess="xml-stripblanks">docklets/volume-high.svg</file>
+		<file alias="docklets/mpris-play.svg" compressed="true" preprocess="xml-stripblanks">docklets/mpris-play.svg</file>
+		<file alias="docklets/mpris-pause.svg" compressed="true" preprocess="xml-stripblanks">docklets/mpris-pause.svg</file>
+		<file alias="docklets/screenshot.svg" compressed="true" preprocess="xml-stripblanks">docklets/screenshot.svg</file>
+		<file alias="docklets/session.svg" compressed="true" preprocess="xml-stripblanks">docklets/session.svg</file>
+		<file alias="docklets/preferences.svg" compressed="true" preprocess="xml-stripblanks">docklets/preferences.svg</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/preferences.ui</file>
 		<file alias="doc/report.md" compressed="true">../Documentation/wayplank_x11_to_wayland_report_en.md</file>
 	</gresource>

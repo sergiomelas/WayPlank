@@ -100,12 +100,7 @@ namespace Plank
 			}
 
 			// Track position setting changes
-			controller.prefs.notify["Position"].connect (() => {
-				if (GtkLayerShell.is_supported ())
-					update_layer_shell_anchors ();
-				controller.position_manager.update (controller.renderer.theme);
-				update_size_and_position ();
-			});
+			controller.prefs.notify["Position"].connect (on_position_changed);
 			controller.prefs.notify["HideMode"].connect (update_exclusive_zone);
 
 			// Native RGBA visual setup for Wayland transparency
@@ -126,6 +121,14 @@ namespace Plank
 						Gdk.EventMask.POINTER_MOTION_MASK |
 						Gdk.EventMask.SCROLL_MASK |
 						Gdk.EventMask.STRUCTURE_MASK);
+		}
+
+		void on_position_changed ()
+		{
+			if (GtkLayerShell.is_supported ())
+				update_layer_shell_anchors ();
+			controller.position_manager.update (controller.renderer.theme);
+			update_size_and_position ();
 		}
 
 		void update_exclusive_zone ()
@@ -149,11 +152,16 @@ namespace Plank
 		~DockWindow ()
 		{
 			cancel_long_press ();
-			controller.prefs.notify["HideMode"].disconnect (update_exclusive_zone);
+			if (controller != null && controller.prefs != null) {
+				controller.prefs.notify["Position"].disconnect (on_position_changed);
+				controller.prefs.notify["HideMode"].disconnect (update_exclusive_zone);
+			}
 
 			if (menu != null) {
 				menu.show.disconnect (on_menu_show);
 				menu.hide.disconnect (on_menu_hide);
+				menu.destroy ();
+				menu = null;
 			}
 
 			if (hover_reposition_timer_id > 0U) {

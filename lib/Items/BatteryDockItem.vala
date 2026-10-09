@@ -81,13 +81,30 @@ namespace Plank
 		
 		void refresh_battery_status ()
 		{
-			// 1. Inspect /sys/class/power_supply for battery info
+			// 1. Inspect /sys/class/power_supply for any battery device
 			string? bat_dir_path = null;
-			for (int i = 0; i <= 3; i++) {
-				string test_path = "/sys/class/power_supply/BAT%d".printf (i);
-				if (FileUtils.test (test_path, FileTest.IS_DIR)) {
-					bat_dir_path = test_path;
-					break;
+			var ps_dir = File.new_for_path ("/sys/class/power_supply");
+			try {
+				var enumerator = ps_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE, null);
+				FileInfo? info = null;
+				while ((info = enumerator.next_file (null)) != null) {
+					var candidate = Path.build_filename ("/sys/class/power_supply", info.get_name ());
+					var type_file = Path.build_filename (candidate, "type");
+					string type_str;
+					if (FileUtils.get_contents (type_file, out type_str) && type_str.strip () == "Battery") {
+						bat_dir_path = candidate;
+						break;
+					}
+				}
+			} catch (Error e) { }
+
+			if (bat_dir_path == null) {
+				for (int i = 0; i <= 3; i++) {
+					string test_path = "/sys/class/power_supply/BAT%d".printf (i);
+					if (FileUtils.test (test_path, FileTest.IS_DIR)) {
+						bat_dir_path = test_path;
+						break;
+					}
 				}
 			}
 
@@ -123,6 +140,30 @@ namespace Plank
 				Text = _("Battery: %d%% (Full)").printf (percentage);
 			} else {
 				Text = _("Battery: %d%% (%s)").printf (percentage, status_desc);
+			}
+
+			if (bat_dir_path == null) {
+				Icon = "battery-ac-adapter;;battery-missing;;battery-full";
+			} else if (is_charging) {
+				if (percentage < 20)
+					Icon = "battery-caution-charging;;battery-empty-charging;;battery-full-charging";
+				else if (percentage < 50)
+					Icon = "battery-low-charging;;battery-good-charging;;battery-full-charging";
+				else if (percentage < 85)
+					Icon = "battery-good-charging;;battery-full-charging";
+				else
+					Icon = "battery-full-charging;;battery-full-charged;;battery-full";
+			} else {
+				if (percentage < 15)
+					Icon = "battery-empty;;battery-caution;;battery-low";
+				else if (percentage < 35)
+					Icon = "battery-caution;;battery-low";
+				else if (percentage < 65)
+					Icon = "battery-low;;battery-good";
+				else if (percentage < 90)
+					Icon = "battery-good;;battery-full";
+				else
+					Icon = "battery-full";
 			}
 		}
 		

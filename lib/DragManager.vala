@@ -119,21 +119,24 @@ namespace Plank
 		
 		~DragManager ()
 		{
-			unowned DockWindow window = controller.window;
-			
-			window.drag_motion.disconnect (drag_motion);
-			window.drag_begin.disconnect (drag_begin);
-			window.drag_data_received.disconnect (drag_data_received);
-			window.drag_data_get.disconnect (drag_data_get);
-			window.drag_drop.disconnect (drag_drop);
-			window.drag_end.disconnect (drag_end);
-			window.drag_leave.disconnect (drag_leave);
-			window.drag_failed.disconnect (drag_failed);
-			
-			controller.prefs.notify["LockItems"].disconnect (lock_items_changed);
-			
-			disable_drag_to (window);
-			disable_drag_from (window);
+			if (controller != null) {
+				controller.prefs.notify["LockItems"].disconnect (lock_items_changed);
+				
+				if (controller.window != null) {
+					unowned DockWindow window = controller.window;
+					window.drag_motion.disconnect (drag_motion);
+					window.drag_begin.disconnect (drag_begin);
+					window.drag_data_received.disconnect (drag_data_received);
+					window.drag_data_get.disconnect (drag_data_get);
+					window.drag_drop.disconnect (drag_drop);
+					window.drag_end.disconnect (drag_end);
+					window.drag_leave.disconnect (drag_leave);
+					window.drag_failed.disconnect (drag_failed);
+					
+					disable_drag_to (window);
+					disable_drag_from (window);
+				}
+			}
 		}
 		
 		void lock_items_changed ()

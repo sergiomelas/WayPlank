@@ -106,12 +106,39 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_docklet_screenshot;
 		[GtkChild]
+		unowned Gtk.Switch sw_docklet_session;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklet_preferences;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_trash;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_cpu;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_clock;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_desktop;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_digital_clock;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_mpris;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_battery;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_volume;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_screenshot;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_session;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_preferences;
+		[GtkChild]
 		unowned Gtk.Stack dock_preferences;
 		[GtkChild]
 		unowned Gtk.StackSwitcher dock_preferences_switcher;
 		
 		bool updating_docklets = false;
 		bool updating_monitors = false;
+		bool signals_connected = false;
 		string previous_monitor = "";
 		
 		Gtk.CssProvider popup_css;
@@ -120,6 +147,11 @@ namespace Plank
 		public PreferencesWindow (DockController controller)
 		{
 			Object (controller: controller);
+		}
+
+		public void show_page (string page_name)
+		{
+			dock_preferences.set_visible_child_name (page_name);
 		}
 		
 		construct
@@ -187,10 +219,14 @@ namespace Plank
 			connect_signals ();
 			
 			notify["controller"].connect (controller_changed);
+			destroy.connect (() => {
+				disconnect_signals ();
+			});
 		}
 
 		~PreferencesWindow ()
 		{
+			disconnect_signals ();
 			if (popup_css_screen != null && popup_css != null)
 				Gtk.StyleContext.remove_provider_for_screen (popup_css_screen, popup_css);
 		}
@@ -586,6 +622,10 @@ namespace Plank
 		
 		void connect_signals ()
 		{
+			if (signals_connected)
+				return;
+			signals_connected = true;
+
 			prefs.notify.connect (prefs_changed);
 			
 			cb_theme.changed.connect (theme_changed);
@@ -618,7 +658,9 @@ namespace Plank
 			sw_docklet_mpris.notify["active"].connect (docklet_mpris_toggled);
 			sw_docklet_volume.notify["active"].connect (docklet_volume_toggled);
 			sw_docklet_screenshot.notify["active"].connect (docklet_screenshot_toggled);
-			if (controller.default_provider != null)
+			sw_docklet_session.notify["active"].connect (docklet_session_toggled);
+			sw_docklet_preferences.notify["active"].connect (docklet_preferences_toggled);
+			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
@@ -627,6 +669,10 @@ namespace Plank
 		
 		void disconnect_signals ()
 		{
+			if (!signals_connected)
+				return;
+			signals_connected = false;
+
 			prefs.notify.disconnect (prefs_changed);
 			
 			cb_theme.changed.disconnect (theme_changed);
@@ -659,7 +705,9 @@ namespace Plank
 			sw_docklet_mpris.notify["active"].disconnect (docklet_mpris_toggled);
 			sw_docklet_volume.notify["active"].disconnect (docklet_volume_toggled);
 			sw_docklet_screenshot.notify["active"].disconnect (docklet_screenshot_toggled);
-			if (controller.default_provider != null)
+			sw_docklet_session.notify["active"].disconnect (docklet_session_toggled);
+			sw_docklet_preferences.notify["active"].disconnect (docklet_preferences_toggled);
+			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
@@ -751,8 +799,11 @@ namespace Plank
 				FileTest.IS_REGULAR));
 			sw_show_unpinned.set_active (!prefs.PinnedOnly);
 			sw_lock_items.set_active (prefs.LockItems);
+			bool is_wayland = environment_is_session_type (XdgSessionType.WAYLAND);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
-			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
+			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE) && !is_wayland;
+			if (is_wayland)
+				sw_pressure_reveal.tooltip_text = _("Pressure Reveal is not supported under Wayland");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
@@ -830,6 +881,16 @@ namespace Plank
 			toggle_docklet_uri (widget, "docklet://screenshot");
 		}
 
+		void docklet_session_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://session");
+		}
+
+		void docklet_preferences_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://preferences");
+		}
+
 		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
 			init_docklets_tab ();
@@ -849,6 +910,8 @@ namespace Plank
 				sw_docklet_mpris.set_active (default_provider.item_for_uri ("docklet://mpris") != null);
 				sw_docklet_volume.set_active (default_provider.item_for_uri ("docklet://volume") != null);
 				sw_docklet_screenshot.set_active (default_provider.item_for_uri ("docklet://screenshot") != null);
+				sw_docklet_session.set_active (default_provider.item_for_uri ("docklet://session") != null);
+				sw_docklet_preferences.set_active (default_provider.item_for_uri ("docklet://preferences") != null);
 			} else {
 				sw_docklet_trash.set_active (false);
 				sw_docklet_clock.set_active (false);
@@ -859,8 +922,46 @@ namespace Plank
 				sw_docklet_mpris.set_active (false);
 				sw_docklet_volume.set_active (false);
 				sw_docklet_screenshot.set_active (false);
+				sw_docklet_session.set_active (false);
+				sw_docklet_preferences.set_active (false);
 			}
+			
+			update_docklet_icons ();
 			updating_docklets = false;
+		}
+
+		void ensure_docklet_icon (Gtk.Image? img, string system_icon_name, string fallback_resource)
+		{
+			if (img == null)
+				return;
+			
+			var default_theme = Gtk.IconTheme.get_default ();
+			if (default_theme.has_icon (system_icon_name)) {
+				img.set_from_icon_name (system_icon_name, Gtk.IconSize.DND);
+			} else {
+				try {
+					var pb = new Gdk.Pixbuf.from_resource_at_scale (fallback_resource, 35, 35, true);
+					img.set_from_pixbuf (pb);
+				} catch (GLib.Error e) {
+					img.set_from_icon_name (system_icon_name, Gtk.IconSize.DND);
+				}
+			}
+			img.pixel_size = 35;
+		}
+
+		void update_docklet_icons ()
+		{
+			ensure_docklet_icon (img_docklet_trash, "user-trash", "/net/launchpad/plank/docklets/trash.svg");
+			ensure_docklet_icon (img_docklet_cpu, "utilities-system-monitor", "/net/launchpad/plank/docklets/cpu.svg");
+			ensure_docklet_icon (img_docklet_clock, "preferences-system-time", "/net/launchpad/plank/docklets/clock.svg");
+			ensure_docklet_icon (img_docklet_desktop, "user-desktop", "/net/launchpad/plank/docklets/desktop.svg");
+			ensure_docklet_icon (img_docklet_digital_clock, "org.kde.plasma.digitalclock", "/net/launchpad/plank/docklets/digital-clock.svg");
+			ensure_docklet_icon (img_docklet_mpris, "multimedia-player", "/net/launchpad/plank/docklets/mpris.svg");
+			ensure_docklet_icon (img_docklet_battery, "battery-full", "/net/launchpad/plank/docklets/battery.svg");
+			ensure_docklet_icon (img_docklet_volume, "audio-volume-high", "/net/launchpad/plank/docklets/volume.svg");
+			ensure_docklet_icon (img_docklet_screenshot, "applets-screenshooter", "/net/launchpad/plank/docklets/screenshot.svg");
+			ensure_docklet_icon (img_docklet_session, "system-shutdown", "/net/launchpad/plank/docklets/session.svg");
+			ensure_docklet_icon (img_docklet_preferences, "plank", "/net/launchpad/plank/docklets/preferences.svg");
 		}
 	}
 }

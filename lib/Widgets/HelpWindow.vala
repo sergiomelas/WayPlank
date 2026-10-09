@@ -22,6 +22,15 @@ namespace Plank
 {
 	public class HelpWindow : Gtk.Window
 	{
+		Gtk.CssProvider? css_provider = null;
+		Gdk.Screen? css_screen = null;
+
+		~HelpWindow ()
+		{
+			if (css_screen != null && css_provider != null)
+				Gtk.StyleContext.remove_provider_for_screen (css_screen, css_provider);
+		}
+
 		public HelpWindow ()
 		{
 			set_title (_("Wayplank Shortcuts & Gestures"));
@@ -82,13 +91,14 @@ namespace Plank
 			}
 			header.set_custom_title (switcher);
 			
-			var css = new Gtk.CssProvider ();
+			css_provider = new Gtk.CssProvider ();
+			css_screen = get_screen ();
 			try {
-				css.load_from_data (
+				css_provider.load_from_data (
 					"headerbar stackswitcher, headerbar .stack-switcher { margin-left: 2px; margin-right: 2px; }\n" +
 					"headerbar stackswitcher button, headerbar .stack-switcher button { padding-left: 14px; padding-right: 14px; font-weight: bold; }\n"
 				);
-				Gtk.StyleContext.add_provider_for_screen (get_screen (), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+				Gtk.StyleContext.add_provider_for_screen (css_screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 			} catch (GLib.Error e) {
 				warning ("Unable to load help window CSS: %s", e.message);
 			}

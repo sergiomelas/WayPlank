@@ -3,13 +3,14 @@
 Release Milestone: **V0.5.0** (Phase 6 Hardening — Cross-Compositor FAT Test Protocol, Multi-Monitor Unique Geometry Tagging & Deep Display Matrix Alignment)  
 Archive Source: `0.5.0_Final For Debugging.zip`  
 Release Date: 2026-10-06  
-Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
+Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)  
+FAT Protocol: [`FAT/2026-10-07 FAT 0.5.0.txt`](../FAT/2026-10-07%20FAT%200.5.0.txt)
 
 ---
 
 ## 1. 📋 Factory Acceptance Test (FAT) Cross-Compositor Protocol
 
-Wayplank underwent an intensive, exhaustive **Factory Acceptance Test (FAT)** matrix executed across the three supported Wayland compositor architectures:
+Wayplank underwent an intensive, exhaustive **Factory Acceptance Test (FAT)** matrix executed across the three supported Wayland compositor architectures (see [`FAT/2026-10-07 FAT 0.5.0.txt`](../FAT/2026-10-07%20FAT%200.5.0.txt)):
 1. **Session 1: GNOME Shell 48 / Mutter** (via native D-Bus Extension Bridge)
 2. **Session 2: KDE Plasma 6.7 / KWin** (via native KWin Scripting D-Bus Bridge)
 3. **Session 3: Labwc 0.8+ / wlroots** (via native `zwlr_foreign_toplevel_manager_v1` C protocol engine)
@@ -109,5 +110,5 @@ During Session 1 (GNOME / Mutter) of the FAT protocol:
 | **KWin Bridge** | `lib/Services/KWinBridge.vala` | FIFO queue for batched commands, virtual desktop switching, `onAllDesktops` dock persistence. |
 | **GNOME Bridge** | `data/gnome-shell/.../extension.js` | Target monitor assignment prior to `move_resize_frame()`, per-monitor `topBarH`, deferred idle repositioning. |
 | **Dock Window** | `lib/Widgets/DockWindow.vala` | Safe closure timer management for drag reordering, multi-monitor geometry tracking. |
-| **Testing** | `FAT/2026-10-06 FAT 0.4.3.txt` | Complete test matrix documenting 25+ test cases across Mutter, KWin, and Labwc. |
+| **Testing** | [`FAT/2026-10-07 FAT 0.5.0.txt`](../FAT/2026-10-07%20FAT%200.5.0.txt) | Complete test matrix documenting 25+ test cases across Mutter, KWin, and Labwc. |
 

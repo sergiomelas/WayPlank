@@ -54,6 +54,17 @@ static uint32_t next_toplevel_id = 0;
 static int global_min_seq = 0;
 static gboolean bridge_initialized = FALSE;
 
+static gboolean
+is_wayplank_toplevel (WlrToplevel *t)
+{
+    if (!t || !t->app_id) return FALSE;
+    if (g_ascii_strcasecmp (t->app_id, "wayplank") == 0 ||
+        g_ascii_strcasecmp (t->app_id, "plank") == 0 ||
+        g_ascii_strcasecmp (t->app_id, "net.launchpad.plank") == 0)
+        return TRUE;
+    return FALSE;
+}
+
 /* Forward declarations */
 static void handle_toplevel_title (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, const char *title);
 static void handle_toplevel_app_id (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, const char *app_id);
@@ -157,6 +168,7 @@ handle_toplevel_closed (void *data, struct zwlr_foreign_toplevel_handle_v1 *hand
     if (t) {
         for (GList *h = desktop_hidden_list; h != NULL; h = h->next) {
             if (g_strcmp0 ((const gchar *)h->data, t->uuid) == 0) {
+                g_free (h->data);
                 desktop_hidden_list = g_list_delete_link (desktop_hidden_list, h);
                 break;
             }
@@ -370,6 +382,8 @@ wlr_toplevel_bridge_get_window_json (void)
 
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
+        if (is_wayplank_toplevel (t))
+            continue;
         if (!first)
             g_string_append (json, ",");
         first = FALSE;
@@ -419,7 +433,7 @@ wlr_toplevel_bridge_queue_command (const gchar *target, const gchar *action)
         gboolean any_unminimized = FALSE;
         for (GList *l = toplevel_list; l != NULL; l = l->next) {
             WlrToplevel *t = (WlrToplevel *)l->data;
-            if (!t->minimized) {
+            if (!t->minimized && !is_wayplank_toplevel (t)) {
                 any_unminimized = TRUE;
                 break;
             }
@@ -430,7 +444,7 @@ wlr_toplevel_bridge_queue_command (const gchar *target, const gchar *action)
             desktop_hidden_list = NULL;
             for (GList *l = toplevel_list; l != NULL; l = l->next) {
                 WlrToplevel *t = (WlrToplevel *)l->data;
-                if (!t->minimized && t->handle) {
+                if (!t->minimized && t->handle && !is_wayplank_toplevel (t)) {
                     desktop_hidden_list = g_list_append (desktop_hidden_list, g_strdup (t->uuid));
                     zwlr_foreign_toplevel_handle_v1_set_minimized (t->handle);
                 }
@@ -448,15 +462,12 @@ wlr_toplevel_bridge_queue_command (const gchar *target, const gchar *action)
                             break;
                         }
                     }
-                } else {
+                } else if (!is_wayplank_toplevel (t)) {
                     should_restore = TRUE;
                 }
 
                 if (should_restore && t->handle) {
                     zwlr_foreign_toplevel_handle_v1_unset_minimized (t->handle);
-                    if (default_seat) {
-                        zwlr_foreign_toplevel_handle_v1_activate (t->handle, default_seat);
-                    }
                     last_restored = t;
                 }
             }
@@ -520,7 +531,7 @@ wlr_toplevel_bridge_any_window_intersects (int x, int y, int width, int height)
     (void)x; (void)y; (void)width; (void)height;
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
-        if (!t->minimized) {
+        if (!t->minimized && !is_wayplank_toplevel (t)) {
             return TRUE;
         }
     }
@@ -533,7 +544,7 @@ wlr_toplevel_bridge_active_window_intersects (int x, int y, int width, int heigh
     (void)x; (void)y; (void)width; (void)height;
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
-        if (t->active && !t->minimized) {
+        if (t->active && !t->minimized && !is_wayplank_toplevel (t)) {
             return TRUE;
         }
     }
@@ -546,7 +557,7 @@ wlr_toplevel_bridge_maximized_window_intersects (int x, int y, int width, int he
     (void)x; (void)y; (void)width; (void)height;
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
-        if (!t->minimized && (t->maximized || t->fullscreen)) {
+        if (!t->minimized && (t->maximized || t->fullscreen) && !is_wayplank_toplevel (t)) {
             return TRUE;
         }
     }

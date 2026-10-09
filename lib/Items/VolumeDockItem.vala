@@ -55,7 +55,7 @@ namespace Plank
 			if (timer_id != 0)
 				return;
 			
-			timer_id = Timeout.add_seconds (2, on_timer_tick);
+			timer_id = Timeout.add_seconds (3, on_timer_tick);
 		}
 		
 		void stop_timer ()
@@ -82,17 +82,32 @@ namespace Plank
 			int exit_status;
 			string output;
 			
-			// 1. Check mute state via pactl
-			try {
-				if (Process.spawn_command_line_sync ("pactl get-sink-mute @DEFAULT_SINK@", out output, null, out exit_status) && exit_status == 0) {
-					is_muted = output.contains ("yes");
-				}
-			} catch (Error e) { }
+			// 1. Try WirePlumber (PipeWire) native wpctl if available
+			if (Environment.find_program_in_path ("wpctl") != null) {
+				try {
+					if (Process.spawn_command_line_sync ("wpctl get-volume @DEFAULT_AUDIO_SINK@", out output, null, out exit_status) && exit_status == 0) {
+						is_muted = output.contains ("[MUTED]");
+						var idx = output.index_of ("Volume: ");
+						if (idx >= 0) {
+							var num_part = output.substring (idx + 8).strip ();
+							var space_idx = num_part.index_of (" ");
+							if (space_idx >= 0)
+								num_part = num_part.substring (0, space_idx);
+							double val = double.parse (num_part);
+							volume = (int) Math.round (val * 100.0);
+							if (volume < 0) volume = 0;
+							if (volume > 150) volume = 150;
+							update_display ();
+							return;
+						}
+					}
+				} catch (Error e) { }
+			}
 			
-			// 2. Check volume percentage via pactl
+			// 2. PulseAudio / pactl single invocation for both mute and volume
 			try {
-				if (Process.spawn_command_line_sync ("pactl get-sink-volume @DEFAULT_SINK@", out output, null, out exit_status) && exit_status == 0) {
-					// Output format: Volume: front-left: 45875 /  70% / ...
+				if (Process.spawn_command_line_sync ("sh -c 'pactl get-sink-mute @DEFAULT_SINK@; pactl get-sink-volume @DEFAULT_SINK@'", out output, null, out exit_status) && exit_status == 0) {
+					is_muted = output.contains ("Mute: yes");
 					var idx = output.index_of ("%");
 					if (idx > 0) {
 						var sub = output.slice (0, idx);

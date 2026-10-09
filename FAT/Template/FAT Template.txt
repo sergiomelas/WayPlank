@@ -32,7 +32,9 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
    [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
    [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
-   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact,
+        no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -87,7 +89,8 @@ SESSION 1: GNOME (Mutter Backend)
         ONE script instance alive, zero duplicate signal closures or shortcut collisions
    [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
    [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
-   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close
+        cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
 GNOME BUGS / NOTES:
@@ -123,7 +126,9 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
    [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
    [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
-   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact,
+        no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -177,7 +182,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
         ONE script instance alive, zero duplicate signal closures or shortcut collisions
    [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
    [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
-   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast
+        open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
 PLASMA BUGS / NOTES:
@@ -214,7 +220,8 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
    [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
    [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
-   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
@@ -269,7 +276,8 @@ SESSION 3: LABWC (wlroots Backend)
         ONE script instance alive, zero duplicate signal closures or shortcut collisions
    [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
    [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
-   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast
+        open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
 
 
 LABWC BUGS / NOTES:

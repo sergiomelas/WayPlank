@@ -66,6 +66,7 @@ namespace Plank
 
 		~ApplicationDiscovery ()
 		{
+			WindowControl.get_default ().state_changed.disconnect (schedule_changed);
 			if (debounce_timer_id > 0U)
 				Source.remove (debounce_timer_id);
 			if (change_timer_id > 0U)

@@ -93,8 +93,10 @@ namespace Plank
 		 *
 		 * @param file the {@link GLib.File} to open
 		 */
-		public void open (File file)
+		public void open (File? file)
 		{
+			if (file == null)
+				return;
 			var uri = file.get_uri ();
 			try {
 				if (!AppInfo.launch_default_for_uri (uri, null)) {

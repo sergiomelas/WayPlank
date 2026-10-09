@@ -29,6 +29,7 @@ namespace Plank
 		FileMonitor? trash_monitor = null;
 		FileMonitor? xdg_trash_monitor = null;
 		uint trash_count = 0;
+		bool kwin_bridge_connected = false;
 		
 		public TrashDockItem ()
 		{
@@ -49,11 +50,6 @@ namespace Plank
 			
 			start_monitoring ();
 			update_trash_state ();
-
-			// Listen for external D-Bus notifications from KWin/KDE Plasma
-			KWinTrashBridge.get_default ().trash_state_changed_externally.connect (() => {
-				update_trash_state ();
-			});
 		}
 		
 		~TrashDockItem ()
@@ -71,6 +67,11 @@ namespace Plank
 		{
 			var data_dir = Environment.get_user_data_dir ();
 			return File.new_for_path (Path.build_filename (data_dir, "Trash", "info"));
+		}
+
+		void on_kwin_trash_state_changed ()
+		{
+			update_trash_state ();
 		}
 
 		void start_monitoring ()
@@ -93,6 +94,12 @@ namespace Plank
 			} catch (Error e) {
 				debug ("XDG trash monitor unavailable: %s", e.message);
 			}
+
+			// 3. Listen for external D-Bus notifications from KWin/KDE Plasma
+			if (!kwin_bridge_connected) {
+				KWinTrashBridge.get_default ().trash_state_changed_externally.connect (on_kwin_trash_state_changed);
+				kwin_bridge_connected = true;
+			}
 		}
 
 		void stop_monitor ()
@@ -106,6 +113,10 @@ namespace Plank
 				xdg_trash_monitor.changed.disconnect (on_trash_changed);
 				xdg_trash_monitor.cancel ();
 				xdg_trash_monitor = null;
+			}
+			if (kwin_bridge_connected) {
+				KWinTrashBridge.get_default ().trash_state_changed_externally.disconnect (on_kwin_trash_state_changed);
+				kwin_bridge_connected = false;
 			}
 		}
 		

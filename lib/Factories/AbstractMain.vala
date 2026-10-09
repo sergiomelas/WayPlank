@@ -357,6 +357,30 @@ namespace Plank
 			});
 			add_action (action);
 
+			action = new SimpleAction ("preferences-appearance", null);
+			action.activate.connect (() => {
+				show_preferences (primary_dock, "grid_appearance");
+			});
+			add_action (action);
+
+			action = new SimpleAction ("preferences-behaviour", null);
+			action.activate.connect (() => {
+				show_preferences (primary_dock, "grid_behaviour");
+			});
+			add_action (action);
+
+			action = new SimpleAction ("preferences-applications", null);
+			action.activate.connect (() => {
+				show_preferences (primary_dock, "grid_windows");
+			});
+			add_action (action);
+
+			action = new SimpleAction ("preferences-docklets", null);
+			action.activate.connect (() => {
+				show_preferences (primary_dock, "grid_docklets");
+			});
+			add_action (action);
+
 			action = new SimpleAction ("shortcuts", null);
 			action.activate.connect (() => {
 				show_help ();
@@ -462,10 +486,12 @@ namespace Plank
 		 *
 		 * @param controller the dock to show preferences for
 		 */
-		void show_preferences (DockController controller)
+		void show_preferences (DockController controller, string? page_name = null)
 		{
 			if (preferences_dlg != null) {
 				preferences_dlg.controller = controller;
+				if (page_name != null)
+					preferences_dlg.show_page (page_name);
 				preferences_dlg.show_all ();
 				preferences_dlg.present ();
 				preferences_dlg.grab_focus ();
@@ -473,6 +499,8 @@ namespace Plank
 			}
 			
 			preferences_dlg = new PreferencesWindow (controller);
+			if (page_name != null)
+				preferences_dlg.show_page (page_name);
 			
 			preferences_dlg.destroy.connect (() => {
 				preferences_dlg = null;

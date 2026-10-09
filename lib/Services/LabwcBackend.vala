@@ -67,6 +67,13 @@ namespace Plank
 			}
 		}
 
+		~LabwcBackend ()
+		{
+			cleanup ();
+			if (instance == this)
+				instance = null;
+		}
+
 		public bool has_state ()
 		{
 			return started && WlrBridge.is_available ();

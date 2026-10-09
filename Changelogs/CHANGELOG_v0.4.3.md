@@ -3,7 +3,8 @@
 Release Milestone: **V0.4.3** (Multi-Compositor HAL Release — Native Labwc / wlroots Engine, GNOME Shell / Mutter Monolithic Bridge & Strict Coordinate Isolation)  
 Archive Source: `0.4.3_Wayland added libwc,mutter  bugfixes - 3.zip`  
 Release Date: 2026-10-05  
-Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
+Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)  
+FAT Protocol: [`FAT/2026-10-06 FAT 0.4.3.txt`](../FAT/2026-10-06%20FAT%200.4.3.txt)
 
 ---
 
@@ -176,6 +177,13 @@ Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
   - Crossing Separator 1 cleanly supports drag-to-pin (dragging a transient app to the left pins it) and drag-to-unpin (dragging a pinned app across Separator 1 or onto Trash unpins it).
   - Added `refresh_separators ()` called upon `drag_end ()` to guarantee clean group layout restoration.
   - Prevented drag crashes by calling `cancel_long_press ()` on drag begin and destruction.
+
+---
+
+## 10. 🧪 Verification & FAT Validation
+
+- **FAT Validation**: Cross-compositor Factory Acceptance Test documented across GNOME/Mutter, KDE/KWin, and Labwc; see [`FAT/2026-10-06 FAT 0.4.3.txt`](../FAT/2026-10-06%20FAT%200.4.3.txt).
+
 
 
 

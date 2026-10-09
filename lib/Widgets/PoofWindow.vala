@@ -109,8 +109,10 @@ namespace Plank
 		 */
 		public void show_at (int x, int y, Gtk.PositionType position = Gtk.PositionType.BOTTOM, int dock_thickness = 0, Gdk.Monitor? monitor = null)
 		{
-			if (animation_timer_id > 0U)
+			if (animation_timer_id > 0U) {
 				GLib.Source.remove (animation_timer_id);
+				animation_timer_id = 0U;
+			}
 			
 			if (poof_image == null || poof_frames <= 0)
 				return;
@@ -243,6 +245,9 @@ namespace Plank
 		
 		public override bool draw (Cairo.Context cr)
 		{
+			if (poof_image == null || poof_frames <= 0)
+				return Gdk.EVENT_STOP;
+
 			cr.set_operator (Cairo.Operator.SOURCE);
 			Gdk.cairo_set_source_pixbuf (cr, poof_image, 0, -poof_size * (int) (poof_frames * (frame_time - start_time) / (double) RUN_LENGTH));
 			cr.paint ();

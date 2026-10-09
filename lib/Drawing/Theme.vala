@@ -102,6 +102,13 @@ namespace Plank
 			
 			gtk_settings.notify["gtk-theme-name"].connect (gtk_theme_name_changed);
 		}
+
+		~Theme ()
+		{
+			unowned Gtk.Settings? gtk_settings = Gtk.Settings.get_default ();
+			if (gtk_settings != null)
+				gtk_settings.notify["gtk-theme-name"].disconnect (gtk_theme_name_changed);
+		}
 		
 		void update_style_context (string? theme_name)
 		{

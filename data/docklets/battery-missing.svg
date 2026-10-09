@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   clip-rule="evenodd"
+   fill-rule="evenodd"
+   stroke-linejoin="round"
+   stroke-miterlimit="2"
+   viewBox="0 0 48 48"
+   version="1.1"
+   id="svg13"
+   sodipodi:docname="battery-missing.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs17" />
+  <sodipodi:namedview
+     id="namedview15"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="18.458333"
+     inkscape:cx="24.027088"
+     inkscape:cy="24"
+     inkscape:window-width="1920"
+     inkscape:window-height="1008"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg13" />
+  <linearGradient
+     id="a"
+     x2="1"
+     gradientTransform="matrix(45.721472,0,0,45.721472,1.1392686,24.0003)"
+     gradientUnits="userSpaceOnUse">
+    <stop
+       stop-color="#4e565d"
+       offset="0"
+       id="stop2" />
+    <stop
+       stop-color="#637279"
+       offset="1"
+       id="stop4" />
+  </linearGradient>
+  <path
+     d="m 42.283561,16.408872 h 1.21387 c 1.856334,0 3.36331,1.506976 3.36331,3.36331 v 8.455645 c 0,1.856333 -1.506976,3.363309 -3.36331,3.363309 h -1.21387 v 2.851116 c 0,3.330743 -2.700122,6.030864 -6.027904,6.030864 H 7.170133 c -3.3307425,0 -6.0308644,-2.700121 -6.0308644,-6.030864 V 13.557756 c 0,-3.330742 2.7001219,-6.0308641 6.0308644,-6.0308641 h 29.085524 c 3.327782,0 6.027904,2.7001221 6.027904,6.0308641 z m -2.072462,-2.851116 v 20.884496 c 0,2.184967 -1.770475,3.958402 -3.955442,3.958402 H 7.170133 c -2.1849671,0 -3.9584024,-1.773435 -3.9584024,-3.958402 V 13.557756 c 0,-2.184967 1.7734353,-3.9584021 3.9584024,-3.9584021 h 29.085524 c 2.184967,0 3.955442,1.7734351 3.955442,3.9584021 z"
+     fill="url(#a)"
+     id="path7"
+     style="fill:url(#a);stroke-width:2.96066" />
+  <g
+     id="g311"
+     transform="translate(0.84649779,-5.1930926)">
+    <circle
+       cx="36"
+       cy="36"
+       r="10"
+       fill="#db3c30"
+       id="circle9" />
+    <path
+       transform="matrix(0.832566,-0.832566,0.832566,0.832566,-6.38838,-6.43354)"
+       d="m -1.18,50.1 v -5 h 2 v 5 h 5 v 2 h -5 v 5 h -2 v -5 h -5 v -2 z"
+       fill="#ffffff"
+       id="path11" />
+  </g>
+</svg>

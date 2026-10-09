@@ -145,6 +145,18 @@ namespace Plank
 					message ("Could not find icon '%s'", name);
 			}
 			
+			// If not found in theme, check integrated docklet fallback resources
+			if (pbuf == null) {
+				foreach (unowned string name in all_names) {
+					var fallback = get_docklet_fallback_resource (name);
+					if (fallback != null) {
+						pbuf = load_pixbuf_from_resource (fallback, width, height);
+						if (pbuf != null)
+							break;
+					}
+				}
+			}
+			
 			// Load internal default icon as last resort
 			if (pbuf == null)
 				pbuf = load_pixbuf_from_resource (Plank.G_RESOURCE_PATH + "/img/application-default-icon.svg", width, height);
@@ -277,11 +289,110 @@ namespace Plank
 					message ("Could not find icon '%s'", name);
 			}
 			
+			// If not found in theme, check integrated docklet fallback resources
+			if (surface == null) {
+				foreach (unowned string name in all_names) {
+					var fallback = get_docklet_fallback_resource (name);
+					if (fallback != null) {
+						surface = load_surface_from_resource_at_scale (fallback, width, height, scale);
+						if (surface != null)
+							break;
+					}
+				}
+			}
+			
 			// Load internal default icon as last resort
 			if (surface == null)
 				surface = load_surface_from_resource_at_scale (Plank.G_RESOURCE_PATH + "/img/application-default-icon.svg", width, height, scale);
 			
 			return surface;
+		}
+
+		static string? get_docklet_fallback_resource (string name)
+		{
+			switch (name) {
+				case "user-trash":
+				case "trashcan_empty":
+				case "emptytrash":
+				case "gnome-fs-trash-empty":
+					return Plank.G_RESOURCE_PATH + "/docklets/trash.svg";
+				case "user-trash-full":
+				case "trashcan_full":
+				case "trashcan_full-new":
+				case "gnome-fs-trash-full":
+					return Plank.G_RESOURCE_PATH + "/docklets/trash-full.svg";
+				case "utilities-system-monitor":
+					return Plank.G_RESOURCE_PATH + "/docklets/cpu.svg";
+				case "preferences-system-time":
+					return Plank.G_RESOURCE_PATH + "/docklets/clock.svg";
+				case "org.kde.plasma.digitalclock":
+				case "digital-clock":
+					return Plank.G_RESOURCE_PATH + "/docklets/digital-clock.svg";
+				case "user-desktop":
+				case "desktop":
+					return Plank.G_RESOURCE_PATH + "/docklets/desktop.svg";
+				case "multimedia-player":
+				case "audio-player":
+				case "applications-multimedia":
+					return Plank.G_RESOURCE_PATH + "/docklets/mpris.svg";
+				case "battery-full":
+				case "battery":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-full.svg";
+				case "battery-good":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-good.svg";
+				case "battery-low":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-low.svg";
+				case "battery-caution":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-caution.svg";
+				case "battery-empty":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-empty.svg";
+				case "battery-full-charging":
+				case "battery-full-charged":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-full-charging.svg";
+				case "battery-good-charging":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-good-charging.svg";
+				case "battery-low-charging":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-low-charging.svg";
+				case "battery-caution-charging":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-caution-charging.svg";
+				case "battery-empty-charging":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-empty-charging.svg";
+				case "battery-missing":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-missing.svg";
+				case "battery-ac-adapter":
+					return Plank.G_RESOURCE_PATH + "/docklets/battery-ac-adapter.svg";
+				case "audio-volume-high":
+				case "stock_volume-max":
+					return Plank.G_RESOURCE_PATH + "/docklets/volume-high.svg";
+				case "audio-volume-medium":
+				case "stock_volume-med":
+					return Plank.G_RESOURCE_PATH + "/docklets/volume-medium.svg";
+				case "audio-volume-low":
+				case "stock_volume-min":
+					return Plank.G_RESOURCE_PATH + "/docklets/volume-low.svg";
+				case "audio-volume-muted":
+				case "stock_volume-mute":
+					return Plank.G_RESOURCE_PATH + "/docklets/volume-muted.svg";
+				case "media-playback-start":
+					return Plank.G_RESOURCE_PATH + "/docklets/mpris-play.svg";
+				case "media-playback-pause":
+					return Plank.G_RESOURCE_PATH + "/docklets/mpris-pause.svg";
+				case "applets-screenshooter":
+				case "accessories-screenshot-tool":
+				case "spectacle":
+				case "org.kde.spectacle":
+					return Plank.G_RESOURCE_PATH + "/docklets/screenshot.svg";
+				case "system-shutdown":
+				case "system-shutdown-symbolic":
+				case "xfsm-shutdown":
+					return Plank.G_RESOURCE_PATH + "/docklets/session.svg";
+				case "plank":
+				case "wayplank":
+				case "preferences-other":
+					return Plank.G_RESOURCE_PATH + "/docklets/preferences.svg";
+				default:
+					return null;
+			}
 		}
 		
 		static Cairo.Surface? load_surface_from_resource_at_scale (string resource, int width, int height, int scale)

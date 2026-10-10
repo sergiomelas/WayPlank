@@ -129,47 +129,9 @@ namespace Plank
 				return true;
 			}
 			
-			var visible = new Gee.ArrayList<WindowInfo> ();
-			foreach (var window in matches)
-				if (!window.Minimized)
-					visible.add (window);
-			
-			if (visible.size == 0) {
-				if (!restore_minimized)
-					return false;
-				WindowInfo? newest = null;
-				foreach (var window in matches)
-					if (newest == null || window.MinimizedSequence > newest.MinimizedSequence)
-						newest = window;
-				if (newest != null) {
-					target = newest.Id;
-					return true;
-				}
-			}
-			
-			var active_index = -1;
-			for (var i = 0; i < visible.size; i++)
-				if (visible[i].Active) {
-					active_index = i;
-					break;
-				}
-			
-			if (visible.size == 1 && active_index == 0 && restore_minimized) {
-				foreach (var window in matches)
-					if (window.Minimized) {
-						target = window.Id;
-						return true;
-					}
-			}
-			
-			if (click_behavior == 1) {
-				target = visible[active_index >= 0 ? active_index : 0].Id;
-				return true;
-			}
-			
-			var next_index = (active_index + 1) % visible.size;
-			target = visible[next_index].Id;
-			return true;
+			cycle_window (launcher_uri, true, out target);
+			action = "activate";
+			return target != null;
 		}
 
 		public bool cycle_window (string launcher_uri, bool forward, out string? target)

@@ -64,6 +64,10 @@ namespace Plank
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
 
+			var pref_item = create_menu_item (_("_Preferences..."), "preferences-system", true);
+			pref_item.activate.connect (open_preferences);
+			items.add (pref_item);
+
 			var appearance_item = create_menu_item (_("_Appearance..."), "preferences-desktop-theme", true);
 			appearance_item.activate.connect (() => Application.get_default ().activate_action ("preferences-appearance", null));
 			items.add (appearance_item);

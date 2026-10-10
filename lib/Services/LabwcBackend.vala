@@ -151,6 +151,15 @@ namespace Plank
 					var json = node.get_object ();
 					if (!json.has_member ("uuid"))
 						continue;
+					var res_class_chk = json.has_member ("resourceClass") ? json.get_string_member ("resourceClass").down () : "";
+					var res_name_chk = json.has_member ("resourceName") ? json.get_string_member ("resourceName").down () : "";
+					var capt_chk = json.has_member ("caption") ? json.get_string_member ("caption").down () : "";
+					var dname_chk = json.has_member ("desktopFileName") ? json.get_string_member ("desktopFileName").down () : "";
+					if (res_class_chk == "wayplank" || res_class_chk == "plank" ||
+					    res_name_chk == "wayplank" || res_name_chk == "plank" ||
+					    dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
+					    capt_chk == "wayplank" || capt_chk == "wayplank-hover")
+						continue;
 					var info = new WindowInfo ();
 					info.Id = json.get_string_member ("uuid");
 					info.DesktopFileName = json.has_member ("desktopFileName") ? json.get_string_member ("desktopFileName") : "";

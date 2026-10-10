@@ -231,7 +231,7 @@ namespace Plank
 						var file = folder.get_child (info.get_name ());
 						var id = ApplicationIdentity.normalize (info.get_name ());
 						var self_id = ApplicationIdentity.normalize (Paths.AppName + ".desktop");
-						if (id == self_id || seen_ids.contains (id) || !is_visible_application (file))
+						if (id == self_id || id == "wayplank.desktop" || id == "plank.desktop" || seen_ids.contains (id) || !is_visible_application (file))
 							continue;
 						seen_ids.add (id);
 						result.add (file);

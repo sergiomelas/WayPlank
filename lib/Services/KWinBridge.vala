@@ -50,7 +50,14 @@ namespace Plank
 			+ "    allClients.forEach(function (client) {\n"
 			+ "        if (!client || client.deleted === true)\n"
 			+ "            return;\n"
-			+ "        if (client.resourceClass === \"wayplank\" || client.resourceName === \"wayplank\" || client.caption === \"wayplank\") {\n"
+			+ "        var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
+			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
+			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
+			+ "        var dName = (client.desktopFileName ? String(client.desktopFileName).toLowerCase() : \"\");\n"
+			+ "        if (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
+			+ "            resName === \"wayplank\" || resName === \"plank\" ||\n"
+			+ "            dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
+			+ "            capt === \"wayplank\" || capt === \"wayplank-hover\") {\n"
 			+ "            try {\n"
 			+ "                client.onAllDesktops = true;\n"
 			+ "                client.skipTaskbar = true;\n"
@@ -133,7 +140,14 @@ namespace Plank
 			+ "\n"
 			+ "function connectWindow (window) {\n"
 			+ "    if (!window) return;\n"
-			+ "    if (window.resourceClass === \"wayplank\" || window.resourceName === \"wayplank\" || window.caption === \"wayplank\")\n"
+			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
+			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
+			+ "    var capt = (window.caption ? String(window.caption).toLowerCase() : \"\");\n"
+			+ "    var dName = (window.desktopFileName ? String(window.desktopFileName).toLowerCase() : \"\");\n"
+			+ "    if (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
+			+ "        resName === \"wayplank\" || resName === \"plank\" ||\n"
+			+ "        dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
+			+ "        capt === \"wayplank\" || capt === \"wayplank-hover\")\n"
 			+ "        return;\n"
 			+ "    if (window.frameGeometryChanged)\n"
 			+ "        window.frameGeometryChanged.connect(scheduleWindowState);\n"
@@ -372,6 +386,15 @@ namespace Plank
 				foreach (var node in parser.get_root ().get_array ().get_elements ()) {
 					var json = node.get_object ();
 					if (!json.has_member ("uuid"))
+						continue;
+					var res_class_chk = json.has_member ("resourceClass") ? json.get_string_member ("resourceClass").down () : "";
+					var res_name_chk = json.has_member ("resourceName") ? json.get_string_member ("resourceName").down () : "";
+					var capt_chk = json.has_member ("caption") ? json.get_string_member ("caption").down () : "";
+					var dname_chk = json.has_member ("desktopFileName") ? json.get_string_member ("desktopFileName").down () : "";
+					if (res_class_chk == "wayplank" || res_class_chk == "plank" ||
+					    res_name_chk == "wayplank" || res_name_chk == "plank" ||
+					    dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
+					    capt_chk == "wayplank" || capt_chk == "wayplank-hover")
 						continue;
 					var info = new WindowInfo ();
 					info.Id = json.get_string_member ("uuid");

@@ -217,8 +217,10 @@ wayplank -d
 
 - [ ] Phase 6 (Ongoing) v0.5,..,v0.9: Move to Maintenance and Bugfixing
   - [x] Multi-monitor selection persistence and edge placement fine-tuning across all compositors. 
-  - [x] Native Session & Power Management Docklet (v0.5.2): Multi-compositor power controls (Logout, Switch User, Restart, Shutdown, Lock, Suspend) and centered GTK session dialog.
-  - [x] Dedicated Preferences Docklet (v0.5.2): One-click docklet launcher for Wayplank Preferences.
+  - [x] Complete 14 Monolithic Docklets Suite (v0.5.2): Trash, Analog Clock, Digital Clock, Battery, Screenshot, Preferences, Drive Ejector, CPU/RAM, Show Desktop, MPRIS, Volume, Session/Power, Screen Brightness, Weather Forecast.
+  - [x] Categorize Items Architecture (v0.5.2): Semantic multi-zone layout (`[Folders] | [Docklets] | [Pinned Apps] | [Unpinned Transients] | [Trash]`), dynamic separator suppression, category drag clamping, and cross-separator drag pin/unpin.
+  - [x] Cairo-Dock Style Folder Launcher Menu (v0.5.2): Left-click folder launcher menu (`FolderMenuWindow`) with 60 FPS icon zoom following, steady decoupled bounce, and tooltip styling.
+  - [x] Core Resiliency & Focus Polish (v0.5.2): Icon size auto-shrink guard, layer-shell surface focus isolation, 50ms window state flood debounce, and consistent right-click dock menus across all 14 docklets.
   - [x] Finish documentation, packaging, and configuration migration.
   - [ ] After release, focus on bug fixes and compatibility updates.
   - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
@@ -233,19 +235,41 @@ wayplank -d
 ## V0.5.2 (First Alpha Release): 2026-10-09
 
 > 📢 **FIRST OFFICIAL ALPHA RELEASE & FINAL MASS DEVELOPMENT MILESTONE**:  
-> Version **V0.5.2 marks the first official ALPHA release** and the conclusion of the "Mass Development" phase of Wayplank! The core foundation (Multi-Compositor HAL for KWin, Labwc, and Mutter; native Layer Shell integration; 11 monolithic docklets; self-contained binary fallback architecture; and deep crash/leak hardening) is now fully established and rock-solid.  
+> Version **V0.5.2 marks the first official ALPHA release** and the conclusion of the "Mass Development" phase of Wayplank! The core foundation (Multi-Compositor HAL for KWin, Labwc, and Mutter; native Layer Shell integration; 14 monolithic docklets; categorized layout architecture; self-contained binary fallback architecture; and deep crash/leak hardening) is now fully established and rock-solid.  
 > **From this point forward, Wayplank transitions to a user-driven maintenance phase: all future changes, enhancements, and new features will be developed exclusively upon user requests, bug reports, and community feedback.**
 
-**Native Session & Power Management Docklet, Preferences Docklet & 100% Internal Fallbacks**:
-- **(Cross-Compositor) Embedded Session Docklet (`docklet://session`)**: Added native docklet providing instant desktop session and power management (Lock Screen, Switch User, Log Out, Suspend, Restart, Shut Down) with multi-fallback vector icon resolution.
-- **(Cross-Compositor) Centered GTK Session Dialog (`SessionWindow`)**: Interactive centered dialog with current user/host banner, 6 ergonomic action buttons, and smooth in-place `GtkStack` confirmation transitions for Logout, Restart, and Shutdown (Escape to step back/dismiss, Cancel default-focused).
-- **(KDE Plasma 6 / KWin) Modernized Session & DisplayManager IPC**: Solved `UnknownMethod: openSwitchUser in KSMServer` by integrating `org.freedesktop.DisplayManager.Seat.SwitchToGreeter`; stabilized native shutdown/reboot via direct `systemctl` / `loginctl` / `login1` dispatching (bypassing Plasma 6's `KWin failed to complete logout` bug) and `loginctl lock-session`.
-- **(Cross-Compositor) Dedicated Preferences Docklet (`docklet://preferences`)**: Added native one-click docklet styled with the classic Plank anchor icon (`plank` / `wayplank`); right-click context menu provides instant deep-linking into all 4 preferences sections (*Appearance...*, *Behaviour...*, *Applications...*, *Docklets...*), followed by a visual separator.
-- **(Preferences) Docklets Tab & Context Menu Integration**: Added "Session / Power" and "Preferences" toggle switches in Preferences Docklets grid, equipped all 11 docklet switches with native 35px vector icons, and added entries to Plank dock item catalog.
-- **(Docklets / UI) Digital Clock Visual Fix**: Resolved visual duplication where Digital Clock showed an analog dial; Digital Clock now renders a crisp, dedicated digital tile icon with numerals (`org.kde.plasma.digitalclock` / `digital-clock.svg`).
-- **(Architecture / Portability) 100% Self-Contained Binary GResources**: Embedded complete vector fallback icons for all 11 docklets directly inside the `wayplank` executable (`/net/launchpad/plank/docklets/`), including full dynamic volume scale (muted, low, medium, high), full battery scale (12 levels & charging states), trash states, and MPRIS controls. Zero host filesystem pollution, ensuring universal standalone operation on any Linux distro.
-- **(Licensing) GPL-3.0 Compliance & Integrated Asset Attribution**: All integrated fallback assets and codebase are fully documented and licensed under GPL-3.0-or-later / LGPL-3.0-or-later.
-- **Release status**: 100% PASS on multi-compositor FAT validation protocol across GNOME, KDE Plasma, and Labwc; see FAT status: [`FAT/2026-10-09 FAT 0.5.2.txt`](FAT/2026-10-09%20FAT%200.5.2.txt).
+**New Features & Architecture Enhancements**:
+- **(Folders) Cairo-Dock Style Folder Launcher Menu (`FolderMenuWindow`)**:
+  - **Left-Click Interactive Menu**: Left-clicking a folder dock item opens a fast, non-modal overlay displaying subdirectories, application launchers, and documents without locking the desktop.
+  - **Fluid 60 FPS Zoom Following**: Window anchors dynamically follow the horizontal center (`val.center.x`) and vertical elevation during dock magnification, keeping dock hover zoom animations completely smooth.
+  - **Decoupled Click Bounce**: Left-clicking triggers the standard icon bounce animation while the popup menu remains rock-steady and decoupled from the bounce height (`pm.get_visual_thickness_for_item (TargetItem)`) for effortless item selection.
+  - **Dark Tooltip Styling**: Rendered with exact tooltip aesthetics (`rgba(28, 28, 30, 0.95)`, 7px rounded corners, 1px border `rgba(255, 255, 255, 0.18)`), crisp white typography, and illuminated mouseover highlight (`rgba(255, 255, 255, 0.20)`).
+  - **Subdirectory Drill-Down & History**: Browse nested folders with smooth back-button navigation, execute `.desktop` applications, and open documents directly in default apps.
+  - **Intelligent Auto-Dismiss**: Automatically closes when hovering another dock item or upon a 150ms pointer exit timer.
+  - **Dedicated Right-Click Menu**: Right-click on folder items is reserved exclusively for dock management (*Keep in Dock*, *Open in File Browser*, *Preferences*, *About Wayplank*).
+- **(Docklets) 14 Embedded Monolithic Docklets Suite**: Expanded docklets suite with 3 new native docklets:
+  - **Removable Drive Ejector (`docklet://ejector`)**: Removable media manager via GIO `VolumeMonitor` and UDisks2, safe detachment desktop notifications, and dynamic right-click eject context menu.
+  - **Screen Brightness (`docklet://brightness`)**: Hardware display brightness via `org.freedesktop.login1` Session SetBrightness / `brightnessctl`, mouse-wheel brightness stepping (±5%), preset click cycling (25% → 50% → 75% → 100%), and percentage badge.
+  - **Weather Forecast (`docklet://weather`)**: Live atmospheric updates via Open-Meteo API, dynamic weather status icons, temperature badge (°C / °F), 3-day forecast popup (`WeatherWindow`), and configuration dialog (`WeatherCityDialog`) with automatic IP geolocation fallback.
+- **(Preferences) 7×2 Symmetric Docklets Grid**: Redesigned Preferences *Docklets* tab into a balanced 7×2 grid accommodating all 14 docklets with native 35px vector icons and instant live toggle switches.
+- **(Layout) Categorize Items Architecture (`categorize-items`)**:
+  - Organized layout into dedicated semantic groups: `[Folders] | [Docklets] | [Pinned Apps] | [Unpinned Transients] | [Trash]`.
+  - Dynamic separator suppression: dividers automatically hide when an adjacent category contains 0 items, preventing phantom gaps.
+  - Clamped category drag bounding: items are strictly constrained within their category boundary during drag-and-drop.
+  - Cross-separator drag pin/unpin: dragging an application icon across the transient/pinned divider automatically pins or unpins it.
+  - Clean state preservation: independent serialization (`FreeDockItems` vs `CategorizedDockItems`) restoring exact user placement when toggled.
+- **(UI / Badges) Tooltip Category Badges**: Added contextual type badges (`• Folder`, `• Running`, `• Docklet`) in free-placement mode, and sanitized Trash docklet tooltip.
+- **(Window Management) Multi-Window Cycling & Minimize/Restore**: Unified left-click handling for single-window toggle minimize/restore and multi-window focus cycling via `activate`.
+
+**Bugs Solved & Resiliency Fixes**:
+- **(Resiliency) Icon Size Slider Auto-Shrink Guard**: Fixed `PositionManager` auto-shrink calculation to prevent crushing icons to the 24px minimum during rapid slider resizing or uninitialized monitor geometry.
+- **(Menu Polish) Universal Docklet Context Menu Consistency**: Appended standard dock actions (*Preferences...*, *Shortcuts & Gestures...*, *Report a Bug...*, *About Wayplank...*) to all 14 docklets via `Utils.append_docklet_menu_items()`, and placed *Preferences...* at the top of the Preferences docklet context menu.
+- **(Layer Shell) Surface Focus Theft Elimination**: Replaced unconditional `window.present()` calls with a Layer Shell guard (`!GtkLayerShell.is_supported ()`), preventing the dock from stealing keyboard focus from active application windows upon display changes or redraws.
+- **(Animation) Stationary Screenshot Capture**: Fixed Screenshot docklet animation leaping mid-air across the screen during interactive capture.
+- **(Debouncing) Window Title & State Flood Resiliency**: Absorbed rapid bursts of window state and title changes with a 50ms asynchronous debouncer, eliminating CPU spikes and IPC stutter.
+- **(Resource Management) Lifecycle & Signal Disconnect Safety**: Ensured clean disconnection of `monitors_changed`, `prefs.notify`, and `elements_changed` when closing the Preferences dialog, preventing memory leaks and dangling closures.
+- **(KDE Plasma) KSMServer Deprecated API Workaround**: Resolved `UnknownMethod: openSwitchUser` in Plasma 6 via FreeDesktop DisplayManager interface (`SwitchToGreeter`).
+- **(Packaging) Desktop File Executable Permissions**: Set `chmod +x` on `data/wayplank.desktop` and added `Restart` desktop action to prevent KIO access denied warnings when double-clicking from Dolphin.
 
 👉 **Full Technical Details:** See [`Changelogs/CHANGELOG_v0.5.2.md`](Changelogs/CHANGELOG_v0.5.2.md).
 
@@ -371,7 +395,7 @@ Wayplank incorporates high-definition vector assets compiled directly into the b
   * **Volume Scale**: High, Medium, Low, Muted (`volume-*.svg`).
   * **Battery Scale**: Full, Good, Low, Caution, Empty, Full-Charging, Good-Charging, Low-Charging, Caution-Charging, Empty-Charging, AC-Adapter, Missing (`battery-*.svg`).
   * **Clock & Time**: Analog Clock (`clock.svg`), Digital LED Clock (`digital-clock.svg`).
-  * **System & Desktop**: Trash empty/full (`trash.svg`, `trash-full.svg`), CPU/RAM Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS play/pause (`mpris-*.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`).
+  * **System & Hardware**: Trash empty/full (`trash.svg`, `trash-full.svg`), CPU/RAM Monitor (`cpu.svg`), Show Desktop (`desktop.svg`), MPRIS play/pause (`mpris-*.svg`), Screenshot (`screenshot.svg`), Session/Power (`session.svg`), Wayplank Preferences (`preferences.svg`), Removable Drive Ejector (`ejector.svg`), Screen Brightness (`brightness.svg`), Weather Forecast (`weather.svg`).
 * **Attribution & Upstream**: Derived from FreeDesktop & KDE Breeze icon specifications © KDE Community / Breeze Icon Artists, licensed under **LGPL-3.0-or-later** / **GPL-3.0-or-later**.
 * **Zero Host Pollution**: All fallback icons are strictly compiled into the internal executable binary; no extra icon files are installed into `/usr/share/icons/hicolor/`, ensuring pure standalone behavior and complete distribution independence.
 

@@ -233,7 +233,7 @@ namespace Plank
 		{
 			if (button == PopupButton.LEFT) {
 				capture_interactive ();
-				return AnimationType.BOUNCE;
+				return AnimationType.NONE;
 			}
 			
 			return AnimationType.NONE;

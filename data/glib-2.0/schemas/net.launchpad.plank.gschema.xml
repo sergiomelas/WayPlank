@@ -54,6 +54,16 @@
 			<summary>Dockitem-files Array</summary>
 			<description>Array of dockitem-files for this particular dock. This list is automatically updated and managed by Plank. DO NOT MODIFY.</description>
 		</key>
+		<key name="free-dock-items" type="as">
+			<default>[]</default>
+			<summary>Free mode dockitem-files Array</summary>
+			<description>Array of dockitem-files for uncategorized mode. Automatically updated and managed by Plank. DO NOT MODIFY.</description>
+		</key>
+		<key name="categorized-dock-items" type="as">
+			<default>[]</default>
+			<summary>Categorized mode dockitem-files Array</summary>
+			<description>Array of dockitem-files for categorized mode. Automatically updated and managed by Plank. DO NOT MODIFY.</description>
+		</key>
 		<key name="hide-delay" type="i">
 			<range min="0"/>
 			<default>0</default>
@@ -153,6 +163,11 @@
 			<default>false</default>
 			<summary>Zoom dock items when hovered</summary>
 			<description>If true, zoom dock items when hovered with the cursor.</description>
+		</key>
+		<key name="categorize-items" type="b">
+			<default>false</default>
+			<summary>Categorize dock items</summary>
+			<description>If true, group items into folders, pinned apps, docklets, unpinned apps, and trash with dynamic separators.</description>
 		</key>
 		<key name="zoom-percent" type="i">
 			<range min="100" max="200"/>

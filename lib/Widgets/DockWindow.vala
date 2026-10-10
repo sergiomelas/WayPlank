@@ -239,6 +239,11 @@ namespace Plank
 			if (menu_is_visible ())
 				return Gdk.EVENT_PROPAGATE;
 
+			if (controller.folder_menu.get_visible ()) {
+				if (HoveredItem != controller.folder_menu.TargetItem)
+					controller.folder_menu.close_menu ();
+			}
+
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
 
@@ -251,7 +256,7 @@ namespace Plank
 			ClickedItem = HoveredItem;
 
 			var button = PopupButton.from_event_button (event);
-			if (show_menu (HoveredItem, button, event.state, (int) event.x, (int) event.y, (Gdk.Event) event))
+			if (button != PopupButton.LEFT && show_menu (HoveredItem, button, event.state, (int) event.x, (int) event.y, (Gdk.Event) event))
 				return Gdk.EVENT_STOP;
 
 			cancel_long_press ();
@@ -306,7 +311,18 @@ namespace Plank
 			if (event.button != Gdk.BUTTON_SECONDARY
 				&& ClickedItem != null && HoveredItem == ClickedItem && !menu_is_visible ()) {
 				controller.hover.hide ();
-				HoveredItem.clicked (PopupButton.from_event_button (event), event.state, event.time);
+				var button = PopupButton.from_event_button (event);
+				if (button == PopupButton.LEFT && ClickedItem is FileDockItem && ((FileDockItem) ClickedItem).is_directory ()) {
+					if (controller.folder_menu.get_visible () && controller.folder_menu.TargetItem == ClickedItem) {
+						controller.folder_menu.close_menu ();
+					} else {
+						controller.folder_menu.show_for_item ((FileDockItem) ClickedItem);
+						ClickedItem.clicked (button, event.state, event.time);
+					}
+					ClickedItem = null;
+					return Gdk.EVENT_STOP;
+				}
+				HoveredItem.clicked (button, event.state, event.time);
 			}
 
 			ClickedItem = null;
@@ -325,6 +341,9 @@ namespace Plank
 			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
 				return Gdk.EVENT_PROPAGATE;
 
+			if (controller.folder_menu.get_visible ())
+				controller.folder_menu.on_dock_leave ();
+
 			if (!menu_is_visible ()) {
 				set_hovered_provider (null);
 				set_hovered (null);
@@ -339,6 +358,9 @@ namespace Plank
 		{
 			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
 				return Gdk.EVENT_PROPAGATE;
+
+			if (controller.folder_menu.get_visible ())
+				controller.folder_menu.cancel_dismiss_timer ();
 
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
@@ -362,6 +384,9 @@ namespace Plank
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
+
+			if (controller.folder_menu.get_visible ())
+				controller.folder_menu.on_dock_hover (HoveredItem);
 			
 			// Force animated rendering to activate icon zoom when the pointer passes over
 			controller.renderer.animated_draw ();
@@ -476,6 +501,9 @@ namespace Plank
 
 			controller.renderer.draw (cr, frame_time);
 
+			if (controller.folder_menu.get_visible ())
+				controller.folder_menu.update_position ();
+
 			return Gdk.EVENT_STOP;
 		}
 
@@ -536,7 +564,17 @@ namespace Plank
 				unowned HoverWindow hover = controller.hover;
 
 				int x, y;
-				hover.set_text (HoveredItem.Text);
+				string tooltip_text = HoveredItem.Text;
+				if (!controller.prefs.CategorizeItems) {
+					if (HoveredItem is FileDockItem) {
+						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Folder"));
+					} else if (HoveredItem is TransientDockItem) {
+						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Running"));
+					} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
+						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
+					}
+				}
+				hover.set_text (tooltip_text);
 				controller.position_manager.get_hover_position (HoveredItem, out x, out y);
 				var dock_region = controller.position_manager.get_dock_window_region ();
 				var dock_thickness = GtkLayerShell.is_supported ()
@@ -545,7 +583,7 @@ namespace Plank
 				var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
 				hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
 
-				if (menu_is_visible ())
+				if (menu_is_visible () || controller.folder_menu.get_visible ())
 					hover.hide ();
 
 				return false;
@@ -670,7 +708,7 @@ namespace Plank
 
 			show_all ();
 			stick ();
-			if (GtkLayerShell.is_supported ())
+			if (!GtkLayerShell.is_supported ())
 				present (); 
 			queue_draw ();
 		}
@@ -702,6 +740,9 @@ namespace Plank
 				menu = null;
 			}
 
+			if (controller.folder_menu.get_visible ())
+				controller.folder_menu.close_menu ();
+
 			menu_items = null;
 			Gtk.MenuPositionFunc? position_func = null;
 			message ("DockWindow: show_menu mapped_button=%u item=%s", (uint) button, item != null ? item.Text : "null");
@@ -714,8 +755,8 @@ namespace Plank
 					menu_items.add_all (get_dock_debug_menu_items (controller));
 				set_hovered_provider (null);
 				set_hovered (null);
-			} else if (item != null && item.is_valid () && (item.Button & button) != 0) {
-				menu_items = item.get_menu_items ();
+			} else if (item != null && item.is_valid () && item.has_menu_for_button (button)) {
+				menu_items = item.get_menu_items_for_button (button);
 				if ((state & Gdk.ModifierType.MOD1_MASK) != 0
 					&& (state & Gdk.ModifierType.SHIFT_MASK) != 0)
 					menu_items.add_all (get_item_debug_menu_items (item));
@@ -731,18 +772,18 @@ namespace Plank
 			menu.hide.connect (on_menu_hide);
 
 			var iterator = menu_items.bidir_list_iterator ();
-			if (controller.prefs.Position == Gtk.PositionType.TOP) {
+			if (controller.prefs.Position == Gtk.PositionType.TOP && button != PopupButton.LEFT) {
 				iterator.last ();
 				do {
 					var menu_item = iterator.get ();
-					menu_item.show ();
+					menu_item.show_all ();
 					menu.append (menu_item);
 				} while (iterator.previous ());
 			} else {
 				iterator.first ();
 				do {
 					var menu_item = iterator.get ();
-					menu_item.show ();
+					menu_item.show_all ();
 					menu.append (menu_item);
 				} while (iterator.next ());
 			}

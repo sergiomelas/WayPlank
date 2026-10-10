@@ -1,0 +1,14 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="a" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#b23c00" offset="0"/>
+  <stop stop-color="#f57c00" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#a)"/>
+ <g fill="#ffffff" fill-rule="nonzero">
+  <!-- Eject Arrow (Triangle) -->
+  <path d="M 24,11 L 35,25 L 13,25 Z"/>
+  <!-- Eject Bar (Rectangle) -->
+  <rect x="13" y="28" width="22" height="4.5" rx="1.5" ry="1.5"/>
+ </g>
+</svg>
+

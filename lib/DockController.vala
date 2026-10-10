@@ -41,6 +41,7 @@ namespace Plank
 		public DockRenderer renderer { get; protected set; }
 		public DockWindow window { get; protected set; }
 		public HoverWindow hover { get; protected set; }
+		public FolderMenuWindow folder_menu { get; protected set; }
 		public string last_explicit_monitor { get; set; default = ""; }
 		
 		public DockItemProvider? default_provider { get; private set; }
@@ -106,6 +107,7 @@ namespace Plank
 			hide_manager = new HideManager (this);
 			window = new DockWindow (this);
 			hover = new HoverWindow ();
+			folder_menu = new FolderMenuWindow (this);
 			renderer = new DockRenderer (this, window);
 		}
 		
@@ -117,6 +119,7 @@ namespace Plank
 
 		~DockController ()
 		{
+			folder_menu.destroy ();
 			prefs.notify["Monitor"].disconnect (update_explicit_monitor);
 			prefs.notify["Position"].disconnect (update_visible_elements);
 			prefs.notify["ShowDockItem"].disconnect (update_show_dock_item);
@@ -172,7 +175,8 @@ namespace Plank
 			position_manager.update (renderer.theme);
 			window.update_size_and_position ();
 			window.show_all ();
-			window.present ();
+			if (!GtkLayerShell.is_supported ())
+				window.present ();
 			window.queue_draw ();
 		}
 		
@@ -188,7 +192,16 @@ namespace Plank
 			Logger.verbose ("DockController.add_default_provider ()");
 			default_provider = create_default_provider ();
 			
-			var elements = Factory.item_factory.load_elements (launchers_folder, prefs.DockItems);
+			string[] target_items = prefs.DockItems;
+			if (prefs.CategorizeItems && prefs.CategorizedDockItems != null && prefs.CategorizedDockItems.length > 0) {
+				target_items = prefs.CategorizedDockItems;
+			} else if (!prefs.CategorizeItems && prefs.FreeDockItems != null && prefs.FreeDockItems.length > 0) {
+				target_items = prefs.FreeDockItems;
+			}
+			if (target_items.length == 0 && prefs.DockItems != null && prefs.DockItems.length > 0) {
+				target_items = prefs.DockItems;
+			}
+			var elements = Factory.item_factory.load_elements (launchers_folder, target_items);
 
 			foreach (var element in elements)
 				if (element is DockItem)
@@ -325,7 +338,7 @@ namespace Plank
 			visible_items.add (item);
 		}
 		
-		void update_items ()
+		public void update_items ()
 		{
 			Logger.verbose ("DockController.update_items ()");
 			
@@ -396,7 +409,7 @@ namespace Plank
 			renderer.animated_draw ();
 		}
 		
-		void schedule_serialize_item_positions ()
+		public void schedule_serialize_item_positions ()
 		{
 			if (serialize_item_positions_timer_id > 0U)
 				return;
@@ -425,7 +438,15 @@ namespace Plank
 				}
 			}
 
+			if (item_list.size == 0)
+				return false;
+
 			prefs.DockItems = item_list.to_array ();
+			if (!prefs.CategorizeItems) {
+				prefs.FreeDockItems = item_list.to_array ();
+			} else {
+				prefs.CategorizedDockItems = item_list.to_array ();
+			}
 
 			return false;
 		}
@@ -440,7 +461,8 @@ namespace Plank
 			renderer.reset_buffers ();
 			hide_manager.wake_up ();
 			window.show_all ();
-			window.present ();
+			if (!GtkLayerShell.is_supported ())
+				window.present ();
 			renderer.animated_draw ();
 		}
 	}

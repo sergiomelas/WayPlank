@@ -80,6 +80,7 @@ namespace Plank
 		ulong drag_item_redraw_handler_id = 0UL;
 		weak Gdk.DragContext? active_drag_context = null;
 		weak DockItem? drop_target_item = null;
+		bool last_hovered_trash = false;
 		
 		/**
 		 * Creates a new instance of a DragManager, which handles
@@ -216,6 +217,7 @@ namespace Plank
 			dropped_on_target = false;
 			left_dock_during_drag = false;
 			is_outside_dock = false;
+			last_hovered_trash = false;
 			
 			DragItem = window.HoveredItem;
 			
@@ -368,6 +370,22 @@ namespace Plank
 			controller.window.update_hovered (x, y);
 			drop_target_item = controller.window.HoveredItem;
 			
+			if (drop_target_item == null || !(drop_target_item is TrashDockItem)) {
+				unowned PositionManager pos_mgr = controller.position_manager;
+				foreach (var el in controller.default_provider.Elements) {
+					if (el is TrashDockItem) {
+						var r = pos_mgr.get_hover_region_for_element (el as DockItem);
+						if (x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height) {
+							drop_target_item = (DockItem) el;
+							last_hovered_trash = true;
+							break;
+						}
+					}
+				}
+			}
+			if (controller.window.HoveredItem is TrashDockItem || drop_target_item is TrashDockItem)
+				last_hovered_trash = true;
+			
 			if (drag_hover_timer_id > 0U) {
 				GLib.Source.remove (drag_hover_timer_id);
 				drag_hover_timer_id = 0U;
@@ -401,7 +419,8 @@ namespace Plank
 			if (!drag_canceled && DragItem != null) {
 				hide_manager.update_hovered ();
 				
-				if (!dropped_on_target) {
+				bool dropped_on_trash = (drop_target_item is TrashDockItem || controller.window.HoveredItem is TrashDockItem || last_hovered_trash);
+				if (!dropped_on_target || dropped_on_trash) {
 					if (DragItem.can_be_removed ()) {
 						unowned ApplicationDockItem? app_item = (DragItem as ApplicationDockItem);
 						var was_pinned = !(DragItem is TransientDockItem);
@@ -443,32 +462,50 @@ namespace Plank
 				// Keep items on the correct side of the pinned/temporary divider after any
 				// reorder: a temporary item resting left of it gets pinned, a pinned item
 				// resting right of it gets unpinned.
-				if (dropped_on_target && !controller.prefs.LockItems) {
+				if (dropped_on_target && !dropped_on_trash && !controller.prefs.LockItems) {
 					unowned DefaultApplicationDockItemProvider? provider = (DragItem.Container as DefaultApplicationDockItemProvider);
 					if (provider != null) {
 						unowned Gee.ArrayList<DockElement> elements = provider.Elements;
 						int drag_index = elements.index_of (DragItem);
 						if (drag_index >= 0) {
-							int sep1_index = -1;
-							int transient_count = 0;
+							int divider_idx = -1;
+							int trash_idx = -1;
 							for (int i = 0; i < elements.size; i++) {
-								var el = elements.get (i);
-								if (el is SeparatorDockItem) {
-									if (sep1_index < 0)
-										sep1_index = i;
-								} else if (el is TransientDockItem) {
-									transient_count++;
+								if (elements.get (i) is TrashDockItem) {
+									trash_idx = i;
+									break;
 								}
 							}
-							
-							// Only treat sep1 as pinned/transient divider if transient items exist.
-							// Never unpin an item just because it was dragged before Trash.
-							int divider_idx = (transient_count > 0) ? sep1_index : -1;
+
+							int sep_trash_idx = -1;
+							if (trash_idx > 0 && elements.get (trash_idx - 1) is SeparatorDockItem) {
+								sep_trash_idx = trash_idx - 1;
+							}
+
+							// Find the separator dividing pinned and transient items
+							for (int i = 0; i < elements.size; i++) {
+								if (elements.get (i) is SeparatorDockItem && i != sep_trash_idx) {
+									bool is_before_apps = false;
+									if (controller.prefs.CategorizeItems) {
+										if (i > 0) {
+											var prev_el = elements.get (i - 1);
+											if (prev_el is FileDockItem || prev_el is PlankDockItem ||
+											    (prev_el is DockItem && ((DockItem) prev_el).Prefs != null && ((DockItem) prev_el).Prefs.Launcher != null && ((DockItem) prev_el).Prefs.Launcher.has_prefix ("docklet://"))) {
+												is_before_apps = true;
+											}
+										}
+									}
+									if (!is_before_apps) {
+										divider_idx = i;
+										break;
+									}
+								}
+							}
 
 							if (divider_idx >= 0) {
 								if (DragItem is TransientDockItem && drag_index < divider_idx) {
 									provider.pin_item (DragItem);
-								} else if (!(DragItem is TransientDockItem) && drag_index > divider_idx) {
+								} else if (!(DragItem is TransientDockItem) && DragItem is ApplicationDockItem && !(DragItem is FileDockItem) && drag_index > divider_idx) {
 									provider.pin_item (DragItem);
 								}
 							}
@@ -482,6 +519,7 @@ namespace Plank
 			active_drag_context = null;
 			dropped_on_target = false;
 			left_dock_during_drag = false;
+			last_hovered_trash = false;
 			context.get_device ().get_seat ().ungrab ();
 
 			unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
@@ -586,10 +624,38 @@ namespace Plank
 			hide_manager.update_hovered_with_coords (x, y);
 			window.update_hovered (x, y);
 			
+			if (window.HoveredItem is TrashDockItem)
+				last_hovered_trash = true;
+			else if (window.HoveredItem != null)
+				last_hovered_trash = false;
+			
 			is_outside_dock = false;
 			left_dock_during_drag = false;
 			
 			return true;
+		}
+
+		enum DragCategory {
+			FOLDER,
+			DOCKLET,
+			APP,
+			TRASH,
+			SEPARATOR
+		}
+
+		DragCategory get_drag_category (DockElement el)
+		{
+			if (el is FileDockItem)
+				return DragCategory.FOLDER;
+			if (el is TrashDockItem)
+				return DragCategory.TRASH;
+			if (el is SeparatorDockItem)
+				return DragCategory.SEPARATOR;
+			if (el is PlankDockItem || (el is DockItem && ((DockItem) el).Prefs != null && ((DockItem) el).Prefs.Launcher != null && ((DockItem) el).Prefs.Launcher.has_prefix ("docklet://")))
+				return DragCategory.DOCKLET;
+			if (el is DockItem)
+				return DragCategory.APP;
+			return DragCategory.APP;
 		}
 
 		void hovered_item_changed ()
@@ -602,6 +668,87 @@ namespace Plank
 				unowned Gee.ArrayList<DockElement> elements = DragItem.Container.Elements;
 				int drag_idx = elements.index_of (DragItem);
 				int hover_idx = elements.index_of (hovered_item);
+
+				if (controller.prefs.CategorizeItems) {
+					var drag_cat = get_drag_category (DragItem);
+					if (drag_cat == DragCategory.TRASH)
+						return;
+
+					int first_cat_idx = -1;
+					int last_cat_idx = -1;
+					for (int i = 0; i < elements.size; i++) {
+						if (get_drag_category (elements.get (i)) == drag_cat) {
+							if (first_cat_idx < 0)
+								first_cat_idx = i;
+							last_cat_idx = i;
+						}
+					}
+
+					if (first_cat_idx < 0 || last_cat_idx < 0)
+						return;
+
+					if (drag_cat == DragCategory.APP) {
+						// Pinned and unpinned apps cannot move left into Docklets or Folders
+						if (hover_idx < first_cat_idx) {
+							if (drag_idx != first_cat_idx) {
+								var target = elements.get (first_cat_idx);
+								if (target != DragItem && get_drag_category (target) == DragCategory.APP)
+									DragItem.Container.move_to (DragItem, target);
+							}
+							return;
+						}
+						// Pinned and unpinned apps cannot move right into Trash
+						if (hover_idx > last_cat_idx) {
+							if (drag_idx != last_cat_idx) {
+								var target = elements.get (last_cat_idx);
+								if (target != DragItem && get_drag_category (target) == DragCategory.APP)
+									DragItem.Container.move_to (DragItem, target);
+							}
+							return;
+						}
+						// If hovering on the separator between pinned and unpinned apps, cross it
+						if (hovered_item is SeparatorDockItem) {
+							if (drag_idx < hover_idx && hover_idx + 1 < elements.size) {
+								var target = elements.get (hover_idx + 1);
+								if (target != DragItem && get_drag_category (target) == DragCategory.APP)
+									DragItem.Container.move_to (DragItem, target);
+							} else if (drag_idx > hover_idx && hover_idx > 0) {
+								var target = elements.get (hover_idx - 1);
+								if (target != DragItem && get_drag_category (target) == DragCategory.APP)
+									DragItem.Container.move_to (DragItem, target);
+							}
+							return;
+						}
+						// Moving among apps (pinned or unpinned)
+						if (get_drag_category (hovered_item) == DragCategory.APP)
+							DragItem.Container.move_to (DragItem, hovered_item);
+						return;
+					}
+
+					// For FOLDER or DOCKLET: strictly clamped to their own category range
+					if (hover_idx < first_cat_idx) {
+						if (drag_idx != first_cat_idx) {
+							var target = elements.get (first_cat_idx);
+							if (target != DragItem && get_drag_category (target) == drag_cat)
+								DragItem.Container.move_to (DragItem, target);
+						}
+						return;
+					}
+					if (hover_idx > last_cat_idx) {
+						if (drag_idx != last_cat_idx) {
+							var target = elements.get (last_cat_idx);
+							if (target != DragItem && get_drag_category (target) == drag_cat)
+								DragItem.Container.move_to (DragItem, target);
+						}
+						return;
+					}
+					if (hovered_item is SeparatorDockItem)
+						return;
+
+					if (get_drag_category (hovered_item) == drag_cat)
+						DragItem.Container.move_to (DragItem, hovered_item);
+					return;
+				}
 				
 				// Identify separators and Trash markers
 				int sep1_idx = -1;

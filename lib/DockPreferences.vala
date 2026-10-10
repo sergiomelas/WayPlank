@@ -64,6 +64,12 @@ namespace Plank
 		[Description(nick = "dock-items", blurb = "Array of the dockitem-files on this dock. DO NOT MODIFY")]
 		public string[] DockItems { get; set; }
 		
+		[Description(nick = "free-dock-items", blurb = "Array of the dockitem-files in free mode. DO NOT MODIFY")]
+		public string[] FreeDockItems { get; set; }
+		
+		[Description(nick = "categorized-dock-items", blurb = "Array of the dockitem-files in categorized mode. DO NOT MODIFY")]
+		public string[] CategorizedDockItems { get; set; }
+		
 		[Description(nick = "position", blurb = "The position for the dock on the monitor.  If 0, left.  If 1, right.  If 2, top.  If 3, bottom.")]
 		public Gtk.PositionType Position { get; set; }
 		
@@ -102,6 +108,9 @@ namespace Plank
 		
 		[Description(nick = "tooltips-enabled", blurb = "Whether to show tooltips when items are hovered.")]
 		public bool TooltipsEnabled { get; set; }
+		
+		[Description(nick = "categorize-items", blurb = "Whether to categorize dock items by type (Folders, Apps, Docklets, Running, Trash).")]
+		public bool CategorizeItems { get; set; }
 		
 		/**
 		 * {@inheritDoc}

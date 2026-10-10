@@ -145,6 +145,12 @@ namespace Plank
 				return new SessionDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://preferences")
 				return new PreferencesDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://ejector")
+				return new EjectorDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://brightness")
+				return new BrightnessDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://weather")
+				return new WeatherDockItem.with_dockitem_file (file);
 			if (launcher.has_suffix (".desktop"))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);

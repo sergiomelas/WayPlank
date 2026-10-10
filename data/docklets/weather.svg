@@ -1,0 +1,18 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="a" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#1565c0" offset="0"/>
+  <stop stop-color="#42a5f5" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#a)"/>
+ <!-- Sun behind cloud -->
+ <circle cx="19" cy="19" r="6.5" fill="#ffd54f"/>
+ <g stroke="#ffd54f" stroke-width="2" stroke-linecap="round">
+  <line x1="19" y1="9.5" x2="19" y2="11.5"/>
+  <line x1="11.5" y1="19" x2="9.5" y2="19"/>
+  <line x1="13.7" y1="13.7" x2="12.3" y2="12.3"/>
+  <line x1="24.3" y1="13.7" x2="25.7" y2="12.3"/>
+ </g>
+ <!-- White Cloud in foreground -->
+ <path d="M 33,32.5 L 18,32.5 C 15.2,32.5 13,30.3 13,27.5 C 13,24.9 14.9,22.7 17.5,22.5 C 18.2,18.8 21.4,16 25.2,16 C 29.5,16 33,19.2 33.4,23.5 C 35.5,24.1 37,26.1 37,28.5 C 37,30.7 35.2,32.5 33,32.5 Z" fill="#ffffff" fill-rule="nonzero"/>
+</svg>
+

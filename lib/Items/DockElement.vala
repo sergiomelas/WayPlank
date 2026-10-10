@@ -220,6 +220,28 @@ namespace Plank
 		}
 		
 		/**
+		 * Returns whether this item provides a menu for the given button.
+		 *
+		 * @param button the button to check
+		 * @return whether this item has a menu for that button
+		 */
+		public virtual bool has_menu_for_button (PopupButton button)
+		{
+			return (Button & button) != 0;
+		}
+		
+		/**
+		 * Returns a list of the item's menu items for a specific button.
+		 *
+		 * @param button the button clicked to open the menu
+		 * @return the item's menu items
+		 */
+		public virtual Gee.ArrayList<Gtk.MenuItem> get_menu_items_for_button (PopupButton button)
+		{
+			return get_menu_items ();
+		}
+		
+		/**
 		 * The item's text for drop actions.
 		 *
 		 * @return the item's drop-text

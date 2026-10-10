@@ -103,7 +103,10 @@ namespace Plank
 						{ _("_Volume Control"), "docklet://volume" },
 						{ _("_Screenshot"), "docklet://screenshot" },
 						{ _("_Session / Power"), "docklet://session" },
-						{ _("_Preferences"), "docklet://preferences" }
+						{ _("_Preferences"), "docklet://preferences" },
+						{ _("_Screen Brightness"), "docklet://brightness" },
+						{ _("_Removable Drives"), "docklet://ejector" },
+						{ _("_Weather Forecast"), "docklet://weather" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;

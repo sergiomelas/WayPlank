@@ -390,6 +390,29 @@ namespace Plank
 				case "wayplank":
 				case "preferences-other":
 					return Plank.G_RESOURCE_PATH + "/docklets/preferences.svg";
+				case "media-eject":
+				case "media-eject-symbolic":
+				case "drive-removable-media":
+					return Plank.G_RESOURCE_PATH + "/docklets/ejector.svg";
+				case "display-brightness":
+				case "display-brightness-high":
+				case "display-brightness-medium":
+				case "display-brightness-low":
+				case "display-brightness-symbolic":
+				case "brightness-high":
+				case "high-brightness":
+					return Plank.G_RESOURCE_PATH + "/docklets/brightness.svg";
+				case "weather-clear":
+				case "weather-clear-symbolic":
+				case "weather-few-clouds":
+				case "weather-few-clouds-symbolic":
+				case "weather-clouds":
+				case "weather-overcast":
+				case "weather-showers":
+				case "weather-snow":
+				case "weather-storm":
+				case "weather":
+					return Plank.G_RESOURCE_PATH + "/docklets/weather.svg";
 				default:
 					return null;
 			}

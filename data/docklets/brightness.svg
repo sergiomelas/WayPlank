@@ -1,0 +1,24 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="a" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#b78103" offset="0"/>
+  <stop stop-color="#fbc02d" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#a)"/>
+ <g fill="#ffffff" fill-rule="nonzero">
+  <!-- Sun Center -->
+  <circle cx="24" cy="24" r="7"/>
+  <!-- Sun Rays -->
+  <!-- Top & Bottom -->
+  <rect x="22.25" y="9.5" width="3.5" height="4.5" rx="1.75"/>
+  <rect x="22.25" y="34" width="3.5" height="4.5" rx="1.75"/>
+  <!-- Left & Right -->
+  <rect x="9.5" y="22.25" width="4.5" height="3.5" rx="1.75"/>
+  <rect x="34" y="22.25" width="4.5" height="3.5" rx="1.75"/>
+  <!-- Diagonals -->
+  <rect transform="rotate(45 15.2 15.2)" x="13.45" y="13.2" width="3.5" height="4.5" rx="1.75"/>
+  <rect transform="rotate(45 32.8 32.8)" x="31.05" y="30.8" width="3.5" height="4.5" rx="1.75"/>
+  <rect transform="rotate(-45 32.8 15.2)" x="31.05" y="13.2" width="3.5" height="4.5" rx="1.75"/>
+  <rect transform="rotate(-45 15.2 32.8)" x="13.45" y="30.8" width="3.5" height="4.5" rx="1.75"/>
+ </g>
+</svg>
+

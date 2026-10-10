@@ -86,6 +86,9 @@ namespace Plank
 			case "Monitor":
 				prefs_monitor_changed ();
 				break;
+			case "IconSize":
+				update (controller.renderer.theme);
+				break;
 			case "ZoomPercent":
 			case "ZoomEnabled":
 				prefs_zoom_changed ();
@@ -292,9 +295,8 @@ namespace Plank
 			
 			freeze_notify ();
 			
-			update_dimensions ();
+			update (controller.renderer.theme);
 			controller.window.update_layer_shell_monitor ();
-			update_regions ();
 			if (!GtkLayerShell.is_supported ()) {
 				controller.window.update_size_and_position ();
 			}
@@ -363,6 +365,7 @@ namespace Plank
 			
 			freeze_notify ();
 			
+			MaxIconSize = controller.prefs.IconSize;
 			update_caches (theme);
 			update_max_icon_size (theme);
 			update_dimensions ();
@@ -450,14 +453,26 @@ namespace Plank
 		{
 			unowned DockPreferences prefs = controller.prefs;
 			
-			var item_count = controller.VisibleItems.size;
-			var width = item_count * (ItemPadding + IconSize) + 2 * HorizPadding + 4 * LineWidth;
 			var max_width = (is_horizontal_dock () ? monitor_geo.width : monitor_geo.height);
+			if (max_width <= 0) {
+				MaxIconSize = prefs.IconSize;
+				update_caches (theme);
+				return;
+			}
+			
+			var item_count = controller.VisibleItems.size;
+			if (item_count == 0) {
+				MaxIconSize = prefs.IconSize;
+				update_caches (theme);
+				return;
+			}
+			
+			var width = item_count * (ItemPadding + IconSize) + 2 * HorizPadding + 4 * LineWidth;
 			var step_size = int.max (1, (int) (Math.fabs (width - max_width) / item_count));
 			
 			if (width > max_width && MaxIconSize > DockPreferences.MIN_ICON_SIZE) {
 				MaxIconSize -= step_size;
-			} else if (width < max_width && MaxIconSize < prefs.IconSize && step_size > 1) {
+			} else if (width < max_width && MaxIconSize < prefs.IconSize) {
 				MaxIconSize += step_size;
 			} else {
 				MaxIconSize = int.max (DockPreferences.MIN_ICON_SIZE,

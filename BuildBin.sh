@@ -34,7 +34,10 @@ OUT_DIR="${BASE_DIR}/build"
 mkdir -p "$OUT_DIR"
 rm -f "${OUT_DIR}/wayplank"
 
-echo "⚙️ Compiling GLib resources..."
+echo "⚙️ Compiling GLib schemas & resources..."
+if command -v glib-compile-schemas >/dev/null 2>&1; then
+    glib-compile-schemas "${BASE_DIR}/data/glib-2.0/schemas"
+fi
 glib-compile-resources \
     --sourcedir="${BASE_DIR}/data" \
     --target="${BASE_DIR}/lib/resources.c" \

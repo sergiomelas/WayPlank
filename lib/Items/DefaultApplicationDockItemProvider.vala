@@ -33,12 +33,105 @@ namespace Plank
 		{
 			Prefs.notify["CurrentWorkspaceOnly"].connect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
+			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
 		}
 
 		~DefaultApplicationDockItemProvider ()
 		{
 			Prefs.notify["CurrentWorkspaceOnly"].disconnect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].disconnect (handle_pinned_only_changed);
+			Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
+		}
+
+		void handle_categorize_items_changed ()
+		{
+			if (!Prefs.CategorizeItems) {
+				save_current_order_to (false);
+				restore_order_from (Prefs.FreeDockItems);
+			} else {
+				save_current_order_to (true);
+				if (Prefs.CategorizedDockItems.length > 0) {
+					restore_order_from (Prefs.CategorizedDockItems);
+				}
+			}
+			update_visible_elements ();
+
+			unowned DockController? dock = get_dock ();
+			if (dock != null) {
+				dock.update_items ();
+				dock.renderer.reset_buffers ();
+				dock.renderer.animated_draw ();
+				dock.schedule_serialize_item_positions ();
+			}
+		}
+
+		void save_current_order_to (bool is_free)
+		{
+			var item_list = new Gee.ArrayList<string> ();
+			foreach (var element in internal_elements) {
+				unowned DockItem? item = (element as DockItem);
+				if (item != null && !(item is TransientDockItem) && !(item is SeparatorDockItem) && item.DockItemFilename.length > 0)
+					item_list.add (item.DockItemFilename);
+			}
+			if (item_list.size == 0)
+				return;
+			if (is_free)
+				Prefs.FreeDockItems = item_list.to_array ();
+			else
+				Prefs.CategorizedDockItems = item_list.to_array ();
+		}
+
+		void restore_order_from (string[] target_items)
+		{
+			if (target_items == null || target_items.length == 0)
+				return;
+
+			var ordered_elements = new Gee.ArrayList<DockElement> ();
+			var remaining_elements = new Gee.ArrayList<DockElement> ();
+			TrashDockItem? trash_item = null;
+			var transient_items = new Gee.ArrayList<DockElement> ();
+
+			for (int i = 0; i < internal_elements.size; i++) {
+				var el = internal_elements.get (i);
+				if (el is SeparatorDockItem) {
+					continue;
+				} else if (el is TrashDockItem) {
+					trash_item = (TrashDockItem) el;
+				} else if (el is TransientDockItem) {
+					transient_items.add (el);
+				} else {
+					remaining_elements.add (el);
+				}
+			}
+
+			foreach (var fn in target_items) {
+				for (int i = 0; i < remaining_elements.size; i++) {
+					var el = remaining_elements.get (i);
+					unowned DockItem? item = el as DockItem;
+					if (item != null && item.DockItemFilename == fn) {
+						ordered_elements.add (el);
+						remaining_elements.remove_at (i);
+						break;
+					}
+				}
+			}
+
+			foreach (var el in remaining_elements) {
+				ordered_elements.add (el);
+			}
+
+			foreach (var el in transient_items) {
+				ordered_elements.add (el);
+			}
+
+			if (trash_item != null) {
+				ordered_elements.add (trash_item);
+			}
+
+			internal_elements.clear ();
+			foreach (var el in ordered_elements) {
+				internal_elements.add (el);
+			}
 		}
 
 		bool updating_visible_elements = false;
@@ -61,6 +154,11 @@ namespace Plank
 		public void refresh_separators ()
 		{
 			update_visible_elements ();
+			unowned DockController? dock = get_dock ();
+			if (dock != null) {
+				dock.update_items ();
+				dock.renderer.animated_draw ();
+			}
 		}
 		
 		/**
@@ -85,6 +183,8 @@ namespace Plank
 			unowned DockController? dock = get_dock ();
 			unowned DockItem? dragging_item = (dock != null && dock.drag_manager.InternalDragActive)
 				? dock.drag_manager.DragItem : null;
+			if (dragging_item != null)
+				return;
 
 			// Step 1: Collect existing separators and identify Trash item
 			var existing_separators = new Gee.ArrayList<SeparatorDockItem> ();
@@ -99,12 +199,7 @@ namespace Plank
 				}
 			}
 
-			// Step 2: Remove existing separators temporarily so we work on clean item slots
-			foreach (var sep in existing_separators) {
-				disconnect_element (sep);
-				internal_elements.remove (sep);
-				sep.Container = null;
-			}
+			// Step 2: Keep existing separators connected so they remain stable and flicker-free
 
 			// Step 3: Anchor Trash permanently at the very end of internal_elements
 			if (trash_item != null && dragging_item == null) {
@@ -114,7 +209,96 @@ namespace Plank
 				}
 			}
 
-			// Step 4: Ensure all pinned items precede transient items
+			// Step 4: Categorized Grouping or Classic Plank Arrangement
+			if (Prefs.CategorizeItems) {
+				var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
+				var folders = new Gee.ArrayList<DockElement> ();
+				var pinned_apps = new Gee.ArrayList<DockElement> ();
+				var docklets = new Gee.ArrayList<DockElement> ();
+				var transients = new Gee.ArrayList<DockElement> ();
+
+				for (int i = 0; i < internal_elements.size; i++) {
+					var el = internal_elements.get (i);
+					if (el is TrashDockItem || el is SeparatorDockItem)
+						continue;
+					if (el is TransientDockItem) {
+						var trans = (TransientDockItem) el;
+						var win_count = WindowManager.get_default ().window_count_for_app (trans.Launcher);
+						if (win_count <= 0) {
+							orphan_transients.add (trans);
+							continue;
+						}
+						if (!Prefs.PinnedOnly)
+							transients.add (el);
+					} else if (el is FileDockItem) {
+						folders.add (el);
+					} else if (el is PlankDockItem || (el is DockItem && ((DockItem) el).Prefs != null && ((DockItem) el).Prefs.Launcher != null && ((DockItem) el).Prefs.Launcher.has_prefix ("docklet://"))) {
+						docklets.add (el);
+					} else {
+						pinned_apps.add (el);
+					}
+				}
+
+				foreach (var orphan in orphan_transients) {
+					disconnect_element (orphan);
+					internal_elements.remove (orphan);
+					orphan.Container = null;
+				}
+
+				// Build ordered non-empty category groups:
+				// Fixed sequence: Folders -> Docklets -> Pinned Apps -> Unpinned Transients -> Trash
+				var groups = new Gee.ArrayList<Gee.ArrayList<DockElement>> ();
+
+				if (folders.size > 0)
+					groups.add (folders);
+
+				if (docklets.size > 0)
+					groups.add (docklets);
+
+				if (pinned_apps.size > 0)
+					groups.add (pinned_apps);
+
+				if (transients.size > 0)
+					groups.add (transients);
+
+				if (trash_item != null) {
+					var trash_group = new Gee.ArrayList<DockElement> ();
+					trash_group.add (trash_item);
+					groups.add (trash_group);
+				}
+
+				// Rebuild internal_elements with dynamic separators between adjacent non-empty groups
+				internal_elements.clear ();
+				int sep_pool_idx = 0;
+				for (int g = 0; g < groups.size; g++) {
+					if (g > 0) {
+						SeparatorDockItem sep;
+						if (sep_pool_idx < existing_separators.size) {
+							sep = existing_separators.get (sep_pool_idx++);
+						} else {
+							sep = new SeparatorDockItem ();
+							sep.Container = this;
+							connect_element (sep);
+						}
+						sep.AddTime = 0;
+						sep.RemoveTime = 0;
+						internal_elements.add (sep);
+					}
+					foreach (var item in groups.get (g)) {
+						internal_elements.add (item);
+					}
+				}
+
+				// Clean up any remaining unused separators in the pool to prevent leaks
+				while (sep_pool_idx < existing_separators.size) {
+					var unused_sep = existing_separators.get (sep_pool_idx++);
+					disconnect_element (unused_sep);
+					unused_sep.Container = null;
+				}
+				return;
+			}
+
+			// Step 4b (Classic): Ensure all pinned items precede transient items
 			if (dragging_item == null) {
 				int first_transient = -1;
 				for (int i = 0; i < internal_elements.size; i++) {
@@ -162,10 +346,16 @@ namespace Plank
 				internal_elements.remove (orphan);
 				orphan.Container = null;
 			}
+			// Step 6: Temporarily remove existing separators from internal_elements without disconnecting
+			for (int i = internal_elements.size - 1; i >= 0; i--) {
+				if (internal_elements.get (i) is SeparatorDockItem)
+					internal_elements.remove_at (i);
+			}
+
 			if (trash_item != null)
 				trash_idx = internal_elements.index_of (trash_item);
 
-			// Step 6: Determine separator insertion positions
+			// Step 7: Determine separator insertion positions
 			// Insert from highest index to lowest so earlier target indices remain valid
 			var insert_positions = new Gee.ArrayList<int> ();
 
@@ -188,7 +378,7 @@ namespace Plank
 				}
 			}
 
-			// Step 7: Insert separators at target positions (reusing pool or instantiating new)
+			// Step 8: Insert separators at target positions (reusing pool or instantiating new)
 			int sep_pool_idx = 0;
 			foreach (int pos in insert_positions) {
 				if (pos < 0 || pos > internal_elements.size)
@@ -198,12 +388,19 @@ namespace Plank
 					sep = existing_separators.get (sep_pool_idx++);
 				} else {
 					sep = new SeparatorDockItem ();
+					sep.Container = this;
+					connect_element (sep);
 				}
 				sep.AddTime = 0;
 				sep.RemoveTime = 0;
 				internal_elements.insert (pos, sep);
-				sep.Container = this;
-				connect_element (sep);
+			}
+
+			// Clean up any remaining unused separators in the pool to prevent leaks
+			while (sep_pool_idx < existing_separators.size) {
+				var unused_sep = existing_separators.get (sep_pool_idx++);
+				disconnect_element (unused_sep);
+				unused_sep.Container = null;
 			}
 		}
 

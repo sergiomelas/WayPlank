@@ -159,15 +159,37 @@ namespace Plank
 		{
 			var windows = WindowControl.get_windows ();
 			var discovery = ApplicationDiscovery.get_default ();
+			var my_pid = Posix.getpid ();
 			var active_transient_launchers = new Gee.HashSet<string> ();
 
 			foreach (var window in windows) {
+				// Ignore windows belonging to Wayplank itself
+				if (window.Pid > 0 && window.Pid == my_pid)
+					continue;
+
+				var app_id = window.ApplicationId.down ();
+				var res_class = window.ResourceClass.down ();
+				var res_name = window.ResourceName.down ();
+				var desk_name = window.DesktopFileName.down ();
+				var caption = window.Caption.down ();
+				if (app_id == "wayplank" || app_id == "plank" ||
+				    res_class == "wayplank" || res_class == "plank" ||
+				    res_name == "wayplank" || res_name == "plank" ||
+				    desk_name == "wayplank.desktop" || desk_name == "plank.desktop" || desk_name == "wayplank" || desk_name == "plank" ||
+				    caption == "wayplank" || caption == "wayplank-hover")
+					continue;
+
 				// If a window is already handled by a pinned dock item, don't create a transient item
 				if (window_has_pinned_item (window))
 					continue;
 
 				var desktop_file = discovery.best_desktop_file_for_window (window);
 				if (desktop_file == null)
+					continue;
+
+				// Never add Wayplank or Plank as a transient dock item
+				var base_name = desktop_file.get_basename ().down ();
+				if (base_name == "wayplank.desktop" || base_name == "plank.desktop")
 					continue;
 
 				var uri = desktop_file.get_uri ();

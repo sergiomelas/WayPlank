@@ -12,85 +12,268 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] : Situation
 
 1. ICON & LAUNCHER MANAGEMENT
-   [  ] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in Dock"
-   [  ] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in Dock"
+   [  ] 1.1 Pinning via Menu:
+        Launch unpinned app -> Right-click -> "Keep in Dock"
+   [  ] 1.2 Unpinning via Menu:
+        Right-click pinned item -> Uncheck "Keep in Dock"
    [  ] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
-   [  ] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files onto dock
-   [  ] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof animation
+   [  ] 1.4 Pin via External Drag & Drop:
+        Drag .desktop / app from menu/files onto dock
+   [  ] 1.5 Drag-Off Removal (Poof):
+        Drag pinned icon away from dock -> poof animation
    [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+   [  ] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+        - In Categorized mode, dragging Folders is strictly clamped within
+          Folders section.
+        - Dragging Docklets is strictly clamped within Docklets section.
+        - Dragging Pinned Apps across the separator into Unpinned section unpins
+          the application.
+        - Dragging Unpinned Running Apps across the separator into Pinned
+          section pins the application.
+        - Dragging apps cannot cross left into Docklets/Folders or right into
+          Trash.
+   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+        - Left-click on a folder dock item toggles the Folder Launcher menu.
+        - Right-click on folder dock item is dedicated to dock management
+          ("Keep in Dock", "Open in File Browser", "Preferences").
+        - Menu is non-modal and non-grabbing (does not freeze dock or desktop).
+        - Zoom Following: Dock icon zoom animation remains fluid (60 FPS); menu
+          dynamically follows the icon's horizontal center and visual elevation.
+        - Decoupled Bounce: Left-clicking triggers icon bounce animation while
+          the menu remains rock-steady and decoupled from the bounce height.
+        - Dark Tooltip Styling: Menu matches tooltip style (rgba(28, 28, 30,
+          0.95), 7px rounded corners, 1px white border, white text, and
+          illuminated mouseover highlight).
+        - Subfolder drill-down with back button navigation, launcher execution,
+          and document opening.
+        - Auto-dismisses when hovering another dock item or on desktop leave.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
-   [  ] 2.3 Left Click (Single Window): Click running app icon -> activates & brings to front
-   [  ] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
+   [  ] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+        Click running app icon -> activates & brings to front; click already
+        active window -> minimizes
+   [  ] 2.4 Left Click (Multiple Windows Focus Cycling):
+        When 2+ windows are open, left-clicking app icon cycles focus directly
+        through open instances using 'activate' (NEVER minimizes the currently
+        focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
-   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect using test_urgency.py in FAT folder
-   [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
-   [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
-   [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
-   [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
-   [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
-   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters
-        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact,
+   [  ] 2.6 Context Menu (Right Click):
+        Shows window list, quicklists, and "Close"
+   [  ] 2.7 Attention / Urgent State:
+        Window requesting attention -> bounce/pulse effect using test_urgency.py
+        in FAT folder
+   [  ] 2.8 Close All (Multiple Windows):
+        Right-click app with 2+ windows -> "Close All" closes all instances
+   [  ] 2.9 Window List Selection:
+        Right-click app with 2+ windows -> click window title in list brings
+        that window to front
+   [  ] 2.10 Scroll-Wheel Window Cycling:
+        Scroll wheel over app icon with 2+ windows -> cycles focus through
+        instances
+   [  ] 2.11 Fullscreen Window Inhibit:
+        Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
+        steals input
+   [  ] 2.12 Sandbox App Matching:
+        Launch Flatpak/Snap app -> shows running indicator dot on pinned
+        launcher (no duplicate icons)
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact,
         no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
    [  ] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
-   [  ] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away -> reveals
-        Select a fucus window not overlapping, the dock reveals despite the overlap of the non focused window
+   [  ] 3.3 Intellihide (Intelligent):
+        Window overlaps dock -> hides; moves away -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the
+        overlap of the non focused window
    [  ] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock immediately
+   [  ] 3.7 Pressure / Hover Reveal:
+        Mouse touching edge unhides dock immediately
 
 4. VIRTUAL DESKTOPS & WORKSPACES
-   [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
-   [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
-   [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
-   [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
+   [  ] 4.1 Empty Workspace Switch:
+        Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [  ] 4.2 Occupied Workspace Switch:
+        Switch back to WS1 -> dock hides again immediately
+   [  ] 4.3 Sticky Windows:
+        Window set on all workspaces -> dock dodges on every workspace
+   [  ] 4.4 Dynamic Workspaces:
+        Adding or removing dynamic workspaces on the fly -> handled without
+        stale lookups or crashes
 
 5. TOOLTIPS & HOVER VISUALS
-   [  ] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
-   [  ] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [  ] 5.1 Tooltip Placement:
+        Hover each item -> centered tooltip with correct arrow
+   [  ] 5.2 No Flickering:
+        Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+   [  ] 5.4 Layer-Shell Surface Isolation (No Active Window Focus Theft):
+        - Hovering over dock, moving cursor across items, and displaying
+          tooltips never calls present().
+        - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
+          100% active focus with zero cursor jump, bounce, or focus theft.
+   [  ] 5.5 Tooltip Badges & Clean Identity:
+        - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
+        - In free mode: tooltips display item type badges ('• Folder', '•
+          Running', '• Docklet').
+        - In categorized mode: clean title is displayed without redundant
+          badges.
 
 6. DOCKLETS & SPECIAL ITEMS
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
-   [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
-   [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
-   [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
-   [  ] 6.5 Screenshot Docklet: Click triggers rectangular selection; context menu triggers area/full/window/folder
+   [  ] 6.2 Trash Docklet:
+        Displays state; click opens; drag files to trash; right-click empty
+   [  ] 6.3 External Trash Sync:
+        Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon
+        updates state via D-Bus
+   [  ] 6.4 Screenshot Docklet:
+        Click triggers rectangular selection (stationary animation,
+        AnimationType.NONE - no mid-air leap); context menu triggers
+        area/full/window/folder
+   [  ] 6.5 Session & Power Docklet (docklet://session):
+        - Left-click opens Centered Session Dialog (SessionWindow).
+        - Verify 6 action buttons (Lock, Switch User, Logout, Suspend, Restart,
+          Shutdown).
+        - Confirmation screen functions properly with Escape/Cancel
+          default-focused.
+        - Right-click menu displays direct actions with icons.
+   [  ] 6.6 Preferences Docklet (docklet://preferences):
+        - Left-click opens Preferences dialog immediately with icon bounce.
+        - Displays classic Plank/Wayplank anchor icon (avoiding collision with
+          system settings).
+        - Right-click menu contains direct links to 4 sections (Appearance,
+          Behaviour, Applications, Docklets) followed by separator.
+   [  ] 6.7 Digital Clock Visual Tile:
+        - Verify Digital Clock displays modern tile with digital numerals (e.g.
+          01:18), NOT an analog clock dial with hands.
+   [  ] 6.8 100% Internal Binary GResource Fallbacks:
+        - Volume scale, Battery scale, and docklet icons render properly from
+          binary fallback resources.
+        - Verify zero file pollution in /usr/share/icons/hicolor/ (only
+          wayplank.svg/plank.svg installed).
+   [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
+        - Displays removable drive icon with orange gradient fallback.
+        - Badge counter displays number of mounted removable drives/volumes.
+        - Left-click: safely unmounts/ejects (if 1 device) or opens device
+          selection menu (if multiple).
+        - Desktop notification displayed on safe removal ("Drive safely
+          removed").
+        - Right-click context menu lists all mounted removable drives with
+          "Eject / Safe Remove" actions.
+   [  ] 6.10 Screen Brightness Docklet (docklet://brightness):
+        - Displays brightness icon with gold/amber gradient fallback.
+        - Badge counter displays current brightness percentage (e.g. 75%).
+        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
+          -> 100%).
+        - Right-click context menu provides brightness presets (10%, 25%, 50%,
+          75%, 100%) and launches system display settings.
+        - Hardware control via org.freedesktop.login1.Session.SetBrightness
+          (unprivileged) with fallback to brightnessctl/light.
+   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
+        - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
+          Thunderstorm) with fallback.
+        - Badge counter displays current temperature in °C or °F (e.g. 18° or
+          64°).
+        - Left-click opens modern weather forecast window (WeatherWindow) with
+          current temperature, "feels like", humidity, wind speed, and 3-day
+          forecast cards.
+        - Right-click context menu provides: "Weather Forecast", "Update Now",
+          "Preferences / Location...", and removal.
+        - Location configuration dialog (WeatherCityDialog) allows setting
+          custom city/country and switching °C / °F units.
+        - Automatic IP geolocation fallback via ip-api.com when city is not
+          configured; high-performance data fetching via Open-Meteo API.
+   [  ] 6.12 Docklet Right-Click Context Menu Consistency:
+        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
+          Brightness, Weather) have standard dock actions appended to
+          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
+          Bug..., About Wayplank...). Preferences docklet displays
+          Preferences... as top action.
 
-7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+7. PREFERENCES & CONFIGURATION
+   (Ctrl + Right-Click -> Preferences or via docklet://preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
    [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
-   [  ] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [  ] 7.4 Icon Size Slider Resiliency:
+        Real-time slider resizing works smoothly across all values (24px to
+        64px+); auto-shrink does NOT crush icons to 24px minimum due to
+        separator count or uninitialized monitor geometry
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
-   [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
+   [  ] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays -> crisp icons and
+        aligned tooltips
         Use "gnome-control-center display"
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Icons:
+        - Open Preferences -> Docklets tab.
+        - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
+          (7 items left column, 7 items right column):
+          Left: Trash, Clock (Analog), Digital Clock, Battery, Screenshot,
+                Preferences, Removable Drives (Ejector).
+          Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
+                 Session & Power, Screen Brightness, Weather Forecast.
+        - Verify each docklet switch displays its native 35px vector icon
+          aligned to the left of the label.
+        - Verify toggling any switch instantly adds or removes the docklet item
+          from the dock.
+   [  ] 7.9 Categorize Items Toggle & Layout Architecture:
+        - Open Preferences -> Appearance tab -> toggle "Categorize Items".
+        - When ON: dock arranges items into [Folders] | [Docklets] | [Pinned
+          Apps] | [Unpinned Transients] | [Trash].
+        - Separators dynamically hide when a category has 0 items (no phantom
+          separators or empty gaps).
+        - Dragging is strictly clamped within category boundaries (Folders
+          within Folders, Docklets within Docklets, Apps within Apps).
+        - Crossing the app divider pins/unpins items.
+        - When OFF: dock cleanly restores original free-placement order from
+          FreeDockItems.
 
 8. MULTI MONITOR VALIDATION MATRIX
-   [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
+   [  ] 8.1 Cross-Compositor FAT Validation Matrix:
+        move to all screens and all edges, for everyone of that verify 1 to 7
         At least change monitor at each few bullets
 
 9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
-   [  ] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across screens -> resume from sleep
-        Compositor decorations (titlebars, minimize/maximize, window movement) remain 100% responsive
-   [  ] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor dock cable -> screen layout storm
-        is absorbed by 50ms debouncer without freezing the compositor or event loop
-   [  ] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across displays -> updates are throttled
+   [  ] 9.1 Sleep & Resume Wakeup:
+        Suspend machine with 5+ windows open across screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement)
+        remain 100% responsive
+   [  ] 9.2 Monitor Hotplug / Cable Reconnect:
+        Unplug & replug multi-monitor dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event
+        loop
+   [  ] 9.3 Rapid Geometry Storm:
+        Rapidly move/maximize/restore windows across displays -> updates are
+        throttled
         smoothly without compositor stutter or dropped commands
-   [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
-        ONE script instance alive, zero duplicate signal closures or shortcut collisions
-   [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
-   [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
-   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast open/close
-        cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [  ] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut
+        collisions
+   [  ] 9.5 Process Lifecycle (--replace / kill):
+        Restart dock via 'wayplank --replace' -> cleanly takes over without
+        zombie scripts
+   [  ] 9.6 Signal Disconnect Safety:
+        Opening and closing Preferences multiple times leaves no dangling
+        callbacks or memory leaks
+   [  ] 9.7 Rapid Display Reconfiguration / DPI Storm:
+        Repeated rapid scaling/DPI modifications -> zero compositor lockups or
+        event stalls
+   [  ] 9.8 (Cross-Compositor) Window Title & State Flood Debounce:
+        Rapid burst of window title changes or fast open/close
+        cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing,
+        or UI stutter
 
 
 GNOME BUGS / NOTES:
@@ -106,84 +289,267 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] : Situation
 
 1. ICON & LAUNCHER MANAGEMENT
-   [  ] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in Dock"
-   [  ] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in Dock"
+   [  ] 1.1 Pinning via Menu:
+        Launch unpinned app -> Right-click -> "Keep in Dock"
+   [  ] 1.2 Unpinning via Menu:
+        Right-click pinned item -> Uncheck "Keep in Dock"
    [  ] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
-   [  ] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files onto dock
-   [  ] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof animation
+   [  ] 1.4 Pin via External Drag & Drop:
+        Drag .desktop / app from menu/files onto dock
+   [  ] 1.5 Drag-Off Removal (Poof):
+        Drag pinned icon away from dock -> poof animation
    [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+   [  ] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+        - In Categorized mode, dragging Folders is strictly clamped within
+          Folders section.
+        - Dragging Docklets is strictly clamped within Docklets section.
+        - Dragging Pinned Apps across the separator into Unpinned section unpins
+          the application.
+        - Dragging Unpinned Running Apps across the separator into Pinned
+          section pins the application.
+        - Dragging apps cannot cross left into Docklets/Folders or right into
+          Trash.
+   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+        - Left-click on a folder dock item toggles the Folder Launcher menu.
+        - Right-click on folder dock item is dedicated to dock management
+          ("Keep in Dock", "Open in File Browser", "Preferences").
+        - Menu is non-modal and non-grabbing (does not freeze dock or desktop).
+        - Zoom Following: Dock icon zoom animation remains fluid (60 FPS); menu
+          dynamically follows the icon's horizontal center and visual elevation.
+        - Decoupled Bounce: Left-clicking triggers icon bounce animation while
+          the menu remains rock-steady and decoupled from the bounce height.
+        - Dark Tooltip Styling: Menu matches tooltip style (rgba(28, 28, 30,
+          0.95), 7px rounded corners, 1px white border, white text, and
+          illuminated mouseover highlight).
+        - Subfolder drill-down with back button navigation, launcher execution,
+          and document opening.
+        - Auto-dismisses when hovering another dock item or on desktop leave.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
-   [  ] 2.3 Left Click (Single Window): Click running app icon -> activates & brings to front
-   [  ] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
+   [  ] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+        Click running app icon -> activates & brings to front; click already
+        active window -> minimizes
+   [  ] 2.4 Left Click (Multiple Windows Focus Cycling):
+        When 2+ windows are open, left-clicking app icon cycles focus directly
+        through open instances using 'activate' (NEVER minimizes the currently
+        focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
-   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect using test_urgency.py in FAT folder
-   [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
-   [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
-   [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
-   [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
-   [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
-   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters
-        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact,
+   [  ] 2.6 Context Menu (Right Click):
+        Shows window list, quicklists, and "Close"
+   [  ] 2.7 Attention / Urgent State:
+        Window requesting attention -> bounce/pulse effect using test_urgency.py
+        in FAT folder
+   [  ] 2.8 Close All (Multiple Windows):
+        Right-click app with 2+ windows -> "Close All" closes all instances
+   [  ] 2.9 Window List Selection:
+        Right-click app with 2+ windows -> click window title in list brings
+        that window to front
+   [  ] 2.10 Scroll-Wheel Window Cycling:
+        Scroll wheel over app icon with 2+ windows -> cycles focus through
+        instances
+   [  ] 2.11 Fullscreen Window Inhibit:
+        Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
+        steals input
+   [  ] 2.12 Sandbox App Matching:
+        Launch Flatpak/Snap app -> shows running indicator dot on pinned
+        launcher (no duplicate icons)
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact,
         no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
    [  ] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
-   [  ] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away -> reveals
-        Select a fucus window not overlapping, the dock reveals despite the overlap of the non focused window
+   [  ] 3.3 Intellihide (Intelligent):
+        Window overlaps dock -> hides; moves away -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the
+        overlap of the non focused window
    [  ] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock immediately
+   [  ] 3.7 Pressure / Hover Reveal:
+        Mouse touching edge unhides dock immediately
 
 4. VIRTUAL DESKTOPS & WORKSPACES
-   [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
-   [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
-   [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
-   [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
+   [  ] 4.1 Empty Workspace Switch:
+        Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [  ] 4.2 Occupied Workspace Switch:
+        Switch back to WS1 -> dock hides again immediately
+   [  ] 4.3 Sticky Windows:
+        Window set on all workspaces -> dock dodges on every workspace
+   [  ] 4.4 Dynamic Workspaces:
+        Adding or removing dynamic workspaces on the fly -> handled without
+        stale lookups or crashes
 
 5. TOOLTIPS & HOVER VISUALS
-   [  ] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
-   [  ] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [  ] 5.1 Tooltip Placement:
+        Hover each item -> centered tooltip with correct arrow
+   [  ] 5.2 No Flickering:
+        Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+   [  ] 5.4 Layer-Shell Surface Isolation (No Active Window Focus Theft):
+        - Hovering over dock, moving cursor across items, and displaying
+          tooltips never calls present().
+        - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
+          100% active focus with zero cursor jump, bounce, or focus theft.
+   [  ] 5.5 Tooltip Badges & Clean Identity:
+        - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
+        - In free mode: tooltips display item type badges ('• Folder', '•
+          Running', '• Docklet').
+        - In categorized mode: clean title is displayed without redundant
+          badges.
 
 6. DOCKLETS & SPECIAL ITEMS
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
-   [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
-   [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
-   [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
-   [  ] 6.5 Screenshot Docklet: Click triggers rectangular selection; context menu triggers area/full/window/folder
+   [  ] 6.2 Trash Docklet:
+        Displays state; click opens; drag files to trash; right-click empty
+   [  ] 6.3 External Trash Sync:
+        Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon
+        updates state via D-Bus
+   [  ] 6.4 Screenshot Docklet:
+        Click triggers rectangular selection (stationary animation,
+        AnimationType.NONE - no mid-air leap); context menu triggers
+        area/full/window/folder
+   [  ] 6.5 Session & Power Docklet (docklet://session):
+        - Left-click opens Centered Session Dialog (SessionWindow).
+        - Test Lock Screen (loginctl / KScreenLocker).
+        - Test Switch User (DisplayManager Seat SwitchToGreeter).
+        - Test Logout, Suspend, Restart, Shutdown with in-place confirmation
+          screens.
+        - Verify right-click context menu shortcuts.
+   [  ] 6.6 Preferences Docklet (docklet://preferences):
+        - Left-click opens Preferences dialog immediately with icon bounce.
+        - Displays classic Plank/Wayplank anchor icon.
+        - Right-click menu contains direct links to 4 sections followed by
+          separator.
+   [  ] 6.7 Digital Clock Visual Tile:
+        - Verify Digital Clock displays modern tile with digital numerals
+          (01:18), NOT an analog clock dial with hands.
+   [  ] 6.8 100% Internal Binary GResource Fallbacks:
+        - Volume scale: Muted, Low, Medium, High dynamic fallback icons render
+          properly from binary.
+        - Battery scale: 12 levels and charging states render properly.
+        - Verify zero file pollution in /usr/share/icons/hicolor/ (only
+          wayplank.svg/plank.svg installed).
+   [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
+        - Displays removable drive icon with orange gradient fallback.
+        - Badge counter displays number of mounted removable drives/volumes.
+        - Left-click: safely unmounts/ejects (if 1 device) or opens device
+          selection menu (if multiple).
+        - Desktop notification displayed on safe removal ("Drive safely
+          removed").
+        - Right-click context menu lists all mounted removable drives with
+          "Eject / Safe Remove" actions.
+   [  ] 6.10 Screen Brightness Docklet (docklet://brightness):
+        - Displays brightness icon with gold/amber gradient fallback.
+        - Badge counter displays current brightness percentage (e.g. 75%).
+        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
+          -> 100%).
+        - Right-click context menu provides brightness presets (10%, 25%, 50%,
+          75%, 100%) and launches system display settings.
+        - Hardware control via org.freedesktop.login1.Session.SetBrightness
+          (unprivileged) with fallback to brightnessctl/light.
+   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
+        - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
+          Thunderstorm) with fallback.
+        - Badge counter displays current temperature in °C or °F (e.g. 18° or
+          64°).
+        - Left-click opens modern weather forecast window (WeatherWindow) with
+          current temperature, "feels like", humidity, wind speed, and 3-day
+          forecast cards.
+        - Right-click context menu provides: "Weather Forecast", "Update Now",
+          "Preferences / Location...", and removal.
+        - Location configuration dialog (WeatherCityDialog) allows setting
+          custom city/country and switching °C / °F units.
+        - Automatic IP geolocation fallback via ip-api.com when city is not
+          configured; high-performance data fetching via Open-Meteo API.
+   [  ] 6.12 Docklet Right-Click Context Menu Consistency:
+        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
+          Brightness, Weather) have standard dock actions appended to
+          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
+          Bug..., About Wayplank...). Preferences docklet displays
+          Preferences... as top action.
 
-7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+7. PREFERENCES & CONFIGURATION
+   (Ctrl + Right-Click -> Preferences or via docklet://preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
    [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
-   [  ] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [  ] 7.4 Icon Size Slider Resiliency:
+        Real-time slider resizing works smoothly across all values (24px to
+        64px+); auto-shrink does NOT crush icons to 24px minimum due to
+        separator count or uninitialized monitor geometry
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
-   [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
+   [  ] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays -> crisp icons and
+        aligned tooltips
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Icons:
+        - Open Preferences -> Docklets tab.
+        - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
+          (7 items left column, 7 items right column):
+          Left: Trash, Clock (Analog), Digital Clock, Battery, Screenshot,
+                Preferences, Removable Drives (Ejector).
+          Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
+                 Session & Power, Screen Brightness, Weather Forecast.
+        - Verify each docklet switch displays its native 35px vector icon
+          aligned to the left of the label.
+        - Verify toggling any switch instantly adds or removes the docklet item
+          from the dock.
+   [  ] 7.9 Categorize Items Toggle & Layout Architecture:
+        - Open Preferences -> Appearance tab -> toggle "Categorize Items".
+        - When ON: dock arranges items into [Folders] | [Docklets] | [Pinned
+          Apps] | [Unpinned Transients] | [Trash].
+        - Separators dynamically hide when a category has 0 items (no phantom
+          separators or empty gaps).
+        - Dragging is strictly clamped within category boundaries (Folders
+          within Folders, Docklets within Docklets, Apps within Apps).
+        - Crossing the app divider pins/unpins items.
+        - When OFF: dock cleanly restores original free-placement order from
+          FreeDockItems.
 
 8. MULTI MONITOR VALIDATION MATRIX
-   [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
+   [  ] 8.1 Cross-Compositor FAT Validation Matrix:
+        move to all screens and all edges, for everyone of that verify 1 to 7
         At least change monitor at each few bullets
 
 9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
-   [  ] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across screens -> resume from sleep
-        Compositor decorations (titlebars, minimize/maximize, window movement) remain 100% responsive
-   [  ] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor dock cable -> screen layout storm
-        is absorbed by 50ms debouncer without freezing the compositor or event loop
-   [  ] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across displays -> updates are throttled
+   [  ] 9.1 Sleep & Resume Wakeup:
+        Suspend machine with 5+ windows open across screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement)
+        remain 100% responsive
+   [  ] 9.2 Monitor Hotplug / Cable Reconnect:
+        Unplug & replug multi-monitor dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event
+        loop
+   [  ] 9.3 Rapid Geometry Storm:
+        Rapidly move/maximize/restore windows across displays -> updates are
+        throttled
         smoothly without compositor stutter or dropped commands
-   [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
-        ONE script instance alive, zero duplicate signal closures or shortcut collisions
-   [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
-   [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
-   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast
-        open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [  ] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut
+        collisions
+   [  ] 9.5 Process Lifecycle (--replace / kill):
+        Restart dock via 'wayplank --replace' -> cleanly takes over without
+        zombie scripts
+   [  ] 9.6 Signal Disconnect Safety:
+        Opening and closing Preferences multiple times leaves no dangling
+        callbacks or memory leaks
+   [  ] 9.7 Rapid Display Reconfiguration / DPI Storm:
+        Repeated rapid scaling/DPI modifications -> zero compositor lockups or
+        event stalls
+   [  ] 9.8 (Cross-Compositor) Window Title & State Flood Debounce:
+        Rapid burst of window title changes or fast
+        open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON
+        thrashing, or UI stutter
 
 
 PLASMA BUGS / NOTES:
@@ -200,84 +566,268 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] : Situation
 
 1. ICON & LAUNCHER MANAGEMENT
-   [  ] 1.1 Pinning via Menu: Launch unpinned app -> Right-click -> "Keep in Dock"
-   [  ] 1.2 Unpinning via Menu: Right-click pinned item -> Uncheck "Keep in Dock"
+   [  ] 1.1 Pinning via Menu:
+        Launch unpinned app -> Right-click -> "Keep in Dock"
+   [  ] 1.2 Unpinning via Menu:
+        Right-click pinned item -> Uncheck "Keep in Dock"
    [  ] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
-   [  ] 1.4 Pin via External Drag & Drop: Drag .desktop / app from menu/files onto dock
-   [  ] 1.5 Drag-Off Removal (Poof): Drag pinned icon away from dock -> poof animation
+   [  ] 1.4 Pin via External Drag & Drop:
+        Drag .desktop / app from menu/files onto dock
+   [  ] 1.5 Drag-Off Removal (Poof):
+        Drag pinned icon away from dock -> poof animation
    [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+   [  ] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+        - In Categorized mode, dragging Folders is strictly clamped within
+          Folders section.
+        - Dragging Docklets is strictly clamped within Docklets section.
+        - Dragging Pinned Apps across the separator into Unpinned section unpins
+          the application.
+        - Dragging Unpinned Running Apps across the separator into Pinned
+          section pins the application.
+        - Dragging apps cannot cross left into Docklets/Folders or right into
+          Trash.
+   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+        - Left-click on a folder dock item toggles the Folder Launcher menu.
+        - Right-click on folder dock item is dedicated to dock management
+          ("Keep in Dock", "Open in File Browser", "Preferences").
+        - Menu is non-modal and non-grabbing (does not freeze dock or desktop).
+        - Zoom Following: Dock icon zoom animation remains fluid (60 FPS); menu
+          dynamically follows the icon's horizontal center and visual elevation.
+        - Decoupled Bounce: Left-clicking triggers icon bounce animation while
+          the menu remains rock-steady and decoupled from the bounce height.
+        - Dark Tooltip Styling: Menu matches tooltip style (rgba(28, 28, 30,
+          0.95), 7px rounded corners, 1px white border, white text, and
+          illuminated mouseover highlight).
+        - Subfolder drill-down with back button navigation, launcher execution,
+          and document opening.
+        - Auto-dismisses when hovering another dock item or on desktop leave.
 
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
-   [  ] 2.3 Left Click (Single Window): Click running app icon -> activates & brings to front
-   [  ] 2.4 Left Click (Minimize): Click icon of already active window -> minimizes
+   [  ] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+        Click running app icon -> activates & brings to front; click already
+        active window -> minimizes
+   [  ] 2.4 Left Click (Multiple Windows Focus Cycling):
+        When 2+ windows are open, left-clicking app icon cycles focus directly
+        through open instances using 'activate' (NEVER minimizes the currently
+        focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click): Shows window list, quicklists, and "Close"
-   [  ] 2.7 Attention / Urgent State: Window requesting attention -> bounce/pulse effect using test_urgency.py in FAT folder
-   [  ] 2.8 Close All (Multiple Windows): Right-click app with 2+ windows -> "Close All" closes all instances
-   [  ] 2.9 Window List Selection: Right-click app with 2+ windows -> click window title in list brings that window to front
-   [  ] 2.10 Scroll-Wheel Window Cycling: Scroll wheel over app icon with 2+ windows -> cycles focus through instances
-   [  ] 2.11 Fullscreen Window Inhibit: Fullscreen app or video (F11 / MPV) -> dock stays hidden and never steals input
-   [  ] 2.12 Sandbox App Matching: Launch Flatpak/Snap app -> shows running indicator dot on pinned launcher (no duplicate icons)
-   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators: Open window with non-ASCII / accented characters
-        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and window list remain intact, no JSON parse errors or vanished indicators
+   [  ] 2.6 Context Menu (Right Click):
+        Shows window list, quicklists, and "Close"
+   [  ] 2.7 Attention / Urgent State:
+        Window requesting attention -> bounce/pulse effect using test_urgency.py
+        in FAT folder
+   [  ] 2.8 Close All (Multiple Windows):
+        Right-click app with 2+ windows -> "Close All" closes all instances
+   [  ] 2.9 Window List Selection:
+        Right-click app with 2+ windows -> click window title in list brings
+        that window to front
+   [  ] 2.10 Scroll-Wheel Window Cycling:
+        Scroll wheel over app icon with 2+ windows -> cycles focus through
+        instances
+   [  ] 2.11 Fullscreen Window Inhibit:
+        Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
+        steals input
+   [  ] 2.12 Sandbox App Matching:
+        Launch Flatpak/Snap app -> shows running indicator dot on pinned
+        launcher (no duplicate icons)
+   [  ] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact, no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
    [  ] 3.1 None: Dock permanently visible, never hides
    [  ] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
-   [  ] 3.3 Intellihide (Intelligent): Window overlaps dock -> hides; moves away -> reveals
-        Select a fucus window not overlapping, the dock reveals despite the overlap of the non focused window
+   [  ] 3.3 Intellihide (Intelligent):
+        Window overlaps dock -> hides; moves away -> reveals
+        Select a fucus window not overlapping, the dock reveals despite the
+        overlap of the non focused window
    [  ] 3.4 Dodge Active: Hides only if focused active window overlaps dock
    [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
    [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal: Mouse touching edge unhides dock immediately
+   [  ] 3.7 Pressure / Hover Reveal:
+        Mouse touching edge unhides dock immediately
 
 4. VIRTUAL DESKTOPS & WORKSPACES
-   [  ] 4.1 Empty Workspace Switch: Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
-        (Note: On Labwc/wlroots without ext-workspace-v1 protocol, test using Dodge Active mode)
-   [  ] 4.2 Occupied Workspace Switch: Switch back to WS1 -> dock hides again immediately
-   [  ] 4.3 Sticky Windows: Window set on all workspaces -> dock dodges on every workspace
-   [  ] 4.4 Dynamic Workspaces: Adding or removing dynamic workspaces on the fly -> handled without stale lookups or crashes
+   [  ] 4.1 Empty Workspace Switch:
+        Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+        (Note: On Labwc/wlroots without ext-workspace-v1 protocol, test using
+        Dodge Active mode)
+   [  ] 4.2 Occupied Workspace Switch:
+        Switch back to WS1 -> dock hides again immediately
+   [  ] 4.3 Sticky Windows:
+        Window set on all workspaces -> dock dodges on every workspace
+   [  ] 4.4 Dynamic Workspaces:
+        Adding or removing dynamic workspaces on the fly -> handled without
+        stale lookups or crashes
 
 5. TOOLTIPS & HOVER VISUALS
-   [  ] 5.1 Tooltip Placement: Hover each item -> centered tooltip with correct arrow
-   [  ] 5.2 No Flickering: Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [  ] 5.1 Tooltip Placement:
+        Hover each item -> centered tooltip with correct arrow
+   [  ] 5.2 No Flickering:
+        Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+   [  ] 5.4 Layer-Shell Surface Isolation (No Active Window Focus Theft):
+        - Hovering over dock, moving cursor across items, and displaying
+          tooltips never calls present().
+        - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
+          100% active focus with zero cursor jump, bounce, or focus theft.
+   [  ] 5.5 Tooltip Badges & Clean Identity:
+        - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
+        - In free mode: tooltips display item type badges ('• Folder', '•
+          Running', '• Docklet').
+        - In categorized mode: clean title is displayed without redundant
+          badges.
 
 6. DOCKLETS & SPECIAL ITEMS
    [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
-   [  ] 6.2 Trash Docklet: Displays state; click opens; drag files to trash; right-click empty
-   [  ] 6.3 Other Docklets: Clock, CPU, Battery, etc. render and respond properly and system counterpart open if clicked
-   [  ] 6.4 External Trash Sync: Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon updates state via D-Bus
-   [  ] 6.5 Screenshot Docklet: Click triggers rectangular selection; context menu triggers area/full/window/folder
+   [  ] 6.2 Trash Docklet:
+        Displays state; click opens; drag files to trash; right-click empty
+   [  ] 6.3 External Trash Sync:
+        Empty/fill trash from external file manager (Dolphin/Nautilus) -> icon
+        updates state via D-Bus
+   [  ] 6.4 Screenshot Docklet:
+        Click triggers rectangular selection (stationary animation,
+        AnimationType.NONE - no mid-air leap); context menu triggers
+        area/full/window/folder
+   [  ] 6.5 Session & Power Docklet (docklet://session):
+        - Left-click opens Centered Session Dialog (SessionWindow).
+        - Test Lock Screen (loginctl / swaylock fallback).
+        - Test Logout (labwc --exit / loginctl terminate-session).
+        - Test Suspend, Restart, Shutdown with in-place modal confirmation
+          screens.
+        - Verify right-click context menu shortcuts.
+   [  ] 6.6 Preferences Docklet (docklet://preferences):
+        - Left-click opens Preferences dialog immediately with icon bounce.
+        - Displays classic Plank/Wayplank anchor icon.
+        - Right-click menu contains direct links to 4 sections followed by
+          separator.
+   [  ] 6.7 Digital Clock Visual Tile:
+        - Verify Digital Clock displays modern tile with digital numerals
+          (01:18), NOT an analog clock dial with hands.
+   [  ] 6.8 100% Internal Binary GResource Fallbacks:
+        - Volume scale: Muted, Low, Medium, High dynamic fallback icons render
+          properly from binary.
+        - Battery scale: 12 levels and charging states render properly.
+        - Verify zero file pollution in /usr/share/icons/hicolor/ (only
+          wayplank.svg/plank.svg installed).
+   [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
+        - Displays removable drive icon with orange gradient fallback.
+        - Badge counter displays number of mounted removable drives/volumes.
+        - Left-click: safely unmounts/ejects (if 1 device) or opens device
+          selection menu (if multiple).
+        - Desktop notification displayed on safe removal ("Drive safely
+          removed").
+        - Right-click context menu lists all mounted removable drives with
+          "Eject / Safe Remove" actions.
+   [  ] 6.10 Screen Brightness Docklet (docklet://brightness):
+        - Displays brightness icon with gold/amber gradient fallback.
+        - Badge counter displays current brightness percentage (e.g. 75%).
+        - Mouse wheel over icon increases / decreases brightness by 5% steps.
+        - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
+          -> 100%).
+        - Right-click context menu provides brightness presets (10%, 25%, 50%,
+          75%, 100%) and launches system display settings.
+        - Hardware control via org.freedesktop.login1.Session.SetBrightness
+          (unprivileged) with fallback to brightnessctl/light.
+   [  ] 6.11 Weather Forecast Docklet (docklet://weather):
+        - Displays dynamic weather icon (Sun, Cloud-Sun, Cloud, Rain, Snow,
+          Thunderstorm) with fallback.
+        - Badge counter displays current temperature in °C or °F (e.g. 18° or
+          64°).
+        - Left-click opens modern weather forecast window (WeatherWindow) with
+          current temperature, "feels like", humidity, wind speed, and 3-day
+          forecast cards.
+        - Right-click context menu provides: "Weather Forecast", "Update Now",
+          "Preferences / Location...", and removal.
+        - Location configuration dialog (WeatherCityDialog) allows setting
+          custom city/country and switching °C / °F units.
+        - Automatic IP geolocation fallback via ip-api.com when city is not
+          configured; high-performance data fetching via Open-Meteo API.
+   [  ] 6.12 Docklet Right-Click Context Menu Consistency:
+        - Verify ALL 14 docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Preferences, Ejector,
+          Brightness, Weather) have standard dock actions appended to
+          right-click menu (Preferences..., Shortcuts & Gestures..., Report a
+          Bug..., About Wayplank...). Preferences docklet displays
+          Preferences... as top action.
 
-7. PREFERENCES & CONFIGURATION (Ctrl + Right-Click -> Preferences)
+7. PREFERENCES & CONFIGURATION
+   (Ctrl + Right-Click -> Preferences or via docklet://preferences)
    [  ] 7.1 Window Opening: Preferences dialog opens centered without glitch
    [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
-   [  ] 7.4 Icon Size: Real-time slider resizing works smoothly
+   [  ] 7.4 Icon Size Slider Resiliency:
+        Real-time slider resizing works smoothly across all values (24px to
+        64px+); auto-shrink does NOT crush icons to 24px minimum due to
+        separator count or uninitialized monitor geometry
    [  ] 7.5 Theme Switching: Instant visual theme change
    [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
-   [  ] 7.7 HiDPI & Fractional Scaling: Move dock/windows between 100% and 125%/150% displays -> crisp icons and aligned tooltips
+   [  ] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays -> crisp icons and
+        aligned tooltips
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Icons:
+        - Open Preferences -> Docklets tab.
+        - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
+          (7 items left column, 7 items right column):
+          Left: Trash, Clock (Analog), Digital Clock, Battery, Screenshot,
+                Preferences, Removable Drives (Ejector).
+          Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
+                 Session & Power, Screen Brightness, Weather Forecast.
+        - Verify each docklet switch displays its native 35px vector icon
+          aligned to the left of the label.
+        - Verify toggling any switch instantly adds or removes the docklet item
+          from the dock.
+   [  ] 7.9 Categorize Items Toggle & Layout Architecture:
+        - Open Preferences -> Appearance tab -> toggle "Categorize Items".
+        - When ON: dock arranges items into [Folders] | [Docklets] | [Pinned
+          Apps] | [Unpinned Transients] | [Trash].
+        - Separators dynamically hide when a category has 0 items (no phantom
+          separators or empty gaps).
+        - Dragging is strictly clamped within category boundaries (Folders
+          within Folders, Docklets within Docklets, Apps within Apps).
+        - Crossing the app divider pins/unpins items.
+        - When OFF: dock cleanly restores original free-placement order from
+          FreeDockItems.
 
 8. MULTI MONITOR VALIDATION MATRIX
-   [  ] 8.1 Cross-Compositor FAT Validation Matrix: move to all screens and all edges, for everyone of that verify 1 to 7
+   [  ] 8.1 Cross-Compositor FAT Validation Matrix:
+        move to all screens and all edges, for everyone of that verify 1 to 7
         At least change monitor at each few bullets
 
 9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY (v0.5.1+)
-   [  ] 9.1 Sleep & Resume Wakeup: Suspend machine with 5+ windows open across screens -> resume from sleep
-        Compositor decorations (titlebars, minimize/maximize, window movement) remain 100% responsive
-   [  ] 9.2 Monitor Hotplug / Cable Reconnect: Unplug & replug multi-monitor dock cable -> screen layout storm
-        is absorbed by 50ms debouncer without freezing the compositor or event loop
-   [  ] 9.3 Rapid Geometry Storm: Rapidly move/maximize/restore windows across displays -> updates are throttled
+   [  ] 9.1 Sleep & Resume Wakeup:
+        Suspend machine with 5+ windows open across screens -> resume from sleep
+        Compositor decorations (titlebars, minimize/maximize, window movement)
+        remain 100% responsive
+   [  ] 9.2 Monitor Hotplug / Cable Reconnect:
+        Unplug & replug multi-monitor dock cable -> screen layout storm
+        is absorbed by 50ms debouncer without freezing the compositor or event
+        loop
+   [  ] 9.3 Rapid Geometry Storm:
+        Rapidly move/maximize/restore windows across displays -> updates are
+        throttled
         smoothly without compositor stutter or dropped commands
-   [  ] 9.4 Single Script Instance: Check D-Bus scripting state after resume/restart (isScriptLoaded) -> exactly
-        ONE script instance alive, zero duplicate signal closures or shortcut collisions
-   [  ] 9.5 Process Lifecycle (--replace / kill): Restart dock via 'wayplank --replace' -> cleanly takes over without zombie scripts
-   [  ] 9.6 Rapid Display Reconfiguration / DPI Storm: Repeated rapid scaling/DPI modifications -> zero compositor lockups or event stalls
-   [  ] 9.7 (Cross-Compositor) Window Title & State Flood Debounce: Rapid burst of window title changes or fast
-        open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [  ] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly
+        ONE script instance alive, zero duplicate signal closures or shortcut
+        collisions
+   [  ] 9.5 Process Lifecycle (--replace / kill):
+        Restart dock via 'wayplank --replace' -> cleanly takes over without
+        zombie scripts
+   [  ] 9.6 Signal Disconnect Safety:
+        Opening and closing Preferences multiple times leaves no dangling
+        callbacks or memory leaks
+   [  ] 9.7 Rapid Display Reconfiguration / DPI Storm:
+        Repeated rapid scaling/DPI modifications -> zero compositor lockups or
+        event stalls
+   [  ] 9.8 (Cross-Compositor) Window Title & State Flood Debounce:
+        Rapid burst of window title changes or fast
+        open/close cycle -> absorbed by 50ms debouncer without CPU spikes, JSON
+        thrashing, or UI stutter
 
 
 LABWC BUGS / NOTES:

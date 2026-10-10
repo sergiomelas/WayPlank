@@ -350,61 +350,50 @@ namespace Plank
 			return any_copied;
 		}
 		
+		public override bool has_menu_for_button (PopupButton button)
+		{
+			if (button == PopupButton.LEFT && is_directory ())
+				return true;
+			return base.has_menu_for_button (button);
+		}
+
+		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items_for_button (PopupButton button)
+		{
+			if (button == PopupButton.LEFT && is_directory ())
+				return get_launcher_popup_items ();
+			return get_menu_items ();
+		}
+
 		/**
 		 * {@inheritDoc}
 		 */
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
-			if (OwnedFile.query_file_type (0) == FileType.DIRECTORY)
+			if (is_directory ())
 				return get_dir_menu_items ();
 			
 			return get_file_menu_items ();
 		}
-		
+
+		Gee.ArrayList<Gtk.MenuItem> get_launcher_popup_items ()
+		{
+			var items = new Gee.ArrayList<Gtk.MenuItem> ();
+
+			populate_items_from_dir (OwnedFile, items, 0);
+
+			if (items.size == 0) {
+				var empty_item = new Gtk.MenuItem.with_label (_("Empty Folder"));
+				empty_item.sensitive = false;
+				items.add (empty_item);
+			}
+
+			return items;
+		}
+
 		Gee.ArrayList<Gtk.MenuItem> get_dir_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
-		
-			var menu_items = new Gee.HashMap<string, Gtk.MenuItem> ();
-			var keys = new Gee.ArrayList<string> ();
-			
-			get_files (OwnedFile).map_iterator ().foreach ((display_name, file) => {
-				Gtk.MenuItem item;
-				string icon, text;
-				var uri = file.get_uri ();
-				if (uri.has_suffix (".desktop")) {
-					ApplicationDockItem.parse_launcher (uri, out icon, out text);
-					item = create_menu_item (text, icon, true);
-					item.activate.connect (() => {
-						System.get_default ().launch (file);
-						ClickedAnimation = AnimationType.BOUNCE;
-						LastClicked = GLib.get_monotonic_time ();
-					});
-				} else {
-					icon = DrawingService.get_icon_from_file (file) ?? "";
-					text = display_name ?? "";
-					item = create_literal_menu_item (text, icon);
-					item.activate.connect (() => {
-						System.get_default ().open (file);
-						ClickedAnimation = AnimationType.BOUNCE;
-						LastClicked = GLib.get_monotonic_time ();
-					});
-				}
-				
-				var key = "%s%s".printf (text, uri);
-				menu_items.set (key, item);
-				keys.add (key);
 
-				return true;
-			});
-			
-			keys.sort ();
-			foreach (var s in keys)
-				items.add (menu_items.get (s));
-			
-			if (keys.size > 0)
-				items.add (new Gtk.SeparatorMenuItem ());
-			
 			unowned DefaultApplicationDockItemProvider? default_provider = (Container as DefaultApplicationDockItemProvider);
 			if (default_provider != null
 				&& !default_provider.Prefs.LockItems) {
@@ -413,15 +402,125 @@ namespace Plank
 				delete_item.activate.connect (() => delete ());
 				items.add (delete_item);
 			}
-			
+
 			var item = create_menu_item (_("_Open in File Browser"), "gtk-open");
 			item.activate.connect (() => {
 				launch ();
 			});
 			items.add (item);
 			append_dock_menu_items (items);
-			
+
 			return items;
+		}
+
+		void populate_items_from_dir (File dir, Gee.ArrayList<Gtk.MenuItem> target_list, int depth = 0, Gee.HashSet<string>? visited = null)
+		{
+			var visited_set = (visited != null) ? visited : new Gee.HashSet<string> ();
+
+			var dir_path = dir.get_path ();
+			if (dir_path != null) {
+				if (visited_set.contains (dir_path))
+					return;
+				visited_set.add (dir_path);
+			}
+
+			var menu_items = new Gee.HashMap<string, Gtk.MenuItem> ();
+			var keys = new Gee.ArrayList<string> ();
+			uint count = 0U;
+
+			try {
+				var enumerator = dir.enumerate_children (
+					FileAttribute.STANDARD_NAME + "," +
+					FileAttribute.STANDARD_DISPLAY_NAME + "," +
+					FileAttribute.STANDARD_IS_HIDDEN + "," +
+					FileAttribute.STANDARD_TYPE + "," +
+					FileAttribute.ACCESS_CAN_READ,
+					0,
+					null
+				);
+
+				FileInfo info;
+				while ((info = enumerator.next_file ()) != null) {
+					if (info.get_is_hidden ())
+						continue;
+
+					if (count++ >= FOLDER_MAX_FILE_COUNT) {
+						critical ("There are way too many files (%u+) in '%s'.", FOLDER_MAX_FILE_COUNT, dir.get_path ());
+						break;
+					}
+
+					var name = info.get_name ();
+					var display_name = info.get_display_name () ?? name;
+					var child = dir.get_child (name);
+					var uri = child.get_uri ();
+					var file_type = info.get_file_type ();
+
+					Gtk.MenuItem item;
+					string sort_key;
+
+					if (file_type == FileType.DIRECTORY) {
+						item = create_literal_menu_item (display_name, "folder");
+						if (depth < 3) {
+							var submenu = new Gtk.Menu ();
+							var sub_items = new Gee.ArrayList<Gtk.MenuItem> ();
+							populate_items_from_dir (child, sub_items, depth + 1, visited_set);
+
+							if (sub_items.size == 0) {
+								var empty_child = new Gtk.MenuItem.with_label (_("Empty"));
+								empty_child.sensitive = false;
+								submenu.append (empty_child);
+							} else {
+								foreach (var sub_it in sub_items)
+									submenu.append (sub_it);
+							}
+
+							submenu.show_all ();
+							item.set_submenu (submenu);
+						} else {
+							item.activate.connect (() => {
+								System.get_default ().open (child);
+								ClickedAnimation = AnimationType.BOUNCE;
+								LastClicked = GLib.get_monotonic_time ();
+							});
+						}
+						sort_key = "0_" + display_name.down ();
+					} else if (uri.has_suffix (".desktop")) {
+						string icon, text;
+						ApplicationDockItem.parse_launcher (uri, out icon, out text);
+						if (text == null || text == "")
+							text = display_name;
+						if (icon == null || icon == "")
+							icon = "application-x-executable";
+						item = create_literal_menu_item (text, icon, true);
+						item.activate.connect (() => {
+							System.get_default ().launch (child);
+							ClickedAnimation = AnimationType.BOUNCE;
+							LastClicked = GLib.get_monotonic_time ();
+						});
+						sort_key = "1_" + text.down ();
+					} else {
+						var icon = DrawingService.get_icon_from_file (child) ?? "text-x-generic";
+						item = create_literal_menu_item (display_name, icon);
+						item.activate.connect (() => {
+							System.get_default ().open (child);
+							ClickedAnimation = AnimationType.BOUNCE;
+							LastClicked = GLib.get_monotonic_time ();
+						});
+						sort_key = "1_" + display_name.down ();
+					}
+
+					var unique_key = "%s_%s".printf (sort_key, uri);
+					menu_items.set (unique_key, item);
+					keys.add (unique_key);
+				}
+			} catch (Error e) {
+				debug ("Error enumerating folder '%s': %s", dir.get_path () ?? "", e.message);
+			}
+
+			keys.sort ();
+			foreach (var k in keys) {
+				target_list.add (menu_items.get (k));
+			}
 		}
 		
 		Gee.ArrayList<Gtk.MenuItem> get_file_menu_items ()

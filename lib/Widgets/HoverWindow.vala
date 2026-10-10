@@ -49,6 +49,9 @@ namespace Plank
 			resizable = false;
 			accept_focus = false;
 			can_focus = false;
+			set_decorated (false);
+			set_title ("wayplank-hover");
+			set_role ("tooltip");
 			
 			// Wayland Layer Shell initialization
 			if (GtkLayerShell.is_supported ()) {
@@ -57,13 +60,10 @@ namespace Plank
 				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
 				GtkLayerShell.set_namespace (this, "wayplank-hover");
 			} else {
-				set_decorated (false);
 				set_type_hint (Gdk.WindowTypeHint.TOOLTIP);
 				set_skip_taskbar_hint (true);
 				set_skip_pager_hint (true);
 				set_keep_above (true);
-				set_title ("wayplank-hover");
-				set_role ("tooltip");
 			}
 
 			unowned Gdk.Screen screen = get_screen ();

@@ -52,6 +52,9 @@
 		<file alias="docklets/screenshot.svg" compressed="true" preprocess="xml-stripblanks">docklets/screenshot.svg</file>
 		<file alias="docklets/session.svg" compressed="true" preprocess="xml-stripblanks">docklets/session.svg</file>
 		<file alias="docklets/preferences.svg" compressed="true" preprocess="xml-stripblanks">docklets/preferences.svg</file>
+		<file alias="docklets/ejector.svg" compressed="true" preprocess="xml-stripblanks">docklets/ejector.svg</file>
+		<file alias="docklets/brightness.svg" compressed="true" preprocess="xml-stripblanks">docklets/brightness.svg</file>
+		<file alias="docklets/weather.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather.svg</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/preferences.ui</file>
 		<file alias="doc/report.md" compressed="true">../Documentation/wayplank_x11_to_wayland_report_en.md</file>
 	</gresource>

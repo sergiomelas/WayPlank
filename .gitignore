@@ -4,3 +4,4 @@ screenshot.png
 *.swp
 *.kate-swp
 .*.kate-swp
+data/glib-2.0/schemas/gschemas.compiled

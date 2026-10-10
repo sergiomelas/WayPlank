@@ -33,12 +33,41 @@ namespace Plank
 	 * @param path the path to use
 	 * @return a new GLib.Settings object
 	 */
+	static GLib.SettingsSchemaSource? custom_schema_source = null;
+
+	public static unowned GLib.SettingsSchemaSource get_schema_source ()
+	{
+		if (custom_schema_source == null) {
+			var default_source = GLib.SettingsSchemaSource.get_default ();
+			string[] candidate_dirs = {
+				Environment.get_current_dir () + "/data/glib-2.0/schemas",
+				Build.DATADIR + "/glib-2.0/schemas",
+				"/usr/share/glib-2.0/schemas"
+			};
+
+			foreach (var dir in candidate_dirs) {
+				if (FileUtils.test (dir + "/gschemas.compiled", FileTest.EXISTS)) {
+					try {
+						var source = new GLib.SettingsSchemaSource.from_directory (dir, default_source, false);
+						if (source.lookup ("net.launchpad.plank.dock.settings", true) != null) {
+							custom_schema_source = source;
+							break;
+						}
+					} catch (Error e) {
+					}
+				}
+			}
+			if (custom_schema_source == null)
+				custom_schema_source = default_source;
+		}
+		return custom_schema_source;
+	}
+
 	public static GLib.Settings create_settings (string schema_id, string? path = null)
 	{
-		//FIXME Only to make it run/work uninstalled from top_builddir
-		Environment.set_variable ("GSETTINGS_SCHEMA_DIR", Environment.get_current_dir () + "/data", false);
-		
-		var schema = GLib.SettingsSchemaSource.get_default ().lookup (schema_id, true);
+		var schema = get_schema_source ().lookup (schema_id, true);
+		if (schema == null)
+			schema = GLib.SettingsSchemaSource.get_default ().lookup (schema_id, true);
 		if (schema == null)
 			error ("GSettingsSchema '%s' not found", schema_id);
 		
@@ -58,7 +87,9 @@ namespace Plank
 	 */
 	public static GLib.Settings? try_create_settings (string schema_id, string? path = null)
 	{
-		var schema = GLib.SettingsSchemaSource.get_default ().lookup (schema_id, true);
+		var schema = get_schema_source ().lookup (schema_id, true);
+		if (schema == null)
+			schema = GLib.SettingsSchemaSource.get_default ().lookup (schema_id, true);
 		if (schema == null) {
 			warning ("GSettingsSchema '%s' not found", schema_id);
 			return null;

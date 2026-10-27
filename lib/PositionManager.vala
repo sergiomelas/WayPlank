@@ -313,9 +313,14 @@ namespace Plank
 			
 			freeze_notify ();
 			
-			update_dimensions ();
+			if (controller.renderer != null && controller.renderer.theme != null) {
+				update (controller.renderer.theme);
+			} else {
+				update_dimensions ();
+				update_regions ();
+			}
+
 			controller.window.update_layer_shell_monitor ();
-			update_regions ();
 			if (!GtkLayerShell.is_supported ()) {
 				controller.window.update_size_and_position ();
 			}

@@ -1359,3 +1359,43 @@ msgstr "应用程序"
 #: lib/Widgets/WindowCardsWindow.vala:467
 msgid "Minimized"
 msgstr "已最小化"
+
+#: lib/Items/DoNotDisturbDockItem.vala:38
+msgid "Do Not Disturb"
+msgstr "请勿打扰"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Silenced (Do Not Disturb)"
+msgstr "通知: 已静音 (请勿打扰模式)"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Active"
+msgstr "通知: 正常接收"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Resume Notifications"
+msgstr "恢复接收通知"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Silence Notifications"
+msgstr "静音桌面通知"
+
+#: lib/Items/DoNotDisturbDockItem.vala:294
+msgid "_Notification Settings..."
+msgstr "通知设置(_N)..."
+
+#: lib/Items/PlankDockItem.vala:110
+msgid "_Do Not Disturb"
+msgstr "请勿打扰(_D)"
+
+#: data/ui/preferences.ui:1330
+msgid "Toggle desktop notifications and Do Not Disturb mode"
+msgstr "快速切换桌面通知提醒与请勿打扰免打扰模式"
+
+#: data/ui/preferences.ui:483
+msgid "Show Trash:"
+msgstr "显示回收站:"
+
+#: data/ui/preferences.ui:486
+msgid "Show the Trash Bin icon on the dock"
+msgstr "在停靠栏上显示回收站图标"

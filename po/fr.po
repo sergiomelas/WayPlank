@@ -1360,3 +1360,43 @@ msgstr "Application"
 #: lib/Widgets/WindowCardsWindow.vala:467
 msgid "Minimized"
 msgstr "Minimisée"
+
+#: lib/Items/DoNotDisturbDockItem.vala:38
+msgid "Do Not Disturb"
+msgstr "Ne pas déranger"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Silenced (Do Not Disturb)"
+msgstr "Notifications : Silencieuses (Ne pas déranger)"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Active"
+msgstr "Notifications : Actives"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Resume Notifications"
+msgstr "Réactiver les notifications"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Silence Notifications"
+msgstr "Couper les notifications"
+
+#: lib/Items/DoNotDisturbDockItem.vala:294
+msgid "_Notification Settings..."
+msgstr "Paramètres des _notifications..."
+
+#: lib/Items/PlankDockItem.vala:110
+msgid "_Do Not Disturb"
+msgstr "Ne pas _déranger"
+
+#: data/ui/preferences.ui:1330
+msgid "Toggle desktop notifications and Do Not Disturb mode"
+msgstr "Basculer les notifications de bureau et le mode Ne pas déranger"
+
+#: data/ui/preferences.ui:483
+msgid "Show Trash:"
+msgstr "Afficher la Corbeille :"
+
+#: data/ui/preferences.ui:486
+msgid "Show the Trash Bin icon on the dock"
+msgstr "Affiche l'icône de la Corbeille sur le dock"

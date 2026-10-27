@@ -19,24 +19,30 @@ on a computer with any supported language, it translates automatically directly
 from internal memory without accessing the filesystem or requiring installation.
 
 --------------------------------------------------------------------------------
-1. SUPPORTED LANGUAGES & STATUS (312 / 312 STRINGS QUALIFIED - 100%)
+1. SUPPORTED LANGUAGES & STATUS (322 / 322 STRINGS QUALIFIED - 100%)
 --------------------------------------------------------------------------------
 
 Language catalogs and contributor attribution:
 
   1. 简体中文 (Simplified Chinese, 'zh_CN'):
      - Contributor & Reviewer: 史有虎 (IFtiger-hu) <2212363803@qq.com>
-     - Status: 100% Translated (312/312 messages).
+     - Status: 100% Translated (322/322 messages).
   2. Italiano (Italian, 'it'):
      - Maintainer: Sergio Melas <sergiomelas@gmail.com>
-     - Status: 100% Translated (312/312 messages).
+     - Status: 100% Translated (322/322 messages).
   3. Español (Spanish, 'es'):
-     - Status: 100% Translated (312/312 messages).
+     - Status: 100% Translated (322/322 messages).
   4. Français (French, 'fr'):
-     - Status: 100% Translated (312/312 messages).
+     - Status: 100% Translated (322/322 messages).
   5. Català (Catalan, 'ca'):
-     - Status: 100% Translated (312/312 messages).
-  6. English ('en'):
+     - Status: 100% Translated (322/322 messages).
+  6. Deutsch (German, 'de'):
+     - Contributor & Reviewer: Renate Schwiedernoch <renate.schwiedernoch@gmail.com>
+     - Status: 100% Translated (322/322 messages).
+  7. Українська (Ukrainian, 'uk'):
+     - Contributor & Reviewer: Michailo Buchko <mixabuchko@gmail.com>
+     - Status: 100% Translated (322/322 messages).
+  8. English ('en'):
      - Native in-source fallback language (requires zero translation files).
 
 --------------------------------------------------------------------------------
@@ -69,6 +75,8 @@ In 'data/plank.gresource.xml', register the embedded translation resources:
     <file>locale/es/wayplank.mo</file>
     <file>locale/fr/wayplank.mo</file>
     <file>locale/ca/wayplank.mo</file>
+    <file>locale/de/wayplank.mo</file>
+    <file>locale/uk/wayplank.mo</file>
 
 This bakes all 5 language catalogs directly into the monolithic binary ELF.
 

@@ -189,10 +189,12 @@ namespace Plank
 					return null;
 
 				// KWin format 6 is BGRA. Swap B and R for standard RGBA Pixbuf
+				// and guarantee full opacity (alpha = 255) for crisp rendering
 				for (size_t i = 0; i < total_bytes; i += 4) {
 					uint8 b = buffer[i];
 					buffer[i] = buffer[i + 2];
 					buffer[i + 2] = b;
+					buffer[i + 3] = 255;
 				}
 
 				var raw_pixbuf = new Gdk.Pixbuf.from_data (

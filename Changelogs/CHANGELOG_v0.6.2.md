@@ -1,8 +1,8 @@
 # WayPlank V0.6.2 Series Detailed Technical Changelog
 
 Release Series: **V0.6.2 Series (The Community Unification & Distribution Release)**  
-Current Milestone: **V0.6.2.3 (Round 3: Multi-Window Preview Cards, Dynamic Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity & Native Peer Stacking) — Completed / 100% FAT Passed (2026-10-22)**  
-Release Date: 2026-10-22 (All 3 Rounds Fully Integrated & 100% FAT Qualified)  
+Current Milestone: **V0.6.2.3 (Round 3 & Community Features: Multi-Window Preview Cards, Dynamic Theming, DND Docklet, System Menu Access, 7×2 Grid, German & Ukrainian Translations, HAL Brightness Sync) — Completed / 100% FAT Passed (2026-10-27)**  
+Release Date: 2026-10-27 (Community Contributions Fully Integrated & 100% FAT Qualified)  
 Authors & Contributors:
 - **Sergio Melas** (Maintainer — sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))
 - **史有虎 (IFtiger-hu)** (Collaborator, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
@@ -274,20 +274,51 @@ This milestone exemplifies collaborative open-source synergy:
    - Automatically registers and re-executes the WayPlank bridge ECMAScript whenever KWin starts, restarts, or recovers from a crash (`kwin_wayland --replace`), restoring window dodging and thumbnail tracking without requiring WayPlank restart.
 
 10. **100% FAT Multi-Compositor Qualification (FAT 0.6.2.3)**:
-    - **335 Total Tests Defined** across 3 validation sessions:
-      - **Session 1 (GNOME Shell / Mutter)**: 113 tests | 106 [ok] | 7 [ko->ok] | 100% PASS
-      - **Session 2 (KDE Plasma 6 / KWin)**: 111 tests | 109 [ok] | 2 [ko->ok] | 100% PASS
-      - **Session 3 (Labwc / wlroots)**: 111 tests | 109 [ok] | 2 [NA] (wlroots protocol limitations) | 100% PASS
-    - **Scoreboard**: 324 Passed Baseline `[ok]`, 9 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
+    - **357 Total Tests Defined** across 3 validation sessions:
+      - **Session 1 (GNOME Shell / Mutter)**: 120 tests | 110 [ok] | 10 [ko->ok] | 100% PASS
+      - **Session 2 (KDE Plasma 6 / KWin)**: 119 tests | 111 [ok] | 8 [ko->ok] | 100% PASS
+      - **Session 3 (Labwc / wlroots)**: 118 tests | 113 [ok] | 3 [ko->ok] | 2 [NA] | 100% PASS
+    - **Scoreboard**: 334 Passed Baseline `[ok]`, 21 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
 
-11. **📦 Release Finalization & Master Milestone Roadmap**:
-    - **Current Live GitHub Release**: **v0.6.2.3 (Round 3)** is officially released on GitHub with 100% FAT qualification.
-    - **Distribution packages available**:
-      - `build/wayplank_0.6.2.3_amd64.deb`
-      - `build/wayplank-0.6.2.3-1.x86_64.rpm`
-    - **Master Release Trajectory**:
-      - **v0.7.x (Public Beta — Week 45: Monday, November 2, 2026)**: Official GitHub Launch of Public Beta, embedding monolithic in-memory gettext catalogs (`GResource`) and community testing buffer throughout Week 44.
-      - **v0.8.x (Release Candidate Series)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging standardization.
-      - **v0.9.x (Long-Term Production Stabilization)**: The battle-tested production milestone and daily driver release for the Linux desktop community.
-      - **v1.0.0 (Grand Milestone Horizon — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
+---
+
+## 11. 🌟 WayPlank V0.6.2.3 Community User Contributions & Ergonomics Update (2026-10-27)
+
+Following community feedback and user contributions, this release incorporates major workflow enhancements, full localization catalogs, and HAL architecture hardening:
+
+* 🔕 **Do Not Disturb Docklet (`docklet://dnd`)**:
+  - Integrated desktop notification mute docklet adhering to the FreeDesktop `org.freedesktop.Notifications` standard.
+  - Bidirectional D-Bus synchronization with KDE Plasma system tray and GNOME Shell top panel.
+  - Graded vector states: active bell, muted/silenced bell, and localized toggle notifications.
+
+* 🎛️ **3-Position System Menu Access Modes**:
+  - Configurable in Preferences -> Behaviour: Mode 0 (Dedicated Preferences Icon), Mode 1 (Docklets Only with application menu fallback), and Mode 2 (All Icons Integrated).
+  - Clean separation: prevents unwanted dock configuration items from polluting pure application context menus while preserving unconditional access via `Ctrl + Right Click`.
+
+* ⚖️ **Symmetric 7×2 Docklets Grid & Shell Architecture**:
+  - Perfectly balanced 14-item grid (7 columns × 2 rows) in Preferences -> Docklets with real-time toggle switches.
+  - Relocated Trash docklet to the Appearance tab, establishing it as a permanent desktop shell anchor alongside classic stock themes.
+
+* 🌍 **Community Localizations & Contributor Track**:
+  - 100% complete German (`po/de.po`) and Ukrainian (`po/uk.po`) translation catalogs added to existing catalogs (`zh_CN`, `it`, `es`, `fr`, `ca`).
+  - Formal [`CONTRIBUTING.md`](../CONTRIBUTING.md) guide establishing community localization, packaging, and bug reporting workflows.
+
+* ☀️ **HAL Screen Brightness Separation & Multi-Monitor Synchronization (`lib/Services/BrightnessControl.vala`)**:
+  - Pure Hardware Abstraction Layer service decoupling hardware sysfs, multi-monitor topology discovery, and D-Bus interfaces from UI docklets.
+  - Real-time kernel sysfs polling (500ms heartbeat) on `/sys/class/backlight` catching physical laptop Fn keys and `brightnessctl set xx%` instantly.
+  - 350ms Inbound Settle Debounce with anti-echo guard: automatically synchronizes external displays via `kscreen-doctor` (KWin) or `ddcutil` (Mutter/Labwc) when brightness is modified externally, maintaining seamless mouse wheel continuity from the physical Set Point.
+
+---
+
+## 12. 📦 Release Finalization & Master Milestone Roadmap
+
+- **Current Live GitHub Release**: **v0.6.2.3 (Round 3 & Community Update)** is officially released on GitHub with 100% FAT qualification (355/355 tests passing, 2 NA).
+- **Distribution packages available**:
+  - `build/wayplank_0.6.2.3_amd64.deb`
+  - `build/wayplank-0.6.2.3-1.x86_64.rpm`
+- **Master Release Trajectory**:
+  - **v0.7.x (Public Beta — Week 45: Monday, November 2, 2026)**: Official GitHub Launch of Public Beta, embedding monolithic in-memory gettext catalogs (`GResource`) and community testing buffer throughout Week 44.
+  - **v0.8.x (Release Candidate Series)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging standardization.
+  - **v0.9.x (Long-Term Production Stabilization)**: The battle-tested production milestone and daily driver release for the Linux desktop community.
+  - **v1.0.0 (Grand Milestone Horizon — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 

@@ -198,6 +198,21 @@ namespace Plank
 			return false;
 		}
 
+		public static void invalidate_panel_cache ()
+		{
+			if (get_default ().backend != null) {
+				get_default ().backend.invalidate_panel_cache ();
+			}
+		}
+
+		public static int get_top_panel_floating_offset (Gdk.Rectangle mon_geom = Gdk.Rectangle ())
+		{
+			if (get_default ().backend != null) {
+				return get_default ().backend.get_top_panel_floating_offset (mon_geom);
+			}
+			return 0;
+		}
+
 		public static bool position_dock (int x, int y, int width, int height)
 		{
 			return get_default ().backend != null && get_default ().backend.position_dock (x, y, width, height);

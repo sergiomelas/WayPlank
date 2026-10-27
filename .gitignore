@@ -8,3 +8,5 @@ data/glib-2.0/schemas/gschemas.compiled
 lib/resources.c
 *.vala.c
 *DOWNSTREAM FORK BUGS & SOLUTIONS*
+AI_RULES.md
+AI_private/

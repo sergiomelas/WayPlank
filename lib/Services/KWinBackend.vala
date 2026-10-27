@@ -91,5 +91,63 @@ namespace Plank
 		{
 			KWinBridge.handle_system_resume ();
 		}
+
+		bool cached_top_floating = true;
+		int last_floating_query_time = 0;
+
+		public bool is_top_panel_floating_configured ()
+		{
+			int now = (int) (GLib.get_monotonic_time () / 1000000);
+			if (last_floating_query_time > 0 && (now - last_floating_query_time) < 1)
+				return cached_top_floating;
+
+			last_floating_query_time = now;
+			try {
+				var bus = Bus.get_sync (BusType.SESSION, null);
+				var res = bus.call_sync (
+					"org.kde.plasmashell",
+					"/PlasmaShell",
+					"org.kde.PlasmaShell",
+					"evaluateScript",
+					new Variant ("(s)", """
+						var res = false;
+						for (var i = 0; i < panels().length; i++) {
+							var p = panels()[i];
+							if (p.location === "top") {
+								res = (p.floating === true);
+								break;
+							}
+						}
+						print(res);
+					"""),
+					new VariantType ("(s)"),
+					DBusCallFlags.NONE,
+					150,
+					null
+				);
+				string val;
+				res.get ("(s)", out val);
+				if (val != null) {
+					cached_top_floating = (val.strip () == "true");
+				}
+			} catch (Error e) { }
+
+			return cached_top_floating;
+		}
+
+		public override void invalidate_panel_cache ()
+		{
+			last_floating_query_time = 0;
+		}
+
+		public override int get_top_panel_floating_offset (Gdk.Rectangle mon_geom = Gdk.Rectangle ())
+		{
+			if (is_top_panel_floating_configured ()) {
+				if (!KWinBridge.has_maximized_window_on_current_desktop (mon_geom)) {
+					return 8;
+				}
+			}
+			return 0;
+		}
 	}
 }

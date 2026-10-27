@@ -7,7 +7,7 @@
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 > [![Current Live Release: v0.6.2.3 (Round 3)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.3_(Round_3)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
 > [![Next Release: Public Beta v0.7.0 (Week 45 - Nov 2, 2026)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Week_45)-orange.svg)](README.md)
-> [![FAT: 100% Passed (335/335)](https://img.shields.io/badge/FAT_Status-100%25_PASS_(335%2F335)-success.svg)](FAT/2026-10-21%20FAT%200.6.2.3.txt)
+> [![FAT: 100% Passed (355/355)](https://img.shields.io/badge/FAT_Status-100%25_PASS_(355%2F355)-success.svg)](FAT/2026-10-26%20FAT%200.6.2.3.txt)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
@@ -15,7 +15,7 @@
 
 > [!IMPORTANT]
 > ### 📅 Master Release Roadmap & Milestone Schedule
-> - **v0.6.2.3 (Current Live Pre-Beta)**: Officially live on GitHub with 100% FAT qualification (335/335 tests passing).
+> - **v0.6.2.3 (Current Live Pre-Beta)**: Officially live on GitHub with 100% FAT qualification (355/355 tests passing, 2 NA).
 > - **v0.7.x (Public Beta — Week 45: Monday, Nov 2, 2026)**: Monolithic embedded localization engine (in-memory GResource), community testing, and bug squashing.
 > - **v0.8.x (Release Candidate — RC Series)**: Strict feature freeze, memory leak profiling, and distribution packaging hardening (.deb, .rpm, AUR).
 > - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distros.
@@ -24,10 +24,10 @@
 > [!TIP]
 > ### 🌍 Call for Translators — Help Localize WayPlank for Public Beta (v0.7.0)!
 > In preparation for the Public Beta, all translations are maintained in a clean, self-contained Python generator script: [`po/generate_translations.py`](po/generate_translations.py).
-> Complete string coverage already exists for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, and **Catalan (`ca`)**.
+> Complete 100% string coverage already exists for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, **Catalan (`ca`)**, **German (`de`)**, and **Ukrainian (`uk`)**.
 >
-> **Want to add your language (e.g. German, Portuguese, Polish, Japanese, etc.) or refine existing translations?**
-> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 312 strings are stored in a simple, structured Python dictionary.
+> **Want to add your language (e.g. Portuguese, Polish, Japanese, etc.) or contribute?**
+> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 322 strings are stored in a simple, structured Python dictionary.
 > 2. Add or update your language entries directly in the dictionary (much cleaner and easier to manage than raw `.po` files!).
 > 3. Submit your updated `generate_translations.py` by opening a [GitHub Issue](https://github.com/sergiomelas/WayPlank/issues)!
 >
@@ -47,15 +47,23 @@ Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL
 
 ## 🤝 Acknowledgments & Contributors
 
-
-**A huge thank you to our 400+ community users: with 1,600+ lifetime downloads & clones and real-world feedback, 90+ bugs have been squashed across 335 validation points (100% FAT pass rate)! Testing, bug reports, and pull requests are warmly welcome.**
+**A huge thank you to our 400+ community users: with 1,600+ lifetime downloads & clones and real-world feedback, 95 bugs have been squashed across 355 validation points (100% FAT pass rate)! Testing, bug reports, and pull requests are warmly welcome.**
 
 * **史有虎 (IFtiger-hu)** ([@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub)): Author of the WayPlank community fork, contributor of native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
+
+### 💡 Community Feature Ideas & User Suggestions
+
+WayPlank is actively shaped and driven by community needs and user creativity! Special thanks to:
+
+* **[Gabenoh](https://github.com/Gabenoh)** ([Discussion #3](https://github.com/sergiomelas/WayPlank/discussions/3#discussion-11094347)): Suggested adding an option to hide the Preferences/Settings icon on the dock for minimalist setups, as well as a strict Docklets-only mode without app menu fallback. This inspired the design and implementation of the 4-position System Menu Access engine (`SystemMenuAccess`: Docklets Only strict, Docklets Only with fallback, All Icons integrated, or Dedicated Icon).
+* **Do Not Disturb Docklet (`docklet://dnd`)**: Instant desktop notification inhibition toggle via standard `org.freedesktop.Notifications` D-Bus interface, dynamic bell/muted state icons, and bidirectional sync with KDE Plasma tray and GNOME top bar.
+* **Symmetric 7×2 Balanced Docklets Grid**: Perfectly balanced 14-item grid in Preferences -> Docklets with real-time toggle switches, and relocation of Trash to the Appearance tab as a permanent desktop shell anchor.
 
 
 ## 📖 Documentation
 
 * 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
+* 🤝 [Contributing Guidelines & Community Tracks](CONTRIBUTING.md)
 * 🗺️ [v0.6.2 Fork Integration Roadmap](Documentation/WAYPLANK_V062_FORK_INTEGRATION_ROADMAP.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
 * 🧪 [Compositor test matrix & protocols](FAT/)
@@ -78,7 +86,7 @@ Feel free to star the repo or follow releases if you want to track progress!
 
 ---
 
-> 🌟 **Zero Open Defects:** Across all 3 Tier-1 Wayland compositors (KDE Plasma 6, GNOME Shell, and Labwc), WayPlank v0.6.2.3 achieves 100% FAT compliance (335 passed, 0 open defects, 2 NA). Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
+> 🌟 **Zero Open Defects:** Across all 3 Tier-1 Wayland compositors (KDE Plasma 6, GNOME Shell, and Labwc), WayPlank v0.6.2.3 achieves 100% FAT compliance (357 tests defined, 355 passed, 0 open defects, 2 NA). Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
 
 ---
 
@@ -309,18 +317,16 @@ wayplank -d
   - [x] Strict HAL coordinate isolation: native Layer Shell margins for KWin/Labwc and dedicated absolute screen positioning for Mutter (v0.4.3).
   - [x] Finalize GNOME Shell extension bridge for window geometry retrieval to support Intellihide & Dodge on Mutter.
 
-- [x] Phase 6 (Completed) v0.5,..,v0.6.2.3: Fork Unification, Visual Cards & Pre-Beta Stabilization
-  - [x] Multi-monitor selection persistence and edge placement fine-tuning across all compositors. 
-  - [x] Complete 14 Monolithic Docklets Suite (v0.5.2): Trash, Analog Clock, Digital Clock, Battery, Screenshot, Preferences, Drive Ejector, CPU/RAM, Show Desktop, MPRIS, Volume, Session/Power, Screen Brightness, Weather Forecast.
-  - [x] Categorize Items Architecture (v0.5.2): Semantic multi-zone layout (`[Folders] | [Docklets] | [Pinned Apps] | [Unpinned Transients] | [Trash]`), dynamic separator suppression, category drag clamping, and cross-separator drag pin/unpin.
-  - [x] Cairo-Dock Style Folder Launcher Menu (v0.5.2): Left-click folder launcher menu (`FolderMenuWindow`) with 60 FPS icon zoom following, steady decoupled bounce, and tooltip styling.
-  - [x] Community Fork Unification (v0.6.2.1): Automated openSUSE/Fedora RPM packaging (`BuildRpm.sh`), launcher deduplication, ghost bridge filtering, and dock overflow smooth scrolling with tachometer redline capacity indicator.
-  - [x] Modern Ergonomics & Theming (v0.6.2.2): Remote web URL drag-and-drop, hover-to-raise window activation, FreeDesktop Settings portal sync, interactive Theme Manager with native portal file chooser, strict MIME validation, and clean drag-off poof removal.
-  - [x] Multi-Window Preview Cards & Dynamic Theming (v0.6.2.3): Universal Cairo preview cards with live thumbnails on KWin and GNOME Mutter, clean blank card fallback on Labwc, real-time light/dark theme swapping across KDE and GNOME, recent files jump lists, and packaged stock themes.
-  - [x] Folder Running Dots, Drawer Parity & Native Stacking (v0.6.2.3): Illuminated running indicator dots on pinned folder items (single dot for 1 active app, dual dots for 2+ active apps), running dots on drawer application rows with stabilized geometry, full drawer click/launch parity (Ctrl/Middle click for new instances, mouse wheel window cycling, context menu guard), elimination of Mutter async timer assertion crashes, KWin D-Bus auto-recovery, and clean bidirectional peer dialog stacking.
-  - [x] Full multi-compositor FAT qualification: 335 tests executed, 333 passed (324 baseline + 9 squashed), 0 open defects, 2 NA (100% PASS rate).
-  - [x] Finish documentation, packaging, and configuration migration.
-  - [x] Official GitHub Release of v0.6.2.3 (Round 3).
+- [ ] Phase 6 (In Progress) v0.5.0 - v0.6.2.3: Visual Ergonomics, Advanced Theming & Community Features
+  - [x] Comprehensive 14-docklet suite (including Do Not Disturb, Screenshot, Brightness, Weather, Removable Drive Ejector).
+  - [x] Semantic categorized multi-zone dock layout (`[Folders] | [Docklets] | [Pinned Apps] | [Transients] | [Trash]`).
+  - [x] Cairo folder launcher menus and full application drawers with active window indicators.
+  - [x] Universal Cairo multi-window preview cards with live thumbnails on KWin and GNOME Mutter.
+  - [x] Real-time dark/light theme switching with native Theme Manager and portal synchronization.
+  - [x] Advanced ergonomics: remote URL drag-and-drop, hover-to-raise window activation, recent files jump lists.
+  - [x] Configurable System Menu Access modes and dynamic compositor panel avoidance.
+  - [x] Multi-distribution packaging parity (Debian `.deb` & openSUSE/Fedora `.rpm`).
+  - [ ] Incorporate community user contributions, bug reports, and UX requests ahead of Public Beta.
 
 - [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.x)
   - [ ] **Week 45 (Monday, November 2, 2026): Official Launch of Public Beta (v0.7.0) on GitHub!**
@@ -342,8 +348,8 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-* 🚀 **v0.6.2.3 (Round 3, Pre-Beta) — Current Live GitHub Release (2026-10-22) [100% FAT PASSED]**:  
-  Universal Cairo multi-window preview cards across all Wayland compositors (live D-Bus thumbnails on KWin and GNOME Mutter, clean blank card fallback on Labwc), dynamic real-time light/dark theme switching across KDE and GNOME, recent files jump list in context menus (`RecentFilesService`), packaged stock theme suite (Dark, Light, Arian Dark/Light, IFtiger Dark/Light), folder running indicator dots (single/dual on dock, row indicators in drawer), complete folder drawer application contract parity (middle/ctrl-click new instance, mouse wheel window cycling, row context menu guard), elimination of Mutter async timer crashes via deterministic map activation, KWin D-Bus bridge self-healing, native peer dialog stacking, and 0 open defects across 335 FAT test points. Directly paves the way for the **Public Beta (v0.7.0)** launching in Week 45 (Monday, November 2, 2026)!
+* 🚀 **v0.6.2.3 (Community & Visual Enhancements) — Current Live Release (2026-10-26)**:  
+  Universal Cairo multi-window preview cards with live thumbnails on KWin and GNOME Mutter, real-time light/dark theme switching, built-in Do Not Disturb docklet, 3-position configurable System Menu Access, dynamic top panel avoidance, folder launcher indicators, and recent files jump lists. Directly paves the way for the **Public Beta (v0.7.0)** launching in Week 45 (Monday, November 2, 2026)!
 * 🌟 **v0.6.2.2 (Round 2, Pre-Beta) — Current Live GitHub Release (2026-10-21) [COMPLETED / 100% FAT PASSED]**:  
   Remote web URL & browser shortcut DND delivery (`DesktopAppInfo.launch_uris`), hover-to-raise target window activation,  
   real-time dark/light portal color-scheme synchronization (`org.freedesktop.portal.Settings`), interactive Theme Manager  

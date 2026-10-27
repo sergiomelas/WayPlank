@@ -1359,3 +1359,43 @@ msgstr ""
 #: lib/Widgets/WindowCardsWindow.vala:467
 msgid "Minimized"
 msgstr ""
+
+#: lib/Items/DoNotDisturbDockItem.vala:38
+msgid "Do Not Disturb"
+msgstr ""
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Silenced (Do Not Disturb)"
+msgstr ""
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Active"
+msgstr ""
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Resume Notifications"
+msgstr ""
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Silence Notifications"
+msgstr ""
+
+#: lib/Items/DoNotDisturbDockItem.vala:294
+msgid "_Notification Settings..."
+msgstr ""
+
+#: lib/Items/PlankDockItem.vala:110
+msgid "_Do Not Disturb"
+msgstr ""
+
+#: data/ui/preferences.ui:1330
+msgid "Toggle desktop notifications and Do Not Disturb mode"
+msgstr ""
+
+#: data/ui/preferences.ui:483
+msgid "Show Trash:"
+msgstr ""
+
+#: data/ui/preferences.ui:486
+msgid "Show the Trash Bin icon on the dock"
+msgstr ""

@@ -60,8 +60,8 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
   <template class="PlankPreferencesWindow" parent="GtkWindow">
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
-    <property name="default_width">540</property>
-    <property name="default_height">390</property>
+    <property name="default_width">560</property>
+    <property name="default_height">480</property>
     <property name="window_position">center</property>
     <property name="icon_name">plank</property>
     <property name="type_hint">dialog</property>
@@ -482,13 +482,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="l_categorize_items">
+              <object class="GtkLabel" id="l_show_trash">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Categorize Items:</property>
+                <property name="label" translatable="yes">Show Trash:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with dynamic separators</property>
+                <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -496,182 +496,29 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkBox" id="box_categorize_row">
+              <object class="GtkBox" id="box_show_trash">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
                 <property name="spacing">12</property>
                 <child>
-                  <object class="GtkSwitch" id="sw_categorize_items">
+                  <object class="GtkSwitch" id="sw_show_trash">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with dynamic separators</property>
+                    <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
                     <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="btn_reorder_free_items">
-                    <property name="visible">True</property>
-                    <property name="no_show_all">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="valign">center</property>
-                    <property name="margin_left">8</property>
-                    <property name="tooltip_text" translatable="yes">One-shot reorder: arrange dock items by Folders, Docklets, and Applications without enabling rigid categories or extra separators</property>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="spacing">6</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">view-sort-ascending</property>
-                            <property name="icon_size">1</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Align by Type</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="box_accordion">
-                    <property name="visible">True</property>
-                    <property name="no_show_all">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="orientation">horizontal</property>
-                    <property name="spacing">8</property>
-                    <property name="margin_left">24</property>
-                    <child>
-                      <object class="GtkLabel" id="l_accordion_docklets">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="label" translatable="yes">Docklet Accordion:</property>
-                        <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="sw_accordion_docklets">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="l_accordion_click_to_expand">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">end</property>
-                        <property name="margin_left">16</property>
-                        <property name="label" translatable="yes">Click to Expand:</property>
-                        <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="sw_accordion_click_to_expand">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_accordion_delay">
-                <property name="visible">True</property>
-                <property name="no_show_all">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Collapse Delay:</property>
-                <property name="justify">right</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox" id="box_accordion_delay">
-                <property name="visible">True</property>
-                <property name="no_show_all">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">horizontal</property>
-                <property name="spacing">12</property>
-                <child>
-                  <object class="GtkScale" id="s_accordion_delay">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="hexpand">True</property>
-                    <property name="adjustment">adj_accordion_delay</property>
-                    <property name="round_digits">1</property>
-                    <property name="digits">1</property>
-                    <property name="value_pos">right</property>
-                    <property name="tooltip_text" translatable="yes">Delay before collapsing docklets accordion back to master icon</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">8</property>
               </packing>
             </child>
           </object>
@@ -1000,6 +847,229 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="top_attach">7</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="l_categorize_items">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Categorize Items:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with dynamic separators</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">8</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_categorize_row">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">8</property>
+                <child>
+                  <object class="GtkSwitch" id="sw_categorize_items">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="tooltip_text" translatable="yes">Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with dynamic separators</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="btn_reorder_free_items">
+                    <property name="visible">True</property>
+                    <property name="no_show_all">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="valign">center</property>
+                    <property name="margin_left">6</property>
+                    <property name="tooltip_text" translatable="yes">One-shot reorder: arrange dock items by Folders, Docklets, and Applications without enabling rigid categories or extra separators</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="spacing">4</property>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="icon_name">view-sort-ascending</property>
+                            <property name="icon_size">1</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Align by Type</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox" id="box_accordion">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="orientation">horizontal</property>
+                    <property name="spacing">8</property>
+                    <property name="margin_left">20</property>
+                    <child>
+                      <object class="GtkLabel" id="l_accordion_docklets">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Docklet Accordion:</property>
+                        <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSwitch" id="sw_accordion_docklets">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="l_accordion_click_to_expand">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="margin_left">16</property>
+                        <property name="label" translatable="yes">Click to Expand:</property>
+                        <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSwitch" id="sw_accordion_click_to_expand">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">8</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_accordion_delay">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Collapse Delay:</property>
+                <property name="justify">right</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_accordion_delay">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkScale" id="s_accordion_delay">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="adjustment">adj_accordion_delay</property>
+                    <property name="round_digits">1</property>
+                    <property name="digits">1</property>
+                    <property name="value_pos">right</property>
+                    <property name="tooltip_text" translatable="yes">Delay before collapsing docklets accordion back to master icon</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">9</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_system_menu_access">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Preferences &amp; System Menu:</property>
+                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="cb_system_menu_access">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
+                <items>
+                  <item id="1" translatable="yes">Docklets Only (with fallback)</item>
+                  <item id="2" translatable="yes">All Icons (integrated)</item>
+                  <item id="3" translatable="yes">Dedicated Icon (on dock)</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">10</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="name">grid_behaviour</property>
@@ -1210,58 +1280,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="width">2</property>
               </packing>
             </child>
-            <!-- Row 1: Trash Bin (Col 0) & CPU & RAM Monitor (Col 1) -->
-            <child>
-              <object class="GtkBox" id="box_docklet_trash">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">horizontal</property>
-                <property name="spacing">10</property>
-                <child>
-                  <object class="GtkImage" id="img_docklet_trash">
-                    <property name="visible">True</property>
-                    <property name="icon_name">trashcan_empty</property>
-                    <property name="pixel_size">35</property>
-                    <property name="valign">center</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="l_docklet_trash">
-                    <property name="visible">True</property>
-                    <property name="halign">start</property>
-                    <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Trash Bin</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="sw_docklet_trash">
-                    <property name="visible">True</property>
-                    <property name="halign">end</property>
-                    <property name="valign">center</property>
-                    <property name="margin_right">10</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">1</property>
-              </packing>
-            </child>
+            <!-- Row 1: CPU & RAM Monitor (Col 0) & Do Not Disturb (Col 1) -->
             <child>
               <object class="GtkBox" id="box_docklet_cpu">
                 <property name="visible">True</property>
@@ -1300,6 +1319,59 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="halign">end</property>
                     <property name="valign">center</property>
                     <property name="margin_right">10</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_dnd">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_docklet_dnd">
+                    <property name="visible">True</property>
+                    <property name="icon_name">preferences-desktop-notification-bell</property>
+                    <property name="pixel_size">35</property>
+                    <property name="valign">center</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="l_docklet_dnd">
+                    <property name="visible">True</property>
+                    <property name="halign">start</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Do Not Disturb</property>
+                    <property name="tooltip_text" translatable="yes">Toggle desktop notifications and Do Not Disturb mode</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="sw_docklet_dnd">
+                    <property name="visible">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                    <property name="margin_right">10</property>
+                    <property name="tooltip_text" translatable="yes">Toggle desktop notifications and Do Not Disturb mode</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

@@ -27,6 +27,7 @@ lib/Items/ClockDockItem.vala
 lib/Items/CpuDockItem.vala
 lib/Items/DefaultApplicationDockItemProvider.vala
 lib/Items/DigitalClockDockItem.vala
+lib/Items/DoNotDisturbDockItem.vala
 lib/Items/DockContainer.vala
 lib/Items/DockElement.vala
 lib/Items/DockItemDrawValue.vala

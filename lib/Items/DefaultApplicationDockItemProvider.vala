@@ -47,12 +47,41 @@ namespace Plank
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
 			Prefs.notify["AccordionDocklets"].connect (handle_accordion_docklets_changed);
+			Prefs.notify["SystemMenuAccess"].connect (handle_system_menu_access_changed);
 		}
 
 		public void ensure_preferences_dockitem ()
 		{
-			if (item_for_uri ("docklet://preferences") == null) {
-				add_item_with_uri ("docklet://preferences");
+			if (Prefs.SystemMenuAccess == 4) {
+				if (item_for_uri ("docklet://preferences") == null) {
+					add_item_with_uri ("docklet://preferences");
+				}
+			} else {
+				unowned DockItem? di = item_for_uri ("docklet://preferences");
+				if (di != null) {
+					disconnect_element (di);
+					internal_elements.remove (di);
+					di.Container = null;
+					di.delete ();
+				}
+			}
+		}
+
+		void handle_system_menu_access_changed ()
+		{
+			ensure_preferences_dockitem ();
+			refresh_separators ();
+			update_visible_elements ();
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.renderer != null && dock.renderer.theme != null) {
+				dock.refresh_visible_elements ();
+				dock.position_manager.update (dock.renderer.theme);
+				dock.renderer.reset_buffers ();
+				dock.schedule_serialize_item_positions ();
+				if (dock.window != null) {
+					dock.window.set_input_mask ();
+				}
+				dock.renderer.animated_draw ();
 			}
 		}
 
@@ -90,6 +119,7 @@ namespace Plank
 			Prefs.notify["PinnedOnly"].disconnect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
 			Prefs.notify["AccordionDocklets"].disconnect (handle_accordion_docklets_changed);
+			Prefs.notify["SystemMenuAccess"].disconnect (handle_system_menu_access_changed);
 		}
 
 		void handle_accordion_docklets_changed ()
@@ -214,6 +244,9 @@ namespace Plank
 				element.RemoveTime = 0;
 			}
 			if (!Prefs.CategorizeItems) {
+				if (Prefs.SystemMenuAccess == 1 || Prefs.SystemMenuAccess == 2) {
+					Prefs.SystemMenuAccess = 3;
+				}
 				save_current_order_to (false);
 				restore_order_from (Prefs.FreeDockItems);
 			} else {
@@ -424,6 +457,37 @@ namespace Plank
 			}
 		}
 
+		public int get_docklet_count ()
+		{
+			int count = 0;
+			foreach (var element in internal_elements) {
+				if (is_docklet_element (element)) {
+					count++;
+				}
+			}
+			return count;
+		}
+
+		public DockElement? get_anchor_docklet ()
+		{
+			// 1. If preferences docklet is present, it is ALWAYS the master anchor!
+			foreach (var element in internal_elements) {
+				if (is_docklet_element (element)) {
+					unowned DockItem? item = element as DockItem;
+					if (element is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
+						return element;
+					}
+				}
+			}
+			// 2. Fallback: if preferences docklet is hidden, the first docklet acts as the anchor!
+			foreach (var element in internal_elements) {
+				if (is_docklet_element (element)) {
+					return element;
+				}
+			}
+			return null;
+		}
+
 		bool updating_visible_elements = false;
 
 		protected override void update_visible_elements ()
@@ -447,13 +511,15 @@ namespace Plank
 			}
 
 			if (Prefs.CategorizeItems && Prefs.AccordionDocklets && !docklets_expanded && !drag_active) {
-				foreach (var element in internal_elements) {
-					if (is_docklet_element (element)) {
-						unowned DockItem? item = element as DockItem;
-						bool is_pref = (element is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences"));
-						element.IsAttached = is_pref;
-						element.AddTime = 0;
-						element.RemoveTime = 0;
+				int docklet_count = get_docklet_count ();
+				if (docklet_count > 1) {
+					DockElement? anchor = get_anchor_docklet ();
+					foreach (var element in internal_elements) {
+						if (is_docklet_element (element)) {
+							element.IsAttached = (element == anchor);
+							element.AddTime = 0;
+							element.RemoveTime = 0;
+						}
 					}
 				}
 			}
@@ -577,7 +643,7 @@ namespace Plank
 					}
 				}
 
-				if (preferences_docklet == null && dragging_item == null) {
+				if (Prefs.SystemMenuAccess == 4 && preferences_docklet == null && dragging_item == null) {
 					ensure_preferences_dockitem ();
 					preferences_docklet = item_for_uri ("docklet://preferences");
 				}
@@ -678,7 +744,7 @@ namespace Plank
 				}
 			}
 
-			if (preferences_item == null && dragging_item == null) {
+			if (Prefs.SystemMenuAccess == 4 && preferences_item == null && dragging_item == null) {
 				ensure_preferences_dockitem ();
 				preferences_item = item_for_uri ("docklet://preferences");
 			}

@@ -67,6 +67,9 @@ namespace Plank
 		int window_position_retry = 0;
 		Gdk.Event? last_button_event = null;
 
+		weak Gdk.Monitor? tracked_monitor = null;
+		ulong monitor_workarea_handler_id = 0UL;
+
 		/**
 		 * Creates a new dock window.
 		 */
@@ -83,13 +86,18 @@ namespace Plank
 				GtkLayerShell.set_layer (this, GtkLayerShell.Layer.TOP);
 				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
 				GtkLayerShell.set_namespace (this, "wayplank");
-				GtkLayerShell.auto_exclusive_zone_enable (this);
 				update_exclusive_zone ();
 
 				update_layer_shell_monitor ();
 
 				// Apply dynamic anchors based on current preferences
 				update_layer_shell_anchors ();
+
+				WindowControl.get_default ().state_changed.connect (() => {
+					if (controller.prefs.Position == Gtk.PositionType.TOP) {
+						update_layer_shell_anchors ();
+					}
+				});
 			} else {
 				set_decorated (false);
 				set_type_hint (Gdk.WindowTypeHint.DOCK);
@@ -99,6 +107,11 @@ namespace Plank
 				set_title ("wayplank");
 				set_role ("dock");
 			}
+
+			realize.connect (() => {
+				input_rect = { -1, -1, -1, -1 };
+				set_input_mask ();
+			});
 
 			// Track position setting changes
 			controller.prefs.notify["Position"].connect (on_position_changed);
@@ -153,6 +166,11 @@ namespace Plank
 		~DockWindow ()
 		{
 			cancel_long_press ();
+			if (tracked_monitor != null && monitor_workarea_handler_id != 0UL) {
+				tracked_monitor.disconnect (monitor_workarea_handler_id);
+				monitor_workarea_handler_id = 0UL;
+				tracked_monitor = null;
+			}
 			if (controller != null && controller.prefs != null) {
 				controller.prefs.notify["Position"].disconnect (on_position_changed);
 				controller.prefs.notify["HideMode"].disconnect (update_exclusive_zone);
@@ -205,10 +223,15 @@ namespace Plank
 				else if (pos == Gtk.PositionType.RIGHT && right_panel > 0)
 					right_margin = right_panel + 2;
 			}
+			if (pos == Gtk.PositionType.TOP) {
+				Gdk.Rectangle mon_geom = (monitor != null) ? monitor.get_geometry () : Gdk.Rectangle ();
+				top_margin += WindowControl.get_top_panel_floating_offset (mon_geom);
+			}
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, top_margin);
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, bottom_margin);
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, left_margin);
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, right_margin);
+			queue_draw ();
 		}
 
 		public void update_layer_shell_monitor ()
@@ -223,6 +246,20 @@ namespace Plank
 			var monitor = PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor);
 			if (monitor == null)
 				return;
+
+			if (monitor != tracked_monitor) {
+				if (tracked_monitor != null && monitor_workarea_handler_id != 0UL) {
+					tracked_monitor.disconnect (monitor_workarea_handler_id);
+					monitor_workarea_handler_id = 0UL;
+				}
+				tracked_monitor = monitor;
+				if (tracked_monitor != null) {
+					monitor_workarea_handler_id = tracked_monitor.notify["workarea"].connect (() => {
+						WindowControl.invalidate_panel_cache ();
+						update_layer_shell_anchors ();
+					});
+				}
+			}
 
 			if (GtkLayerShell.get_monitor (this) != monitor) {
 				GtkLayerShell.set_monitor (this, monitor);
@@ -319,6 +356,15 @@ namespace Plank
 				&& ClickedItem != null && HoveredItem == ClickedItem && !menu_is_visible ()) {
 				controller.hover.hide ();
 				var button = PopupButton.from_event_button (event);
+
+				if (button == PopupButton.LEFT && controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+					if (!controller.app_provider.docklets_expanded && controller.app_provider.get_docklet_count () > 1 && DefaultApplicationDockItemProvider.is_docklet_element (ClickedItem)) {
+						controller.app_provider.expand_docklets ();
+						ClickedItem = null;
+						return Gdk.EVENT_STOP;
+					}
+				}
+
 				if (button == PopupButton.LEFT && ClickedItem is FileDockItem && ((FileDockItem) ClickedItem).is_directory ()) {
 					if (controller.folder_menu.get_visible () && controller.folder_menu.TargetItem == ClickedItem) {
 						controller.folder_menu.close_menu ();
@@ -668,6 +714,8 @@ namespace Plank
 		 */
 		public override bool map_event (Gdk.EventAny event)
 		{
+			input_rect = { -1, -1, -1, -1 };
+			set_input_mask ();
 			// Trigger an immediate frame draw upon mapping to prevent waiting for a click
 			controller.renderer.animated_draw ();
 			return base.map_event (event);
@@ -729,7 +777,9 @@ namespace Plank
 					} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
 						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
 					}
-				} else if (controller.prefs.AccordionDocklets && (HoveredItem is PreferencesDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher == "docklet://preferences"))) {
+				} else if (controller.prefs.AccordionDocklets && controller.app_provider != null
+					&& controller.app_provider.get_docklet_count () > 1
+					&& HoveredItem == controller.app_provider.get_anchor_docklet ()) {
 					unowned DefaultApplicationDockItemProvider? app_prov = controller.app_provider;
 					bool is_horiz = controller.position_manager.is_horizontal_dock ();
 					string arrow_expand = is_horiz ? "▸" : "▾";
@@ -969,7 +1019,12 @@ namespace Plank
 
 			if ((button & PopupButton.RIGHT) != 0
 				&& (item == null || item is SeparatorDockItem || (state & Gdk.ModifierType.CONTROL_MASK) != 0)) {
-				menu_items = Factory.item_factory.get_item_for_dock ().get_menu_items ();
+				if (controller.prefs.SystemMenuAccess != 4) {
+					menu_items = new Gee.ArrayList<Gtk.MenuItem> ();
+					PreferencesDockItem.append_full_system_menu (controller, menu_items);
+				} else {
+					menu_items = Factory.item_factory.get_item_for_dock ().get_menu_items ();
+				}
 				if ((state & Gdk.ModifierType.MOD1_MASK) != 0
 					&& (state & Gdk.ModifierType.SHIFT_MASK) != 0)
 					menu_items.add_all (get_dock_debug_menu_items (controller));
@@ -983,7 +1038,36 @@ namespace Plank
 				position_func = (Gtk.MenuPositionFunc) position_menu;
 
 				if ((button & PopupButton.RIGHT) != 0 && !(item is PreferencesDockItem) && !(item is PlankDockItem)) {
-					append_global_preferences_and_quit (menu_items);
+					int access = controller.prefs.SystemMenuAccess;
+					if (!controller.prefs.CategorizeItems && (access == 1 || access == 2)) {
+						access = 3;
+					}
+					if (access == 3) {
+						PreferencesDockItem.append_full_system_menu (controller, menu_items);
+					} else if (access == 2) {
+						bool is_docklet = DefaultApplicationDockItemProvider.is_docklet_element (item) || (item is TrashDockItem);
+						if (is_docklet) {
+							PreferencesDockItem.append_full_system_menu (controller, menu_items);
+						} else {
+							bool has_docklets = false;
+							foreach (var it in controller.Items) {
+								if (DefaultApplicationDockItemProvider.is_docklet_element (it) || (it is TrashDockItem)) {
+									has_docklets = true;
+									break;
+								}
+							}
+							if (!has_docklets) {
+								PreferencesDockItem.append_full_system_menu (controller, menu_items);
+							}
+						}
+					} else if (access == 1) {
+						bool is_docklet = DefaultApplicationDockItemProvider.is_docklet_element (item) || (item is TrashDockItem);
+						if (is_docklet) {
+							PreferencesDockItem.append_full_system_menu (controller, menu_items);
+						}
+					} else {
+						append_global_preferences_and_quit (menu_items);
+					}
 				}
 			}
 

@@ -898,6 +898,7 @@ namespace Plank
 						if (top_panel > 0)
 							top_margin += top_panel + 2;
 					}
+					top_margin += WindowControl.get_top_panel_floating_offset ();
 
 					int clamped_top_x = int.max (GAP, int.min (mon_w - width - GAP, center_x - width / 2));
 					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, top_margin);

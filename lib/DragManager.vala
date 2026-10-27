@@ -941,7 +941,7 @@ namespace Plank
 			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
 				if (controller.app_provider.docklets_expanded) {
 					controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand && window.is_hovering_docklets (x, y)) {
+				} else if (window.is_hovering_docklets (x, y)) {
 					controller.app_provider.expand_docklets ();
 				}
 			}

@@ -1360,3 +1360,43 @@ msgstr "Aplicación"
 #: lib/Widgets/WindowCardsWindow.vala:467
 msgid "Minimized"
 msgstr "Minimizada"
+
+#: lib/Items/DoNotDisturbDockItem.vala:38
+msgid "Do Not Disturb"
+msgstr "No molestar"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Silenced (Do Not Disturb)"
+msgstr "Notificaciones: Silenciadas (No molestar)"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Active"
+msgstr "Notificaciones: Activas"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Resume Notifications"
+msgstr "Reanudar notificaciones"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Silence Notifications"
+msgstr "Silenciar notificaciones"
+
+#: lib/Items/DoNotDisturbDockItem.vala:294
+msgid "_Notification Settings..."
+msgstr "Ajustes de _notificaciones..."
+
+#: lib/Items/PlankDockItem.vala:110
+msgid "_Do Not Disturb"
+msgstr "No _molestar"
+
+#: data/ui/preferences.ui:1330
+msgid "Toggle desktop notifications and Do Not Disturb mode"
+msgstr "Alternar notificaciones de escritorio y modo No molestar"
+
+#: data/ui/preferences.ui:483
+msgid "Show Trash:"
+msgstr "Mostrar Papelera:"
+
+#: data/ui/preferences.ui:486
+msgid "Show the Trash Bin icon on the dock"
+msgstr "Muestra el icono de la Papelera en el dock"

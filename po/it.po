@@ -1360,3 +1360,43 @@ msgstr "Applicazione"
 #: lib/Widgets/WindowCardsWindow.vala:467
 msgid "Minimized"
 msgstr "Ridotta a icona"
+
+#: lib/Items/DoNotDisturbDockItem.vala:38
+msgid "Do Not Disturb"
+msgstr "Non disturbare"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Silenced (Do Not Disturb)"
+msgstr "Notifiche: Silenziate (Non disturbare)"
+
+#: lib/Items/DoNotDisturbDockItem.vala:111
+msgid "Notifications: Active"
+msgstr "Notifiche: Attive"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Resume Notifications"
+msgstr "Riattiva notifiche"
+
+#: lib/Items/DoNotDisturbDockItem.vala:287
+msgid "Silence Notifications"
+msgstr "Silenzia notifiche"
+
+#: lib/Items/DoNotDisturbDockItem.vala:294
+msgid "_Notification Settings..."
+msgstr "Impostazioni _notifiche..."
+
+#: lib/Items/PlankDockItem.vala:110
+msgid "_Do Not Disturb"
+msgstr "Non _disturbare"
+
+#: data/ui/preferences.ui:1330
+msgid "Toggle desktop notifications and Do Not Disturb mode"
+msgstr "Attiva o disattiva le notifiche desktop e la modalità Non disturbare"
+
+#: data/ui/preferences.ui:483
+msgid "Show Trash:"
+msgstr "Mostra Cestino:"
+
+#: data/ui/preferences.ui:486
+msgid "Show the Trash Bin icon on the dock"
+msgstr "Mostra l'icona del Cestino sul dock"

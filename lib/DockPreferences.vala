@@ -134,6 +134,9 @@ namespace Plank
 
 		[Description(nick = "scroll-overflow", blurb = "Whether to smoothly scroll when items overflow the screen instead of shrinking.")]
 		public bool ScrollOverflow { get; set; }
+
+		[Description(nick = "system-menu-access", blurb = "System menu and preferences access mode (1: Docklets only, 2: Docklets only with fallback, 3: All icons, 4: Dedicated icon on dock).")]
+		public int SystemMenuAccess { get; set; default = 4; }
 		
 		/**
 		 * {@inheritDoc}

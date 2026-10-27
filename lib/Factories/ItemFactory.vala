@@ -152,6 +152,8 @@ namespace Plank
 				return new WeatherDockItem.with_dockitem_file (file);
 			if (launcher == "docklet://network")
 				return new NetworkDockItem.with_dockitem_file (file);
+			if (launcher == "docklet://dnd" || launcher == "docklet://donotdisturb")
+				return new DoNotDisturbDockItem.with_dockitem_file (file);
 			if (launcher.has_prefix ("docklet://")) {
 				warning ("Unknown or unsupported docklet '%s' in %s, skipping", launcher, file.get_basename ());
 				return null;

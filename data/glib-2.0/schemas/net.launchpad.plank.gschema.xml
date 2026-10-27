@@ -201,5 +201,11 @@
 			<summary>Scroll on overflow</summary>
 			<description>If true, smoothly scroll items with mouse wheel when dock overflows monitor space instead of shrinking icons to fit.</description>
 		</key>
+		<key name="system-menu-access" type="i">
+			<range min="1" max="4"/>
+			<default>4</default>
+			<summary>System menu and preferences access mode</summary>
+			<description>1 Docklets only (no fallback), 2 Docklets only with fallback, 3 All icons, 4 Dedicated icon on dock.</description>
+		</key>
 	</schema>
 </schemalist>

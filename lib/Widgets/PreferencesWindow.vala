@@ -113,6 +113,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_autostart;
 		[GtkChild]
+		unowned Gtk.ComboBoxText cb_system_menu_access;
+		[GtkChild]
 		unowned Gtk.ComboBoxText cb_window_click_behavior;
 		[GtkChild]
 		unowned Gtk.Switch sw_show_window_cards;
@@ -123,7 +125,7 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_show_attention_indicators;
 		[GtkChild]
-		unowned Gtk.Switch sw_docklet_trash;
+		unowned Gtk.Switch sw_show_trash;
 		[GtkChild]
 		unowned Gtk.Switch sw_docklet_clock;
 		[GtkChild]
@@ -151,9 +153,11 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_docklet_network;
 		[GtkChild]
-		unowned Gtk.Image img_docklet_trash;
+		unowned Gtk.Switch sw_docklet_dnd;
 		[GtkChild]
 		unowned Gtk.Image img_docklet_cpu;
+		[GtkChild]
+		unowned Gtk.Image img_docklet_dnd;
 		[GtkChild]
 		unowned Gtk.Image img_docklet_clock;
 		[GtkChild]
@@ -213,7 +217,7 @@ namespace Plank
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
 			set_focus_on_map (true);
-			set_default_size (640, 520);
+			set_default_size (560, 480);
 			
 			dock_preferences.set_transition_type (Gtk.StackTransitionType.SLIDE_LEFT_RIGHT);
 			dock_preferences.set_transition_duration (200);
@@ -385,6 +389,7 @@ namespace Plank
 				break;
 			case "Monitor":
 				rebuild_monitor_list ();
+				update_icon_size_feedback ();
 				break;
 			case "Offset":
 				adj_offset.value = prefs.Offset;
@@ -437,6 +442,9 @@ namespace Plank
 				break;
 			case "WindowClickBehavior":
 				cb_window_click_behavior.active_id = prefs.WindowClickBehavior.to_string ();
+				break;
+			case "SystemMenuAccess":
+				update_system_menu_access_options ();
 				break;
 			case "ShowWindowCards":
 				sw_show_window_cards.set_active (prefs.ShowWindowCards);
@@ -743,6 +751,7 @@ namespace Plank
 				}
 				cb_display_plug.sensitive = false;
 				updating_monitors = false;
+				update_icon_size_feedback ();
 			} else {
 				cb_display_plug.sensitive = true;
 				string target_name = "";
@@ -793,6 +802,7 @@ namespace Plank
 					if (active_text != null && active_text != "")
 						prefs.Monitor = active_text;
 				}
+				update_icon_size_feedback ();
 			}
 		}
 		
@@ -823,7 +833,8 @@ namespace Plank
 							"Icon=plank\n" +
 							"Terminal=false\n" +
 							"X-GNOME-Autostart-enabled=true\n" +
-							"X-GNOME-Autostart-Delay=2\n");
+							"X-GNOME-Autostart-Delay=2\n" +
+							"X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2\n");
 					} catch (FileError e) {
 						warning ("Unable to create autostart entry '%s': %s", autostart_path, e.message);
 						success = false;
@@ -909,14 +920,41 @@ namespace Plank
 			prefs.AccordionClickToExpand = ((Gtk.Switch) widget).get_active ();
 		}
 
+		void update_system_menu_access_options ()
+		{
+			cb_system_menu_access.changed.disconnect (system_menu_access_changed);
+
+			if (!prefs.CategorizeItems && (prefs.SystemMenuAccess == 1 || prefs.SystemMenuAccess == 2)) {
+				prefs.SystemMenuAccess = 3;
+			}
+
+			cb_system_menu_access.remove_all ();
+			if (prefs.CategorizeItems) {
+				cb_system_menu_access.append ("1", _("Docklets Only"));
+				cb_system_menu_access.append ("2", _("Docklets Only (with fallback)"));
+			}
+			cb_system_menu_access.append ("3", _("All Icons (integrated)"));
+			cb_system_menu_access.append ("4", _("Dedicated Icon (on dock)"));
+
+			cb_system_menu_access.active_id = prefs.SystemMenuAccess.clamp (1, 4).to_string ();
+			cb_system_menu_access.changed.connect (system_menu_access_changed);
+		}
+
 		void update_accordion_visibility ()
 		{
-			box_accordion.visible = prefs.CategorizeItems;
-			btn_reorder_free_items.visible = !prefs.CategorizeItems;
-			sw_accordion_click_to_expand.sensitive = prefs.AccordionDocklets;
-			bool show_delay = prefs.CategorizeItems && prefs.AccordionDocklets;
-			l_accordion_delay.visible = show_delay;
-			box_accordion_delay.visible = show_delay;
+			bool cat_active = prefs.CategorizeItems;
+			bool acc_active = cat_active && prefs.AccordionDocklets;
+
+			btn_reorder_free_items.visible = !cat_active;
+
+			box_accordion.sensitive = cat_active;
+			sw_accordion_click_to_expand.sensitive = acc_active;
+
+			l_accordion_delay.sensitive = acc_active;
+			box_accordion_delay.sensitive = acc_active;
+			s_accordion_delay.sensitive = acc_active;
+
+			update_system_menu_access_options ();
 		}
 
 		void accordion_delay_changed (Gtk.Adjustment adj)
@@ -946,9 +984,20 @@ namespace Plank
 			update_icon_size_feedback ();
 		}
 
+		void system_menu_access_changed ()
+		{
+			if (cb_system_menu_access.active_id != null) {
+				int val = int.parse (cb_system_menu_access.active_id);
+				if (val >= 1 && val <= 4) {
+					prefs.SystemMenuAccess = val;
+				}
+			}
+		}
+
 		Gtk.CssProvider? slider_css = null;
 		int last_fit_size = -1;
 		int last_scroll_mode = -1;
+		int last_val_rendered = -1;
 
 		void update_icon_size_feedback ()
 		{
@@ -959,12 +1008,16 @@ namespace Plank
 			int current_val = (int) adj_iconsize.value;
 			bool scroll_mode = prefs.ScrollOverflow;
 			int current_scroll_mode_int = scroll_mode ? 1 : 0;
+			bool exceeded = (current_val > fit_size);
 
-			bool structure_changed = (fit_size != last_fit_size || current_scroll_mode_int != last_scroll_mode);
+			bool structure_changed = (fit_size != last_fit_size || current_scroll_mode_int != last_scroll_mode
+				|| (exceeded && current_val != last_val_rendered)
+				|| (!exceeded && last_val_rendered > fit_size));
 
 			if (structure_changed) {
 				last_fit_size = fit_size;
 				last_scroll_mode = current_scroll_mode_int;
+				last_val_rendered = current_val;
 
 				s_iconsize.clear_marks ();
 
@@ -986,6 +1039,12 @@ namespace Plank
 					double pct = ((fit_size - min_sz) / (max_sz - min_sz)) * 100.0;
 					pct = pct.clamp (0.0, 100.0);
 
+					double hl_pct = 100.0;
+					if (exceeded && current_val > min_sz) {
+						hl_pct = ((fit_size - min_sz) / (double) (current_val - min_sz)) * 100.0;
+						hl_pct = hl_pct.clamp (0.0, 100.0);
+					}
+
 					if (slider_css == null) {
 						slider_css = new Gtk.CssProvider ();
 					} else {
@@ -996,12 +1055,23 @@ namespace Plank
 						string css = "trough {\n" +
 						             "    background-image: linear-gradient(to right, rgba(120, 120, 120, 0.25) 0%, rgba(120, 120, 120, 0.25) %.1f%%, rgba(224, 27, 36, 0.50) %.1f%%, rgba(224, 27, 36, 0.85) 100%%);\n".printf (pct, pct) +
 						             "}\n" +
-						             ".slider-exceeded highlight, .slider-exceeded trough.highlight {\n" +
-						             "    background-color: #e01b24;\n" +
+						             "scale.slider-exceeded highlight {\n" +
+						             "    background-color: transparent;\n" +
+						             "    background-image: linear-gradient(to right, #3584e4 0%, #3584e4 %.1f%%, #e01b24 %.1f%%, #e01b24 100%%);\n".printf (hl_pct, hl_pct) +
 						             "}\n" +
-						             ".slider-exceeded slider {\n" +
-						             "    background-color: #ff5252;\n" +
-						             "    border-color: #b71c1c;\n" +
+						             "scale.slider-exceeded.marks-after slider {\n" +
+						             "    background-color: transparent;\n" +
+						             "    background-image: url('resource:///net/launchpad/plank/ui/slider-marks-below-red.svg');\n" +
+						             "    background-repeat: no-repeat;\n" +
+						             "    background-position: center bottom;\n" +
+						             "    box-shadow: none;\n" +
+						             "    border: none;\n" +
+						             "}\n" +
+						             "scale.slider-exceeded:not(.marks-after) slider {\n" +
+						             "    background-color: #e01b24;\n" +
+						             "    background-image: none;\n" +
+						             "    border-radius: 50%;\n" +
+						             "    border: 2px solid #b71c1c;\n" +
 						             "}\n";
 						slider_css.load_from_data (css);
 						s_iconsize.get_style_context ().add_provider (slider_css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -1024,7 +1094,6 @@ namespace Plank
 				return;
 			}
 
-			bool exceeded = (current_val > fit_size);
 			if (exceeded) {
 				s_iconsize.get_style_context ().add_class ("slider-exceeded");
 				if (l_iconsize_hint != null) {
@@ -1082,9 +1151,15 @@ namespace Plank
 				sw_primary_display.set_active (false);
 				cb_display_plug.sensitive = true;
 				updating_monitors = false;
+				update_icon_size_feedback ();
 			}
 		}
 		
+		void on_position_manager_icon_size_changed (GLib.Object sender, ParamSpec prop)
+		{
+			update_icon_size_feedback ();
+		}
+
 		void connect_signals ()
 		{
 			if (signals_connected)
@@ -1106,6 +1181,7 @@ namespace Plank
 			adj_zoom_percent.value_changed.connect (zoom_percent_changed);
 			adj_accordion_delay.value_changed.connect (accordion_delay_changed);
 			cb_window_click_behavior.changed.connect (window_click_behavior_changed);
+			cb_system_menu_access.changed.connect (system_menu_access_changed);
 			sw_hide.notify["active"].connect (hide_toggled);
 			sw_primary_display.notify["active"].connect (primary_display_toggled);
 			sw_workspace_only.notify["active"].connect (workspace_only_toggled);
@@ -1123,7 +1199,7 @@ namespace Plank
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].connect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].connect (show_attention_indicators_toggled);
-			sw_docklet_trash.notify["active"].connect (docklet_trash_toggled);
+			sw_show_trash.notify["active"].connect (docklet_trash_toggled);
 			sw_docklet_clock.notify["active"].connect (docklet_clock_toggled);
 			sw_docklet_digital_clock.notify["active"].connect (docklet_digital_clock_toggled);
 			sw_docklet_battery.notify["active"].connect (docklet_battery_toggled);
@@ -1137,11 +1213,16 @@ namespace Plank
 			sw_docklet_ejector.notify["active"].connect (docklet_ejector_toggled);
 			sw_docklet_weather.notify["active"].connect (docklet_weather_toggled);
 			sw_docklet_network.notify["active"].connect (docklet_network_toggled);
+			sw_docklet_dnd.notify["active"].connect (docklet_dnd_toggled);
 			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 			get_screen ().monitors_changed.connect (rebuild_monitor_list);
+			if (controller != null && controller.position_manager != null) {
+				controller.position_manager.notify["icon-size"].connect (on_position_manager_icon_size_changed);
+				controller.position_manager.notify["max-icon-size"].connect (on_position_manager_icon_size_changed);
+			}
 		}
 		
 		void disconnect_signals ()
@@ -1165,6 +1246,7 @@ namespace Plank
 			adj_zoom_percent.value_changed.disconnect (zoom_percent_changed);
 			adj_accordion_delay.value_changed.disconnect (accordion_delay_changed);
 			cb_window_click_behavior.changed.disconnect (window_click_behavior_changed);
+			cb_system_menu_access.changed.disconnect (system_menu_access_changed);
 			sw_hide.notify["active"].disconnect (hide_toggled);
 			sw_primary_display.notify["active"].disconnect (primary_display_toggled);
 			sw_workspace_only.notify["active"].disconnect (workspace_only_toggled);
@@ -1182,7 +1264,7 @@ namespace Plank
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
 			sw_show_running_indicators.notify["active"].disconnect (show_running_indicators_toggled);
 			sw_show_attention_indicators.notify["active"].disconnect (show_attention_indicators_toggled);
-			sw_docklet_trash.notify["active"].disconnect (docklet_trash_toggled);
+			sw_show_trash.notify["active"].disconnect (docklet_trash_toggled);
 			sw_docklet_clock.notify["active"].disconnect (docklet_clock_toggled);
 			sw_docklet_digital_clock.notify["active"].disconnect (docklet_digital_clock_toggled);
 			sw_docklet_battery.notify["active"].disconnect (docklet_battery_toggled);
@@ -1196,11 +1278,16 @@ namespace Plank
 			sw_docklet_ejector.notify["active"].disconnect (docklet_ejector_toggled);
 			sw_docklet_weather.notify["active"].disconnect (docklet_weather_toggled);
 			sw_docklet_network.notify["active"].disconnect (docklet_network_toggled);
+			sw_docklet_dnd.notify["active"].disconnect (docklet_dnd_toggled);
 			if (controller != null && controller.default_provider != null)
 				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
+			if (controller != null && controller.position_manager != null) {
+				controller.position_manager.notify["icon-size"].disconnect (on_position_manager_icon_size_changed);
+				controller.position_manager.notify["max-icon-size"].disconnect (on_position_manager_icon_size_changed);
+			}
 		}
 		
 		void rebuild_monitor_list ()
@@ -1240,6 +1327,7 @@ namespace Plank
 			}
 			
 			updating_monitors = false;
+			update_icon_size_feedback ();
 		}
 
 		void init_dock_tab ()
@@ -1292,6 +1380,7 @@ namespace Plank
 				FileTest.IS_REGULAR));
 			sw_show_unpinned.set_active (!prefs.PinnedOnly);
 			sw_scroll_overflow.set_active (prefs.ScrollOverflow);
+			update_system_menu_access_options ();
 			sw_lock_items.set_active (prefs.LockItems);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
 			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
@@ -1406,6 +1495,11 @@ namespace Plank
 			toggle_docklet_uri (widget, "docklet://network");
 		}
 
+		void docklet_dnd_toggled (GLib.Object widget, ParamSpec param)
+		{
+			toggle_docklet_uri (widget, "docklet://dnd");
+		}
+
 		void default_provider_elements_changed (Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
 			init_docklets_tab ();
@@ -1417,7 +1511,7 @@ namespace Plank
 			updating_docklets = true;
 			unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
 			if (default_provider != null) {
-				sw_docklet_trash.set_active (default_provider.item_for_uri ("docklet://trash") != null);
+				sw_show_trash.set_active (default_provider.item_for_uri ("docklet://trash") != null);
 				sw_docklet_clock.set_active (default_provider.item_for_uri ("docklet://clock") != null);
 				sw_docklet_digital_clock.set_active (default_provider.item_for_uri ("docklet://digital-clock") != null);
 				sw_docklet_battery.set_active (default_provider.item_for_uri ("docklet://battery") != null);
@@ -1431,8 +1525,9 @@ namespace Plank
 				sw_docklet_ejector.set_active (default_provider.item_for_uri ("docklet://ejector") != null);
 				sw_docklet_weather.set_active (default_provider.item_for_uri ("docklet://weather") != null);
 				sw_docklet_network.set_active (default_provider.item_for_uri ("docklet://network") != null);
+				sw_docklet_dnd.set_active (default_provider.item_for_uri ("docklet://dnd") != null);
 			} else {
-				sw_docklet_trash.set_active (false);
+				sw_show_trash.set_active (false);
 				sw_docklet_clock.set_active (false);
 				sw_docklet_digital_clock.set_active (false);
 				sw_docklet_battery.set_active (false);
@@ -1446,6 +1541,7 @@ namespace Plank
 				sw_docklet_ejector.set_active (false);
 				sw_docklet_weather.set_active (false);
 				sw_docklet_network.set_active (false);
+				sw_docklet_dnd.set_active (false);
 			}
 			
 			update_docklet_icons ();
@@ -1481,7 +1577,6 @@ namespace Plank
 
 		void update_docklet_icons ()
 		{
-			ensure_docklet_icon (img_docklet_trash, "trashcan_empty;;user-trash", "/net/launchpad/plank/docklets/trash.svg");
 			ensure_docklet_icon (img_docklet_cpu, "utilities-system-monitor", "/net/launchpad/plank/docklets/cpu.svg");
 			ensure_docklet_icon (img_docklet_clock, "preferences-system-time", "/net/launchpad/plank/docklets/clock.svg");
 			ensure_docklet_icon (img_docklet_desktop, "user-desktop", "/net/launchpad/plank/docklets/desktop.svg");
@@ -1495,6 +1590,7 @@ namespace Plank
 			ensure_docklet_icon (img_docklet_ejector, "media-eject", "/net/launchpad/plank/docklets/ejector.svg");
 			ensure_docklet_icon (img_docklet_weather, "weather-few-clouds", "/net/launchpad/plank/docklets/weather.svg");
 			ensure_docklet_icon (img_docklet_network, "network-wireless-signal-good", "/net/launchpad/plank/docklets/network.svg");
+			ensure_docklet_icon (img_docklet_dnd, "preferences-desktop-notification-bell;;notifications", "/net/launchpad/plank/docklets/dnd.svg");
 		}
 	}
 }

@@ -674,6 +674,51 @@ namespace Plank
 			return false;
 		}
 
+		public static bool has_maximized_window_on_current_desktop (Gdk.Rectangle? mon_geom = null)
+		{
+			if (window_state == null)
+				return false;
+
+			try {
+				var parser = new Json.Parser ();
+				parser.load_from_data (window_state);
+				var root = parser.get_root ().get_array ();
+				foreach (var node in root.get_elements ()) {
+					var window = node.get_object ();
+					if (window.has_member ("resourceClass")
+						&& window.get_string_member ("resourceClass").down () == "wayplank")
+						continue;
+					if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
+						continue;
+					if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
+						continue;
+					if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
+						continue;
+					if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
+						continue;
+
+					if (mon_geom != null && mon_geom.width > 0) {
+						double wx = window.has_member ("x") ? window.get_double_member ("x") : 0.0;
+						double ww = window.has_member ("width") ? window.get_double_member ("width") : 0.0;
+						double wy = window.has_member ("y") ? window.get_double_member ("y") : 0.0;
+						double wh = window.has_member ("height") ? window.get_double_member ("height") : 0.0;
+						if (wx + ww <= mon_geom.x || wx >= mon_geom.x + mon_geom.width ||
+							wy + wh <= mon_geom.y || wy >= mon_geom.y + mon_geom.height) {
+							continue;
+						}
+					}
+
+					bool is_max = window.has_member ("maximized") && window.get_boolean_member ("maximized");
+					double y = window.has_member ("y") ? window.get_double_member ("y") : 999.0;
+					double mon_top = (mon_geom != null) ? mon_geom.y : 0.0;
+					if (is_max || (y <= mon_top + 36.0 && y >= mon_top))
+						return true;
+				}
+			} catch (Error e) { }
+
+			return false;
+		}
+
 		static void clean_old_script_files ()
 		{
 			try {

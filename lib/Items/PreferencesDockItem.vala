@@ -47,7 +47,16 @@ namespace Plank
 
 		public override bool can_be_removed ()
 		{
-			return false;
+			return true;
+		}
+
+		public override void delete ()
+		{
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.prefs.SystemMenuAccess == 4) {
+				dock.prefs.SystemMenuAccess = 2;
+			}
+			base.delete ();
 		}
 
 		public void open_preferences ()
@@ -61,7 +70,7 @@ namespace Plank
 				unowned DockController? dock = get_dock ();
 				if (dock != null && dock.prefs.CategorizeItems && dock.prefs.AccordionDocklets && dock.prefs.AccordionClickToExpand) {
 					unowned DefaultApplicationDockItemProvider? app_prov = dock.default_provider as DefaultApplicationDockItemProvider;
-					if (app_prov != null && !app_prov.docklets_expanded) {
+					if (app_prov != null && !app_prov.docklets_expanded && app_prov.get_docklet_count () > 1) {
 						app_prov.expand_docklets ();
 						return AnimationType.BOUNCE;
 					}
@@ -73,25 +82,14 @@ namespace Plank
 			return AnimationType.NONE;
 		}
 
-		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
+		public static void append_full_system_menu (DockController? controller, Gee.ArrayList<Gtk.MenuItem> items)
 		{
-			var items = new Gee.ArrayList<Gtk.MenuItem> ();
-
-			var report_item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
-			report_item.activate.connect (() => Application.get_default ().activate_action ("help", null));
-			items.add (report_item);
-
-			var shortcuts_item = create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
-			shortcuts_item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
-			items.add (shortcuts_item);
-
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			unowned DockController? controller = get_dock ();
 			if (controller != null) {
 				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (default_provider != null) {
-					var docklets_item = create_menu_item (_("_Docklets"), "system-run", true);
+					var docklets_item = DockElement.create_menu_item (_("_Docklets"), "system-run", true);
 					var docklets_menu = new Gtk.Menu ();
 					DockletMenuEntry[] docklets = {
 						{ _("_Trash"), "docklet://trash" },
@@ -107,7 +105,8 @@ namespace Plank
 						{ _("_Screen Brightness"), "docklet://brightness" },
 						{ _("_Removable Drives"), "docklet://ejector" },
 						{ _("_Weather Forecast"), "docklet://weather" },
-						{ _("_Network / Wi-Fi"), "docklet://network" }
+						{ _("_Network / Wi-Fi"), "docklet://network" },
+						{ _("_Do Not Disturb"), "docklet://dnd" }
 					};
 					foreach (var d in docklets) {
 						var d_uri = d.uri;
@@ -133,42 +132,55 @@ namespace Plank
 				}
 			}
 
-			var pref_item = create_menu_item (_("_Preferences..."), "preferences-system", true);
-			pref_item.activate.connect (open_preferences);
+			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
+			pref_item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
 			items.add (pref_item);
 
-			var appearance_item = create_menu_item (_("_Appearance..."), "preferences-desktop-theme", true);
+			var appearance_item = DockElement.create_menu_item (_("_Appearance..."), "preferences-desktop-theme", true);
 			appearance_item.activate.connect (() => Application.get_default ().activate_action ("preferences-appearance", null));
 			items.add (appearance_item);
 
-			var behaviour_item = create_menu_item (_("_Behaviour..."), "preferences-desktop", true);
+			var behaviour_item = DockElement.create_menu_item (_("_Behaviour..."), "preferences-desktop", true);
 			behaviour_item.activate.connect (() => Application.get_default ().activate_action ("preferences-behaviour", null));
 			items.add (behaviour_item);
 
-			var apps_item = create_menu_item (_("A_pplications..."), "applications-other", true);
+			var apps_item = DockElement.create_menu_item (_("A_pplications..."), "applications-other", true);
 			apps_item.activate.connect (() => Application.get_default ().activate_action ("preferences-applications", null));
 			items.add (apps_item);
 
-			var docklets_item = create_menu_item (_("_Docklets..."), "preferences-plugin", true);
-			docklets_item.activate.connect (() => Application.get_default ().activate_action ("preferences-docklets", null));
-			items.add (docklets_item);
+			var docklets_tab_item = DockElement.create_menu_item (_("_Docklets..."), "preferences-plugin", true);
+			docklets_tab_item.activate.connect (() => Application.get_default ().activate_action ("preferences-docklets", null));
+			items.add (docklets_tab_item);
 
-			var guide_item = create_menu_item (_("User Guide..."), "help-browser", true);
+			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
+			shortcuts_item.activate.connect (() => Application.get_default ().activate_action ("shortcuts", null));
+			items.add (shortcuts_item);
+
+			var guide_item = DockElement.create_menu_item (_("User Guide..."), "help-browser", true);
 			guide_item.activate.connect (() => Application.get_default ().activate_action ("guide", null));
 			items.add (guide_item);
 
-			var about_item = create_menu_item (_("_About"), "help-about", true);
+			var report_item = DockElement.create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
+			report_item.activate.connect (() => Application.get_default ().activate_action ("help", null));
+			items.add (report_item);
+
+			var about_item = DockElement.create_menu_item (_("_About"), "help-about", true);
 			about_item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (about_item);
 
 			if (!environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
 				items.add (new Gtk.SeparatorMenuItem ());
 
-				var quit_item = create_menu_item (_("_Quit"), "application-exit", true);
+				var quit_item = DockElement.create_menu_item (_("_Quit"), "application-exit", true);
 				quit_item.activate.connect (() => Application.get_default ().activate_action ("quit", null));
 				items.add (quit_item);
 			}
+		}
 
+		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
+		{
+			var items = new Gee.ArrayList<Gtk.MenuItem> ();
+			append_full_system_menu (get_dock (), items);
 			return items;
 		}
 	}

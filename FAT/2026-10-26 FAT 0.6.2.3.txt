@@ -1,21 +1,26 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-22
+Date: 2026-10-26
 Milestone: V0.6.2.3 (The Community Unification & Distribution Release: Round 3
            Multi-Window Preview Cards, Recent Files Jump List,
-           Classic Stock Theme Suite, Drawer Parity & Native Peer Stacking)
+           Classic Stock Theme Suite, Drawer Parity, Native Peer Stacking,
+           System Menu Access Modes, Minimalist Dock & Master Accordion Anchor)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [PASS] | 109 [ok] | 2 [ko->ok] | 0 [  ] | 0 [NA] | 0 Open Defects
+      [QUALIFIED PASS] | 111 [ok] | 8 [ko->ok] | 0 [  ] | 0 [NA]
+      (100% Pass, 0 Open Defects)
   - GNOME (Mutter Backend):
-      [PASS] | 106 [ok] | 7 [ko->ok] | 0 [  ] | 0 [NA] | 0 Open Defects
+      [QUALIFIED PASS] | 110 [ok] | 10 [ko->ok] | 0 [  ] | 0 [NA]
+      (100% Pass, 0 Open Defects)
   - LABWC (wlroots Backend):
-      [PASS] | 109 [ok] | 0 [ko->ok] | 0 [  ] | 2 [NA] | 0 Open Defects
+      [QUALIFIED PASS] | 113 [ok] | 3 [ko->ok] | 0 [  ] | 2 [NA]
+      (100% Pass, 0 Open Defects)
   - TOTAL SCOREBOARD:
-      335 Tests Defined | 324 [ok] Baseline | 9 [ko->ok] Squashed |
-      0 Pending [  ] | 2 [NA] Protocol Limitations | 0 Open Defects
+      357 Tests Defined | 334 [ok] Baseline | 21 [ko->ok] Squashed
+      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 0 Open Defects
+      100% QUALIFIED PASS
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.2.2 testing)
@@ -29,7 +34,7 @@ Test Status Legend (ISA-88 Qualification Standard):
                   formally transferred to and tracked under next Milestone FAT
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE PASS | 7 SQUASHED]
+SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 10 SQUASHED (100%)]
 ================================================================================
 ================================================================================
 
@@ -386,23 +391,41 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE PASS | 7 SQUASHED]
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
-   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
+   [ko->ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
         Displays (DDC/CI):
-        - External Display Detection: Detects multi-monitor setups or desktop
-          external
-          monitors via ddcutil detect.
-        - Safe Debounce Window: Engages 250ms settle debounce to protect
-          external monitor
-          I2C bus controllers against packet collision.
-        - Multi-Monitor Atomic Adjustment: Under Mutter, uses unprivileged D-Bus
-          / sysfs
-          single-write to internal panel and serialized background worker with
-            target
-          coalescing via ddcutil for external displays.
-        - Clamshell Mode Handling: When laptop lid is closed with external
-          monitor connected,
-          detects internal eDP is disabled and seamlessly engages external
-            monitor control.
+        - Test Procedure & CLI / Hardware Inbound Verification:
+          1. Run terminal command: brightnessctl set 40%
+          2. Verify docklet badge immediately reflects 40% (ground truth sync).
+          3. Verify external displays follow via ddcutil after 350ms settle.
+          4. Press physical laptop Fn brightness keys up/down; verify badge
+             and external displays track in real time.
+          5. Immediately scroll mouse wheel over docklet; verify adjustment
+             steps smoothly from current physical Set Point without jumping.
+          6. Left-click to cycle presets (25% -> 50% -> 75% -> 100%); verify
+             atomic synchronization between internal panel and external screens.
+        BUG: Two defects violated system integrity:
+          1) HAL Architecture Violation: lib/Items/BrightnessDockItem.vala
+             directly accessed hardware sysfs (/sys/class/backlight), spawned
+             ddcutil processes, and made direct D-Bus calls, violating the HAL
+             Prime Directive (UI must be 100% compositor/hardware agnostic).
+          2) Inbound Desync: External adjustments via brightnessctl set xx% or
+             physical Fn keys write directly to sysfs. WayPlank previously
+             relied on D-Bus cached properties, leading to stale docklet badges.
+             Furthermore, external monitors were only adjusted during direct
+             mouse wheel/click actions on the docklet; external changes were
+             never propagated to external screens via ddcutil, leaving them
+             desynchronized and corrupting the Set Point continuity.
+        SOLUTION:
+          1) Extracted all hardware, D-Bus, and DDC/CI worker logic into a
+             pure HAL service: lib/Services/BrightnessControl.vala.
+          2) Implemented 500ms sysfs polling heartbeat to read direct ground
+             truth from /sys/class/backlight/<device>/brightness, catching all
+             brightnessctl and Fn key modifications instantly.
+          3) Implemented 350ms Inbound Settle Debounce with anti-echo guard:
+             when an inbound hardware change settles, automatically queues
+             and executes ddcutil worker commands across all external displays.
+          4) Refactored BrightnessDockItem into a pure UI consumer of
+             BrightnessControl.get_default(). Re-test passed 100%.
    [ok] 6.11 Weather Forecast Docklet (docklet://weather) & Vector Icon
         Fallback:
         - Test Procedure:
@@ -521,6 +544,31 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE PASS | 7 SQUASHED]
           multi-character badges scale compactly with crisp bold white Pango
           text,
           outline shadow, and highlight across all icon sizes and dynamic zoom.
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+        - Fills the 2nd slot in Row 1 of the Preferences Docklets 7×2 grid
+          (Row 1 Col 0: CPU & RAM, Row 1 Col 1: Do Not Disturb).
+        - Real-time desktop notification inhibition toggle via standard
+          org.freedesktop.Notifications DBus specification.
+        - Dynamic state-driven icons:
+          * Normal / Active: preferences-desktop-notification-bell / notifications
+          * Silenced / DND: notifications-disabled / notifications-disabled-symbolic
+        - Informative tooltip:
+          * Normal: "Notifications: Active"
+          * Silenced: "Notifications: Silenced (Do Not Disturb)"
+        - Left-click toggles Do Not Disturb mode immediately.
+        - Right-click context menu displays: "Do Not Disturb" (header),
+          "Resume Notifications" / "Silence Notifications", "Notification
+          Settings..." (opens KDE/GNOME notification preferences), and "Remove
+          from Dock".
+        - Bidirectional sync: listens to DBus PropertiesChanged on
+          org.freedesktop.Notifications.Inhibited to stay in sync when DND is
+          toggled externally (e.g. from KDE Plasma tray or GNOME top bar).
+        - FAT Verification using test script FAT/test_notification.py
+          (or FAT/Test Files/Testers/test_notification.py):
+          * Run with DND OFF: notification banner appears on screen.
+          * Click Do Not Disturb docklet on dock (icon switches to muted bell).
+          * Run with DND ON: notification is suppressed / inhibited by desktop.
+          * Click Do Not Disturb docklet again: icon returns to active bell.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -579,12 +627,17 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE PASS | 7 SQUASHED]
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
-          Left: Trash, Clock (Analog), Digital Clock, Battery, Screenshot,
-                Preferences, Removable Drives (Ejector).
-          Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
-                 Session & Power, Screen Brightness, Weather Forecast.
+          Row 1: CPU & RAM Monitor (Col 0), Do Not Disturb (Col 1)
+          Row 2: Analog Clock (Col 0), Show Desktop (Col 1)
+          Row 3: Digital Clock (Col 0), Media Player [MPRIS] (Col 1)
+          Row 4: Battery Indicator (Col 0), Audio Volume (Col 1)
+          Row 5: Take Screenshot (Col 0), Session Management (Col 1)
+          Row 6: Display Brightness (Col 0), Removable Media [Ejector] (Col 1)
+          Row 7: Weather Information (Col 0), Network & Wi-Fi (Col 1)
+        - Note: Trash has been relocated from Docklets to the Appearance tab
+          ("Show Trash" switch on Row 7) as a permanent desktop shell anchor.
         - Verify 100% visual parity between the Preferences 7×2 switches
-          and running dock items (Trash, Media Player, Brightness, Volume).
+          and running dock items (Do Not Disturb, Media Player, Brightness, Volume).
         - Verify toggling any switch instantly adds or removes the docklet item
           from the dock.
    [ok] 7.9 Categorize Items Toggle & Layout Architecture:
@@ -746,20 +799,45 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE PASS | 7 SQUASHED]
         - When ON: dock icons preserve target size and scroll with wheel
         - When OFF: dock icons auto-shrink down to fit screen (classic Plank
           behavior)
-   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
+   [ko->ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
         (Appearance Tab):
         - Icon Size slider remains uncapped (24px - 128px) preserving user
           target size
         - In Shrink Mode: physical limit tick mark appears at screen limit (e.g.
-          42px), track
-          displays dynamic CSS redline gradient for values beyond screen
+          42px/48px), track displays dynamic CSS redline gradient for values beyond screen
           capacity
-        - Moving thumb into red zone turns highlight/thumb warning red with
-          warning label:
-          "⚠️ Limited to 42px by screen space (auto-shrunk)" and explanatory
+        - Moving thumb into red zone turns thumb warning red with vector teardrop
+          without background box artifact, with warning label:
+          "⚠️ Limited to XXpx by screen space (auto-shrunk)" and explanatory
           tooltip
         - In Scroll Mode: redline clears, sub-label confirms "Scroll on Overflow
           active"
+        BUG 1 (VISUAL / COMPOSITOR INDEPENDENT):
+          When moving the slider thumb into the unrealizable redline zone
+          (current_val > fit_size), GTK 3 scale slider thumb (.marks-after)
+          rendered an unsightly square red background box behind the teardrop
+          pointer, and the highlight track flooded red.
+        BUG 2 (TOPOLOGY RECALCULATION & HIGHLIGHT OBLITERATION):
+          When switching WayPlank to a display with different geometry (e.g.
+          from 2560x1440 to 1920x1080), PositionManager.screen_changed did not
+          invoke update(theme) to recalculate MaxIconSize and IconSize auto-shrink,
+          leaving dock icons at stale dimensions until manual Ctrl+Scroll or
+          slider movement. Furthermore, the GTK 3 scale highlight element
+          remained solid blue up to the thumb, masking the underlying redline
+          track gradient between the screen fit limit and the thumb.
+        SOLUTION:
+          1) Embedded dedicated vector SVG (slider-marks-below-red.svg) via
+             GResource with transparent background to eliminate clipping box.
+          2) PositionManager.screen_changed now immediately invokes
+             update(theme), instantly recalculating MaxIconSize and auto-shrink
+             for the new display bounds.
+          3) PreferencesWindow connects to PositionManager notify signals and
+             monitor selection switches to refresh slider geometry in real time.
+          4) Injected dual-color linear gradient on scale.slider-exceeded
+             highlight, splitting exactly at fit_size: blue in safe zone and
+             red in exceeded zone, keeping the redline track seamless and true.
+          Verified clean auto-shrink upon display topology change and seamless
+          tachometer redline rendering across all 3 compositors.
    [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
         - Left/right (and vertical top/bottom) subtle edge gradients and
           chevrons indicate scrollable content
@@ -905,15 +983,74 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE PASS | 7 SQUASHED]
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
 
+13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
+   [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
+        - Verify dropdown 'System Menu Access' provides modes ordered by fill sensation:
+          * Mode 1: Docklets Only -> Preferences icon hidden; right-click on
+            docklet items shows full system menu. No fallback to app icons.
+          * Mode 2: Docklets Only (with fallback) -> Preferences icon hidden;
+            right-click on docklet items shows full system menu; if no docklets,
+            falls back cleanly to app icons.
+          * Mode 3: All Icons (integrated) -> Preferences icon hidden; right-click
+            on ANY icon (application, folder, docklet) includes full system menu.
+          * Mode 4: Dedicated Icon (on dock) -> Classic gear icon present on dock.
+        - Verify settings persist across dock restarts via GSettings schema key
+          'system-menu-access' (int 1..4).
+   [ok] 13.2 Minimalist Dock Setup & Context Menu Preferences Removal:
+        - In Mode 4, right-click the Preferences gear dock item.
+        - Verify context menu displays standard 'Remove from Dock' action.
+        - Click 'Remove from Dock': verify Preferences icon is removed immediately
+          from dock with poof animation, and SystemMenuAccess automatically
+          transitions to Mode 2 (or Mode 3 if Categorize Items is disabled),
+          ensuring user is never locked out of settings.
+   [ok] 13.3 Free Mode (Uncategorized) Protection & Dynamic Migration:
+        - When 'Categorize Items' is toggled OFF (Free Mode):
+          * Verify Option 1 ('Docklets Only') and Option 2 ('Docklets Only with fallback')
+            are dynamically removed from the Preferences dropdown; only 'All Icons'
+            and 'Dedicated Icon' appear.
+          * If user switches 'Categorize Items' OFF while on Mode 1 or Mode 2, verify
+            SystemMenuAccess automatically migrates to Mode 3 ('All Icons').
+          * Verify safety guard in DockWindow.vala: even if raw setting is 1 or 2,
+            when CategorizeItems is false, right-click on any icon grants system menu.
+   [ok] 13.4 Accordion Master Anchor, Fallback & Expansion Safety:
+        - In Categorize Items mode with Accordion enabled:
+          * If Preferences icon is present, it acts as the Master Anchor.
+          * If Preferences icon is hidden, the first docklet dynamically acts as
+            the fallback anchor.
+          * With 'Click to Expand' enabled, left-click on the closed anchor icon
+            immediately expands the accordion without getting trapped or lost.
+          * If docklet count <= 1, accordion never collapses into a single icon
+            (prevents redundant expand/collapse traps).
+          * Drag-and-drop: dragging an item over docklets automatically expands
+            the accordion on hover regardless of 'Click to Expand'.
+   [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
+        - Open Preferences dialog: verify window default dimensions are compact
+          (560x480) with zero horizontal label wrapping or forced stretching.
+          - Verify Accordion controls and collapse delay are cleanly laid out on
+          dedicated rows.
+        - Verify all new settings strings are localized with zh_CN prioritized #1,
+          plus it, es, fr, ca, de, uk in po/generate_translations.py.
+   [ko->ok] 13.6 Strict Minimalist Mode 1 ('Docklets Only' - No App Fallback):
+        - In Preferences -> Behaviour, select Mode 1 ('Docklets Only').
+        - Verify dedicated Preferences gear icon is hidden from dock.
+        - With docklets present: right-click on any docklet displays full WayPlank system menu.
+        - With NO docklets present: right-click on any application icon shows ONLY its standard
+          application menu (zero WayPlank system menu items appended; pristine application menus).
+        - Verify 'Ctrl + Right Click' on any icon or dock surface unconditionally opens the
+          full WayPlank system menu, guaranteeing full settings accessibility at all times.
+
 ================================================================================
-SESSION 1 RESULT: PASS (GNOME / Mutter Backend)
+SESSION 1 RESULT: QUALIFIED PASS (GNOME / Mutter Backend)
 ================================================================================
-  * Tests: 113 | Passed: 106 [ok] | Squashed: 7 [ko->ok]
-    (0.1, 0.2, 6.5, 7.1, 7.15, 7.16, 9.9)
+  * Tests: 120 | Passed Baseline: 110 [ok] | Squashed: 10 [ko->ok]
+    (0.1, 0.2, 6.5, 6.10b, 7.1, 7.15, 7.16, 9.9, 10.8, 13.6)
   * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Pass Rate: 100%
 ================================================================================
+
+
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
+SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 111 BASELINE | 8 SQUASHED (100%)]
 ================================================================================
 ================================================================================
 
@@ -1085,7 +1222,25 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
         no JSON parse errors or vanished indicators
 
 3. HIDE & DODGE MODES
-   [ok] 3.1 None: Dock permanently visible, never hides
+   [ko->ok] 3.1 None: Dock permanently visible, never hides & Layer-Shell Input Passthrough:
+        - None hide mode: dock remains permanently visible on screen.
+        - Verify dock keeps exclusive_zone at 0 so it never displaces desktop panels.
+        - Verify transparent areas outside the dock pill pass clicks cleanly
+          through to underlying desktop and windows.
+        BUG: When Hide Mode was set to None (or dock not hiding), WayPlank on
+          Layer.TOP occupied a virtual input rectangle spanning the full monitor
+          width (e.g. 2560px or 1920px) because set_input_mask() was only invoked
+          during hide/unhide animations or enter/leave events, not on window realization.
+          Clicks on the screen outside the dock pill (or on windows placed underneath) were
+          completely intercepted and could not pass through to underlying
+          applications (browser tabs, file manager, window decorations).
+        SOLUTION: Kept GtkLayerShell.set_exclusive_zone(this, 0) strictly at 0 in
+          update_exclusive_zone() to prevent displacing KDE/GNOME system panels. In
+          DockWindow.vala, bound set_input_mask() directly to realize and map_event signals,
+          ensuring the Cairo input shape region (window.input_shape_combine_region)
+          is immediately clipped to the visual dock pill upon mapping. This guarantees
+          all clicks outside the dock items pass through transparently to underlying surfaces
+          via Wayland wl_surface.set_input_region without altering desktop exclusive margins.
    [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
    [ok] 3.3 Intellihide (Intelligent):
         Window overlaps dock -> hides; moves away -> reveals
@@ -1214,22 +1369,41 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
-   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
-        Displays (DDC/CI):
-        - External Display Detection: Detects multi-monitor setups or desktop
-          external
-          monitors via kscreen-doctor / ddcutil.
-        - Safe Debounce Window: Engages 250ms settle debounce to protect
-          external monitor
-          I2C bus controllers against packet collision.
-        - Multi-Monitor Atomic Adjustment: Under KWin, kscreen-doctor atomically
-          adjusts
-          all connected external outputs (DP/HDMI) and synchronizes with
-            internal panel.
-        - Clamshell Mode Handling: When laptop lid is closed with external
-          monitor connected,
-          detects internal eDP is disabled and seamlessly engages external
-            monitor control.
+   [ko->ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
+        Displays (KWin / KScreen / DDC/CI):
+        - Test Procedure & CLI / Hardware Inbound Verification:
+          1. Run terminal command: brightnessctl set 40%
+          2. Verify docklet badge immediately reflects 40% (ground truth sync).
+          3. Verify external DP/HDMI displays follow via kscreen-doctor after
+             350ms settle debounce.
+          4. Press physical laptop Fn brightness keys up/down; verify badge
+             and external displays track in real time.
+          5. Immediately scroll mouse wheel over docklet; verify adjustment
+             steps smoothly from current physical Set Point without jumping.
+          6. Left-click to cycle presets (25% -> 50% -> 75% -> 100%); verify
+             atomic synchronization between internal panel and external screens.
+        BUG: Two defects violated system integrity on KDE Plasma:
+          1) HAL Architecture Violation: lib/Items/BrightnessDockItem.vala
+             directly invoked kscreen-doctor, parsed JSON topology, and handled
+             Solid.PowerManagement D-Bus calls within the UI docklet.
+          2) Inbound Desync: External adjustments via brightnessctl set xx% or
+             laptop hardware Fn keys write directly to sysfs. KDE PowerDevil
+             does not emit D-Bus brightness signals for direct sysfs writes.
+             WayPlank previously queried PowerDevil first, receiving stale D-Bus
+             cached values. Furthermore, kscreen-doctor was only invoked on
+             direct UI mouse wheel/click events; inbound sync explicitly
+             bypassed KDE (if (is_kde) return), leaving external monitors
+             desynchronized and wheel scrolling out of sync with Set Point.
+        SOLUTION:
+          1) Extracted all KWin/KScreen and PowerDevil logic into HAL service
+             lib/Services/BrightnessControl.vala.
+          2) Prioritized physical sysfs (/sys/class/backlight) ground truth
+             polling (500ms heartbeat) over stale PowerDevil D-Bus responses.
+          3) Implemented 350ms Inbound Settle Debounce: upon detecting an
+             external brightness change, settles and invokes kscreen-doctor
+             to atomically update all connected external outputs.
+          4) Refactored BrightnessDockItem into a pure UI consumer of
+             BrightnessControl.get_default(). Re-test passed 100%.
    [ok] 6.11 Weather Forecast Docklet (docklet://weather) & Vector Icon
         Fallback:
         - Test Procedure:
@@ -1348,6 +1522,31 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
           multi-character badges scale compactly with crisp bold white Pango
           text,
           outline shadow, and highlight across all icon sizes and dynamic zoom.
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+        - Fills the 2nd slot in Row 1 of the Preferences Docklets 7×2 grid
+          (Row 1 Col 0: CPU & RAM, Row 1 Col 1: Do Not Disturb).
+        - Real-time desktop notification inhibition toggle via standard
+          org.freedesktop.Notifications DBus specification.
+        - Dynamic state-driven icons:
+          * Normal / Active: preferences-desktop-notification-bell / notifications
+          * Silenced / DND: notifications-disabled / notifications-disabled-symbolic
+        - Informative tooltip:
+          * Normal: "Notifications: Active"
+          * Silenced: "Notifications: Silenced (Do Not Disturb)"
+        - Left-click toggles Do Not Disturb mode immediately.
+        - Right-click context menu displays: "Do Not Disturb" (header),
+          "Resume Notifications" / "Silence Notifications", "Notification
+          Settings..." (opens KDE/GNOME notification preferences), and "Remove
+          from Dock".
+        - Bidirectional sync: listens to DBus PropertiesChanged on
+          org.freedesktop.Notifications.Inhibited to stay in sync when DND is
+          toggled externally (e.g. from KDE Plasma tray or GNOME top bar).
+        - FAT Verification using test script FAT/test_notification.py
+          (or FAT/Test Files/Testers/test_notification.py):
+          * Run with DND OFF: notification banner appears on screen.
+          * Click Do Not Disturb docklet on dock (icon switches to muted bell).
+          * Run with DND ON: notification is suppressed / inhibited by desktop.
+          * Click Do Not Disturb docklet again: icon returns to active bell.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -1355,7 +1554,32 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
         - Preferences dialog opens centered without glitch.
         - Preferences, Help, and About dialogs raise immediately to foreground
           over other windows (Wayland focus bypass).
-   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ko->ok] 7.2 Position on Screen & KDE Plasma 6 Dynamic Floating Top Panel:
+        - Bottom, Left, Right edge anchoring works cleanly.
+        - Position: Top on KDE Plasma 6 Wayland:
+          * In unmaximized / desktop state with Plasma floating panel enabled,
+            panel dynamically floats downward with curved corners and shadow.
+            WayPlank applies dynamic 8px top margin offset, preventing panel
+            from overlapping dock running indicator dots and flare.
+          * When any window is maximized or touches the top screen edge on the dock's
+            active monitor, KDE Plasma automatically de-floats the panel to a 0-gap edge strut.
+            WayPlank instantly reacts to window state changes via KWinBridge,
+            clearing the 8px offset to sit flush against the de-floated panel
+            with 0 gap and 0 overlap.
+        BUG: In KDE Plasma 6 multi-monitor configurations, when Position was set to Top,
+          has_maximized_window_on_current_desktop() inspected windows globally across all
+          screens without checking monitor boundaries. If a window was maximized on a
+          secondary monitor (e.g. VSCode on DP-6 at x=2560), it falsely indicated that a
+          maximized window was present on the dock's display, permanently locking the
+          offset to 0 and preventing WayPlank from dynamically following ("non segue") the
+          floating Plasma panel on the primary monitor.
+        SOLUTION: Updated has_maximized_window_on_current_desktop(mon_geom) in KWinBridge.vala
+          and get_top_panel_floating_offset(mon_geom) in KWinBackend.vala to filter window
+          coordinates strictly against the dock's active monitor geometry (mon_geom). Connected
+          Gdk.Monitor notify["workarea"] and KWinBridge state_changed to update_layer_shell_anchors(),
+          ensuring the dock dynamically and smoothly tracks panel floating/de-floating
+          isolated per monitor, sitting flush when a window is maximized on that monitor and
+          offsetting 8px when floating.
    [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
    [ok] 7.4 Icon Size Slider Resiliency:
         Real-time slider resizing works smoothly across all values (24px to
@@ -1384,12 +1608,17 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
-          Left: Trash, Clock (Analog), Digital Clock, Battery, Screenshot,
-                Preferences, Removable Drives (Ejector).
-          Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
-                 Session & Power, Screen Brightness, Weather Forecast.
+          Row 1: CPU & RAM Monitor (Col 0), Do Not Disturb (Col 1)
+          Row 2: Analog Clock (Col 0), Show Desktop (Col 1)
+          Row 3: Digital Clock (Col 0), Media Player [MPRIS] (Col 1)
+          Row 4: Battery Indicator (Col 0), Audio Volume (Col 1)
+          Row 5: Take Screenshot (Col 0), Session Management (Col 1)
+          Row 6: Display Brightness (Col 0), Removable Media [Ejector] (Col 1)
+          Row 7: Weather Information (Col 0), Network & Wi-Fi (Col 1)
+        - Note: Trash has been relocated from Docklets to the Appearance tab
+          ("Show Trash" switch on Row 7) as a permanent desktop shell anchor.
         - Verify 100% visual parity between the Preferences 7×2 switches
-          and running dock items (Trash, Media Player, Brightness, Volume).
+          and running dock items (Do Not Disturb, Media Player, Brightness, Volume).
         - Verify toggling any switch instantly adds or removes the docklet item
           from the dock.
    [ok] 7.9 Categorize Items Toggle & Layout Architecture:
@@ -1519,20 +1748,45 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
         - When ON: dock icons preserve target size and scroll with wheel
         - When OFF: dock icons auto-shrink down to fit screen (classic Plank
           behavior)
-   [ok] 10.8 Dy namic Icon Size Capacity Indicator & Tachometer Redline
+   [ko->ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
         (Appearance Tab):
         - Icon Size slider remains uncapped (24px - 128px) preserving user
           target size
         - In Shrink Mode: physical limit tick mark appears at screen limit (e.g.
-          42px), track
-          displays dynamic CSS redline gradient for values beyond screen
+          42px/48px), track displays dynamic CSS redline gradient for values beyond screen
           capacity
-        - Moving thumb into red zone turns highlight/thumb warning red with
-          warning label:
-          "⚠️ Limited to 42px by screen space (auto-shrunk)" and explanatory
+        - Moving thumb into red zone turns thumb warning red with vector teardrop
+          without background box artifact, with warning label:
+          "⚠️ Limited to XXpx by screen space (auto-shrunk)" and explanatory
           tooltip
         - In Scroll Mode: redline clears, sub-label confirms "Scroll on Overflow
           active"
+        BUG 1 (VISUAL / COMPOSITOR INDEPENDENT):
+          When moving the slider thumb into the unrealizable redline zone
+          (current_val > fit_size), GTK 3 scale slider thumb (.marks-after)
+          rendered an unsightly square red background box behind the teardrop
+          pointer, and the highlight track flooded red.
+        BUG 2 (TOPOLOGY RECALCULATION & HIGHLIGHT OBLITERATION):
+          When switching WayPlank to a display with different geometry (e.g.
+          from 2560x1440 to 1920x1080), PositionManager.screen_changed did not
+          invoke update(theme) to recalculate MaxIconSize and IconSize auto-shrink,
+          leaving dock icons at stale dimensions until manual Ctrl+Scroll or
+          slider movement. Furthermore, the GTK 3 scale highlight element
+          remained solid blue up to the thumb, masking the underlying redline
+          track gradient between the screen fit limit and the thumb.
+        SOLUTION:
+          1) Embedded dedicated vector SVG (slider-marks-below-red.svg) via
+             GResource with transparent background to eliminate clipping box.
+          2) PositionManager.screen_changed now immediately invokes
+             update(theme), instantly recalculating MaxIconSize and auto-shrink
+             for the new display bounds.
+          3) PreferencesWindow connects to PositionManager notify signals and
+             monitor selection switches to refresh slider geometry in real time.
+          4) Injected dual-color linear gradient on scale.slider-exceeded
+             highlight, splitting exactly at fit_size: blue in safe zone and
+             red in exceeded zone, keeping the redline track seamless and true.
+          Verified clean auto-shrink upon display topology change and seamless
+          tachometer redline rendering across all 3 compositors.
    [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
         - Left/right (and vertical top/bottom) subtle edge gradients and
           chevrons indicate scrollable content
@@ -1676,15 +1930,87 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASS / 109 BASELINE PASS | 2 SQUASHED]
    [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
+   [ko->ok] 12.6 Live Window Thumbnail Capture on KWin (First Hover & Alpha Opacity):
+        - Hover or click an application with 2+ open windows on KDE Plasma.
+        - Verify preview cards show crisp, live window content on the very first
+          appearance, without blank/empty viewports or transparent rendering.
+        - Verify autostart desktop entry incorporates restricted D-Bus permissions
+          for org.kde.KWin.ScreenShot2.
+        BUG: On KWin Wayland, the first time preview cards opened, thumbnail viewports
+          appeared empty/blank due to zero alpha bytes in KWin raw framebuffer pipe,
+          missing layer-shell toplevel redraw, and missing autostart D-Bus permissions.
+        SOLUTION: Enforced buffer[i + 3] = 255 in KWinThumbnailService.vala, added
+          this.queue_draw() in WindowCardsWindow.vala, and added restricted interface
+          declarations to autostart generator in PreferencesWindow.vala.
+
+13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
+   [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
+        - Verify dropdown 'System Menu Access' provides modes ordered by fill sensation:
+          * Mode 1: Docklets Only -> Preferences icon hidden; right-click on
+            docklet items shows full system menu. No fallback to app icons.
+          * Mode 2: Docklets Only (with fallback) -> Preferences icon hidden;
+            right-click on docklet items shows full system menu; if no docklets,
+            falls back cleanly to app icons.
+          * Mode 3: All Icons (integrated) -> Preferences icon hidden; right-click
+            on ANY icon (application, folder, docklet) includes full system menu.
+          * Mode 4: Dedicated Icon (on dock) -> Classic gear icon present on dock.
+        - Verify settings persist across dock restarts via GSettings schema key
+          'system-menu-access' (int 1..4).
+   [ok] 13.2 Minimalist Dock Setup & Context Menu Preferences Removal:
+        - In Mode 4, right-click the Preferences gear dock item.
+        - Verify context menu displays standard 'Remove from Dock' action.
+        - Click 'Remove from Dock': verify Preferences icon is removed immediately
+          from dock with poof animation, and SystemMenuAccess automatically
+          transitions to Mode 2 (or Mode 3 if Categorize Items is disabled),
+          ensuring user is never locked out of settings.
+   [ok] 13.3 Free Mode (Uncategorized) Protection & Dynamic Migration:
+        - When 'Categorize Items' is toggled OFF (Free Mode):
+          * Verify Option 1 ('Docklets Only') and Option 2 ('Docklets Only with fallback')
+            are dynamically removed from the Preferences dropdown; only 'All Icons'
+            and 'Dedicated Icon' appear.
+          * If user switches 'Categorize Items' OFF while on Mode 1 or Mode 2, verify
+            SystemMenuAccess automatically migrates to Mode 3 ('All Icons').
+          * Verify safety guard in DockWindow.vala: even if raw setting is 1 or 2,
+            when CategorizeItems is false, right-click on any icon grants system menu.
+   [ok] 13.4 Accordion Master Anchor, Fallback & Expansion Safety:
+        - In Categorize Items mode with Accordion enabled:
+          * If Preferences icon is present, it acts as the Master Anchor.
+          * If Preferences icon is hidden, the first docklet dynamically acts as
+            the fallback anchor.
+          * With 'Click to Expand' enabled, left-click on the closed anchor icon
+            immediately expands the accordion without getting trapped or lost.
+          * If docklet count <= 1, accordion never collapses into a single icon
+            (prevents redundant expand/collapse traps).
+          * Drag-and-drop: dragging an item over docklets automatically expands
+            the accordion on hover regardless of 'Click to Expand'.
+   [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
+        - Open Preferences dialog: verify window default dimensions are compact
+          (560x480) with zero horizontal label wrapping or forced stretching.
+        - Verify Accordion controls and collapse delay are cleanly laid out on
+          dedicated rows.
+        - Verify all new settings strings are localized with zh_CN prioritized #1,
+          plus it, es, fr, ca, de, uk in po/generate_translations.py.
+   [ko->ok] 13.6 Strict Minimalist Mode 1 ('Docklets Only' - No App Fallback):
+        - In Preferences -> Behaviour, select Mode 1 ('Docklets Only').
+        - Verify dedicated Preferences gear icon is hidden from dock.
+        - With docklets present: right-click on any docklet displays full WayPlank system menu.
+        - With NO docklets present: right-click on any application icon shows ONLY its standard
+          application menu (zero WayPlank system menu items appended; pristine application menus).
+        - Verify 'Ctrl + Right Click' on any icon or dock surface unconditionally opens the
+          full WayPlank system menu, guaranteeing full settings accessibility at all times.
 
 ================================================================================
-SESSION 2 RESULT: PASS (KDE PLASMA / KWin Backend)
+SESSION 2 RESULT: QUALIFIED PASS (KDE PLASMA / KWin Backend)
 ================================================================================
-  * Tests: 111 | Passed Baseline: 109 [ok] | Squashed: 2 [ko->ok] (0.1, 7.15)
+  * Tests: 119 | Passed Baseline: 111 [ok] | Squashed: 8 [ko->ok]
+    (0.1, 3.1, 6.10b, 7.2, 7.15, 10.8, 12.6, 13.6)
   * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Pass Rate: 100%
 ================================================================================
+
+
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [PASS / 109 BASELINE PASS (2 NA)]
+SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 3 SQUASHED (100%)]
 ================================================================================
 ================================================================================
 
@@ -1979,23 +2305,38 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 109 BASELINE PASS (2 NA)]
         - Mouse wheel over icon increases / decreases brightness by 5% steps.
         - Left-click cycles through quick brightness presets (25% -> 50% -> 75%
           -> 100%).
-   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
-        Displays (DDC/CI):
-        - External Display Detection: Detects multi-monitor setups or desktop
-          external
-          monitors via ddcutil detect.
-        - Safe Debounce Window: Engages 250ms settle debounce to protect
-          external monitor
-          I2C bus controllers against packet collision.
-        - Multi-Monitor Atomic Adjustment: Under Labwc, uses unprivileged sysfs
-          / brightnessctl
-          single-write to internal panel and serialized background worker with
-            target
-          coalescing via ddcutil for external displays.
-        - Clamshell Mode Handling: When laptop lid is closed with external
-          monitor connected,
-          detects internal eDP is disabled and seamlessly engages external
-            monitor control.
+   [ko->ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
+        Displays (Labwc / wlroots / DDC/CI):
+        - Test Procedure & CLI / Hardware Inbound Verification:
+          1. Run terminal command: brightnessctl set 40%
+          2. Verify docklet badge immediately reflects 40% (ground truth sync).
+          3. Verify external displays follow via ddcutil after 350ms settle.
+          4. Press physical laptop Fn brightness keys up/down; verify badge
+             and external displays track in real time.
+          5. Immediately scroll mouse wheel over docklet; verify adjustment
+             steps smoothly from current physical Set Point without jumping.
+          6. Left-click to cycle presets (25% -> 50% -> 75% -> 100%); verify
+             atomic synchronization between internal panel and external screens.
+        BUG: Two defects violated system integrity on Labwc / wlroots:
+          1) HAL Architecture Violation: lib/Items/BrightnessDockItem.vala
+             directly accessed sysfs and managed asynchronous ddcutil worker
+             threads, mixing UI and low-level hardware control.
+          2) Inbound Desync: External adjustments via brightnessctl set xx% or
+             physical Fn keys write directly to sysfs. WayPlank previously
+             did not catch inbound sysfs changes when D-Bus daemons were absent,
+             leaving external screens desynchronized and corrupting the Set
+             Point when subsequently scrolling over the docklet.
+        SOLUTION:
+          1) Extracted all hardware, sysfs, and ddcutil worker logic into HAL
+             service lib/Services/BrightnessControl.vala.
+          2) Implemented 500ms sysfs polling heartbeat to track direct ground
+             truth from /sys/class/backlight/<device>/brightness across all
+             Wayland compositors.
+          3) Implemented 350ms Inbound Settle Debounce with anti-echo guard:
+             inbound brightness updates settle before dispatching serialized
+             ddcutil commands across external monitors.
+          4) Refactored BrightnessDockItem into a pure UI consumer of
+             BrightnessControl.get_default(). Re-test passed 100%.
    [ok] 6.11 Weather Forecast Docklet (docklet://weather) & Vector Icon
         Fallback:
         - Test Procedure:
@@ -2114,6 +2455,31 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 109 BASELINE PASS (2 NA)]
           multi-character badges scale compactly with crisp bold white Pango
           text,
           outline shadow, and highlight across all icon sizes and dynamic zoom.
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+        - Fills the 2nd slot in Row 1 of the Preferences Docklets 7×2 grid
+          (Row 1 Col 0: CPU & RAM, Row 1 Col 1: Do Not Disturb).
+        - Real-time desktop notification inhibition toggle via standard
+          org.freedesktop.Notifications DBus specification.
+        - Dynamic state-driven icons:
+          * Normal / Active: preferences-desktop-notification-bell / notifications
+          * Silenced / DND: notifications-disabled / notifications-disabled-symbolic
+        - Informative tooltip:
+          * Normal: "Notifications: Active"
+          * Silenced: "Notifications: Silenced (Do Not Disturb)"
+        - Left-click toggles Do Not Disturb mode immediately.
+        - Right-click context menu displays: "Do Not Disturb" (header),
+          "Resume Notifications" / "Silence Notifications", "Notification
+          Settings..." (opens KDE/GNOME notification preferences), and "Remove
+          from Dock".
+        - Bidirectional sync: listens to DBus PropertiesChanged on
+          org.freedesktop.Notifications.Inhibited to stay in sync when DND is
+          toggled externally (e.g. from KDE Plasma tray or GNOME top bar).
+        - FAT Verification using test script FAT/test_notification.py
+          (or FAT/Test Files/Testers/test_notification.py):
+          * Run with DND OFF: notification banner appears on screen.
+          * Click Do Not Disturb docklet on dock (icon switches to muted bell).
+          * Run with DND ON: notification is suppressed / inhibited by desktop.
+          * Click Do Not Disturb docklet again: icon returns to active bell.
 
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
@@ -2150,12 +2516,17 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 109 BASELINE PASS (2 NA)]
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
           (7 items left column, 7 items right column):
-          Left: Trash, Clock (Analog), Digital Clock, Battery, Screenshot,
-                Preferences, Removable Drives (Ejector).
-          Right: CPU & RAM, Show Desktop, Media Player (MPRIS), Volume Control,
-                 Session & Power, Screen Brightness, Weather Forecast.
+          Row 1: CPU & RAM Monitor (Col 0), Do Not Disturb (Col 1)
+          Row 2: Analog Clock (Col 0), Show Desktop (Col 1)
+          Row 3: Digital Clock (Col 0), Media Player [MPRIS] (Col 1)
+          Row 4: Battery Indicator (Col 0), Audio Volume (Col 1)
+          Row 5: Take Screenshot (Col 0), Session Management (Col 1)
+          Row 6: Display Brightness (Col 0), Removable Media [Ejector] (Col 1)
+          Row 7: Weather Information (Col 0), Network & Wi-Fi (Col 1)
+        - Note: Trash has been relocated from Docklets to the Appearance tab
+          ("Show Trash" switch on Row 7) as a permanent desktop shell anchor.
         - Verify 100% visual parity between the Preferences 7×2 switches
-          and running dock items (Trash, Media Player, Brightness, Volume).
+          and running dock items (Do Not Disturb, Media Player, Brightness, Volume).
         - Verify toggling any switch instantly adds or removes the docklet item
           from the dock.
    [ok] 7.9 Categorize Items Toggle & Layout Architecture:
@@ -2273,20 +2644,45 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 109 BASELINE PASS (2 NA)]
         - When ON: dock icons preserve target size and scroll with wheel
         - When OFF: dock icons auto-shrink down to fit screen (classic Plank
           behavior)
-   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
+   [ko->ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline
         (Appearance Tab):
         - Icon Size slider remains uncapped (24px - 128px) preserving user
           target size
         - In Shrink Mode: physical limit tick mark appears at screen limit (e.g.
-          42px), track
-          displays dynamic CSS redline gradient for values beyond screen
+          42px/48px), track displays dynamic CSS redline gradient for values beyond screen
           capacity
-        - Moving thumb into red zone turns highlight/thumb warning red with
-          warning label:
-          "⚠️ Limited to 42px by screen space (auto-shrunk)" and explanatory
+        - Moving thumb into red zone turns thumb warning red with vector teardrop
+          without background box artifact, with warning label:
+          "⚠️ Limited to XXpx by screen space (auto-shrunk)" and explanatory
           tooltip
         - In Scroll Mode: redline clears, sub-label confirms "Scroll on Overflow
           active"
+        BUG 1 (VISUAL / COMPOSITOR INDEPENDENT):
+          When moving the slider thumb into the unrealizable redline zone
+          (current_val > fit_size), GTK 3 scale slider thumb (.marks-after)
+          rendered an unsightly square red background box behind the teardrop
+          pointer, and the highlight track flooded red.
+        BUG 2 (TOPOLOGY RECALCULATION & HIGHLIGHT OBLITERATION):
+          When switching WayPlank to a display with different geometry (e.g.
+          from 2560x1440 to 1920x1080), PositionManager.screen_changed did not
+          invoke update(theme) to recalculate MaxIconSize and IconSize auto-shrink,
+          leaving dock icons at stale dimensions until manual Ctrl+Scroll or
+          slider movement. Furthermore, the GTK 3 scale highlight element
+          remained solid blue up to the thumb, masking the underlying redline
+          track gradient between the screen fit limit and the thumb.
+        SOLUTION:
+          1) Embedded dedicated vector SVG (slider-marks-below-red.svg) via
+             GResource with transparent background to eliminate clipping box.
+          2) PositionManager.screen_changed now immediately invokes
+             update(theme), instantly recalculating MaxIconSize and auto-shrink
+             for the new display bounds.
+          3) PreferencesWindow connects to PositionManager notify signals and
+             monitor selection switches to refresh slider geometry in real time.
+          4) Injected dual-color linear gradient on scale.slider-exceeded
+             highlight, splitting exactly at fit_size: blue in safe zone and
+             red in exceeded zone, keeping the redline track seamless and true.
+          Verified clean auto-shrink upon display topology change and seamless
+          tachometer redline rendering across all 3 compositors.
    [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
         - Left/right (and vertical top/bottom) subtle edge gradients and
           chevrons indicate scrollable content
@@ -2433,9 +2829,67 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 109 BASELINE PASS (2 NA)]
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
 
+13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
+   [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
+        - Verify dropdown 'System Menu Access' provides modes ordered by fill sensation:
+          * Mode 1: Docklets Only -> Preferences icon hidden; right-click on
+            docklet items shows full system menu. No fallback to app icons.
+          * Mode 2: Docklets Only (with fallback) -> Preferences icon hidden;
+            right-click on docklet items shows full system menu; if no docklets,
+            falls back cleanly to app icons.
+          * Mode 3: All Icons (integrated) -> Preferences icon hidden; right-click
+            on ANY icon (application, folder, docklet) includes full system menu.
+          * Mode 4: Dedicated Icon (on dock) -> Classic gear icon present on dock.
+        - Verify settings persist across dock restarts via GSettings schema key
+          'system-menu-access' (int 1..4).
+   [ok] 13.2 Minimalist Dock Setup & Context Menu Preferences Removal:
+        - In Mode 4, right-click the Preferences gear dock item.
+        - Verify context menu displays standard 'Remove from Dock' action.
+        - Click 'Remove from Dock': verify Preferences icon is removed immediately
+          from dock with poof animation, and SystemMenuAccess automatically
+          transitions to Mode 2 (or Mode 3 if Categorize Items is disabled),
+          ensuring user is never locked out of settings.
+   [ok] 13.3 Free Mode (Uncategorized) Protection & Dynamic Migration:
+        - When 'Categorize Items' is toggled OFF (Free Mode):
+          * Verify Option 1 ('Docklets Only') and Option 2 ('Docklets Only with fallback')
+            are dynamically removed from the Preferences dropdown; only 'All Icons'
+            and 'Dedicated Icon' appear.
+          * If user switches 'Categorize Items' OFF while on Mode 1 or Mode 2, verify
+            SystemMenuAccess automatically migrates to Mode 3 ('All Icons').
+          * Verify safety guard in DockWindow.vala: even if raw setting is 1 or 2,
+            when CategorizeItems is false, right-click on any icon grants system menu.
+   [ok] 13.4 Accordion Master Anchor, Fallback & Expansion Safety:
+        - In Categorize Items mode with Accordion enabled:
+          * If Preferences icon is present, it acts as the Master Anchor.
+          * If Preferences icon is hidden, the first docklet dynamically acts as
+            the fallback anchor.
+          * With 'Click to Expand' enabled, left-click on the closed anchor icon
+            immediately expands the accordion without getting trapped or lost.
+          * If docklet count <= 1, accordion never collapses into a single icon
+            (prevents redundant expand/collapse traps).
+          * Drag-and-drop: dragging an item over docklets automatically expands
+            the accordion on hover regardless of 'Click to Expand'.
+   [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
+        - Open Preferences dialog: verify window default dimensions are compact
+          (560x480) with zero horizontal label wrapping or forced stretching.
+        - Verify Accordion controls and collapse delay are cleanly laid out on
+          dedicated rows.
+        - Verify all new settings strings are localized with zh_CN prioritized #1,
+          plus it, es, fr, ca, de, uk in po/generate_translations.py.
+   [ko->ok] 13.6 Strict Minimalist Mode 1 ('Docklets Only' - No App Fallback):
+        - In Preferences -> Behaviour, select Mode 1 ('Docklets Only').
+        - Verify dedicated Preferences gear icon is hidden from dock.
+        - With docklets present: right-click on any docklet displays full WayPlank system menu.
+        - With NO docklets present: right-click on any application icon shows ONLY its standard
+          application menu (zero WayPlank system menu items appended; pristine application menus).
+        - Verify 'Ctrl + Right Click' on any icon or dock surface unconditionally opens the
+          full WayPlank system menu, guaranteeing full settings accessibility at all times.
+
 ================================================================================
-SESSION 3 RESULT: PASS (LABWC / wlroots Backend)
+SESSION 3 RESULT: QUALIFIED PASS (LABWC / wlroots Backend)
 ================================================================================
-  * Tests: 111 | Passed Baseline: 109 [ok] | Squashed: 0 [ko->ok]
+  * Tests: 118 | Passed Baseline: 113 [ok] | Squashed: 3 [ko->ok]
+    (6.10b, 10.8, 13.6)
   * Pending: 0 [  ] | Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko]
+  * Pass Rate: 100%
 ================================================================================

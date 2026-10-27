@@ -67,7 +67,9 @@
 		<file alias="docklets/weather-storm.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-storm.svg</file>
 		<file alias="docklets/weather-fog.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-fog.svg</file>
 		<file alias="docklets/network.svg" compressed="true" preprocess="xml-stripblanks">docklets/network.svg</file>
+		<file alias="docklets/dnd.svg" compressed="true" preprocess="xml-stripblanks">docklets/dnd.svg</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/preferences.ui</file>
+		<file compressed="true" preprocess="xml-stripblanks">ui/slider-marks-below-red.svg</file>
 		<file alias="doc/guide.md" compressed="true">../Documentation/USER_GUIDE.md</file>
 		<file alias="doc/report.md" compressed="true">../Documentation/wayplank_x11_to_wayland_report_en.md</file>
 		<file alias="doc/banner.png" compressed="true">../Release Pic.png</file>

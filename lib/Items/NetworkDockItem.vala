@@ -1,4 +1,5 @@
 //
+//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -131,8 +132,23 @@ namespace Plank
 
 		bool on_timer_tick ()
 		{
+			bool prev_connected = is_connected;
+			string prev_type = connection_type;
+			string prev_name = connection_name;
+			int prev_strength = wifi_strength;
+			string prev_ip = ip_address;
+			string prev_gw = gateway;
+
 			refresh_network_status ();
-			reset_icon_buffer ();
+
+			if (prev_connected != is_connected ||
+			    prev_type != connection_type ||
+			    prev_name != connection_name ||
+			    prev_strength != wifi_strength ||
+			    prev_ip != ip_address ||
+			    prev_gw != gateway) {
+				reset_icon_buffer ();
+			}
 			return true;
 		}
 

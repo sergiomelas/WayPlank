@@ -42,7 +42,7 @@ The fork branched from upstream at tag `v0.5.2` (`5729885`) and produced 17 comm
 | **`9108354`** | `Theming` | Added `lib/Services/SystemTheme.vala` (listening to FreeDesktop portal color-scheme) and `Light/dock.theme`. | 🟡 **Partial overlap**. Upstream v0.6.1 created the dynamic adaptive "Gtk+" engine. | ✅ **COMPLETED (Round 2 & 3)**: Wired `SystemTheme.vala` into dynamic theme engine with full dual-portal, GNOME GSettings, and KDE `kdeglobals` monitoring. |
 | **`b2b228c`** | `Icons` | System library custom icon chooser dialog (`IconChooserDialog.vala`). | 🔵 **Already Solved in Upstream v0.6.0**. Upstream implemented a full 20,000+ theme icon browser with GIO metadata persistence. | **Review & Compare**: Ensure upstream has all system path fallbacks. |
 | **`a19c053`**<br>**`af0293a`**<br>**`b9f8ba7`**<br>**`10809c4`** | `v0.5.4` / `DND` | Drag-and-drop file/URL delivery (`launch_with_uris`), smart drop capsule tooltip, hover window popup activation. | 🟡 **Partial overlap**. Upstream v0.6.1 solved 0-byte MIME fallbacks, folder drops, and bounce feedback. | ✅ **COMPLETED (Round 2)**: Integrated remote URLs, hover-to-raise window activation, and strict MIME validation. |
-| **`81430b3`** | `Themes` | Restored classic Default theme; moved reverse rounded dark theme to standalone `Dark`. | 🟡 **Theme styling**. | ✅ **COMPLETED (Round 3)**: Added `Dark`, `Light`, `Arian Dark/Light`, and `IFtiger Dark/Light` as packaged stock themes. |
+| **`81430b3`** | `Themes` | Restored classic Default theme; moved reverse rounded dark theme to standalone `Dark`. | 🟡 **Theme styling**. | ✅ **COMPLETED (Round 3)**: Added `Arian Theme Dark/Light`, `IFtiger Theme Dark/Light`, and `Transparent` alongside adaptive `Default` as packaged stock themes. | |
 | **`5693d80`** | `v0.5.5` / `Core` | **Launcher Deduplication & Item Reuse** in `ItemFactory.vala`; filter `xwaylandvideobridge` in `ApplicationDiscovery.vala` and KWin bridge. | 🟢 **High Value Fix**. Prevents duplicated `.dockitem` generation and ghost bridge windows. | ✅ **COMPLETED (Round 1)**: Integrated launcher deduplication, item reuse, and ghost window shielding. |
 | **`81ea31a`** | `Visual` / `Cards` | Multi-window card expansion, reverse fillet skirt rendering, `RecentFilesService.vala`. | ⚠️ **HAL Positioning & Geometry Challenge**. Inline expansion previously risked Mutter/Labwc HAL displacement. | ✅ **COMPLETED (Round 3)**: Solved via elevated floating Cairo popup (`WindowCardsWindow`), live thumbnails on KWin/Mutter, blank cards on Labwc, and `RecentFilesService`. |
 
@@ -170,7 +170,7 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
 *Goal: Enrich theme offerings, Recent Files jump list & generalized Multi-Window Cards across all compositors.*
 
 1. **Stock Theme Suite (`data/themes/`)** — ✅ **COMPLETED (v0.6.2.3)**:
-   - Integrated full suite of packaged stock themes (`Dark`, `Light`, `Arian Theme Dark`, `Arian Theme Light`, `IFtiger Theme Dark`, `IFtiger Theme Light`).
+   - Integrated full suite of packaged stock themes (`Arian Theme Dark`, `Arian Theme Light`, `IFtiger Theme Dark`, `IFtiger Theme Light`, and `Transparent`).
    - Retained adaptive `Default` dynamic translucent glass engine as the flagship default.
 2. **True Dynamic System Theme Switching (`lib/Services/SystemTheme.vala`, `lib/DockRenderer.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
    - Synchronized across FreeDesktop Settings Portal (`key == "color-scheme"`), GNOME GSettings (`org.gnome.desktop.interface.color-scheme`), and KDE Plasma `~/.config/kdeglobals` inotify file monitoring.
@@ -186,7 +186,7 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
         - Live thumbnails on **KDE Plasma 6** via `org.kde.KWin.ScreenShot2` D-Bus pipe capture.
         - Live thumbnails on **GNOME Shell (Mutter)** via internal extension D-Bus bridge (`/mutter/screen/preview`).
         - Elegant high-contrast blank cards with vector application icons and window titles on **Labwc / wlroots**.
-     4. *Configurable Activation*: User toggle switch in **Preferences $\rightarrow$ Behaviour** ("Show window preview cards on hover/click") to seamlessly switch between modern preview cards and classic cyclic window switching.
+     4. *Configurable Activation*: User toggle switch in **Preferences $\rightarrow$ Behaviour** ("Window Preview Cards") to seamlessly switch between modern preview cards on click and classic cyclic window switching.
      5. *60 FPS Zoom Follower*: Maintained 60 FPS zoom tracking on the underlying dock items while cards are open.
 5. **Folder Running Indicator Dots & Drawer UX Parity (`FileDockItem.vala`, `FolderMenuWindow.vala`)** — ✅ **COMPLETED (v0.6.2.3)**:
    - Illuminated running indicator dots on pinned folder items (single dot for 1 active app, dual dots for 2+ active apps).
@@ -213,10 +213,10 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
 3. **Overflow Scrolling FAT Point**:
    - Pinned 35+ applications on a 1080p display; verified dock clamps to screen edges, renders cleanly, and mouse wheel scrolls fluidly through the entire launcher sequence without glitching.
 4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard)**:
-   - **Session 1 (GNOME Shell / Mutter)**: 113 tests | 106 `[ok]` | 7 `[ko->ok]` | 100% PASS
-   - **Session 2 (KDE Plasma 6 / KWin)**: 111 tests | 109 `[ok]` | 2 `[ko->ok]` | 100% PASS
-   - **Session 3 (Labwc / wlroots)**: 111 tests | 109 `[ok]` | 2 `[NA]` | 100% PASS
-   - **Total Verification**: 335 Tests Defined | 324 Baseline `[ok]` | 9 Squashed `[ko->ok]` | 2 `[NA]` | 0 Open Defects (100% Compliant).
+   - **Session 1 (GNOME Shell / Mutter)**: 125 tests | 106 `[ok]` | 19 `[ko->ok]` | 100% PASS
+   - **Session 2 (KDE Plasma 6 / KWin)**: 123 tests | 108 `[ok]` | 15 `[ko->ok]` | 100% PASS
+   - **Session 3 (Labwc / wlroots)**: 122 tests | 110 `[ok]` | 10 `[ko->ok]` | 2 `[NA]` | 100% PASS
+   - **Total Verification**: 370 Tests Defined | 324 Baseline `[ok]` | 44 Squashed `[ko->ok]` | 2 `[NA]` | 0 Open Defects (100% Compliant).
 
 ---
 
@@ -235,8 +235,8 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
 
 The unification of upstream WayPlank with the community fork of **IFtiger-hu (史有虎)** has reached 100% completion across all three planned rounds:
 - **Round 1 (v0.6.2.1)**: Distribution tooling, RPM packaging, launcher deduplication, overflow scrolling.
-- **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(Currently live on GitHub)*.
-- **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking. *(100% FAT passed, in 4-day smoketest)*.
+- **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(100% FAT passed)*.
+- **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking, and community enhancements. *(100% FAT passed, currently live on GitHub)*.
 
 ### 📅 Master Release Trajectory:
 1. **October 22, 2026 (Week 43)**: **Official GitHub Release of v0.6.2.3 (Round 3)** — 100% FAT qualified!

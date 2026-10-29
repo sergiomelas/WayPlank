@@ -1,6 +1,7 @@
 //
 //  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
+//  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
 //  This file is part of WayPlank.
 //
@@ -397,7 +398,7 @@ namespace Plank
 
 		private void add_token_variants (string text)
 		{
-			// Split by whitespace and punctuation: "Google Chrome (Windows Syensqo)" -> google, chrome, windows, syensqo
+			// Split by whitespace and punctuation: "Google Chrome (Work Profile)" -> google, chrome, work, profile
 			string clean = text.replace ("(", " ").replace (")", " ").replace ("[", " ").replace ("]", " ").replace ("-", " ").replace ("_", " ");
 			string[] words = clean.split (" ");
 			foreach (var w in words) {

@@ -1,4 +1,5 @@
 //
+//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -158,17 +159,24 @@ namespace Plank
 					uint64 current_io_ticks = 0;
 					foreach (unowned string line in disk_content.split ("\n")) {
 						var parts = line.strip ().split (" ");
-						Gee.ArrayList<string> tokens = new Gee.ArrayList<string> ();
+						int tok_idx = 0;
+						unowned string? dev = null;
+						unowned string? io_ticks_str = null;
 						foreach (unowned string p in parts) {
-							if (p != "") tokens.add (p);
+							if (p == "")
+								continue;
+							if (tok_idx == 2)
+								dev = p;
+							else if (tok_idx == 12)
+								io_ticks_str = p;
+							tok_idx++;
 						}
-						if (tokens.size >= 13) {
-							string dev = tokens[2];
+						if (tok_idx >= 13 && dev != null && io_ticks_str != null) {
 							if ((dev.has_prefix ("sd") && dev.length == 3) ||
 							    (dev.has_prefix ("vd") && dev.length == 3) ||
 							    (dev.has_prefix ("nvme") && !dev.contains ("p")) ||
 							    (dev.has_prefix ("mmcblk") && !dev.contains ("p"))) {
-								current_io_ticks += (uint64) uint64.parse (tokens[12]);
+								current_io_ticks += (uint64) uint64.parse (io_ticks_str);
 							}
 						}
 					}

@@ -36,10 +36,24 @@ namespace Plank
 		
 		Gtk.Box box;
 		Gtk.Label label;
+		uint pos_timer_id = 0U;
 		
 		public HoverWindow ()
 		{
 			GLib.Object (type: Gtk.WindowType.TOPLEVEL);
+		}
+
+		~HoverWindow ()
+		{
+			cancel_pos_timer ();
+		}
+
+		void cancel_pos_timer ()
+		{
+			if (pos_timer_id > 0U) {
+				GLib.Source.remove (pos_timer_id);
+				pos_timer_id = 0U;
+			}
 		}
 		
 		construct
@@ -51,7 +65,7 @@ namespace Plank
 			can_focus = false;
 			set_decorated (false);
 			set_title ("wayplank-hover");
-			set_role ("tooltip");
+			set_role ("popup-menu");
 			
 			// Wayland Layer Shell initialization
 			if (GtkLayerShell.is_supported ()) {
@@ -60,7 +74,7 @@ namespace Plank
 				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
 				GtkLayerShell.set_namespace (this, "wayplank-hover");
 			} else {
-				set_type_hint (Gdk.WindowTypeHint.TOOLTIP);
+				set_type_hint (Gdk.WindowTypeHint.POPUP_MENU);
 				set_skip_taskbar_hint (true);
 				set_skip_pager_hint (true);
 				set_keep_above (true);
@@ -102,6 +116,9 @@ namespace Plank
 			label = new Gtk.Label (null);
 			label.set_line_wrap (false);
 			box.pack_start (label, false, false, 0);
+
+			hide.connect (cancel_pos_timer);
+			unmap.connect (cancel_pos_timer);
 		}
 		
 		public void show_at (int x, int y, Gtk.PositionType position, int dock_thickness, Gdk.Monitor? monitor)
@@ -150,8 +167,17 @@ namespace Plank
 				var abs_x = int.max (mon_x + GAP, int.min (mon_x + mon_w - width - GAP, target_x));
 				var abs_y = int.max (mon_y + GAP, int.min (mon_y + mon_h - height - GAP, target_y));
 
+				cancel_pos_timer ();
 				move (abs_x, abs_y);
 				WindowControl.position_hover (abs_x, abs_y, width, height);
+				pos_timer_id = GLib.Timeout.add (25, () => {
+					pos_timer_id = 0U;
+					if (get_visible ()) {
+						move (abs_x, abs_y);
+						WindowControl.position_hover (abs_x, abs_y, width, height);
+					}
+					return false;
+				});
 				return;
 			}
 
@@ -189,14 +215,15 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 				
 				int top_panel_offset = 0;
+				Gdk.Rectangle mon_geom = Gdk.Rectangle ();
 				if (monitor != null) {
-					var geom = monitor.get_geometry ();
+					mon_geom = monitor.get_geometry ();
 					var work = monitor.get_workarea ();
-					int top_panel = int.max (0, work.y - geom.y);
+					int top_panel = int.max (0, work.y - mon_geom.y);
 					if (top_panel > 0)
 						top_panel_offset = top_panel + 2;
 				}
-				top_panel_offset += WindowControl.get_top_panel_floating_offset ();
+				top_panel_offset += WindowControl.get_top_panel_floating_offset (mon_geom);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, edge_margin + top_panel_offset);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
 				break;

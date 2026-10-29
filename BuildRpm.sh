@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #
-#  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 #  Copyright (C) 2026 Sergio Melas
 #  Copyright (C) 2026 史有虎 (IFtiger-hu)
 #
@@ -69,7 +68,7 @@ else
 fi
 
 rm -rf "$RPM_TOPDIR"
-mkdir -p "$RPM_TOPDIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+mkdir -p "$RPM_TOPDIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp}
 
 echo "📦 Preparing RPM source payloads..."
 cp "${OUT_DIR}/wayplank" "${RPM_TOPDIR}/SOURCES/wayplank"
@@ -164,7 +163,7 @@ fi
 EOF
 
 echo "📦 Building RPM package..."
-rpmbuild --define "_topdir ${RPM_TOPDIR}" --define "_dbpath ${RPM_TOPDIR}/rpmdb" -bb "${RPM_TOPDIR}/SPECS/${PKG_NAME}.spec" > /dev/null
+rpmbuild --define "_topdir ${RPM_TOPDIR}" --define "_dbpath ${RPM_TOPDIR}/rpmdb" --define "_tmppath ${RPM_TOPDIR}/tmp" -bb "${RPM_TOPDIR}/SPECS/${PKG_NAME}.spec" > /dev/null
 
 GENERATED_RPM="$(find "${RPM_TOPDIR}/RPMS" -name "*.rpm" | head -n 1)"
 if [ -n "$GENERATED_RPM" ] && [ -f "$GENERATED_RPM" ]; then

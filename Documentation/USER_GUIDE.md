@@ -1,5 +1,7 @@
 # WayPlank User Guide & Reference Manual
 
+> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026
+
 Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond).
 
 This manual provides an in-depth reference for all features, configuration options, gestures, and advanced setups—such as folder-based application menus, docklets, accordion collapsing, multi-monitor layouts, and our modular Hardware Abstraction Layer (HAL).
@@ -100,7 +102,7 @@ When WayPlank starts with default settings, the dock is arranged into clean, log
 - **Trash (Right):** Anchored permanently at the end of the dock for quick file disposal and ejection.
 
 ### Multi-Window Navigation & Cairo Preview Cards
-Starting in **v0.6.2.3**, WayPlank provides modern elevated Cairo preview cards when hovering or clicking applications with multiple open windows:
+Starting in **v0.6.2.3**, WayPlank provides modern elevated Cairo preview cards when clicking applications with multiple open windows (while hovering displays the application tooltip):
 - **Live Compositor Thumbnails**:
   - Under **KDE Plasma 6 (KWin)**, live window previews are captured via `org.kde.KWin.ScreenShot2` D-Bus IPC.
   - Under **GNOME Shell (Mutter)**, live window previews are captured via the internal Mutter extension bridge (`/mutter/screen/preview`).
@@ -177,7 +179,7 @@ WayPlank includes 16 built-in docklets that provide live system controls and sta
 | `docklet://trash` | Trash can indicator with fill status, empty action, and drag-to-delete. |
 | `docklet://desktop` | Show/Hide Desktop toggle (minimizes or unminimizes all windows). |
 | `docklet://preferences` | One-click access to WayPlank Preferences dialog. |
-| `docklet://donotdisturb` | One-click toggle for desktop notification silencing (Do Not Disturb) with FreeDesktop portal integration and dynamic active/silenced bell icon indicators. |
+| `docklet://dnd` (or `docklet://donotdisturb`) | One-click toggle for desktop notification silencing (Do Not Disturb) with FreeDesktop portal integration and dynamic active/silenced bell icon indicators. |
 | `docklet://network` | Live network connectivity monitor (Wi-Fi / Ethernet), signal strength, IP address inspection, and quick launch to network settings. |
 | `docklet://volume` | Audio volume level with scroll-to-adjust and mute toggle. |
 | `docklet://brightness` | Screen brightness control with scroll-to-adjust. |
@@ -224,7 +226,7 @@ The weather docklet fetches local meteorological data:
 
 ---
 
-## 5. Categorization & Dynamic Separators
+## 5. Categorization, Dynamic Separators & System Menu Access
 
 WayPlank features a smart sorting engine that eliminates dock clutter.
 
@@ -264,7 +266,7 @@ Starting in **v0.6.2.3**, WayPlank introduces an ergonomic **System Menu Access*
 ### Minimalist Dock Setup & Emergency Settings Access
 - **One-Click Preferences Removal**: In Mode 4, simply right-click the Preferences gear icon and select **Remove from Dock**. The icon is removed immediately with a cartoon poof animation, and WayPlank automatically transitions to **Mode 2** (or **Mode 3** in Free Mode) so you are never locked out of settings.
 - **Universal Emergency Access**: If you ever hide all docklets or need immediate access to settings, **`Ctrl + Right Click`** on **any** icon or dock surface unconditionally opens the complete WayPlank system menu at all times.
-- **Free Mode (Uncategorized) Protection**: When **Categorize Items** is toggled off (Free Mode), docklet-only options are dynamically hidden from Preferences, and WayPlank automatically migrates to **Mode 3 (All Icons)**.
+- **Free Mode (Uncategorized) Protection & Align by Type**: When **Categorize Items** is toggled off (Free Mode), docklet-only options are dynamically hidden from Preferences, and WayPlank automatically migrates to **Mode 3 (All Icons)**. In Free Mode, an **Align by Type** button becomes available in Preferences to perform a one-shot sort (`[Folders] -> [Docklets] -> [Apps] -> [Trash]`) whenever desired while retaining free manual drag reordering.
 
 ### Dynamic Scale Capacity Redline Teardrop & Topology Auto-Shrink
 When pinning a high number of applications or operating on compact displays, dock items may approach or exceed the monitor's physical boundary:
@@ -312,9 +314,10 @@ WayPlank accurately discriminates between standalone Progressive Web Apps (PWAs)
 WayPlank offers an extensive set of mouse gestures and keyboard shortcuts designed for maximum productivity:
 
 ### Click Actions
-- **Left Click**: Launch an application, or bring its existing window(s) to the foreground.
+- **Left Click**: Launch an application, or bring its existing window(s) to the foreground (or open floating Cairo Window Preview Cards when 2+ windows are open).
 - **Middle Click** (or **Ctrl + Left Click**): Force launch a **NEW** instance of the application.
 - **Middle Click on Window Preview Card**: Directly close that specific window instance.
+- **Middle Click on MPRIS Docklet**: Directly toggle media playback (Play / Pause).
 - **Right Click**: Open the application's context menu (displaying Desktop Actions / Quicklists, Recent Documents, and "Keep in Dock").
 - **Ctrl + Right Click (Any Icon or Dock Surface)**: Unconditionally opens the full WayPlank System Menu at all times, guaranteeing instant access to *Preferences*, *Shortcuts & Gestures*, *About*, and *Quit*.
 - **Shift + Left Click**: Cycle focus to the next open window of that specific application.
@@ -325,6 +328,7 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 - **Mouse Scroll on Dock Surface (Overflow Mode)**: When dock items exceed available display boundaries and overflow scrolling is active, smoothly pan the dock items left/right or up/down.
 - **Mouse Scroll on Volume Docklet**: Directly raise or lower the master system volume.
 - **Mouse Scroll on Screen Brightness Docklet**: Adjust backlight intensity up or down in discrete 5% steps.
+- **Mouse Scroll on MPRIS Docklet**: Skip directly to the next or previous media track.
 - **Ctrl + Mouse Scroll Up**: Dynamically increase dock icon size in real time.
 - **Ctrl + Mouse Scroll Down**: Dynamically decrease dock icon size in real time.
 
@@ -361,11 +365,22 @@ WayPlank is architected from the ground up for modern multi-monitor Wayland work
 
 ### Intelligent Hide & Edge Pressure
 - **Hide Modes**:
-  - `None`: Dock stays permanently on screen and reserves desktop strut space.
+  - `None`: Dock stays permanently on screen and does not dodge or hide (panel mode can be enabled via Reserve Screen Space).
   - `Intelligent`: Dock automatically slides out of view only when an active window overlaps its territory.
   - `Autohide`: Dock hides whenever the mouse leaves its boundary.
   - `Dodge Active Window`: Dock hides only when the focused window overlaps it.
 - **Pressure Reveal**: Requires touching the physical screen edge (1px barrier) before the dock reveals itself, preventing accidental triggers when moving the mouse across monitor boundaries or working near the border. When disabled, the dock unhides smoothly 10px before reaching the edge for fluid everyday access.
+- **Direct Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10)**: Whenever an active window enters fullscreen on the dock's monitor—including applications transitioning directly from a normal unmaximized state into fullscreen (such as Remmina remote desktop, MPV, QEMU, or web browser `F11`)—WayPlank activates **`FullscreenInhibit`**:
+  - The dock hides immediately across **all** Hide Modes (including `None` / Always Visible).
+  - The Cairo input mask (`get_cursor_region()`) shrinks to `{ 0, 0, 0, 0 }`, disabling the `10px`/`1px` edge reveal zone so moving the mouse to the screen edge never unhides the dock during fullscreen sessions and 100% of `0px` screen-edge clicks pass directly through to the fullscreen application.
+
+### Option to Reserve Screen Space (Panel Mode - Issue #9)
+WayPlank supports a configurable **Reserve Screen Space** mode (**Preferences $\rightarrow$ Behaviour $\rightarrow$ Reserve Screen Space** or GSettings key `reserve-space`), converting the dock into a stationary system panel:
+- **Maximized Window Tiling**: When enabled, the dock negotiates an exclusive screen boundary matching its exact calculated visual thickness. Maximized and tiled windows (browsers, terminals, IDEs) stop flush against the edge of the dock without overlapping or obscuring any icons.
+- **Mutual Exclusivity & Safety Guard**: Panel mode requires a permanent dock without icon clipping. Therefore, Reserve Screen Space is available **only when both Hide Dock and Icon Zoom are disabled**. If the user enables either Hide Dock or Icon Zoom, Reserve Screen Space automatically flips to `false` (OFF) and grays out, guaranteeing magnified icons never clip against tiled application windows.
+- **Cross-Compositor Architecture**:
+  - **KDE Plasma 6 (KWin) & Labwc (wlroots)**: Uses `gtk-layer-shell` to dynamically assign `GtkLayerShell.set_exclusive_zone` matching `VisibleDockHeight` / `VisibleDockWidth`, placing the window surface on `Layer.BOTTOM`.
+  - **GNOME Shell (Mutter)**: Deploys a synthetic strut actor (`affectsStruts: true`) via the WayPlank GNOME Bridge extension. Window coordinates anchor strictly to physical monitor geometry (`monGeo`) with top panel offset, utilizing unconstrained `user_op = true` placement to eliminate Mutter's `constrain_fully_onscreen` feedback loop.
 
 ### Multi-Monitor Topology & DPMS Wake Stability
 In complex multi-monitor environments, dynamic display changes—such as hotplugging an external screen, changing physical layout topology, or waking from system suspend / DPMS sleep—frequently cause race conditions in Wayland clients:
@@ -374,9 +389,12 @@ In complex multi-monitor environments, dynamic display changes—such as hotplug
 - **Heterogeneous DPI & Fractional Scaling**: Layer-shell geometry and Cairo surface buffers automatically adjust scaling factors when moved across displays with differing device pixel ratios (HiDPI / LoDPI).
 
 ### Layer-Shell Input Passthrough & Transparent Window Clipping
-On Wayland compositors supporting `gtk-layer-shell` (KDE Plasma, Labwc):
-- **Zero Desktop Panel Displacement**: When Hide Mode is set to `None` (dock permanently visible), WayPlank maintains `exclusive_zone` at 0. This guarantees the dock never collides with or displaces system panels (such as KDE Plasma top/bottom panels or Labwc bars).
+On Wayland compositors supporting `gtk-layer-shell` (KDE Plasma, Labwc) and GNOME Shell (Mutter):
+- **Zero Desktop Panel Displacement**: When Reserve Screen Space is disabled (default), WayPlank maintains `exclusive_zone` at 0 even when Hide Mode is `None`. This guarantees the dock never collides with or displaces system panels (such as KDE Plasma top/bottom panels or Labwc bars). When Reserve Screen Space is enabled, it claims exclusive desktop boundaries without disturbing existing system bars.
 - **Cairo Input Shape Pass-Through**: WayPlank dynamically clips its Cairo input region (`window.input_shape_combine_region`) strictly to the visible dock pill during realization and mapping. Transparent areas outside the dock items pass mouse clicks directly through to underlying desktop windows and icons via `wl_surface.set_input_region`, eliminating the classic Wayland issue where transparent layer-shell window margins block clicks.
+- **Dynamic Hysteresis Flip-Flop & Anticipate Icon Zoom (Issue #12)**: In classic Plank tradition, an anticipatory runway begins expanding icon magnification as the cursor approaches the dock. In Wayland environments, this invisible runway could intercept pointer events intended for overlapping windows placed behind or immediately above the dock (such as text editor scrollbars, terminal buffers, or Kate line selections). WayPlank implements a two-stage hysteresis flip-flop and an **Anticipate Icon Zoom** toggle in **Preferences $\rightarrow$ Behaviour**:
+  - **Enabled (`true`, Default)**: Preserves 100% of classic Plank's smooth anticipatory approach feel out of the box.
+  - **Disabled (`false`)**: Strictly clamps the layer-shell input region to the 60px visual dock pill when the mouse is at rest, dynamically expanding the input mask upward only while an icon is actively hovered and collapsing it immediately upon pointer leave. This provides 100% transparent click passthrough (I-beam selection, button clicks, status bar interaction) to underlying windows.
 
 ### Multi-Monitor Hardware Brightness Control (SP/PV Decoupling)
 WayPlank's integrated Screen Brightness docklet features per-monitor hardware backlight and DDC/CI level synchronization:
@@ -456,6 +474,7 @@ Because GNOME Shell (Mutter) does not implement the `zwlr_foreign_toplevel_manag
 For modular Wayland environments such as Labwc, Wayfire, and generic wlroots-based compositors:
 - **`gtk-layer-shell` Surface Management**: WayPlank anchors itself directly to the desktop using standard Wayland layer-shell protocol semantics (`zwlr_layer_shell_v1`), managing exclusive zones and autohide margins natively.
 - **Foreign Toplevel Management**: Communicates via `zwlr_foreign_toplevel_manager_v1` using an optimized, native C bridge (`lib/Services/wlr-toplevel-bridge.c`), enabling window tracking, activation, minimization, and closing without intermediate desktop daemons.
+- **Process & Command-Line Resolution (`/proc` $O(1)$ Cache)**: Because `zwlr_foreign_toplevel_management_v1` does not transmit client PIDs, `LabwcBackend` resolves running window PIDs and full command lines from `/proc` by matching `app_id` and window title tokens with $O(1)$ per-window caching, enabling full CLI and multi-VM cold relaunch support on Labwc.
 - **State-Based Dodge & Honest UI**: Employs an intelligent window state filter (`DODGE_MAXIMIZED` and focused window tracking), validated across lightweight Wayland environments including LXQt 2.x and XFCE 4.20 on Labwc.
 
 ### Runtime Auto-Detection Engine
@@ -468,22 +487,20 @@ WayPlank requires zero user configuration or environment toggles to select the c
 ## 10. Themes & Visual Customization
 
 ### Built-in Themes & Classic Suite
-WayPlank ships with a curated selection of built-in themes and an adaptive dynamic GTK theme engine:
+WayPlank ships with 6 built-in themes and an adaptive dynamic GTK theme engine:
 1. **Default**: Modern adaptive GTK engine with translucent glass styling and desktop accent color wiring.
 2. **Arian Theme Dark**: Modern dark translucent glass with subtle border illumination.
 3. **Arian Theme Light**: Clean frosted glass designed for light desktop environments.
-4. **IFtiger Theme Dark**: Sleek high-contrast dark theme contributed by downstream collaborator 史有虎 (IFtiger-hu).
+4. **IFtiger Theme Dark**: Sleek high-contrast dark theme with reverse fillet skirt contributed by downstream collaborator 史有虎 (IFtiger-hu).
 5. **IFtiger Theme Light**: Crisp, clean light theme with subtle frosted edges.
-6. **Dark**: Classic monochrome dark theme with rounded styling.
-7. **Light**: Classic monochrome light theme.
-8. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
+6. **Transparent**: Ultra-minimalist borderless design showing only floating icons.
 
 ### True Dynamic Real-Time Light/Dark System Theming
 Starting in **v0.6.2.3**, WayPlank features multi-bus and filesystem convergence for instantaneous system theme tracking:
 - **FreeDesktop Settings Portal**: Intercepts `color-scheme` key changes over D-Bus (`org.freedesktop.portal.Settings`).
 - **GNOME Shell GSettings**: Directly tracks `org.gnome.desktop.interface.color-scheme`.
 - **KDE Plasma Inotify Monitoring**: Monitors `~/.config/kdeglobals` for immediate color changes under KDE Plasma 6.
-- **Dynamic Counterpart Swapping**: When the desktop toggles between Dark and Light mode, WayPlank automatically switches between paired counterpart themes (*Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*, *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*, *Light* $\longleftrightarrow$ *Dark*) and dynamically updates the adaptive `Default` theme with zero dock restarts required.
+- **Dynamic Counterpart Swapping**: When the desktop toggles between Dark and Light mode, WayPlank automatically switches between any paired counterpart themes ending in `" Light"` and `" Dark"` (*Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*, *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*) and dynamically updates the adaptive `Default` theme with zero dock restarts required.
 
 ### Interactive Theme Manager (One-Click Archive Install & Removal)
 Starting in **v0.6.2.2**, WayPlank includes an integrated Theme Manager directly within the Preferences dialog (**Preferences $\rightarrow$ Appearance**):
@@ -500,8 +517,9 @@ Starting in **v0.6.2.2**, WayPlank includes an integrated Theme Manager directly
 They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown menu.
 
 ### Dock Size & Zoom Level
-- **Icon Size**: Adjustable from 24px up to 128px.
+- **Icon Size**: Adjustable from 24px up to 128px in Preferences $\rightarrow$ Appearance.
 - **Icon Zoom (Magnification)**: When enabled, icons smoothly magnify up to 200% under the mouse cursor, with physics-based smooth interpolation.
+- **Anticipate Icon Zoom Toggle**: Located in **Preferences $\rightarrow$ Behaviour** (Row 6). Controls whether the zoom engine claims an anticipatory approach runway above the dock (`true`, classic Plank behavior) or operates via an on-demand hysteresis flip-flop (`false`, maximum click passthrough for overlapping windows behind the dock).
 
 ---
 
@@ -512,19 +530,33 @@ They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown m
 # Start WayPlank
 wayplank
 
-# Open the Preferences dialog directly
-wayplank --preferences
+# Reload / replace a running WayPlank instance cleanly
+wayplank -r
+# or: wayplank --reload / wayplank --replace
 
-# Run in debug mode with verbose logging
+# Open the Preferences dialog directly
+wayplank -p
+# or: wayplank --preferences
+
+# Open the Shortcuts & Gestures reference dialog directly
+wayplank -s
+# or: wayplank --shortcuts
+
+# Run in debug or verbose logging mode
 wayplank -d
+wayplank -V
+
+# Start or target a specific named dock instance (defaults to dock1)
+wayplank -n dock1
 
 # Show current version and build information
-wayplank --version
+wayplank -v
+# or: wayplank --version
 ```
 
 ### Multi-Language Translation Catalogs (Public Beta v0.7.0 Preparation)
 In preparation for the upcoming **Public Beta (v0.7.0)**, WayPlank has introduced complete multi-language translation catalogs and an automated translation framework via `po/generate_translations.py`:
-- **Complete String Catalogs Ready**: All 322 user-facing strings, tooltips, settings labels, and docklet strings have been fully translated across **7 community languages**:
+- **Complete String Catalogs Ready**: All 326 user-facing strings, tooltips, settings labels, and docklet strings have been fully translated across **7 community languages**:
   1. **Simplified Chinese (`zh_CN`)** — Community contribution by 史有虎 (IFtiger-hu).
   2. **Italian (`it`)**
   3. **Spanish (`es`)**
@@ -561,7 +593,7 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
 ### Configuration File Paths
 - **Launchers Directory**: `~/.config/wayplank/dock1/launchers/`
 - **Folder Drawers**: `~/.config/wayplank/folders/`
-- **Custom Themes**: `~/.local/share/plank/themes/`
+- **Custom Themes**: `~/.local/share/wayplank/themes/` (and legacy `~/.local/share/plank/themes/`)
 - **Cache & Temporary Files**: `~/.cache/wayplank/`
 
 ### GSettings Database Keys
@@ -573,17 +605,33 @@ gsettings list-recursively net.launchpad.plank.dock.settings:/net/launchpad/plan
 # Toggle categorized items
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ categorize-items true
 
-# Toggle accordion docklets
+# Toggle accordion docklets and click-to-expand mode
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ accordion-docklets true
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ accordion-click-to-expand false
 
 # Toggle dock overflow smooth scrolling
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ scroll-overflow true
+
+# Toggle floating Cairo window preview cards on multi-window click
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ show-window-cards true
+
+# Set window click behavior (0 = Smart, 1 = Focus, 2 = Cycle)
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ window-click-behavior 0
+
+# Toggle 1px edge pressure reveal barrier
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ pressure-reveal false
 
 # Change dock theme
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme 'Arian Theme Light'
 
 # Set system menu access mode (1 = Docklets Only, 2 = Docklets Fallback, 3 = All Icons, 4 = Dedicated Icon)
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ system-menu-access 2
+
+# Toggle anticipatory icon zoom runway (false = strict click passthrough for overlapping windows)
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ anticipate-zoom true
+
+# Toggle screen space reservation / panel mode (requires HideMode == 'none' and ZoomEnabled == false)
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ reserve-space true
 ```
 
 ---

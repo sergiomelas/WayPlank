@@ -1399,3 +1399,19 @@ msgstr ""
 #: data/ui/preferences.ui:486
 msgid "Show the Trash Bin icon on the dock"
 msgstr ""
+
+#: data/ui/preferences.ui:803
+msgid "Anticipate Icon Zoom:"
+msgstr ""
+
+#: data/ui/preferences.ui:804
+msgid "Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock"
+msgstr ""
+
+#: data/ui/preferences.ui:703
+msgid "Reserve Screen Space:"
+msgstr ""
+
+#: data/ui/preferences.ui:704
+msgid "Reserve screen space matching the dock thickness (Panel Mode) so maximized windows tile without overlapping the dock; requires Hide Dock and Icon Zoom to be disabled (automatically turns off if either is enabled)"
+msgstr ""

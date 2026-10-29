@@ -1,8 +1,8 @@
 # WayPlank V0.6.2 Series Detailed Technical Changelog
 
 Release Series: **V0.6.2 Series (The Community Unification & Distribution Release)**  
-Current Milestone: **V0.6.2.3 (Round 3 & Community Features: Multi-Window Preview Cards, Dynamic Theming, DND Docklet, System Menu Access, 7×2 Grid, German & Ukrainian Translations, HAL Brightness Sync) — Completed / 100% FAT Passed (2026-10-27)**  
-Release Date: 2026-10-27 (Community Contributions Fully Integrated & 100% FAT Qualified)  
+Current Milestone: **V0.6.2.3 (Round 3 & Community Features: Multi-Window Preview Cards, Dynamic Theming, DND Docklet, System Menu Access, 7×2 Grid, German & Ukrainian Translations, HAL Brightness Sync, Panel Mode & Fullscreen Inhibit) — Completed / FAT Qualified (2026-11-01)**  
+Release Date: 2026-11-01 (Community Contributions Fully Integrated & FAT Qualified)  
 Authors & Contributors:
 - **Sergio Melas** (Maintainer — sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))
 - **史有虎 (IFtiger-hu)** (Collaborator, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
@@ -22,9 +22,9 @@ Wayplank **V0.6.2 series** marks a landmark milestone in the project's evolution
 6. **Weather Forecast Vector Fallback & Direct Yr.no Navigation (`DrawingService.vala`, `WeatherWindow.vala`, `WeatherDockItem.vala`)**: Eliminates broken icon placeholders by guaranteeing 100% vector fallback to bundled SVG assets. Adds high/low temperature ranges (▲/▼), localized weekday formatting, condition details (humidity and wind speed), and direct headless Yr.no location resolution for one-click browser navigation.
 7. **Volume Docklet Overamplification Guard (`VolumeDockItem.vala`)**: Prevents speaker damage from unlimited relative volume runaway. Replaces unbounded relative increments (`+5%`) with absolute capped volume commands (`wpctl set-volume -l 1.5` and `pactl set-sink-volume`), strictly enforcing the 150% maximum limit and blocking scroll wheel overflow.
 8. **Application Identity & Wrapper Matching Engine Hardening (`ApplicationIdentity.vala`, `ApplicationDiscovery.vala`)**:
-   - **Recursive Command Unwrapping**: Recursively peels wrapper commands (`sh -c`, `bash -c`, `env VAR=val`, `firejail`, `flatpak-spawn`, `flatpak run`, `pkexec`, `sudo`, `systemd-inhibit`) to reliably identify target application binaries (e.g. MATLAB under Firejail, Scilab under Mesa GL overrides).
+   - **Recursive Command Unwrapping**: Recursively peels wrapper commands (`sh -c`, `bash -c`, `env VAR=val`, `firejail`, `flatpak-spawn`, `flatpak run`, `pkexec`, `sudo`, `systemd-inhibit`) to reliably identify target application binaries (e.g. Blender under Firejail, Scilab under Mesa GL overrides).
    - **Dynamic Drawer Folder Discovery**: Automatically indexes custom drawer folder directories referenced by dockitems (`~/.config/wayplank/dock*/launchers/`), ensuring applications pinned inside category drawers (Engineering, Games, Internet) are discovered and tracked.
-   - **Hardened Script Wrapper Inspection**: Accurately inspects user shell launcher scripts (e.g. `winchrome-syensqo.sh`) with strict shell-shebang and <4KB size bounds, extracting instance-specific options (`--profile-directory=...`, `--class=...`).
+   - **Hardened Script Wrapper Inspection**: Accurately inspects user shell launcher scripts (e.g. `chrome-work-profile.sh`) with strict shell-shebang and <4KB size bounds, extracting instance-specific options (`--profile-directory=...`, `--class=...`).
    - **Tiered Scoring & Specialized Launcher Isolation**: Prioritizes specialized instances with score 110 when arguments match, while strictly zeroing scores (`return 0`) on generic windows. Eliminates cross-app false positives (e.g. Scilab vs Quake 2) and protects standard browser windows from profile hijacking.
 9. **Consolidated Core Hardening & 100% FAT Qualification**: 279 test points executed across GNOME/Mutter, KDE/KWin, and Labwc with 0 open defects and 18 squashed bugs.
 
@@ -44,10 +44,10 @@ Wayplank **V0.6.2 series** marks a landmark milestone in the project's evolution
   - **Universal Multi-Window Preview Cards**: Cairo-rendered visual window preview cards with live IPC thumbnails on KWin and GNOME Mutter, with graceful blank card fallback on Labwc.
   - **True Dynamic System Theme Switching**: Real-time synchronization across KDE (`kdeglobals`), GNOME Shell (`color-scheme`), and FreeDesktop portal with automated Dark/Light counterpart theme swapping.
   - **Recent Files Jump List**: FreeDesktop `Gtk.RecentManager` jump list in application right-click context menus (`RecentFilesService`).
-  - **Packaged Stock Themes**: Bundled Dark, Light, Arian Dark/Light, and IFtiger Dark/Light themes.
+  - **Packaged Stock Themes**: Bundled `Default` (adaptive GTK), `Arian Theme Dark/Light`, `IFtiger Theme Dark/Light`, and `Transparent` themes.
   - **Running Dots & Drawer UX Parity**: Pinned folder dock items render illuminated running dots (and dual dots for 2+ active apps); drawer rows render running indicators with stabilized geometry; complete application contract parity (Ctrl/Middle click launch instance, wheel window cycling, row context menu guard).
   - **Native Window Stacking & Crash Elimination**: Completely excised asynchronous presentation timers eliminating Mutter `meta_window_unmanage` assertion crashes; decoupled peer dialogs for natural bidirectional stacking; reconnected native CSD HeaderBar on Mutter; KWin D-Bus service watcher for automatic bridge script recovery.
-  - **Full Multi-Compositor Qualification**: 335 tests executed, 333 passed (324 baseline + 9 squashed), 2 NA, 0 open defects (100% PASS rate across GNOME Shell, KDE Plasma 6, and Labwc).
+  - **Full Multi-Compositor Qualification**: 370 tests defined, 368/368 applicable passed (324 baseline + 44 squashed), 2 NA, 0 open defects (100% PASS rate across GNOME Shell, KDE Plasma 6, and Labwc).
   - **Release Schedule**: v0.6.2.3 (Round 3) is officially released and live on GitHub! The official WayPlank Public Beta (v0.7.0) will launch in Week 45 (Monday, November 2, 2026), providing full community and downstream testing runway during Week 44.
 
 ---
@@ -131,10 +131,10 @@ Integrated the smooth overflow scrolling architecture authored by **史有虎 (I
 ### Motivation & Root Cause Analysis
 Complex application launchers in Linux frequently wrap native binaries in shell scripts or sandbox layers:
 1. **Sandboxes & Environment Overrides**:
-   - MATLAB: `Exec=sh -c "TMPDIR=$HOME/.cache/matlab-tmp firejail /usr/local/MATLAB/R2024a/bin/matlab -desktop"`
+   - Blender (Firejail): `Exec=sh -c "TMPDIR=$HOME/.cache/blender-tmp firejail /usr/bin/blender"`
    - Scilab: `Exec=env MESA_GL_VERSION_OVERRIDE=3.0 /usr/local/SCILAB/scilab-2025.1.0/bin/scilab %f`
 2. **User Launcher Scripts with Specific Profiles**:
-   - Syensqo Chrome: `winchrome-syensqo.sh` running `/opt/google/chrome/google-chrome ... --profile-directory="Profile 14"`
+   - Work Profile Chrome: `chrome-work-profile.sh` running `/opt/google/chrome/google-chrome ... --profile-directory="Profile 2"`
 3. **Category Drawer Folders**:
    - Custom `.desktop` files stored exclusively inside dock drawer folders (e.g. `~/.config/wayplank/dock1/launchers/Enginnering` or `Games`) were previously not indexed by standard XDG search directories.
 
@@ -212,7 +212,7 @@ This milestone exemplifies collaborative open-source synergy:
 ### Core Highlights & Technical Accomplishments of v0.6.2.3 (Round 3):
 
 1. **Universal Multi-Window Preview Cards (`WindowCard.vala`, `WindowCardsWindow.vala`)**:
-   - **Cairo-Rendered Elevated Card Popup**: Hovering or clicking multi-window applications opens an elevated Cairo floating card popup (`WindowCardsWindow`) dynamically anchored over the dock item.
+   - **Cairo-Rendered Elevated Card Popup**: Clicking multi-window applications opens an elevated Cairo floating card popup (`WindowCardsWindow`) dynamically anchored over the dock item (while hovering displays the application tooltip).
    - **Live Compositor Thumbnails (KWin & Mutter)**:
      - On **KDE Plasma 6 (KWin)**: Captures live window thumbnails via `org.kde.KWin.ScreenShot2` D-Bus IPC over a private Unix pipe file descriptor (`capture_window()`). Integrated with `X-KDE-DBUS-Restricted-Interfaces` security declarations in `wayplank.desktop`.
      - On **GNOME Shell (Mutter)**: Captures live window thumbnails via the internal Mutter extension D-Bus bridge (`/mutter/screen/preview`) with sub-pixel Clutter stage scaling.
@@ -221,7 +221,7 @@ This milestone exemplifies collaborative open-source synergy:
      - Hovering a card highlights it with theme-aware rounded card borders and active elevation.
      - Left-clicking activates and raises the target window (`WindowManager.activate()`).
      - Clicking the top-right close icon (X) terminates the window via `WindowManager.close_window()`.
-   - **User-Configurable Window Navigation**: Toggle switch in **Preferences $\rightarrow$ Behaviour** ("Show window preview cards on hover/click") allowing users to choose between modern visual cards or traditional rapid cyclic window switching.
+   - **User-Configurable Window Navigation**: Toggle switch in **Preferences $\rightarrow$ Behaviour** ("Window Preview Cards") allowing users to choose between modern visual cards on click or traditional rapid cyclic window switching.
    - **60 FPS Zoom Follower Synchronization**: Zoom animations on the underlying dock remain synchronized at 60 FPS while the preview window is displayed.
 
 2. **True Dynamic System Theme Switching (`lib/Services/SystemTheme.vala`, `lib/DockRenderer.vala`)**:
@@ -233,7 +233,6 @@ This milestone exemplifies collaborative open-source synergy:
      - When the system switches between Dark and Light mode, WayPlank automatically swaps active counterpart themes:
        - *Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*
        - *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*
-       - *Light* $\longleftrightarrow$ *Dark*
      - If the `Default` dynamic theme is active, it immediately calls `reset_buffers()` and re-renders adaptive GTK+ translucent glass styles in real time without restarting the dock.
 
 3. **Recent Files Jump List (`lib/Services/RecentFilesService.vala`, `lib/Items/ApplicationDockItem.vala`)**:
@@ -242,11 +241,11 @@ This milestone exemplifies collaborative open-source synergy:
    - Filtered by application desktop ID and registered MIME types, providing one-click document reopening.
 
 4. **Packaged Stock Themes Suite (`data/themes/`)**:
-   - Fully installed stock themes to `/usr/share/wayplank/themes/`:
+   - Fully installed 6 stock themes to `/usr/share/wayplank/themes/` (plus the adaptive `Default` built-in engine):
      - `Default`: Adaptive dynamic translucent glass matching system GTK+ colors.
      - `Arian Theme Dark` & `Arian Theme Light`: Modern frosted glass themes with subtle illumination.
      - `IFtiger Theme Dark` & `IFtiger Theme Light`: Sleek high-contrast themes authored by IFtiger-hu (史有虎).
-     - `Dark` & `Light`: Classic clean monochrome stock themes.
+     - `Transparent`: Zero-chrome minimalist theme (`TopPadding = -11`) displaying floating icons only.
 
 5. **Folder Running Indicator Dots (`FileDockItem.vala`, `FolderMenuWindow.vala`, `DockRenderer.vala`, `DrawingService.vala`)**:
    - **Dock Folder Items**: Pinned folder items now inspect whether any application contained within them is currently active. If 1 application is running, an illuminated indicator dot is rendered on the folder dock item; if 2 or more applications are active, dual indicator dots are rendered.
@@ -274,11 +273,11 @@ This milestone exemplifies collaborative open-source synergy:
    - Automatically registers and re-executes the WayPlank bridge ECMAScript whenever KWin starts, restarts, or recovers from a crash (`kwin_wayland --replace`), restoring window dodging and thumbnail tracking without requiring WayPlank restart.
 
 10. **100% FAT Multi-Compositor Qualification (FAT 0.6.2.3)**:
-    - **357 Total Tests Defined** across 3 validation sessions:
-      - **Session 1 (GNOME Shell / Mutter)**: 120 tests | 110 [ok] | 10 [ko->ok] | 100% PASS
-      - **Session 2 (KDE Plasma 6 / KWin)**: 119 tests | 111 [ok] | 8 [ko->ok] | 100% PASS
-      - **Session 3 (Labwc / wlroots)**: 118 tests | 113 [ok] | 3 [ko->ok] | 2 [NA] | 100% PASS
-    - **Scoreboard**: 334 Passed Baseline `[ok]`, 21 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
+    - **370 Total Tests Defined** across 3 validation sessions:
+      - **Session 1 (GNOME Shell / Mutter)**: 125 tests | 106 [ok] | 19 [ko->ok] | 100% PASS
+      - **Session 2 (KDE Plasma 6 / KWin)**: 123 tests | 108 [ok] | 15 [ko->ok] | 100% PASS
+      - **Session 3 (Labwc / wlroots)**: 122 tests | 110 [ok] | 10 [ko->ok] | 2 [NA] | 100% PASS
+    - **Scoreboard**: 324 Passed Baseline `[ok]`, 44 Squashed `[ko->ok]`, 2 Not Applicable `[NA]`, 0 Pending `[ ]`, 0 Open Defects (100% PASS rate across all Tier-1 compositors).
 
 ---
 
@@ -291,8 +290,8 @@ Following community feedback and user contributions, this release incorporates m
   - Bidirectional D-Bus synchronization with KDE Plasma system tray and GNOME Shell top panel.
   - Graded vector states: active bell, muted/silenced bell, and localized toggle notifications.
 
-* 🎛️ **3-Position System Menu Access Modes**:
-  - Configurable in Preferences -> Behaviour: Mode 0 (Dedicated Preferences Icon), Mode 1 (Docklets Only with application menu fallback), and Mode 2 (All Icons Integrated).
+* 🎛️ **4-Position System Menu Access Modes**:
+  - Configurable in Preferences -> Behaviour: Mode 1 (Docklets Only), Mode 2 (Docklets Only with application fallback), Mode 3 (All Icons Integrated), and Mode 4 (Dedicated Preferences Icon on dock).
   - Clean separation: prevents unwanted dock configuration items from polluting pure application context menus while preserving unconditional access via `Ctrl + Right Click`.
 
 * ⚖️ **Symmetric 7×2 Docklets Grid & Shell Architecture**:
@@ -315,9 +314,73 @@ Following community feedback and user contributions, this release incorporates m
 
 ---
 
-## 12. 📦 Release Finalization & Master Milestone Roadmap
+## 12. 🌟 WayPlank V0.6.2.3 Community User Contributions — Round 2 (2026-10-29 / 2026-11-01)
 
-- **Current Live GitHub Release**: **v0.6.2.3 (Round 3 & Community Update)** is officially released on GitHub with 100% FAT qualification (355/355 tests passing, 2 NA).
+Following community testing, multi-window workflow feedback, and bug reports from [@tcliuqiang](https://github.com/tcliuqiang) and [@Gabenoh](https://github.com/Gabenoh), Round 2 introduces vital window management fixes, dynamic layer-shell input masking, and milestone qualification:
+
+* 🖥️ **Cross-Compositor Show Desktop Persistence (Issue #13 / FAT Point 6.1)**:
+  - **KDE Plasma 6 (KWin)**: Intercepts KWin's `org.kde.KWin.showingDesktopChanged` D-Bus signal in `KWinBridge.vala`, resetting internal `showDesktop` state to `false` and delegating window hiding/restoration to `toggleDesktop()`.
+  - **GNOME Shell (Mutter)**: Calls `win.hide_from_window_list()` on `dock`, `hover`, and `poof` surfaces and connects `global.workspace_manager.connect('showing-desktop-changed')` in `MutterBackend.vala`.
+  - **Labwc (wlroots)**: Gates `wlr_toplevel_bridge_any_window_intersects` and `wlr_toplevel_bridge_maximized_window_intersects` on `t->active` in `wlr-toplevel-bridge.c`.
+
+* 🗂️ **Workspace Switch Dock Visibility on Labwc & GNOME Mutter (Issue #11 / FAT Point 4.1)**:
+  - On Labwc, requiring `t->active` in `wlr-toplevel-bridge.c` prevents maximized or overlapping windows on inactive workspaces from keeping the dock hidden when switching to an empty workspace.
+  - On GNOME Mutter, connected `win.connect('workspace-changed')` in `MutterBackend.vala` to immediately refresh window state upon workspace moves.
+
+* 🔍 **Cold-Start HiDPI Fractional Scaling Synchronization (Issue #5 / FAT Point 7.7)**:
+  - Connected `controller.window.notify["scale-factor"]` in `PositionManager.vala` and tracked `last_scale_factor` in `screen_changed()` to reset Cairo renderer buffers and recompute layout when fractional scaling settles asynchronously on cold start.
+
+* 🧹 **Pure FreeDesktop Exec-Less Template Guard, Labwc `/proc` Resolver & Synthetic Launcher Garbage Collector (Issue #14 / FAT Point 2.15)**:
+  - Restricted `synthesize_fallback_desktop_file()` in `ApplicationDiscovery.vala` strictly to windows matching an installed Exec-less desktop template (`matched_exec_less_desktop`), preventing transient CLI dialog utilities (such as `zenity`) from spawning dock icons without hardcoding app names.
+  - Added `resolve_toplevel_process()` in `LabwcBackend.vala` ($O(1)$-cached `/proc` PID and command-line resolution matching `ResourceClass` and window title tokens) and self-healing of existing `wayplank-app-*.desktop` launchers in `ApplicationDiscovery.vala`, enabling 100% cold relaunch of pinned CLI QEMU VMs on Labwc (`zwlr_foreign_toplevel_management_v1`).
+  - Added `gc_synthetic_launchers()` to automatically purge unpinned `wayplank-app-*.desktop` files from `~/.local/share/applications/` once their windows close.
+
+* 💬 **HoverWindow Popup Standardization & GNOME Mutter Exact Classification Guard (FAT Points 5.1 & 0.4)**:
+  - Standardized `HoverWindow.vala` to use `set_role("popup-menu")` and `set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)` on non-Layer-Shell compositors with a 25ms post-show coordinate re-assertion timer (`pos_timer_id`, canceled on `hide`/`unmap`/`~HoverWindow`).
+  - Hardened `_classifyWindow(win)` in `MutterBackend.vala` to match strictly by exact string equality (`===`) against internal surface titles when `wmClass === ''` at `window-created`, eliminating false-positive classification of user windows (such as IDEs/terminals with `"WayPlank"` or `"HoverWindow.vala"` in the title) and automatically restoring `show_in_window_list()`, `unmake_above()`, and `unstick()` on existing normal windows.
+
+* 🎯 **Two-Stage Hysteresis Flip-Flop & Transparent Input Passthrough (Issue #12)**:
+  - **The Defect**: In legacy Plank, an anticipatory ~80px approach runway was hardcoded above the dock pill. On Wayland, `wl_surface.set_input_region` mapped this transparent area into the dock's input surface, stealing mouse clicks from overlapping windows resting behind or immediately above the dock (such as text editor scrollbars, Kate line selections, or terminal windows).
+  - **The Architectural Remedy**: Implemented a two-stage hysteresis flip-flop in `PositionManager.vala` (`get_cursor_region()`) and `DockWindow.vala` (`set_hovered()`):
+    - When `AnticipateZoom` is disabled (or zoom is off), the layer-shell input mask strictly clamps to the 60px visual dock pill (`static_dock_region + background_rect`) at rest, passing 100% of clicks through to underlying windows.
+    - When an icon is hovered under active zoom, the flip-flop dynamically expands the input mask upward by `hover_region` to prevent edge chattering, resetting instantly upon pointer leave.
+  - **User-Configurable Toggle**: Added an **Anticipate Icon Zoom** (`anticipate-zoom`) toggle in **Preferences $\rightarrow$ Behaviour** (Row 6) alongside *Workspace Only*, relocating *Start on Login* to Row 7 alongside *Scroll on Overflow*.
+  - **Plank Spirit Compliance**: `anticipate-zoom` is set to `true` by default in both schema and memory model, preserving 100% classic Plank feel out of the box while empowering power users with overlapping windows to disable it.
+
+* 🏆 **Historic Landmark: 107 Squashed Bugs & Source-Debugged New Features**:
+  - Full qualification across all 3 Tier-1 compositors: **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)** with `[ko->ok]` sign-off for input passthrough (FAT Point 5.4), GNOME Mutter vertical dock resize-commit re-anchoring (FAT Point 7.2), KDE Plasma 6 multi-monitor heterogeneous screen positioning (FAT Point 7.6), direct unmaximized-to-fullscreen auto-hide & 0px edge passthrough across all compositors (FAT Point 3.9 / Issue #10), HoverWindow positioning (FAT Point 5.1), and multi-VM cold relaunch across KWin, Mutter, and Labwc (FAT Point 2.15 / Issue #14).
+  - Reached the milestone of **107 unique functional & architectural bugs squashed** across WayPlank lifetime and **145 multi-compositor verification instances**, alongside new architectural features debugged directly at the source.
+
+* 🪟 **Option to Reserve Screen Space / Panel Mode (Issue #9) & GNOME Mutter Overhaul**:
+  - **The Feature**: Configurable `ReserveSpace` setting in **Preferences $\rightarrow$ Behaviour** (`reserve-space` GSettings key), enabling stationary dock panel mode so maximized windows tile cleanly without overlapping the dock.
+  - **Mutual Exclusivity Guard**: Automatically disables and grays out if `HideMode != NONE` or `ZoomEnabled == true`, guaranteeing magnified icons never clip against tiled application windows, and automatically turns OFF if either is activated by the user.
+  - **Layer-Shell Implementation**: On KDE Plasma 6 (KWin) and Labwc (wlroots), dynamically sets `GtkLayerShell.set_exclusive_zone` matching visual dock thickness and sets surface layer to `Layer.BOTTOM`.
+  - **GNOME Shell (Mutter) Bridge Overhaul**:
+    - **Dynamic Content-Hashed ES Module Loader**: Overcomes GNOME 45+ ES module URL caching; deployed versioned `impl-<hash>.js` dynamic loader so bridge updates apply immediately on WayPlank restart without requiring session logout/login.
+    - **Unconstrained User-Op Positioning**: Bypassed Mutter's `constrain_fully_onscreen` by passing `user_op = true` in `move_resize_frame` and `move_frame`, keeping the dock firmly anchored to the monitor edge.
+    - **Physical Monitor Geometry Anchoring (Rule 9)**: Anchors dock placement strictly to physical monitor bounds (`monGeo`) with top panel offset, eliminating the asynchronous `work_area` feedback loop during strut updates.
+  - **i18n & Localization**: Updated all 7 language catalogs to 326/326 strings (100% translated and validated).
+  - Closed Issue #9 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+* 🖥️ **Fullscreen Window Inhibit & 0px Edge Click Passthrough (Issue #10 / FAT Point 3.9)**:
+  - **The Defect**: When applications such as Remmina remote desktop, MPV, or web browsers entered fullscreen directly from a normal unmaximized state, KWin kept `maximizeMode === 0` (setting only `client.fullScreen = true`) and GNOME Mutter kept `maximized_horizontally/vertically === false` (setting only `win.is_fullscreen() = true`), without emitting maximized change signals. Additionally, on Mutter `HideMode = NONE` kept the dock above fullscreen windows, and the hidden dock's `10px`/`1px` edge reveal strip intercepted clicks at `0px` on the screen edge.
+  - **The Architectural Remedy**:
+    - Extended `WindowInfo`, `WindowBackend`, and `WindowControl` with `Fullscreen` and polymorphic `fullscreen_window_intersects()` across KWin (`KWinBridge.vala`), GNOME Mutter (`MutterBackend.vala`), and Labwc (`wlr-toplevel-bridge.c` / `LabwcBackend.vala`).
+    - Added `FullscreenInhibit` in `HideManager.vala` to hide the dock immediately across all `HideMode`s (including `HideType.NONE`) whenever an active fullscreen window intersects the dock.
+    - Updated `PositionManager.get_cursor_region()` to return `{ 0, 0, 0, 0 }` during `FullscreenInhibit`, clearing the Cairo input shape region so 100% of `0px` screen-edge clicks pass through to the fullscreen application without unhiding the dock.
+    - Added interactive verification utility `FAT/Test Files/Testers/test_fullscreen.py` and verified `[ko->ok]` across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots).
+  - Closed Issue #10 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+* 📚 **User Guide & i18n Synchronization**:
+  - Comprehensive documentation added to `Documentation/USER_GUIDE.md` detailing input passthrough, the hysteresis engine, Fullscreen Inhibit, and GSettings CLI keys.
+  - Translation catalogs synchronized to **326/326 strings (100%)** across 7 languages.
+  - Closed Issue #12 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+---
+
+## 13. 📦 Release Finalization & Master Milestone Roadmap
+
+- **Current Live GitHub Release**: **v0.6.2.3 (Round 3 & Community Update — 2026-11-01)** is officially released on GitHub with **100% PASS** multi-compositor FAT qualification (370 test points defined, 368/368 applicable passed: 324 `[ok]` baseline + 44 `[ko->ok]` squashed, 0 open defects, 2 NA).
 - **Distribution packages available**:
   - `build/wayplank_0.6.2.3_amd64.deb`
   - `build/wayplank-0.6.2.3-1.x86_64.rpm`
@@ -326,4 +389,9 @@ Following community feedback and user contributions, this release incorporates m
   - **v0.8.x (Release Candidate Series)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging standardization.
   - **v0.9.x (Long-Term Production Stabilization)**: The battle-tested production milestone and daily driver release for the Linux desktop community.
   - **v1.0.0 (Grand Milestone Horizon — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
+
+### 🏛️ Historic Epilogue: Official Closure of the Alpha & Pre-Beta Era (`v0.1.0` $\longrightarrow$ `v0.6.2.3`)
+
+With the completion and **100% FAT sign-off** of **WayPlank `v0.6.2.3`** on **November 1, 2026**, the **Alpha & Pre-Beta development cycle is officially closed**. What began on September 19, 2026 (`v0.1.0`) as an ambitious effort to rescue Plank from X11 obsolescence has culminated—after **15 releases**, **107 squashed bugs**, **145 multi-compositor verifications**, and **368/368 passed qualification points** across **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)**—in a rock-solid, self-contained native Wayland dock. The foundational engineering phase is complete: **the doors are now officially open for the WayPlank Public Beta (`v0.7.0`)!** 🥂🚀
+
 

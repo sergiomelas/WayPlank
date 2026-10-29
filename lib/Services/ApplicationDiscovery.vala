@@ -27,6 +27,9 @@ namespace Plank
 	public class ApplicationDiscovery : GLib.Object
 	{
 		static ApplicationDiscovery? instance;
+		static Gee.HashMap<int, string>? pid_cmdline_cache;
+		static Gee.HashMap<int, string>? pid_comm_cache;
+		static Gee.HashMap<string, bool>? desktop_exec_cache;
 		public signal void changed ();
 		Gee.ArrayList<File> indexed_desktop_files;
 		Gee.HashMap<string, ApplicationIdentity> identities;
@@ -35,6 +38,7 @@ namespace Plank
 		string[] cached_active_ids = {};
 		uint debounce_timer_id = 0U;
 		uint change_timer_id = 0U;
+		bool initial_gc_done = false;
 		
 		public static unowned ApplicationDiscovery get_default ()
 		{
@@ -96,9 +100,99 @@ namespace Plank
 				return;
 			change_timer_id = Timeout.add (50, () => {
 				change_timer_id = 0U;
+				gc_synthetic_launchers ();
 				changed ();
 				return false;
 			});
+		}
+
+		void gc_synthetic_launchers ()
+		{
+			if (!WindowControl.has_state ())
+				return;
+
+			if (initial_gc_done) {
+				bool has_synth_in_ram = false;
+				foreach (var k in identities.keys) {
+					if (k.has_prefix ("wayplank-app-")) {
+						has_synth_in_ram = true;
+						break;
+					}
+				}
+				if (!has_synth_in_ram)
+					return;
+			}
+			initial_gc_done = true;
+
+			var user_app_dir = Paths.DataHomeFolder.get_child ("applications");
+			if (!user_app_dir.query_exists ())
+				return;
+
+			var pinned_ids = new Gee.HashSet<string> ();
+			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
+			if (dock_config_dir.query_exists ()) {
+				try {
+					var d_enum = dock_config_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+					FileInfo? d_info = null;
+					while ((d_info = d_enum.next_file ()) != null) {
+						var launchers_dir = dock_config_dir.get_child (d_info.get_name ()).get_child ("launchers");
+						if (!launchers_dir.query_exists ())
+							continue;
+						var l_enum = launchers_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+						FileInfo? l_info = null;
+						while ((l_info = l_enum.next_file ()) != null) {
+							var item_file = launchers_dir.get_child (l_info.get_name ());
+							var kf = new KeyFile ();
+							try {
+								kf.load_from_file (item_file.get_path (), KeyFileFlags.NONE);
+								if (kf.has_key ("PlankDockItemPreferences", "Launcher")) {
+									var uri = kf.get_string ("PlankDockItemPreferences", "Launcher");
+									if (uri != null && uri.contains ("wayplank-app-")) {
+										var target = File.new_for_uri (uri);
+										var bname = target.get_basename ();
+										if (bname != null)
+											pinned_ids.add (bname);
+									}
+								}
+							} catch { }
+						}
+					}
+				} catch { }
+			}
+
+			var windows = WindowControl.get_windows ();
+			try {
+				var enumerator = user_app_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+				FileInfo? info = null;
+				while ((info = enumerator.next_file ()) != null) {
+					var bname = info.get_name ();
+					if (!bname.has_prefix ("wayplank-app-") || !bname.has_suffix (".desktop"))
+						continue;
+					if (pinned_ids.contains (bname))
+						continue;
+
+					var synth_file = user_app_dir.get_child (bname);
+					var identity = identities.has_key (bname) ? identities.get (bname) : new ApplicationIdentity (synth_file);
+					bool has_open_window = false;
+					foreach (var w in windows) {
+						if (!is_ignored_app (w.ApplicationId) && !is_ignored_app (w.ResourceClass) && identity.matches (w)) {
+							has_open_window = true;
+							break;
+						}
+					}
+
+					if (!has_open_window) {
+						identities.unset (bname);
+						for (int i = indexed_desktop_files.size - 1; i >= 0; i--) {
+							if (indexed_desktop_files[i].get_basename () == bname)
+								indexed_desktop_files.remove_at (i);
+						}
+						if (desktop_exec_cache != null && synth_file.get_path () != null)
+							desktop_exec_cache.unset (synth_file.get_path ());
+						try { synth_file.delete (); } catch { }
+					}
+				}
+			} catch { }
 		}
 		
 		public Gee.ArrayList<WindowInfo> windows_for_launcher (string launcher_uri)
@@ -136,7 +230,7 @@ namespace Plank
 		{
 			if (app_id == null || app_id == "")
 				return false;
-			var lower = app_id.down ();
+			var lower = app_id.down ().strip ();
 			return lower.contains ("xwaylandvideobridge")
 				|| lower == "wayplank"
 				|| lower == "wayplank-hover"
@@ -146,19 +240,49 @@ namespace Plank
 				|| lower.has_prefix ("wayplank-dev");
 		}
 
+		private bool has_exec_less_template_for_binary (string bin_name)
+		{
+			var norm_bin = ApplicationIdentity.normalize (bin_name);
+			if (norm_bin == "")
+				return false;
+			var first_dash = norm_bin.index_of_char ('-');
+			var prefix = first_dash > 0 ? norm_bin.substring (0, first_dash) : norm_bin;
+			foreach (var folder in Paths.DataDirFolders) {
+				var app_dir = folder.get_child ("applications");
+				if (!app_dir.query_exists ())
+					continue;
+				var exact_file = app_dir.get_child (norm_bin + ".desktop");
+				if (exact_file.query_exists () && !desktop_file_has_exec (exact_file))
+					return true;
+				if (prefix != norm_bin) {
+					var prefix_file = app_dir.get_child (prefix + ".desktop");
+					if (prefix_file.query_exists () && !desktop_file_has_exec (prefix_file))
+						return true;
+				}
+			}
+			return false;
+		}
+
 		private static bool desktop_file_has_exec (File file)
 		{
 			try {
 				var path = file.get_path ();
 				if (path == null)
 					return false;
+				if (desktop_exec_cache == null)
+					desktop_exec_cache = new Gee.HashMap<string, bool> ();
+				if (desktop_exec_cache.has_key (path))
+					return desktop_exec_cache.get (path);
+				bool has_exec = false;
 				var kf = new KeyFile ();
 				if (kf.load_from_file (path, KeyFileFlags.NONE)) {
 					if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
 						var exec_val = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-						return exec_val != "";
+						has_exec = (exec_val != "");
 					}
 				}
+				desktop_exec_cache.set (path, has_exec);
+				return has_exec;
 			} catch { }
 			return false;
 		}
@@ -167,6 +291,10 @@ namespace Plank
 		{
 			if (pid <= 0)
 				return "";
+			if (pid_cmdline_cache == null)
+				pid_cmdline_cache = new Gee.HashMap<int, string> ();
+			if (pid_cmdline_cache.has_key (pid))
+				return pid_cmdline_cache.get (pid);
 			try {
 				uint8[] data;
 				if (FileUtils.get_data ("/proc/%d/cmdline".printf (pid), out data)) {
@@ -192,7 +320,36 @@ namespace Plank
 							start = i + 1;
 						}
 					}
-					return builder.str;
+					var res = builder.str;
+					if (res != "") {
+						if (pid_cmdline_cache.size > 512)
+							pid_cmdline_cache.clear ();
+						pid_cmdline_cache.set (pid, res);
+					}
+					return res;
+				}
+			} catch { }
+			return "";
+		}
+
+		public static string get_process_comm (int pid)
+		{
+			if (pid <= 0)
+				return "";
+			if (pid_comm_cache == null)
+				pid_comm_cache = new Gee.HashMap<int, string> ();
+			if (pid_comm_cache.has_key (pid))
+				return pid_comm_cache.get (pid);
+			try {
+				string comm = "";
+				if (FileUtils.get_contents ("/proc/%d/comm".printf (pid), out comm)) {
+					var res = comm.strip ();
+					if (res != "") {
+						if (pid_comm_cache.size > 512)
+							pid_comm_cache.clear ();
+						pid_comm_cache.set (pid, res);
+					}
+					return res;
 				}
 			} catch { }
 			return "";
@@ -206,50 +363,77 @@ namespace Plank
 				|| is_ignored_app (window.DesktopFileName))
 				return null;
 
+			bool matched_exec_less_desktop = false;
+
 			// Fast path: Exact desktop file or application ID match with authoritative score
 			if (window.DesktopFileName != "") {
 				var canonical_file = desktop_file_for_id (window.DesktopFileName);
-				if (canonical_file != null && desktop_file_has_exec (canonical_file)) {
-					var cid = canonical_file.get_basename ();
-					if (identities.has_key (cid) && identities.get (cid).match_score (window) > 0)
-						return canonical_file;
+				if (canonical_file != null) {
+					if (desktop_file_has_exec (canonical_file)) {
+						var cid = canonical_file.get_basename ();
+						if (identities.has_key (cid) && identities.get (cid).match_score (window) > 0)
+							return canonical_file;
+					} else {
+						matched_exec_less_desktop = true;
+					}
 				}
 			}
 			if (window.ApplicationId != "") {
 				var direct_app_file = desktop_file_for_id (window.ApplicationId);
-				if (direct_app_file != null && desktop_file_has_exec (direct_app_file)) {
-					var id = direct_app_file.get_basename ();
-					if (identities.has_key (id) && identities.get (id).match_score (window) >= 70)
-						return direct_app_file;
+				if (direct_app_file != null) {
+					if (desktop_file_has_exec (direct_app_file)) {
+						var id = direct_app_file.get_basename ();
+						if (identities.has_key (id) && identities.get (id).match_score (window) >= 70)
+							return direct_app_file;
+					} else {
+						matched_exec_less_desktop = true;
+					}
 				}
 			}
 			if (window.ResourceClass != "") {
 				var direct_class_file = desktop_file_for_id (window.ResourceClass);
-				if (direct_class_file != null && desktop_file_has_exec (direct_class_file)) {
-					var id = direct_class_file.get_basename ();
-					if (identities.has_key (id) && identities.get (id).match_score (window) >= 70)
-						return direct_class_file;
+				if (direct_class_file != null) {
+					if (desktop_file_has_exec (direct_class_file)) {
+						var id = direct_class_file.get_basename ();
+						if (identities.has_key (id) && identities.get (id).match_score (window) >= 70)
+							return direct_class_file;
+					} else {
+						matched_exec_less_desktop = true;
+					}
 				}
 			}
 
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {
-				var candidate_file = desktop_file_for_id (entry.key);
-				if (candidate_file == null || !desktop_file_has_exec (candidate_file))
-					continue;
 				var score = entry.value.match_score (window);
-				if (score > best_score) {
-					best_score = score;
-					best_id = entry.key;
+				if (score < 50)
+					continue;
+				var candidate_file = desktop_file_for_id (entry.key);
+				if (candidate_file == null)
+					continue;
+				if (!desktop_file_has_exec (candidate_file)) {
+					matched_exec_less_desktop = true;
+					continue;
 				}
+				if (score <= best_score)
+					continue;
+				best_score = score;
+				best_id = entry.key;
 			}
-			if (best_id != null && best_score >= 50)
+			if (best_id != null && best_score >= 50) {
+				if (best_id.has_prefix ("wayplank-app-") && (window.Pid > 0 || window.Cmdline != ""))
+					return synthesize_fallback_desktop_file (window);
 				return desktop_file_for_id (best_id);
+			}
 
-			// Fallback: If no desktop file with an Exec line matched, synthesize a dedicated launcher
-			// containing the exact process command line so the application/VM can be launched and relaunched!
-			return synthesize_fallback_desktop_file (window);
+			// Fallback (Issue #14): Only synthesize a dedicated launcher when the window matched
+			// an Exec-less system desktop template (e.g. NoDisplay=true template without Exec=),
+			// never for transient CLI popup utilities without a system desktop entry.
+			if (matched_exec_less_desktop)
+				return synthesize_fallback_desktop_file (window);
+
+			return null;
 		}
 
 		public static string sanitize_name_for_app (string raw_name, string fallback_id)
@@ -307,7 +491,19 @@ namespace Plank
 			// Retrieve full command line from /proc/<pid>/cmdline or window.Cmdline
 			var exec_cmd = get_process_cmdline (window.Pid);
 			if (exec_cmd == "")
-				exec_cmd = window.Cmdline != "" ? window.Cmdline : (window.Executable != "" ? window.Executable : norm_id);
+				exec_cmd = window.Cmdline != "" ? window.Cmdline : (window.Executable != "" ? window.Executable : raw_id);
+
+			if (!exec_cmd.contains (" ") && synth_file.query_exists ()) {
+				try {
+					var existing_kf = new KeyFile ();
+					if (existing_kf.load_from_file (file_path, KeyFileFlags.NONE) &&
+					    existing_kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+						var existing_exec = existing_kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
+						if (existing_exec.contains (" "))
+							exec_cmd = existing_exec;
+					}
+				} catch { }
+			}
 
 			var content = "[Desktop Entry]\nType=Application\nName=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
 				app_name, exec_cmd, icon_name
@@ -315,11 +511,13 @@ namespace Plank
 
 			try {
 				FileUtils.set_contents (file_path, content);
+				if (desktop_exec_cache != null)
+					desktop_exec_cache.unset (file_path);
 				var id = synth_file.get_basename ();
-				if (!identities.has_key (id)) {
-					identities.set (id, new ApplicationIdentity (synth_file));
+				bool exists_in_index = identities.has_key (id);
+				identities.set (id, new ApplicationIdentity (synth_file));
+				if (!exists_in_index)
 					indexed_desktop_files.add (synth_file);
-				}
 				return synth_file;
 			} catch (Error e) {
 				debug ("Unable to create synthetic launcher: %s", e.message);
@@ -554,6 +752,10 @@ namespace Plank
 		bool is_visible_application (File file)
 		{
 			try {
+				var bname = file.get_basename () ?? "";
+				if (is_ignored_app (bname))
+					return false;
+
 				var key_file = new KeyFile ();
 				key_file.load_from_file (file.get_path (), KeyFileFlags.NONE);
 				if (!key_file.has_key (KeyFileDesktop.GROUP, "Type")
@@ -562,6 +764,24 @@ namespace Plank
 				if (key_file.has_key (KeyFileDesktop.GROUP, "Hidden")
 					&& key_file.get_boolean (KeyFileDesktop.GROUP, "Hidden"))
 					return false;
+
+				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
+					var exec_str = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
+					if (exec_str != "") {
+						var first_tok = exec_str.split (" ")[0].replace ("\"", "");
+						var bin_name = Path.get_basename (first_tok);
+						if (bname.has_prefix ("wayplank-app-") && !has_exec_less_template_for_binary (bin_name)) {
+							try { file.delete (); } catch { }
+							return false;
+						}
+					}
+				}
+
+				if (key_file.has_key (KeyFileDesktop.GROUP, "NoDisplay")
+					&& key_file.get_boolean (KeyFileDesktop.GROUP, "NoDisplay")) {
+					if (!bname.has_prefix ("wayplank-app-") && desktop_file_has_exec (file))
+						return false;
+				}
 
 				var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";
 				if (key_file.has_key (KeyFileDesktop.GROUP, "OnlyShowIn")) {
@@ -623,6 +843,8 @@ namespace Plank
 				if (!new_identities.has_key (entry.key))
 					new_identities.set (entry.key, entry.value);
 			}
+			if (desktop_exec_cache != null)
+				desktop_exec_cache.clear ();
 			identities = new_identities;
 			indexed_desktop_files = next;
 			last_window_signature = "";

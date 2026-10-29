@@ -251,7 +251,7 @@ Wayplank v0.5.2 introduces major user-facing docklets, an advanced categorized l
 - **Debian Sid/Trixie Package Compliance**:
   - Updated `Recommends:` to `kde-spectacle | spectacle, xfce4-screenshooter | flameshot`, resolving the un-installable package error caused by Debian renaming the package to `kde-spectacle`.
 - **Documentation & Cheatsheet Synchronization**:
-  - Updated `WAYPLANK COMPOSITORS & DESKTOPS CHEATSHEET.txt` to include `grim` and `slurp` across all Labwc, LXQt, and XFCE minimal session install commands.
+  - Updated [`WAYPLANK_COMPOSITORS_CHEATSHEET.md`](../WAYPLANK_COMPOSITORS_CHEATSHEET.md) to include `grim` and `slurp` across all Labwc, LXQt, and XFCE minimal session install commands.
   - Updated `README.md` with explicit build vs runtime docklet dependencies and recommended `apt install ./build/wayplank_*.deb` for automatic single-step dependency resolution.
 
 ### 19. 🛡️ Core Hardening, Algorithmic Alignment & Defensive Guards

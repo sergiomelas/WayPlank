@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 #
-#  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 #  Copyright (C) 2026 Sergio Melas
 #  Copyright (C) 2026 史有虎 (IFtiger-hu)
 #  Copyright (C) 2026 Renate Schwiedernoch
@@ -133,6 +132,15 @@ translations = {
         "de": "Alle Symbole (integriert)",
         "uk": "Усі піктограми (вбудовано)"
     },
+    "Anticipate Icon Zoom:": {
+        "zh_CN": "提前响应图标缩放:",
+        "it": "Anticipa zoom icone:",
+        "es": "Anticipar zoom de iconos:",
+        "fr": "Anticiper le zoom des icônes :",
+        "ca": "Anticipa el zoom de les icones:",
+        "de": "Symbol-Vergrößerung vorwegnehmen:",
+        "uk": "Передбачати збільшення значків:"
+    },
     "Application": {
         "zh_CN": "应用程序",
         "it": "Applicazione",
@@ -222,6 +230,15 @@ translations = {
         "ca": "Segur que voleu apagar l'ordinador? Es perdran els canvis no desats.",
         "de": "Möchten Sie Ihren Computer wirklich ausschalten? Nicht gespeicherte Änderungen gehen verloren.",
         "uk": "Справді вимкнути комп'ютер? Незбережені зміни буде втрачено."
+    },
+    "Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock": {
+        "zh_CN": "当光标靠近停靠栏时提前开始图标放大，带来流畅磁吸手感；禁用后可严格穿透鼠标点击至紧随停靠栏后方或上方的窗口",
+        "it": "Inizia a ingrandire le icone all'avvicinarsi del cursore per un effetto più fluido e magnetico; disabilita per trasmettere rigorosamente tutti i click alle finestre posizionate subito dietro o sopra la dock",
+        "es": "Comienza la ampliación de iconos a medida que el cursor se acerca al dock para una sensación fluida y magnética; deshabilítelo para transferir estrictamente los clics del ratón a las ventanas situadas inmediatamente detrás o encima del dock",
+        "fr": "Commence à agrandir les icônes à l'approche du curseur pour un effet fluide et magnétique ; désactiver pour transmettre strictement tous les clics de souris aux fenêtres situées immédiatement derrière ou au-dessus du dock",
+        "ca": "Comença l'ampliació de les icones a mesura que el cursor s'acosta al dock per a una sensació fluida i magnètica; inhabiliteu-lo per transmetre estrictament els clics del ratolí a les finestres situades immediatament darrere o a sobre del dock",
+        "de": "Beginnt mit der Symbolvergrößerung, sobald sich der Mauszeiger dem Dock nähert, für ein flüssiges, magnetisches Gefühl; deaktivieren, um Mausklicks strikt an Fenster direkt hinter oder über dem Dock weiterzuleiten",
+        "uk": "Починає збільшувати значки, коли курсор наближається до панелі, створюючи плавне магнітне відчуття; вимкніть, щоб точно передавати клацання миші вікнам, розташованим безпосередньо позаду або над панеллю"
     },
     "Back": {
         "zh_CN": "返回",
@@ -1752,6 +1769,24 @@ translations = {
         "ca": "Fitxers recents",
         "de": "Zuletzt verwendete Dateien",
         "uk": "Нещодавні файли"
+    },
+    "Reserve Screen Space:": {
+        "zh_CN": "保留屏幕空间:",
+        "it": "Riserva spazio su schermo:",
+        "es": "Reservar espacio en pantalla:",
+        "fr": "Réserver l'espace à l'écran :",
+        "ca": "Reserva espai a la pantalla:",
+        "de": "Bildschirmplatz reservieren:",
+        "uk": "Зарезервувати екранний простір:"
+    },
+    "Reserve screen space matching the dock thickness (Panel Mode) so maximized windows tile without overlapping the dock; requires Hide Dock and Icon Zoom to be disabled (automatically turns off if either is enabled)": {
+        "zh_CN": "根据 Dock 厚度保留屏幕空间(面板模式)，使最大化窗口贴边平铺而不覆盖 Dock；需要同时禁用“隐藏 Dock”与“图标缩放”(若启用其中之一将自动关闭)",
+        "it": "Riserva spazio a schermo pari allo spessore della dock (Modalità Pannello) per affiancare le finestre massimizzate senza sovrapporle; richiede che 'Nascondi dock' e 'Ingrandimento icone' siano disattivati (si disattiva automaticamente se uno dei due viene abilitato)",
+        "es": "Reserva espacio en pantalla según el grosor del dock (Modo Panel) para que las ventanas maximizadas no se superpongan; requiere desactivar 'Ocultar dock' y 'Zoom de iconos' (se desactiva automáticamente si se activa alguno)",
+        "fr": "Réserve l'espace à l'écran selon l'épaisseur du dock (Mode Panneau) afin que les fenêtres maximisées ne le chevauchent pas ; nécessite de désactiver 'Masquer le dock' et 'Zoom des icônes' (se désactive automatiquement si l'un est activé)",
+        "ca": "Reserva espai a la pantalla segons el gruix del dock (Mode Tauler) perquè les finestres maximitzades no el superposin; requereix desactivar 'Amaga el dock' i 'Zoom de les icones' (es desactiva automàticament si s'activa algun)",
+        "de": "Reserviert Bildschirmplatz entsprechend der Dock-Dicke (Panel-Modus), sodass maximierte Fenster das Dock nicht überlappen; erfordert deaktiviertes 'Dock ausblenden' und 'Symbol-Vergrößerung' (wird automatisch deaktiviert, wenn eines davon aktiviert wird)",
+        "uk": "Резервує екранний простір відповідно до товщини дока (режим панелі), щоб максимізовані вікна не перекривали його; вимагає вимкнення 'Приховувати док' та 'Збільшення значків' (автоматично вимикається, якщо будь-яке з них увімкнено)"
     },
     "Refresh Weather": {
         "zh_CN": "刷新天气",

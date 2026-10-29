@@ -54,10 +54,13 @@ namespace Plank
 			screen.monitors_changed.connect (on_screen_topology_changed);
 			screen.size_changed.connect (on_screen_topology_changed);
 			screen.composited_changed.connect (screen_composited_changed);
+			controller.window.notify["scale-factor"].connect (on_scale_factor_changed);
 			WindowControl.get_default ().primary_monitor_changed.connect (prefs_monitor_changed);
 			
+			last_scale_factor = controller.window.get_scale_factor ();
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = get_effective_monitor_geometry (monitor);
+			current_monitor = monitor;
 			
 			screen_is_composited = screen.is_composited ();
 		}
@@ -74,6 +77,7 @@ namespace Plank
 			if (controller != null) {
 				controller.prefs.notify.disconnect (prefs_changed);
 				if (controller.window != null) {
+					controller.window.notify["scale-factor"].disconnect (on_scale_factor_changed);
 					unowned Gdk.Screen screen = controller.window.get_screen ();
 					if (screen != null) {
 						screen.monitors_changed.disconnect (on_screen_topology_changed);
@@ -98,6 +102,7 @@ namespace Plank
 				break;
 			case "ZoomPercent":
 			case "ZoomEnabled":
+			case "AnticipateZoom":
 				prefs_zoom_changed ();
 				break;
 			default:
@@ -241,11 +246,20 @@ namespace Plank
 		
 		void prefs_monitor_changed ()
 		{
-			if (controller != null && controller.window != null)
+			if (controller != null && controller.window != null) {
+				current_monitor = null;
 				screen_changed (controller.window.get_screen ());
+			}
+		}
+
+		void on_scale_factor_changed ()
+		{
+			if (controller != null && controller.window != null)
+				on_screen_topology_changed (controller.window.get_screen ());
 		}
 
 		weak Gdk.Monitor? current_monitor = null;
+		int last_scale_factor = 1;
 
 		Gdk.Rectangle get_effective_monitor_geometry (Gdk.Monitor? monitor)
 		{
@@ -258,12 +272,12 @@ namespace Plank
 			var geom = monitor.get_geometry ();
 			Gdk.Rectangle wa;
 			if (WindowControl.get_workarea_for_geometry (geom, out wa)) {
-				message ("Wayplank: using Mutter workarea %d,%d %dx%d (monitor geom was %d,%d %dx%d)",
+				debug ("Wayplank: using Mutter workarea %d,%d %dx%d (monitor geom was %d,%d %dx%d)",
 					wa.x, wa.y, wa.width, wa.height, geom.x, geom.y, geom.width, geom.height);
 				return wa;
 			}
 
-			message ("Wayplank: fallback to monitor.get_workarea() %d,%d %dx%d",
+			debug ("Wayplank: fallback to monitor.get_workarea() %d,%d %dx%d",
 				monitor.get_workarea ().x, monitor.get_workarea ().y, monitor.get_workarea ().width, monitor.get_workarea ().height);
 			return monitor.get_workarea ();
 		}
@@ -299,7 +313,12 @@ namespace Plank
 			bool monitor_changed = (monitor != current_monitor);
 			current_monitor = monitor;
 
+			int current_scale = (controller != null && controller.window != null) ? controller.window.get_scale_factor () : 1;
+			bool scale_changed = (current_scale != last_scale_factor);
+			last_scale_factor = current_scale;
+
 			if (!monitor_changed
+				&& !scale_changed
 				&& old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
 				&& old_monitor_geo.width == monitor_geo.width
@@ -313,6 +332,11 @@ namespace Plank
 			
 			freeze_notify ();
 			
+			controller.window.update_layer_shell_monitor ();
+
+			if (scale_changed && controller.renderer != null)
+				controller.renderer.reset_buffers ();
+
 			if (controller.renderer != null && controller.renderer.theme != null) {
 				update (controller.renderer.theme);
 			} else {
@@ -320,10 +344,7 @@ namespace Plank
 				update_regions ();
 			}
 
-			controller.window.update_layer_shell_monitor ();
-			if (!GtkLayerShell.is_supported ()) {
-				controller.window.update_size_and_position ();
-			}
+			controller.window.update_size_and_position ();
 			
 			thaw_notify ();
 			updating_screen = false;
@@ -532,6 +553,9 @@ namespace Plank
 			
 			ZoomPercent = (screen_is_composited ? prefs.ZoomPercent / 100.0 : 1.0);
 			ZoomIconSize = (screen_is_composited && prefs.ZoomEnabled ? (int) Math.round (IconSize * ZoomPercent) : IconSize);
+			if (controller.window != null) {
+				controller.window.set_input_mask ();
+			}
 		}
 		
 		void update_max_icon_size (DockTheme theme)
@@ -698,6 +722,9 @@ namespace Plank
 		
 		public Gdk.Rectangle get_cursor_region ()
 		{
+			if (controller.hide_manager.FullscreenInhibit)
+				return { 0, 0, 0, 0 };
+
 			var cursor_region = static_dock_region;
 			if (background_rect.width > 0 && background_rect.height > 0) {
 				cursor_region.union (background_rect, out cursor_region);
@@ -714,12 +741,15 @@ namespace Plank
 			}
 			
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
-				if (is_horizontal_dock ()) {
-					cursor_region.y = 0;
-					cursor_region.height = DockHeight;
-				} else {
-					cursor_region.x = 0;
-					cursor_region.width = DockWidth;
+				bool allow_anticipate = controller.prefs.ZoomEnabled && controller.prefs.AnticipateZoom;
+				if (allow_anticipate) {
+					if (is_horizontal_dock ()) {
+						cursor_region.y = 0;
+						cursor_region.height = DockHeight;
+					} else {
+						cursor_region.x = 0;
+						cursor_region.width = DockWidth;
+					}
 				}
 				return cursor_region;
 			}

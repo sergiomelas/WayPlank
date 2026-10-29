@@ -81,6 +81,7 @@ namespace Plank
         {
             var authors = new string[] {
                     "Sergio Melas <sergiomelas@gmail.com>",
+                    "史有虎 (IFtiger-hu) <2212363803@qq.com>",
                     "Robert Dyer <psybers@gmail.com>",
                     "Rico Tzschichholz <ricotz@ubuntu.com>",
                     "Michal Hruby <michal.mhr@gmail.com>"
@@ -93,6 +94,7 @@ namespace Plank
                 };
 
             var artists = new string[] {
+                    "Sergio Melas <sergiomelas@gmail.com>",
                     "Daniel Foré <daniel@elementaryos.org>"
                 };
 

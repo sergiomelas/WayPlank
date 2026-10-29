@@ -36,6 +36,10 @@ namespace Plank
 		public abstract bool any_window_intersects (Gdk.Rectangle rect);
 		public abstract bool active_window_intersects (Gdk.Rectangle rect);
 		public abstract bool maximized_window_intersects (Gdk.Rectangle rect);
+		public virtual bool fullscreen_window_intersects (Gdk.Rectangle rect)
+		{
+			return false;
+		}
 		public virtual void handle_system_resume () { }
 		public virtual void invalidate_panel_cache () { }
 		public virtual int get_top_panel_floating_offset (Gdk.Rectangle mon_geom = Gdk.Rectangle ())
@@ -64,5 +68,6 @@ namespace Plank
 		{
 			return false;
 		}
+		public virtual void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position) { }
 	}
 }

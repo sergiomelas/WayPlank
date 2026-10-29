@@ -1,7 +1,7 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-26
+Date: 2026-11-01
 Milestone: V0.6.2.3 (The Community Unification & Distribution Release: Round 3
            Multi-Window Preview Cards, Recent Files Jump List,
            Classic Stock Theme Suite, Drawer Parity, Native Peer Stacking,
@@ -9,15 +9,15 @@ Milestone: V0.6.2.3 (The Community Unification & Distribution Release: Round 3
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [PASS] | 111 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100%)
+      [PASS]    | 108 [ok] | 15 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100% PASS)
   - GNOME (Mutter Backend):
-      [PASS] | 110 [ok] | 13 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100%)
+      [PASS]    | 106 [ok] | 19 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100% PASS)
   - LABWC (wlroots Backend):
-      [PASS] | 113 [ok] | 5 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] (100%)
+      [PASS]    | 110 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] (100% PASS)
   - TOTAL SCOREBOARD:
-      364 Tests Defined | 334 [ok] Baseline | 28 [ko->ok] Squashed |
-      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 0 Open Defects
-      100% QUALIFIED PASS (ISA-88 Multi-Compositor Benchmark)
+      370 Tests Defined | 324 [ok] Baseline | 44 [ko->ok] Squashed |
+      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 0 Open Defects ([ko])
+      ISA-88 Qualification Scoreboard (368/368 Applicable Tests Passed — 100% PASS Across All 3 Compositors)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.2.2 testing)
@@ -31,7 +31,7 @@ Test Status Legend (ISA-88 Qualification Standard):
                   formally transferred to and tracked under next Milestone FAT
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
+SESSION 1: GNOME (Mutter Backend) - [PASS / 106 BASELINE | 19 SQUASHED | 0 OPEN]
 ================================================================================
 ================================================================================
 
@@ -322,31 +322,37 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
              (or run "FAT/Test Files/Qemu/run_test_vm.sh" both for dual launch)
              Verify two separate dock items are tracked with independent
              identities: "QEMU (VM-Alpha)" and "QEMU (VM-Beta)".
-          3. Independent Pinning & Cold Relaunch:
+          3. Independent Pinning, Cold Relaunch & Unpinned Garbage Collection:
              - Right-click each dock item and select "Keep in Dock".
              - Close both QEMU windows; verify both pinned icons remain on dock.
              - Click "VM-Alpha" icon -> verify VM-Alpha launches with its image.
              - Click "VM-Beta" icon -> verify VM-Beta launches with its image.
+             - Unpin a VM and close its window -> verify gc_synthetic_launchers()
+               automatically purges its unpinned wayplank-app-*.desktop file.
+          4. Transient CLI Dialog Exclusion (zenity):
+             - Run in terminal: zenity --info --text="Test"
+             - Verify NO dock icon is spawned on WayPlank and NO
+               wayplank-app-zenity.desktop file is created in
+               ~/.local/share/applications/.
         BUG (Issue #14):
           CLI-launched virtual machines (qemu-system-x86_64) failed to spawn
           dock items because /usr/share/applications/qemu.desktop specifies
           NoDisplay=true and lacks an Exec line. If pinned, clicking did nothing
           because no executable command line existed to relaunch the VM.
-          On Mutter, generic argument tokens (kvm, 512m) caused VM instances
-          to collapse onto a single icon, while a re-entrant D-Bus position
-          loop between DockWindow and Mutter extension spun at 10% CPU.
+          Additionally, unconditional fallback synthesis caused transient CLI
+          dialogs (zenity) or unpinned closed VMs to leave stale synthetic
+          wayplank-app-*.desktop files in ~/.local/share/applications/.
         SOLUTION:
           1) In ApplicationDiscovery.vala, indexed NoDisplay=true desktop
              entries for running window matching (preserving desktop icon/name).
-          2) In ApplicationDiscovery.vala, synthesize a dedicated executable
-             launcher in ~/.local/share/applications/ capturing window.Cmdline
-             so each VM can be launched and independently relaunched when
-             pinned.
+          2) In ApplicationDiscovery.vala, restricted synthesize_fallback_desktop_file()
+             strictly to windows matching an Exec-less system desktop template
+             (matched_exec_less_desktop), excluded NoDisplay=true helpers with
+             Exec lines, and added gc_synthetic_launchers() to purge unpinned
+             synthetic launchers upon window closure.
           3) In ApplicationIdentity.vala, filtered out generic hypervisor flags
              (kvm, 512m, etc.) and enforced synthetic launcher instance
              isolation to guarantee independent dock icons for each VM.
-          4) In DockWindow.vala and Mutter extension.js, eliminated re-entrant
-             state_changed positioning loop, reducing idle CPU to <= 0.1%.
 
 3. HIDE & DODGE MODES
    [ok] 3.1 None: Dock permanently visible, never hides
@@ -375,10 +381,72 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
+   [ko->ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Test Procedure:
+          1. Launch interactive fullscreen tester:
+             python3 "FAT/Test Files/Testers/test_fullscreen.py"
+          2. Verify window opens in normal unmaximized state (850x620).
+          3. Press F11, Space, or click "Toggle Fullscreen" to transition
+             directly from unmaximized to Fullscreen (simulating Remmina,
+             MPV, QEMU, or browser F11).
+          4. Verify WayPlank hides immediately across all HideModes (including
+             HideMode = 'None' / Never and Dodge Maximized).
+          5. Move pointer to the dock's screen edge and click the 0px Edge Test
+             Strip (Bottom, Top, Left, Right): verify dock does NOT unhide on
+             hover and 100% of clicks increment the tester counter.
+          6. Press Esc or F11 to exit Fullscreen -> verify dock immediately
+             restores normal visibility and input mask.
+        BUG (Issue #10):
+          Reported by @tcliuqiang. When an application (e.g. Remmina remote
+          desktop, MPV, or browser F11) entered fullscreen directly from a
+          normal unmaximized state, KWin kept maximizeMode === 0 (setting only
+          client.fullScreen = true) and Mutter kept maximized_horizontally/
+          vertically === false (setting only win.is_fullscreen() = true), while
+          neither backend connected fullscreen change signals. Consequently,
+          Dodge Maximized failed to detect fullscreen windows, HideMode = None
+          on Mutter kept the dock above fullscreen windows, and the hidden
+          dock's 10px/1px edge reveal strip intercepted 0px edge clicks.
+        SOLUTION:
+          1) Added Fullscreen property to WindowInfo and polymorphic
+             fullscreen_window_intersects() across WindowBackend, WindowControl,
+             KWinBridge/KWinBackend (client.fullScreen + fullScreenChanged),
+             MutterBackend (win.is_fullscreen() + notify::fullscreen), and
+             wlr-toplevel-bridge/LabwcBackend (t->fullscreen).
+          2) Added FullscreenInhibit state in HideManager.vala: when an active
+             fullscreen window intersects the dock, update_hidden() forces
+             immediate hide() across all HideModes (including HideType.NONE).
+          3) In PositionManager.vala (get_cursor_region()), return { 0, 0, 0, 0 }
+             while FullscreenInhibit is active so DockWindow clears its Cairo
+             input shape to an empty region, passing 100% of 0px edge clicks
+             to the fullscreen application.
+   [ok] 3.10 Reserve Screen Space / Panel Mode (Issue #9):
+        - Test Procedure:
+          1. Open Preferences -> Behaviour tab.
+          2. Verify "Reserve Screen Space" switch is insensitive (greyed out)
+             whenever "Hide Dock" is ON or "Icon Zoom" is ON.
+          3. Turn "Hide Dock" OFF (HideMode = None) and "Icon Zoom" OFF ->
+             verify "Reserve Screen Space" switch becomes sensitive.
+          4. Enable "Reserve Screen Space" (ON) and maximize a standard
+             application window (e.g. terminal, file manager, browser) ->
+             verify the maximized window tiles cleanly against the dock
+             boundary without overlapping the dock pill across all 4 screen
+             edges (Bottom, Top, Left, Right).
+          5. Toggle "Hide Dock" ON or "Icon Zoom" ON while "Reserve Screen
+             Space" is active -> verify "Reserve Screen Space" automatically
+             switches OFF and becomes insensitive, releasing the reserved
+             strut / exclusive zone immediately.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
-   [ok] 4.1 Empty Workspace Switch:
+   [ko->ok] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+        BUG (Issue #11): When a maximized or overlapping window was moved to
+          another workspace on GNOME Mutter without switching the active
+          workspace first (or during workspace transitions), MutterBackend._connectWindow
+          did not subscribe to the MetaWindow 'workspace-changed' signal, leaving
+          dock dodge state stale until focus changed.
+        SOLUTION: Added win.connect('workspace-changed', () => this._notifyWindowsChanged())
+          in MutterBackend.vala (_connectWindow) so moving windows across workspaces
+          immediately refreshes active workspace intersection and dock visibility.
    [ok] 4.2 Occupied Workspace Switch:
         Switch back to WS1 -> dock hides again immediately
    [ok] 4.3 Sticky Windows:
@@ -393,7 +461,7 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -401,6 +469,31 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
+        BUG: When the dock was visible on screen, get_cursor_region() in
+          PositionManager.vala unconditionally forced cursor_region.y = 0 and
+          cursor_region.height = DockHeight (e.g. 140px) across the entire dock
+          span to accommodate potential icon bounce and anticipatory zoom runways.
+          Consequently, a ~80px invisible transparent dead zone directly above the
+          dock pill intercepted pointer input via Wayland wl_surface.set_input_region.
+          Clicks on windows placed behind/above the dock (such as text editor status
+          bars, scrollbars, or line selections in Kate or VS Code) were swallowed by
+          WayPlank, changing the cursor from I-beam to pointer arrow and preventing
+          underlying applications from receiving click events (GitHub Issue #12).
+        SOLUTION: Implemented a two-stage hysteresis flip-flop and configurable
+          anticipatory zoom engine. When AnticipateZoom is disabled (or ZoomEnabled
+          is false), get_cursor_region() clamps the Cairo input region strictly to
+          the 60px visual dock pill (static_dock_region + background_rect),
+          immediately passing 100% of pointer clicks through to underlying windows.
+          When an icon is hovered under active zoom, the flip-flop dynamically
+          expands the mask upward by hover_region (Delta = a + b * AnticipateZoom)
+          to prevent edge chattering, then resets to the tight boundary upon exit.
+          Added a user-configurable 'Anticipate Icon Zoom' toggle in Preferences ->
+          Behaviour (Row 6) alongside 'Workspace Only', relocating 'Start on Login'
+          to Row 7 alongside 'Scroll on Overflow'. Verified live on GNOME Shell
+          (Mutter) with full text editor / overlapping window click passthrough.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -412,7 +505,28 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ko->ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Prerequisite on stock GNOME (if Super+D is unassigned):
+          gsettings set org.gnome.desktop.wm.keybindings show-desktop "['<Super>d']"
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D) minimizes standard app windows
+          while WayPlank remains visible on the desktop.
+        BUG: Reported by @tcliuqiang (Issue #13). On Ubuntu 26.04 Wayland (GNOME
+          Mutter), triggering "Show Desktop" (Super + D) hid the dock alongside
+          standard app windows. Forensic inspection of Mutter C sources
+          (src/core/window.c: is_desktop_or_dock_foreach & meta_window_should_be_showing)
+          revealed that on Wayland, client-set Gdk.WindowTypeHint.DOCK is ignored
+          (window->type remains META_WINDOW_NORMAL), so Mutter hides every window
+          during workspace->showing_desktop unless window->skip_from_window_list
+          is TRUE.
+        SOLUTION: In MutterBackend.vala (EXTENSION_JS), invoked Mutter's native
+          MetaWindow method win.hide_from_window_list() (which sets
+          window->skip_from_window_list = TRUE in Mutter's C core) on WayPlank's
+          'dock', 'hover', and 'poof' windows in applyRole, _applyDockPosition,
+          _applyHoverPosition, and _applyPoofPosition, and subscribed to
+          global.workspace_manager.connect('showing-desktop-changed') so Mutter
+          exempts WayPlank from Show Desktop hiding and updates window dodge state
+          immediately.
    [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [ok] 6.3 External Trash Sync:
@@ -699,7 +813,26 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
           3) Zero changes to backend/HAL; Mutter bridge immediately recognizes
              role='help' as a dialog and centers it cleanly within the display
              work area.
-   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ko->ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+        BUG: When switching the dock orientation from horizontal (BOTTOM) to
+          vertical (LEFT / RIGHT) on GNOME Wayland (Mutter), the dock
+          occasionally positioned itself far too low near the bottom edge of
+          the display. This race condition occurred because DockWindow called
+          D-Bus PositionDock synchronously before GTK 3 rendered and committed
+          the new vertical Wayland surface buffer. Mutter deferred the
+          move_resize_frame while the old horizontal buffer was still attached,
+          and when GTK committed the vertical buffer a few milliseconds later,
+          Mutter emitted 'size-changed' (retaining the old bottom Y coordinate)
+          which was ignored for 'dock' windows in MutterBackend.vala.
+        SOLUTION:
+          1) In MutterBackend.vala (_connectWindow), extended the 'size-changed'
+             signal listener to handle currentKind === 'dock' and immediately
+             re-invoke _applyDockPosition(win, x, y, width, height) once GTK
+             commits the resized Wayland buffer.
+          2) In _applyDockPosition, invoked win.move_frame(true, targetX, targetY)
+             prior to win.move_resize_frame(true, targetX, targetY, width, height)
+             so the target frame origin is applied immediately even if the buffer
+             resize is still pending.
    [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
    [ok] 7.4 Icon Size Slider Resiliency:
         Real-time slider resizing works smoothly across all values (24px to
@@ -722,8 +855,27 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
           /usr/share/plank/themes are automatically discovered and loaded with
           100% parameter fidelity.
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
-   [ok] 7.7 HiDPI & Fractional Scaling:
-        Move dock/windows between 100% and 125%/150% displays
+   [ko->ok] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays; cold start on
+        fractional scaling (e.g. 4K@1.5x).
+        - CLI procedure on minimal GNOME (via gdctl):
+          gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
+          gdctl set --logical-monitor --primary --scale 1.25 --monitor eDP-1
+          killall wayplank; wayplank &
+          gdctl set --logical-monitor --primary --scale 1 --monitor eDP-1
+        BUG: Reported by @tcliuqiang (Issue #5). On cold start under HiDPI
+          fractional scaling (e.g. 4K@1.5x), when GTK/Wayland updated the window
+          scale-factor asynchronously after initial realization or when the Mutter
+          D-Bus bridge connected after initial fallback workarea query,
+          PositionManager.screen_changed() returned early whenever logical
+          monitor_geo matched old_monitor_geo and ignored scale-factor transitions.
+        SOLUTION: Without altering any geometric or anchor calculation formulas,
+          connected controller.window.notify["scale-factor"] in
+          PositionManager.vala, tracked last_scale_factor in screen_changed() to
+          reset Cairo renderer buffers and force a layout update when scale-factor
+          changes, and reset current_monitor = null in prefs_monitor_changed() so
+          bridge connection (primary_monitor_changed) always refreshes workarea
+          and dock sizing on cold start.
    [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
@@ -1141,17 +1293,17 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
 
 ================================================================================
-SESSION 1 RESULT: PASS (GNOME / Mutter Backend) - 100% QUALIFIED
+SESSION 1 RESULT: PASS (GNOME / Mutter Backend) - Issues #5, #9, #11, #13
 ================================================================================
-  * Tests: 123 | Passed Baseline: 110 [ok] | Squashed: 13 [ko->ok]
-    (0.1, 0.2, 0.3, 2.14, 2.15, 6.5, 6.10b, 7.1, 7.15, 7.16, 9.9, 10.8, 13.6)
-  * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Status: 123/123 Passed (100% QUALIFIED PASS)
+  * Tests: 125 | Passed Baseline: 106 [ok] | Squashed: 19 [ko->ok]
+    (0.1, 0.2, 0.3, 2.14, 2.15, 3.9, 4.1, 5.4, 6.1, 6.5, 6.10b, 7.1, 7.2, 7.7, 7.15, 7.16, 9.9, 10.8, 13.6)
+  * To Test: 0 [ko->test] | Pending: 0 [  ] | Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Status: 125/125 Passed (100% PASS)
 ================================================================================
 
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
+SESSION 2: KDE PLASMA (KWin Backend) [PASS / 108 BASELINE | 15 SQUASHED | 0 OPEN]
 ================================================================================
 ================================================================================
 
@@ -1372,31 +1524,37 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
              (or run "FAT/Test Files/Qemu/run_test_vm.sh" both for dual launch)
              Verify two separate dock items are tracked with independent
              identities: "QEMU (VM-Alpha)" and "QEMU (VM-Beta)".
-          3. Independent Pinning & Cold Relaunch:
+          3. Independent Pinning, Cold Relaunch & Unpinned Garbage Collection:
              - Right-click each dock item and select "Keep in Dock".
              - Close both QEMU windows; verify both pinned icons remain on dock.
              - Click "VM-Alpha" icon -> verify VM-Alpha launches with its image.
              - Click "VM-Beta" icon -> verify VM-Beta launches with its image.
+             - Unpin a VM and close its window -> verify gc_synthetic_launchers()
+               automatically purges its unpinned wayplank-app-*.desktop file.
+          4. Transient CLI Dialog Exclusion (zenity):
+             - Run in terminal: zenity --info --text="Test"
+             - Verify NO dock icon is spawned on WayPlank and NO
+               wayplank-app-zenity.desktop file is created in
+               ~/.local/share/applications/.
         BUG (Issue #14):
           CLI-launched virtual machines (qemu-system-x86_64) failed to spawn
           dock items because /usr/share/applications/qemu.desktop specifies
           NoDisplay=true and lacks an Exec line. If pinned, clicking did nothing
           because no executable command line existed to relaunch the VM.
-          On Mutter, generic argument tokens (kvm, 512m) caused VM instances
-          to collapse onto a single icon, while a re-entrant D-Bus position
-          loop between DockWindow and Mutter extension spun at 10% CPU.
+          Additionally, unconditional fallback synthesis caused transient CLI
+          dialogs (zenity) or unpinned closed VMs to leave stale synthetic
+          wayplank-app-*.desktop files in ~/.local/share/applications/.
         SOLUTION:
           1) In ApplicationDiscovery.vala, indexed NoDisplay=true desktop
              entries for running window matching (preserving desktop icon/name).
-          2) In ApplicationDiscovery.vala, synthesize a dedicated executable
-             launcher in ~/.local/share/applications/ capturing window.Cmdline
-             so each VM can be launched and independently relaunched when
-             pinned.
+          2) In ApplicationDiscovery.vala, restricted synthesize_fallback_desktop_file()
+             strictly to windows matching an Exec-less system desktop template
+             (matched_exec_less_desktop), excluded NoDisplay=true helpers with
+             Exec lines, and added gc_synthetic_launchers() to purge unpinned
+             synthetic launchers upon window closure.
           3) In ApplicationIdentity.vala, filtered out generic hypervisor flags
              (kvm, 512m, etc.) and enforced synthetic launcher instance
              isolation to guarantee independent dock icons for each VM.
-          4) In DockWindow.vala and Mutter extension.js, eliminated re-entrant
-             state_changed positioning loop, reducing idle CPU to <= 0.1%.
 
 3. HIDE & DODGE MODES
    [ko->ok] 3.1 None: Dock permanently visible, never hides & Layer-Shell Input Passthrough:
@@ -1443,6 +1601,60 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
+   [ko->ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Test Procedure:
+          1. Launch interactive fullscreen tester:
+             python3 "FAT/Test Files/Testers/test_fullscreen.py"
+          2. Verify window opens in normal unmaximized state (850x620).
+          3. Press F11, Space, or click "Toggle Fullscreen" to transition
+             directly from unmaximized to Fullscreen (simulating Remmina,
+             MPV, QEMU, or browser F11).
+          4. Verify WayPlank hides immediately across all HideModes (including
+             HideMode = 'None' / Never and Dodge Maximized).
+          5. Move pointer to the dock's screen edge and click the 0px Edge Test
+             Strip (Bottom, Top, Left, Right): verify dock does NOT unhide on
+             hover and 100% of clicks increment the tester counter.
+          6. Press Esc or F11 to exit Fullscreen -> verify dock immediately
+             restores normal visibility and input mask.
+        BUG (Issue #10):
+          Reported by @tcliuqiang. When an application (e.g. Remmina remote
+          desktop, MPV, or browser F11) entered fullscreen directly from a
+          normal unmaximized state, KWin kept maximizeMode === 0 (setting only
+          client.fullScreen = true) and Mutter kept maximized_horizontally/
+          vertically === false (setting only win.is_fullscreen() = true), while
+          neither backend connected fullscreen change signals. Consequently,
+          Dodge Maximized failed to detect fullscreen windows, HideMode = None
+          on Mutter kept the dock above fullscreen windows, and the hidden
+          dock's 10px/1px edge reveal strip intercepted 0px edge clicks.
+        SOLUTION:
+          1) Added Fullscreen property to WindowInfo and polymorphic
+             fullscreen_window_intersects() across WindowBackend, WindowControl,
+             KWinBridge/KWinBackend (client.fullScreen + fullScreenChanged),
+             MutterBackend (win.is_fullscreen() + notify::fullscreen), and
+             wlr-toplevel-bridge/LabwcBackend (t->fullscreen).
+          2) Added FullscreenInhibit state in HideManager.vala: when an active
+             fullscreen window intersects the dock, update_hidden() forces
+             immediate hide() across all HideModes (including HideType.NONE).
+          3) In PositionManager.vala (get_cursor_region()), return { 0, 0, 0, 0 }
+             while FullscreenInhibit is active so DockWindow clears its Cairo
+             input shape to an empty region, passing 100% of 0px edge clicks
+             to the fullscreen application.
+   [ok] 3.10 Reserve Screen Space / Panel Mode (Issue #9):
+        - Test Procedure:
+          1. Open Preferences -> Behaviour tab.
+          2. Verify "Reserve Screen Space" switch is insensitive (greyed out)
+             whenever "Hide Dock" is ON or "Icon Zoom" is ON.
+          3. Turn "Hide Dock" OFF (HideMode = None) and "Icon Zoom" OFF ->
+             verify "Reserve Screen Space" switch becomes sensitive.
+          4. Enable "Reserve Screen Space" (ON) and maximize a standard
+             application window (e.g. terminal, file manager, browser) ->
+             verify the maximized window tiles cleanly against the dock
+             boundary without overlapping the dock pill across all 4 screen
+             edges (Bottom, Top, Left, Right).
+          5. Toggle "Hide Dock" ON or "Icon Zoom" ON while "Reserve Screen
+             Space" is active -> verify "Reserve Screen Space" automatically
+             switches OFF and becomes insensitive, releasing the reserved
+             strut / exclusive zone immediately.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [ok] 4.1 Empty Workspace Switch:
@@ -1461,7 +1673,7 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -1469,6 +1681,31 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
+        BUG: When the dock was visible on screen, get_cursor_region() in
+          PositionManager.vala unconditionally forced cursor_region.y = 0 and
+          cursor_region.height = DockHeight (e.g. 140px) across the entire dock
+          span to accommodate potential icon bounce and anticipatory zoom runways.
+          Consequently, a ~80px invisible transparent dead zone directly above the
+          dock pill intercepted pointer input via Wayland wl_surface.set_input_region.
+          Clicks on windows placed behind/above the dock (such as text editor status
+          bars, scrollbars, or line selections in Kate or VS Code) were swallowed by
+          WayPlank, changing the cursor from I-beam to pointer arrow and preventing
+          underlying applications from receiving click events (GitHub Issue #12).
+        SOLUTION: Implemented a two-stage hysteresis flip-flop and configurable
+          anticipatory zoom engine. When AnticipateZoom is disabled (or ZoomEnabled
+          is false), get_cursor_region() clamps the Cairo input region strictly to
+          the 60px visual dock pill (static_dock_region + background_rect),
+          immediately passing 100% of pointer clicks through to underlying windows.
+          When an icon is hovered under active zoom, the flip-flop dynamically
+          expands the mask upward by hover_region (Delta = a + b * AnticipateZoom)
+          to prevent edge chattering, then resets to the tight boundary upon exit.
+          Added a user-configurable 'Anticipate Icon Zoom' toggle in Preferences ->
+          Behaviour (Row 6) alongside 'Workspace Only', relocating 'Start on Login'
+          to Row 7 alongside 'Scroll on Overflow'. Verified live on KDE Plasma 6
+          (KWin) with full Kate editor I-beam click passthrough.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -1480,7 +1717,22 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ko->ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D / Meta + D / Ctrl + F12) minimizes
+          all normal windows and keeps WayPlank visible on the desktop.
+        - Pressing Super + D again cleanly restores all previously hidden windows.
+        BUG: Pressing Super + D (or Meta + D / Ctrl + F12) on KDE Plasma 6 (KWin)
+          triggered KWin's internal workspace()->setShowingDesktop(true), which
+          set hiddenByShowDesktop on all windows and layer surfaces except the
+          desktop wallpaper, causing WayPlank dock to disappear alongside
+          standard app windows.
+        SOLUTION: In lib/Services/KWinBridge.vala, subscribed to the native
+          org.kde.KWin D-Bus signal 'showingDesktopChanged'. When showing == true,
+          immediately reset KWin's internal state via 'showDesktop(false)' (preventing
+          KWin from hiding the layer-shell dock surface) and delegated to WayPlank's
+          neutral toggleDesktop() window minimizing/restoring engine. WayPlank remains
+          persistent and interactive on the desktop surface.
    [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [ok] 6.3 External Trash Sync:
@@ -1778,9 +2030,46 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
         - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
           /usr/share/plank/themes are automatically discovered and loaded with
           100% parameter fidelity.
-   [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
-   [ok] 7.7 HiDPI & Fractional Scaling:
-        Move dock/windows between 100% and 125%/150% displays
+   [ko->ok] 7.6 Multi-Monitor: Output monitor selector works correctly
+        BUG: On KDE Plasma 6 (KWin) multi-monitor setups with heterogeneous
+          resolutions (e.g. primary 2560x1440 and secondary 1920x1080), moving
+          the dock to the smaller monitor rendered the dock 4-5 pixels lower
+          than expected. This was caused by:
+          1) PositionManager.screen_changed() invoking update(theme) before
+             DockWindow.update_layer_shell_monitor(), computing and requesting
+             surface sizes while gtk-layer-shell was still bound to the old
+             monitor.
+          2) DockWindow.update_size_and_position() gating resize(width, height)
+             behind !GtkLayerShell.is_supported(), so lowering set_size_request()
+             on the smaller monitor did not shrink the GtkWindow allocation height
+             to match the recreated Cairo main_buffer painted at (0, 0).
+          3) KWinBackend.is_top_panel_floating_configured() querying Plasma
+             panels globally across all screens without verifying whether the
+             top floating panel belonged to mon_geom via screenGeometry(p.screen).
+        SOLUTION:
+          1) Reordered PositionManager.screen_changed() to bind the layer-shell
+             surface to the target monitor via update_layer_shell_monitor() prior
+             to update(theme), followed by update_size_and_position().
+          2) In DockWindow.vala, invoked resize(win_rect.width, win_rect.height)
+             unconditionally and forced renderer.reset_buffers() upon monitor
+             re-binding so GtkWindow allocation and Cairo buffers stay 1:1.
+          3) Scoped KWinBackend.is_top_panel_floating_configured(mon_geom) to
+             match screenGeometry(p.screen) against mon_geom and passed the
+             active monitor geometry from HoverWindow, WindowCardsWindow, and
+             FolderMenuWindow.
+   [ko->ok] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays; cold start on
+        fractional scaling (e.g. 4K@1.5x).
+        BUG: Reported by @tcliuqiang (Issue #5). On cold start under HiDPI
+          fractional scaling (e.g. 4K@1.5x), when GTK/Wayland updated the window
+          scale-factor asynchronously after initial realization,
+          PositionManager.screen_changed() returned early whenever logical
+          monitor_geo matched old_monitor_geo and ignored scale-factor transitions.
+        SOLUTION: Without altering any geometric or anchor calculation formulas,
+          connected controller.window.notify["scale-factor"] in
+          PositionManager.vala, tracked last_scale_factor in screen_changed() to
+          reset Cairo renderer buffers and force a layout update when scale-factor
+          changes, and reset current_monitor = null in prefs_monitor_changed().
    [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
@@ -2177,17 +2466,17 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
 
 ================================================================================
-SESSION 2 RESULT: PASS (KDE PLASMA / KWin Backend) - 100% QUALIFIED
+SESSION 2 RESULT: PASS (KDE PLASMA / KWin Backend)
 ================================================================================
-  * Tests: 121 | Passed Baseline: 111 [ok] | Squashed: 10 [ko->ok]
-    (0.1, 2.14, 2.15, 3.1, 6.10b, 7.2, 7.15, 10.8, 12.6, 13.6)
-  * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Status: 121/121 Passed (100% QUALIFIED PASS)
+  * Tests: 123 | Passed Baseline: 108 [ok] | Squashed: 15 [ko->ok]
+    (0.1, 2.14, 2.15, 3.1, 3.9, 5.4, 6.1, 6.10b, 7.2, 7.6, 7.7, 7.15, 10.8, 12.6, 13.6)
+  * Pending: 0 [  ] | Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Status: 123/123 Passed (100% PASS)
 ================================================================================
 
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
+SESSION 3: LABWC (wlroots Backend) - [PASS / 110 BASELINE | 10 SQUASHED | 0 OPEN | 2 NA]
 ================================================================================
 ================================================================================
 
@@ -2398,26 +2687,42 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
              (or run "FAT/Test Files/Qemu/run_test_vm.sh" both for dual launch)
              Verify two separate dock items are tracked with independent
              identities: "QEMU (VM-Alpha)" and "QEMU (VM-Beta)".
-          3. Independent Pinning & Cold Relaunch:
+          3. Independent Pinning, Cold Relaunch & Unpinned Garbage Collection:
              - Right-click each dock item and select "Keep in Dock".
              - Close both QEMU windows; verify both pinned icons remain on dock.
              - Click "VM-Alpha" icon -> verify VM-Alpha launches with its image.
              - Click "VM-Beta" icon -> verify VM-Beta launches with its image.
+             - Unpin a VM and close its window -> verify gc_synthetic_launchers()
+               automatically purges its unpinned wayplank-app-*.desktop file.
+          4. Transient CLI Dialog Exclusion (zenity):
+             - Run in terminal: zenity --info --text="Test"
+             - Verify NO dock icon is spawned on WayPlank and NO
+               wayplank-app-zenity.desktop file is created in
+               ~/.local/share/applications/.
         BUG (Issue #14):
           CLI-launched virtual machines (qemu-system-x86_64) failed to spawn
           dock items because /usr/share/applications/qemu.desktop specifies
           NoDisplay=true and lacks an Exec line. If pinned, clicking did nothing
           because no executable command line existed to relaunch the VM.
+          Additionally, unconditional fallback synthesis caused transient CLI
+          dialogs (zenity) or unpinned closed VMs to leave stale synthetic
+          wayplank-app-*.desktop files in ~/.local/share/applications/. On Labwc,
+          zwlr_foreign_toplevel_management_v1 does not transmit window PIDs,
+          leaving info.Pid = 0 and info.Cmdline empty.
         SOLUTION:
           1) In ApplicationDiscovery.vala, indexed NoDisplay=true desktop
              entries for running window matching (preserving desktop icon/name).
-          2) In ApplicationDiscovery.vala, synthesize a dedicated executable
-             launcher in ~/.local/share/applications/ capturing window.Cmdline
-             so each VM can be launched and independently relaunched when
-             pinned.
+          2) In ApplicationDiscovery.vala, restricted synthesize_fallback_desktop_file()
+             strictly to windows matching an Exec-less system desktop template
+             (matched_exec_less_desktop), excluded NoDisplay=true helpers with
+             Exec lines, and added gc_synthetic_launchers() to purge unpinned
+             synthetic launchers upon window closure.
           3) In ApplicationIdentity.vala, filtered out generic hypervisor flags
              (kvm, 512m, etc.) and enforced synthetic launcher instance
              isolation to guarantee independent dock icons for each VM.
+          4) In LabwcBackend.vala, added O(1)-cached resolve_toplevel_process()
+             to resolve PID, Cmdline, and Executable from /proc by matching
+             ResourceClass and distinguishing Caption tokens (VM-Alpha / VM-Beta).
 
 3. HIDE & DODGE MODES
    [ok] 3.1 None: Dock permanently visible, never hides
@@ -2446,12 +2751,83 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
+   [ko->ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Test Procedure:
+          1. Launch interactive fullscreen tester:
+             python3 "FAT/Test Files/Testers/test_fullscreen.py"
+          2. Verify window opens in normal unmaximized state (850x620).
+          3. Press F11, Space, or click "Toggle Fullscreen" to transition
+             directly from unmaximized to Fullscreen (simulating Remmina,
+             MPV, QEMU, or browser F11).
+          4. Verify WayPlank hides immediately across all HideModes (including
+             HideMode = 'None' / Never and Dodge Maximized).
+          5. Move pointer to the dock's screen edge and click the 0px Edge Test
+             Strip (Bottom, Top, Left, Right): verify dock does NOT unhide on
+             hover and 100% of clicks increment the tester counter.
+          6. Press Esc or F11 to exit Fullscreen -> verify dock immediately
+             restores normal visibility and input mask.
+        BUG (Issue #10):
+          Reported by @tcliuqiang. When an application (e.g. Remmina remote
+          desktop, MPV, or browser F11) entered fullscreen directly from a
+          normal unmaximized state, KWin kept maximizeMode === 0 (setting only
+          client.fullScreen = true) and Mutter kept maximized_horizontally/
+          vertically === false (setting only win.is_fullscreen() = true), while
+          neither backend connected fullscreen change signals. Consequently,
+          Dodge Maximized failed to detect fullscreen windows, HideMode = None
+          on Mutter kept the dock above fullscreen windows, and the hidden
+          dock's 10px/1px edge reveal strip intercepted 0px edge clicks.
+        SOLUTION:
+          1) Added Fullscreen property to WindowInfo and polymorphic
+             fullscreen_window_intersects() across WindowBackend, WindowControl,
+             KWinBridge/KWinBackend (client.fullScreen + fullScreenChanged),
+             MutterBackend (win.is_fullscreen() + notify::fullscreen), and
+             wlr-toplevel-bridge/LabwcBackend (t->fullscreen).
+          2) Added FullscreenInhibit state in HideManager.vala: when an active
+             fullscreen window intersects the dock, update_hidden() forces
+             immediate hide() across all HideModes (including HideType.NONE).
+          3) In PositionManager.vala (get_cursor_region()), return { 0, 0, 0, 0 }
+             while FullscreenInhibit is active so DockWindow clears its Cairo
+             input shape to an empty region, passing 100% of 0px edge clicks
+             to the fullscreen application.
+   [ok] 3.10 Reserve Screen Space / Panel Mode (Issue #9):
+        - Test Procedure:
+          1. Open Preferences -> Behaviour tab.
+          2. Verify "Reserve Screen Space" switch is insensitive (greyed out)
+             whenever "Hide Dock" is ON or "Icon Zoom" is ON.
+          3. Turn "Hide Dock" OFF (HideMode = None) and "Icon Zoom" OFF ->
+             verify "Reserve Screen Space" switch becomes sensitive.
+          4. Enable "Reserve Screen Space" (ON) and maximize a standard
+             application window (e.g. terminal, file manager, browser) ->
+             verify the maximized window tiles cleanly against the dock
+             boundary without overlapping the dock pill across all 4 screen
+             edges (Bottom, Top, Left, Right).
+          5. Toggle "Hide Dock" ON or "Icon Zoom" ON while "Reserve Screen
+             Space" is active -> verify "Reserve Screen Space" automatically
+             switches OFF and becomes insensitive, releasing the reserved
+             strut / exclusive zone immediately.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
-   [ok] 4.1 Empty Workspace Switch:
+   [ko->ok] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
-        (Note: On Labwc/wlroots without ext-workspace-v1 protocol, test using
-        Dodge Active mode)
+        BUG: Reported by @tcliuqiang (Issue #11). On Labwc (wlroots), when a
+          maximized window hid the dock on Workspace 1 (under Intellihide,
+          Dodge Maximized, or Window Dodge) and the user switched to an empty
+          Workspace 2, the dock remained hidden. Forensic inspection of Labwc C
+          sources (src/workspaces.c: workspaces_switch_to) revealed that Labwc
+          disables the old workspace scene node via wlr_scene_node_set_enabled()
+          and calls desktop_focus_topmost_view(), which clears STATE_ACTIVATED
+          (t->active = FALSE) on the old workspace's maximized window without
+          clearing STATE_MAXIMIZED (t->maximized = TRUE) or emitting output_leave.
+          Because wlr_toplevel_bridge_maximized_window_intersects and
+          wlr_toplevel_bridge_any_window_intersects did not check t->active,
+          they continued reporting a maximized window blocking the dock on the
+          empty workspace.
+        SOLUTION: Added t->active requirement in
+          wlr_toplevel_bridge_maximized_window_intersects and
+          wlr_toplevel_bridge_any_window_intersects in
+          lib/Services/wlr-toplevel-bridge.c so inactive windows on background
+          workspaces are ignored and the dock immediately reveals upon switching
+          to an empty or non-overlapping workspace across all HideModes.
    [ok] 4.2 Occupied Workspace Switch:
         Switch back to WS1 -> dock hides again immediately
    [ok] 4.3 Sticky Windows:
@@ -2466,7 +2842,7 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -2474,6 +2850,31 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
+        BUG: When the dock was visible on screen, get_cursor_region() in
+          PositionManager.vala unconditionally forced cursor_region.y = 0 and
+          cursor_region.height = DockHeight (e.g. 140px) across the entire dock
+          span to accommodate potential icon bounce and anticipatory zoom runways.
+          Consequently, a ~80px invisible transparent dead zone directly above the
+          dock pill intercepted pointer input via Wayland wl_surface.set_input_region.
+          Clicks on windows placed behind/above the dock (such as text editor status
+          bars, scrollbars, or line selections in Kate or VS Code) were swallowed by
+          WayPlank, changing the cursor from I-beam to pointer arrow and preventing
+          underlying applications from receiving click events (GitHub Issue #12).
+        SOLUTION: Implemented a two-stage hysteresis flip-flop and configurable
+          anticipatory zoom engine. When AnticipateZoom is disabled (or ZoomEnabled
+          is false), get_cursor_region() clamps the Cairo input region strictly to
+          the 60px visual dock pill (static_dock_region + background_rect),
+          immediately passing 100% of pointer clicks through to underlying windows.
+          When an icon is hovered under active zoom, the flip-flop dynamically
+          expands the mask upward by hover_region (Delta = a + b * AnticipateZoom)
+          to prevent edge chattering, then resets to the tight boundary upon exit.
+          Added a user-configurable 'Anticipate Icon Zoom' toggle in Preferences ->
+          Behaviour (Row 6) alongside 'Workspace Only', relocating 'Start on Login'
+          to Row 7 alongside 'Scroll on Overflow'. Verified live on Labwc
+          (wlroots) with full text editor / overlapping window click passthrough.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -2485,7 +2886,24 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ko->ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D / ToggleShowDesktop) minimizes
+          standard windows while WayPlank remains visible on the desktop.
+        BUG: Reported by @tcliuqiang (Issue #13). On Labwc (wlroots), if a
+          maximized window existed on another workspace or lost focus when
+          ToggleShowDesktop (src/show-desktop.c) minimized views on the active
+          workspace, wlr_toplevel_bridge_maximized_window_intersects and
+          wlr_toplevel_bridge_any_window_intersects continued reporting an
+          intersecting window because they did not require t->active, keeping
+          the dock hidden during Show Desktop.
+        SOLUTION: Enforced t->active check in
+          wlr_toplevel_bridge_maximized_window_intersects and
+          wlr_toplevel_bridge_any_window_intersects in
+          lib/Services/wlr-toplevel-bridge.c. Combined with Labwc's native
+          server_show_desktop() only minimizing view surfaces (never
+          zwlr_layer_surface_v1), WayPlank remains persistent and visible on
+          the desktop surface.
    [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [ok] 6.3 External Trash Sync:
@@ -2758,8 +3176,26 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
           /usr/share/plank/themes are automatically discovered and loaded with
           100% parameter fidelity.
    [ok] 7.6 Multi-Monitor: Output monitor selector works correctly
-   [ok] 7.7 HiDPI & Fractional Scaling:
-        Move dock/windows between 100% and 125%/150% displays
+   [ko->ok] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays; cold start on
+        fractional scaling (e.g. 4K@1.5x).
+        - CLI procedure on Labwc (via wlr-randr):
+          sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
+          killall wayplank; wayplank &
+          wlr-randr --output eDP-1 --scale 1
+        BUG: Reported by @tcliuqiang (Issue #5). On cold start under HiDPI
+          fractional scaling (e.g. 4K@1.5x), when GTK/Wayland updated the window
+          scale-factor asynchronously after initial realization or when the Mutter
+          D-Bus bridge connected after initial fallback workarea query,
+          PositionManager.screen_changed() returned early whenever logical
+          monitor_geo matched old_monitor_geo and ignored scale-factor transitions.
+        SOLUTION: Without altering any geometric or anchor calculation formulas,
+          connected controller.window.notify["scale-factor"] in
+          PositionManager.vala, tracked last_scale_factor in screen_changed() to
+          reset Cairo renderer buffers and force a layout update when scale-factor
+          changes, and reset current_monitor = null in prefs_monitor_changed() so
+          bridge connection (primary_monitor_changed) always refreshes workarea
+          and dock sizing on cold start.
    [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
         - Open Preferences -> Docklets tab.
         - Verify all 14 docklets are arranged in a perfectly balanced 7×2 grid
@@ -3134,10 +3570,10 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
 
 ================================================================================
-SESSION 3 RESULT: PASS (LABWC / wlroots Backend) - 100% QUALIFIED
+SESSION 3 RESULT: PASS (LABWC / wlroots Backend) - Issues #5, #9, #11, #13, #14
 ================================================================================
-  * Tests: 120 | Passed Baseline: 113 [ok] | Squashed: 5 [ko->ok]
-    (2.14, 2.15, 6.10b, 10.8, 13.6)
-  * Pending: 0 [  ] | Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko]
-  * Status: 118/118 Applicable Passed (2 [NA] Limitations Deferred - 100% PASS)
+  * Tests: 122 | Passed Baseline: 110 [ok] | Squashed: 10 [ko->ok]
+    (2.14, 2.15, 3.9, 4.1, 5.4, 6.1, 6.10b, 7.7, 10.8, 13.6)
+  * To Test: 0 [ko->test] | Pending: 0 [  ] | Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko]
+  * Status: 120/120 Applicable Passed (100% PASS, 2 [NA] Deferred)
 ================================================================================

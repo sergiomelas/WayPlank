@@ -1400,3 +1400,14 @@ msgstr "Afficher la Corbeille :"
 #: data/ui/preferences.ui:486
 msgid "Show the Trash Bin icon on the dock"
 msgstr "Affiche l'icône de la Corbeille sur le dock"
+
+#: data/ui/preferences.ui:803
+msgid "Anticipate Icon Zoom:"
+msgstr "Anticiper le zoom des icônes :"
+
+#: data/ui/preferences.ui:804
+msgid ""
+"Begins icon magnification as the cursor approaches the dock for a fluid, "
+"magnetic feel; disable to strictly pass mouse clicks through to windows "
+"positioned immediately behind or above the dock"
+msgstr "Commence à agrandir les icônes à l'approche du curseur pour un effet fluide et magnétique ; désactiver pour transmettre strictement tous les clics de souris aux fenêtres situées immédiatement derrière ou au-dessus du dock"

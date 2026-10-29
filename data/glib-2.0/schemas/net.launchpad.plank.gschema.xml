@@ -169,6 +169,11 @@
 			<summary>Zoom dock items when hovered</summary>
 			<description>If true, zoom dock items when hovered with the cursor.</description>
 		</key>
+		<key name="anticipate-zoom" type="b">
+			<default>true</default>
+			<summary>Anticipate icon zoom on mouse approach</summary>
+			<description>If true, begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock.</description>
+		</key>
 		<key name="categorize-items" type="b">
 			<default>true</default>
 			<summary>Categorize dock items</summary>

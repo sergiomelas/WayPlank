@@ -91,6 +91,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_pressure_reveal;
 		[GtkChild]
+		unowned Gtk.Switch sw_anticipate_zoom;
+		[GtkChild]
 		unowned Gtk.Switch sw_zoom_enabled;
 		[GtkChild]
 		unowned Gtk.Switch sw_categorize_items;
@@ -419,6 +421,10 @@ namespace Plank
 				break;
 			case "ZoomEnabled":
 				sw_zoom_enabled.set_active (prefs.ZoomEnabled);
+				sw_anticipate_zoom.sensitive = prefs.ZoomEnabled;
+				break;
+			case "AnticipateZoom":
+				sw_anticipate_zoom.set_active (prefs.AnticipateZoom);
 				break;
 			case "CategorizeItems":
 				sw_categorize_items.set_active (prefs.CategorizeItems);
@@ -897,9 +903,19 @@ namespace Plank
 			if (((Gtk.Switch) widget).get_active ()) {
 				prefs.ZoomEnabled = true;
 				s_zoom_percent.sensitive = true;
+				sw_anticipate_zoom.sensitive = true;
 			} else {
 				prefs.ZoomEnabled = false;
 				s_zoom_percent.sensitive = false;
+				sw_anticipate_zoom.sensitive = false;
+			}
+		}
+
+		void anticipate_zoom_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.AnticipateZoom = ((Gtk.Switch) widget).get_active ();
+			if (controller != null && controller.window != null) {
+				controller.window.set_input_mask ();
 			}
 		}
 
@@ -1190,6 +1206,7 @@ namespace Plank
 			sw_scroll_overflow.notify["active"].connect (scroll_overflow_toggled);
 			sw_lock_items.notify["active"].connect (lock_items_toggled);
 			sw_pressure_reveal.notify["active"].connect (pressure_reveal_toggled);
+			sw_anticipate_zoom.notify["active"].connect (anticipate_zoom_toggled);
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].connect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
@@ -1255,6 +1272,7 @@ namespace Plank
 			sw_scroll_overflow.notify["active"].disconnect (scroll_overflow_toggled);
 			sw_lock_items.notify["active"].disconnect (lock_items_toggled);
 			sw_pressure_reveal.notify["active"].disconnect (pressure_reveal_toggled);
+			sw_anticipate_zoom.notify["active"].disconnect (anticipate_zoom_toggled);
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].disconnect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
@@ -1385,6 +1403,9 @@ namespace Plank
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
 			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
 			sw_pressure_reveal.tooltip_text = _("Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding");
+			sw_anticipate_zoom.set_active (prefs.AnticipateZoom);
+			sw_anticipate_zoom.sensitive = prefs.ZoomEnabled;
+			sw_anticipate_zoom.tooltip_text = _("Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);

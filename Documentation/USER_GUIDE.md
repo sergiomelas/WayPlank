@@ -374,9 +374,12 @@ In complex multi-monitor environments, dynamic display changes—such as hotplug
 - **Heterogeneous DPI & Fractional Scaling**: Layer-shell geometry and Cairo surface buffers automatically adjust scaling factors when moved across displays with differing device pixel ratios (HiDPI / LoDPI).
 
 ### Layer-Shell Input Passthrough & Transparent Window Clipping
-On Wayland compositors supporting `gtk-layer-shell` (KDE Plasma, Labwc):
+On Wayland compositors supporting `gtk-layer-shell` (KDE Plasma, Labwc) and GNOME Shell (Mutter):
 - **Zero Desktop Panel Displacement**: When Hide Mode is set to `None` (dock permanently visible), WayPlank maintains `exclusive_zone` at 0. This guarantees the dock never collides with or displaces system panels (such as KDE Plasma top/bottom panels or Labwc bars).
 - **Cairo Input Shape Pass-Through**: WayPlank dynamically clips its Cairo input region (`window.input_shape_combine_region`) strictly to the visible dock pill during realization and mapping. Transparent areas outside the dock items pass mouse clicks directly through to underlying desktop windows and icons via `wl_surface.set_input_region`, eliminating the classic Wayland issue where transparent layer-shell window margins block clicks.
+- **Dynamic Hysteresis Flip-Flop & Anticipate Icon Zoom (Issue #12)**: In classic Plank tradition, an anticipatory runway begins expanding icon magnification as the cursor approaches the dock. In Wayland environments, this invisible runway could intercept pointer events intended for overlapping windows placed behind or immediately above the dock (such as text editor scrollbars, terminal buffers, or Kate line selections). WayPlank implements a two-stage hysteresis flip-flop and an **Anticipate Icon Zoom** toggle in **Preferences $\rightarrow$ Behaviour**:
+  - **Enabled (`true`, Default)**: Preserves 100% of classic Plank's smooth anticipatory approach feel out of the box.
+  - **Disabled (`false`)**: Strictly clamps the layer-shell input region to the 60px visual dock pill when the mouse is at rest, dynamically expanding the input mask upward only while an icon is actively hovered and collapsing it immediately upon pointer leave. This provides 100% transparent click passthrough (I-beam selection, button clicks, status bar interaction) to underlying windows.
 
 ### Multi-Monitor Hardware Brightness Control (SP/PV Decoupling)
 WayPlank's integrated Screen Brightness docklet features per-monitor hardware backlight and DDC/CI level synchronization:
@@ -500,8 +503,9 @@ Starting in **v0.6.2.2**, WayPlank includes an integrated Theme Manager directly
 They will instantly appear in the **Preferences $\rightarrow$ Theme** dropdown menu.
 
 ### Dock Size & Zoom Level
-- **Icon Size**: Adjustable from 24px up to 128px.
+- **Icon Size**: Adjustable from 24px up to 128px in Preferences $\rightarrow$ Appearance.
 - **Icon Zoom (Magnification)**: When enabled, icons smoothly magnify up to 200% under the mouse cursor, with physics-based smooth interpolation.
+- **Anticipate Icon Zoom Toggle**: Located in **Preferences $\rightarrow$ Behaviour** (Row 6). Controls whether the zoom engine claims an anticipatory approach runway above the dock (`true`, classic Plank behavior) or operates via an on-demand hysteresis flip-flop (`false`, maximum click passthrough for overlapping windows behind the dock).
 
 ---
 
@@ -584,6 +588,9 @@ gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1
 
 # Set system menu access mode (1 = Docklets Only, 2 = Docklets Fallback, 3 = All Icons, 4 = Dedicated Icon)
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ system-menu-access 2
+
+# Toggle anticipatory icon zoom runway (false = strict click passthrough for overlapping windows)
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ anticipate-zoom true
 ```
 
 ---

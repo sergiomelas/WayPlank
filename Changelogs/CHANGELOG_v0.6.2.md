@@ -315,7 +315,34 @@ Following community feedback and user contributions, this release incorporates m
 
 ---
 
-## 12. 📦 Release Finalization & Master Milestone Roadmap
+## 12. 🌟 WayPlank V0.6.2.3 Community User Contributions — Round 2 (2026-10-29 / 2026-10-30)
+
+Following community testing, multi-window workflow feedback, and bug reports from [@tcliuqiang](https://github.com/tcliuqiang) and [@Gabenoh](https://github.com/Gabenoh), Round 2 introduces vital window management fixes, dynamic layer-shell input masking, and milestone qualification:
+
+* 🖥️ **KDE Plasma 6 Show Desktop Persistence (Issue #13)**:
+  - Intercepts KWin's `org.kde.KWin.showingDesktopChanged` D-Bus signal in `KWinBridge.vala`.
+  - Immediately resets internal `showDesktop` state to `false`, keeping WayPlank visible on the desktop surface while delegating application window hiding and restoration to the neutral `toggleDesktop()` minimization engine.
+
+* 🎯 **Two-Stage Hysteresis Flip-Flop & Transparent Input Passthrough (Issue #12)**:
+  - **The Defect**: In legacy Plank, an anticipatory ~80px approach runway was hardcoded above the dock pill. On Wayland, `wl_surface.set_input_region` mapped this transparent area into the dock's input surface, stealing mouse clicks from overlapping windows resting behind or immediately above the dock (such as text editor scrollbars, Kate line selections, or terminal windows).
+  - **The Architectural Remedy**: Implemented a two-stage hysteresis flip-flop in `PositionManager.vala` (`get_cursor_region()`) and `DockWindow.vala` (`set_hovered()`):
+    - When `AnticipateZoom` is disabled (or zoom is off), the layer-shell input mask strictly clamps to the 60px visual dock pill (`static_dock_region + background_rect`) at rest, passing 100% of clicks through to underlying windows.
+    - When an icon is hovered under active zoom, the flip-flop dynamically expands the input mask upward by `hover_region` to prevent edge chattering, resetting instantly upon pointer leave.
+  - **User-Configurable Toggle**: Added an **Anticipate Icon Zoom** (`anticipate-zoom`) toggle in **Preferences $\rightarrow$ Behaviour** (Row 6) alongside *Workspace Only*, relocating *Start on Login* to Row 7 alongside *Scroll on Overflow*.
+  - **Plank Spirit Compliance**: `anticipate-zoom` is set to `true` by default in both schema and memory model, preserving 100% classic Plank feel out of the box while empowering power users with overlapping windows to disable it.
+
+* 🏆 **Historic Landmark: 100th Squashed Bug**:
+  - Full qualification across all 3 Tier-1 compositors: **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)** with `[ko->ok]` sign-off (FAT Point 5.4).
+  - Reached the historic milestone of **100 unique functional & architectural bugs squashed** across WayPlank lifetime and **130 multi-compositor verification instances**.
+
+* 📚 **User Guide & i18n Synchronization**:
+  - Comprehensive documentation added to `Documentation/USER_GUIDE.md` detailing input passthrough, the hysteresis engine, and GSettings CLI keys.
+  - Translation catalogs synchronized to **324/324 strings (100%)** across 7 languages.
+  - Closed Issue #12 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+---
+
+## 13. 📦 Release Finalization & Master Milestone Roadmap
 
 - **Current Live GitHub Release**: **v0.6.2.3 (Round 3 & Community Update)** is officially released on GitHub with 100% FAT qualification (355/355 tests passing, 2 NA).
 - **Distribution packages available**:

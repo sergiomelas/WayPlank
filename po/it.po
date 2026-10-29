@@ -1400,3 +1400,14 @@ msgstr "Mostra Cestino:"
 #: data/ui/preferences.ui:486
 msgid "Show the Trash Bin icon on the dock"
 msgstr "Mostra l'icona del Cestino sul dock"
+
+#: data/ui/preferences.ui:803
+msgid "Anticipate Icon Zoom:"
+msgstr "Anticipa zoom icone:"
+
+#: data/ui/preferences.ui:804
+msgid ""
+"Begins icon magnification as the cursor approaches the dock for a fluid, "
+"magnetic feel; disable to strictly pass mouse clicks through to windows "
+"positioned immediately behind or above the dock"
+msgstr "Inizia a ingrandire le icone all'avvicinarsi del cursore per un effetto più fluido e magnetico; disabilita per trasmettere rigorosamente tutti i click alle finestre posizionate subito dietro o sopra la dock"

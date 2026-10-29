@@ -742,6 +742,10 @@ namespace Plank
 
 			HoveredItem = item;
 
+			if (controller.prefs.ZoomEnabled) {
+				set_input_mask ();
+			}
+
 			if (hover_reposition_timer_id > 0U) {
 				Source.remove (hover_reposition_timer_id);
 				hover_reposition_timer_id = 0U;

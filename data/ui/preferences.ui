@@ -795,13 +795,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="l_autostart">
+              <object class="GtkLabel" id="l_anticipate_zoom">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Start on Login:</property>
-                <property name="tooltip_text" translatable="yes">Automatically launch WayPlank when logging into your desktop session</property>
+                <property name="label" translatable="yes">Anticipate Icon Zoom:</property>
+                <property name="tooltip_text" translatable="yes">Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -809,12 +809,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="sw_autostart">
+              <object class="GtkSwitch" id="sw_anticipate_zoom">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Automatically launch WayPlank when logging into your desktop session</property>
+                <property name="tooltip_text" translatable="yes">Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -844,6 +844,33 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">1</property>
+                <property name="top_attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_autostart">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="label" translatable="yes">Start on Login:</property>
+                <property name="tooltip_text" translatable="yes">Automatically launch WayPlank when logging into your desktop session</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_autostart">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Automatically launch WayPlank when logging into your desktop session</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
                 <property name="top_attach">7</property>
               </packing>
             </child>

@@ -1401,3 +1401,14 @@ msgstr "Показувати смітник:"
 #: data/ui/preferences.ui:486
 msgid "Show the Trash Bin icon on the dock"
 msgstr "Показувати піктограму смітника на доці"
+
+#: data/ui/preferences.ui:803
+msgid "Anticipate Icon Zoom:"
+msgstr "Передбачати збільшення значків:"
+
+#: data/ui/preferences.ui:804
+msgid ""
+"Begins icon magnification as the cursor approaches the dock for a fluid, "
+"magnetic feel; disable to strictly pass mouse clicks through to windows "
+"positioned immediately behind or above the dock"
+msgstr "Починає збільшувати значки, коли курсор наближається до панелі, створюючи плавне магнітне відчуття; вимкніть, щоб точно передавати клацання миші вікнам, розташованим безпосередньо позаду або над панеллю"

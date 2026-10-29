@@ -133,6 +133,15 @@ translations = {
         "de": "Alle Symbole (integriert)",
         "uk": "Усі піктограми (вбудовано)"
     },
+    "Anticipate Icon Zoom:": {
+        "zh_CN": "提前响应图标缩放:",
+        "it": "Anticipa zoom icone:",
+        "es": "Anticipar zoom de iconos:",
+        "fr": "Anticiper le zoom des icônes :",
+        "ca": "Anticipa el zoom de les icones:",
+        "de": "Symbol-Vergrößerung vorwegnehmen:",
+        "uk": "Передбачати збільшення значків:"
+    },
     "Application": {
         "zh_CN": "应用程序",
         "it": "Applicazione",
@@ -222,6 +231,15 @@ translations = {
         "ca": "Segur que voleu apagar l'ordinador? Es perdran els canvis no desats.",
         "de": "Möchten Sie Ihren Computer wirklich ausschalten? Nicht gespeicherte Änderungen gehen verloren.",
         "uk": "Справді вимкнути комп'ютер? Незбережені зміни буде втрачено."
+    },
+    "Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock": {
+        "zh_CN": "当光标靠近停靠栏时提前开始图标放大，带来流畅磁吸手感；禁用后可严格穿透鼠标点击至紧随停靠栏后方或上方的窗口",
+        "it": "Inizia a ingrandire le icone all'avvicinarsi del cursore per un effetto più fluido e magnetico; disabilita per trasmettere rigorosamente tutti i click alle finestre posizionate subito dietro o sopra la dock",
+        "es": "Comienza la ampliación de iconos a medida que el cursor se acerca al dock para una sensación fluida y magnética; deshabilítelo para transferir estrictamente los clics del ratón a las ventanas situadas inmediatamente detrás o encima del dock",
+        "fr": "Commence à agrandir les icônes à l'approche du curseur pour un effet fluide et magnétique ; désactiver pour transmettre strictement tous les clics de souris aux fenêtres situées immédiatement derrière ou au-dessus du dock",
+        "ca": "Comença l'ampliació de les icones a mesura que el cursor s'acosta al dock per a una sensació fluida i magnètica; inhabiliteu-lo per transmetre estrictament els clics del ratolí a les finestres situades immediatament darrere o a sobre del dock",
+        "de": "Beginnt mit der Symbolvergrößerung, sobald sich der Mauszeiger dem Dock nähert, für ein flüssiges, magnetisches Gefühl; deaktivieren, um Mausklicks strikt an Fenster direkt hinter oder über dem Dock weiterzuleiten",
+        "uk": "Починає збільшувати значки, коли курсор наближається до панелі, створюючи плавне магнітне відчуття; вимкніть, щоб точно передавати клацання миші вікнам, розташованим безпосередньо позаду або над панеллю"
     },
     "Back": {
         "zh_CN": "返回",

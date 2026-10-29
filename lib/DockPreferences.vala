@@ -106,6 +106,9 @@ namespace Plank
 		[Description(nick = "zoom-enabled", blurb = "Whether the dock will zoom when hovered.")]
 		public bool ZoomEnabled { get; set; }
 		
+		[Description(nick = "anticipate-zoom", blurb = "Whether to begin icon magnification as the cursor approaches the dock.")]
+		public bool AnticipateZoom { get; set; default = true; }
+		
 		[Description(nick = "zoom-percent", blurb = "The dock's icon-zoom (in percent).")]
 		public uint ZoomPercent { get; set; }
 		

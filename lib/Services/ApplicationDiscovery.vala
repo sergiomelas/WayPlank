@@ -562,6 +562,9 @@ namespace Plank
 				if (key_file.has_key (KeyFileDesktop.GROUP, "Hidden")
 					&& key_file.get_boolean (KeyFileDesktop.GROUP, "Hidden"))
 					return false;
+				if (key_file.has_key (KeyFileDesktop.GROUP, "NoDisplay")
+					&& key_file.get_boolean (KeyFileDesktop.GROUP, "NoDisplay"))
+					return false;
 
 				var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";
 				if (key_file.has_key (KeyFileDesktop.GROUP, "OnlyShowIn")) {

@@ -9,15 +9,15 @@ Milestone: V0.6.2.3 (The Community Unification & Distribution Release: Round 3
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [PASS] | 111 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100%)
+      [PASS] | 109 [ok] | 12 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100%)
   - GNOME (Mutter Backend):
-      [PASS] | 110 [ok] | 13 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100%)
+      [INVESTIGATING] | 108 [ok] | 14 [ko->ok] | 0 [ko->test] | 1 [ko] | 0 [NA] (Issue #13)
   - LABWC (wlroots Backend):
-      [PASS] | 113 [ok] | 5 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] (100%)
+      [INVESTIGATING] | 111 [ok] | 6 [ko->ok] | 0 [ko->test] | 1 [ko] | 2 [NA] (Issue #13)
   - TOTAL SCOREBOARD:
-      364 Tests Defined | 334 [ok] Baseline | 28 [ko->ok] Squashed |
-      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 0 Open Defects
-      100% QUALIFIED PASS (ISA-88 Multi-Compositor Benchmark)
+      364 Tests Defined | 328 [ok] Baseline | 32 [ko->ok] Squashed |
+      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 2 Open Defects ([ko] Issue #13)
+      ISA-88 Qualification Scoreboard (KWin 100% Qualified Pass, GNOME & Labwc Ongoing Investigation for Issue #13)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.2.2 testing)
@@ -31,7 +31,7 @@ Test Status Legend (ISA-88 Qualification Standard):
                   formally transferred to and tracked under next Milestone FAT
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
+SESSION 1: GNOME (Mutter Backend) - [INVESTIGATING / 108 BASELINE | 14 SQUASHED | 1 OPEN DEFECT]
 ================================================================================
 ================================================================================
 
@@ -393,7 +393,7 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -401,6 +401,31 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
+        BUG: When the dock was visible on screen, get_cursor_region() in
+          PositionManager.vala unconditionally forced cursor_region.y = 0 and
+          cursor_region.height = DockHeight (e.g. 140px) across the entire dock
+          span to accommodate potential icon bounce and anticipatory zoom runways.
+          Consequently, a ~80px invisible transparent dead zone directly above the
+          dock pill intercepted pointer input via Wayland wl_surface.set_input_region.
+          Clicks on windows placed behind/above the dock (such as text editor status
+          bars, scrollbars, or line selections in Kate or VS Code) were swallowed by
+          WayPlank, changing the cursor from I-beam to pointer arrow and preventing
+          underlying applications from receiving click events (GitHub Issue #12).
+        SOLUTION: Implemented a two-stage hysteresis flip-flop and configurable
+          anticipatory zoom engine. When AnticipateZoom is disabled (or ZoomEnabled
+          is false), get_cursor_region() clamps the Cairo input region strictly to
+          the 60px visual dock pill (static_dock_region + background_rect),
+          immediately passing 100% of pointer clicks through to underlying windows.
+          When an icon is hovered under active zoom, the flip-flop dynamically
+          expands the mask upward by hover_region (Delta = a + b * AnticipateZoom)
+          to prevent edge chattering, then resets to the tight boundary upon exit.
+          Added a user-configurable 'Anticipate Icon Zoom' toggle in Preferences ->
+          Behaviour (Row 6) alongside 'Workspace Only', relocating 'Start on Login'
+          to Row 7 alongside 'Scroll on Overflow'. Verified live on GNOME Shell
+          (Mutter) with full text editor / overlapping window click passthrough.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -412,7 +437,15 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ko] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D) minimizes standard app windows.
+        BUG: Reported by @tcliuqiang (Issue #13). On Ubuntu 26.04 Wayland (GNOME
+          Mutter), triggering "Show Desktop" (Super + D) hides the dock alongside
+          standard app windows.
+        SOLUTION: Investigating layer-shell surface scope or Mutter extension
+          override so WayPlank remains persistent on the desktop surface, with
+          optional toggle in Preferences.
    [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [ok] 6.3 External Trash Sync:
@@ -1141,17 +1174,17 @@ SESSION 1: GNOME (Mutter Backend) - [PASS / 110 BASELINE | 13 SQUASHED (100%)]
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
 
 ================================================================================
-SESSION 1 RESULT: PASS (GNOME / Mutter Backend) - 100% QUALIFIED
+SESSION 1 RESULT: INVESTIGATING (GNOME / Mutter Backend) - Issue #13 Ongoing
 ================================================================================
-  * Tests: 123 | Passed Baseline: 110 [ok] | Squashed: 13 [ko->ok]
+  * Tests: 123 | Passed Baseline: 109 [ok] | Squashed: 13 [ko->ok]
     (0.1, 0.2, 0.3, 2.14, 2.15, 6.5, 6.10b, 7.1, 7.15, 7.16, 9.9, 10.8, 13.6)
-  * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Status: 123/123 Passed (100% QUALIFIED PASS)
+  * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 1 [ko] (6.1)
+  * Status: 122/123 Passed (1 Open Defect under Investigation)
 ================================================================================
 
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
+SESSION 2: KDE PLASMA (KWin Backend) [PASS / 109 BASELINE | 12 SQUASHED (100%)]
 ================================================================================
 ================================================================================
 
@@ -1461,7 +1494,7 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -1469,6 +1502,31 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
+        BUG: When the dock was visible on screen, get_cursor_region() in
+          PositionManager.vala unconditionally forced cursor_region.y = 0 and
+          cursor_region.height = DockHeight (e.g. 140px) across the entire dock
+          span to accommodate potential icon bounce and anticipatory zoom runways.
+          Consequently, a ~80px invisible transparent dead zone directly above the
+          dock pill intercepted pointer input via Wayland wl_surface.set_input_region.
+          Clicks on windows placed behind/above the dock (such as text editor status
+          bars, scrollbars, or line selections in Kate or VS Code) were swallowed by
+          WayPlank, changing the cursor from I-beam to pointer arrow and preventing
+          underlying applications from receiving click events (GitHub Issue #12).
+        SOLUTION: Implemented a two-stage hysteresis flip-flop and configurable
+          anticipatory zoom engine. When AnticipateZoom is disabled (or ZoomEnabled
+          is false), get_cursor_region() clamps the Cairo input region strictly to
+          the 60px visual dock pill (static_dock_region + background_rect),
+          immediately passing 100% of pointer clicks through to underlying windows.
+          When an icon is hovered under active zoom, the flip-flop dynamically
+          expands the mask upward by hover_region (Delta = a + b * AnticipateZoom)
+          to prevent edge chattering, then resets to the tight boundary upon exit.
+          Added a user-configurable 'Anticipate Icon Zoom' toggle in Preferences ->
+          Behaviour (Row 6) alongside 'Workspace Only', relocating 'Start on Login'
+          to Row 7 alongside 'Scroll on Overflow'. Verified live on KDE Plasma 6
+          (KWin) with full Kate editor I-beam click passthrough.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -1480,7 +1538,22 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ko->ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D / Meta + D / Ctrl + F12) minimizes
+          all normal windows and keeps WayPlank visible on the desktop.
+        - Pressing Super + D again cleanly restores all previously hidden windows.
+        BUG: Pressing Super + D (or Meta + D / Ctrl + F12) on KDE Plasma 6 (KWin)
+          triggered KWin's internal workspace()->setShowingDesktop(true), which
+          set hiddenByShowDesktop on all windows and layer surfaces except the
+          desktop wallpaper, causing WayPlank dock to disappear alongside
+          standard app windows.
+        SOLUTION: In lib/Services/KWinBridge.vala, subscribed to the native
+          org.kde.KWin D-Bus signal 'showingDesktopChanged'. When showing == true,
+          immediately reset KWin's internal state via 'showDesktop(false)' (preventing
+          KWin from hiding the layer-shell dock surface) and delegated to WayPlank's
+          neutral toggleDesktop() window minimizing/restoring engine. WayPlank remains
+          persistent and interactive on the desktop surface.
    [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [ok] 6.3 External Trash Sync:
@@ -2179,15 +2252,15 @@ SESSION 2: KDE PLASMA (KWin Backend) [PASS / 111 BASELINE | 10 SQUASHED (100%)]
 ================================================================================
 SESSION 2 RESULT: PASS (KDE PLASMA / KWin Backend) - 100% QUALIFIED
 ================================================================================
-  * Tests: 121 | Passed Baseline: 111 [ok] | Squashed: 10 [ko->ok]
-    (0.1, 2.14, 2.15, 3.1, 6.10b, 7.2, 7.15, 10.8, 12.6, 13.6)
+  * Tests: 121 | Passed Baseline: 110 [ok] | Squashed: 11 [ko->ok]
+    (0.1, 2.14, 2.15, 3.1, 6.1, 6.10b, 7.2, 7.15, 10.8, 12.6, 13.6)
   * Pending: 0 [  ] | Protocol Limitations: 0 [NA] | Open Defects: 0 [ko]
   * Status: 121/121 Passed (100% QUALIFIED PASS)
 ================================================================================
 
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
+SESSION 3: LABWC (wlroots Backend) - [INVESTIGATING / 111 BASELINE | 6 SQUASHED | 1 OPEN DEFECT | 2 NA]
 ================================================================================
 ================================================================================
 
@@ -2466,7 +2539,7 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -2474,6 +2547,31 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
+        BUG: When the dock was visible on screen, get_cursor_region() in
+          PositionManager.vala unconditionally forced cursor_region.y = 0 and
+          cursor_region.height = DockHeight (e.g. 140px) across the entire dock
+          span to accommodate potential icon bounce and anticipatory zoom runways.
+          Consequently, a ~80px invisible transparent dead zone directly above the
+          dock pill intercepted pointer input via Wayland wl_surface.set_input_region.
+          Clicks on windows placed behind/above the dock (such as text editor status
+          bars, scrollbars, or line selections in Kate or VS Code) were swallowed by
+          WayPlank, changing the cursor from I-beam to pointer arrow and preventing
+          underlying applications from receiving click events (GitHub Issue #12).
+        SOLUTION: Implemented a two-stage hysteresis flip-flop and configurable
+          anticipatory zoom engine. When AnticipateZoom is disabled (or ZoomEnabled
+          is false), get_cursor_region() clamps the Cairo input region strictly to
+          the 60px visual dock pill (static_dock_region + background_rect),
+          immediately passing 100% of pointer clicks through to underlying windows.
+          When an icon is hovered under active zoom, the flip-flop dynamically
+          expands the mask upward by hover_region (Delta = a + b * AnticipateZoom)
+          to prevent edge chattering, then resets to the tight boundary upon exit.
+          Added a user-configurable 'Anticipate Icon Zoom' toggle in Preferences ->
+          Behaviour (Row 6) alongside 'Workspace Only', relocating 'Start on Login'
+          to Row 7 alongside 'Scroll on Overflow'. Verified live on Labwc
+          (wlroots) with full text editor / overlapping window click passthrough.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -2485,7 +2583,14 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [ok] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [ko] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D / ToggleShowDesktop) minimizes
+          standard windows.
+        BUG: On Labwc (wlroots), triggering compositor ToggleShowDesktop hides or
+          minimizes windows without preserving layer-shell dock persistent state.
+        SOLUTION: Investigating zwlr_foreign_toplevel_management_v1 integration
+          and layer-shell surface handling to keep dock persistent.
    [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [ok] 6.3 External Trash Sync:
@@ -3134,10 +3239,10 @@ SESSION 3: LABWC (wlroots Backend) - [PASS / 113 BASELINE | 5 SQUASHED (100%)]
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
 
 ================================================================================
-SESSION 3 RESULT: PASS (LABWC / wlroots Backend) - 100% QUALIFIED
+SESSION 3 RESULT: INVESTIGATING (LABWC / wlroots Backend) - Issue #13 Ongoing
 ================================================================================
-  * Tests: 120 | Passed Baseline: 113 [ok] | Squashed: 5 [ko->ok]
+  * Tests: 120 | Passed Baseline: 112 [ok] | Squashed: 5 [ko->ok]
     (2.14, 2.15, 6.10b, 10.8, 13.6)
-  * Pending: 0 [  ] | Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko]
-  * Status: 118/118 Applicable Passed (2 [NA] Limitations Deferred - 100% PASS)
+  * Pending: 0 [  ] | Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 1 [ko] (6.1)
+  * Status: 117/118 Applicable Passed (1 Open Defect under Investigation, 2 [NA] Deferred)
 ================================================================================

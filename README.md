@@ -7,19 +7,31 @@
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 > [![Current Live Release: v0.6.2.3 (Round 3)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.3_(Round_3)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
 > [![Next Release: Public Beta v0.7.0 (Week 45 - Nov 2, 2026)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Week_45)-orange.svg)](README.md)
-> [![FAT: 100% Passed (362/362)](https://img.shields.io/badge/FAT_Status-100%25_PASS_(362%2F362)-success.svg)](FAT/2026-10-26%20FAT%200.6.2.3.txt)
+> [![FAT: Multi-Compositor Validation (362/364)](https://img.shields.io/badge/FAT_Status-KWin_100%25_PASS_%7C_GNOME_&_Labwc_Investigating-blue.svg)](FAT/2026-10-26%20FAT%200.6.2.3.txt)
 
 ![Wayplank Release Banner](Release%20Pic.png)
 
----
-
 > [!IMPORTANT]
 > ### 📅 Master Release Roadmap & Milestone Schedule
-> - **v0.6.2.3 (Current Live Pre-Beta)**: Officially live on GitHub with 100% FAT qualification (362/362 tests passing, 2 NA).
+> - **v0.6.2.3 (Current Live Pre-Beta)**: Officially live on GitHub with multi-compositor FAT qualification (362/364 tests passing, Issue #13 partially resolved for KWin, 2 NA).
 > - **v0.7.x (Public Beta — Week 45: Monday, Nov 2, 2026)**: Monolithic embedded localization engine (in-memory GResource), community testing, and bug squashing.
-> - **v0.8.x (Release Candidate — RC Series)**: Strict feature freeze, memory leak profiling, and distribution packaging hardening (.deb, .rpm, AUR).
-> - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distros.
+> - **v0.8.x (Release Candidate — RC Series)**: Strict feature freeze, memory leak profiling, distribution packaging hardening (.deb, .rpm, AUR), and preliminary native Windows preview ([WinPlank](Documentation/WINPLANK_PORT_BATTLE_PLAN.md)).
+> - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distros and Windows 10, 11+.
 > - **v1.0.0 (The Grand Milestone — ~2-Year Horizon)**: The long-term landmark celebrating proven stability and next-gen Wayland protocol standards.
+
+---
+
+> [!NOTE]
+> ### 📢 Maintainer Announcement: Post-v0.7.0 Upstream Linux Kernel Sprint & Testing Runway (Nov 2 – Nov 16)
+> Following the official launch of the **Public Beta (v0.7.0)** on **Monday, November 2, 2026**, WayPlank will enter a dedicated **2-week community testing runway**.
+> 
+> During these two weeks (**Weeks 45–46**), active dock feature development will temporarily take a backseat while the author catches up on accumulated upstream Linux kernel maintainer review cycles for the `yogafan` driver series in [**`sergiomelas/lenovo-linux-drivers`**](https://github.com/sergiomelas/lenovo-linux-drivers).
+> 
+> - 🧪 **Stable Testing Runway:** The v0.7.0 codebase will remain stable without daily refactoring churn, providing an ideal, rock-solid testing window across GNOME, KDE, and wlroots compositors.
+> - 📬 **Community & Translations Active:** Issue triage, bug reports, and incoming translation PRs will remain actively monitored.
+> - 🚀 **v0.8.x Resumption:** Full active feature development will resume in mid-November for the **v0.8.x Multi-Platform Sprint**!
+
+---
 
 > [!TIP]
 > ### 🌍 Call for Translators — Help Localize WayPlank for Public Beta (v0.7.0)!
@@ -27,7 +39,7 @@
 > Complete 100% string coverage already exists for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, **Catalan (`ca`)**, **German (`de`)**, and **Ukrainian (`uk`)**.
 >
 > **Want to add your language (e.g. Portuguese, Polish, Japanese, etc.) or contribute?**
-> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 322 strings are stored in a simple, structured Python dictionary.
+> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 326 strings are stored in a simple, structured Python dictionary.
 > 2. Add or update your language entries directly in the dictionary (much cleaner and easier to manage than raw `.po` files!).
 > 3. Submit your updated `generate_translations.py` by opening a [GitHub Issue](https://github.com/sergiomelas/WayPlank/issues)!
 >
@@ -47,7 +59,7 @@ Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL
 
 ## 🤝 Acknowledgments & Contributors
 
-WayPlank is proudly developed with and for the Linux Wayland community. A huge thank you to our 400+ users, issue reporters, and translators whose real-world feedback has helped squash 96 bugs across 358 validation points (100% FAT pass rate)!
+WayPlank is proudly developed with and for the Linux Wayland community. A huge thank you to our 400+ users, issue reporters, and translators whose real-world feedback has helped squash 99 bugs across 364 validation points!
 
 * **史有虎 (IFtiger-hu)** ([@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub)): Author of the WayPlank community fork, contributor of native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
 
@@ -72,7 +84,7 @@ WayPlank features a modular Hardware Abstraction Layer (HAL) with zero-configura
 
 | Compositor / Desktop | Integration Engine | Key Capabilities | Status |
 | :--- | :--- | :--- | :---: |
-| **KDE Plasma 6 (KWin)** | D-Bus ECMAScript Bridge | Live Cairo window preview cards (`ScreenShot2` D-Bus IPC), `Bus.watch_name` bridge self-healing, bidirectional event tracking, atomic DRM `kscreen-doctor` brightness sync, real-time dark/light theme switching, 100% FAT pass | **Tier 1 (100% PASS)** |
+| **KDE Plasma 6 (KWin)** | D-Bus ECMAScript Bridge | Live Cairo window preview cards (`ScreenShot2` D-Bus IPC), `Bus.watch_name` bridge self-healing, bidirectional event tracking, atomic DRM `kscreen-doctor` brightness sync, real-time dark/light theme switching, Super+D Show Desktop persistence, 100% FAT pass | **Tier 1 (100% PASS)** |
 | **GNOME Shell (Mutter)** | Monolithic Mutter Extension | Live Cairo window preview cards (`/mutter/screen/preview` IPC), 0.74s instant cold start, deterministic map activation (zero async timer crashes), native CSD HeaderBar dialogs, window Dodge/Intellihide, real-time dark/light theme switching, 100% FAT pass | **Tier 1 (100% PASS)** |
 | **Labwc / wlroots** | `gtk-layer-shell` + `zwlr_foreign_toplevel` | Native C protocol bridge, Cairo blank preview cards with app icons & titles, Honest UI matrix, real-time dark/light theme switching, tested on LXQt 2.x & XFCE 4.20 Wayland | **Tier 1 (100% PASS)** |
 | **Sway & Hyprland** | wlroots protocol extensions | Native layer-shell docking & workspace tracking | *In Roadmap* |
@@ -83,7 +95,7 @@ Feel free to star the repo or follow releases if you want to track progress!
 
 ---
 
-> 🌟 **Zero Open Defects:** Across all 3 Tier-1 Wayland compositors (KDE Plasma 6, GNOME Shell, and Labwc), WayPlank v0.6.2.3 achieves 100% FAT compliance (364 tests defined, 362 passed, 0 open defects, 2 NA). Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
+> 🌟 **Compositor Qualification Status:** On KDE Plasma 6 (KWin), WayPlank achieves 100% FAT compliance (121/121 tests passing) with Super+D Show Desktop persistence fully resolved via D-Bus signal bridge, while investigation continues for GNOME Mutter and Labwc under Issue #13. Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
 
 ---
 
@@ -334,8 +346,9 @@ wayplank -d
   - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.
   - [ ] Systematic memory leak profiling (Valgrind / AddressSanitizer) and CPU efficiency audits.
   - [ ] Distribution packaging parity: official Debian (.deb), Fedora/openSUSE (.rpm), and Arch Linux AUR PKGBUILD.
+  - [ ] Preliminary native standalone Windows preview ([WinPlank](Documentation/WINPLANK_PORT_BATTLE_PLAN.md)).
 - [ ] Phase 9 (Planned) WayPlank Long-Term Production Stabilization (v0.9.x)
-  - [ ] The official daily driver production milestone, rock-solid across all major compositors (KWin, Mutter, Labwc).
+  - [ ] The official daily driver production milestone, rock-solid across all major Linux compositors (KWin, Mutter, Labwc) and native Windows 10/11+.
   - [ ] Production maintenance releases (`v0.9.1`, `v0.9.2`, etc.) as Wayland protocols and driver stacks evolve.
 - [ ] Phase 10 (Long-Term Horizon ~2 Years) WayPlank 1.0.0 Grand Milestone
   - [ ] The definitive landmark celebration after 2 years of proven daily production stability and mature protocol integration.

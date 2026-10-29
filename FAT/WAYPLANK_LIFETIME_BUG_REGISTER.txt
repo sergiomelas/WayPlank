@@ -19,14 +19,14 @@ Standard: ISA-88 Qualification Standard & 80-Column Documentation Specification
       v0.6.2.1, v0.6.2.2, v0.6.2.3)
     * Formal Tests Executed: 2,031 Total Test Executions across Compositors
     * Tests Passed on First Run: 1,888 [ok]
-    * Unique Functional Bugs Squashed: 64 [ko->ok]
-    * Total Compositor Test Verifications: 92 [ko->ok]
-    * Open Defects Remaining: 0 [ko] (100% Compliant)
+    * Unique Functional Bugs Squashed: 66 [ko->ok]
+    * Total Compositor Test Verifications: 96 [ko->ok]
+    * Open Defects Remaining: 2 [ko] (Issue #13 ongoing on GNOME Mutter & Labwc)
 
   - GRAND TOTAL ACROSS LIFETIME:
     * Total Milestones: 15 Releases
-    * Total Unique Functional & Architectural Bugs Squashed: 98 [ko->ok]
-    * Total Multi-Compositor Verification Instances: 126 [ko->ok]
+    * Total Unique Functional & Architectural Bugs Squashed: 100 [ko->ok]
+    * Total Multi-Compositor Verification Instances: 130 [ko->ok]
 
 ================================================================================
                    HISTORICAL MILESTONE QUALIFICATION MATRIX
@@ -50,11 +50,11 @@ v0.6.0     | 2026-10-11 | Shortcuts & Debounce  | 231        | 1        | 0
 v0.6.1     | 2026-10-13 | 0-byte MIME & Badges  | 246        | 7        | 0
 v0.6.2.1   | 2026-10-17 | Fork & Gold Standard  | 282        | 16       | 0
 v0.6.2.2   | 2026-10-20 | Round 2 & DND Docklet | 306        | 5        | 0
-v0.6.2.3   | 2026-10-26 | Previews,Stacks,Comm. | 364        | 18       | 0
+v0.6.2.3   | 2026-10-26 | Previews,Stacks,Comm. | 364        | 20       | 2 (ko)#13
 -----------+------------+-----------------------+------------+----------+-----
-ERA 2 SUB  | Formal FAT | 9 Multi-Comp. Releases| 2,031      | 92 verif | 0
+ERA 2 SUB  | Formal FAT | 9 Multi-Comp. Releases| 2,031      | 96 verif | 2
 -----------+------------+-----------------------+------------+----------+-----
-TOTAL      | All Eras   | 15 Milestone Releases | 2,031      | 98 Unique| 0
+TOTAL      | All Eras   | 15 Milestone Releases | 2,031      | 100 Uniq.| 2
 ================================================================================
 *Note on v0.5.0: The 7 [ko] defects discovered were formally remediated and
 verified in v0.5.1 under standard ISA-88 qualification protocol.
@@ -62,15 +62,15 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
 ================================================================================
              COMPOSITOR RESOLUTION BREAKDOWN (ERA 2 QUALIFICATION)
 ================================================================================
-  - GNOME SHELL (Mutter Backend):  37 Verifications Squashed [ko->ok] (49.3%)
-  - KDE PLASMA (KWin Backend):     26 Verifications Squashed [ko->ok] (34.7%)
-  - LABWC (wlroots Backend):       12 Verifications Squashed [ko->ok] (16.0%)
-  - TOTAL COMPOSITOR PASSES:       75 / 75 (100% Passed)
+  - GNOME SHELL (Mutter Backend):  38 Verifications Squashed [ko->ok] (48.1%)
+  - KDE PLASMA (KWin Backend):     28 Verifications Squashed [ko->ok] (35.4%)
+  - LABWC (wlroots Backend):       13 Verifications Squashed [ko->ok] (16.5%)
+  - TOTAL COMPOSITOR PASSES:       79 / 79 (100% Passed)
 
 ================================================================================
                      DEFECT CLASSIFICATION BY SUBSYSTEM
 ================================================================================
-1. WINDOW MANAGEMENT, FOCUS & VIRTUAL DESKTOPS (18 Bugs)
+1. WINDOW MANAGEMENT, FOCUS & VIRTUAL DESKTOPS (19 Bugs)
    - KWin FIFO command queue for rapid multi-window close (v0.4.3 / 2.8)
    - getAllWindows() & switchToDesktopIfNeeded() window list focus (v0.4.3/2.9)
    - Sticky dock surface across virtual desktops on KWin (v0.4.3 & v0.5.1 / 4.1)
@@ -83,6 +83,7 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
    - Urgent window auto-scrolling on dock overflow (v0.6.2.1 / 10.6)
    - Running indicator dots for folder items & drawer rows (v0.6.2.3 / 1.11)
    - Folder drawer application contract parity & wheel cycling (v0.6.2.3 / 1.12)
+   - Dock persistence on "Show Desktop" (Super + D) via KWin D-Bus signal bridge (v0.6.2.3 / 6.1)
 
 2. MULTI-MONITOR, DISPLAY GEOMETRY & TOOLTIPS (18 Bugs)
    - Layer-shell secondary monitor display persistence (v0.4.1 & v0.5.1 / 7.2)
@@ -123,7 +124,7 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
    - Strict Minimalist Dock Mode (Mode 1: 'Docklets Only' - zero app intrusion
      fallback) (v0.6.2.3 / 13.6)
 
-4. HIDE, DODGE, HOVER & PRESSURE REVEAL (11 Bugs)
+4. HIDE, DODGE, HOVER & PRESSURE REVEAL (12 Bugs)
    - Mouse hover zoom stuck on layer-shell surfaces (v0.3.0 / 3.2)
    - Intellihide geometric intersection calculation (v0.4.0 / 4.2)
    - Fullscreen exclusive zone toggle to 0 (v0.4.0 / 4.3)
@@ -132,6 +133,8 @@ verified in v0.5.1 under standard ISA-88 qualification protocol.
    - Layer-shell tooltip margin clamping against negative coordinates (v0.4.2)
    - Layer-shell input passthrough clipping for permanent non-hiding dock
      (v0.6.2.3 / 3.1)
+   - Two-stage hysteresis flip-flop & AnticipateZoom runway pointer click
+     stealing on overlapping windows (v0.6.2.3 / 5.4, Issue #12)
 
 5. APPLICATION MATCHING, SANDBOXES & PINNING (18 Bugs)
    - Asynchronous /proc process scanner for Wayland (v0.2.0 / 2.3)

@@ -98,6 +98,7 @@ namespace Plank
 				break;
 			case "ZoomPercent":
 			case "ZoomEnabled":
+			case "AnticipateZoom":
 				prefs_zoom_changed ();
 				break;
 			default:
@@ -532,6 +533,9 @@ namespace Plank
 			
 			ZoomPercent = (screen_is_composited ? prefs.ZoomPercent / 100.0 : 1.0);
 			ZoomIconSize = (screen_is_composited && prefs.ZoomEnabled ? (int) Math.round (IconSize * ZoomPercent) : IconSize);
+			if (controller.window != null) {
+				controller.window.set_input_mask ();
+			}
 		}
 		
 		void update_max_icon_size (DockTheme theme)
@@ -714,12 +718,15 @@ namespace Plank
 			}
 			
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
-				if (is_horizontal_dock ()) {
-					cursor_region.y = 0;
-					cursor_region.height = DockHeight;
-				} else {
-					cursor_region.x = 0;
-					cursor_region.width = DockWidth;
+				bool allow_anticipate = controller.prefs.ZoomEnabled && controller.prefs.AnticipateZoom;
+				if (allow_anticipate) {
+					if (is_horizontal_dock ()) {
+						cursor_region.y = 0;
+						cursor_region.height = DockHeight;
+					} else {
+						cursor_region.x = 0;
+						cursor_region.width = DockWidth;
+					}
 				}
 				return cursor_region;
 			}

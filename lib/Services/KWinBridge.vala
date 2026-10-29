@@ -53,6 +53,10 @@ namespace Plank
 			+ "            return;\n"
 			+ "        if (client.skipTaskbar === true || client.specialWindow === true)\n"
 			+ "            return;\n"
+			+ "        if (client.popupWindow === true)\n"
+			+ "            return;\n"
+			+ "        if (typeof client.normalWindow !== \"undefined\" && client.normalWindow === false && client.dialog !== true)\n"
+			+ "            return;\n"
 			+ "        var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
 			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
 			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
@@ -149,6 +153,10 @@ namespace Plank
 			+ "function connectWindow (window) {\n"
 			+ "    if (!window) return;\n"
 			+ "    if (window.skipTaskbar === true || window.specialWindow === true)\n"
+			+ "        return;\n"
+			+ "    if (window.popupWindow === true)\n"
+			+ "        return;\n"
+			+ "    if (typeof window.normalWindow !== \"undefined\" && window.normalWindow === false && window.dialog !== true)\n"
 			+ "        return;\n"
 			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
 			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
@@ -352,6 +360,8 @@ namespace Plank
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
 		static uint kwin_watch_id = 0U;
+		static uint showing_desktop_signal_id = 0U;
+		static bool handling_show_desktop = false;
 		public signal void state_changed ();
 
 		public static unowned KWinBridge get_default ()
@@ -531,6 +541,14 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			if (showing_desktop_signal_id > 0U) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.signal_unsubscribe (showing_desktop_signal_id);
+				} catch (Error e) { }
+				showing_desktop_signal_id = 0U;
+			}
+
 			if (kwin_watch_id > 0U) {
 				Bus.unwatch_name (kwin_watch_id);
 				kwin_watch_id = 0U;
@@ -748,9 +766,62 @@ namespace Plank
 			);
 		}
 
+		static void setup_showing_desktop_listener (DBusConnection? conn = null)
+		{
+			if (showing_desktop_signal_id > 0U)
+				return;
+
+			try {
+				var connection = conn != null ? conn : Bus.get_sync (BusType.SESSION, null);
+				showing_desktop_signal_id = connection.signal_subscribe (
+					"org.kde.KWin",
+					"org.kde.KWin",
+					"showingDesktopChanged",
+					"/KWin",
+					null,
+					DBusSignalFlags.NONE,
+					on_showing_desktop_changed
+				);
+				debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
+			} catch (Error e) {
+				warning ("KWinBridge: failed to subscribe to showingDesktopChanged: %s", e.message);
+			}
+		}
+
+		static void on_showing_desktop_changed (DBusConnection connection,
+		                                        string? sender_name,
+		                                        string object_path,
+		                                        string interface_name,
+		                                        string signal_name,
+		                                        Variant parameters)
+		{
+			if (handling_show_desktop)
+				return;
+
+			bool showing = false;
+			parameters.get ("(b)", out showing);
+			debug ("KWinBridge: showingDesktopChanged received showing=%s", showing ? "true" : "false");
+
+			if (showing) {
+				handling_show_desktop = true;
+				try {
+					connection.call_sync ("org.kde.KWin", "/KWin",
+						"org.kde.KWin", "showDesktop",
+						new Variant ("(b)", false), null,
+						DBusCallFlags.NONE, 250, null);
+				} catch (Error e) {
+					debug ("KWinBridge: failed to reset KWin showDesktop: %s", e.message);
+				}
+
+				queue_command ("desktop", "toggle_desktop");
+				handling_show_desktop = false;
+			}
+		}
+
 		static void on_kwin_appeared (DBusConnection connection, string name, string name_owner)
 		{
 			message ("KWinBridge: org.kde.KWin appeared on D-Bus (owner=%s), ensuring bridge script is active", name_owner);
+			setup_showing_desktop_listener (connection);
 			if (script_id >= 0 && script_path != null) {
 				try {
 					var result = connection.call_sync ("org.kde.KWin", "/Scripting",
@@ -771,6 +842,7 @@ namespace Plank
 		static void on_kwin_vanished (DBusConnection connection, string name)
 		{
 			message ("KWinBridge: org.kde.KWin vanished from D-Bus, resetting bridge state");
+			showing_desktop_signal_id = 0U;
 			script_id = -1;
 			if (script_path != null) {
 				FileUtils.remove (script_path);
@@ -785,6 +857,7 @@ namespace Plank
 				return;
 
 			setup_kwin_watcher ();
+			setup_showing_desktop_listener ();
 			clean_old_script_files ();
 
 			try {

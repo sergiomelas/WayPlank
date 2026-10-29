@@ -64,5 +64,6 @@ namespace Plank
 		{
 			return false;
 		}
+		public virtual void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position) { }
 	}
 }

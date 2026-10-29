@@ -228,6 +228,13 @@ namespace Plank
 			return get_default ().backend != null && get_default ().backend.position_poof (x, y, width, height);
 		}
 
+		public static void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position)
+		{
+			if (get_default ().backend != null) {
+				get_default ().backend.set_reserve_space (enabled, thickness, position);
+			}
+		}
+
 		public static bool is_kwin ()
 		{
 			return get_default ().backend is KWinBackend;

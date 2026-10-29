@@ -98,6 +98,7 @@ namespace Plank
 				break;
 			case "ZoomPercent":
 			case "ZoomEnabled":
+			case "AnticipateZoom":
 				prefs_zoom_changed ();
 				break;
 			default:
@@ -313,6 +314,8 @@ namespace Plank
 			
 			freeze_notify ();
 			
+			controller.window.update_layer_shell_monitor ();
+
 			if (controller.renderer != null && controller.renderer.theme != null) {
 				update (controller.renderer.theme);
 			} else {
@@ -320,10 +323,7 @@ namespace Plank
 				update_regions ();
 			}
 
-			controller.window.update_layer_shell_monitor ();
-			if (!GtkLayerShell.is_supported ()) {
-				controller.window.update_size_and_position ();
-			}
+			controller.window.update_size_and_position ();
 			
 			thaw_notify ();
 			updating_screen = false;
@@ -532,6 +532,9 @@ namespace Plank
 			
 			ZoomPercent = (screen_is_composited ? prefs.ZoomPercent / 100.0 : 1.0);
 			ZoomIconSize = (screen_is_composited && prefs.ZoomEnabled ? (int) Math.round (IconSize * ZoomPercent) : IconSize);
+			if (controller.window != null) {
+				controller.window.set_input_mask ();
+			}
 		}
 		
 		void update_max_icon_size (DockTheme theme)
@@ -698,6 +701,9 @@ namespace Plank
 		
 		public Gdk.Rectangle get_cursor_region ()
 		{
+			if (controller.hide_manager.FullscreenInhibit)
+				return { 0, 0, 0, 0 };
+
 			var cursor_region = static_dock_region;
 			if (background_rect.width > 0 && background_rect.height > 0) {
 				cursor_region.union (background_rect, out cursor_region);
@@ -714,12 +720,15 @@ namespace Plank
 			}
 			
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
-				if (is_horizontal_dock ()) {
-					cursor_region.y = 0;
-					cursor_region.height = DockHeight;
-				} else {
-					cursor_region.x = 0;
-					cursor_region.width = DockWidth;
+				bool allow_anticipate = controller.prefs.ZoomEnabled && controller.prefs.AnticipateZoom;
+				if (allow_anticipate) {
+					if (is_horizontal_dock ()) {
+						cursor_region.y = 0;
+						cursor_region.height = DockHeight;
+					} else {
+						cursor_region.x = 0;
+						cursor_region.width = DockWidth;
+					}
 				}
 				return cursor_region;
 			}

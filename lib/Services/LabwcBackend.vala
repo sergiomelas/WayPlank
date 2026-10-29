@@ -111,6 +111,11 @@ namespace Plank
 			return WlrBridge.maximized_window_intersects (rect.x, rect.y, rect.width, rect.height);
 		}
 
+		public bool fullscreen_window_intersects (Gdk.Rectangle rect)
+		{
+			return WlrBridge.fullscreen_window_intersects (rect.x, rect.y, rect.width, rect.height);
+		}
+
 		void schedule_state_changed ()
 		{
 			if (debounce_timer_id != 0) {
@@ -174,6 +179,7 @@ namespace Plank
 					info.Minimized = json.has_member ("minimized") && json.get_boolean_member ("minimized");
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
+					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
 					info.DemandsAttention = false;
 					info.CurrentDesktop = true;
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;

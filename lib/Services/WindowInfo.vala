@@ -37,6 +37,7 @@ namespace Plank
 		public bool Minimized { get; set; default = false; }
 		public bool Active { get; set; default = false; }
 		public bool Maximized { get; set; default = false; }
+		public bool Fullscreen { get; set; default = false; }
 		public bool DemandsAttention { get; set; default = false; }
 		public bool CurrentDesktop { get; set; default = true; }
 		public int64 MinimizedSequence { get; set; default = 0; }

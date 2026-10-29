@@ -143,6 +143,11 @@
 			<summary>Pressure Reveal</summary>
 			<description>If true, use pressure-based revealing of the dock if the input device supports it.</description>
 		</key>
+		<key name="reserve-space" type="b">
+			<default>false</default>
+			<summary>Reserve screen space (Panel Mode)</summary>
+			<description>Whether to reserve screen space matching the dock thickness when hiding is disabled (Panel Mode).</description>
+		</key>
 		<key name="show-dock-item" type="b">
 			<default>false</default>
 			<summary>Show the item for the dock itself</summary>
@@ -168,6 +173,11 @@
 			<default>false</default>
 			<summary>Zoom dock items when hovered</summary>
 			<description>If true, zoom dock items when hovered with the cursor.</description>
+		</key>
+		<key name="anticipate-zoom" type="b">
+			<default>true</default>
+			<summary>Anticipate icon zoom on mouse approach</summary>
+			<description>If true, begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock.</description>
 		</key>
 		<key name="categorize-items" type="b">
 			<default>true</default>

@@ -12,7 +12,7 @@ Collaborators & Contributors:
 
 ## 1. 📋 Overview & Motivation
 
-Following the successful completion of the pre-beta cycle (**v0.6.2.3**) with 100% Factory Acceptance Testing (335 test cases passing across KWin, GNOME Shell, and Labwc), WayPlank enters the milestone **Public Beta (v0.7.0)**.
+Following the successful completion of the pre-beta cycle (**v0.6.2.3**) with comprehensive Factory Acceptance Testing (363/367 test cases passing across KWin, GNOME Shell, and Labwc), WayPlank enters the milestone **Public Beta (v0.7.0)**.
 
 The primary objective of **v0.7.0** is the implementation of a **100% Monolithic, Embedded Localization Engine** combined with broad community multi-compositor field testing. 
 
@@ -33,23 +33,27 @@ Unlike traditional Unix applications that scatter locale catalogs across the fil
   #define _(String) wayplank_i18n_get(String)
   ```
 
-### 2.2. Supported Language Catalogs (312 / 312 Strings Qualified - 100%)
-All 312 UI msgids covering preferences, dock menus, tooltips, weather settings, and session dialogs are fully qualified:
+### 2.2. Supported Language Catalogs (326 / 326 Strings Qualified - 100%)
+All 326 UI msgids covering preferences, dock menus, tooltips, weather settings, and session dialogs are fully qualified:
 1. **简体中文 (Simplified Chinese, `zh_CN`)**:
    - Contributor & Reviewer: 史有虎 (IFtiger-hu) <2212363803@qq.com>
-   - Status: 100% Translated (312/312 messages). Prioritized in catalogs and dictionaries.
+   - Status: 100% Translated (326/326 messages). Prioritized in catalogs and dictionaries.
 2. **Italiano (Italian, `it`)**:
    - Maintainer: Sergio Melas <sergiomelas@gmail.com>
-   - Status: 100% Translated (312/312 messages).
+   - Status: 100% Translated (326/326 messages).
 3. **Español (Spanish, `es`)**:
-   - Status: 100% Translated (312/312 messages).
+   - Status: 100% Translated (326/326 messages).
 4. **Français (French, `fr`)**:
-   - Status: 100% Translated (312/312 messages).
+   - Status: 100% Translated (326/326 messages).
 5. **Català (Catalan, `ca`)**:
-   - Status: 100% Translated (312/312 messages).
+   - Status: 100% Translated (326/326 messages).
 6. **Deutsch (German, `de`)**:
-   - Community submission window open through Week 44.
-7. **English (`en`)**:
+   - Contributor: Renate Schwiedernoch
+   - Status: 100% Translated (326/326 messages).
+7. **Українська (Ukrainian, `uk`)**:
+   - Contributor: Michailo Buchko
+   - Status: 100% Translated (326/326 messages).
+8. **English (`en`)**:
    - Native in-source fallback language (zero overhead).
 
 ### 2.3. Community Tooling (`po/generate_translations.py`)
@@ -75,8 +79,8 @@ While the standalone binary `build/wayplank` operates 100% standalone without re
 
 ## 4. 🧪 Public Beta Factory Acceptance Testing (FAT 0.7.0)
 
-- **346 Total Test Points**:
-  - 335 Baseline Test Points carried forward from v0.6.2.3 (100% PASS rate across KWin, Mutter, and Labwc).
+- **378 Total Test Points**:
+  - 367 Baseline Test Points carried forward from v0.6.2.3 across KWin, Mutter, and Labwc.
   - 11 New Dedicated Localization & Embedded I18N Verification Test Points (Section 12).
 - **Multi-Compositor Validation Scope**:
   - KDE Plasma 6 (KWin Wayland)

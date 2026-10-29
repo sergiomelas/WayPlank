@@ -1400,3 +1400,25 @@ msgstr "Mostrar Papelera:"
 #: data/ui/preferences.ui:486
 msgid "Show the Trash Bin icon on the dock"
 msgstr "Muestra el icono de la Papelera en el dock"
+
+#: data/ui/preferences.ui:803
+msgid "Anticipate Icon Zoom:"
+msgstr "Anticipar zoom de iconos:"
+
+#: data/ui/preferences.ui:804
+msgid ""
+"Begins icon magnification as the cursor approaches the dock for a fluid, "
+"magnetic feel; disable to strictly pass mouse clicks through to windows "
+"positioned immediately behind or above the dock"
+msgstr "Comienza la ampliación de iconos a medida que el cursor se acerca al dock para una sensación fluida y magnética; deshabilítelo para transferir estrictamente los clics del ratón a las ventanas situadas inmediatamente detrás o encima del dock"
+
+#: data/ui/preferences.ui:703
+msgid "Reserve Screen Space:"
+msgstr "Reservar espacio en pantalla:"
+
+#: data/ui/preferences.ui:704
+msgid ""
+"Reserve screen space matching the dock thickness (Panel Mode) so maximized "
+"windows tile without overlapping the dock; requires Hide Dock and Icon Zoom "
+"to be disabled (automatically turns off if either is enabled)"
+msgstr "Reserva espacio en pantalla según el grosor del dock (Modo Panel) para que las ventanas maximizadas no se superpongan; requiere desactivar 'Ocultar dock' y 'Zoom de iconos' (se desactiva automáticamente si se activa alguno)"

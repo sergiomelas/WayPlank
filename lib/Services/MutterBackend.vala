@@ -35,6 +35,7 @@ namespace Plank
 		public abstract bool position_dock (int x, int y, int width, int height) throws GLib.Error;
 		public abstract bool position_hover (int x, int y, int width, int height) throws GLib.Error;
 		public abstract bool position_poof (int x, int y, int width, int height) throws GLib.Error;
+		public abstract bool set_reserve_space (bool enabled, int thickness, int position) throws GLib.Error;
 		public abstract string eval (string code) throws GLib.Error;
 		public abstract bool capture_window (string uuid, string filename) throws GLib.Error;
 		public signal void windows_changed ();
@@ -53,11 +54,16 @@ namespace Plank
 		bool started = false;
 		GnomeBridgeProxy? proxy = null;
 		uint name_watch_id = 0U;
+		uint ext_enable_timer_id = 0U;
+		uint bridge_reposition_timer_id = 0U;
 
 		int last_x = -1;
 		int last_y = -1;
 		int last_width = -1;
 		int last_height = -1;
+		bool last_reserve_enabled = false;
+		int last_reserve_thickness = 0;
+		int last_reserve_position = -1;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
 
@@ -65,12 +71,79 @@ namespace Plank
   "name": "WayPlank Bridge",
   "description": "Native GNOME Shell bridge for WayPlank dock",
   "uuid": "wayplank-bridge@wayplank.org",
-  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "url": "https://github.com/wayplank",
-  "version": 14
+  "version": 3
 }
 """;
 
+		// Stable loader deployed as extension.js. GNOME Shell (45+) caches ES modules by URL, so a
+		// disable/enable cycle never reloads a modified extension.js. The loader instead imports the
+		// real bridge from a content-hashed file (impl-<hash>.js) on every enable(): a new hash is a
+		// new URL, so updated bridge code goes live on WayPlank restart without logout/login.
+		const string EXTENSION_LOADER_JS = """//
+//  Wayplank Bridge GNOME Shell Extension - versioned implementation loader
+//  Copyright (C) 2026 Sergio Melas
+//  Part of Wayplank - native Wayland dock
+//
+
+import GLib from 'gi://GLib';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+
+export default class WayplankBridgeLoader extends Extension {
+    enable() {
+        this._enabled = true;
+        this._token = (this._token || 0) + 1;
+        const token = this._token;
+
+        let ver = null;
+        try {
+            const [ok, bytes] = GLib.file_get_contents(GLib.build_filenamev([this.path, 'impl-version']));
+            if (ok)
+                ver = new TextDecoder().decode(bytes).trim();
+        } catch (e) {
+            console.error('[WayplankBridge] loader: cannot read impl-version:', e);
+            return;
+        }
+        if (!ver || !/^[0-9a-f]+$/.test(ver)) {
+            console.error('[WayplankBridge] loader: invalid impl-version:', ver);
+            return;
+        }
+
+        const uri = GLib.filename_to_uri(GLib.build_filenamev([this.path, `impl-${ver}.js`]), null);
+        import(uri).then(mod => {
+            // Ignore stale imports if disable() (or a newer enable()) happened meanwhile
+            if (!this._enabled || token !== this._token)
+                return;
+            const impl = new mod.default();
+            try {
+                impl.enable();
+                this._impl = impl;
+            } catch (e) {
+                console.error('[WayplankBridge] loader: implementation enable() failed:', e);
+                try { impl.disable(); } catch (e2) { }
+            }
+        }).catch(e => {
+            console.error('[WayplankBridge] loader: failed to import implementation:', e);
+        });
+    }
+
+    disable() {
+        this._enabled = false;
+        this._token = (this._token || 0) + 1;
+        if (this._impl) {
+            try {
+                this._impl.disable();
+            } catch (e) {
+                console.error('[WayplankBridge] loader: implementation disable() failed:', e);
+            }
+            this._impl = null;
+        }
+    }
+}
+""";
+
+		// Bridge implementation, deployed as impl-<hash>.js and imported by EXTENSION_LOADER_JS.
 		const string EXTENSION_JS = """//
 //  Wayplank Bridge GNOME Shell Extension
 //  Copyright (C) 2026 Sergio Melas
@@ -81,8 +154,8 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
+import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const IFACE_XML = `
 <node>
@@ -148,29 +221,33 @@ const IFACE_XML = `
       <arg type="s" name="filename" direction="in"/>
       <arg type="b" name="success" direction="out"/>
     </method>
+    <method name="SetReserveSpace">
+      <arg type="b" name="enabled" direction="in"/>
+      <arg type="i" name="thickness" direction="in"/>
+      <arg type="i" name="position" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
     <signal name="WindowsChanged"/>
   </interface>
 </node>`;
 
-export default class WayplankBridgeExtension extends Extension {
+export default class WayplankBridgeImpl {
     enable() {
         this._signals = [];
         this._wsSignals = [];
         this._windowSignals = new Map();
         this._desktopRestoredWindows = [];
 
-        // Ensure all Wayplank windows (hover, dock, dialog, poof) are treated as skip_taskbar for WindowAttentionHandler so no notifications are ever created
-        if (!this._origIsSkipTaskbar) {
-            this._origIsSkipTaskbar = Meta.Window.prototype.is_skip_taskbar;
+        // Suppress "Wayplank is ready" notifications safely via WindowAttentionHandler without altering native prototypes
+        if (Main.windowAttentionHandler && !this._origAttentionHandler) {
+            this._origAttentionHandler = Main.windowAttentionHandler._onWindowDemandsAttention;
             const ext = this;
-            Meta.Window.prototype.is_skip_taskbar = function() {
-                try {
-                    const kind = ext._classifyWindow(this);
-                    if (kind === 'hover' || kind === 'dock' || kind === 'dialog' || kind === 'poof' || kind === 'unknown') {
-                        return true;
-                    }
-                } catch (e) { }
-                return ext._origIsSkipTaskbar.call(this);
+            Main.windowAttentionHandler._onWindowDemandsAttention = function(display, window) {
+                if (window && ext._classifyWindow(window) !== 'other') {
+                    try { window.demands_attention = false; } catch (e) { }
+                    return;
+                }
+                return ext._origAttentionHandler.call(this, display, window);
             };
         }
 
@@ -238,9 +315,21 @@ export default class WayplankBridgeExtension extends Extension {
     }
 
     disable() {
-        if (this._origIsSkipTaskbar) {
-            Meta.Window.prototype.is_skip_taskbar = this._origIsSkipTaskbar;
-            this._origIsSkipTaskbar = null;
+        if (this._strutActor) {
+            try {
+                Main.layoutManager.removeChrome(this._strutActor);
+                this._strutActor.destroy();
+            } catch (e) { }
+            this._strutActor = null;
+        }
+        this._strutRect = null;
+        this._lastReserveEnabled = false;
+        this._lastReserveThickness = 0;
+        this._lastReservePosition = -1;
+
+        if (this._origAttentionHandler && Main.windowAttentionHandler) {
+            Main.windowAttentionHandler._onWindowDemandsAttention = this._origAttentionHandler;
+            this._origAttentionHandler = null;
         }
 
         if (this._dbusImpl) {
@@ -336,7 +425,7 @@ export default class WayplankBridgeExtension extends Extension {
     }
 
     _centerWindow(win) {
-        if (!win || win._wayplankCentered) return false;
+        if (!win || !win.mapped || win._wayplankCentered) return false;
         try {
             let monitor = win.get_monitor ? win.get_monitor() : -1;
             if (monitor === -1 || monitor === null || monitor === undefined) {
@@ -360,6 +449,57 @@ export default class WayplankBridgeExtension extends Extension {
             console.error('[WayplankBridge] _centerWindow error:', e);
             return false;
         }
+    }
+
+    // Runs fn once on the window actor's first frame. Keeps at most ONE pending handler per
+    // window (a 'first-frame' handler connected on an already-shown window never fires, so
+    // connecting one per positioning call would accumulate handlers forever).
+    _onFirstFrame(win, fn) {
+        const act = win.get_compositor_private ? win.get_compositor_private() : null;
+        if (!act || !act.connect)
+            return;
+        if (win._wpFirstFrameId) {
+            try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
+            win._wpFirstFrameId = 0;
+        }
+        win._wpFirstFrameId = act.connect('first-frame', () => {
+            try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
+            win._wpFirstFrameId = 0;
+            fn();
+        });
+    }
+
+    // Returns the Mutter work area of monitor i EXCLUDING WayPlank's own reserve-space strut.
+    // Only native shell panels (e.g. GNOME top bar) are subtracted. The strut is added back only
+    // if Mutter has actually applied it (work area edge coincides with the strut inner edge).
+    _baseWorkArea(i) {
+        const g = global.display.get_monitor_geometry(i);
+        const ws = global.workspace_manager ? global.workspace_manager.get_active_workspace() : null;
+        let wa = g;
+        if (ws && ws.get_work_area_for_monitor) {
+            try { wa = ws.get_work_area_for_monitor(i); } catch (e) { wa = g; }
+        }
+        const r = { x: wa.x, y: wa.y, width: wa.width, height: wa.height };
+        const s = this._strutRect;
+        const t = this._lastReserveThickness || 0;
+        if (!this._strutActor || !s || t <= 0 || s.mon !== i)
+            return r;
+
+        const pos = this._lastReservePosition;
+        if (pos === 2 && r.y === s.y + s.height) {            // TOP
+            const ny = Math.max(g.y, r.y - t);
+            r.height += (r.y - ny);
+            r.y = ny;
+        } else if (pos === 3 && r.y + r.height === s.y) {     // BOTTOM
+            r.height = Math.min(g.y + g.height, r.y + r.height + t) - r.y;
+        } else if (pos === 0 && r.x === s.x + s.width) {      // LEFT
+            const nx = Math.max(g.x, r.x - t);
+            r.width += (r.x - nx);
+            r.x = nx;
+        } else if (pos === 1 && r.x + r.width === s.x) {      // RIGHT
+            r.width = Math.min(g.x + g.width, r.x + r.width + t) - r.x;
+        }
+        return r;
     }
 
     _applyDockPosition(win, x, y, width, height) {
@@ -386,50 +526,70 @@ export default class WayplankBridgeExtension extends Extension {
                 targetMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
             }
 
+            // Rule 9 (Strut Purity): Anchor dock placement strictly to physical monitor geometry (monGeo).
+            // Window coordinates must NEVER be calculated relative to dynamic work_area (wa), which shrinks
+            // when reserving space and recalculates asynchronously in Mutter.
             const monGeo = global.display.get_monitor_geometry(targetMon);
-            const ws = global.workspace_manager ? global.workspace_manager.get_active_workspace() : null;
-            const wa = (ws && ws.get_work_area_for_monitor) ? ws.get_work_area_for_monitor(targetMon) : monGeo;
+            const isPrimary = (targetMon === ((global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0));
+            const topPanelHeight = (isPrimary && Main.panel && Main.panel.height) ? Main.panel.height : 0;
 
             let targetX = x;
             let targetY = y;
 
+            let isTop;
+            if (this._lastReservePosition === 2)
+                isTop = true;
+            else if (this._lastReservePosition === 3)
+                isTop = false;
+            else
+                isTop = (y <= monGeo.y + topPanelHeight + 100);
+
+            let isLeft;
+            if (this._lastReservePosition === 0)
+                isLeft = true;
+            else if (this._lastReservePosition === 1)
+                isLeft = false;
+            else
+                isLeft = (x <= monGeo.x + 100);
+
             const isHorizontal = (width >= height);
             if (isHorizontal) {
-                const isTop = (y <= wa.y + 100);
-                targetX = Math.max(wa.x, Math.min(x, wa.x + wa.width - width));
-                targetY = isTop ? wa.y : (wa.y + wa.height - height);
+                targetX = Math.max(monGeo.x, Math.min(x, monGeo.x + monGeo.width - width));
+                targetY = isTop ? (monGeo.y + topPanelHeight) : (monGeo.y + monGeo.height - height);
             } else {
-                const isLeft = (x <= wa.x + 100);
-                targetX = isLeft ? wa.x : (wa.x + wa.width - width);
-                targetY = Math.max(wa.y, Math.min(y, wa.y + wa.height - height));
+                targetX = isLeft ? monGeo.x : (monGeo.x + monGeo.width - width);
+                targetY = Math.max(monGeo.y + topPanelHeight, Math.min(y, monGeo.y + monGeo.height - height));
             }
             this._lastDockGeo = { x: targetX, y: targetY, width, height };
 
+            // user_op = true: on Wayland the dock is a NORMAL toplevel (never META_WINDOW_DOCK),
+            // so Mutter's constrain_fully_onscreen would shove it out of its OWN reserve-space
+            // strut (constraints.c). User-op moves skip that constraint and clear the window's
+            // require_fully_onscreen flag, so later work-area re-constraints leave it in place.
             const move = () => {
                 try {
-                    if (this._classifyWindow(win) !== 'dock')
+                    if (!win || !win.mapped || this._classifyWindow(win) !== 'dock')
                         return;
+                    const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
+                    if (frameRect && frameRect.x === targetX && frameRect.y === targetY &&
+                        frameRect.width === width && frameRect.height === height) {
+                        return;
+                    }
+                    if (win.move_frame) {
+                        win.move_frame(true, targetX, targetY);
+                    }
                     if (win.move_resize_frame) {
-                        win.move_resize_frame(false, targetX, targetY, width, height);
-                    } else if (win.move_frame) {
-                        win.move_frame(false, targetX, targetY);
+                        win.move_resize_frame(true, targetX, targetY, width, height);
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move dock error:', e);
                 }
             };
 
-            move();
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            if (win.mapped) {
                 move();
-                return GLib.SOURCE_REMOVE;
-            });
-            const act = win.get_compositor_private ? win.get_compositor_private() : null;
-            if (act && act.connect) {
-                const id = act.connect('first-frame', () => {
-                    move();
-                    try { act.disconnect(id); } catch (e) { }
-                });
+            } else {
+                this._onFirstFrame(win, move);
             }
             return true;
         } catch (e) {
@@ -496,7 +656,7 @@ export default class WayplankBridgeExtension extends Extension {
 
             const move = () => {
                 try {
-                    if (this._classifyWindow(win) !== 'hover')
+                    if (!win || !win.mapped || this._classifyWindow(win) !== 'hover')
                         return;
                     if (win.move_resize_frame) {
                         const frameRect = win.get_frame_rect();
@@ -511,13 +671,10 @@ export default class WayplankBridgeExtension extends Extension {
                 }
             };
 
-            move();
-            const act = win.get_compositor_private ? win.get_compositor_private() : null;
-            if (act && act.connect) {
-                const id = act.connect('first-frame', () => {
-                    move();
-                    try { act.disconnect(id); } catch (e) { }
-                });
+            if (win.mapped) {
+                move();
+            } else {
+                this._onFirstFrame(win, move);
             }
             return true;
         } catch (e) {
@@ -550,26 +707,27 @@ export default class WayplankBridgeExtension extends Extension {
                 }
             }
 
+            // user_op = true: the poof is drawn over the dock (inside the reserve-space strut);
+            // a non-user move would be shoved out of the strut by constrain_fully_onscreen.
             const move = () => {
                 try {
+                    if (!win || !win.mapped)
+                        return;
                     if (win.move_frame) {
-                        win.move_frame(false, x, y);
+                        win.move_frame(true, x, y);
                     }
                     if (win.move_resize_frame) {
-                        win.move_resize_frame(false, x, y, width, height);
+                        win.move_resize_frame(true, x, y, width, height);
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move poof error:', e);
                 }
             };
 
-            move();
-            const act = win.get_compositor_private ? win.get_compositor_private() : null;
-            if (act && act.connect) {
-                const id = act.connect('first-frame', () => {
-                    move();
-                    try { act.disconnect(id); } catch (e) { }
-                });
+            if (win.mapped) {
+                move();
+            } else {
+                this._onFirstFrame(win, move);
             }
             return true;
         } catch (e) {
@@ -595,14 +753,6 @@ export default class WayplankBridgeExtension extends Extension {
                 if (this._lastDockGeo) {
                     const { x, y, width, height } = this._lastDockGeo;
                     this._applyDockPosition(targetWin, x, y, width, height);
-                } else {
-                    try {
-                        const monitor = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
-                        const monGeo = global.display.get_monitor_geometry(monitor);
-                        const frameRect = targetWin.get_frame_rect();
-                        const dockH = frameRect.height > 0 ? frameRect.height : 64;
-                        this._applyDockPosition(targetWin, monGeo.x, monGeo.y + monGeo.height - dockH, monGeo.width, dockH);
-                    } catch (e) { }
                 }
             } else if (kind === 'hover') {
                 try { targetWin.demands_attention = false; } catch (e) { }
@@ -622,12 +772,14 @@ export default class WayplankBridgeExtension extends Extension {
                     targetWin.demands_attention = false;
                     targetWin.activate(global.get_current_time());
                 } catch (e) { }
-                this._centerWindow(targetWin);
+                if (targetWin.mapped) {
+                    this._centerWindow(targetWin);
+                }
                 const act = targetWin.get_compositor_private ? targetWin.get_compositor_private() : null;
                 if (act && act.connect) {
                     const id = act.connect('first-frame', () => {
-                        this._centerWindow(targetWin);
                         try { act.disconnect(id); } catch (e) { }
+                        this._centerWindow(targetWin);
                     });
                 }
             }
@@ -649,20 +801,30 @@ export default class WayplankBridgeExtension extends Extension {
         sigs.push(win.connect('notify::maximized-vertically', () => {
             this._notifyWindowsChanged();
         }));
+        sigs.push(win.connect('notify::fullscreen', () => {
+            this._notifyWindowsChanged();
+        }));
         sigs.push(win.connect('position-changed', () => {
-            if (this._classifyWindow(win) === 'other')
+            const kind = this._classifyWindow(win);
+            if (kind === 'dock' && this._lastDockGeo) {
+                // Mutter may displace the dock (work-area re-constraint when our strut is applied):
+                // restore it once; the frame-equality guard in _applyDockPosition prevents loops.
+                const { x, y, width, height } = this._lastDockGeo;
+                this._applyDockPosition(win, x, y, width, height);
+            } else if (kind === 'other') {
                 this._notifyWindowsChanged();
+            }
         }));
         sigs.push(win.connect('size-changed', () => {
             const currentKind = this._classifyWindow(win);
-            if (currentKind === 'dialog') {
-                this._centerWindow(win);
-            } else if (currentKind === 'dock' && this._lastDockGeo) {
+            if (currentKind === 'dock' && this._lastDockGeo) {
                 const { x, y, width, height } = this._lastDockGeo;
                 this._applyDockPosition(win, x, y, width, height);
-            }
-            if (currentKind === 'other')
+            } else if (currentKind === 'dialog') {
+                this._centerWindow(win);
+            } else if (currentKind === 'other') {
                 this._notifyWindowsChanged();
+            }
         }));
         sigs.push(win.connect('notify::title', () => {
             applyRole(win);
@@ -768,7 +930,8 @@ export default class WayplankBridgeExtension extends Extension {
             const isMinimized = win.minimized;
             const isTop = (win === topWin) || (win === focusWin) || (focusId === id) || (this._lastActiveUuid === id) || (win.has_focus ? win.has_focus() : false);
             const isActive = !isMinimized && isTop;
-            const isMaximized = win.maximized_horizontally && win.maximized_vertically;
+            const isFullscreen = win.is_fullscreen ? win.is_fullscreen() : false;
+            const isMaximized = (win.maximized_horizontally && win.maximized_vertically) || isFullscreen;
             const demandsAttention = win.demands_attention ? win.demands_attention : false;
             const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
             const x = frameRect ? frameRect.x : 0;
@@ -802,6 +965,7 @@ export default class WayplankBridgeExtension extends Extension {
                 active: isActive,
                 minimized: isMinimized,
                 maximized: isMaximized,
+                fullscreen: isFullscreen,
                 demandsAttention: demandsAttention,
                 x: x,
                 y: y,
@@ -944,17 +1108,15 @@ export default class WayplankBridgeExtension extends Extension {
     }
 
     // D-Bus Method: GetMonitorWorkAreas
+    // Work areas are reported WITHOUT WayPlank's own strut, so the dock never positions
+    // itself inside the space it reserved (no workarea feedback loop / no jump on toggle).
     GetMonitorWorkAreas() {
         try {
             const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
-            const ws = global.workspace_manager ? global.workspace_manager.get_active_workspace() : null;
             const res = [];
             for (let i = 0; i < nMonitors; i++) {
                 const g = global.display.get_monitor_geometry(i);
-                let wa = g;
-                if (ws && ws.get_work_area_for_monitor) {
-                    try { wa = ws.get_work_area_for_monitor(i); } catch (e) { }
-                }
+                const wa = this._baseWorkArea(i);
                 res.push({
                     x: g.x,
                     y: g.y,
@@ -1047,6 +1209,102 @@ export default class WayplankBridgeExtension extends Extension {
         }
         return false;
     }
+
+    // D-Bus Method: SetReserveSpace
+    SetReserveSpace(enabled, thickness, position) {
+        if (this._lastReserveEnabled === enabled &&
+            this._lastReserveThickness === thickness &&
+            this._lastReservePosition === position) {
+            return true;
+        }
+
+        // Resolve target monitor and its base work area (native panels only) BEFORE
+        // touching the current strut state, so the old strut is correctly excluded.
+        let targetMon = -1;
+        let base = null;
+        try {
+            if (this._lastDockGeo) {
+                const cx = this._lastDockGeo.x + Math.floor(this._lastDockGeo.width / 2);
+                const cy = this._lastDockGeo.y + Math.floor(this._lastDockGeo.height / 2);
+                const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
+                for (let i = 0; i < nMonitors; i++) {
+                    const geo = global.display.get_monitor_geometry(i);
+                    if (cx >= geo.x && cx < geo.x + geo.width &&
+                        cy >= geo.y && cy < geo.y + geo.height) {
+                        targetMon = i;
+                        break;
+                    }
+                }
+            }
+            if (targetMon === -1) {
+                targetMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
+            }
+            base = this._baseWorkArea(targetMon);
+        } catch (e) {
+            console.error('[WayplankBridge] SetReserveSpace base work area error:', e);
+        }
+
+        this._lastReserveEnabled = enabled;
+        this._lastReserveThickness = thickness;
+        this._lastReservePosition = position;
+
+        if (this._strutActor) {
+            try {
+                Main.layoutManager.removeChrome(this._strutActor);
+                this._strutActor.destroy();
+            } catch (e) { }
+            this._strutActor = null;
+        }
+        this._strutRect = null;
+
+        if (enabled && thickness > 0 && base) {
+            try {
+                const monGeo = global.display.get_monitor_geometry(targetMon);
+                const monRight = monGeo.x + monGeo.width;
+                const monBottom = monGeo.y + monGeo.height;
+                let sx = monGeo.x, sy = monGeo.y, sw = monGeo.width, sh = monGeo.height;
+
+                // Position: 0=LEFT, 1=RIGHT, 2=TOP, 3=BOTTOM
+                // Strut spans from the physical monitor edge to (native panel edge + thickness).
+                if (position === 2) { // TOP
+                    sh = (base.y - monGeo.y) + thickness;
+                } else if (position === 3) { // BOTTOM
+                    sy = base.y + base.height - thickness;
+                    sh = monBottom - sy;
+                } else if (position === 0) { // LEFT
+                    sw = (base.x - monGeo.x) + thickness;
+                } else if (position === 1) { // RIGHT
+                    sx = base.x + base.width - thickness;
+                    sw = monRight - sx;
+                } else {
+                    return true;
+                }
+
+                this._strutActor = new St.Widget({
+                    name: 'wayplank-strut',
+                    reactive: false,
+                    can_focus: false,
+                    opacity: 0,
+                });
+                this._strutActor.set_position(sx, sy);
+                this._strutActor.set_size(sw, sh);
+                this._strutRect = { mon: targetMon, x: sx, y: sy, width: sw, height: sh };
+                Main.layoutManager.addChrome(this._strutActor, { affectsStruts: true, trackFullscreen: true });
+            } catch (e) {
+                console.error('[WayplankBridge] SetReserveSpace error:', e);
+                this._strutRect = null;
+                return false;
+            }
+        }
+
+        if (this._lastDockGeo) {
+            const win = this._findDockWindow();
+            if (win) {
+                this._applyDockPosition(win, this._lastDockGeo.x, this._lastDockGeo.y, this._lastDockGeo.width, this._lastDockGeo.height);
+            }
+        }
+        return true;
+    }
 }
 """;
 
@@ -1115,9 +1373,17 @@ export default class WayplankBridgeExtension extends Extension {
 			var ext_dir = Path.build_filename (Environment.get_user_data_dir (), "gnome-shell", "extensions", EXTENSION_UUID);
 			var js_file = Path.build_filename (ext_dir, "extension.js");
 			var meta_file = Path.build_filename (ext_dir, "metadata.json");
+			var version_file = Path.build_filename (ext_dir, "impl-version");
+
+			// Content hash of the bridge implementation: identical code -> identical file name,
+			// changed code -> new file name (= new ES module URL, not cached by GNOME Shell).
+			string impl_hash = GLib.Checksum.compute_for_string (ChecksumType.SHA256, EXTENSION_JS).substring (0, 12);
+			string impl_name = "impl-" + impl_hash + ".js";
+			var impl_file = Path.build_filename (ext_dir, impl_name);
 
 			string? current_js = null;
 			string? current_meta = null;
+			string? current_version = null;
 			if (FileUtils.test (js_file, FileTest.EXISTS)) {
 				try {
 					FileUtils.get_contents (js_file, out current_js);
@@ -1128,18 +1394,51 @@ export default class WayplankBridgeExtension extends Extension {
 					FileUtils.get_contents (meta_file, out current_meta);
 				} catch (Error e) { }
 			}
+			if (FileUtils.test (version_file, FileTest.EXISTS)) {
+				try {
+					FileUtils.get_contents (version_file, out current_version);
+					if (current_version != null)
+						current_version = current_version.strip ();
+				} catch (Error e) { }
+			}
 
-			bool code_changed = (current_js == null || current_js != EXTENSION_JS || current_meta == null || current_meta != EXTENSION_METADATA);
+			bool code_changed = (current_js == null || current_js != EXTENSION_LOADER_JS
+				|| current_meta == null || current_meta != EXTENSION_METADATA
+				|| current_version == null || current_version != impl_hash
+				|| !FileUtils.test (impl_file, FileTest.EXISTS));
 
 			try {
 				DirUtils.create_with_parents (ext_dir, 0755);
+				// Write the implementation first, then the version pointer, then the loader,
+				// so the loader never points to a missing implementation file.
+				FileUtils.set_contents (impl_file, EXTENSION_JS);
+				FileUtils.set_contents (version_file, impl_hash);
 				FileUtils.set_contents (meta_file, EXTENSION_METADATA);
-				FileUtils.set_contents (js_file, EXTENSION_JS);
+				FileUtils.set_contents (js_file, EXTENSION_LOADER_JS);
+
+				// Remove stale implementation files (already loaded modules stay in shell memory)
+				try {
+					var dir = Dir.open (ext_dir, 0);
+					string? name = null;
+					while ((name = dir.read_name ()) != null) {
+						if (name.has_prefix ("impl-") && name.has_suffix (".js") && name != impl_name)
+							FileUtils.unlink (Path.build_filename (ext_dir, name));
+					}
+				} catch (Error e) {
+					warning ("MutterBackend: failed to clean stale bridge implementations: %s", e.message);
+				}
 
 				if (code_changed && current_js != null) {
-					// Upgrade / code updated: reset error latch and cycle disable -> enable to ensure GNOME Shell reloads JS
+					// Upgrade / code updated: reset error latch and cycle disable -> enable.
+					// With the versioned loader, enable() imports impl-<new hash>.js -> new code goes live.
+					// (A one-time logout/login is still needed when the loader itself changes.)
 					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " && gnome-extensions disable " + EXTENSION_UUID + "'");
-					GLib.Timeout.add (300, () => {
+					if (ext_enable_timer_id > 0U) {
+						GLib.Source.remove (ext_enable_timer_id);
+						ext_enable_timer_id = 0U;
+					}
+					ext_enable_timer_id = GLib.Timeout.add (300, () => {
+						ext_enable_timer_id = 0U;
 						try {
 							Process.spawn_command_line_async ("gnome-extensions enable " + EXTENSION_UUID);
 						} catch (Error e) { }
@@ -1181,10 +1480,25 @@ export default class WayplankBridgeExtension extends Extension {
 						proxy.position_dock (last_x, last_y, last_width, last_height);
 					} catch (Error e) { }
 				}
-				GLib.Timeout.add (250, () => {
+				if (last_reserve_enabled) {
+					try {
+						proxy.set_reserve_space (last_reserve_enabled, last_reserve_thickness, last_reserve_position);
+					} catch (Error e) { }
+				}
+				if (bridge_reposition_timer_id > 0U) {
+					GLib.Source.remove (bridge_reposition_timer_id);
+					bridge_reposition_timer_id = 0U;
+				}
+				bridge_reposition_timer_id = GLib.Timeout.add (250, () => {
+					bridge_reposition_timer_id = 0U;
 					if (proxy != null && last_width > 0 && last_height > 0) {
 						try {
 							proxy.position_dock (last_x, last_y, last_width, last_height);
+						} catch (Error e) { }
+					}
+					if (proxy != null && last_reserve_enabled) {
+						try {
+							proxy.set_reserve_space (last_reserve_enabled, last_reserve_thickness, last_reserve_position);
 						} catch (Error e) { }
 					}
 					return false;
@@ -1196,6 +1510,10 @@ export default class WayplankBridgeExtension extends Extension {
 
 		void on_bridge_vanished (DBusConnection connection, string name)
 		{
+			if (bridge_reposition_timer_id > 0U) {
+				GLib.Source.remove (bridge_reposition_timer_id);
+				bridge_reposition_timer_id = 0U;
+			}
 			proxy = null;
 			window_infos.clear ();
 			state_changed ();
@@ -1268,6 +1586,7 @@ export default class WayplankBridgeExtension extends Extension {
 					info.Minimized = json.has_member ("minimized") && json.get_boolean_member ("minimized");
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
+					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height")) {
@@ -1296,6 +1615,14 @@ export default class WayplankBridgeExtension extends Extension {
 
 		public void cleanup ()
 		{
+			if (ext_enable_timer_id > 0U) {
+				GLib.Source.remove (ext_enable_timer_id);
+				ext_enable_timer_id = 0U;
+			}
+			if (bridge_reposition_timer_id > 0U) {
+				GLib.Source.remove (bridge_reposition_timer_id);
+				bridge_reposition_timer_id = 0U;
+			}
 			if (name_watch_id > 0U) {
 				Bus.unwatch_name (name_watch_id);
 				name_watch_id = 0U;
@@ -1367,6 +1694,25 @@ export default class WayplankBridgeExtension extends Extension {
 			return window_intersects (rect, false, true);
 		}
 
+		public bool fullscreen_window_intersects (Gdk.Rectangle rect)
+		{
+			foreach (var window in window_infos) {
+				if (window.Minimized)
+					continue;
+				if (!window.CurrentDesktop)
+					continue;
+				if (window.ResourceClass.down () == "wayplank" || window.DesktopFileName.down () == "wayplank")
+					continue;
+				if (!window.Active || !window.Fullscreen)
+					continue;
+				if (window.Geometry.width <= 0 || window.Geometry.height <= 0)
+					continue;
+				if (window.Geometry.intersect (rect, null))
+					return true;
+			}
+			return false;
+		}
+
 		bool window_intersects (Gdk.Rectangle dock_rect, bool active_only, bool maximized_only)
 		{
 			foreach (var window in window_infos) {
@@ -1432,6 +1778,25 @@ export default class WayplankBridgeExtension extends Extension {
 			} catch (Error e) {
 				debug ("MutterBackend: position_poof D-Bus: %s", e.message);
 				return false;
+			}
+		}
+
+		public override void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position)
+		{
+			if (last_reserve_enabled == enabled &&
+			    last_reserve_thickness == thickness &&
+			    last_reserve_position == (int) position) {
+				return;
+			}
+			last_reserve_enabled = enabled;
+			last_reserve_thickness = thickness;
+			last_reserve_position = (int) position;
+			if (proxy != null) {
+				try {
+					proxy.set_reserve_space (enabled, thickness, (int) position);
+				} catch (Error e) {
+					debug ("MutterBackend: set_reserve_space D-Bus: %s", e.message);
+				}
 			}
 		}
 
@@ -1512,7 +1877,7 @@ export default class WayplankBridgeExtension extends Extension {
 								const res = [];
 								for (let i = 0; i < n; i++) {
 									const g = global.display.get_monitor_geometry(i);
-									const wa = ws ? ws.get_work_area_for_monitor(i) : g;
+									const wa = (typeof this._baseWorkArea === 'function') ? this._baseWorkArea(i) : (ws ? ws.get_work_area_for_monitor(i) : g);
 									res.push({ x: g.x, y: g.y, width: g.width, height: g.height, wa_x: wa.x, wa_y: wa.y, wa_width: wa.width, wa_height: wa.height });
 								}
 								return JSON.stringify(res);

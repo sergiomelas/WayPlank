@@ -1,8 +1,8 @@
 # WayPlank V0.6.2 Series Detailed Technical Changelog
 
 Release Series: **V0.6.2 Series (The Community Unification & Distribution Release)**  
-Current Milestone: **V0.6.2.3 (Round 3 & Community Features: Multi-Window Preview Cards, Dynamic Theming, DND Docklet, System Menu Access, 7×2 Grid, German & Ukrainian Translations, HAL Brightness Sync) — Completed / 100% FAT Passed (2026-10-27)**  
-Release Date: 2026-10-27 (Community Contributions Fully Integrated & 100% FAT Qualified)  
+Current Milestone: **V0.6.2.3 (Round 3 & Community Features: Multi-Window Preview Cards, Dynamic Theming, DND Docklet, System Menu Access, 7×2 Grid, German & Ukrainian Translations, HAL Brightness Sync, Panel Mode & Fullscreen Inhibit) — Completed / FAT Qualified (2026-11-01)**  
+Release Date: 2026-11-01 (Community Contributions Fully Integrated & FAT Qualified)  
 Authors & Contributors:
 - **Sergio Melas** (Maintainer — sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))
 - **史有虎 (IFtiger-hu)** (Collaborator, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
@@ -315,9 +315,56 @@ Following community feedback and user contributions, this release incorporates m
 
 ---
 
-## 12. 📦 Release Finalization & Master Milestone Roadmap
+## 12. 🌟 WayPlank V0.6.2.3 Community User Contributions — Round 2 (2026-10-29 / 2026-11-01)
 
-- **Current Live GitHub Release**: **v0.6.2.3 (Round 3 & Community Update)** is officially released on GitHub with 100% FAT qualification (355/355 tests passing, 2 NA).
+Following community testing, multi-window workflow feedback, and bug reports from [@tcliuqiang](https://github.com/tcliuqiang) and [@Gabenoh](https://github.com/Gabenoh), Round 2 introduces vital window management fixes, dynamic layer-shell input masking, and milestone qualification:
+
+* 🖥️ **KDE Plasma 6 Show Desktop Persistence (Issue #13)**:
+  - Intercepts KWin's `org.kde.KWin.showingDesktopChanged` D-Bus signal in `KWinBridge.vala`.
+  - Immediately resets internal `showDesktop` state to `false`, keeping WayPlank visible on the desktop surface while delegating application window hiding and restoration to the neutral `toggleDesktop()` minimization engine.
+
+* 🎯 **Two-Stage Hysteresis Flip-Flop & Transparent Input Passthrough (Issue #12)**:
+  - **The Defect**: In legacy Plank, an anticipatory ~80px approach runway was hardcoded above the dock pill. On Wayland, `wl_surface.set_input_region` mapped this transparent area into the dock's input surface, stealing mouse clicks from overlapping windows resting behind or immediately above the dock (such as text editor scrollbars, Kate line selections, or terminal windows).
+  - **The Architectural Remedy**: Implemented a two-stage hysteresis flip-flop in `PositionManager.vala` (`get_cursor_region()`) and `DockWindow.vala` (`set_hovered()`):
+    - When `AnticipateZoom` is disabled (or zoom is off), the layer-shell input mask strictly clamps to the 60px visual dock pill (`static_dock_region + background_rect`) at rest, passing 100% of clicks through to underlying windows.
+    - When an icon is hovered under active zoom, the flip-flop dynamically expands the input mask upward by `hover_region` to prevent edge chattering, resetting instantly upon pointer leave.
+  - **User-Configurable Toggle**: Added an **Anticipate Icon Zoom** (`anticipate-zoom`) toggle in **Preferences $\rightarrow$ Behaviour** (Row 6) alongside *Workspace Only*, relocating *Start on Login* to Row 7 alongside *Scroll on Overflow*.
+  - **Plank Spirit Compliance**: `anticipate-zoom` is set to `true` by default in both schema and memory model, preserving 100% classic Plank feel out of the box while empowering power users with overlapping windows to disable it.
+
+* 🏆 **Historic Landmark: 103 Squashed Bugs & Source-Debugged New Features**:
+  - Full qualification across all 3 Tier-1 compositors: **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)** with `[ko->ok]` sign-off for input passthrough (FAT Point 5.4), GNOME Mutter vertical dock resize-commit re-anchoring (FAT Point 7.2), KDE Plasma 6 multi-monitor heterogeneous screen positioning (FAT Point 7.6), and direct unmaximized-to-fullscreen auto-hide & 0px edge passthrough across all compositors (FAT Point 3.9 / Issue #10).
+  - Reached the milestone of **103 unique functional & architectural bugs squashed** across WayPlank lifetime and **135 multi-compositor verification instances**, alongside new architectural features debugged directly at the source.
+
+* 🪟 **Option to Reserve Screen Space / Panel Mode (Issue #9) & GNOME Mutter Overhaul**:
+  - **The Feature**: Configurable `ReserveSpace` setting in **Preferences $\rightarrow$ Behaviour** (`reserve-space` GSettings key), enabling stationary dock panel mode so maximized windows tile cleanly without overlapping the dock.
+  - **Mutual Exclusivity Guard**: Automatically disables and grays out if `HideMode != NONE` or `ZoomEnabled == true`, guaranteeing magnified icons never clip against tiled application windows, and automatically turns OFF if either is activated by the user.
+  - **Layer-Shell Implementation**: On KDE Plasma 6 (KWin) and Labwc (wlroots), dynamically sets `GtkLayerShell.set_exclusive_zone` matching visual dock thickness and sets surface layer to `Layer.BOTTOM`.
+  - **GNOME Shell (Mutter) Bridge Overhaul**:
+    - **Dynamic Content-Hashed ES Module Loader**: Overcomes GNOME 45+ ES module URL caching; deployed versioned `impl-<hash>.js` dynamic loader so bridge updates apply immediately on WayPlank restart without requiring session logout/login.
+    - **Unconstrained User-Op Positioning**: Bypassed Mutter's `constrain_fully_onscreen` by passing `user_op = true` in `move_resize_frame` and `move_frame`, keeping the dock firmly anchored to the monitor edge.
+    - **Physical Monitor Geometry Anchoring (Rule 9)**: Anchors dock placement strictly to physical monitor bounds (`monGeo`) with top panel offset, eliminating the asynchronous `work_area` feedback loop during strut updates.
+  - **i18n & Localization**: Updated all 7 language catalogs to 326/326 strings (100% translated and validated).
+  - Closed Issue #9 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+* 🖥️ **Fullscreen Window Inhibit & 0px Edge Click Passthrough (Issue #10 / FAT Point 3.9)**:
+  - **The Defect**: When applications such as Remmina remote desktop, MPV, or web browsers entered fullscreen directly from a normal unmaximized state, KWin kept `maximizeMode === 0` (setting only `client.fullScreen = true`) and GNOME Mutter kept `maximized_horizontally/vertically === false` (setting only `win.is_fullscreen() = true`), without emitting maximized change signals. Additionally, on Mutter `HideMode = NONE` kept the dock above fullscreen windows, and the hidden dock's `10px`/`1px` edge reveal strip intercepted clicks at `0px` on the screen edge.
+  - **The Architectural Remedy**:
+    - Extended `WindowInfo`, `WindowBackend`, and `WindowControl` with `Fullscreen` and polymorphic `fullscreen_window_intersects()` across KWin (`KWinBridge.vala`), GNOME Mutter (`MutterBackend.vala`), and Labwc (`wlr-toplevel-bridge.c` / `LabwcBackend.vala`).
+    - Added `FullscreenInhibit` in `HideManager.vala` to hide the dock immediately across all `HideMode`s (including `HideType.NONE`) whenever an active fullscreen window intersects the dock.
+    - Updated `PositionManager.get_cursor_region()` to return `{ 0, 0, 0, 0 }` during `FullscreenInhibit`, clearing the Cairo input shape region so 100% of `0px` screen-edge clicks pass through to the fullscreen application without unhiding the dock.
+    - Added interactive verification utility `FAT/Test Files/Testers/test_fullscreen.py` and verified `[ko->ok]` across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots).
+  - Closed Issue #10 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+* 📚 **User Guide & i18n Synchronization**:
+  - Comprehensive documentation added to `Documentation/USER_GUIDE.md` detailing input passthrough, the hysteresis engine, Fullscreen Inhibit, and GSettings CLI keys.
+  - Translation catalogs synchronized to **326/326 strings (100%)** across 7 languages.
+  - Closed Issue #12 in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+---
+
+## 13. 📦 Release Finalization & Master Milestone Roadmap
+
+- **Current Live GitHub Release**: **v0.6.2.3 (Round 3 & Community Update — 2026-11-01)** is officially released on GitHub with multi-compositor FAT qualification (363/367 tests passing, 100% KWin pass, 37 squashed verifications, 2 NA).
 - **Distribution packages available**:
   - `build/wayplank_0.6.2.3_amd64.deb`
   - `build/wayplank-0.6.2.3-1.x86_64.rpm`

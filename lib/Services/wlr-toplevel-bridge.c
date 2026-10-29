@@ -1,14 +1,15 @@
 //
+//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
-//  This file is part of Wayplank.
+//  This file is part of WayPlank.
 //
-//  Wayplank is free software: you can redistribute it and/or modify
+//  WayPlank is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  Wayplank is distributed in the hope that it will be useful,
+//  WayPlank is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
@@ -400,6 +401,7 @@ wlr_toplevel_bridge_get_window_json (void)
             "\"minimized\":%s,"
             "\"active\":%s,"
             "\"maximized\":%s,"
+            "\"fullscreen\":%s,"
             "\"normal\":true,"
             "\"visible\":%s,"
             "\"minimizedSequence\":%d}",
@@ -410,7 +412,8 @@ wlr_toplevel_bridge_get_window_json (void)
             escaped_app_id,
             t->minimized ? "true" : "false",
             t->active ? "true" : "false",
-            t->maximized ? "true" : "false",
+            (t->maximized || t->fullscreen) ? "true" : "false",
+            t->fullscreen ? "true" : "false",
             t->minimized ? "false" : "true",
             t->minimized_sequence
         );
@@ -558,6 +561,19 @@ wlr_toplevel_bridge_maximized_window_intersects (int x, int y, int width, int he
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
         if (!t->minimized && (t->maximized || t->fullscreen) && !is_wayplank_toplevel (t)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+gboolean
+wlr_toplevel_bridge_fullscreen_window_intersects (int x, int y, int width, int height)
+{
+    (void)x; (void)y; (void)width; (void)height;
+    for (GList *l = toplevel_list; l != NULL; l = l->next) {
+        WlrToplevel *t = (WlrToplevel *)l->data;
+        if (t->active && !t->minimized && t->fullscreen && !is_wayplank_toplevel (t)) {
             return TRUE;
         }
     }

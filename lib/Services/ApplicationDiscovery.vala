@@ -235,14 +235,14 @@ namespace Plank
 			var best_score = 0;
 			string? best_id = null;
 			foreach (var entry in identities.entries) {
+				var score = entry.value.match_score (window);
+				if (score <= best_score || score < 50)
+					continue;
 				var candidate_file = desktop_file_for_id (entry.key);
 				if (candidate_file == null || !desktop_file_has_exec (candidate_file))
 					continue;
-				var score = entry.value.match_score (window);
-				if (score > best_score) {
-					best_score = score;
-					best_id = entry.key;
-				}
+				best_score = score;
+				best_id = entry.key;
 			}
 			if (best_id != null && best_score >= 50)
 				return desktop_file_for_id (best_id);
@@ -561,6 +561,9 @@ namespace Plank
 					return false;
 				if (key_file.has_key (KeyFileDesktop.GROUP, "Hidden")
 					&& key_file.get_boolean (KeyFileDesktop.GROUP, "Hidden"))
+					return false;
+				if (key_file.has_key (KeyFileDesktop.GROUP, "NoDisplay")
+					&& key_file.get_boolean (KeyFileDesktop.GROUP, "NoDisplay"))
 					return false;
 
 				var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";

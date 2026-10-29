@@ -1,4 +1,5 @@
 //
+//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
@@ -40,6 +41,8 @@ namespace Plank
 		Gtk.ScrolledWindow scrolled;
 
 		uint dismiss_timer_id = 0U;
+		uint pos_timer_1_id = 0U;
+		uint pos_timer_2_id = 0U;
 		bool pointer_inside = false;
 
 		static Pango.FontDescription? cached_font_title = null;
@@ -121,7 +124,21 @@ namespace Plank
 
 		~WindowCardsWindow ()
 		{
+			cancel_dismiss_timer ();
+			cancel_position_timers ();
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
+		}
+
+		void cancel_position_timers ()
+		{
+			if (pos_timer_1_id > 0U) {
+				GLib.Source.remove (pos_timer_1_id);
+				pos_timer_1_id = 0U;
+			}
+			if (pos_timer_2_id > 0U) {
+				GLib.Source.remove (pos_timer_2_id);
+				pos_timer_2_id = 0U;
+			}
 		}
 
 		bool on_scroll (Gdk.EventScroll event)
@@ -221,6 +238,7 @@ namespace Plank
 			TargetItem = item;
 			pointer_inside = false;
 			cancel_dismiss_timer ();
+			cancel_position_timers ();
 
 			populate_cards ();
 			show_all ();
@@ -232,12 +250,14 @@ namespace Plank
 
 			update_position ();
 
-			GLib.Timeout.add (25, () => {
+			pos_timer_1_id = GLib.Timeout.add (25, () => {
+				pos_timer_1_id = 0U;
 				if (get_visible () && TargetItem != null)
 					update_position ();
 				return false;
 			});
-			GLib.Timeout.add (75, () => {
+			pos_timer_2_id = GLib.Timeout.add (75, () => {
+				pos_timer_2_id = 0U;
 				if (get_visible () && TargetItem != null)
 					update_position ();
 				return false;
@@ -247,6 +267,7 @@ namespace Plank
 		public void close_cards ()
 		{
 			cancel_dismiss_timer ();
+			cancel_position_timers ();
 			hide ();
 			TargetItem = null;
 			controller.check_collapse_after_interaction (this);
@@ -673,7 +694,7 @@ namespace Plank
 						if (top_panel > 0)
 							top_margin += top_panel + 2;
 					}
-					top_margin += WindowControl.get_top_panel_floating_offset ();
+					top_margin += WindowControl.get_top_panel_floating_offset (geo);
 
 					int clamped_top_x = int.max (GAP, int.min (mon_w - width - GAP, center_x - width / 2));
 					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, top_margin);

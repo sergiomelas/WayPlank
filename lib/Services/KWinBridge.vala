@@ -53,6 +53,10 @@ namespace Plank
 			+ "            return;\n"
 			+ "        if (client.skipTaskbar === true || client.specialWindow === true)\n"
 			+ "            return;\n"
+			+ "        if (client.popupWindow === true)\n"
+			+ "            return;\n"
+			+ "        if (typeof client.normalWindow !== \"undefined\" && client.normalWindow === false && client.dialog !== true)\n"
+			+ "            return;\n"
 			+ "        var resClass = (client.resourceClass ? String(client.resourceClass).toLowerCase() : \"\");\n"
 			+ "        var resName = (client.resourceName ? String(client.resourceName).toLowerCase() : \"\");\n"
 			+ "        var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
@@ -122,7 +126,8 @@ namespace Plank
 			+ "            minimized: client.minimized === true,\n"
 			+ "            minimizedSequence: wayplankMinimizedWindows[uuid] || 0,\n"
 			+ "            demandsAttention: (client.demandsAttention === true && client !== workspace.activeWindow),\n"
-			+ "            maximized: (typeof client.maximizeMode === \"number\" && client.maximizeMode !== 0),\n"
+			+ "            maximized: ((typeof client.maximizeMode === \"number\" && client.maximizeMode !== 0) || client.fullScreen === true),\n"
+			+ "            fullscreen: (client.fullScreen === true),\n"
 			+ "            active: client === workspace.activeWindow,\n"
 			+ "            normal: client.normalWindow !== false,\n"
 			+ "            visible: client.visible !== false,\n"
@@ -150,6 +155,10 @@ namespace Plank
 			+ "    if (!window) return;\n"
 			+ "    if (window.skipTaskbar === true || window.specialWindow === true)\n"
 			+ "        return;\n"
+			+ "    if (window.popupWindow === true)\n"
+			+ "        return;\n"
+			+ "    if (typeof window.normalWindow !== \"undefined\" && window.normalWindow === false && window.dialog !== true)\n"
+			+ "        return;\n"
 			+ "    var resClass = (window.resourceClass ? String(window.resourceClass).toLowerCase() : \"\");\n"
 			+ "    var resName = (window.resourceName ? String(window.resourceName).toLowerCase() : \"\");\n"
 			+ "    var capt = (window.caption ? String(window.caption).toLowerCase() : \"\");\n"
@@ -168,6 +177,8 @@ namespace Plank
 			+ "        window.minimizedChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.maximizedChanged)\n"
 			+ "        window.maximizedChanged.connect(scheduleWindowState);\n"
+			+ "    if (window.fullScreenChanged)\n"
+			+ "        window.fullScreenChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.activeChanged)\n"
 			+ "        window.activeChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.desktopsChanged)\n"
@@ -346,12 +357,15 @@ namespace Plank
 
 		static KWinBridge? instance;
 		static string? window_state;
+		static Json.Array? window_state_array = null;
 		static Gee.ArrayList<WindowInfo> window_infos = new Gee.ArrayList<WindowInfo> ();
 		static string? script_path;
 		static int script_id = -1;
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
 		static uint kwin_watch_id = 0U;
+		static uint showing_desktop_signal_id = 0U;
+		static bool handling_show_desktop = false;
 		public signal void state_changed ();
 
 		public static unowned KWinBridge get_default ()
@@ -394,10 +408,12 @@ namespace Plank
 		static Gee.ArrayList<WindowInfo> parse_window_infos (string state)
 		{
 			var result = new Gee.ArrayList<WindowInfo> ();
+			window_state_array = null;
 			try {
 				var parser = new Json.Parser ();
 				parser.load_from_data (state);
-				foreach (var node in parser.get_root ().get_array ().get_elements ()) {
+				window_state_array = parser.get_root ().get_array ();
+				foreach (var node in window_state_array.get_elements ()) {
 					var json = node.get_object ();
 					if (!json.has_member ("uuid"))
 						continue;
@@ -424,6 +440,7 @@ namespace Plank
 					info.Minimized = json.has_member ("minimized") && json.get_boolean_member ("minimized");
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
+					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
@@ -531,6 +548,15 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			window_state_array = null;
+			if (showing_desktop_signal_id > 0U) {
+				try {
+					var connection = Bus.get_sync (BusType.SESSION, null);
+					connection.signal_unsubscribe (showing_desktop_signal_id);
+				} catch (Error e) { }
+				showing_desktop_signal_id = 0U;
+			}
+
 			if (kwin_watch_id > 0U) {
 				Bus.unwatch_name (kwin_watch_id);
 				kwin_watch_id = 0U;
@@ -631,44 +657,73 @@ namespace Plank
 			return window_intersects (dock_rect, false, true);
 		}
 
-		static bool window_intersects (Gdk.Rectangle dock_rect, bool active_only, bool maximized_only)
+		public static bool fullscreen_window_intersects (Gdk.Rectangle dock_rect)
 		{
-			if (window_state == null)
+			if (window_state_array == null)
 				return false;
 
-			try {
-				var parser = new Json.Parser ();
-				parser.load_from_data (window_state);
-				var root = parser.get_root ().get_array ();
-				foreach (var node in root.get_elements ()) {
-					var window = node.get_object ();
-					if (window.has_member ("resourceClass")
-						&& window.get_string_member ("resourceClass").down () == "wayplank")
-						continue;
-					if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
-						continue;
-					if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
-						continue;
-					if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
-						continue;
-					if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
-						continue;
-					if (active_only && (!window.has_member ("active") || !window.get_boolean_member ("active")))
-						continue;
-					if (maximized_only && (!window.has_member ("maximized") || !window.get_boolean_member ("maximized")))
-						continue;
+			foreach (var node in window_state_array.get_elements ()) {
+				var window = node.get_object ();
+				if (window.has_member ("resourceClass")
+					&& window.get_string_member ("resourceClass").down () == "wayplank")
+					continue;
+				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
+					continue;
+				if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
+					continue;
+				if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
+					continue;
+				if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
+					continue;
+				if (!window.has_member ("active") || !window.get_boolean_member ("active"))
+					continue;
+				if (!window.has_member ("fullscreen") || !window.get_boolean_member ("fullscreen"))
+					continue;
 
-					Gdk.Rectangle window_rect = {
-						(int) window.get_double_member ("x"),
-						(int) window.get_double_member ("y"),
-						(int) window.get_double_member ("width"),
-						(int) window.get_double_member ("height")
-					};
-					if (window_rect.intersect (dock_rect, null))
-						return true;
-				}
-			} catch (Error e) {
-				debug ("Unable to parse KWin window state: %s", e.message);
+				Gdk.Rectangle window_rect = {
+					(int) window.get_double_member ("x"),
+					(int) window.get_double_member ("y"),
+					(int) window.get_double_member ("width"),
+					(int) window.get_double_member ("height")
+				};
+				if (window_rect.intersect (dock_rect, null))
+					return true;
+			}
+
+			return false;
+		}
+
+		static bool window_intersects (Gdk.Rectangle dock_rect, bool active_only, bool maximized_only)
+		{
+			if (window_state_array == null)
+				return false;
+
+			foreach (var node in window_state_array.get_elements ()) {
+				var window = node.get_object ();
+				if (window.has_member ("resourceClass")
+					&& window.get_string_member ("resourceClass").down () == "wayplank")
+					continue;
+				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
+					continue;
+				if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
+					continue;
+				if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
+					continue;
+				if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
+					continue;
+				if (active_only && (!window.has_member ("active") || !window.get_boolean_member ("active")))
+					continue;
+				if (maximized_only && (!window.has_member ("maximized") || !window.get_boolean_member ("maximized")))
+					continue;
+
+				Gdk.Rectangle window_rect = {
+					(int) window.get_double_member ("x"),
+					(int) window.get_double_member ("y"),
+					(int) window.get_double_member ("width"),
+					(int) window.get_double_member ("height")
+				};
+				if (window_rect.intersect (dock_rect, null))
+					return true;
 			}
 
 			return false;
@@ -676,45 +731,40 @@ namespace Plank
 
 		public static bool has_maximized_window_on_current_desktop (Gdk.Rectangle? mon_geom = null)
 		{
-			if (window_state == null)
+			if (window_state_array == null)
 				return false;
 
-			try {
-				var parser = new Json.Parser ();
-				parser.load_from_data (window_state);
-				var root = parser.get_root ().get_array ();
-				foreach (var node in root.get_elements ()) {
-					var window = node.get_object ();
-					if (window.has_member ("resourceClass")
-						&& window.get_string_member ("resourceClass").down () == "wayplank")
-						continue;
-					if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
-						continue;
-					if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
-						continue;
-					if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
-						continue;
-					if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
-						continue;
+			foreach (var node in window_state_array.get_elements ()) {
+				var window = node.get_object ();
+				if (window.has_member ("resourceClass")
+					&& window.get_string_member ("resourceClass").down () == "wayplank")
+					continue;
+				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
+					continue;
+				if (window.has_member ("normal") && !window.get_boolean_member ("normal"))
+					continue;
+				if (window.has_member ("visible") && !window.get_boolean_member ("visible"))
+					continue;
+				if (window.has_member ("currentDesktop") && !window.get_boolean_member ("currentDesktop"))
+					continue;
 
-					if (mon_geom != null && mon_geom.width > 0) {
-						double wx = window.has_member ("x") ? window.get_double_member ("x") : 0.0;
-						double ww = window.has_member ("width") ? window.get_double_member ("width") : 0.0;
-						double wy = window.has_member ("y") ? window.get_double_member ("y") : 0.0;
-						double wh = window.has_member ("height") ? window.get_double_member ("height") : 0.0;
-						if (wx + ww <= mon_geom.x || wx >= mon_geom.x + mon_geom.width ||
-							wy + wh <= mon_geom.y || wy >= mon_geom.y + mon_geom.height) {
-							continue;
-						}
+				if (mon_geom != null && mon_geom.width > 0) {
+					double wx = window.has_member ("x") ? window.get_double_member ("x") : 0.0;
+					double ww = window.has_member ("width") ? window.get_double_member ("width") : 0.0;
+					double wy = window.has_member ("y") ? window.get_double_member ("y") : 0.0;
+					double wh = window.has_member ("height") ? window.get_double_member ("height") : 0.0;
+					if (wx + ww <= mon_geom.x || wx >= mon_geom.x + mon_geom.width ||
+						wy + wh <= mon_geom.y || wy >= mon_geom.y + mon_geom.height) {
+						continue;
 					}
-
-					bool is_max = window.has_member ("maximized") && window.get_boolean_member ("maximized");
-					double y = window.has_member ("y") ? window.get_double_member ("y") : 999.0;
-					double mon_top = (mon_geom != null) ? mon_geom.y : 0.0;
-					if (is_max || (y <= mon_top + 36.0 && y >= mon_top))
-						return true;
 				}
-			} catch (Error e) { }
+
+				bool is_max = window.has_member ("maximized") && window.get_boolean_member ("maximized");
+				double y = window.has_member ("y") ? window.get_double_member ("y") : 999.0;
+				double mon_top = (mon_geom != null) ? mon_geom.y : 0.0;
+				if (is_max || (y <= mon_top + 36.0 && y >= mon_top))
+					return true;
+			}
 
 			return false;
 		}
@@ -748,9 +798,62 @@ namespace Plank
 			);
 		}
 
+		static void setup_showing_desktop_listener (DBusConnection? conn = null)
+		{
+			if (showing_desktop_signal_id > 0U)
+				return;
+
+			try {
+				var connection = conn != null ? conn : Bus.get_sync (BusType.SESSION, null);
+				showing_desktop_signal_id = connection.signal_subscribe (
+					"org.kde.KWin",
+					"org.kde.KWin",
+					"showingDesktopChanged",
+					"/KWin",
+					null,
+					DBusSignalFlags.NONE,
+					on_showing_desktop_changed
+				);
+				debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
+			} catch (Error e) {
+				warning ("KWinBridge: failed to subscribe to showingDesktopChanged: %s", e.message);
+			}
+		}
+
+		static void on_showing_desktop_changed (DBusConnection connection,
+		                                        string? sender_name,
+		                                        string object_path,
+		                                        string interface_name,
+		                                        string signal_name,
+		                                        Variant parameters)
+		{
+			if (handling_show_desktop)
+				return;
+
+			bool showing = false;
+			parameters.get ("(b)", out showing);
+			debug ("KWinBridge: showingDesktopChanged received showing=%s", showing ? "true" : "false");
+
+			if (showing) {
+				handling_show_desktop = true;
+				try {
+					connection.call_sync ("org.kde.KWin", "/KWin",
+						"org.kde.KWin", "showDesktop",
+						new Variant ("(b)", false), null,
+						DBusCallFlags.NONE, 250, null);
+				} catch (Error e) {
+					debug ("KWinBridge: failed to reset KWin showDesktop: %s", e.message);
+				}
+
+				queue_command ("desktop", "toggle_desktop");
+				handling_show_desktop = false;
+			}
+		}
+
 		static void on_kwin_appeared (DBusConnection connection, string name, string name_owner)
 		{
 			message ("KWinBridge: org.kde.KWin appeared on D-Bus (owner=%s), ensuring bridge script is active", name_owner);
+			setup_showing_desktop_listener (connection);
 			if (script_id >= 0 && script_path != null) {
 				try {
 					var result = connection.call_sync ("org.kde.KWin", "/Scripting",
@@ -771,6 +874,10 @@ namespace Plank
 		static void on_kwin_vanished (DBusConnection connection, string name)
 		{
 			message ("KWinBridge: org.kde.KWin vanished from D-Bus, resetting bridge state");
+			if (showing_desktop_signal_id > 0U) {
+				connection.signal_unsubscribe (showing_desktop_signal_id);
+				showing_desktop_signal_id = 0U;
+			}
 			script_id = -1;
 			if (script_path != null) {
 				FileUtils.remove (script_path);
@@ -785,6 +892,7 @@ namespace Plank
 				return;
 
 			setup_kwin_watcher ();
+			setup_showing_desktop_listener ();
 			clean_old_script_files ();
 
 			try {

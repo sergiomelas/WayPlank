@@ -4,13 +4,13 @@
 > **Mandate:** Compiled 100% on Linux — Zero Compilers or Runtimes Needed on Windows  
 > **Target Asset:** Single Monolithic Standalone Executable (`build/winplank.exe`) with **ZERO External DLLs**  
 > **Author:** Sergio Melas (<sergiomelas@gmail.com>)  
-> **Status:** Post-Beta Horizon (v0.9.x) Architectural Blueprint — STRICTLY INACTIVE  
+> **Status:** Multi-Platform Expansion Horizon (v0.8.x) Architectural Blueprint — STRICTLY INACTIVE (Pending v0.7.0 Public Beta)  
 
 ---
 
 > [!CAUTION]
-> # 🛑 POST-BETA HORIZON ONLY (v0.9.x) — NO TIME FOR THIS NOW!
-> ## THIS INITIATIVE IS STRICTLY SCHEDULED FOR THE POST-BETA HORIZON (v0.9.x PRODUCTION CYCLE).
+> # 🛑 MULTI-PLATFORM EXPANSION HORIZON (v0.8.x) — NO TIME FOR THIS NOW!
+> ## THIS INITIATIVE IS STRICTLY SCHEDULED FOR THE v0.8.x MULTI-PLATFORM MILESTONE (PRIOR TO THE v0.9.x FINAL STABILIZATION CYCLE).
 > ## THERE IS CURRENTLY ZERO TIME FOR THIS: ACTIVE COMMITMENT IS 100% COMMITTED TO THE WAYPLANK PUBLIC BETA (v0.7.0) ON LINUX WAYLAND.
 > ### ZERO TOLERANCE POLICY: THERE IS NO WINDOWS VERSION TODAY. DO NOT ATTEMPT TO COMPILE, RUN, OR OPEN GITHUB ISSUES OR DISCUSSIONS ASKING FOR WINDOWS SUPPORT OR ETAS. ANY SUCH REQUESTS WILL BE IMMEDIATELY CLOSED WITHOUT DISCUSSION.
 
@@ -380,12 +380,30 @@ WinPlank inherits all 14 built-in docklets. Here is how each docklet maps to nat
 > **ARCHITECTURAL BLUEPRINT ONLY — NOT ACTIVE**  
 > This build pipeline is currently a design specification for future development. No `./BuildWin.sh` script or Win32 backend drivers are committed to the active tree. **Do not attempt to execute or cross-compile for Windows at this stage.**
 
-### Planned Cross-Build Execution Stages:
-1. **Vala Transpilation:** Host `valac -C` transpiles generic Vala sources into intermediate ANSI C files in `build/win_c/`.
-2. **GResource Compilation:** Host `glib-compile-resources` generates `plank-resources.c` with all SVG icons, schemas, and UI definitions embedded into `.rodata`.
-3. **Cross-Compilation:** Linux `x86_64-w64-mingw32-gcc` compiles C sources, intermediate resources, and `win32-bridge.c` against the static MinGW sysroot.
-4. **Monolithic Static Linking:** Links userland static archives (`libgtk-3.a`, `libcairo.a`, `libglib-2.0.a`, etc.) with `-static -static-libgcc -static-libstdc++`, linking dynamically only against built-in Windows kernel libraries (`kernel32`, `user32`, `gdi32`, `shell32`, `dwmapi`).
-5. **Symbol Stripping & Optimization:** Linux `x86_64-w64-mingw32-strip` strips all debug symbols, yielding the standalone `build/winplank.exe`.
+### 7.1 4-Tier Source-Code Static Cross-Compilation DAG (`./deps/win32/sysroot`)
+To guarantee a 100% self-contained `winplank.exe` without relying on pre-compiled binary blobs or incompatible MSVC `.lib` objects, `./BuildWin.sh` cross-compiles all **16 upstream cross-platform C/Vala libraries** from source tarballs on the Linux host using `x86_64-w64-mingw32-gcc` in strict topological order:
+
+1. **Tier 1 — Foundational Primitives (Autotools / CMake):**
+   - `zlib` (`libz.a`), `libffi` (`libffi.a`), `libiconv` (`libiconv.a`), `gettext-runtime` (`libintl.a`), `pcre2` (`libpcre2-8.a` with `--enable-unicode`).
+2. **Tier 2 — GLib Ecosystem & Vala Models (Meson Cross-File `--default-library=static`):**
+   - `glib-2.0` (`libglib-2.0.a`, `libgobject-2.0.a`, `libgmodule-2.0.a`, `libgio-2.0.a` with built-in `giowin32` & `GRegistrySettingsBackend`, `libgthread-2.0.a`).
+   - `libgee-0.8` (`libgee-0.8.a` for `--pkg gee-0.8` collections).
+   - `json-glib-1.0` (`libjson-glib-1.0.a` for `--pkg json-glib-1.0` parsers).
+3. **Tier 3 — 2D Vector Graphics, Shaping & Static Loaders:**
+   - `libpng` (`libpng16.a`), `pixman` (`libpixman-1.a`), `freetype2` (`libfreetype.a`), `fribidi` (`libfribidi.a`), `harfbuzz` (`libharfbuzz.a`).
+   - `cairo` (`libcairo.a`, `libcairo-gobject.a` with `-Dwin32=enabled -Dpng=enabled`).
+   - `pango` (`libpango-1.0.a`, `libpangowin32-1.0.a`, `libpangocairo-1.0.a`).
+   - `gdk-pixbuf-2.0` (`libgdk_pixbuf-2.0.a` with `-Dbuiltin_loaders=png,bmp,ico,jpeg -Dgio_sniffing=false` so zero external `loaders/*.dll` are ever queried).
+   - **Static Pure-C SVG Rasterizer:** `librsvg-2.40.21` (pure C) or embedded `nanosvg`/`lunasvg` Cairo loader to rasterize all bundled SVG icons in `plank.gresource.xml` without requiring a Rust cross-toolchain.
+4. **Tier 4 — Widget Toolkit:**
+   - `libepoxy` (`libepoxy.a`), `atk` (`libatk-1.0.a`), `gtk+-3.0` (`libgtk-3.a`, `libgdk-3.a` with `-Dwin32_backend=true -Dx11_backend=false -Dwayland_backend=false --default-library=static`).
+
+### 7.2 Planned Cross-Build Execution Stages:
+1. **Vala Transpilation & Linux API Shims:** Host `valac -C -d build/win_c` transpiles Vala sources into portable ANSI C. A 20-line static C stub in `win32-bridge.c` provides no-op `gtk_layer_shell_*` symbols (`gtk_layer_shell_is_supported() -> FALSE`), keeping UI widgets 100% untouched.
+2. **GResource & Zero-DLL `GSettings` Bootstrap:** Host `glib-compile-schemas` compiles `gschemas.compiled`, which is embedded into `plank.gresource.xml` alongside all SVG icons and UI files. At startup on Windows, `main()` extracts `gschemas.compiled` to `%LOCALAPPDATA%\WinPlank\glib-2.0\schemas\` and sets `G_SETTINGS_SCHEMA_DIR` before initializing `DockPreferences`, preventing GLib schema abort on a virgin Windows PC.
+3. **Cross-Compilation:** Linux `x86_64-w64-mingw32-gcc` compiles `build/win_c/*.c`, `win32-bridge.c`, `win32-compat.c`, `resources.c`, and `winplank-res.o` (HiDPI Per-Monitor V2 manifest + icon).
+4. **Monolithic Static Linking (`-Wl,--start-group ... -Wl,--end-group`):** Encloses all 16 static `.a` userland archives inside a linker group to resolve circular GTK/GDK/Pango/Cairo/GLib references, linking dynamically solely against stock Windows OS DLLs (`-lkernel32 -luser32 -lgdi32 -lmsimg32 -lshell32 -lshlwapi -lcomctl32 -lcomdlg32 -lole32 -loleaut32 -luuid -ladvapi32 -ldwmapi -luxtheme -limm32 -lwinmm -lws2_32 -liphlpapi -ldnsapi -lsetupapi -lhid -lwtsapi32 -ldxva2 -lpowrprof`).
+5. **Symbol Stripping & IAT Verification:** Linux `x86_64-w64-mingw32-strip --strip-all` strips debug tables, and `x86_64-w64-mingw32-objdump -p` verifies zero third-party DLL imports.
 
 ---
 

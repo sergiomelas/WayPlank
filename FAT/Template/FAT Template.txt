@@ -1,7 +1,7 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-10-26
+Date: 2026-11-01
 Milestone: V0.6.2.3 (The Community Unification & Distribution Release: Round 3
            Multi-Window Preview Cards, Recent Files Jump List,
            Classic Stock Theme Suite, Drawer Parity, Native Peer Stacking,
@@ -235,6 +235,21 @@ SESSION 1: GNOME (Mutter Backend)
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
+   [  ] 3.9  Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Test Procedure:
+          1. Launch interactive fullscreen tester:
+             python3 "FAT/Test Files/Testers/test_fullscreen.py"
+          2. Verify window opens in normal unmaximized state (850x620).
+          3. Press F11, Space, or click "Toggle Fullscreen" to transition
+             directly from unmaximized to Fullscreen (simulating Remmina,
+             MPV, QEMU, or browser F11).
+          4. Verify WayPlank hides immediately across all HideModes (including
+             HideMode = 'None' / Never and Dodge Maximized).
+          5. Move pointer to the dock's screen edge and click the 0px Edge Test
+             Strip (Bottom, Top, Left, Right): verify dock does NOT unhide on
+             hover and 100% of clicks increment the tester counter.
+          6. Press Esc or F11 to exit Fullscreen -> verify dock immediately
+             restores normal visibility and input mask.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
@@ -253,7 +268,7 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [  ] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -261,6 +276,9 @@ SESSION 1: GNOME (Mutter Backend)
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
    [  ] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -272,7 +290,11 @@ SESSION 1: GNOME (Mutter Backend)
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [  ] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D) minimizes all normal windows
+          while keeping dock visible and interactive on the desktop surface.
+        - Second trigger restores all previously minimized windows.
    [  ] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 External Trash Sync:
@@ -1088,6 +1110,21 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
+   [  ] 3.9  Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Test Procedure:
+          1. Launch interactive fullscreen tester:
+             python3 "FAT/Test Files/Testers/test_fullscreen.py"
+          2. Verify window opens in normal unmaximized state (850x620).
+          3. Press F11, Space, or click "Toggle Fullscreen" to transition
+             directly from unmaximized to Fullscreen (simulating Remmina,
+             MPV, QEMU, or browser F11).
+          4. Verify WayPlank hides immediately across all HideModes (including
+             HideMode = 'None' / Never and Dodge Maximized).
+          5. Move pointer to the dock's screen edge and click the 0px Edge Test
+             Strip (Bottom, Top, Left, Right): verify dock does NOT unhide on
+             hover and 100% of clicks increment the tester counter.
+          6. Press Esc or F11 to exit Fullscreen -> verify dock immediately
+             restores normal visibility and input mask.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
@@ -1106,7 +1143,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [  ] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -1114,6 +1151,9 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
    [  ] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -1125,7 +1165,11 @@ SESSION 2: KDE PLASMA (KWin Backend)
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [  ] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D) minimizes all normal windows
+          while keeping dock visible and interactive on the desktop surface.
+        - Second trigger restores all previously minimized windows.
    [  ] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 External Trash Sync:
@@ -1935,6 +1979,21 @@ SESSION 3: LABWC (wlroots Backend)
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
+   [  ] 3.9  Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Test Procedure:
+          1. Launch interactive fullscreen tester:
+             python3 "FAT/Test Files/Testers/test_fullscreen.py"
+          2. Verify window opens in normal unmaximized state (850x620).
+          3. Press F11, Space, or click "Toggle Fullscreen" to transition
+             directly from unmaximized to Fullscreen (simulating Remmina,
+             MPV, QEMU, or browser F11).
+          4. Verify WayPlank hides immediately across all HideModes (including
+             HideMode = 'None' / Never and Dodge Maximized).
+          5. Move pointer to the dock's screen edge and click the 0px Edge Test
+             Strip (Bottom, Top, Left, Right): verify dock does NOT unhide on
+             hover and 100% of clicks increment the tester counter.
+          6. Press Esc or F11 to exit Fullscreen -> verify dock immediately
+             restores normal visibility and input mask.
 
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
@@ -1955,7 +2014,7 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [  ] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation & Dynamic Input Mask:
+   [  ] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering over dock, moving cursor across items, and displaying
           tooltips never calls present().
         - External active window (e.g. VS Code, Kate, Chrome, terminal) retains
@@ -1963,6 +2022,9 @@ SESSION 3: LABWC (wlroots Backend)
         - Far-right icons and outer dock regions respond immediately to hover
           zoom and clicks (input shape mask synchronizes dynamically to full
           visible width with zero dead zones).
+        - Strict pointer input passthrough: when AnticipateZoom is disabled
+          (or zoom is off), input mask strictly clamps to visible dock pill so
+          windows behind/above dock receive 100% of clicks without interference.
    [  ] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -1974,7 +2036,11 @@ SESSION 3: LABWC (wlroots Backend)
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop: Click minimizes all windows; second click restores all
+   [  ] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D) minimizes all normal windows
+          while keeping dock visible and interactive on the desktop surface.
+        - Second trigger restores all previously minimized windows.
    [  ] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 External Trash Sync:

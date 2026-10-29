@@ -1,6 +1,9 @@
 ================================================================================
           WAYPLANK MONOLITHIC LOCALIZATION & INTERNATIONALIZATION GUIDE
 ================================================================================
+Project: WayPlank (Lightweight native Wayland dock based on Plank architecture)
+Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
+================================================================================
 
 WayPlank is designed from the ground up as a high-performance, standalone, and
 monolithic Wayland desktop dock. Unlike legacy applications that depend on

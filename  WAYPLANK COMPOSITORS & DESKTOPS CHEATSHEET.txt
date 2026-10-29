@@ -1,6 +1,9 @@
 ================================================================================
                     WAYPLANK COMPOSITORS & DESKTOPS CHEATSHEET
 ================================================================================
+Project: WayPlank (Lightweight native Wayland dock based on Plank architecture)
+Author & Maintainer: Sergio Melas (sergiomelas@gmail.com)
+================================================================================
 # ------------------------------------------------------------------------------
 # 1. MUTTER 50+ (Minimal Compositor Only - Standalone 800x600 Window)
 # ------------------------------------------------------------------------------

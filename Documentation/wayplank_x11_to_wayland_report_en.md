@@ -1,5 +1,7 @@
 # Exhaustive Technical Report: Architectural & Function-by-Function Migration from Plank X11 (0.1_X11) to WayPlank Wayland
 
+> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026
+
 ---
 
 ## 1. Executive Summary & Paradigm Shift
@@ -27,6 +29,7 @@ To overcome these structural restrictions and build a high-performance, lightwei
 8. **Universal Cairo Multi-Window Preview Cards (v0.6.2.3):** Live D-Bus thumbnails on KDE Plasma (`org.kde.KWin.ScreenShot2`) and GNOME Shell Mutter (`/mutter/screen/preview`), with clean blank card fallback on Labwc / wlroots.
 9. **True Dynamic Real-Time Theming (v0.6.2.3):** Dual portal (`org.freedesktop.appearance`), GNOME GSettings, and KDE Plasma (`~/.config/kdeglobals`) synchronization with automatic counterpart Dark/Light swapping.
 10. **Distribution Independence & Packaging (v0.6.2.3):** Standalone Debian/Ubuntu `.deb`, openSUSE/Fedora/RHEL `.rpm`, and Arch/source builds.
+11. **Dynamic Layer-Shell Input Masks & Hysteresis Flip-Flop (v0.6.2.3 Round 2):** Two-stage hysteresis flip-flop and configurable `AnticipateZoom` toggle guaranteeing 100% pointer click passthrough to overlapping windows behind the dock (Issue #12) and crossing the historic **100th squashed bug landmark**.
 
 ---
 
@@ -1088,15 +1091,40 @@ WayPlank v0.6.2.3 completes the multi-round community integration roadmap with v
 
 ---
 
-## 21. Conclusion & Public Beta Readiness (v0.6.2.3 Release)
+## 21. Layer-Shell Input Isolation, Two-Stage Hysteresis Flip-Flop & 100th Squashed Bug (v0.6.2.3 Round 2)
+
+As part of the Community User Contributions Round 2 (October 2026), WayPlank addressed a fundamental architectural difference between legacy X11 and Wayland layer-shell pointer input handling:
+
+### The X11 vs. Wayland Input Mask Divergence
+In legacy X11 Plank, pointer interaction across the dock used X11 shape masks (`XShapeCombineMask`) and window manager stacking. Plank hardcoded an invisible ~80px approach runway above the dock to calculate anticipatory parabolic icon zoom before the cursor physically crossed into the visible dock boundary. Because X11 allowed transparent or unmapped sub-regions to pass pointer clicks through under certain window manager configurations, overlapping windows behind the dock rarely suffered click blockage.
+
+Under Wayland (`wlr-layer-shell-unstable-v1`), the compositor treats the entire region defined by `wl_surface.set_input_region` as an exclusive input grab surface. Consequently:
+- Any transparent bounding area declared by `PositionManager.vala` intercepts mouse clicks before they reach underlying desktop windows.
+- In multi-window development workflows (e.g. Kate text editor, terminal sessions, or browser windows resting immediately behind or above the dock), mouse clicks on scrollbars, line numbers, or status bars were swallowed by WayPlank, turning the cursor from an I-beam into a pointer arrow (GitHub Issue #12).
+
+### The Two-Stage Hysteresis Flip-Flop Engine
+WayPlank resolves this with an adaptive, two-stage dynamic input mask engine:
+1. **At-Rest Boundary Clamping**:
+   When the mouse is outside the dock, `get_cursor_region()` strictly clamps the Cairo input region to the 60px visual dock pill (`static_dock_region + background_rect`). This immediately passes 100% of mouse clicks, scroll events, and cursor changes through to underlying application windows.
+2. **Dynamic Hover Flip-Flop**:
+   When the pointer enters an icon under active zoom, `set_hovered()` dynamically expands the layer-shell input region upward by the required icon magnification height (`hover_region`), preventing edge chattering during mouse navigation. Upon pointer departure, the mask instantly resets to the tight boundary.
+3. **Plank Tradition Compliance (`AnticipateZoom`)**:
+   WayPlank adds an `anticipate-zoom` toggle (`AnticipateZoom` in `DockPreferences.vala`, configurable in **Preferences $\rightarrow$ Behaviour**). By default (`true`), it preserves 100% of Plank's legacy anticipatory approach feel out of the box, while allowing users who work with overlapping windows to disable it for pixel-perfect click passthrough.
+
+### The 100+ Squashed Bugs Landmark, Panel Mode & Fullscreen Inhibit
+With the Round 2 community enhancements—including the Two-Stage Hysteresis Flip-Flop (Issue #12), Configurable Screen Space Reservation / Panel Mode (`ReserveSpace`, Issue #9), and Direct Unmaximized-to-Fullscreen Auto-Hide with `0px` Edge Click Passthrough (`FullscreenInhibit`, Issue #10)—qualified live across **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)** with `[ko->ok]` status in the FAT protocol, WayPlank officially crossed the historic milestone of **103 unique functional and architectural bugs squashed** across its lifetime, supported by **135 multi-compositor verification instances**.
+
+---
+
+## 22. Conclusion & Public Beta Readiness (v0.6.2.3 Release)
 
 With **WayPlank v0.6.2.3**, the transition from legacy X11 Plank to a native, modern, multi-compositor Wayland dock reaches full maturity:
 - **100% Wayland Native & Multi-Compositor:** Fully verified on KDE Plasma 6 (KWin), GNOME Shell 46+ (Mutter), and Labwc (wlroots) across LXQt 2.x and XFCE 4.20 Wayland.
 - **Comprehensive Distribution Independence:** Native automated packaging for Debian/Ubuntu (`.deb`), openSUSE/Fedora/RHEL (`.rpm`), and Arch Linux/generic distros (`BuildBin.sh`).
-- **Exhaustive ISA-88 Qualification:** 335 formal test points executed across 3 compositors with a **100% Qualification Pass Rate (333 Passed, 2 NA, 0 Pending, 0 Open Defects)**.
+- **Exhaustive ISA-88 Qualification:** 367 formal test points executed across 3 compositors (`363/367` passed, `100%` KWin pass, `37` squashed verifications, `2 NA`).
 - **Enterprise-Grade Stability:** 0.0% idle CPU, zero hardcoding, zero memory leaks, and sub-10ms event reaction times.
 - **Release & Master Trajectory:**
-  - **Current Live GitHub Release**: `v0.6.2.3 (Round 3)` (Released Thursday, October 22, 2026, ISO Week 43).
+  - **Current Live GitHub Release**: `v0.6.2.3 (Round 3 & Community Finale)` (Updated Sunday, November 1, 2026, ISO Week 44).
   - **Downstream Collaborator Runway & Sync**: Week 44 (Monday, October 26 – Sunday, November 1, 2026).
   - **Public Beta (v0.7.0)**: **Official GitHub Launch in Week 45 (Monday, November 2, 2026)** with monolithic in-memory localization.
   - **Release Candidate Series (v0.8.x)**: Strict feature freeze, memory leak profiling, and packaging hardening.

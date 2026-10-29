@@ -87,6 +87,11 @@ namespace Plank
 		 * If the dock is currently hovered by the mouse cursor.
 		 */
 		public bool Hovered { get; private set; default = false; }
+
+		/**
+		 * If an active fullscreen window is currently intersecting the dock.
+		 */
+		public bool FullscreenInhibit { get; private set; default = false; }
 		
 		uint hide_timer_id = 0U;
 		uint unhide_timer_id = 0U;
@@ -337,6 +342,12 @@ namespace Plank
 					Hidden = false;
 				return;
 			}
+
+			if (FullscreenInhibit) {
+				hide ();
+				pointer_update = true;
+				return;
+			}
 			
 			switch (get_effective_hide_mode ()) {
 			default:
@@ -400,9 +411,15 @@ namespace Plank
 			if (Hidden)
 				return;
 			
-			if (controller.prefs.HideDelay == 0U) {
-				if (!Hidden)
+			if (FullscreenInhibit || controller.prefs.HideDelay == 0U) {
+				if (hide_timer_id > 0U) {
+					GLib.Source.remove (hide_timer_id);
+					hide_timer_id = 0U;
+				}
+				if (!Hidden) {
 					Hidden = true;
+					controller.window.set_input_mask ();
+				}
 				return;
 			}
 			
@@ -483,9 +500,19 @@ namespace Plank
 			active_application_intersect = WindowControl.active_window_intersects (dock_rect);
 			active_window_intersect = active_application_intersect;
 			active_maximized_window_intersect = WindowControl.maximized_window_intersects (dock_rect);
+			var new_fullscreen_inhibit = WindowControl.fullscreen_window_intersects (dock_rect);
+			bool fs_changed = (FullscreenInhibit != new_fullscreen_inhibit);
+			FullscreenInhibit = new_fullscreen_inhibit;
+			if (FullscreenInhibit) {
+				Hovered = false;
+				pressure_reveal_active = false;
+			}
 			dialog_windows_intersect = false;
 			pointer_update = false;
 			update_hidden ();
+			if (fs_changed && controller.window != null) {
+				controller.window.set_input_mask ();
+			}
 		}
 
 		void window_state_changed ()

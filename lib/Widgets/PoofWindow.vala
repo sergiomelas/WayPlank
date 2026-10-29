@@ -46,6 +46,7 @@ namespace Plank
 		int64 frame_time = 0LL;
 		
 		uint animation_timer_id = 0U;
+		uint pos_timer_id = 0U;
 		
 		/**
 		 * Creates a new poof window at the screen-relative coordinates specified.
@@ -92,6 +93,10 @@ namespace Plank
 		
 		~PoofWindow ()
 		{
+			if (pos_timer_id > 0U) {
+				GLib.Source.remove (pos_timer_id);
+				pos_timer_id = 0U;
+			}
 			if (animation_timer_id > 0U) {
 				GLib.Source.remove (animation_timer_id);
 				animation_timer_id = 0U;
@@ -109,6 +114,10 @@ namespace Plank
 		 */
 		public void show_at (int x, int y, Gtk.PositionType position = Gtk.PositionType.BOTTOM, int dock_thickness = 0, Gdk.Monitor? monitor = null)
 		{
+			if (pos_timer_id > 0U) {
+				GLib.Source.remove (pos_timer_id);
+				pos_timer_id = 0U;
+			}
 			if (animation_timer_id > 0U) {
 				GLib.Source.remove (animation_timer_id);
 				animation_timer_id = 0U;
@@ -169,7 +178,8 @@ namespace Plank
 				move (abs_x, abs_y);
 				show ();
 				WindowControl.position_poof (abs_x, abs_y, poof_size, poof_size);
-				GLib.Timeout.add (25, () => {
+				pos_timer_id = GLib.Timeout.add (25, () => {
+					pos_timer_id = 0U;
 					WindowControl.position_poof (abs_x, abs_y, poof_size, poof_size);
 					return false;
 				});

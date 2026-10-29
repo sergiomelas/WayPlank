@@ -94,6 +94,9 @@ namespace Plank
 		[Description(nick = "pressure-reveal", blurb = "Whether to use pressure-based revealing of the dock if the support is available.")]
 		public bool PressureReveal { get; set; }
 		
+		[Description(nick = "reserve-space", blurb = "Whether to reserve screen space matching the dock thickness when hiding is disabled (Panel Mode).")]
+		public bool ReserveSpace { get; set; default = false; }
+		
 		[Description(nick = "pinned-only", blurb = "Whether to show only pinned applications. Useful for running more then one dock.")]
 		public bool PinnedOnly { get; set; }
 		
@@ -105,6 +108,9 @@ namespace Plank
 		
 		[Description(nick = "zoom-enabled", blurb = "Whether the dock will zoom when hovered.")]
 		public bool ZoomEnabled { get; set; }
+		
+		[Description(nick = "anticipate-zoom", blurb = "Whether to begin icon magnification as the cursor approaches the dock.")]
+		public bool AnticipateZoom { get; set; default = true; }
 		
 		[Description(nick = "zoom-percent", blurb = "The dock's icon-zoom (in percent).")]
 		public uint ZoomPercent { get; set; }

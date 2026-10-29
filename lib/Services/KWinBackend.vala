@@ -94,32 +94,47 @@ namespace Plank
 
 		bool cached_top_floating = true;
 		int last_floating_query_time = 0;
+		int last_floating_mon_x = -1;
+		int last_floating_mon_y = -1;
+		int last_floating_mon_w = -1;
 
-		public bool is_top_panel_floating_configured ()
+		public bool is_top_panel_floating_configured (Gdk.Rectangle mon_geom = Gdk.Rectangle ())
 		{
 			int now = (int) (GLib.get_monotonic_time () / 1000000);
-			if (last_floating_query_time > 0 && (now - last_floating_query_time) < 1)
+			if (last_floating_query_time > 0 && (now - last_floating_query_time) < 1
+				&& mon_geom.x == last_floating_mon_x
+				&& mon_geom.y == last_floating_mon_y
+				&& mon_geom.width == last_floating_mon_w)
 				return cached_top_floating;
 
 			last_floating_query_time = now;
+			last_floating_mon_x = mon_geom.x;
+			last_floating_mon_y = mon_geom.y;
+			last_floating_mon_w = mon_geom.width;
 			try {
+				var script = """
+					var res = false;
+					for (var i = 0; i < panels().length; i++) {
+						var p = panels()[i];
+						if (p.location === "top") {
+							if (%d > 0 && typeof screenGeometry === "function" && p.screen !== undefined) {
+								var sg = screenGeometry(p.screen);
+								if (sg && (sg.x !== %d || sg.y !== %d))
+									continue;
+							}
+							res = (p.floating === true);
+							break;
+						}
+					}
+					print(res);
+				""".printf (mon_geom.width, mon_geom.x, mon_geom.y);
 				var bus = Bus.get_sync (BusType.SESSION, null);
 				var res = bus.call_sync (
 					"org.kde.plasmashell",
 					"/PlasmaShell",
 					"org.kde.PlasmaShell",
 					"evaluateScript",
-					new Variant ("(s)", """
-						var res = false;
-						for (var i = 0; i < panels().length; i++) {
-							var p = panels()[i];
-							if (p.location === "top") {
-								res = (p.floating === true);
-								break;
-							}
-						}
-						print(res);
-					"""),
+					new Variant ("(s)", script),
 					new VariantType ("(s)"),
 					DBusCallFlags.NONE,
 					150,
@@ -142,7 +157,7 @@ namespace Plank
 
 		public override int get_top_panel_floating_offset (Gdk.Rectangle mon_geom = Gdk.Rectangle ())
 		{
-			if (is_top_panel_floating_configured ()) {
+			if (is_top_panel_floating_configured (mon_geom)) {
 				if (!KWinBridge.has_maximized_window_on_current_desktop (mon_geom)) {
 					return 8;
 				}

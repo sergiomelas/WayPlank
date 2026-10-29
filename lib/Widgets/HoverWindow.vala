@@ -189,14 +189,15 @@ namespace Plank
 				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
 				
 				int top_panel_offset = 0;
+				Gdk.Rectangle mon_geom = Gdk.Rectangle ();
 				if (monitor != null) {
-					var geom = monitor.get_geometry ();
+					mon_geom = monitor.get_geometry ();
 					var work = monitor.get_workarea ();
-					int top_panel = int.max (0, work.y - geom.y);
+					int top_panel = int.max (0, work.y - mon_geom.y);
 					if (top_panel > 0)
 						top_panel_offset = top_panel + 2;
 				}
-				top_panel_offset += WindowControl.get_top_panel_floating_offset ();
+				top_panel_offset += WindowControl.get_top_panel_floating_offset (mon_geom);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, edge_margin + top_panel_offset);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
 				break;

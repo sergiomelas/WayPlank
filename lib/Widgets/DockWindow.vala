@@ -93,11 +93,7 @@ namespace Plank
 				// Apply dynamic anchors based on current preferences
 				update_layer_shell_anchors ();
 
-				WindowControl.get_default ().state_changed.connect (() => {
-					if (controller.prefs.Position == Gtk.PositionType.TOP) {
-						update_layer_shell_anchors ();
-					}
-				});
+				WindowControl.get_default ().state_changed.connect (on_layer_shell_state_changed);
 			} else {
 				set_decorated (false);
 				set_type_hint (Gdk.WindowTypeHint.DOCK);
@@ -106,6 +102,7 @@ namespace Plank
 				set_keep_above (true);
 				set_title ("wayplank");
 				set_role ("dock");
+				WindowControl.get_default ().state_changed.connect (on_backend_state_changed);
 			}
 
 			realize.connect (() => {
@@ -115,7 +112,10 @@ namespace Plank
 
 			// Track position setting changes
 			controller.prefs.notify["Position"].connect (on_position_changed);
-			controller.prefs.notify["HideMode"].connect (update_exclusive_zone);
+			controller.prefs.notify["HideMode"].connect (on_reserve_space_changed);
+			controller.prefs.notify["ReserveSpace"].connect (on_reserve_space_changed);
+			controller.prefs.notify["ZoomEnabled"].connect (on_reserve_space_changed);
+			controller.prefs.notify["IconSize"].connect (update_exclusive_zone);
 
 			// Native RGBA visual setup for Wayland transparency
 			var visual = get_screen ().get_rgba_visual ();
@@ -135,6 +135,28 @@ namespace Plank
 						Gdk.EventMask.POINTER_MOTION_MASK |
 						Gdk.EventMask.SCROLL_MASK |
 						Gdk.EventMask.STRUCTURE_MASK);
+
+			update_exclusive_zone ();
+		}
+
+		void on_layer_shell_state_changed ()
+		{
+			if (controller.prefs.Position == Gtk.PositionType.TOP) {
+				update_layer_shell_anchors ();
+			}
+		}
+
+		void on_backend_state_changed ()
+		{
+			if (!GtkLayerShell.is_supported () && !get_visible ()) {
+				update_size_and_position ();
+			}
+		}
+
+		void on_reserve_space_changed ()
+		{
+			update_exclusive_zone ();
+			update_size_and_position ();
 		}
 
 		void on_position_changed ()
@@ -142,15 +164,29 @@ namespace Plank
 			if (GtkLayerShell.is_supported ())
 				update_layer_shell_anchors ();
 			controller.position_manager.update (controller.renderer.theme);
+			update_exclusive_zone ();
 			update_size_and_position ();
 		}
 
 		void update_exclusive_zone ()
 		{
-			if (!GtkLayerShell.is_supported ())
+			bool reserve = controller.prefs.ReserveSpace && controller.prefs.HideMode == HideType.NONE && !controller.prefs.ZoomEnabled;
+			int thickness = controller.position_manager.get_visual_thickness ();
+
+			if (reserve && thickness <= 0)
 				return;
 
-			GtkLayerShell.set_exclusive_zone (this, 0);
+			if (GtkLayerShell.is_supported ()) {
+				if (reserve) {
+					GtkLayerShell.set_layer (this, GtkLayerShell.Layer.BOTTOM);
+					GtkLayerShell.set_exclusive_zone (this, thickness);
+				} else {
+					GtkLayerShell.set_layer (this, GtkLayerShell.Layer.TOP);
+					GtkLayerShell.set_exclusive_zone (this, 0);
+				}
+			}
+
+			WindowControl.set_reserve_space (reserve, thickness, controller.prefs.Position);
 		}
 
 		public void cancel_long_press ()
@@ -166,6 +202,11 @@ namespace Plank
 		~DockWindow ()
 		{
 			cancel_long_press ();
+			if (GtkLayerShell.is_supported ()) {
+				WindowControl.get_default ().state_changed.disconnect (on_layer_shell_state_changed);
+			} else {
+				WindowControl.get_default ().state_changed.disconnect (on_backend_state_changed);
+			}
 			if (tracked_monitor != null && monitor_workarea_handler_id != 0UL) {
 				tracked_monitor.disconnect (monitor_workarea_handler_id);
 				monitor_workarea_handler_id = 0UL;
@@ -173,7 +214,11 @@ namespace Plank
 			}
 			if (controller != null && controller.prefs != null) {
 				controller.prefs.notify["Position"].disconnect (on_position_changed);
-				controller.prefs.notify["HideMode"].disconnect (update_exclusive_zone);
+				controller.prefs.notify["HideMode"].disconnect (on_reserve_space_changed);
+				controller.prefs.notify["ReserveSpace"].disconnect (on_reserve_space_changed);
+				controller.prefs.notify["ZoomEnabled"].disconnect (on_reserve_space_changed);
+				controller.prefs.notify["IconSize"].disconnect (update_exclusive_zone);
+				WindowControl.set_reserve_space (false, 0, controller.prefs.Position);
 			}
 
 			if (menu != null) {
@@ -263,6 +308,8 @@ namespace Plank
 
 			if (GtkLayerShell.get_monitor (this) != monitor) {
 				GtkLayerShell.set_monitor (this, monitor);
+				controller.renderer.reset_buffers ();
+				update_exclusive_zone ();
 				update_layer_shell_anchors ();
 			}
 
@@ -742,6 +789,10 @@ namespace Plank
 
 			HoveredItem = item;
 
+			if (controller.prefs.ZoomEnabled) {
+				set_input_mask ();
+			}
+
 			if (hover_reposition_timer_id > 0U) {
 				Source.remove (hover_reposition_timer_id);
 				hover_reposition_timer_id = 0U;
@@ -949,9 +1000,7 @@ namespace Plank
 			if (needs_resize || width_current <= 0) {
 				Logger.verbose ("DockWindow.set_size_request (width = %i, height = %i)", win_rect.width, win_rect.height);
 				set_size_request (win_rect.width, win_rect.height);
-				if (!GtkLayerShell.is_supported ()) {
-					resize (win_rect.width, win_rect.height);
-				}
+				resize (win_rect.width, win_rect.height);
 				controller.renderer.reset_buffers ();
 
 				update_icon_regions ();
@@ -959,6 +1008,7 @@ namespace Plank
 				set_input_mask ();
 				set_hovered_provider (null);
 				set_hovered (null);
+				update_exclusive_zone ();
 			} else {
 				set_input_mask ();
 			}

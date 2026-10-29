@@ -9,6 +9,13 @@ lib/resources.c
 *.vala.c
 *DOWNSTREAM FORK BUGS & SOLUTIONS*
 AI_RULES.md
+ai_rules.md
+AGENTS.md
+Agents.md
+agents.md
+GEMINI.md
+Gemini.md
+gemini.md
 AI_private/
 FAT/Test Files/Qemu/*.img
 FAT/Test Files/Qemu/*.qcow2

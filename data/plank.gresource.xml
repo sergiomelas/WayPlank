@@ -72,6 +72,6 @@
 		<file compressed="true" preprocess="xml-stripblanks">ui/slider-marks-below-red.svg</file>
 		<file alias="doc/guide.md" compressed="true">../Documentation/USER_GUIDE.md</file>
 		<file alias="doc/report.md" compressed="true">../Documentation/wayplank_x11_to_wayland_report_en.md</file>
-		<file alias="doc/banner.png" compressed="true">../Release Pic.png</file>
+		<file alias="doc/banner.png" compressed="true">../Beta Release Pic - github.png</file>
 	</gresource>
 </gresources>

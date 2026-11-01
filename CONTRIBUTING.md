@@ -30,8 +30,9 @@ Whether you are reporting a bug, contributing translations, improving themes, te
 
 ## 🗺️ Current Project Status & Roadmap
 
-* **Current Stable / Pre-Beta Release**: `v0.6.2.3` (Community User Contributions).
-* **Upcoming Major Milestone**: **Public Beta (`v0.7.0`)** launching in **Week 45 (Monday, November 2, 2026)**.
+* **Current Public Beta Release**: `v0.7.0` (**Public Beta 1** — Monolithic Embedded Localization & Full Multi-Compositor Baseline Consolidation).
+* **Upcoming Iterative Beta Releases**: `v0.7.1` (**Public Beta 2**), `v0.7.2` (**Public Beta 3**), etc. (Active community-driven Public Beta cycle remaining open for user feature requests, new translations, and refinements until the community signals readiness for the `v0.8.x` Release Candidate freeze, up to **December 31, 2026**).
+* **Completed Foundation Release**: `v0.6.2.3` (Official Closure of the Alpha & Pre-Beta Era).
 * **Tier 1 Supported Compositors**:
   - **KDE Plasma (KWin 6.x)**: Full layer-shell integration, D-Bus scripting bridge, live Cairo preview thumbnails.
   - **GNOME Shell (Mutter 46/47/48)**: Dedicated Mutter extension bridge, live window previews, window Dodge/Intellihide.
@@ -67,7 +68,7 @@ We actively track all community suggestions, bug reports, and translations on [G
 
 WayPlank features a standalone translation architecture managed through a central dictionary script: [`po/generate_translations.py`](po/generate_translations.py).
 
-Currently, **7 languages** are qualified at **100% (326/326 strings)**:
+Currently, **7 languages** are qualified at **100% (432/432 strings)**:
 
 * **Natively Maintained by Author** *(Complete & Closed)*:
   - English (`en`) — In-source native fallback
@@ -192,7 +193,7 @@ cd WayPlank
 
 ### Testing & Quality Assurance (FAT)
 
-WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering 370 validation points (368/368 applicable passed — 100% PASS) across all Tier 1 compositors:
+WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering 373 validation points (371/371 applicable passed — 100% PASS) across all Tier 1 compositors:
 * Test protocols and matrices are maintained in [`FAT/`](FAT/).
 * Any PR introducing new UI, docklets, or window management changes **MUST** be accompanied by verification against the checklist in [`FAT/Template/FAT Template.txt`](FAT/Template/FAT%20Template.txt).
 * Fill out the template across tested compositors, save it as `FAT/<date> FAT from <Contributor name> <version>.txt`, and commit it as part of your pull request.

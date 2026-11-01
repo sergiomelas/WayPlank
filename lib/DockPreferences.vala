@@ -121,6 +121,12 @@ namespace Plank
 		[Description(nick = "categorize-items", blurb = "Whether to categorize dock items by type (Folders, Apps, Docklets, Running, Trash).")]
 		public bool CategorizeItems { get; set; }
 		
+		[Description(nick = "anchor-always-left", blurb = "Whether to always anchor the WayPlank icon at the far left with its own separator.")]
+		public bool AnchorAlwaysLeft { get; set; default = false; }
+		
+		[Description(nick = "docklets-on-right", blurb = "Whether to place the docklets category on the right after unpinned apps and before Trash.")]
+		public bool DockletsOnRight { get; set; default = true; }
+		
 		[Description(nick = "accordion-docklets", blurb = "Whether to collapse docklets in-line showing only the first one at rest.")]
 		public bool AccordionDocklets { get; set; }
 		

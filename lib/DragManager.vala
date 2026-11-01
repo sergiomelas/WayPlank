@@ -785,6 +785,7 @@ namespace Plank
 							for (int i = 0; i < elements.size; i++) {
 								if (elements.get (i) is SeparatorDockItem && i != sep_trash_idx && i != sep_pref_idx) {
 									bool is_before_apps = false;
+									bool is_after_apps = false;
 									if (controller.prefs.CategorizeItems) {
 										if (i > 0) {
 											var prev_el = elements.get (i - 1);
@@ -793,8 +794,14 @@ namespace Plank
 												is_before_apps = true;
 											}
 										}
+										if (i + 1 < elements.size) {
+											var next_el = elements.get (i + 1);
+											if (DefaultApplicationDockItemProvider.is_docklet_element (next_el) || next_el is TrashDockItem) {
+												is_after_apps = true;
+											}
+										}
 									}
-									if (!is_before_apps) {
+									if (!is_before_apps && !is_after_apps) {
 										divider_idx = i;
 										break;
 									}
@@ -976,6 +983,7 @@ namespace Plank
 		}
 
 		enum DragCategory {
+			ANCHOR,
 			FOLDER,
 			DOCKLET,
 			APP,
@@ -985,6 +993,8 @@ namespace Plank
 
 		DragCategory get_drag_category (DockElement el)
 		{
+			if (el is PreferencesDockItem || (el is DockItem && ((DockItem) el).Prefs != null && ((DockItem) el).Prefs.Launcher == "docklet://preferences"))
+				return DragCategory.ANCHOR;
 			if (el is FileDockItem)
 				return DragCategory.FOLDER;
 			if (el is TrashDockItem)

@@ -79,6 +79,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_hide;
 		[GtkChild]
+		unowned Gtk.Label l_primary_display;
+		[GtkChild]
 		unowned Gtk.Switch sw_primary_display;
 		[GtkChild]
 		unowned Gtk.Switch sw_workspace_only;
@@ -103,9 +105,19 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Button btn_reorder_free_items;
 		[GtkChild]
-		unowned Gtk.Box box_accordion;
+		unowned Gtk.Label l_docklets_on_right;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklets_on_right;
+		[GtkChild]
+		unowned Gtk.Label l_anchor_always_left;
+		[GtkChild]
+		unowned Gtk.Switch sw_anchor_always_left;
+		[GtkChild]
+		unowned Gtk.Label l_accordion_docklets;
 		[GtkChild]
 		unowned Gtk.Switch sw_accordion_docklets;
+		[GtkChild]
+		unowned Gtk.Label l_accordion_click_to_expand;
 		[GtkChild]
 		unowned Gtk.Switch sw_accordion_click_to_expand;
 		[GtkChild]
@@ -214,6 +226,7 @@ namespace Plank
 		construct
 		{
 			active_instance = this;
+			PlankCompat.i18n_translate_widget (this);
 			set_title (_("WayPlank Preferences"));
 			set_role ("preferences");
 			configure_hide_mode_rows ();
@@ -334,8 +347,9 @@ namespace Plank
 						if (cell is Gtk.CellRendererText && WindowControl.is_labwc () && !supported) {
 							string text = "";
 							model.get (iter, 0, out text);
-							if (!text.contains ("(Requires KWin)"))
-								((Gtk.CellRendererText) cell).text = text + " (Requires KWin)";
+							string req_kwin = _(" (Requires KWin)");
+							if (!text.contains (req_kwin))
+								((Gtk.CellRendererText) cell).text = text + req_kwin;
 						}
 					}
 				});
@@ -438,6 +452,12 @@ namespace Plank
 			case "CategorizeItems":
 				sw_categorize_items.set_active (prefs.CategorizeItems);
 				update_accordion_visibility ();
+				break;
+			case "AnchorAlwaysLeft":
+				sw_anchor_always_left.set_active (prefs.AnchorAlwaysLeft);
+				break;
+			case "DockletsOnRight":
+				sw_docklets_on_right.set_active (prefs.DockletsOnRight);
 				break;
 			case "AccordionDocklets":
 				sw_accordion_docklets.set_active (prefs.AccordionDocklets);
@@ -877,7 +897,9 @@ namespace Plank
 				success = false;
 			}
 
-			if (!success) {
+			if (success) {
+				WindowControl.sync_autostart (enabled);
+			} else {
 				sw_autostart.notify["active"].disconnect (autostart_toggled);
 				sw_autostart.set_active (!enabled);
 				sw_autostart.notify["active"].connect (autostart_toggled);
@@ -952,6 +974,21 @@ namespace Plank
 			update_accordion_visibility ();
 		}
 
+		void docklets_on_right_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.DockletsOnRight = ((Gtk.Switch) widget).get_active ();
+		}
+
+		void anchor_always_left_toggled (GLib.Object widget, ParamSpec param)
+		{
+			bool active = ((Gtk.Switch) widget).get_active ();
+			prefs.AnchorAlwaysLeft = active;
+			if (active && prefs.SystemMenuAccess != 4) {
+				prefs.SystemMenuAccess = 4;
+				update_system_menu_access_options ();
+			}
+		}
+
 		void accordion_docklets_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.AccordionDocklets = ((Gtk.Switch) widget).get_active ();
@@ -990,7 +1027,13 @@ namespace Plank
 
 			btn_reorder_free_items.visible = !cat_active;
 
-			box_accordion.sensitive = cat_active;
+			l_docklets_on_right.sensitive = cat_active;
+			sw_docklets_on_right.sensitive = cat_active;
+			l_anchor_always_left.sensitive = cat_active;
+			sw_anchor_always_left.sensitive = cat_active;
+			l_accordion_docklets.sensitive = cat_active;
+			sw_accordion_docklets.sensitive = cat_active;
+			l_accordion_click_to_expand.sensitive = acc_active;
 			sw_accordion_click_to_expand.sensitive = acc_active;
 
 			l_accordion_delay.sensitive = acc_active;
@@ -1033,6 +1076,10 @@ namespace Plank
 				int val = int.parse (cb_system_menu_access.active_id);
 				if (val >= 1 && val <= 4) {
 					prefs.SystemMenuAccess = val;
+					if (val != 4 && prefs.AnchorAlwaysLeft) {
+						prefs.AnchorAlwaysLeft = false;
+						sw_anchor_always_left.set_active (false);
+					}
 				}
 			}
 		}
@@ -1238,6 +1285,8 @@ namespace Plank
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].connect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
+			sw_docklets_on_right.notify["active"].connect (docklets_on_right_toggled);
+			sw_anchor_always_left.notify["active"].connect (anchor_always_left_toggled);
 			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].connect (accordion_click_to_expand_toggled);
 			sw_show_window_cards.notify["active"].connect (show_window_cards_toggled);
@@ -1305,6 +1354,8 @@ namespace Plank
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].disconnect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
+			sw_docklets_on_right.notify["active"].disconnect (docklets_on_right_toggled);
+			sw_anchor_always_left.notify["active"].disconnect (anchor_always_left_toggled);
 			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].disconnect (accordion_click_to_expand_toggled);
 			sw_show_window_cards.notify["active"].disconnect (show_window_cards_toggled);
@@ -1357,19 +1408,37 @@ namespace Plank
 					active_pos = pos;
 			}
 			
-			if (prefs.Monitor == "") {
+			bool primary_supported = WindowCapabilities.primary_display_supported ();
+			string primary_tt = primary_supported
+				? _("Automatically display the dock on the primary monitor; disable to choose a specific display")
+				: _("Not supported by this compositor");
+			sw_primary_display.tooltip_text = primary_tt;
+			l_primary_display.tooltip_text = primary_tt;
+			if (!primary_supported) {
+				sw_primary_display.set_active (false);
+				sw_primary_display.sensitive = false;
+				cb_display_plug.sensitive = true;
+				if (active_pos >= 0) {
+					cb_display_plug.set_active (active_pos);
+				} else if (names.length > 0) {
+					cb_display_plug.set_active (0);
+				}
+			} else if (prefs.Monitor == "") {
 				cb_display_plug.set_active (primary_pos);
 				sw_primary_display.set_active (true);
+				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = false;
 			} else if (active_pos >= 0) {
 				cb_display_plug.set_active (active_pos);
 				sw_primary_display.set_active (false);
+				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = true;
 				if (prefs.Monitor != names[active_pos])
 					prefs.Monitor = names[active_pos];
 			} else if (names.length > 0) {
 				cb_display_plug.set_active (0);
 				sw_primary_display.set_active (false);
+				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = true;
 			}
 			
@@ -1418,7 +1487,9 @@ namespace Plank
 			s_offset.sensitive = (prefs.Alignment == Gtk.Align.CENTER);
 			s_zoom_percent.sensitive = prefs.ZoomEnabled;
 			sw_hide.set_active (prefs.HideMode != HideType.NONE);
-			sw_primary_display.set_active (prefs.Monitor == "");
+			bool primary_supported = WindowCapabilities.primary_display_supported ();
+			sw_primary_display.set_active (primary_supported && prefs.Monitor == "");
+			sw_primary_display.sensitive = primary_supported;
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
 			sw_workspace_only.sensitive = false;
 			sw_workspace_only.tooltip_text = _("Workspace filtering is not yet supported under Wayland");
@@ -1441,6 +1512,8 @@ namespace Plank
 			sw_anticipate_zoom.tooltip_text = _("Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
+			sw_docklets_on_right.set_active (prefs.DockletsOnRight);
+			sw_anchor_always_left.set_active (prefs.AnchorAlwaysLeft);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
 			sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
 			s_accordion_delay.format_value.connect ((val) => "%.1f s".printf (val));

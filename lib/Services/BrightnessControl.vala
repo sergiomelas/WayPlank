@@ -37,6 +37,13 @@ namespace Plank
 			return instance;
 		}
 
+		public static void cleanup_if_active ()
+		{
+			if (instance != null) {
+				instance.cleanup ();
+			}
+		}
+
 		/**
 		 * Emitted whenever screen brightness changes, whether initiated by user action,
 		 * desktop power management, ambient light sensors, or laptop Fn hotkeys.
@@ -65,6 +72,7 @@ namespace Plank
 		private bool gnome_available = false;
 
 		private Gee.ArrayList<string> kscreen_outputs = new Gee.ArrayList<string> ();
+		private bool kscreen_probe_running = false;
 		private Gee.ArrayList<int> ddcutil_displays = new Gee.ArrayList<int> ();
 		private Gee.ArrayList<string> backlight_devices = new Gee.ArrayList<string> ();
 		private Mutex ddc_mutex;
@@ -72,6 +80,7 @@ namespace Plank
 		private bool ddc_worker_active = false;
 		private ulong mon_add_id = 0;
 		private ulong mon_rem_id = 0;
+		private bool shutting_down = false;
 
 		public int get_percent ()
 		{
@@ -167,7 +176,7 @@ namespace Plank
 			detect_backlight_device ();
 			refresh_kscreen_outputs ();
 			refresh_ddcutil_displays ();
-			refresh_brightness ();
+			refresh_brightness (true);
 
 			var display = Gdk.Display.get_default ();
 			if (display != null) {
@@ -193,6 +202,8 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			shutting_down = true;
+
 			if (timer_id != 0) {
 				GLib.Source.remove (timer_id);
 				timer_id = 0;
@@ -401,9 +412,13 @@ namespace Plank
 
 		private void refresh_kscreen_outputs ()
 		{
-			kscreen_outputs.clear ();
-			if (is_standalone_internal_display ())
+			if (shutting_down)
 				return;
+
+			if (is_standalone_internal_display ()) {
+				kscreen_outputs.clear ();
+				return;
+			}
 
 			if (!kde_available && !environment_is_session_desktop (XdgSessionDesktop.KDE))
 				return;
@@ -411,38 +426,62 @@ namespace Plank
 			if (GLib.Environment.find_program_in_path ("kscreen-doctor") == null)
 				return;
 
-			try {
-				string json_out;
-				int exit_code;
-				if (GLib.Process.spawn_command_line_sync ("kscreen-doctor -j", out json_out, null, out exit_code) && exit_code == 0) {
-					var parser = new Json.Parser ();
-					parser.load_from_data (json_out);
-					var root = parser.get_root ();
-					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
-						var obj = root.get_object ();
-						if (obj.has_member ("outputs")) {
-							var arr = obj.get_array_member ("outputs");
-							for (uint i = 0; i < arr.get_length (); i++) {
-								var out_obj = arr.get_object_element (i);
-								bool connected = out_obj.has_member ("connected") ? out_obj.get_boolean_member ("connected") : false;
-								bool enabled = out_obj.has_member ("enabled") ? out_obj.get_boolean_member ("enabled") : true;
-								if (connected && enabled && out_obj.has_member ("name")) {
-									string name = out_obj.get_string_member ("name");
-									if (name != null && name.length > 0) {
-										kscreen_outputs.add (name);
+			ddc_mutex.lock ();
+			if (kscreen_probe_running) {
+				ddc_mutex.unlock ();
+				return;
+			}
+			kscreen_probe_running = true;
+			ddc_mutex.unlock ();
+
+			new GLib.Thread<void*> ("kscreen-probe", () => {
+				var detected = new Gee.ArrayList<string> ();
+				try {
+					string json_out;
+					int exit_code;
+					if (GLib.Process.spawn_command_line_sync ("kscreen-doctor -j", out json_out, null, out exit_code) && exit_code == 0) {
+						var parser = new Json.Parser ();
+						parser.load_from_data (json_out);
+						var root = parser.get_root ();
+						if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
+							var obj = root.get_object ();
+							if (obj.has_member ("outputs")) {
+								var arr = obj.get_array_member ("outputs");
+								for (uint i = 0; i < arr.get_length (); i++) {
+									var out_obj = arr.get_object_element (i);
+									bool connected = out_obj.has_member ("connected") ? out_obj.get_boolean_member ("connected") : false;
+									bool enabled = out_obj.has_member ("enabled") ? out_obj.get_boolean_member ("enabled") : true;
+									if (connected && enabled && out_obj.has_member ("name")) {
+										string name = out_obj.get_string_member ("name");
+										if (name != null && name.length > 0) {
+											detected.add (name);
+										}
 									}
 								}
 							}
 						}
 					}
+				} catch (GLib.Error e) {
+					warning ("Failed to query kscreen-doctor outputs: %s", e.message);
 				}
-			} catch (GLib.Error e) {
-				warning ("Failed to query kscreen-doctor outputs: %s", e.message);
-			}
+
+				GLib.Idle.add (() => {
+					kscreen_outputs.clear ();
+					kscreen_outputs.add_all (detected);
+					ddc_mutex.lock ();
+					kscreen_probe_running = false;
+					ddc_mutex.unlock ();
+					return GLib.Source.REMOVE;
+				});
+				return null;
+			});
 		}
 
 		private void refresh_ddcutil_displays ()
 		{
+			if (shutting_down)
+				return;
+
 			if (is_standalone_internal_display () || GLib.Environment.find_program_in_path ("ddcutil") == null) {
 				ddc_mutex.lock ();
 				ddcutil_displays.clear ();
@@ -487,7 +526,7 @@ namespace Plank
 			});
 		}
 
-		private void refresh_brightness ()
+		private void refresh_brightness (bool is_initial_read = false)
 		{
 			// If user has set an authoritative Set Point (SP), do not let periodic polling overwrite it!
 			if (user_has_set_sp)
@@ -511,7 +550,7 @@ namespace Plank
 			}
 
 			// 2. Try KDE Solid PowerManagement D-Bus (Desktop PC or when backlight_device is null)
-			if (initial_pct < 0 && session_bus != null) {
+			if (initial_pct < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.KDE)) {
 				try {
 					var reply = session_bus.call_sync (
 						"org.kde.Solid.PowerManagement",
@@ -546,38 +585,38 @@ namespace Plank
 				} catch (GLib.Error e) {
 					kde_available = false;
 				}
+			}
 
-				// 3. Try GNOME SettingsDaemon Power D-Bus
-				if (initial_pct < 0) {
-					try {
-						var reply = session_bus.call_sync (
-							"org.gnome.SettingsDaemon.Power",
-							"/org/gnome/SettingsDaemon/Power",
-							"org.freedesktop.DBus.Properties",
-							"Get",
-							new GLib.Variant ("(ss)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness"),
-							null,
-							GLib.DBusCallFlags.NONE,
-							200,
-							null
-						);
-						GLib.Variant val_var = reply.get_child_value (0).get_variant ();
-						int val = 0;
-						if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
-						else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
-						else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
-						if (val > 0) {
-							initial_pct = val;
-							gnome_available = true;
-						}
-					} catch (GLib.Error e) {
-						gnome_available = false;
+			// 3. Try GNOME SettingsDaemon Power D-Bus
+			if (initial_pct < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.GNOME)) {
+				try {
+					var reply = session_bus.call_sync (
+						"org.gnome.SettingsDaemon.Power",
+						"/org/gnome/SettingsDaemon/Power",
+						"org.freedesktop.DBus.Properties",
+						"Get",
+						new GLib.Variant ("(ss)", "org.gnome.SettingsDaemon.Power.Screen", "Brightness"),
+						null,
+						GLib.DBusCallFlags.NONE,
+						200,
+						null
+					);
+					GLib.Variant val_var = reply.get_child_value (0).get_variant ();
+					int val = 0;
+					if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
+					else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
+					else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
+					if (val > 0) {
+						initial_pct = val;
+						gnome_available = true;
 					}
+				} catch (GLib.Error e) {
+					gnome_available = false;
 				}
 			}
 
-			// 4. Try brightnessctl -m fallback
-			if (initial_pct < 0 && GLib.Environment.find_program_in_path ("brightnessctl") != null) {
+			// 4. Try brightnessctl -m fallback (only when a kernel backlight device exists)
+			if (initial_pct < 0 && backlight_device != null && GLib.Environment.find_program_in_path ("brightnessctl") != null) {
 				try {
 					string out_str;
 					int exit_code;
@@ -600,7 +639,8 @@ namespace Plank
 					target_sp = clamped;
 					current_percent = target_sp;
 					brightness_changed (target_sp);
-					schedule_inbound_auto_sync (target_sp);
+					if (!is_initial_read)
+						schedule_inbound_auto_sync (target_sp);
 				}
 			}
 		}

@@ -1,6 +1,7 @@
 # WayPlank User Guide & Reference Manual
 
-> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026
+> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
+> **Release Version:** `v0.7.0` (**Public Beta 1**)
 
 Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond).
 
@@ -21,11 +22,13 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Customizing Icons (Launchers, Folders & Docklets)](#customizing-icons-launchers-folders--docklets)
 4. [Built-in Docklets & Accordion Mode](#4-built-in-docklets--accordion-mode)
    - [Complete List of 16 Docklets](#complete-list-of-16-docklets)
+   - [Choosing Docklet Position (Left vs. Right System Tray Style)](#choosing-docklet-position-left-vs-right-system-tray-style)
    - [Accordion Mode (Space-Saving Collapsible Docklets)](#accordion-mode-space-saving-collapsible-docklets)
+   - [3×3 Session & Power Control Center](#33-session--power-control-center)
    - [Configuring the Weather Docklet](#configuring-the-weather-docklet)
 5. [Categorization, Dynamic Separators & System Menu Access](#5-categorization-dynamic-separators--system-menu-access)
-   - [Categorized Layout Order](#categorized-layout-order)
-   - [Permanent Trash Anchoring](#permanent-trash-anchoring)
+   - [Categorized Layout Order & Custom Category Positioning](#categorized-layout-order--custom-category-positioning)
+   - [Permanent Trash Anchoring & WayPlank Far-Left Anchor](#permanent-trash-anchoring--wayplank-far-left-anchor)
    - [Dynamic Separators](#dynamic-separators)
    - [4-Position System Menu Access Hierarchy](#4-position-system-menu-access-hierarchy)
    - [Minimalist Dock Setup & Emergency Settings Access](#minimalist-dock-setup--emergency-settings-access)
@@ -60,7 +63,7 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Dock Size & Zoom Level](#dock-size--zoom-level)
 11. [Command Line Usage, Localization & Packaging](#11-command-line-usage-localization--packaging)
    - [CLI Commands](#cli-commands)
-   - [Multi-Language Translation Catalogs (Public Beta v0.7.0 Preparation)](#multi-language-translation-catalogs-public-beta-v070-preparation)
+   - [Multi-Language Translation Catalogs (Public Beta v0.7.0)](#multi-language-translation-catalogs-public-beta-v070)
    - [Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)](#automated-packaging-debianubuntu--opensusefedorarhel)
    - [Configuration File Paths](#configuration-file-paths)
    - [GSettings Database Keys](#gsettings-database-keys)
@@ -85,21 +88,30 @@ WayPlank is a native port and evolution of the classic Plank dock, rebuilt to th
 
 ## 2. Quick Start & Interface Layout
 
-When WayPlank starts with default settings, the dock is arranged into clean, logical visual sections separated by dynamic dividers:
+When WayPlank starts with default settings, the dock is arranged into clean, logical visual sections separated by dynamic dividers (**Default System Tray Layout — `Docklets on Right = ON`**):
 
 ```
-[ Folders ]   |   [ Docklets ]   |   [ Pinned Apps ]   |   [ Open Apps ]   |   [ Trash ]
- 📁 Internet        🎛️ Accordion       🌐 Web Browser       📝 Kate             🗑️ Trash
- 💼 Office          (Preferences,      📁 File Manager      ...
- 🎬 Media            Desktop,          💻 Terminal
- 🎮 Games            Volume...)        ⚙️ Editor
+[ Folders ]   |   [ Pinned Apps ]   |   [ Open Apps ]   |   [ Docklets ]   |   [ Trash ]
+ 📁 Internet       🌐 Web Browser        📝 Kate             🎛️ Accordion       🗑️ Trash
+ 💼 Office         📁 File Manager       ...                 (Desktop, Volume,
+ 🎬 Media          💻 Terminal                                Preferences)
+ 🎮 Games          ⚙️ Editor
 ```
 
+In **Preferences $\rightarrow$ Apps & Layout**, you can also place the **Docklets** group on the left after Folders (`Docklets on Right = OFF`) or anchor the **WayPlank** icon permanently at the far left (`WayPlank Always Left`):
+
+```
+[ WayPlank ]  |  [ Folders ]  |  [ Docklets ]  |  [ Pinned Apps ]  |  [ Open Apps ]  |  [ Trash ]
+ ⚙️ WayPlank      📁 Internet     🎛️ Accordion     🌐 Web Browser      📝 Kate            🗑️ Trash
+                  💼 Office       (Clock, Volume,   📁 File Manager     ...
+                  🎬 Media         Battery, DND...) 💻 Terminal
+```
+
+- **WayPlank Far-Left Anchor (Optional — `WayPlank Always Left`):** Keeps the WayPlank icon fixed at position `0` on the far left with its own vertical separator.
 - **Folders (Left):** Categorized application menus for fast access to your software library.
-- **Docklets (Center-Left):** Interactive system widgets collapsed into an expandable accordion.
-- **Pinned Applications (Center):** Direct single-click access to your essential daily tools.
-- **Running Applications (Center-Right):** Temporary icons for active, unpinned windows.
-- **Trash (Right):** Anchored permanently at the end of the dock for quick file disposal and ejection.
+- **Pinned Applications & Running Applications (Strictly Adjacent):** Direct single-click access to your pinned daily tools followed immediately by temporary running windows (`[Pinned Apps] | [Open Apps]`), keeping drag-to-pin and drag-to-unpin across their separator 100% seamless in both layouts.
+- **Docklets (Default on Right — Configurable Left or Right):** Interactive system widgets (collapsible into a symmetric expandable accordion that collapses onto the rightmost icon when on the right, and onto the leftmost icon when on the left) placed by default on the right immediately before the Trash (`Docklets on Right = ON`, System Tray style) or on the left after Folders (`Docklets on Right = OFF`).
+- **Trash (Far-Right Anchor — `Show Trash`):** Anchored permanently at the far end of the dock (toggled via **Show Trash** in **Preferences $\rightarrow$ Apps & Layout** alongside **WayPlank Always Left**).
 
 ### Multi-Window Navigation & Cairo Preview Cards
 Starting in **v0.6.2.3**, WayPlank provides modern elevated Cairo preview cards when clicking applications with multiple open windows (while hovering displays the application tooltip):
@@ -111,7 +123,7 @@ Starting in **v0.6.2.3**, WayPlank provides modern elevated Cairo preview cards 
   - **Left-Click Card**: Activates and raises the target window to the foreground (`WindowManager.activate()`).
   - **Close Button (X)**: Top-right corner of each card lets you close that specific window instance directly (`WindowManager.close_window()`).
 - **Preferences Toggle**:
-  - In **Preferences $\rightarrow$ Behaviour**, you can toggle between visual window preview cards and classic cyclic window switching.
+  - In **Preferences $\rightarrow$ Apps & Layout**, you can toggle between visual window preview cards and classic cyclic window switching.
 - **Recent Files Jump List**:
   - Right-clicking compatible applications reveals a "Recent Documents" submenu powered by FreeDesktop `Gtk.RecentManager`, allowing one-click reopening of recently accessed documents.
 
@@ -190,24 +202,46 @@ WayPlank includes 16 built-in docklets that provide live system controls and sta
 | `docklet://digital-clock` | Digital 12h/24h time display. |
 | `docklet://mpris` | Media player controller (Play/Pause, Next, Previous track). |
 | `docklet://screenshot` | Instant desktop screen capture utility. |
-| `docklet://session` | Session controls (Lock screen, Log out, Suspend, Restart, Shut down). |
+| `docklet://session` | 3×3 Session & Power center (Lock Screen, Switch User, Log Out, Suspend, Hibernate, Hybrid Sleep, Restart, UEFI / BIOS firmware setup, Shut Down) with automatic `systemd-logind` hardware capability detection. |
 | `docklet://ejector` | Safe removal and unmounting of removable USB drives and volumes. |
+
+### Choosing Docklet Position (Left vs. Right System Tray Style)
+WayPlank lets you choose where the **Docklets** category block is positioned on the dock (**Preferences $\rightarrow$ Apps & Layout $\rightarrow$ Categories & Layout**):
+- **System Tray Position (`Docklets on Right = ON`, Default)**: Moves the entire Docklets group (Clock, Volume, Battery, CPU/RAM, Brightness, Network, Weather, Do Not Disturb, etc.) to the right side of the dock immediately before the Trash (`[Folders] | [Pinned Apps] | [Running Apps] | [Docklets] | [Trash]`), mimicking a traditional desktop system tray while keeping Folders and Applications on the left. When Accordion Mode is active with `Docklets on Right = ON`, the accordion collapses symmetrically onto the **rightmost** docklet icon.
+- **Left Position (`Docklets on Right = OFF`)**: Places the Docklets group on the left side immediately after Folder Drawers and before Pinned Applications (`[Folders] | [Docklets] | [Pinned Apps] | [Running Apps] | [Trash]`), collapsing the accordion onto the **leftmost** docklet icon.
+- **Symmetric Left & Right Edge Anchors (`WayPlank Always Left` & `Show Trash`)**: Directly below `Categorize Items` and `Docklets on Right` in **Preferences $\rightarrow$ Apps & Layout**, you can independently toggle **WayPlank Always Left** (pinning the WayPlank icon at position `0` on the far left with its own separator) and **Show Trash** (anchoring the Trash bin at the far right). Even when `Docklets on Right` is enabled alongside `WayPlank Always Left`, the accordion hover/collapse zone strictly bounds only the right-hand Docklets group.
 
 ### Accordion Mode (Space-Saving Collapsible Docklets)
 When **Accordion Mode** is enabled (`accordion-docklets = true`), multiple docklets are collapsed into a single compact master slot on the dock.
 - **Hover Expansion**: In standard mode, hovering over or dragging across the docklet section smoothly expands all active docklets. Moving the pointer away collapses them back into a single icon after the configured delay.
-- **Click to Expand Mode**: In Preferences -> Appearance, enable **Click to Expand**. In this mode, hovering does not expand the docklets; instead, a single click on the master anchor toggles expansion, and a second click opens its action.
-- **Dynamic Master Anchor Fallback**: When the Preferences gear icon is hidden from the dock (via System Menu Access modes), the first available docklet automatically assumes the role of the Master Accordion Anchor with zero disruption to expansion behavior.
+- **Click to Expand Mode**: In **Preferences $\rightarrow$ Apps & Layout**, enable **Click to Expand**. In this mode, hovering does not expand the docklets; instead, a single click on the master anchor toggles expansion, and a second click opens its action.
+- **Symmetric Outer-Edge Master Anchor & Fallback**: When `Docklets on Right` is disabled (`false`), the Preferences gear icon (or the leftmost docklet when Preferences is hidden/anchored at far left) sits at the far left of the Docklets group so the accordion collapses to the left. When `Docklets on Right` is enabled (`true`, default), the Preferences gear icon (or the rightmost docklet fallback) sits at the far right of the Docklets group so the accordion collapses symmetrically to the right.
 - **Single Docklet Safety Guard**: If only a single docklet is active on the dock, accordion collapsing is automatically suppressed, preventing redundant expand/collapse cycles for a single item.
 - **Drag-and-Drop Auto-Expansion**: Hovering any dragged item (e.g. a file, URL, or application launcher) over the accordion anchor automatically expands all collapsed docklets on hover—even if 'Click to Expand' is enabled—allowing effortless drag-to-docklet operations (such as dropping files directly onto the Trash or media docklet).
-- **Configurable Collapse Delay**: Adjust the collapse countdown timer (0.5s to 20.0s) using the slider in Preferences -> Appearance.
+- **Configurable Collapse Delay**: Adjust the collapse countdown timer (0.5s to 20.0s) using the slider in **Preferences $\rightarrow$ Apps & Layout**.
 - **Directional Indicators**: The anchor tooltip dynamically shows directional arrows (`▸` / `◂`) indicating whether the accordion is collapsed or expanded.
 - **Intelligent Retention**: If the dock autohides or dodges while the accordion is expanded, returning within the delay window preserves the expanded state.
 - **Modal Interaction Invalidation**: The accordion collapse timer is automatically paused while any dialog (Preferences, Shortcuts & Gestures, Icon Chooser, Weather) or popup menu is active.
 
 To toggle Accordion Mode:
 - Open **Preferences** (`Ctrl + Right-Click` on the dock $\rightarrow$ *Preferences*).
-- Under the **Appearance / Items** tab, toggle **Accordion Docklets**.
+- Under the **Apps & Layout** tab, toggle **Docklet Accordion**.
+
+### 3×3 Session & Power Control Center
+Clicking the **Session / Power** docklet (`docklet://session`) opens a centered **3×3 control center** (9 actions organized into 3 logical rows), also accessible via the docklet's right-click context menu:
+- **Row 1 — User Session**:
+  - **Lock Screen**: Immediately locks the active desktop session (`org.gnome.ScreenSaver`, `org.freedesktop.ScreenSaver`, `SwitchToGreeter`, `swaylock`/`waylock`/`hyprlock`, or `loginctl lock-sessions`).
+  - **Switch User**: Transitions to the display manager greeter (`org.freedesktop.DisplayManager.Seat.SwitchToGreeter` / `dm-tool`).
+  - **Log Out**: Opens an in-place confirmation view before terminating the active desktop session.
+- **Row 2 — Sleep & Hibernation States**:
+  - **Suspend**: Puts the system into low-power RAM sleep (`systemctl suspend`).
+  - **Hibernate**: Saves the full session state to disk and powers off (`systemctl hibernate`).
+  - **Hybrid Sleep**: Saves the session state to disk while entering low-power RAM sleep (`systemctl hybrid-sleep`), providing instant wake-up with zero data loss if battery power is exhausted.
+- **Row 3 — System Reboot, Firmware & Power Off**:
+  - **Restart**: Opens an in-place confirmation view before rebooting the operating system.
+  - **UEFI / BIOS**: Opens an in-place confirmation view and reboots directly into the motherboard's UEFI / BIOS firmware setup interface (`systemctl reboot --firmware-setup` / `SetRebootToFirmwareSetup`).
+  - **Shut Down**: Opens a destructive-styled confirmation view before powering off the machine.
+- **Automatic Hardware & Kernel Capability Detection (`systemd-logind`)**: When the Session & Power dialog or context menu opens, WayPlank queries `org.freedesktop.login1.Manager` (`CanHibernate`, `CanHybridSleep`, `CanRebootToFirmwareSetup`). If a capability is unavailable on the host machine (for example, when swap hibernation is unconfigured, blocked by Secure Boot kernel lockdown, or running on a legacy non-UEFI system), the corresponding button is automatically disabled (`sensitive = false`) with an explanatory tooltip so an unsupported action can never be triggered accidentally.
 
 ### Configuring the Weather Docklet
 The weather docklet fetches local meteorological data:
@@ -230,16 +264,24 @@ The weather docklet fetches local meteorological data:
 
 WayPlank features a smart sorting engine that eliminates dock clutter.
 
-### Categorized Layout Order
-When **Categorize Items** is enabled (`categorize-items = true`), WayPlank automatically arranges all items in a strictly defined sequence:
+### Categorized Layout Order & Custom Category Positioning
+When **Categorize Items** is enabled (`categorize-items = true` in **Preferences $\rightarrow$ Apps & Layout**), WayPlank automatically arranges all items into clean, non-overlapping compartments while keeping **Pinned Apps** and **Running Unpinned Apps** strictly adjacent so drag-to-pin and drag-to-unpin across their divider always work effortlessly:
 
-$$\text{Folders} \longrightarrow \text{Docklets} \longrightarrow \text{Pinned Apps} \longrightarrow \text{Running Apps} \longrightarrow \text{Trash}$$
+1. **Default System Tray Layout (`Docklets on Right = ON` / `docklets-on-right = true`)**:
+   $$\text{Folders} \longrightarrow \text{Pinned Apps} \longrightarrow \text{Running Apps} \longrightarrow \text{Docklets} \longrightarrow \text{Trash}$$
+   - Places all system docklets (Clock, Battery, CPU/RAM, Volume, Weather, Network, Do Not Disturb, Preferences) on the right side immediately before the Trash, mimicking a classic desktop system tray while keeping Folders and Applications up front on the left. When Accordion Mode is enabled, the group collapses symmetrically onto the **rightmost** docklet icon.
+
+2. **Left Docklets Layout (`Docklets on Right = OFF` / `docklets-on-right = false`)**:
+   $$\text{Folders} \longrightarrow \text{Docklets} \longrightarrow \text{Pinned Apps} \longrightarrow \text{Running Apps} \longrightarrow \text{Trash}$$
+   - Places the Docklets group on the left after Folders, collapsing the accordion onto the **leftmost** docklet icon.
 
 - You can freely reorder items *within* their category group.
 - Items are never mixed across categories accidentally.
 
-### Permanent Trash Anchoring
-The Trash docklet (`docklet://trash`) is permanently anchored to the far end of the dock (the right side on horizontal docks, or the bottom on vertical docks). Even if you drag or open new applications, Trash stays fixed at the edge, exactly where muscle memory expects it.
+### Permanent Trash Anchoring & WayPlank Far-Left Anchor
+In **Preferences $\rightarrow$ Apps & Layout**, the far-left and far-right dock anchors are paired side-by-side:
+- **WayPlank Always Left (`anchor-always-left = true`)**: Permanently pins the dedicated WayPlank icon at position `0` (far left of the dock) with its own dedicated vertical separator (`[WayPlank] | [Folders] | ...`), even when folders are present or when Docklets are moved to the right near the Trash. Toggling this option on automatically activates the dedicated WayPlank dock icon (`system-menu-access = 4`).
+- **Trash at Far Right (`Show Trash` / `show-trash = true`)**: The Trash docklet (`docklet://trash`) is permanently anchored to the far end of the dock (the right side on horizontal docks, or the bottom on vertical docks). Even if you drag or open new applications, Trash stays fixed at the edge, exactly where muscle memory expects it.
 
 ### Dynamic Separators
 WayPlank automatically inserts subtle vertical separator lines between adjacent, non-empty category groups:
@@ -248,7 +290,7 @@ WayPlank automatically inserts subtle vertical separator lines between adjacent,
 - When the application closes, the separator cleanly vanishes without animation stutter.
 
 ### 4-Position System Menu Access Hierarchy
-Starting in **v0.6.2.3**, WayPlank introduces an ergonomic **System Menu Access** hierarchy (**Preferences $\rightarrow$ Behaviour**), allowing complete control over where WayPlank system options (*Preferences*, *About*, *Shortcuts & Gestures*, *Quit*) appear:
+Starting in **v0.6.2.3**, WayPlank introduces an ergonomic **System Menu Access** hierarchy (**Preferences $\rightarrow$ Apps & Layout**), allowing complete control over where WayPlank system options (*Preferences*, *About*, *Shortcuts & Gestures*, *Quit*) appear:
 1. **Mode 1: Docklets Only**:
    - The dedicated Preferences gear icon is completely hidden from the dock.
    - Right-clicking on any docklet displays the full WayPlank system menu.
@@ -266,7 +308,7 @@ Starting in **v0.6.2.3**, WayPlank introduces an ergonomic **System Menu Access*
 ### Minimalist Dock Setup & Emergency Settings Access
 - **One-Click Preferences Removal**: In Mode 4, simply right-click the Preferences gear icon and select **Remove from Dock**. The icon is removed immediately with a cartoon poof animation, and WayPlank automatically transitions to **Mode 2** (or **Mode 3** in Free Mode) so you are never locked out of settings.
 - **Universal Emergency Access**: If you ever hide all docklets or need immediate access to settings, **`Ctrl + Right Click`** on **any** icon or dock surface unconditionally opens the complete WayPlank system menu at all times.
-- **Free Mode (Uncategorized) Protection & Align by Type**: When **Categorize Items** is toggled off (Free Mode), docklet-only options are dynamically hidden from Preferences, and WayPlank automatically migrates to **Mode 3 (All Icons)**. In Free Mode, an **Align by Type** button becomes available in Preferences to perform a one-shot sort (`[Folders] -> [Docklets] -> [Apps] -> [Trash]`) whenever desired while retaining free manual drag reordering.
+- **Free Mode (Uncategorized) Protection & Align by Type**: When **Categorize Items** is toggled off (Free Mode), docklet-only options are dynamically hidden from Preferences, and WayPlank automatically migrates to **Mode 3 (All Icons)**. In Free Mode, an **Align by Type** button becomes available in **Preferences $\rightarrow$ Apps & Layout** to perform a one-shot sort following your last chosen category layout (`[Folders] -> [Docklets] -> [Apps] -> [Trash]` or `[Folders] -> [Apps] -> [Docklets] -> [Trash]` when `Docklets on Right` was enabled) while retaining free manual drag reordering.
 
 ### Dynamic Scale Capacity Redline Teardrop & Topology Auto-Shrink
 When pinning a high number of applications or operating on compact displays, dock items may approach or exceed the monitor's physical boundary:
@@ -361,7 +403,9 @@ WayPlank is architected from the ground up for modern multi-monitor Wayland work
 ### Monitor Selection & Alignment
 - **Position**: Place the dock on the `Bottom`, `Top`, `Left`, or `Right` edge of your screen.
 - **Alignment**: Align the dock to `Center`, `Start` (Left/Top), or `End` (Right/Bottom).
-- **Monitor Pinning**: In the Preferences dialog (**Preferences $\rightarrow$ Appearance $\rightarrow$ Monitor**), select the exact physical output where WayPlank should appear (e.g., `eDP-1`, `DP-1`, `HDMI-A-1`). When set to primary or specific outputs, WayPlank binds its layer-shell surface exclusively to that display geometry.
+- **On Primary Display & Monitor Pinning**: In the Preferences dialog (**Preferences $\rightarrow$ Appearance**):
+  - **GNOME Shell (Mutter) & KDE Plasma 6 (KWin)**: The **On Primary Display** switch is enabled and dynamically tracks your desktop's designated Primary Display (and primary desktop panel) in real time via the compositor HAL bridge. Turning the switch OFF unlocks the output monitor dropdown so you can pin WayPlank to any specific monitor (e.g., `eDP-1`, `DP-1`, `HDMI-A-1`).
+  - **Labwc (wlroots)**: Because the pure Wayland / wlroots protocol has no native concept of a "Primary Display" (unlike Mutter and KWin), WayPlank's **Honest UI** disables the **On Primary Display** switch on Labwc with the universal tooltip `"Not supported by this compositor"` and leaves the output monitor dropdown immediately active so you can directly select whichever physical screen you want the dock anchored to.
 
 ### Intelligent Hide & Edge Pressure
 - **Hide Modes**:
@@ -554,18 +598,18 @@ wayplank -v
 # or: wayplank --version
 ```
 
-### Multi-Language Translation Catalogs (Public Beta v0.7.0 Preparation)
-In preparation for the upcoming **Public Beta (v0.7.0)**, WayPlank has introduced complete multi-language translation catalogs and an automated translation framework via `po/generate_translations.py`:
-- **Complete String Catalogs Ready**: All 326 user-facing strings, tooltips, settings labels, and docklet strings have been fully translated across **7 community languages**:
+### Multi-Language Translation Catalogs (Public Beta v0.7.0)
+In **Public Beta 1 (v0.7.0)**, WayPlank ships with complete multi-language translation catalogs and an automated translation framework via `po/generate_translations.py`:
+- **Complete String Catalogs Ready**: All 454 user-facing strings, tooltips, settings labels, and docklet strings have been fully translated across **7 community languages** (plus native English `en`):
   1. **Simplified Chinese (`zh_CN`)** — Community contribution by 史有虎 (IFtiger-hu).
   2. **Italian (`it`)**
   3. **Spanish (`es`)**
   4. **French (`fr`)**
   5. **Catalan (`ca`)**
-  6. **German (`de`)**
-  7. **Ukrainian (`uk`)**
-- **Public Beta Runtime Engine Roadmap**: While the translation catalogs and PO infrastructure are established and maintained in the repository, the monolithic in-memory embedded localization engine (compiled into the binary via GResource / gettext) is scheduled for activation in the **Public Beta v0.7.0** release (Week 45 — Nov 2026), which will dynamically render the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES`.
-- **Balanced 560×480 Preferences Geometry**: Ahead of runtime engine activation, the Preferences window layout has already been engineered with compact 560×480 constraints to guarantee that all localized strings fit cleanly with zero horizontal label truncation.
+  6. **German (`de`)** — Community contribution by Renate Schwiedernoch.
+  7. **Ukrainian (`uk`)** — Community contribution by Michailo Buchko.
+- **Monolithic Embedded Localization Architecture**: All 7 language catalogs (`454/454` strings — 100%) are designed for monolithic in-memory `GResource` resolution with **Zero Host Pollution** (`0` external files installed in `/usr/share/locale/`), dynamically rendering the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES`.
+- **Balanced 560×480 Preferences Geometry**: The Preferences window layout is engineered with compact 560×480 constraints to guarantee that all localized strings fit cleanly with zero horizontal label truncation.
 - **Call for Translators**: Contributors can easily add new languages or refine existing strings directly in `po/generate_translations.py`.
 
 ### Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)
@@ -575,7 +619,7 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   ```bash
   chmod +x BuildDeb.sh
   ./BuildDeb.sh
-  sudo apt install ./build/wayplank_0.6.2.3_amd64.deb
+  sudo apt install ./build/wayplank_0.7.0_amd64.deb
   ```
 
 - **openSUSE, Fedora & RHEL (`.rpm`)**:
@@ -583,9 +627,9 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   chmod +x BuildRpm.sh
   ./BuildRpm.sh
   # On openSUSE:
-  sudo zypper install ./build/wayplank-0.6.2.3-1.x86_64.rpm
+  sudo zypper install ./build/wayplank-0.7.0-1.x86_64.rpm
   # On Fedora / RHEL:
-  sudo dnf install ./build/wayplank-0.6.2.3-1.x86_64.rpm
+  sudo dnf install ./build/wayplank-0.7.0-1.x86_64.rpm
   ```
 
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).
@@ -602,8 +646,10 @@ All settings are stored in the GSettings schema `net.launchpad.plank.dock.settin
 # Read all current dock settings
 gsettings list-recursively net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
 
-# Toggle categorized items
+# Toggle categorized items, docklets on right (System Tray mode, default true), and WayPlank far-left anchor
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ categorize-items true
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ docklets-on-right true
+gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ anchor-always-left false
 
 # Toggle accordion docklets and click-to-expand mode
 gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ accordion-docklets true

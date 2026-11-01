@@ -99,5 +99,12 @@ namespace Plank
 			
 			return mode == HideType.DODGE_MAXIMIZED;
 		}
+
+		public static bool primary_display_supported ()
+		{
+			if (WindowControl.is_labwc ())
+				return false;
+			return true;
+		}
 	}
 }

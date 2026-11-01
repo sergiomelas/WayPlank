@@ -113,8 +113,8 @@ namespace Plank
 			var lbl_units = new Gtk.Label (_("Units:"));
 			unit_box.pack_start (lbl_units, false, false, 0);
 
-			unit_c_radio = new Gtk.RadioButton.with_label (null, "°C (Celsius)");
-			unit_f_radio = new Gtk.RadioButton.with_label_from_widget (unit_c_radio, "°F (Fahrenheit)");
+			unit_c_radio = new Gtk.RadioButton.with_label (null, _("°C (Celsius)"));
+			unit_f_radio = new Gtk.RadioButton.with_label_from_widget (unit_c_radio, _("°F (Fahrenheit)"));
 			unit_box.pack_start (unit_c_radio, false, false, 0);
 			unit_box.pack_start (unit_f_radio, false, false, 0);
 			content_area.pack_start (unit_box, false, false, 0);

@@ -2,10 +2,8 @@
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
 Date: 2026-11-01
-Milestone: V0.6.2.3 (The Community Unification & Distribution Release: Round 3
-           Multi-Window Preview Cards, Recent Files Jump List,
-           Classic Stock Theme Suite, Drawer Parity, Native Peer Stacking,
-           System Menu Access Modes, Minimalist Dock & Master Accordion Anchor)
+Milestone: V0.7.0 (Public Beta 1: Complete Multi-Compositor Baseline Consolidation,
+           Monolithic Embedded Localization & Community Validation)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
@@ -18,7 +16,7 @@ Compositor Validation Status & Qualification Scoreboard:
       [  ] Tests Executed | [  ] [ok] | [  ] Bugs Squashed | [  ] Open Defects
 
 Test Status Legend (ISA-88 Qualification Standard):
-  - [ok]        : Compliant / Passed (Verified during v0.6.2.2 testing)
+  - [ok]        : Compliant / Passed (Verified during v0.6.2.3 testing & consolidated in v0.7.0)
   - [  ]        : Pending test execution / Open test point
   - [ko]        : Non-conformance / Defect logged
   - [ko->test]  : Remediation need still to be tested
@@ -585,7 +583,7 @@ SESSION 1: GNOME (Mutter Backend)
         - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
           /usr/share/plank/themes are automatically discovered and loaded with
           100% parameter fidelity.
-   [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays; cold start on
         fractional scaling (e.g. 4K@1.5x).
@@ -899,11 +897,14 @@ SESSION 1: GNOME (Mutter Backend)
             SystemMenuAccess automatically migrates to Mode 3 ('All Icons').
           * Verify safety guard in DockWindow.vala: even if raw setting is 1 or 2,
             when CategorizeItems is false, right-click on any icon grants system menu.
-   [  ] 13.4 Accordion Master Anchor, Fallback & Expansion Safety:
+   [  ] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - In Categorize Items mode with Accordion enabled:
-          * If Preferences icon is present, it acts as the Master Anchor.
-          * If Preferences icon is hidden, the first docklet dynamically acts as
-            the fallback anchor.
+          * If Preferences icon is present inside the docklets group, it acts as
+            the Master Anchor (placed at the leftmost edge when DockletsOnRight
+            is false, and at the rightmost edge when DockletsOnRight is true).
+          * If Preferences icon is hidden or anchored separately at far left,
+            the outer edge docklet (leftmost when on left, rightmost when on
+            right) dynamically acts as the fallback anchor.
           * With 'Click to Expand' enabled, left-click on the closed anchor icon
             immediately expands the accordion without getting trapped or lost.
           * If docklet count <= 1, accordion never collapses into a single icon
@@ -925,6 +926,21 @@ SESSION 1: GNOME (Mutter Backend)
           application menu (zero WayPlank system menu items appended; pristine application menus).
         - Verify 'Ctrl + Right Click' on any icon or dock surface unconditionally opens the
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
+   [  ] 13.7 Monolithic In-Memory Multi-Language Live Switching & English Fallback:
+        - Test Procedure (using FAT/Test Files/Localization/switch_lang.sh <locale>):
+          1. Run live language switches across all embedded languages and English:
+             "FAT/Test Files/Localization/switch_lang.sh" zh_CN
+             "FAT/Test Files/Localization/switch_lang.sh" it
+             "FAT/Test Files/Localization/switch_lang.sh" es
+             "FAT/Test Files/Localization/switch_lang.sh" fr
+             "FAT/Test Files/Localization/switch_lang.sh" ca
+             "FAT/Test Files/Localization/switch_lang.sh" de
+             "FAT/Test Files/Localization/switch_lang.sh" uk
+             "FAT/Test Files/Localization/switch_lang.sh" en
+          2. Verify that switch_lang.sh passes the target locale directly to the WayPlank
+             process and that WayPlank resolves all UI strings (Preferences dialog, context
+             menus, docklets, About dialog) directly from in-RAM GResource (.mo) with zero
+             /usr/share/locale/ files, falling back to native English for unembedded locales.
 
 ================================================================================
 SESSION 1 RESULT: (GNOME / Mutter Backend)
@@ -1499,7 +1515,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
           /usr/share/plank/themes are automatically discovered and loaded with
           100% parameter fidelity.
-   [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays; cold start on
         fractional scaling (e.g. 4K@1.5x).
@@ -1806,11 +1822,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
             SystemMenuAccess automatically migrates to Mode 3 ('All Icons').
           * Verify safety guard in DockWindow.vala: even if raw setting is 1 or 2,
             when CategorizeItems is false, right-click on any icon grants system menu.
-   [  ] 13.4 Accordion Master Anchor, Fallback & Expansion Safety:
+   [  ] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - In Categorize Items mode with Accordion enabled:
-          * If Preferences icon is present, it acts as the Master Anchor.
-          * If Preferences icon is hidden, the first docklet dynamically acts as
-            the fallback anchor.
+          * If Preferences icon is present inside the docklets group, it acts as
+            the Master Anchor (placed at the leftmost edge when DockletsOnRight
+            is false, and at the rightmost edge when DockletsOnRight is true).
+          * If Preferences icon is hidden or anchored separately at far left,
+            the outer edge docklet (leftmost when on left, rightmost when on
+            right) dynamically acts as the fallback anchor.
           * With 'Click to Expand' enabled, left-click on the closed anchor icon
             immediately expands the accordion without getting trapped or lost.
           * If docklet count <= 1, accordion never collapses into a single icon
@@ -1832,6 +1851,21 @@ SESSION 2: KDE PLASMA (KWin Backend)
           application menu (zero WayPlank system menu items appended; pristine application menus).
         - Verify 'Ctrl + Right Click' on any icon or dock surface unconditionally opens the
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
+   [  ] 13.7 Monolithic In-Memory Multi-Language Live Switching & English Fallback:
+        - Test Procedure (using FAT/Test Files/Localization/switch_lang.sh <locale>):
+          1. Run live language switches across all embedded languages and English:
+             "FAT/Test Files/Localization/switch_lang.sh" zh_CN
+             "FAT/Test Files/Localization/switch_lang.sh" it
+             "FAT/Test Files/Localization/switch_lang.sh" es
+             "FAT/Test Files/Localization/switch_lang.sh" fr
+             "FAT/Test Files/Localization/switch_lang.sh" ca
+             "FAT/Test Files/Localization/switch_lang.sh" de
+             "FAT/Test Files/Localization/switch_lang.sh" uk
+             "FAT/Test Files/Localization/switch_lang.sh" en
+          2. Verify that switch_lang.sh passes the target locale directly to the WayPlank
+             process and that WayPlank resolves all UI strings (Preferences dialog, context
+             menus, docklets, About dialog) directly from in-RAM GResource (.mo) with zero
+             /usr/share/locale/ files, falling back to native English for unembedded locales.
 
 ================================================================================
 SESSION 2 RESULT: (KDE Plasma / KWin Backend)
@@ -2392,7 +2426,7 @@ SESSION 3: LABWC (wlroots Backend)
         - Verify legacy Plank themes installed in ~/.local/share/plank/themes or
           /usr/share/plank/themes are automatically discovered and loaded with
           100% parameter fidelity.
-   [  ] 7.6 Multi-Monitor: Output monitor selector works correctly
+   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays; cold start on
         fractional scaling (e.g. 4K@1.5x).
@@ -2695,11 +2729,14 @@ SESSION 3: LABWC (wlroots Backend)
             SystemMenuAccess automatically migrates to Mode 3 ('All Icons').
           * Verify safety guard in DockWindow.vala: even if raw setting is 1 or 2,
             when CategorizeItems is false, right-click on any icon grants system menu.
-   [  ] 13.4 Accordion Master Anchor, Fallback & Expansion Safety:
+   [  ] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - In Categorize Items mode with Accordion enabled:
-          * If Preferences icon is present, it acts as the Master Anchor.
-          * If Preferences icon is hidden, the first docklet dynamically acts as
-            the fallback anchor.
+          * If Preferences icon is present inside the docklets group, it acts as
+            the Master Anchor (placed at the leftmost edge when DockletsOnRight
+            is false, and at the rightmost edge when DockletsOnRight is true).
+          * If Preferences icon is hidden or anchored separately at far left,
+            the outer edge docklet (leftmost when on left, rightmost when on
+            right) dynamically acts as the fallback anchor.
           * With 'Click to Expand' enabled, left-click on the closed anchor icon
             immediately expands the accordion without getting trapped or lost.
           * If docklet count <= 1, accordion never collapses into a single icon
@@ -2721,6 +2758,21 @@ SESSION 3: LABWC (wlroots Backend)
           application menu (zero WayPlank system menu items appended; pristine application menus).
         - Verify 'Ctrl + Right Click' on any icon or dock surface unconditionally opens the
           full WayPlank system menu, guaranteeing full settings accessibility at all times.
+   [  ] 13.7 Monolithic In-Memory Multi-Language Live Switching & English Fallback:
+        - Test Procedure (using FAT/Test Files/Localization/switch_lang.sh <locale>):
+          1. Run live language switches across all embedded languages and English:
+             "FAT/Test Files/Localization/switch_lang.sh" zh_CN
+             "FAT/Test Files/Localization/switch_lang.sh" it
+             "FAT/Test Files/Localization/switch_lang.sh" es
+             "FAT/Test Files/Localization/switch_lang.sh" fr
+             "FAT/Test Files/Localization/switch_lang.sh" ca
+             "FAT/Test Files/Localization/switch_lang.sh" de
+             "FAT/Test Files/Localization/switch_lang.sh" uk
+             "FAT/Test Files/Localization/switch_lang.sh" en
+          2. Verify that switch_lang.sh passes the target locale directly to the WayPlank
+             process and that WayPlank resolves all UI strings (Preferences dialog, context
+             menus, docklets, About dialog) directly from in-RAM GResource (.mo) with zero
+             /usr/share/locale/ files, falling back to native English for unembedded locales.
 
 ================================================================================
 SESSION 3 RESULT: (LABWC / wlroots Backend)

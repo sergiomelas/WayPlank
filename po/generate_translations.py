@@ -3083,6 +3083,1104 @@ translations = {
         "ca": "🔄 Actualitza",
         "de": "🔄 Aktualisieren",
         "uk": "🔄 Оновити"
+    },
+    "Website": {
+        "zh_CN": "官方网站",
+        "it": "Sito web",
+        "es": "Sitio web",
+        "fr": "Site Web",
+        "ca": "Lloc web",
+        "de": "Webseite",
+        "uk": "Вебсайт"
+    },
+    "Discharging": {
+        "zh_CN": "放电中",
+        "it": "In scarica",
+        "es": "Descargando",
+        "fr": "En décharge",
+        "ca": "Descarregant",
+        "de": "Wird entladen",
+        "uk": "Розряджається"
+    },
+    "Not charging": {
+        "zh_CN": "未充电",
+        "it": "Non in carica",
+        "es": "Sin cargar",
+        "fr": "Ne charge pas",
+        "ca": "No s'està carregant",
+        "de": "Lädt nicht",
+        "uk": "Не заряджається"
+    },
+    "Unknown": {
+        "zh_CN": "未知",
+        "it": "Sconosciuto",
+        "es": "Desconocido",
+        "fr": "Inconnu",
+        "ca": "Desconegut",
+        "de": "Unbekannt",
+        "uk": "Невідомо"
+    },
+    "AC Power": {
+        "zh_CN": "交流电源",
+        "it": "Alimentazione CA",
+        "es": "Corriente alterna",
+        "fr": "Secteur",
+        "ca": "Corrent altern",
+        "de": "Netzbetrieb",
+        "uk": "Живлення від мережі"
+    },
+    "Internet": {
+        "zh_CN": "互联网",
+        "it": "Internet",
+        "es": "Internet",
+        "fr": "Internet",
+        "ca": "Internet",
+        "de": "Internet",
+        "uk": "Інтернет"
+    },
+    "Office": {
+        "zh_CN": "办公与效率",
+        "it": "Ufficio",
+        "es": "Oficina",
+        "fr": "Bureautique",
+        "ca": "Oficina",
+        "de": "Büro",
+        "uk": "Офіс"
+    },
+    "Media": {
+        "zh_CN": "影音与创意",
+        "it": "Multimedia",
+        "es": "Multimedia",
+        "fr": "Multimédia",
+        "ca": "Multimèdia",
+        "de": "Medien",
+        "uk": "Мультимедіа"
+    },
+    "Games": {
+        "zh_CN": "游戏",
+        "it": "Giochi",
+        "es": "Juegos",
+        "fr": "Jeux",
+        "ca": "Jocs",
+        "de": "Spiele",
+        "uk": "Ігри"
+    },
+    "Utilities": {
+        "zh_CN": "实用工具",
+        "it": "Utilità",
+        "es": "Utilidades",
+        "fr": "Utilitaires",
+        "ca": "Utilitats",
+        "de": "Dienstprogramme",
+        "uk": "Утиліти"
+    },
+    "Playing": {
+        "zh_CN": "播放中",
+        "it": "In riproduzione",
+        "es": "Reproduciendo",
+        "fr": "En lecture",
+        "ca": "Reproduint",
+        "de": "Wiedergabe",
+        "uk": "Відтворюється"
+    },
+    "Paused": {
+        "zh_CN": "已暂停",
+        "it": "In pausa",
+        "es": "En pausa",
+        "fr": "En pause",
+        "ca": "En pausa",
+        "de": "Pausiert",
+        "uk": "Призупинено"
+    },
+    "Stopped": {
+        "zh_CN": "已停止",
+        "it": "Fermato",
+        "es": "Detenido",
+        "fr": "Arrêté",
+        "ca": "Aturat",
+        "de": "Gestoppt",
+        "uk": "Зупинено"
+    },
+    " (Requires KWin)": {
+        "zh_CN": " (需要 KWin)",
+        "it": " (Richiede KWin)",
+        "es": " (Requiere KWin)",
+        "fr": " (Nécessite KWin)",
+        "ca": " (Requereix KWin)",
+        "de": " (Erfordert KWin)",
+        "uk": " (Потребує KWin)"
+    },
+    "°C (Celsius)": {
+        "zh_CN": "°C (摄氏度)",
+        "it": "°C (Celsius)",
+        "es": "°C (Celsius)",
+        "fr": "°C (Celsius)",
+        "ca": "°C (Celsius)",
+        "de": "°C (Celsius)",
+        "uk": "°C (Цельсій)"
+    },
+    "°F (Fahrenheit)": {
+        "zh_CN": "°F (华氏度)",
+        "it": "°F (Fahrenheit)",
+        "es": "°F (Fahrenheit)",
+        "fr": "°F (Fahrenheit)",
+        "ca": "°F (Fahrenheit)",
+        "de": "°F (Fahrenheit)",
+        "uk": "°F (Фаренгейт)"
+    },
+    "WayPlank is designed exclusively for Wayland sessions.": {
+        "zh_CN": "WayPlank 专为 Wayland 桌面会话设计。",
+        "it": "WayPlank è progettato esclusivamente per sessioni Wayland.",
+        "es": "WayPlank está diseñado exclusivamente para sesiones Wayland.",
+        "fr": "WayPlank est conçu exclusivement pour les sessions Wayland.",
+        "ca": "El WayPlank està dissenyat exclusivament per a sessions Wayland.",
+        "de": "WayPlank wurde ausschließlich für Wayland-Sitzungen entwickelt.",
+        "uk": "WayPlank розроблено виключно для сеансів Wayland."
+    },
+    "WayPlank - Unsupported Session": {
+        "zh_CN": "WayPlank - 不支持的会话",
+        "it": "WayPlank - Sessione non supportata",
+        "es": "WayPlank - Sesión no compatible",
+        "fr": "WayPlank - Session non prise en charge",
+        "ca": "WayPlank - Sessió no compatible",
+        "de": "WayPlank - Nicht unterstützte Sitzung",
+        "uk": "WayPlank - Непідтримуваний сеанс"
+    },
+    "Theme:": {
+        "zh_CN": "主题:",
+        "it": "Tema:",
+        "es": "Tema:",
+        "fr": "Thème :",
+        "ca": "Tema:",
+        "de": "Theme:",
+        "uk": "Тема:"
+    },
+    "Install Theme from Archive (.zip, .tar.gz, .theme)...": {
+        "zh_CN": "从压缩包安装主题 (.zip, .tar.gz, .theme)...",
+        "it": "Installa tema da archivio (.zip, .tar.gz, .theme)...",
+        "es": "Instalar tema desde archivo (.zip, .tar.gz, .theme)...",
+        "fr": "Installer un thème depuis une archive (.zip, .tar.gz, .theme)...",
+        "ca": "Instal·la un tema des d'un arxiu (.zip, .tar.gz, .theme)...",
+        "de": "Theme aus Archiv installieren (.zip, .tar.gz, .theme)...",
+        "uk": "Встановити тему з архіву (.zip, .tar.gz, .theme)..."
+    },
+    "Delete Selected User Theme": {
+        "zh_CN": "删除所选的用户主题",
+        "it": "Elimina il tema utente selezionato",
+        "es": "Eliminar el tema de usuario seleccionado",
+        "fr": "Supprimer le thème utilisateur sélectionné",
+        "ca": "Suprimeix el tema d'usuari seleccionat",
+        "de": "Ausgewähltes Benutzer-Theme löschen",
+        "uk": "Видалити вибрану тему користувача"
+    },
+    "Position:": {
+        "zh_CN": "屏幕位置:",
+        "it": "Posizione:",
+        "es": "Posición:",
+        "fr": "Position :",
+        "ca": "Posició:",
+        "de": "Position:",
+        "uk": "Розташування:"
+    },
+    "Left": {
+        "zh_CN": "左侧",
+        "it": "Sinistra",
+        "es": "Izquierda",
+        "fr": "Gauche",
+        "ca": "Esquerra",
+        "de": "Links",
+        "uk": "Ліворуч"
+    },
+    "Right": {
+        "zh_CN": "右侧",
+        "it": "Destra",
+        "es": "Derecha",
+        "fr": "Droite",
+        "ca": "Dreta",
+        "de": "Rechts",
+        "uk": "Праворуч"
+    },
+    "Top": {
+        "zh_CN": "顶部",
+        "it": "In alto",
+        "es": "Arriba",
+        "fr": "Haut",
+        "ca": "A dalt",
+        "de": "Oben",
+        "uk": "Зверху"
+    },
+    "Bottom": {
+        "zh_CN": "底部",
+        "it": "In basso",
+        "es": "Abajo",
+        "fr": "Bas",
+        "ca": "A baix",
+        "de": "Unten",
+        "uk": "Знизу"
+    },
+    "On Primary Display:": {
+        "zh_CN": "在主显示器上显示:",
+        "it": "Sullo schermo principale:",
+        "es": "En la pantalla principal:",
+        "fr": "Sur l'écran principal :",
+        "ca": "A la pantalla principal:",
+        "de": "Auf Hauptbildschirm:",
+        "uk": "На основному дисплеї:"
+    },
+    "Automatically display the dock on the primary monitor; disable to choose a specific display": {
+        "zh_CN": "自动在主显示器上显示停靠栏；关闭后可手动指定目标显示器",
+        "it": "Mostra automaticamente il dock sul monitor principale; disattiva per scegliere uno schermo specifico",
+        "es": "Mostrar automáticamente el dock en el monitor principal; desactivar para elegir una pantalla específica",
+        "fr": "Afficher automatiquement le dock sur le moniteur principal ; désactiver pour choisir un écran spécifique",
+        "ca": "Mostra automàticament el dock al monitor principal; desactiveu-ho per triar una pantalla específica",
+        "de": "Dock automatisch auf dem Hauptbildschirm anzeigen; deaktivieren, um einen bestimmten Bildschirm auszuwählen",
+        "uk": "Автоматично показувати док на основному моніторі; вимкніть, щоб вибрати певний дисплей"
+    },
+    "Alignment:": {
+        "zh_CN": "停靠对齐:",
+        "it": "Allineamento:",
+        "es": "Alineación:",
+        "fr": "Alignement :",
+        "ca": "Alineació:",
+        "de": "Ausrichtung:",
+        "uk": "Вирівнювання:"
+    },
+    "Fill": {
+        "zh_CN": "填充 (面板模式)",
+        "it": "Riempi",
+        "es": "Rellenar",
+        "fr": "Remplir",
+        "ca": "Omple",
+        "de": "Ausfüllen",
+        "uk": "Заповнити"
+    },
+    "Start": {
+        "zh_CN": "起始端",
+        "it": "Inizio",
+        "es": "Inicio",
+        "fr": "Début",
+        "ca": "Inici",
+        "de": "Anfang",
+        "uk": "На початку"
+    },
+    "End": {
+        "zh_CN": "末端",
+        "it": "Fine",
+        "es": "Fin",
+        "fr": "Fin",
+        "ca": "Final",
+        "de": "Ende",
+        "uk": "У кінці"
+    },
+    "Center": {
+        "zh_CN": "居中",
+        "it": "Centro",
+        "es": "Centro",
+        "fr": "Centre",
+        "ca": "Centre",
+        "de": "Zentriert",
+        "uk": "По центру"
+    },
+    "Offset in percent from the center of the screen-edge": {
+        "zh_CN": "相对于屏幕边缘中心位置的偏移百分比",
+        "it": "Scostamento percentuale rispetto al centro del bordo dello schermo",
+        "es": "Desplazamiento en porcentaje desde el centro del borde de la pantalla",
+        "fr": "Décalage en pourcentage par rapport au centre du bord de l'écran",
+        "ca": "Desplaçament en percentatge des del centre de la vora de la pantalla",
+        "de": "Versatz in Prozent von der Mitte des Bildschirmrands",
+        "uk": "Зміщення у відсотках від центру краю екрана"
+    },
+    "Icon Alignment:": {
+        "zh_CN": "图标对齐:",
+        "it": "Allineamento icone:",
+        "es": "Alineación de iconos:",
+        "fr": "Alignement des icônes :",
+        "ca": "Alineació de les icones:",
+        "de": "Symbolausrichtung:",
+        "uk": "Вирівнювання піктограм:"
+    },
+    "Icon Size:": {
+        "zh_CN": "图标大小:",
+        "it": "Dimensione icone:",
+        "es": "Tamaño de iconos:",
+        "fr": "Taille des icônes :",
+        "ca": "Mida de les icones:",
+        "de": "Symbolgröße:",
+        "uk": "Розмір піктограм:"
+    },
+    "Preferred dock item size in pixels (24px to 128px); when screen space is full, items auto-shrink unless Scroll on Overflow is enabled": {
+        "zh_CN": "首选停靠栏图标像素尺寸 (24px 至 128px)；当屏幕空间满载时，除非启用了“超限平滑翻页”，否则图标将自动缩小",
+        "it": "Dimensione preferita delle icone in pixel (da 24px a 128px); a schermo pieno le icone si rimpiccioliscono automaticamente a meno che 'Scorrimento per overflow' non sia attivo",
+        "es": "Tamaño preferido de los iconos en píxeles (24px a 128px); cuando la pantalla se llena, se encogen automáticamente salvo que 'Desplazamiento por desbordamiento' esté activo",
+        "fr": "Taille préférée des icônes en pixels (24px à 128px) ; lorsque l'écran est plein, les éléments rétrécissent automatiquement sauf si le défilement par débordement est activé",
+        "ca": "Mida preferida de les icones en píxels (24px a 128px); quan l'espai s'omple, les icones s'encongeixen automàticament tret que s'activi el desplaçament per desbordament",
+        "de": "Bevorzugte Symbolgröße in Pixeln (24px bis 128px); bei Platzmangel werden Symbole automatisch verkleinert, sofern 'Überlauf-Scrollen' nicht aktiviert ist",
+        "uk": "Бажаний розмір піктограм у пікселях (від 24 до 128 пікс.); при заповненні екрана елементи автозменшуються, якщо не ввімкнено «Прокручування при переповненні»"
+    },
+    "Adjust dock item size in pixels (24px to 128px)": {
+        "zh_CN": "以像素为单位调节停靠栏图标大小 (24px 至 128px)",
+        "it": "Regola la dimensione delle icone del dock in pixel (da 24px a 128px)",
+        "es": "Ajustar el tamaño de los iconos del dock en píxeles (24px a 128px)",
+        "fr": "Ajuster la taille des icônes du dock en pixels (24px à 128px)",
+        "ca": "Ajusta la mida de les icones del dock en píxels (24px a 128px)",
+        "de": "Größe der Dock-Symbole in Pixeln anpassen (24px bis 128px)",
+        "uk": "Налаштувати розмір піктограм дока в пікселях (від 24 до 128 пікс.)"
+    },
+    "Adjust dock item size in pixels; turning red indicates the screen capacity is exceeded and icons are auto-shrunk": {
+        "zh_CN": "调节图标像素尺寸；滑块变红表示已超出当前屏幕物理容纳上限，图标正在自动缩小",
+        "it": "Regola la dimensione delle icone in pixel; il colore rosso indica che la capienza dello schermo è superata e le icone sono rimpicciolite automaticamente",
+        "es": "Ajustar el tamaño de los iconos en píxeles; si se vuelve rojo indica que se superó la capacidad de la pantalla y los iconos se encogen automáticamente",
+        "fr": "Ajuster la taille des icônes en pixels ; le passage au rouge indique que la capacité de l'écran est dépassée et que les icônes sont réduites automatiquement",
+        "ca": "Ajusta la mida de les icones en píxels; el color vermell indica que s'ha superat la capacitat de la pantalla i les icones s'han reduït automàticament",
+        "de": "Symbolgröße in Pixeln anpassen; eine rote Färbung zeigt an, dass die Bildschirmkapazität überschritten ist und Symbole automatisch verkleinert werden",
+        "uk": "Налаштувати розмір піктограм у пікселях; червоний колір означає перевищення місткості екрана й автоматичне зменшення піктограм"
+    },
+    "Dynamic indicator of screen space capacity and auto-shrink status": {
+        "zh_CN": "屏幕空间容纳上限与自动缩放状态的实时动态指示器",
+        "it": "Indicatore dinamico della capienza dello schermo e dello stato di rimpicciolimento automatico",
+        "es": "Indicador dinámico de la capacidad de espacio en pantalla y estado de reducción automática",
+        "fr": "Indicateur dynamique de la capacité d'espace écran et de l'état de réduction automatique",
+        "ca": "Indicador dinàmic de la capacitat d'espai de pantalla i de l'estat de reducció automàtica",
+        "de": "Dynamische Anzeige der Bildschirmkapazität und des Status der automatischen Verkleinerung",
+        "uk": "Динамічний індикатор місткості екранного простору та стану автозменшення"
+    },
+    "Icon Zoom:": {
+        "zh_CN": "图标缩放:",
+        "it": "Ingrandimento icone:",
+        "es": "Zoom de iconos:",
+        "fr": "Zoom des icônes :",
+        "ca": "Zoom de les icones:",
+        "de": "Symbol-Vergrößerung:",
+        "uk": "Збільшення піктограм:"
+    },
+    "Smoothly magnify icons under the mouse cursor": {
+        "zh_CN": "平滑放大鼠标指针悬停处的停靠栏图标",
+        "it": "Ingrandisce fluidamente le icone sotto il cursore del mouse",
+        "es": "Ampliar suavemente los iconos bajo el cursor del ratón",
+        "fr": "Agrandir fluidement les icônes sous le curseur de la souris",
+        "ca": "Amplia suaument les icones sota el cursor del ratolí",
+        "de": "Symbole unter dem Mauszeiger sanft vergrößern",
+        "uk": "Плавно збільшувати піктограми під курсором миші"
+    },
+    "Appearance": {
+        "zh_CN": "外观",
+        "it": "Aspetto",
+        "es": "Apariencia",
+        "fr": "Apparence",
+        "ca": "Aparença",
+        "de": "Darstellung",
+        "uk": "Вигляд"
+    },
+    "Hide Dock:": {
+        "zh_CN": "隐藏停靠栏:",
+        "it": "Nascondi dock:",
+        "es": "Ocultar dock:",
+        "fr": "Masquer le dock :",
+        "ca": "Amaga el dock:",
+        "de": "Dock ausblenden:",
+        "uk": "Приховувати док:"
+    },
+    "Enable automatic dock hiding according to the selected Hide Mode; when disabled, the dock remains permanently visible": {
+        "zh_CN": "根据所选隐藏模式开启停靠栏自动隐藏；关闭后停靠栏将始终保持常驻可见",
+        "it": "Abilita la scomparsa automatica del dock secondo la modalità selezionata; se disattivato, il dock rimane sempre visibile",
+        "es": "Activar el ocultamiento automático según el modo seleccionado; si se desactiva, el dock permanece siempre visible",
+        "fr": "Activer le masquage automatique du dock selon le mode sélectionné ; lorsqu'il est désactivé, le dock reste visible en permanence",
+        "ca": "Activa l'ocultació automàtica del dock segons el mode seleccionat; si es desactiva, el dock roman sempre visible",
+        "de": "Automatisches Ausblenden des Docks gemäß dem gewählten Modus aktivieren; wenn deaktiviert, bleibt das Dock dauerhaft sichtbar",
+        "uk": "Увімкнути автоматичне приховування дока відповідно до вибраного режиму; якщо вимкнено, док залишається постійно видимим"
+    },
+    "Hide Mode:": {
+        "zh_CN": "隐藏模式:",
+        "it": "Modalità di scomparsa:",
+        "es": "Modo de ocultación:",
+        "fr": "Mode de masquage :",
+        "ca": "Mode d'ocultació:",
+        "de": "Ausblendmodus:",
+        "uk": "Режим приховування:"
+    },
+    "Intellihide": {
+        "zh_CN": "智能隐藏 (避让当前应用)",
+        "it": "Scomparsa intelligente (Intellihide)",
+        "es": "Ocultación inteligente (Intellihide)",
+        "fr": "Masquage intelligent (Intellihide)",
+        "ca": "Ocultació intel·ligent (Intellihide)",
+        "de": "Intelligentes Ausblenden (Intellihide)",
+        "uk": "Розумне приховування (Intellihide)"
+    },
+    "Autohide": {
+        "zh_CN": "自动隐藏 (总是隐藏)",
+        "it": "Scomparsa automatica (Autohide)",
+        "es": "Ocultación automática (Autohide)",
+        "fr": "Masquage automatique (Autohide)",
+        "ca": "Ocultació automàtica (Autohide)",
+        "de": "Automatisch ausblenden (Autohide)",
+        "uk": "Автоматичне приховування (Autohide)"
+    },
+    "Dodge maximized window": {
+        "zh_CN": "避让最大化窗口",
+        "it": "Schiva finestra massimizzata",
+        "es": "Esquivar ventana maximizada",
+        "fr": "Esquiver la fenêtre maximisée",
+        "ca": "Esquiva la finestra maximitzada",
+        "de": "Maximiertem Fenster ausweichen",
+        "uk": "Уникати максимізованого вікна"
+    },
+    "Window Dodge": {
+        "zh_CN": "避让任何重叠窗口",
+        "it": "Schiva finestre",
+        "es": "Esquivar ventanas",
+        "fr": "Esquiver les fenêtres",
+        "ca": "Esquiva les finestres",
+        "de": "Fenstern ausweichen",
+        "uk": "Уникати вікон"
+    },
+    "Dodge active window": {
+        "zh_CN": "避让活动焦点窗口",
+        "it": "Schiva finestra attiva",
+        "es": "Esquivar ventana activa",
+        "fr": "Esquiver la fenêtre active",
+        "ca": "Esquiva la finestra activa",
+        "de": "Aktivem Fenster ausweichen",
+        "uk": "Уникати активного вікна"
+    },
+    "Hide Delay (ms):": {
+        "zh_CN": "隐藏延迟 (毫秒):",
+        "it": "Ritardo scomparsa (ms):",
+        "es": "Retardo al ocultar (ms):",
+        "fr": "Délai de masquage (ms) :",
+        "ca": "Retard d'ocultació (ms):",
+        "de": "Ausblendverzögerung (ms):",
+        "uk": "Затримка приховування (мс):"
+    },
+    "Delay in ms before hiding the dock": {
+        "zh_CN": "停靠栏隐藏前的等待延迟时间 (毫秒)",
+        "it": "Ritardo in millisecondi prima di nascondere il dock",
+        "es": "Retardo en milisegundos antes de ocultar el dock",
+        "fr": "Délai en millisecondes avant de masquer le dock",
+        "ca": "Retard en mil·lisegons abans d'amagar el dock",
+        "de": "Verzögerung in ms vor dem Ausblenden des Docks",
+        "uk": "Затримка в мс перед приховуванням дока"
+    },
+    "Unhide Delay (ms):": {
+        "zh_CN": "唤出延迟 (毫秒):",
+        "it": "Ritardo comparsa (ms):",
+        "es": "Retardo al mostrar (ms):",
+        "fr": "Délai d'apparition (ms) :",
+        "ca": "Retard d'aparició (ms):",
+        "de": "Einblendverzögerung (ms):",
+        "uk": "Затримка показу (мс):"
+    },
+    "Delay in ms before showing the dock": {
+        "zh_CN": "停靠栏重新显示前的等待延迟时间 (毫秒)",
+        "it": "Ritardo in millisecondi prima di mostrare il dock",
+        "es": "Retardo en milisegundos antes de mostrar el dock",
+        "fr": "Délai en millisecondes avant d'afficher le dock",
+        "ca": "Retard en mil·lisegons abans de mostrar el dock",
+        "de": "Verzögerung in ms vor dem Einblenden des Docks",
+        "uk": "Затримка в мс перед показом дока"
+    },
+    "Pressure Reveal:": {
+        "zh_CN": "边缘触压唤出:",
+        "it": "Comparsa a pressione:",
+        "es": "Revelado por presión:",
+        "fr": "Apparition par pression :",
+        "ca": "Revelació per pressió:",
+        "de": "Bei Randberührung einblenden:",
+        "uk": "Показ при натисканні краю:"
+    },
+    "Item Management": {
+        "zh_CN": "图标与项目管理",
+        "it": "Gestione elementi",
+        "es": "Gestión de elementos",
+        "fr": "Gestion des éléments",
+        "ca": "Gestió d'elements",
+        "de": "Elementverwaltung",
+        "uk": "Керування елементами"
+    },
+    "Show Unpinned:": {
+        "zh_CN": "显示未固定应用:",
+        "it": "Mostra non fissate:",
+        "es": "Mostrar no ancladas:",
+        "fr": "Afficher les non-épinglées :",
+        "ca": "Mostra les no ancorades:",
+        "de": "Nicht angeheftete anzeigen:",
+        "uk": "Показувати незакріплені:"
+    },
+    "Display running applications on the dock even if they are not pinned": {
+        "zh_CN": "在停靠栏上显示正在运行的未固定应用程序",
+        "it": "Mostra sul dock le applicazioni in esecuzione anche se non sono fissate",
+        "es": "Mostrar en el dock las aplicaciones en ejecución aunque no estén ancladas",
+        "fr": "Afficher sur le dock les applications en cours d'exécution même si elles ne sont pas épinglées",
+        "ca": "Mostra les aplicacions en execució al dock encara que no estiguin ancorades",
+        "de": "Laufende Anwendungen im Dock anzeigen, auch wenn sie nicht angeheftet sind",
+        "uk": "Показувати запущені програми на доці, навіть якщо вони не закріплені"
+    },
+    "Lock Icons:": {
+        "zh_CN": "锁定图标:",
+        "it": "Blocca icone:",
+        "es": "Bloquear iconos:",
+        "fr": "Verrouiller les icônes :",
+        "ca": "Bloca les icones:",
+        "de": "Symbole sperren:",
+        "uk": "Заблокувати піктограми:"
+    },
+    "Lock dock icons in place to prevent accidental dragging, reordering, or removal": {
+        "zh_CN": "将停靠栏图标锁定在当前位置，防止误拖拽、重排或移除",
+        "it": "Blocca le icone del dock in posizione per evitare trascinamenti, riordini o rimozioni accidentali",
+        "es": "Bloquear los iconos del dock para evitar arrastrarlos, reordenarlos o eliminarlos accidentalmente",
+        "fr": "Verrouiller les icônes du dock pour empêcher tout déplacement, réorganisation ou suppression accidentels",
+        "ca": "Bloca les icones del dock per evitar arrossegaments, reordenacions o eliminacions accidentals",
+        "de": "Dock-Symbole fixieren, um versehentliches Ziehen, Neuordnen oder Entfernen zu verhindern",
+        "uk": "Зафіксувати піктограми дока, щоб запобігти випадковому перетягуванню, переміщенню чи вилученню"
+    },
+    "Workspace Only:": {
+        "zh_CN": "仅限当前工作区:",
+        "it": "Solo spazio di lavoro:",
+        "es": "Solo área de trabajo:",
+        "fr": "Espace de travail uniquement :",
+        "ca": "Només l'àrea de treball:",
+        "de": "Nur aktueller Arbeitsbereich:",
+        "uk": "Лише робочий простір:"
+    },
+    "Scroll on Overflow:": {
+        "zh_CN": "超限平滑翻页:",
+        "it": "Scorrimento per overflow:",
+        "es": "Desplazamiento por desbordamiento:",
+        "fr": "Défilement par débordement :",
+        "ca": "Desplaçament per desbordament:",
+        "de": "Überlauf-Scrollen:",
+        "uk": "Прокручування при переповненні:"
+    },
+    "Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons": {
+        "zh_CN": "当停靠栏超出屏幕空间时使用鼠标滚轮平滑滚动浏览图标，完整保留图标原始大小而不自动缩小",
+        "it": "Scorri fluidamente gli elementi con la rotellina del mouse quando il dock supera lo spazio dello schermo, mantenendo la dimensione intera delle icone invece di rimpicciolirle",
+        "es": "Desplazar suavemente los elementos con la rueda del ratón cuando el dock supere el espacio en pantalla, conservando el tamaño completo de los iconos",
+        "fr": "Faire défiler fluidement les éléments avec la molette lorsque le dock dépasse l'écran, en conservant la taille complète des icônes",
+        "ca": "Desplaça suaument els elements amb la roda del ratolí quan el dock superi l'espai de pantalla, conservant la mida completa de les icones",
+        "de": "Elemente bei Platzmangel sanft mit dem Mausrad scrollen und die volle Symbolgröße beibehalten, statt Symbole automatisch zu verkleinern",
+        "uk": "Плавно прокручувати елементи колесом миші, коли док перевищує розмір екрана, зберігаючи повний розмір піктограм замість автозменшення"
+    },
+    "Start on Login:": {
+        "zh_CN": "开机自动启动:",
+        "it": "Avvia all'accesso:",
+        "es": "Iniciar con la sesión:",
+        "fr": "Démarrer à la connexion :",
+        "ca": "Inicia a l'entrada:",
+        "de": "Bei Anmeldung starten:",
+        "uk": "Запускати під час входу:"
+    },
+    "Automatically launch WayPlank when logging into your desktop session": {
+        "zh_CN": "登录桌面会话时自动启动 WayPlank",
+        "it": "Avvia automaticamente WayPlank all'accesso nella sessione desktop",
+        "es": "Iniciar automáticamente WayPlank al entrar en la sesión de escritorio",
+        "fr": "Lancer automatiquement WayPlank lors de la connexion à votre session de bureau",
+        "ca": "Inicia automàticament el WayPlank en entrar a la sessió d'escriptori",
+        "de": "WayPlank beim Anmelden an der Desktop-Sitzung automatisch starten",
+        "uk": "Автоматично запускати WayPlank під час входу до сеансу стільниці"
+    },
+    "Categorize Items:": {
+        "zh_CN": "分类整理项目:",
+        "it": "Categorizza elementi:",
+        "es": "Categorizar elementos:",
+        "fr": "Catégoriser les éléments :",
+        "ca": "Categoritza els elements:",
+        "de": "Elemente kategorisieren:",
+        "uk": "Категоризувати елементи:"
+    },
+    "Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with dynamic separators": {
+        "zh_CN": "使用动态分隔线将停靠栏项目自动归类为文件夹、固定应用、插件与运行中应用",
+        "it": "Raggruppa gli elementi del dock in Cartelle, App fissate, Docklet e App in esecuzione con separatori dinamici",
+        "es": "Agrupar los elementos del dock en Carpetas, Apps fijadas, Docklets y Apps en ejecución con separadores dinámicos",
+        "fr": "Regrouper les éléments du dock en Dossiers, Applications épinglées, Docklets et Applications en cours avec des séparateurs dynamiques",
+        "ca": "Agrupa els elements del dock en Carpetes, Aplicacions ancorades, Docklets i Aplicacions en execució amb separadors dinàmics",
+        "de": "Dock-Elemente mit dynamischen Trennlinien in Ordner, Angeheftete Apps, Docklets und Laufende Apps gruppieren",
+        "uk": "Групувати елементи дока в Теки, Закріплені програми, Докліти та Запущені програми за допомогою динамічних роздільників"
+    },
+    "One-shot reorder: arrange dock items by Folders, Docklets, and Applications without enabling rigid categories or extra separators": {
+        "zh_CN": "一键重排：按文件夹、插件和应用程序顺序整理停靠栏图标，无需启用严格分类限制或额外分隔线",
+        "it": "Riordino istantaneo: disponi gli elementi del dock per Cartelle, Docklet e Applicazioni senza attivare categorie rigide o separatori extra",
+        "es": "Reordenación rápida: organizar los elementos por Carpetas, Docklets y Aplicaciones sin activar categorías rígidas ni separadores adicionales",
+        "fr": "Réorganisation instantanée : trier les éléments par Dossiers, Docklets et Applications sans activer de catégories rigides ni de séparateurs supplémentaires",
+        "ca": "Reordenació immediata: ordena els elements per Carpetes, Docklets i Aplicacions sense activar categories rígides ni separadors addicionals",
+        "de": "Einmalig neu ordnen: Elemente nach Ordnern, Docklets und Anwendungen sortieren, ohne feste Kategorien oder zusätzliche Trennlinien zu aktivieren",
+        "uk": "Одноразове впорядкування: розташувати елементи за Теками, Доклітами та Програмами без жорстких категорій чи додаткових роздільників"
+    },
+    "Align by Type": {
+        "zh_CN": "按类型对齐",
+        "it": "Allinea per tipo",
+        "es": "Alinear por tipo",
+        "fr": "Aligner par type",
+        "ca": "Alinea per tipus",
+        "de": "Nach Typ ordnen",
+        "uk": "Вирівняти за типом"
+    },
+    "Docklet Accordion:": {
+        "zh_CN": "插件折叠手风琴:",
+        "it": "Fisarmonica docklet:",
+        "es": "Acordeón de docklets:",
+        "fr": "Accordéon des docklets :",
+        "ca": "Acordió de docklets:",
+        "de": "Docklet-Akkordeon:",
+        "uk": "Акордеон доклітів:"
+    },
+    "Collapse docklets in-line showing only the first item; expand on hover": {
+        "zh_CN": "将插件栏内联折叠为仅显示主图标；鼠标悬停时平滑展开",
+        "it": "Comprimi i docklet in linea mostrando solo il primo elemento; espandi al passaggio del mouse",
+        "es": "Contraer los docklets en línea mostrando solo el primer elemento; expandir al pasar el ratón",
+        "fr": "Réduire les docklets en ligne en n'affichant que le premier élément ; développer au survol",
+        "ca": "Replega els docklets en línia mostrant només el primer element; desplega en passar-hi el ratolí",
+        "de": "Docklets in einer Reihe einklappen und nur das erste Element anzeigen; beim Überfahren mit der Maus ausklappen",
+        "uk": "Згортати докліти в рядок, показуючи лише перший елемент; розгортати при наведенні курсора"
+    },
+    "Click to Expand:": {
+        "zh_CN": "点击展开:",
+        "it": "Clic per espandere:",
+        "es": "Clic para expandir:",
+        "fr": "Cliquer pour développer :",
+        "ca": "Clic per desplegar:",
+        "de": "Klicken zum Ausklappen:",
+        "uk": "Клацніть для розгортання:"
+    },
+    "Expand docklets only when clicking the Master Preferences icon instead of on hover": {
+        "zh_CN": "仅在左键点击主首选项图标时展开折叠的插件，而非鼠标悬停时展开",
+        "it": "Espandi i docklet solo facendo clic sull'icona principale delle Preferenze invece che al passaggio del mouse",
+        "es": "Expandir los docklets solo al hacer clic en el icono maestro de Preferencias en lugar de al pasar el ratón",
+        "fr": "Développer les docklets uniquement en cliquant sur l'icône principale des Préférences plutôt qu'au survol",
+        "ca": "Desplega els docklets només en fer clic a la icona principal de Preferències en lloc de passar-hi el ratolí",
+        "de": "Docklets erst beim Klicken auf das Haupteinstellungssymbol statt beim Überfahren mit der Maus ausklappen",
+        "uk": "Розгортати докліти лише після клацання головної піктограми параметрів, а не при наведенні курсора"
+    },
+    "Collapse Delay:": {
+        "zh_CN": "折叠收回延迟:",
+        "it": "Ritardo chiusura:",
+        "es": "Retardo al contraer:",
+        "fr": "Délai de réduction :",
+        "ca": "Retard de replegament:",
+        "de": "Einklappverzögerung:",
+        "uk": "Затримка згортання:"
+    },
+    "Delay before collapsing docklets accordion back to master icon": {
+        "zh_CN": "将插件手风琴折叠收回至主图标前的等待延迟时间",
+        "it": "Ritardo prima di richiudere la fisarmonica dei docklet sull'icona principale",
+        "es": "Retardo antes de volver a contraer el acordeón de docklets en el icono maestro",
+        "fr": "Délai avant de replier l'accordéon des docklets vers l'icône principale",
+        "ca": "Retard abans de tornar a replegar l'acordió de docklets a la icona principal",
+        "de": "Verzögerung vor dem Einklappen des Docklet-Akkordeons zurück zum Hauptsymbol",
+        "uk": "Затримка перед згортанням акордеона доклітів назад до головної піктограми"
+    },
+    "Behaviour": {
+        "zh_CN": "行为",
+        "it": "Comportamento",
+        "es": "Comportamiento",
+        "fr": "Comportement",
+        "ca": "Comportament",
+        "de": "Verhalten",
+        "uk": "Поведінка"
+    },
+    "Window Management": {
+        "zh_CN": "窗口管理",
+        "it": "Gestione finestre",
+        "es": "Gestión de ventanas",
+        "fr": "Gestion des fenêtres",
+        "ca": "Gestió de finestres",
+        "de": "Fensterverwaltung",
+        "uk": "Керування вікнами"
+    },
+    "Click Behavior:": {
+        "zh_CN": "点击行为:",
+        "it": "Comportamento al clic:",
+        "es": "Comportamiento al hacer clic:",
+        "fr": "Comportement au clic :",
+        "ca": "Comportament en fer clic:",
+        "de": "Klickverhalten:",
+        "uk": "Поведінка при клацанні:"
+    },
+    "How clicking a running application icon interacts with its windows": {
+        "zh_CN": "点击正在运行的应用程序图标时如何与其打开的窗口进行交互",
+        "it": "Come il clic sull'icona di un'applicazione in esecuzione interagisce con le sue finestre",
+        "es": "Cómo interactúa con sus ventanas el clic sobre el icono de una aplicación en ejecución",
+        "fr": "Comment le clic sur l'icône d'une application en cours d'exécution interagit avec ses fenêtres",
+        "ca": "Com interactua amb les seves finestres el fet de clicar la icona d'una aplicació en execució",
+        "de": "Wie das Klicken auf das Symbol einer laufenden Anwendung mit deren Fenstern interagiert",
+        "uk": "Як клацання піктограми запущеної програми взаємодіє з її вікнами"
+    },
+    "Smart: Focus, toggle or cycle windows": {
+        "zh_CN": "智能模式：激活焦点、最小化切换或循环切换窗口",
+        "it": "Intelligente: attiva, minimizza o scorri le finestre",
+        "es": "Inteligente: enfocar, alternar o recorrer ventanas",
+        "fr": "Intelligent : cibler, basculer ou faire défiler les fenêtres",
+        "ca": "Intel·ligent: enfoca, commuta o recorre les finestres",
+        "de": "Intelligent: Fenster fokussieren, umschalten oder durchwechseln",
+        "uk": "Розумний: фокус, згортання або перемикання вікон по колу"
+    },
+    "Focus: Raise active window to front": {
+        "zh_CN": "聚焦模式：始终将活动窗口提升至最前端",
+        "it": "Primo piano: porta la finestra attiva in primo piano",
+        "es": "Enfocar: traer la ventana activa al frente",
+        "fr": "Focus : amener la fenêtre active au premier plan",
+        "ca": "Enfocament: porta la finestra activa a primer pla",
+        "de": "Fokus: Aktives Fenster in den Vordergrund bringen",
+        "uk": "Фокус: виводити активне вікно на передній план"
+    },
+    "Cycle: Step through open windows": {
+        "zh_CN": "循环模式：依次遍历切换已打开的窗口",
+        "it": "Ciclico: passa in rassegna le finestre aperte",
+        "es": "Ciclo: recorrer las ventanas abiertas paso a paso",
+        "fr": "Cycle : parcourir les fenêtres ouvertes",
+        "ca": "Cicle: recorre les finestres obertes pas a pas",
+        "de": "Zyklisch: Offene Fenster nacheinander durchschalten",
+        "uk": "Цикл: послідовний перехід між відкритими вікнами"
+    },
+    "Window Preview Cards:": {
+        "zh_CN": "窗口预览卡片:",
+        "it": "Schede anteprima finestre:",
+        "es": "Tarjetas de vista previa:",
+        "fr": "Cartes d'aperçu des fenêtres :",
+        "ca": "Targetes de previsualització:",
+        "de": "Fenster-Vorschaukarten:",
+        "uk": "Картки перегляду вікон:"
+    },
+    "Display floating visual preview cards when interacting with applications that have multiple open windows": {
+        "zh_CN": "与拥有多个打开窗口的应用程序交互时显示浮动视觉预览卡片",
+        "it": "Mostra schede di anteprima visiva fluttuanti quando interagisci con applicazioni che hanno più finestre aperte",
+        "es": "Mostrar tarjetas flotantes de vista previa al interactuar con aplicaciones que tienen varias ventanas abiertas",
+        "fr": "Afficher des cartes d'aperçu visuel flottantes lors de l'interaction avec des applications ayant plusieurs fenêtres ouvertes",
+        "ca": "Mostra targetes flotants de previsualització en interactuar amb aplicacions que tenen diverses finestres obertes",
+        "de": "Schwebende Vorschaukarten anzeigen, wenn mit Anwendungen interagiert wird, die mehrere offene Fenster haben",
+        "uk": "Показувати спливні картки візуального перегляду під час взаємодії з програмами, що мають кілька відкритих вікон"
+    },
+    "Restore Minimized:": {
+        "zh_CN": "恢复最小化窗口:",
+        "it": "Ripristina minimizzate:",
+        "es": "Restaurar minimizadas:",
+        "fr": "Restaurer les fenêtres réduites :",
+        "ca": "Restaura les minimitzades:",
+        "de": "Minimierte wiederherstellen:",
+        "uk": "Відновлювати згорнуті:"
+    },
+    "Restore and unminimize windows when clicking their dock icon": {
+        "zh_CN": "点击停靠栏图标时自动恢复并展开已最小化的窗口",
+        "it": "Ripristina e de-minimizza le finestre facendo clic sulla relativa icona nel dock",
+        "es": "Restaurar y desminimizar las ventanas al hacer clic en su icono del dock",
+        "fr": "Restaurer les fenêtres réduites en cliquant sur leur icône dans le dock",
+        "ca": "Restaura i desminimitza les finestres en fer clic a la seva icona del dock",
+        "de": "Minimierte Fenster beim Klicken auf ihr Dock-Symbol wiederherstellen",
+        "uk": "Відновлювати та розгортати згорнуті вікна при клацанні їхньої піктограми в доці"
+    },
+    "Indicators": {
+        "zh_CN": "运行指示器",
+        "it": "Indicatori",
+        "es": "Indicadores",
+        "fr": "Indicateurs",
+        "ca": "Indicadors",
+        "de": "Indikatoren",
+        "uk": "Індикатори"
+    },
+    "Show Running:": {
+        "zh_CN": "显示运行指示点:",
+        "it": "Mostra in esecuzione:",
+        "es": "Mostrar en ejecución:",
+        "fr": "Afficher les applications actives :",
+        "ca": "Mostra en execució:",
+        "de": "Laufende anzeigen:",
+        "uk": "Показувати запущені:"
+    },
+    "Display indicator dots beneath icons for actively running applications": {
+        "zh_CN": "在正在运行的应用程序图标下方显示状态指示圆点",
+        "it": "Mostra i pallini indicatori sotto le icone delle applicazioni attive in esecuzione",
+        "es": "Mostrar puntos indicadores debajo de los iconos de las aplicaciones en ejecución",
+        "fr": "Afficher des points indicateurs sous les icônes des applications en cours d'exécution",
+        "ca": "Mostra punts indicadors sota les icones de les aplicacions en execució",
+        "de": "Indikatorpunkte unter Symbolen aktiv laufender Anwendungen anzeigen",
+        "uk": "Показувати точки-індикатори під піктограмами активно запущених програм"
+    },
+    "Show Attention:": {
+        "zh_CN": "显示注意提醒:",
+        "it": "Mostra richieste di attenzione:",
+        "es": "Mostrar atención requerida:",
+        "fr": "Afficher les demandes d'attention :",
+        "ca": "Mostra les demandes d'atenció:",
+        "de": "Aufmerksamkeit anzeigen:",
+        "uk": "Показувати запити уваги:"
+    },
+    "Highlight or animate indicator dots when an application requests user attention": {
+        "zh_CN": "当应用程序请求用户注意时高亮或动画闪烁指示圆点",
+        "it": "Evidenzia o anima i pallini indicatori quando un'applicazione richiede l'attenzione dell'utente",
+        "es": "Resaltar o animar los puntos indicadores cuando una aplicación solicita la atención del usuario",
+        "fr": "Mettre en évidence ou animer les points indicateurs lorsqu'une application demande l'attention de l'utilisateur",
+        "ca": "Ressalta o anima els punts indicadors quan una aplicació sol·licita l'atenció de l'usuari",
+        "de": "Indikatorpunkte hervorheben oder animieren, wenn eine Anwendung die Aufmerksamkeit des Benutzers anfordert",
+        "uk": "Підсвічувати або анімувати точки-індикатори, коли програма потребує уваги користувача"
+    },
+    "Applications": {
+        "zh_CN": "应用程序",
+        "it": "Applicazioni",
+        "es": "Aplicaciones",
+        "fr": "Applications",
+        "ca": "Aplicacions",
+        "de": "Anwendungen",
+        "uk": "Програми"
+    },
+    "Built-in Docklets": {
+        "zh_CN": "内置微件 (Docklets)",
+        "it": "Docklet integrati",
+        "es": "Docklets integrados",
+        "fr": "Docklets intégrés",
+        "ca": "Docklets integrats",
+        "de": "Integrierte Docklets",
+        "uk": "Вбудовані докліти"
+    },
+    "CPU & RAM Monitor": {
+        "zh_CN": "CPU 与内存监控",
+        "it": "Monitor CPU e RAM",
+        "es": "Monitor de CPU y RAM",
+        "fr": "Moniteur CPU et RAM",
+        "ca": "Monitor de CPU i RAM",
+        "de": "CPU- & RAM-Monitor",
+        "uk": "Монітор ЦП та ОЗП"
+    },
+    "Analog Clock": {
+        "zh_CN": "模拟时钟",
+        "it": "Orologio analogico",
+        "es": "Reloj analógico",
+        "fr": "Horloge analogique",
+        "ca": "Rellotge analògic",
+        "de": "Analoge Uhr",
+        "uk": "Аналоговий годинник"
+    },
+    "Battery Monitor": {
+        "zh_CN": "电池监控",
+        "it": "Monitor batteria",
+        "es": "Monitor de batería",
+        "fr": "Moniteur de batterie",
+        "ca": "Monitor de bateria",
+        "de": "Batteriemonitor",
+        "uk": "Монітор батареї"
+    },
+    "Volume Control": {
+        "zh_CN": "音量控制",
+        "it": "Controllo volume",
+        "es": "Control de volumen",
+        "fr": "Contrôle du volume",
+        "ca": "Control de volum",
+        "de": "Lautstärkeregelung",
+        "uk": "Керування гучністю"
+    },
+    "Network / Wi-Fi": {
+        "zh_CN": "网络 / Wi-Fi",
+        "it": "Rete / Wi-Fi",
+        "es": "Red / Wi-Fi",
+        "fr": "Réseau / Wi-Fi",
+        "ca": "Xarxa / Wi-Fi",
+        "de": "Netzwerk / WLAN",
+        "uk": "Мережа / Wi-Fi"
+    },
+    "Apps & Layout": {
+        "zh_CN": "应用与布局",
+        "it": "App e Layout",
+        "es": "Apps y Diseño",
+        "fr": "Apps et Disposition",
+        "ca": "Apps i Disposició",
+        "de": "Apps & Layout",
+        "uk": "Програми та макет"
+    },
+    "Categories & Layout": {
+        "zh_CN": "分类与布局",
+        "it": "Categorie e Layout",
+        "es": "Categorías y Diseño",
+        "fr": "Catégories et Disposition",
+        "ca": "Categories i Disposició",
+        "de": "Kategorien & Layout",
+        "uk": "Категорії та макет"
+    },
+    "Docklets on Right:": {
+        "zh_CN": "插件置于右侧:",
+        "it": "Docklet a destra:",
+        "es": "Docklets a la derecha:",
+        "fr": "Docklets à droite :",
+        "ca": "Docklets a la dreta:",
+        "de": "Docklets rechts:",
+        "uk": "Докліти праворуч:"
+    },
+    "Place the Docklets group on the right near the Trash (System Tray style) instead of on the left before applications": {
+        "zh_CN": "将插件组放置在右侧回收站旁（系统托盘风格），而不是置于左侧应用程序之前",
+        "it": "Posiziona il gruppo dei Docklet a destra vicino al Cestino (stile Vassoio di sistema) invece che a sinistra prima delle applicazioni",
+        "es": "Colocar el grupo de Docklets a la derecha junto a la Papelera (estilo bandeja del sistema) en lugar de a la izquierda antes de las aplicaciones",
+        "fr": "Placer le groupe de Docklets à droite près de la Corbeille (style barre d'état système) au lieu de la gauche avant les applications",
+        "ca": "Col·loca el grup de Docklets a la dreta prop de la Paperera (estil safata del sistema) en lloc de a l'esquerra abans de les aplicacions",
+        "de": "Platzieren Sie die Docklet-Gruppe rechts neben dem Papierkorb (System-Tray-Stil) anstatt links vor den Anwendungen",
+        "uk": "Розмістити групу доклітів праворуч біля Смітника (у стилі системного лотка) замість ліворуч перед програмами"
+    },
+    "WayPlank Always Left:": {
+        "zh_CN": "WayPlank 始终居左:",
+        "it": "WayPlank sempre a sinistra:",
+        "es": "WayPlank siempre a la izquierda:",
+        "fr": "WayPlank toujours à gauche :",
+        "ca": "WayPlank sempre a l'esquerra:",
+        "de": "WayPlank immer links:",
+        "uk": "WayPlank завжди ліворуч:"
+    },
+    "Always anchor the WayPlank icon at the far left of the dock with its own vertical separator": {
+        "zh_CN": "始终将 WayPlank 图标固定在停靠栏最左侧，并带有独立的垂直分隔线",
+        "it": "Ancora sempre l'icona di WayPlank all'estrema sinistra del dock con il proprio separatore verticale",
+        "es": "Anclar siempre el icono de WayPlank en el extremo izquierdo del dock con su propio separador vertical",
+        "fr": "Toujours ancrer l'icône de WayPlank à l'extrême gauche du dock avec son propre séparateur vertical",
+        "ca": "Ancora sempre la icona de WayPlank a l'extrem esquerre del dock amb el seu propi separador vertical",
+        "de": "Das WayPlank-Symbol immer ganz links im Dock mit einer eigenen vertikalen Trennlinie verankern",
+        "uk": "Завжди закріплювати піктограму WayPlank крайньою ліворуч на доці з власним вертикальним розділювачем"
+    },
+    "_Hibernate": {
+        "zh_CN": "休眠(_H)",
+        "it": "_Iberna",
+        "es": "_Hibernar",
+        "fr": "_Hiberner",
+        "ca": "_Hiberna",
+        "de": "_Ruhezustand",
+        "uk": "_Гібернація"
+    },
+    "H_ybrid Sleep": {
+        "zh_CN": "混合睡眠(_Y)",
+        "it": "Sospensione i_brida",
+        "es": "Suspensión hí_brida",
+        "fr": "Veille h_ybride",
+        "ca": "Suspensió hí_brida",
+        "de": "H_ybrider Energiesparmodus",
+        "uk": "Г_ібридний сон"
+    },
+    "_UEFI / BIOS...": {
+        "zh_CN": "UEFI / BIOS(_U)...",
+        "it": "_UEFI / BIOS...",
+        "es": "_UEFI / BIOS...",
+        "fr": "_UEFI / BIOS...",
+        "ca": "_UEFI / BIOS...",
+        "de": "_UEFI / BIOS...",
+        "uk": "_UEFI / BIOS..."
+    },
+    "Reboot to UEFI / BIOS": {
+        "zh_CN": "重启进入 UEFI / BIOS",
+        "it": "Riavvia in UEFI / BIOS",
+        "es": "Reiniciar en UEFI / BIOS",
+        "fr": "Redémarrer dans l'UEFI / BIOS",
+        "ca": "Reinicia a l'UEFI / BIOS",
+        "de": "Neustart ins UEFI / BIOS",
+        "uk": "Перезавантажити в UEFI / BIOS"
+    },
+    "Are you sure you want to restart your computer and enter the UEFI / BIOS firmware settings?": {
+        "zh_CN": "您确定要重启计算机并进入 UEFI / BIOS 固件设置吗？",
+        "it": "Sei sicuro di voler riavviare il computer ed entrare nelle impostazioni firmware UEFI / BIOS?",
+        "es": "¿Está seguro de que desea reiniciar el equipo y entrar en la configuración de firmware UEFI / BIOS?",
+        "fr": "Voulez-vous vraiment redémarrer votre ordinateur et accéder aux paramètres du micrologiciel UEFI / BIOS ?",
+        "ca": "Segur que voleu reiniciar l'ordinador i entrar a la configuració del microprogramari UEFI / BIOS?",
+        "de": "Möchten Sie den Computer wirklich neu starten und die UEFI-/BIOS-Firmware-Einstellungen öffnen?",
+        "uk": "Ви впевнені, що хочете перезавантажити комп'ютер і увійти до налаштувань прошивки UEFI / BIOS?"
+    },
+    "UEFI / BIOS": {
+        "zh_CN": "UEFI / BIOS",
+        "it": "UEFI / BIOS",
+        "es": "UEFI / BIOS",
+        "fr": "UEFI / BIOS",
+        "ca": "UEFI / BIOS",
+        "de": "UEFI / BIOS",
+        "uk": "UEFI / BIOS"
+    },
+    "Hibernate": {
+        "zh_CN": "休眠",
+        "it": "Iberna",
+        "es": "Hibernar",
+        "fr": "Hiberner",
+        "ca": "Hiberna",
+        "de": "Ruhezustand",
+        "uk": "Гібернація"
+    },
+    "Save session to disk and power off": {
+        "zh_CN": "将当前会话保存到磁盘并关闭电源",
+        "it": "Salva la sessione su disco e spegni il computer",
+        "es": "Guardar la sesión en el disco y apagar el equipo",
+        "fr": "Enregistrer la session sur le disque et éteindre l'ordinateur",
+        "ca": "Desa la sessió al disc i apaga l'ordinador",
+        "de": "Sitzung auf der Festplatte speichern und ausschalten",
+        "uk": "Зберегти сеанс на диск і вимкнути живлення"
+    },
+    "Hibernation is not available on this system (swap or kernel support missing)": {
+        "zh_CN": "此系统不支持休眠（缺少交换分区或内核支持）",
+        "it": "L'ibernazione non è disponibile su questo sistema (manca il supporto swap o del kernel)",
+        "es": "La hibernación no está disponible en este sistema (falta soporte de swap o del kernel)",
+        "fr": "L'hibernation n'est pas disponible sur ce système (prise en charge swap ou noyau manquante)",
+        "ca": "La hibernació no està disponible en aquest sistema (manca compatibilitat d'intercanvi o del nucli)",
+        "de": "Der Ruhezustand ist auf diesem System nicht verfügbar (Swap- oder Kernel-Unterstützung fehlt)",
+        "uk": "Гібернація недоступна в цій системі (відсутня підтримка swap або ядра)"
+    },
+    "Hybrid Sleep": {
+        "zh_CN": "混合睡眠",
+        "it": "Sospensione ibrida",
+        "es": "Suspensión híbrida",
+        "fr": "Veille hybride",
+        "ca": "Suspensió híbrida",
+        "de": "Hybrider Energiesparmodus",
+        "uk": "Гібридний сон"
+    },
+    "Save session to disk and put computer into low-power sleep mode": {
+        "zh_CN": "将会话保存到磁盘并将计算机置于低功耗睡眠状态",
+        "it": "Salva la sessione su disco e metti il computer in sospensione a basso consumo",
+        "es": "Guardar la sesión en el disco y poner el equipo en modo de suspensión de bajo consumo",
+        "fr": "Enregistrer la session sur le disque et mettre l'ordinateur en veille basse consommation",
+        "ca": "Desa la sessió al disc i posa l'ordinador en mode de suspensió de baix consum",
+        "de": "Sitzung auf der Festplatte speichern und Computer in den Energiesparmodus versetzen",
+        "uk": "Зберегти сеанс на диск і перевести комп'ютер у режим сну з низьким енергоспоживанням"
+    },
+    "Hybrid Sleep is not available on this system (swap or kernel support missing)": {
+        "zh_CN": "此系统不支持混合睡眠（缺少交换分区或内核支持）",
+        "it": "La sospensione ibrida non è disponibile su questo sistema (manca il supporto swap o del kernel)",
+        "es": "La suspensión híbrida no está disponible en este sistema (falta soporte de swap o del kernel)",
+        "fr": "La veille hybride n'est pas disponible sur ce système (prise en charge swap ou noyau manquante)",
+        "ca": "La suspensió híbrida no està disponible en aquest sistema (manca compatibilitat d'intercanvi o del nucli)",
+        "de": "Der hybride Energiesparmodus ist auf diesem System nicht verfügbar (Swap- oder Kernel-Unterstützung fehlt)",
+        "uk": "Гібридний сон недоступний у цій системі (відсутня підтримка swap або ядра)"
+    },
+    "Restart and enter the motherboard UEFI / BIOS firmware settings": {
+        "zh_CN": "重启并进入主板 UEFI / BIOS 固件设置",
+        "it": "Riavvia il computer ed entra nelle impostazioni firmware UEFI / BIOS della scheda madre",
+        "es": "Reiniciar y entrar en la configuración de firmware UEFI / BIOS de la placa base",
+        "fr": "Redémarrer et accéder aux paramètres du micrologiciel UEFI / BIOS de la carte mère",
+        "ca": "Reinicia i entra a la configuració del microprogramari UEFI / BIOS de la placa base",
+        "de": "Neu starten und die UEFI-/BIOS-Firmware-Einstellungen des Mainboards öffnen",
+        "uk": "Перезавантажити та увійти до налаштувань прошивки UEFI / BIOS материнської плати"
+    },
+    "UEFI / BIOS firmware setup is not supported on this system": {
+        "zh_CN": "此系统不支持直接进入 UEFI / BIOS 固件设置",
+        "it": "L'accesso diretto al firmware UEFI / BIOS non è supportato su questo sistema",
+        "es": "La configuración de firmware UEFI / BIOS no es compatible con este sistema",
+        "fr": "L'accès à la configuration du micrologiciel UEFI / BIOS n'est pas pris en charge sur ce système",
+        "ca": "La configuració del microprogramari UEFI / BIOS no és compatible amb aquest sistema",
+        "de": "Das Öffnen der UEFI-/BIOS-Firmware-Einstellungen wird auf diesem System nicht unterstützt",
+        "uk": "Налаштування прошивки UEFI / BIOS не підтримується в цій системі"
+    },
+    "Reboot to UEFI / BIOS?": {
+        "zh_CN": "重启进入 UEFI / BIOS？",
+        "it": "Riavviare in UEFI / BIOS?",
+        "es": "¿Reiniciar en UEFI / BIOS?",
+        "fr": "Redémarrer dans l'UEFI / BIOS ?",
+        "ca": "Vols reiniciar a l'UEFI / BIOS?",
+        "de": "Ins UEFI / BIOS neu starten?",
+        "uk": "Перезавантажити в UEFI / BIOS?"
+    },
+    "Are you sure you want to restart your computer and enter the UEFI / BIOS firmware settings? Unsaved changes will be lost.": {
+        "zh_CN": "您确定要重启计算机并进入 UEFI / BIOS 固件设置吗？未保存的更改将会丢失。",
+        "it": "Sei sicuro di voler riavviare il computer ed entrare nelle impostazioni firmware UEFI / BIOS? Le modifiche non salvate andranno perse.",
+        "es": "¿Está seguro de que desea reiniciar el equipo y entrar en la configuración de firmware UEFI / BIOS? Se perderán los cambios no guardados.",
+        "fr": "Voulez-vous vraiment redémarrer votre ordinateur et accéder aux paramètres du micrologiciel UEFI / BIOS ? Les modifications non enregistrées seront perdues.",
+        "ca": "Segur que voleu reiniciar l'ordinador i entrar a la configuració del microprogramari UEFI / BIOS? Els canvis no desats es perdran.",
+        "de": "Möchten Sie den Computer wirklich neu starten und die UEFI-/BIOS-Firmware-Einstellungen öffnen? Nicht gespeicherte Änderungen gehen verloren.",
+        "uk": "Ви впевнені, що хочете перезавантажити комп'ютер і увійти до налаштувань прошивки UEFI / BIOS? Незбережені зміни буде втрачено."
+    },
+    "Not supported by this compositor": {
+        "zh_CN": "当前合成器不支持",
+        "it": "Non supportato da questo compositor",
+        "es": "No compatible con este compositor",
+        "fr": "Non pris en charge par ce compositeur",
+        "ca": "No compatible amb aquest compositor",
+        "de": "Von diesem Compositor nicht unterstützt",
+        "uk": "Не підтримується цим композитором"
     }
 }
 
@@ -3167,6 +4265,27 @@ def format_po_string(s):
     else:
         return f'msgstr "{escaped}"'
 
+import glob
+
+repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(repo_root)
+
+version_file = os.path.join(repo_root, "VERSION")
+pkg_version = open(version_file, "r", encoding="utf-8").read().strip() if os.path.exists(version_file) else "0.7.0"
+
+vala_files = sorted(glob.glob("lib/**/*.vala", recursive=True) + glob.glob("src/**/*.vala", recursive=True))
+ui_files = ["data/ui/preferences.ui"]
+subprocess.run([
+    "xgettext",
+    "--package-name=wayplank",
+    f"--package-version={pkg_version}",
+    "--msgid-bugs-address=sergiomelas@gmail.com",
+    "--copyright-holder=Sergio Melas <sergiomelas@gmail.com>",
+    "--from-code=UTF-8",
+    "-k_", "-kN_",
+    "-o", "po/wayplank.pot"
+] + vala_files + ui_files, check=True)
+
 for lang_info in languages:
     code = lang_info["code"]
     po_path = f"po/{code}.po"
@@ -3181,6 +4300,9 @@ for lang_info in languages:
 
     blocks = re.split(r'\n\n(?=#: )', content)
     header = blocks[0]
+    header = re.sub(r'"Project-Id-Version: [^\\]*\\n"', f'"Project-Id-Version: wayplank {pkg_version}\\\\n"', header)
+    header = re.sub(r'"Last-Translator: [^\\]*\\n"', f'"Last-Translator: {lang_info["author"]}\\\\n"', header)
+    header = re.sub(r'"Language-Team: [^\\]*\\n"', f'"Language-Team: {lang_info["team"]}\\\\n"', header)
     new_blocks = [header]
     mapped = 0
 

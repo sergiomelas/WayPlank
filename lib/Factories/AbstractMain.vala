@@ -41,17 +41,37 @@ namespace Plank
 			{ null }
 		};
 
+		static bool is_shutting_down = false;
+		public static string? saved_gtk_use_portal = null;
+
+		public static void perform_clean_shutdown ()
+		{
+			if (is_shutting_down)
+				return;
+			is_shutting_down = true;
+
+			if (app_instance != null && app_instance.resume_timer_id > 0U) {
+				GLib.Source.remove (app_instance.resume_timer_id);
+				app_instance.resume_timer_id = 0U;
+			}
+
+			SystemTheme.cleanup_if_active ();
+			BrightnessControl.cleanup_if_active ();
+			WindowControl.cleanup ();
+		}
+
 		static void sig_handler (int sig)
 		{
 			warning ("Caught signal (%d), exiting", sig);
-			WindowControl.cleanup ();
-			GLib.Application.get_default ().quit ();
+			perform_clean_shutdown ();
+			Posix.exit (0);
 		}
 		
 		static construct
 		{
 			Posix.signal (Posix.Signal.INT, sig_handler);
 			Posix.signal (Posix.Signal.TERM, sig_handler);
+			Posix.signal (Posix.Signal.HUP, sig_handler);
 		}
 		
 		/**
@@ -251,6 +271,11 @@ namespace Plank
 			assert (app_dbus != null);
 			
 			base.startup ();
+
+			if (saved_gtk_use_portal != null)
+				Environment.set_variable ("GTK_USE_PORTAL", saved_gtk_use_portal, true);
+			else
+				Environment.unset_variable ("GTK_USE_PORTAL");
 			
 			if (!Thread.supported ())
 				critical ("Problem initializing thread support.");
@@ -418,10 +443,19 @@ namespace Plank
 			
 			action = new SimpleAction ("quit", null);
 			action.activate.connect (() => {
-				WindowControl.cleanup ();
+				perform_clean_shutdown ();
 				quit ();
 			});
 			add_action (action);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		public override void shutdown ()
+		{
+			perform_clean_shutdown ();
+			base.shutdown ();
 		}
 		
 		/**
@@ -483,7 +517,7 @@ namespace Plank
 			about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
 			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
 			about_dlg.set_website (main_url);
-			about_dlg.set_website_label ("Website");
+			about_dlg.set_website_label (_("Website"));
 			
 			if (about_authors != null && about_authors.length > 0)
 				about_dlg.set_authors (about_authors);

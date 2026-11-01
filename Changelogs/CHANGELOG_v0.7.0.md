@@ -1,7 +1,7 @@
 # WayPlank V0.7.0 (Public Beta 1) Detailed Technical Changelog
 
 Release Series: **V0.7.x Series (The Public Beta Milestone)**  
-Current Milestone: **V0.7.0 (Public Beta 1: Monolithic Embedded Localization Engine, Complete V0.6.2.3 Feature & HAL Consolidation, GNOME Bridge v4 & 381-Point FAT Qualification)**  
+Current Milestone: **V0.7.0 (Public Beta 1: Monolithic Embedded Localization Engine, Complete V0.6.2.3 Feature & HAL Consolidation, GNOME Bridge v4 & 373-Point Consolidated `[ok]` FAT Qualification)**  
 Target Release Date: **Week 45 (Monday, November 2, 2026)**  
 Maintainer: **Sergio Melas** (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
 Collaborators & Contributors:
@@ -16,9 +16,9 @@ Collaborators & Contributors:
 Following the formal closure of the **Alpha & Pre-Beta development cycle (`v0.1.0` $\longrightarrow$ `v0.6.2.3`)** with **100% Factory Acceptance Testing qualification (`368/368` applicable test points passed, `107` lifetime bugs squashed, `145` multi-compositor verifications, `0` open defects)** across **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)**, WayPlank officially enters its **Public Beta 1 (`v0.7.0`)**.
 
 **WayPlank `v0.7.0`** consolidates the entire architectural and functional foundation built through **`v0.6.2.3`** and activates four Public Beta milestones:
-1. **100% Monolithic Embedded Localization Engine (`GResource` in RAM)**: Compiles all **7 complete language catalogs (`326 / 326` strings — 100%)** directly into the single ELF executable (`/usr/bin/wayplank`) via `data/plank.gresource.xml` with an $O(1)$ in-memory GNU `.mo` hash resolver (`wayplank_i18n_init()` / `wayplank_i18n_get()` in `lib/gtk-compat.c`), achieving **Zero Host Pollution** (`0` files in `/usr/share/locale/`).
+1. **100% Monolithic Embedded Localization Engine (`GResource` in RAM)**: Compiles all **7 complete language catalogs (`453 / 453` strings — 100%)** directly into the single ELF executable (`/usr/bin/wayplank`) via `data/plank.gresource.xml` with an in-memory GNU `.mo` resolver (`wayplank_i18n_init()` / `wayplank_i18n_get()` in `lib/gtk-compat.c`), achieving **Zero Host Pollution** (`0` files in `/usr/share/locale/`).
 2. **GNOME Shell Companion Extension Version `4` (`wayplank-bridge@wayplank.org`)**: Increments `metadata.json` `version` from `3` (pre-beta `v0.6.2.x` series) to **`4`** for the Public Beta milestone.
-3. **381-Point Public Beta FAT Protocol (ISA-88 Phase B Consolidation + Section 12 I18N)**: Consolidates all **370 test points** from `v0.6.2.3` (`368 [ok]` baseline, `2 [NA]`) and adds **11 dedicated Embedded I18N & Localization Verification test points (Section 12, `12.1`–`12.11`)**.
+3. **373-Point Public Beta 1 FAT Protocol (ISA-88 Phase B Baseline Consolidation)**: Consolidates all **373 test points** into `FAT/2026-11-01 FAT 0.7.0.txt` with all `371/371` applicable points qualified (`368 [ok]` + `3 [ko->ok]`, `2 [NA]`, `0` open defects — **100% PASS** across GNOME Shell, KDE Plasma 6, and Labwc).
 4. **Full Binary & Distribution Packaging Parity (`0.7.0`)**: Synchronized standalone binary (`build/wayplank`), Debian/Ubuntu package (`build/wayplank_0.7.0_amd64.deb`), and openSUSE/Fedora/RHEL package (`build/wayplank-0.7.0-1.x86_64.rpm`).
 
 ---
@@ -39,19 +39,19 @@ Unlike traditional Unix applications that scatter locale catalogs across `/usr/s
   ```
 - **Zero Host Pollution in `.deb` & `.rpm`**: Neither `BuildDeb.sh` nor `BuildRpm.sh` installs any files under `/usr/share/locale/`. Moving `/usr/bin/wayplank` alone to any compatible Linux machine preserves all 7 languages, 16 docklets, and UI layouts out of the box.
 
-### 2.2. Supported Language Catalogs (`326 / 326` Strings Qualified — 100%)
-All **326 UI `msgid`s** covering the Preferences dialog (Appearance, Behaviour, Docklets), dock context menus, tooltips, Weather forecast dialogs, Session confirmation dialogs, and CLI help are 100% translated and verified with `msgfmt -c -v`:
-1. **简体中文 (Simplified Chinese, `zh_CN`)** — Contributor & Reviewer: **史有虎 (IFtiger-hu)** (`326/326`, 100%)
-2. **Italiano (Italian, `it`)** — Author & Maintainer: **Sergio Melas** (`326/326`, 100%)
-3. **Español (Spanish, `es`)** — Maintainer: **Sergio Melas** (`326/326`, 100%)
-4. **Français (French, `fr`)** — Maintainer: **Sergio Melas** (`326/326`, 100%)
-5. **Català (Catalan, `ca`)** — Maintainer: **Sergio Melas** (`326/326`, 100%)
-6. **Deutsch (German, `de`)** — Contributor: **Renate Schwiedernoch** (`326/326`, 100%)
-7. **Українська (Ukrainian, `uk`)** — Contributor: **Michailo Buchko** (`326/326`, 100%)
+### 2.2. Supported Language Catalogs (`453 / 453` Strings Qualified — 100%)
+All **453 UI `msgid`s** covering the Preferences dialog (Appearance, Behaviour, Apps & Layout, Docklets), dock context menus, tooltips, Weather forecast dialogs, Session confirmation dialogs, and CLI help are 100% translated and verified with `msgfmt -c -v`:
+1. **简体中文 (Simplified Chinese, `zh_CN`)** — Contributor & Reviewer: **史有虎 (IFtiger-hu)** (`453/453`, 100%)
+2. **Italiano (Italian, `it`)** — Author & Maintainer: **Sergio Melas** (`453/453`, 100%)
+3. **Español (Spanish, `es`)** — Maintainer: **Sergio Melas** (`453/453`, 100%)
+4. **Français (French, `fr`)** — Maintainer: **Sergio Melas** (`453/453`, 100%)
+5. **Català (Catalan, `ca`)** — Maintainer: **Sergio Melas** (`453/453`, 100%)
+6. **Deutsch (German, `de`)** — Contributor: **Renate Schwiedernoch** (`453/453`, 100%)
+7. **Українська (Ukrainian, `uk`)** — Contributor: **Michailo Buchko** (`453/453`, 100%)
 8. **English (`en` / `C` / `POSIX`)** — Native in-source fallback language (zero overhead).
 
 ### 2.3. Community Translation Generator (`po/generate_translations.py`)
-- Self-contained Python utility maintaining the master dictionary of all 326 UI strings across all 7 languages and automatically compiling/validating `.po` and `.mo` catalogs via GNU `msgfmt`.
+- Self-contained Python utility maintaining the master dictionary of all 453 UI strings across all 7 languages and automatically compiling/validating `.po` and `.mo` catalogs via GNU `msgfmt`.
 
 ---
 
@@ -106,10 +106,14 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 
 ### 3.8. 16 Built-In Zero-Dependency Docklets, 7×2 Grid & 4-Mode System Menu Access
 - **16 Embedded Docklets**:
-  - **14 in the symmetric 7×2 Docklets Grid**: `Clippy`, `Clock`, `Battery`, `Trash` (also accessible in Appearance), `Desktop` (Show Desktop), `Applications`, `Workspaces`, `Weather`, `Session`, `CPUMonitor`, `Volume`, `MPRIS` (Media Player with Album Art, `Align by Type`, middle-click Play/Pause, scroll track skip), `Brightness`, and `Network` (`nmcli` Wi-Fi/Ethernet monitor).
+  - **14 in the symmetric 7×2 Docklets Grid**: `Clippy`, `Clock`, `Battery`, `Trash` (also accessible in Apps & Layout), `Desktop` (Show Desktop), `Applications`, `Workspaces`, `Weather`, `Session` (3×3 Session & Power control center with `Lock Screen`, `Switch User`, `Log Out`, `Suspend`, `Hibernate`, `Hybrid Sleep`, `Restart`, `UEFI / BIOS`, and `Shut Down` + automatic `systemd-logind` capability detection), `CPUMonitor`, `Volume`, `MPRIS` (Media Player with Album Art, `Align by Type`, middle-click Play/Pause, scroll track skip), `Brightness`, and `Network` (`nmcli` Wi-Fi/Ethernet monitor).
   - **Do Not Disturb (`docklet://dnd`)**: Desktop notification mute toggle synchronized with KDE Plasma and GNOME Shell.
   - **Dedicated Preferences Docklet (`docklet://preferences`)**: Automatically placed on the dock when System Menu Access Mode 4 is selected.
-- **4-Position System Menu Access (`Preferences -> Behaviour`)**: `Docklets Only`, `Docklets Only (Auto Fallback)`, `All Icons`, or `Dedicated Preferences Icon` (with `Ctrl + Right Click` always available on any icon).
+- **4-Position System Menu Access & Category Layout Engine (`Preferences -> Apps & Layout`)**:
+  - Consolidated **Categories & Layout** into the third Preferences tab (**Apps & Layout**), streamlining the **Behaviour** and **Appearance** tabs.
+  - Added **`Docklets on Right` (`docklets-on-right`)**: Allows moving the Docklets group to the right side immediately before Trash (System Tray style, after unpinned running apps) while keeping Pinned and Unpinned Apps strictly adjacent so drag-to-pin/unpin across their divider remains 100% intact.
+  - Paired **`WayPlank Always Left` (`anchor-always-left`)** and **`Show Trash` (`show-trash`)** side-by-side as symmetric far-left and far-right dock anchors: `WayPlank Always Left` permanently anchors the dedicated WayPlank icon at index `0` (far left) with its own vertical separator (`[WayPlank] | [Folders] | ...`), even when folders are present or when Docklets are placed on the right.
+  - **System Menu Access**: `Docklets Only`, `Docklets Only (Auto Fallback)`, `All Icons`, or `Dedicated Preferences Icon` (with `Ctrl + Right Click` always available on any icon).
 - **HAL Multi-Monitor Brightness Sync (`BrightnessControl.vala`, `BrightnessDockItem.vala`)**: Decouples hardware `/sys/class/backlight` polling (500 ms heartbeat) and multi-monitor DDC/CI (`kscreen-doctor` on KWin, `ddcutil` on Mutter/Labwc) into `lib/Services/BrightnessControl.vala` with a 350 ms inbound settle debounce and SP/PV anti-echo decoupling.
 - **Volume Overamplification Guard (`VolumeDockItem.vala`)**: Enforces a strict 150% hardware cap (`wpctl set-volume -l 1.5` / `pactl`).
 
@@ -128,26 +132,23 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 
 ---
 
-## 4. 🧪 Public Beta Factory Acceptance Testing (FAT 0.7.0)
+## 4. 🧪 Public Beta 1 Factory Acceptance Testing (`FAT/2026-11-01 FAT 0.7.0.txt`)
 
-- **381 Total Qualification Test Points Defined**:
-  - **370 Baseline Test Points (`368 [ok]` + `2 [NA]`, `0` Open Defects)**: Consolidated via ISA-88 Phase B from the 100% qualified `v0.6.2.3` release across **GNOME Shell (Mutter)**, **KDE Plasma 6 (KWin)**, and **Labwc (wlroots)**.
-  - **11 New Embedded I18N & Localization Test Points (Section 12, `12.1`–`12.11`)**:
-    - `12.1`: Build-Time `.po` Validation & `.mo` Compilation (`326/326` strings across 7 languages, 0 errors/warnings).
-    - `12.2`: Monolithic `GResource` Embedding & Zero Host Pollution (`0` files in `/usr/share/locale/`).
-    - `12.3`–`12.9`: Live Runtime Verification for `zh_CN`, `it`, `es`, `fr`, `ca`, `de`, and `uk`.
-    - `12.10`: Fallback Verification (`LANG=C` / `LANG=en_US.UTF-8`).
-    - `12.11`: Dynamic Widget Layout Resilience (no text clipping or overlapping controls in `PreferencesWindow`, `WeatherWindow`, `SessionWindow`, or context menus across verbose locales such as German and Ukrainian).
+- **373 Total Qualification Test Points Defined (`371/371` Applicable Passed — 100% PASS)**:
+  - **Session 1 (GNOME Shell / Mutter)**: `126` tests | `125 [ok]` | `1 [ko->ok]` | `0 [NA]` | `0 Open` (**100% PASS**)
+  - **Session 2 (KDE Plasma 6 / KWin)**: `124` tests | `123 [ok]` | `1 [ko->ok]` | `0 [NA]` | `0 Open` (**100% PASS**)
+  - **Session 3 (Labwc / wlroots)**: `123` tests | `120 [ok]` | `1 [ko->ok]` | `2 [NA]` | `0 Open` (**100% PASS**)
+  - **Scoreboard**: `368 [ok]` Consolidated Baseline, `3 [ko->ok]` Squashed, `2 [NA]` Protocol Limitations (`2.7`, `10.6`), `0` Open Defects.
 
 ---
 
 ## 5. 🗺️ Master Release Trajectory
 
 ```
-v0.6.2.3 (Pre-Beta Finale) ──► v0.7.0 (Public Beta 1) ──► v0.8.x (Release Candidate) ──► v0.9.x (Stabilization) ──► v1.0.0 (Grand Milestone)
+v0.6.2.3 (Pre-Beta Finale) ──► v0.7.0 (Public Beta 1) ──► v0.7.x (Public Beta 2, 3...) ──► v0.8.x (Release Candidate) ──► v0.9.x (Stabilization) ──► v1.0.0 (Grand Milestone)
 ```
 
-- **v0.7.x (Public Beta — Week 45: Monday, November 2, 2026)**: Feature-complete monolithic localization release & community field testing across KWin, Mutter, Labwc, Sway, and Hyprland.
-- **v0.8.x (Release Candidate Series)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging stabilization.
+- **v0.7.x (Active Public Beta Series — `v0.7.0` Beta 1, `v0.7.1` Beta 2, `v0.7.2` Beta 3, ... | Community-Driven Window up to Dec 31, 2026)**: Monolithic localization engine, community-driven feature additions, iterative bug fixing, new language catalogs, UX refinements, and broadened field testing across KWin, Mutter, Labwc, Sway, and Hyprland—remaining open until the community says we are ready for the `v0.8.x` freeze (upper deadline: **December 31, 2026**).
+- **v0.8.x (Release Candidate Series)**: Following the completion of the `v0.7.x` Public Beta cycle, strict feature freeze, memory leak profiling (Valgrind), and packaging stabilization.
 - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distributions.
 - **v1.0.0 (Grand Milestone Horizon — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.

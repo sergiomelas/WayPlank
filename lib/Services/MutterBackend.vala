@@ -75,7 +75,7 @@ namespace Plank
   "uuid": "wayplank-bridge@wayplank.org",
   "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "url": "https://github.com/wayplank",
-  "version": 3
+  "version": 4
 }
 """;
 

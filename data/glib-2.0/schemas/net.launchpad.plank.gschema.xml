@@ -184,6 +184,16 @@
 			<summary>Categorize dock items</summary>
 			<description>If true, group items into folders, pinned apps, docklets, unpinned apps, and trash with dynamic separators.</description>
 		</key>
+		<key name="anchor-always-left" type="b">
+			<default>false</default>
+			<summary>Anchor WayPlank icon always at far left with separator</summary>
+			<description>If true, the WayPlank preferences icon is always placed at the far left of the dock with its own vertical separator.</description>
+		</key>
+		<key name="docklets-on-right" type="b">
+			<default>true</default>
+			<summary>Place docklets on the right near Trash</summary>
+			<description>If true, place the docklets category on the right after unpinned running applications and before Trash instead of on the left before applications.</description>
+		</key>
 		<key name="accordion-docklets" type="b">
 			<default>true</default>
 			<summary>Accordion docklets mode</summary>

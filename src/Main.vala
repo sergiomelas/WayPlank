@@ -23,35 +23,54 @@ namespace Plank
     public static int main (string[] argv)
     {
         Intl.setlocale (LocaleCategory.ALL, "");
-        Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Build.DATADIR + "/locale");
-        Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
-        Intl.textdomain (Build.GETTEXT_PACKAGE);
+        PlankCompat.i18n_init ();
 
         bool replace_requested = false;
-        for (int i = 1; i < argv.length; i++) {
-            if (argv[i] == "--help" || argv[i] == "-h" || argv[i] == "-?") {
+
+        foreach (unowned string arg in argv) {
+            if (arg == "--help" || arg == "-h" || arg == "-?") {
                 print_clean_help ();
                 return 0;
             }
-            if (argv[i] == "--version" || argv[i] == "-v" || argv[i] == "-V") {
+            if (arg == "--version" || arg == "-v" || arg == "-V") {
                 print ("WayPlank %s\n", Build.VERSION);
                 return 0;
             }
-            if (argv[i] == "--shortcuts" || argv[i] == "-s" || argv[i] == "--gestures") {
+            if (arg == "--shortcuts" || arg == "-s" || arg == "--gestures") {
                 print_shortcuts_cheatsheet ();
                 return 0;
             }
-            if (argv[i] == "--replace" || argv[i] == "--reload" || argv[i] == "-r") {
+            if (arg == "--replace" || arg == "--reload" || arg == "-r") {
                 replace_requested = true;
             }
         }
 
         if (replace_requested) {
+            int self_pid = (int) Posix.getpid ();
             try {
-                Process.spawn_command_line_sync ("killall -q -o 1s -9 wayplank");
+                string out_pids = "";
+                Process.spawn_command_line_sync ("pidof wayplank", out out_pids);
+                foreach (unowned string tok in out_pids.strip ().split (" ")) {
+                    int p = int.parse (tok);
+                    if (p > 0 && p != self_pid)
+                        Posix.kill ((Posix.pid_t) p, Posix.Signal.TERM);
+                }
             } catch (Error e) { }
-            Thread.usleep (250000);
+            Thread.usleep (200000);
+            try {
+                string out_pids = "";
+                Process.spawn_command_line_sync ("pidof wayplank", out out_pids);
+                foreach (unowned string tok in out_pids.strip ().split (" ")) {
+                    int p = int.parse (tok);
+                    if (p > 0 && p != self_pid)
+                        Posix.kill ((Posix.pid_t) p, Posix.Signal.KILL);
+                }
+            } catch (Error e) { }
+            Thread.usleep (50000);
         }
+
+        AbstractMain.saved_gtk_use_portal = Environment.get_variable ("GTK_USE_PORTAL");
+        Environment.set_variable ("GTK_USE_PORTAL", "0", true);
 
         Gtk.init (ref argv);
 
@@ -62,9 +81,9 @@ namespace Plank
                 Gtk.DialogFlags.MODAL,
                 Gtk.MessageType.WARNING,
                 Gtk.ButtonsType.OK,
-                "WayPlank is designed exclusively for Wayland sessions."
+                _("WayPlank is designed exclusively for Wayland sessions.")
             );
-            dialog.title = "WayPlank - Unsupported Session";
+            dialog.title = _("WayPlank - Unsupported Session");
             dialog.run ();
             dialog.destroy ();
             return 1;

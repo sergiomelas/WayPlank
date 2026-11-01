@@ -737,12 +737,26 @@ namespace Plank
 		{
 			try {
 				var info = file.query_info (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_DISPLAY_NAME, 0);
-				return info.get_display_name () ?? info.get_name ();
+				var raw_name = info.get_display_name () ?? info.get_name ();
+				switch (raw_name) {
+				case "Internet":
+					return _("Internet");
+				case "Office":
+					return _("Office");
+				case "Media":
+					return _("Media");
+				case "Games":
+					return _("Games");
+				case "Utilities":
+					return _("Utilities");
+				default:
+					return raw_name;
+				}
 			} catch { }
 			
 			debug ("Could not get display-name for '%s'", file.get_path () ?? "");
 			
-			return "Unknown";
+			return _("Unknown");
 		}
 	}
 }

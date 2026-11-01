@@ -33,6 +33,30 @@ OUT_DIR="${BASE_DIR}/build"
 mkdir -p "$OUT_DIR"
 rm -f "${OUT_DIR}/wayplank"
 
+echo "🌍 Generating and compiling embedded localization dictionaries..."
+python3 "${BASE_DIR}/po/generate_translations.py"
+rm -rf "${BASE_DIR}/data/locale"
+EMBEDDED_LANGS=""
+LOCALE_XML_ENTRIES=""
+for po in "${BASE_DIR}"/po/*.po; do
+    lang="$(basename "$po" .po)"
+    mkdir -p "${BASE_DIR}/data/locale/${lang}"
+    msgfmt "$po" -o "${BASE_DIR}/data/locale/${lang}/wayplank.mo"
+    if [ -z "$EMBEDDED_LANGS" ]; then
+        EMBEDDED_LANGS="${lang}"
+    else
+        EMBEDDED_LANGS="${EMBEDDED_LANGS}:${lang}"
+    fi
+    LOCALE_XML_ENTRIES="${LOCALE_XML_ENTRIES}		<file compressed=\"true\">locale/${lang}/wayplank.mo</file>\n"
+done
+echo "   📦 Encoded binary languages: ${EMBEDDED_LANGS}"
+
+BUILD_GRESOURCE_XML="${BASE_DIR}/data/.plank.build.gresource.xml"
+awk -v entries="$LOCALE_XML_ENTRIES" '
+    /<\/gresource>/ { printf "%s", entries }
+    { print }
+' "${BASE_DIR}/data/plank.gresource.xml" > "$BUILD_GRESOURCE_XML"
+
 echo "⚙️ Compiling GLib schemas & resources..."
 if command -v glib-compile-schemas >/dev/null 2>&1; then
     glib-compile-schemas "${BASE_DIR}/data/glib-2.0/schemas"
@@ -41,7 +65,8 @@ glib-compile-resources \
     --sourcedir="${BASE_DIR}/data" \
     --target="${BASE_DIR}/lib/resources.c" \
     --generate-source \
-    "${BASE_DIR}/data/plank.gresource.xml"
+    "$BUILD_GRESOURCE_XML"
+rm -rf "${BASE_DIR}/data/locale"
 
 echo "🏗️ Compiling Vala & C sources to native binary..."
 mapfile -t VALA_FILES < <(find "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala")
@@ -58,7 +83,7 @@ if [ -f "${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c" ]; then
 fi
 
 if valac -g \
-    --gresources="${BASE_DIR}/data/plank.gresource.xml" \
+    --gresources="$BUILD_GRESOURCE_XML" \
     --gresourcesdir="${BASE_DIR}/data" \
     --vapidir="${BASE_DIR}/vapi" \
     --pkg posix \
@@ -73,23 +98,25 @@ if valac -g \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
+    -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -I"${BASE_DIR}/lib" \
     -X -I"${BASE_DIR}/lib/Protocols" \
     -X -I"${BASE_DIR}/lib/Services" \
     -X -I"${BASE_DIR}/include" \
+    -X -include -X "${BASE_DIR}/include/config.h" \
     -X -w \
     -X -lm \
     -X -lwayland-client \
     "${VALA_FILES[@]}" \
     "${C_SOURCES[@]}" \
     -o "${OUT_DIR}/wayplank"; then
-    rm -f "${BASE_DIR}/lib/resources.c"
+    rm -f "${BASE_DIR}/lib/resources.c" "$BUILD_GRESOURCE_XML"
     echo "✅ Binary ready: ${OUT_DIR}/wayplank"
     if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
         read -rp "👋 Press Enter to close..."
     fi
 else
-    rm -f "${BASE_DIR}/lib/resources.c"
+    rm -f "${BASE_DIR}/lib/resources.c" "$BUILD_GRESOURCE_XML"
     echo ""
     echo "❌ Error: Compilation failed!"
     if [ -t 0 ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then

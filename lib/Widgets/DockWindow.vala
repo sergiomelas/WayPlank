@@ -405,7 +405,7 @@ namespace Plank
 				var button = PopupButton.from_event_button (event);
 
 				if (button == PopupButton.LEFT && controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-					if (!controller.app_provider.docklets_expanded && controller.app_provider.get_docklet_count () > 1 && DefaultApplicationDockItemProvider.is_docklet_element (ClickedItem)) {
+					if (!controller.app_provider.docklets_expanded && controller.app_provider.get_docklet_count () > 1 && controller.app_provider.is_accordion_docklet (ClickedItem)) {
 						controller.app_provider.expand_docklets ();
 						ClickedItem = null;
 						return Gdk.EVENT_STOP;
@@ -507,7 +507,7 @@ namespace Plank
 			bool found_docklet = false;
 
 			foreach (var item in controller.VisibleItems) {
-				if (DefaultApplicationDockItemProvider.is_docklet_element (item)) {
+				if (controller.app_provider.is_accordion_docklet (item)) {
 					var rect = pm.get_hover_region_for_element (item);
 					if (pm.is_horizontal_dock ()) {
 						min_coord = int.min (min_coord, rect.x);
@@ -536,7 +536,7 @@ namespace Plank
 
 		public bool is_hovering_docklets (int x, int y)
 		{
-			if (HoveredItem != null && DefaultApplicationDockItemProvider.is_docklet_element (HoveredItem))
+			if (HoveredItem != null && controller.app_provider != null && controller.app_provider.is_accordion_docklet (HoveredItem))
 				return true;
 			return is_in_docklet_zone (x, y);
 		}

@@ -243,6 +243,11 @@ namespace Plank
 			}
 		}
 
+		public static void sync_autostart (bool enabled)
+		{
+			LabwcBackend.sync_autostart (enabled);
+		}
+
 		public static bool is_kwin ()
 		{
 			return get_default ().backend is KWinBackend;

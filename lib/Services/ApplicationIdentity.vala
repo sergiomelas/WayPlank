@@ -33,6 +33,7 @@ namespace Plank
 		Gee.ArrayList<string> argument_tokens = new Gee.ArrayList<string> ();
 		string app_name = "";
 		string base_id = "";
+		string pwa_id = "";
 		
 		public ApplicationIdentity (File desktop_file)
 		{
@@ -55,6 +56,7 @@ namespace Plank
 						if (norm_swmc.has_prefix ("crx_")) {
 							var crx_id = norm_swmc.substring (4);
 							if (crx_id.length >= 3) {
+								pwa_id = crx_id;
 								add_token (crx_id);
 								primary_tokens.add (crx_id);
 								argument_tokens.add (crx_id);
@@ -127,6 +129,11 @@ namespace Plank
 					if (opt_key.contains ("profile") || opt_key.contains ("class") || opt_key.contains ("app")) {
 						var val = part.substring (eq + 1).strip ().replace ("\"", "").replace ("'", "").down ();
 						if (val != "" && val.length >= 3) {
+							if (opt_key.contains ("app-id") && pwa_id == "") {
+								pwa_id = val;
+								add_token (val);
+								primary_tokens.add (val);
+							}
 							argument_tokens.add (val);
 							if (val.has_prefix ("http://") || val.has_prefix ("https://")) {
 								var slash_idx = val.index_of ("://");
@@ -167,6 +174,14 @@ namespace Plank
 							argument_tokens.add (sub_name);
 					}
 				}
+			}
+
+			// If this launcher is a specific PWA (--app-id or StartupWMClass=crx_),
+			// purge shared browser flags (e.g. --profile-directory) from argument_tokens
+			// so multiple PWAs in the same browser profile never cross-match via /proc/<pid>/cmdline.
+			if (pwa_id != "") {
+				argument_tokens.clear ();
+				argument_tokens.add (pwa_id);
 			}
 		}
 
@@ -518,10 +533,26 @@ namespace Plank
 
 		public int match_score (WindowInfo window)
 		{
+			// Strict PWA Isolation: Single-process browsers (Chrome/Chromium/Brave/Edge) share a single
+			// master PID and /proc/<pid>/cmdline across all open browser and PWA windows.
+			// Therefore, a launcher with an explicit pwa_id (--app-id or StartupWMClass=crx_) MUST match
+			// strictly against the window's own compositor identifiers, never via shared Cmdline or Caption.
+			if (pwa_id != "") {
+				bool pwa_matched = false;
+				var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+				foreach (var wid in win_ids) {
+					if (wid != null && wid != "" && wid.down ().contains (pwa_id)) {
+						pwa_matched = true;
+						break;
+					}
+				}
+				return pwa_matched ? 120 : 0;
+			}
+
 			// Check if the window directly matches this desktop entry's primary identity
-			// (DesktopFileName, ApplicationId, or ResourceClass matching desktop basename or StartupWMClass)
+			// (DesktopFileName, ApplicationId, ResourceClass, or ResourceName matching desktop basename or StartupWMClass)
 			bool primary_identity_matched = false;
-			var primary_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass };
+			var primary_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			foreach (var val in primary_values) {
 				if (val != null && val != "") {
 					var norm = normalize (val);
@@ -577,7 +608,8 @@ namespace Plank
 					if (arg.length >= 5) {
 						if ((window.ApplicationId != "" && window.ApplicationId.down ().contains (arg)) ||
 						    (window.DesktopFileName != "" && window.DesktopFileName.down ().contains (arg)) ||
-						    (window.ResourceClass != "" && window.ResourceClass.down ().contains (arg))) {
+						    (window.ResourceClass != "" && window.ResourceClass.down ().contains (arg)) ||
+						    (window.ResourceName != "" && window.ResourceName.down ().contains (arg))) {
 							args_matched = true;
 							break;
 						}
@@ -599,7 +631,7 @@ namespace Plank
 			// it must NEVER hijack generic instances or different instances of the application
 			// (unless the window specifically identified itself via exact desktop file id).
 			bool exact_desktop_id_matched = false;
-			var desktop_id_values = new string?[] { window.DesktopFileName, window.ApplicationId };
+			var desktop_id_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceName };
 			foreach (var val in desktop_id_values) {
 				if (val != null && val != "") {
 					var norm = normalize (val);
@@ -627,7 +659,7 @@ namespace Plank
 
 			var values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			var scores = new int[] { 100, 95, 85, 80 };
-			var best = (args_matched && !primary_identity_matched) ? 110 : (primary_identity_matched ? 100 : 0);
+			var best = (args_matched && primary_identity_matched) ? 120 : (args_matched ? 110 : (primary_identity_matched ? 100 : 0));
 			if (specialized && !args_matched && !exact_desktop_id_matched)
 				best = 0;
 			for (var i = 0; i < values.length; i++) {

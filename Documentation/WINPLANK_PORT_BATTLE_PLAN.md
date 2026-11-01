@@ -4,14 +4,14 @@
 > **Mandate:** Compiled 100% on Linux — Zero Compilers or Runtimes Needed on Windows  
 > **Target Asset:** Single Monolithic Standalone Executable (`build/winplank.exe`) with **ZERO External DLLs**  
 > **Author:** Sergio Melas (<sergiomelas@gmail.com>)  
-> **Status:** Multi-Platform Expansion Horizon (v0.8.x) Architectural Blueprint — STRICTLY INACTIVE (Pending v0.7.0 Public Beta)  
+> **Status:** Multi-Platform Expansion Horizon (v0.8.x) Architectural Blueprint — STRICTLY INACTIVE (Active Focus on v0.7.0 Public Beta 1)  
 
 ---
 
 > [!CAUTION]
 > # 🛑 MULTI-PLATFORM EXPANSION HORIZON (v0.8.x) — NO TIME FOR THIS NOW!
 > ## THIS INITIATIVE IS STRICTLY SCHEDULED FOR THE v0.8.x MULTI-PLATFORM MILESTONE (PRIOR TO THE v0.9.x FINAL STABILIZATION CYCLE).
-> ## THERE IS CURRENTLY ZERO TIME FOR THIS: ACTIVE COMMITMENT IS 100% COMMITTED TO THE WAYPLANK PUBLIC BETA (v0.7.0) ON LINUX WAYLAND.
+> ## THERE IS CURRENTLY ZERO TIME FOR THIS: ACTIVE COMMITMENT IS 100% COMMITTED TO THE WAYPLANK PUBLIC BETA 1 (v0.7.0) ON LINUX WAYLAND.
 > ### ZERO TOLERANCE POLICY: THERE IS NO WINDOWS VERSION TODAY. DO NOT ATTEMPT TO COMPILE, RUN, OR OPEN GITHUB ISSUES OR DISCUSSIONS ASKING FOR WINDOWS SUPPORT OR ETAS. ANY SUCH REQUESTS WILL BE IMMEDIATELY CLOSED WITHOUT DISCUSSION.
 
 ---

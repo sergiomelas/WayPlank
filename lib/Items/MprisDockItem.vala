@@ -243,13 +243,16 @@ namespace Plank
 				}
 				
 				if (active_player_bus != null) {
+					string status_text = (playback_status == "Playing")
+						? _("Playing")
+						: ((playback_status == "Paused") ? _("Paused") : _("Stopped"));
 					if (track_title != "") {
 						if (track_artist != "")
-							Text = "%s - %s (%s)".printf (track_artist, track_title, playback_status);
+							Text = "%s - %s (%s)".printf (track_artist, track_title, status_text);
 						else
-							Text = "%s (%s)".printf (track_title, playback_status);
+							Text = "%s (%s)".printf (track_title, status_text);
 					} else {
-						Text = _("Media Player (%s)").printf (playback_status);
+						Text = _("Media Player (%s)").printf (status_text);
 					}
 					
 					if (playback_status == "Playing")

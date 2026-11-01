@@ -124,8 +124,8 @@ namespace Plank
 					"Get",
 					new Variant ("(ss)", "org.freedesktop.Notifications", "Inhibited"),
 					new VariantType ("(v)"),
-					DBusCallFlags.NONE,
-					1000,
+					DBusCallFlags.NO_AUTO_START,
+					150,
 					null
 				);
 				var inner = res.get_child_value (0).get_variant ();
@@ -134,7 +134,8 @@ namespace Plank
 			} catch (Error e) { }
 
 			// 2. GNOME GSettings fallback
-			if (Environment.find_program_in_path ("gsettings") != null) {
+			if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)
+				&& Environment.find_program_in_path ("gsettings") != null) {
 				try {
 					string stdout_out;
 					Process.spawn_command_line_sync ("gsettings get org.gnome.desktop.notifications show-banners", out stdout_out, null, null);

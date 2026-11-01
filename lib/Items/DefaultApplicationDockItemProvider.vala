@@ -36,6 +36,18 @@ namespace Plank
 			return false;
 		}
 
+		public bool is_accordion_docklet (DockElement el)
+		{
+			if (!is_docklet_element (el))
+				return false;
+			if (Prefs != null && Prefs.AnchorAlwaysLeft) {
+				unowned DockItem? item = el as DockItem;
+				if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences"))
+					return false;
+			}
+			return true;
+		}
+
 		public DefaultApplicationDockItemProvider (DockPreferences prefs, File launchers_dir)
 		{
 			Object (Prefs : prefs, LaunchersDir : launchers_dir);
@@ -46,6 +58,8 @@ namespace Plank
 			Prefs.notify["CurrentWorkspaceOnly"].connect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
+			Prefs.notify["AnchorAlwaysLeft"].connect (handle_category_layout_changed);
+			Prefs.notify["DockletsOnRight"].connect (handle_category_layout_changed);
 			Prefs.notify["AccordionDocklets"].connect (handle_accordion_docklets_changed);
 			Prefs.notify["SystemMenuAccess"].connect (handle_system_menu_access_changed);
 		}
@@ -118,8 +132,34 @@ namespace Plank
 			Prefs.notify["CurrentWorkspaceOnly"].disconnect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].disconnect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
+			Prefs.notify["AnchorAlwaysLeft"].disconnect (handle_category_layout_changed);
+			Prefs.notify["DockletsOnRight"].disconnect (handle_category_layout_changed);
 			Prefs.notify["AccordionDocklets"].disconnect (handle_accordion_docklets_changed);
 			Prefs.notify["SystemMenuAccess"].disconnect (handle_system_menu_access_changed);
+		}
+
+		void handle_category_layout_changed ()
+		{
+			cancel_collapse_timer ();
+			docklets_expanded = false;
+			foreach (var element in internal_elements) {
+				element.IsAttached = true;
+				element.AddTime = 0;
+				element.RemoveTime = 0;
+			}
+			refresh_separators ();
+
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.renderer != null && dock.renderer.theme != null) {
+				dock.update_items ();
+				dock.position_manager.update (dock.renderer.theme);
+				dock.renderer.reset_buffers ();
+				dock.renderer.animated_draw ();
+				dock.schedule_serialize_item_positions ();
+				if (dock.window != null) {
+					dock.window.set_input_mask ();
+				}
+			}
 		}
 
 		void handle_accordion_docklets_changed ()
@@ -346,11 +386,17 @@ namespace Plank
 					rem_apps.add (el);
 			}
 			foreach (var el in rem_folders) ordered_elements.add (el);
-			foreach (var el in rem_docklets) ordered_elements.add (el);
+			if (!Prefs.DockletsOnRight) {
+				foreach (var el in rem_docklets) ordered_elements.add (el);
+			}
 			foreach (var el in rem_apps) ordered_elements.add (el);
 
 			foreach (var el in transient_items) {
 				ordered_elements.add (el);
+			}
+
+			if (Prefs.DockletsOnRight) {
+				foreach (var el in rem_docklets) ordered_elements.add (el);
 			}
 
 			if (trash_item != null) {
@@ -425,13 +471,23 @@ namespace Plank
 				pinned_apps = sort_bucket_by_target (pinned_apps, Prefs.CategorizedDockItems);
 			}
 
-			// Strictly ordered: [Plank] | [FOLDERS] | [Docklets] | [pinned Apps] | Unpinned apps | [trash]
+			// Ordered according to user layout preferences
 			var new_order = new Gee.ArrayList<DockElement> ();
-			if (preferences_docklet != null) new_order.add (preferences_docklet);
+			if (Prefs.AnchorAlwaysLeft && preferences_docklet != null)
+				new_order.add (preferences_docklet);
 			foreach (var f in folders) new_order.add (f);
-			foreach (var d in docklets) new_order.add (d);
+			if (!Prefs.DockletsOnRight) {
+				if (!Prefs.AnchorAlwaysLeft && preferences_docklet != null)
+					new_order.add (preferences_docklet);
+				foreach (var d in docklets) new_order.add (d);
+			}
 			foreach (var p in pinned_apps) new_order.add (p);
 			foreach (var t in transients) new_order.add (t);
+			if (Prefs.DockletsOnRight) {
+				foreach (var d in docklets) new_order.add (d);
+				if (!Prefs.AnchorAlwaysLeft && preferences_docklet != null)
+					new_order.add (preferences_docklet);
+			}
 			if (trash_item != null) new_order.add (trash_item);
 
 			internal_elements.clear ();
@@ -461,7 +517,7 @@ namespace Plank
 		{
 			int count = 0;
 			foreach (var element in internal_elements) {
-				if (is_docklet_element (element)) {
+				if (is_accordion_docklet (element)) {
 					count++;
 				}
 			}
@@ -470,19 +526,28 @@ namespace Plank
 
 		public DockElement? get_anchor_docklet ()
 		{
-			// 1. If preferences docklet is present, it is ALWAYS the master anchor!
+			// 1. If preferences docklet is in the accordion group, it is the master anchor
 			foreach (var element in internal_elements) {
-				if (is_docklet_element (element)) {
+				if (is_accordion_docklet (element)) {
 					unowned DockItem? item = element as DockItem;
 					if (element is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
 						return element;
 					}
 				}
 			}
-			// 2. Fallback: if preferences docklet is hidden, the first docklet acts as the anchor!
-			foreach (var element in internal_elements) {
-				if (is_docklet_element (element)) {
-					return element;
+			// 2. Otherwise the outer edge docklet (leftmost when on left, rightmost when on right) acts as the anchor
+			if (Prefs != null && Prefs.DockletsOnRight) {
+				for (int i = internal_elements.size - 1; i >= 0; i--) {
+					var element = internal_elements.get (i);
+					if (is_accordion_docklet (element)) {
+						return element;
+					}
+				}
+			} else {
+				foreach (var element in internal_elements) {
+					if (is_accordion_docklet (element)) {
+						return element;
+					}
 				}
 			}
 			return null;
@@ -515,7 +580,7 @@ namespace Plank
 				if (docklet_count > 1) {
 					DockElement? anchor = get_anchor_docklet ();
 					foreach (var element in internal_elements) {
-						if (is_docklet_element (element)) {
+						if (is_accordion_docklet (element)) {
 							element.IsAttached = (element == anchor);
 							element.AddTime = 0;
 							element.RemoveTime = 0;
@@ -648,10 +713,12 @@ namespace Plank
 					preferences_docklet = item_for_uri ("docklet://preferences");
 				}
 
-				if (preferences_docklet != null)
+				if (!Prefs.DockletsOnRight && !Prefs.AnchorAlwaysLeft && preferences_docklet != null)
 					docklets.add (preferences_docklet);
 				foreach (var od in other_docklets)
 					docklets.add (od);
+				if (Prefs.DockletsOnRight && !Prefs.AnchorAlwaysLeft && preferences_docklet != null)
+					docklets.add (preferences_docklet);
 
 				foreach (var orphan in orphan_transients) {
 					disconnect_element (orphan);
@@ -661,13 +728,21 @@ namespace Plank
 				}
 
 				// Build ordered non-empty category groups:
-				// Fixed sequence: Folders -> Docklets -> Pinned Apps -> Unpinned Transients -> Trash
+				// - AnchorAlwaysLeft: [WayPlank] | at index 0
+				// - DockletsOnRight = false: Folders -> Docklets -> Pinned Apps -> Unpinned Transients -> Trash
+				// - DockletsOnRight = true:  Folders -> Pinned Apps -> Unpinned Transients -> Docklets -> Trash
 				var groups = new Gee.ArrayList<Gee.ArrayList<DockElement>> ();
+
+				if (Prefs.AnchorAlwaysLeft && preferences_docklet != null) {
+					var anchor_group = new Gee.ArrayList<DockElement> ();
+					anchor_group.add (preferences_docklet);
+					groups.add (anchor_group);
+				}
 
 				if (folders.size > 0)
 					groups.add (folders);
 
-				if (docklets.size > 0)
+				if (!Prefs.DockletsOnRight && docklets.size > 0)
 					groups.add (docklets);
 
 				if (pinned_apps.size > 0)
@@ -675,6 +750,9 @@ namespace Plank
 
 				if (transients.size > 0)
 					groups.add (transients);
+
+				if (Prefs.DockletsOnRight && docklets.size > 0)
+					groups.add (docklets);
 
 				if (trash_item != null) {
 					var trash_group = new Gee.ArrayList<DockElement> ();

@@ -22,16 +22,21 @@
 
 #define PACKAGE_NAME "WayPlank"
 #define PACKAGE_TARNAME "wayplank"
-#define PACKAGE_VERSION "0.6.2.3"
-#define PACKAGE_STRING "WayPlank 0.6.2.3"
+#define PACKAGE_VERSION "0.7.0"
+#define PACKAGE_STRING "WayPlank 0.7.0"
 #define PACKAGE_BUGREPORT "https://github.com/sergiomelas/wayplank/issues"
 #define PACKAGE_URL "https://github.com/sergiomelas/wayplank"
-#define VERSION "0.6.2.3"
+#define VERSION "0.7.0"
 #define GETTEXT_PACKAGE "wayplank"
 
 #define PREFIX "/usr"
 #define DATADIR "/usr/share"
 #define PKGDATADIR "/usr/share/wayplank"
 #define RELEASE_NAME "WayPlank"
-#define VERSION_INFO "WayPlank 0.6.2.3 - Pre-Beta Build"
+#define VERSION_INFO "WayPlank 0.7.0 - Public Beta 1"
 #define TEST_DATA_DIR ""
+
+#include <glib/gi18n-lib.h>
+const char *wayplank_i18n_get (const char *msgid);
+#undef _
+#define _(String) ((char *) wayplank_i18n_get (String))

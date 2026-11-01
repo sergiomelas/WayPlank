@@ -30,6 +30,11 @@ G_BEGIN_DECLS
 void plank_compat_gtk_widget_class_set_css_name (GtkWidgetClass *widget_class, const char *name);
 void plank_compat_gtk_widget_path_iter_set_object_name (GtkWidgetPath *path, gint pos, const char *name);
 
+/* Monolithic In-Memory Localization Engine (GResource .mo in RAM) */
+void wayplank_i18n_init (void);
+const char *wayplank_i18n_get (const char *msgid);
+void wayplank_i18n_translate_widget (GtkWidget *widget);
+
 G_END_DECLS
 
 #endif

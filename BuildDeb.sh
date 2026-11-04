@@ -33,7 +33,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.6.2.3"
+PKG_VER="0.7.0"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
@@ -180,6 +180,20 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
 fi
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q /usr/share/applications/ || true
+fi
+if command -v pkill >/dev/null 2>&1; then
+    OLD_PIDS="$(pgrep -f '(^|/)wayplank( |$)' 2>/dev/null || true)"
+    pkill -WINCH -x wayplank >/dev/null 2>&1 || true
+    pkill -WINCH -f '/usr/bin/wayplank' >/dev/null 2>&1 || true
+    if [ -n "$OLD_PIDS" ]; then
+        sleep 0.2
+        for p in $OLD_PIDS; do
+            if kill -0 "$p" 2>/dev/null; then
+                echo "Note: Running pre-upgrade wayplank process detected (PID $p). Run 'wayplank --replace &' once to load the new binary."
+                break
+            fi
+        done
+    fi
 fi
 echo "Wayplank installed and configured successfully."
 EOF

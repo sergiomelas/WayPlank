@@ -30,28 +30,60 @@ namespace Plank
 		 */
 		public signal void deleted ();
 		
+		string _icon = "";
 		/**
 		 * The dock item's icon.
 		 */
-		public string Icon { get; set; default = ""; }
+		public string Icon {
+			get { return _icon; }
+			set {
+				if (_icon == value)
+					return;
+				_icon = value;
+			}
+		}
 		
 		protected Gdk.Pixbuf? ForcePixbuf { get; set; default = null; }
 		
+		int64 _count = 0;
 		/**
 		 * The count for the dock item.
 		 */
-		public int64 Count { get; set; default = 0; }
+		public int64 Count {
+			get { return _count; }
+			set {
+				if (_count == value)
+					return;
+				_count = value;
+			}
+		}
 
+		string? _badge_text = null;
 		/**
 		 * Optional custom text / unit for the badge (e.g. "24°C", "95%").
 		 * If null or empty, Count.to_string () is used.
 		 */
-		public string? BadgeText { get; set; default = null; }
+		public string? BadgeText {
+			get { return _badge_text; }
+			set {
+				if (_badge_text == value)
+					return;
+				_badge_text = value;
+			}
+		}
 		
+		bool _count_visible = false;
 		/**
 		 * Show the item's count or not.
 		 */
-		public bool CountVisible { get; set; default = false; }
+		public bool CountVisible {
+			get { return _count_visible; }
+			set {
+				if (_count_visible == value)
+					return;
+				_count_visible = value;
+			}
+		}
 
 		/**
 		 * Gets the formatted text for the badge.
@@ -63,15 +95,31 @@ namespace Plank
 			return Count.to_string ();
 		}
 		
+		double _progress = 0;
 		/**
 		 * The progress for this dock item.
 		 */
-		public double Progress { get; set; default = 0; }
+		public double Progress {
+			get { return _progress; }
+			set {
+				if (_progress == value)
+					return;
+				_progress = value;
+			}
+		}
 		
+		bool _progress_visible = false;
 		/**
 		 * Show the item's progress or not.
 		 */
-		public bool ProgressVisible { get; set; default = false; }
+		public bool ProgressVisible {
+			get { return _progress_visible; }
+			set {
+				if (_progress_visible == value)
+					return;
+				_progress_visible = value;
+			}
+		}
 		
 		int position = -1;
 		/**
@@ -149,7 +197,8 @@ namespace Plank
 		
 		SurfaceCache<DockItem> buffer;
 		SurfaceCache<DockItem> background_buffer;
-		Surface? foreground_surface = null;
+		SurfaceCache<DockItem> foreground_buffer;
+		bool average_color_valid = false;
 		
 		FileMonitor? launcher_file_monitor = null;
 		FileMonitor? icon_file_monitor = null;
@@ -169,6 +218,7 @@ namespace Plank
 		{
 			buffer = new SurfaceCache<DockItem> (SurfaceCacheFlags.ALLOW_DOWNSCALE);
 			background_buffer = new SurfaceCache<DockItem> (SurfaceCacheFlags.ALLOW_SCALE);
+			foreground_buffer = new SurfaceCache<DockItem> (SurfaceCacheFlags.ALLOW_DOWNSCALE);
 			
 			Prefs.deleted.connect (handle_deleted);
 			Prefs.notify["Launcher"].connect (handle_launcher_changed);
@@ -198,6 +248,8 @@ namespace Plank
 
 			buffer.clear ();
 			background_buffer.clear ();
+			foreground_buffer.clear ();
+			average_color_valid = false;
 
 			Prefs.notify["Launcher"].disconnect (handle_launcher_changed);
 
@@ -266,7 +318,8 @@ namespace Plank
 		{
 			buffer.clear ();
 			background_buffer.clear ();
-			foreground_surface = null;
+			foreground_buffer.clear ();
+			average_color_valid = false;
 			
 			needs_redraw ();
 		}
@@ -277,7 +330,7 @@ namespace Plank
 		public override void reset_buffers ()
 		{
 			background_buffer.clear ();
-			foreground_surface = null;
+			foreground_buffer.clear ();
 		}
 		
 		public void unset_move_state ()
@@ -287,7 +340,7 @@ namespace Plank
 		
 		void reset_foreground_buffer ()
 		{
-			foreground_surface = null;
+			foreground_buffer.clear ();
 			
 			needs_redraw ();
 		}
@@ -512,7 +565,10 @@ namespace Plank
 			Logger.verbose ("DockItem.draw_icon (width = %i, height = %i)", width, height);
 			draw_icon (surface);
 			
-			AverageIconColor = surface.average_color ();
+			if (!average_color_valid) {
+				AverageIconColor = surface.average_color ();
+				average_color_valid = true;
+			}
 			
 			return surface;
 		}
@@ -556,17 +612,20 @@ namespace Plank
 		public Surface? get_foreground_surface (int width, int height, Surface model, DrawDataFunc<DockItem>? draw_data_func)
 		{
 			if (draw_data_func == null) {
-				foreground_surface = null;
+				foreground_buffer.clear ();
 				return null;
 			}
-			
-			if (foreground_surface != null
-				&& foreground_surface.Width == width && foreground_surface.Height == height)
-				return foreground_surface;
-			
-			foreground_surface = draw_data_func (width, height, model, this);
-			
-			return foreground_surface;
+
+			return foreground_buffer.get_surface<DockItem> (width, height, model, (DrawFunc<DockItem>) internal_get_foreground_surface, (DrawDataFunc<DockItem>) draw_data_func);
+		}
+
+		[CCode (instance_pos = -1)]
+		Surface? internal_get_foreground_surface (int width, int height, Surface model, DrawDataFunc<DockItem>? draw_data_func)
+		{
+			if (draw_data_func == null)
+				return null;
+
+			return draw_data_func (width, height, model, this);
 		}
 		
 		/**

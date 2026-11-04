@@ -115,7 +115,7 @@ namespace Plank
 			content.pack_start (header_box, false, false, 0);
 
 			// Controls: Search bar + Browse button
-			var controls_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
+			var controls_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
 
 			search_entry = new Gtk.SearchEntry ();
 			search_entry.placeholder_text = _("Search theme icons (e.g. browser, folder, games, edit)...");
@@ -162,6 +162,17 @@ namespace Plank
 			set_default_response (Gtk.ResponseType.OK);
 
 			response.connect (handle_response);
+			this.map.connect (() => {
+				set_focus (null);
+				if (search_entry != null)
+					search_entry.select_region (0, 0);
+			});
+			this.map_event.connect (() => {
+				set_focus (null);
+				if (search_entry != null)
+					search_entry.select_region (0, 0);
+				return false;
+			});
 			show_all ();
 		}
 

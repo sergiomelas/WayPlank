@@ -1,0 +1,1955 @@
+================================================================================
+                    WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
+================================================================================
+Date: 2026-11-04
+Milestone: V0.7.0 (Public Beta 1: Complete Multi-Compositor Baseline Consolidation,
+           Monolithic Embedded Localization & Community Validation)
+Author & Tester: Sergio Melas
+Compositor Validation Status & Qualification Scoreboard:
+  - KDE PLASMA (KWin Backend):
+      [PASS]    | 118 [ok] | 8 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100% PASS)
+  - GNOME (Mutter Backend):
+      [PASS]    | 121 [ok] | 7 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100% PASS)
+  - LABWC (wlroots Backend):
+      [PASS]    | 115 [ok] | 8 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] (100% PASS)
+  - TOTAL SCOREBOARD:
+      379 Tests Defined | 354 [ok] Baseline | 23 [ko->ok] Squashed |
+      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 0 Open Defects ([ko])
+      100% ISA-88 QUALIFICATION ACHIEVED (377/377 Applicable Tests Passed Across All 3 Compositors)
+
+Test Status Legend (ISA-88 Qualification Standard):
+  - [ok]        : Compliant / Passed (Verified during v0.6.2.3 testing & consolidated in v0.7.0)
+  - [  ]        : Pending test execution / Open test point
+  - [ko]        : Non-conformance / Defect logged
+  - [ko->test]  : Remediation need still to be tested
+  - [ko->ok]    : Remediation verified / Passed on re-test
+  - [ko->imp]   : Remediation verified / Passed on re-test but need minor improvement
+  - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle)
+
+================================================================================
+SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 SQUASHED | 0 OPEN]
+================================================================================
+================================================================================
+
+0. Crashes during test
+   [ok] 0.1 Crash on Weather Location Settings Dialog:
+        - Add Weather Forecast docklet and click 'Location...'; verify
+          WeatherCityDialog opens centered cleanly without Mutter crash.
+   [ok] 0.2 Elimination of Asynchronous Timers & Mutter Assertion Crash:
+        - Rapidly double-click docklets (Session, Weather, Preferences) on
+          GNOME Mutter; verify zero unmanage assertion crashes.
+   [ko->ok] 0.3 GNOME Bridge Error-Latch Recovery, Dock Concealment, Instant Startup & Smooth Hover:
+        - Verify 'gnome-extensions reset' clears GNOME Shell error latches,
+          DockWindow suppresses center-screen flash until positioned, startup
+          is instant, and rapid pointer hover stays smooth at <= 5% CPU (0.1%
+          idle).
+        BUG: GNOME Shell ExtensionState.ERROR latched after interrupted
+          deploys (floating dock at screen center), startup ran KDE brightness
+          probes on main thread, and HoverWindow map/unmap triggered D-Bus
+          window-state storms.
+        SOLUTION: Added 'gnome-extensions reset' self-healing, DockWindow
+          concealment guard, background KDE-gated brightness probing, Mutter
+          '_classifyWindow === other' popup filter + JSON state dedup, and
+          multi-size SurfaceCache + 50ms VSync motion hold.
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu:
+        Launch unpinned app -> Right-click -> "Keep in Dock"
+   [ok] 1.2 Unpinning via Menu:
+        Right-click pinned item -> Uncheck "Keep in Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+        - In Free Mode, dragging an app past Trash strictly clamps before
+          Trash; Trash is never displaced.
+   [ok] 1.4 Pin via External Drag & Drop:
+        Drag .desktop / app from menu/files onto dock
+   [ok] 1.5 Drag-Off Removal (Poof):
+        - Drag pinned icon away from dock -> poof animation.
+        - Drag a running pinned app off dock (or onto Trash): poof
+          animation plays, app unpins and moves to running transient
+          section BEFORE Trash (never past Trash or into trash zone).
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+        - Verified 0-byte files (application/x-zerosize filename fallback),
+          payloads with %F/%U, bounce feedback and window activation.
+        - Verified dropping an incompatible file onto an icon cleanly rejects
+          the drop without falling back to pinning the file to the dock.
+   [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+        - Verify Folders and Docklets stay clamped within their own sections,
+          and locked items (Preferences, Separator, Trash) abort drag cleanly.
+        - Verify dragging apps across the Pinned/Unpinned divider pins or
+          unpins them without crossing into Folders, Docklets, or Trash.
+   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+        - Left-click toggles non-modal dark folder popup anchored 4px from
+          icon with 60 FPS zoom following, subfolder back-navigation, and
+          450ms crossing grace.
+        - Right-click opens dock management menu ('Keep in Dock', 'Open in
+          File Browser', 'Preferences'); hovering other icons or leaving dock
+          auto-dismisses popup.
+   [ok] 1.9 First-Run Onboarding & Default Drawers:
+        - Fresh config generates 4 categorized drawers (Internet, Office,
+          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+        - Right-click app or folder -> 'Change Icon...': verify instant
+          search, custom GIO icon persistence, and 'Restore Default'
+          (including automatic fallback if custom theme icon is missing).
+        - Verify empty folders show a default folder icon and dropping a
+          folder anywhere on the dock pins it as a drawer.
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+        - Verify running apps inside a folder show 1 or 2 dots on the folder
+          dock icon and per-row dots inside the open popup without clipping.
+        - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
+          false dots on Gmail/YouTube/Drive '--app=URL' shortcuts).
+        - Launch a Chrome '--app=URL' shortcut, 'NoDisplay=true' PWA, '.sh'
+          profile/Incognito wrapper, or sibling binary (VS Code, MATLAB,
+          Scilab): verify pinned icon and matching folder row light up
+          together in isolation.
+        - Drag a folder onto dock gap -> pins in [Folders]; drag
+          folder/launcher/file onto a folder icon OR open FolderMenuWindow ->
+          copies in and live-refreshes rows and dots.
+        BUG: Normal Chrome falsely lit '--app=URL' folder shortcuts via shared
+          domain tokens, '.sh' wrappers scored below 115 or cross-matched
+          PWAs, 'NoDisplay=true' PWAs and sibling binaries (VS
+          Code/MATLAB/Scilab) only lit one icon, and open folder popups lacked
+          DnD.
+        SOLUTION: Added full-URI 'uri_identities' + '>=115' Reverse Canonical
+          Guard, '.sh' wrapper unwrapping (score 116) with profile/Incognito
+          title matching and PWA isolation, bidirectional PWA <-> '--app=URL'
+          and sibling WMClass inheritance, plus '[Folders]' & open-popup DnD
+          with live re-indexing.
+   [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
+        - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
+          Ctrl+Click or Middle-Click launches a new instance, mouse wheel
+          cycles open windows, and row right-click menu stays open cleanly
+          without 'Keep in Dock'.
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+        Click running app icon -> activates & brings to front; click already
+        active window -> minimizes
+   [ok] 2.4 Left Click (Multiple Windows Focus Cycling):
+        When 2+ windows are open, left-clicking app icon cycles focus directly
+        through open instances using 'activate' (NEVER minimizes the currently
+        focused window in between cycles)
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click):
+        - Shows window list, quicklists, and "Close".
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
+          in browser with working Table of Contents anchor jumps.
+        - Right-click on ANY item or dock background includes
+          '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
+   [ok] 2.7 Attention / Urgent State:
+        Window requesting attention -> bounce/pulse effect using test_urgency.py
+        in FAT folder
+   [ok] 2.8 Close All (Multiple Windows):
+        Right-click app with 2+ windows -> "Close All" closes all instances
+   [ok] 2.9 Window List Selection:
+        Right-click app with 2+ windows -> click window title in list brings
+        that window to front
+   [ok] 2.10 Scroll-Wheel Window Cycling:
+        Scroll wheel over app icon with 2+ windows -> cycles focus through
+        instances
+   [ok] 2.11 Fullscreen Window Inhibit:
+        Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
+        steals input
+   [ok] 2.12 Sandbox & Complex Launcher Matching:
+        Launch Flatpak/Snap, Firejail, or shell wrapper app -> shows running
+        indicator dot on pinned launcher (no duplicate icons)
+   [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact, no JSON parse errors
+        or vanished indicators
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+        - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
+          browser profile) alongside native/Flatpak apps: verify each spawns
+          its own isolated icon and running count.
+        - Verify short app names ('Gram', 'Web') never hijack substring titles
+          ('Instagram', 'Open WebUI').
+        BUG (Issue #6): Empty cmdline rejected PWA '.desktop' entries,
+          substring title matching hijacked short names, and multiple Chrome
+          PWAs on the same profile overcounted via shared master PID cmdline.
+        SOLUTION: Enforced authoritative primary ID matching, word-boundary
+          title matching, 'is_best_launcher_for_window' transient creation,
+          and strict 'pwa_id' ('crx_<id>') window-identifier scoring (120)
+          isolated from shared '--profile-directory' tokens.
+   [ko->ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding Dialog Masking (Issues #14, #16):
+        - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
+          independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
+          minimize/restore, pinning, and cold relaunch.
+        - Launch a CLI GUI app or AppImage/Snap/Flatpak from terminal: verify
+          transient dock icon appears, stays bound across dynamic title
+          changes, and cleans up on close if unpinned.
+        - Run 'zenity --info --text="Test"': verify zero dock icon and zero
+          synthetic '.desktop' file created.
+        BUG (Issues #14 & #16): Exec-less 'NoDisplay=true' templates (QEMU)
+          and CLI-launched GUI apps / AppImages / Snaps missed dock icons or
+          lost binding on title updates, while helper dialogs ('zenity')
+          needed suppression.
+        SOLUTION: Expanded DataDirFolders for Snap/Flatpak desktop paths,
+          resolved CLI AppImage FUSE paths via '/proc/<pid>/environ'
+          ('APPIMAGE='), stabilized synthetic launcher binding via
+          'has_startup_wm_class', added Labwc main-PID '/proc' scoring, and
+          replaced 'matched_exec_less_desktop' with zero-hardcoding dialog
+          masking ('WindowInfo.IsDialog' + XDG 'NoDisplay=true' entries with
+          'Exec=').
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent):
+        Window overlaps dock -> hides; moves away -> reveals
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+        - With Hide Dock enabled, verify 'Pressure Reveal' OFF gives a 10px
+          hover reveal zone and ON enforces a 1px edge pressure barrier.
+        - Verify switches and 'Click Behavior' options across Preferences
+          display clear tooltips.
+   [ok] 3.8 Accordion Retention on Dock Hide/Unhide:
+        - If dock closes (e.g. intellihide) and reopens before delay expires,
+          drawer remains open.
+        - Timer cancels upon cursor re-entry.
+   [ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Run 'python3 "FAT/Test Files/Testers/test_fullscreen.py"' and press
+          F11 from unmaximized window: verify dock hides across all HideModes
+          (including 'None') and 100% of 0px edge clicks reach the tester; Esc
+          restores dock.
+   [ko->ok] 3.10 Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17):
+        - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
+          100% clickable (never greyed out) in Preferences -> Behaviour.
+        - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
+          'Icon Zoom' and tiles maximized windows flush against dock across
+          all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
+          'Reserve Screen Space' (both in GUI and via 'gsettings set').
+        BUG (Issue #17): Greyed-out 'Reserve Screen Space' sensitivity lock
+          confused users when 'Hide Dock' or 'Icon Zoom' was active, and CLI
+          'gsettings set' did not clear conflicting keys.
+        SOLUTION: Removed sensitivity grey-out and implemented an
+          edge-triggered SR Flip-Flop in DockPreferences.vala ('S =
+          ^ReserveSpace' clears HideDock & IconZoom; 'R = ^HideDock v
+          ^IconZoom' clears ReserveSpace) across GUI and CLI 'gsettings', with
+          3-way idempotence caching in DockWindow.update_exclusive_zone().
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ok] 4.1 Empty Workspace Switch:
+        Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [ok] 4.2 Occupied Workspace Switch:
+        Switch back to WS1 -> dock hides again immediately
+   [ok] 4.3 Sticky Windows:
+        Window set on all workspaces -> dock dodges on every workspace
+   [ok] 4.4 Dynamic Workspaces:
+        Adding or removing dynamic workspaces on the fly -> handled without
+        stale lookups or crashes
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement:
+        Hover each item -> centered tooltip with correct arrow
+   [ok] 5.2 No Flickering:
+        Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+        - Hovering dock or tooltips never steals active window focus; full
+          dock width responds with zero dead zones.
+        - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
+          above the visible dock pill pass 100% through to underlying windows.
+   [ok] 5.5 Tooltip Badges & Clean Identity:
+        - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
+        - In free mode: tooltips display item type badges ('• Folder', '•
+          Running', '• Docklet').
+        - In categorized mode: clean title is displayed without redundant
+          badges.
+   [ok] 5.6 Accordion Directional Tooltip Indicator:
+        - Master Preferences anchor tooltip dynamically displays directional
+          arrow (▸ / ◂) indicating the docklet accordion expansion state.
+6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
+   [ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Prerequisite on stock GNOME (if Super+D is unassigned):
+          gsettings set org.gnome.desktop.wm.keybindings show-desktop "['<Super>d']"
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D) minimizes standard app windows
+          while WayPlank remains visible on the desktop.
+   [ok] 6.2 Trash Docklet:
+        Displays state; click opens; drag files to trash; right-click empty
+   [ok] 6.3 External Trash Sync:
+        Empty/fill trash from external file manager (Nautilus) -> icon updates
+        state via D-Bus
+   [ok] 6.4 Screenshot Docklet:
+        Click triggers rectangular selection (stationary animation,
+        AnimationType.NONE - no mid-air leap); context menu triggers
+        area/full/window/folder
+   [ok] 6.5 Session & Power Docklet (docklet://session):
+        - Left-click opens Centered Session Dialog (SessionWindow).
+        - Verify 6 action buttons (Lock, Switch User, Logout, Suspend, Restart,
+          Shutdown).
+        - Confirmation screen functions properly with Escape/Cancel
+          default-focused.
+        - Right-click menu displays direct actions with icons:
+          Lock session: under non-GDM (SDDM), GNOME disables internal
+          ScreenShield.
+          Resolved via fallback to DisplayManager Seat SwitchToGreeter and
+          systemd LockSessions IPC without spawning broken CLI calls.
+   [ok] 6.6 Preferences Docklet (docklet://preferences):
+        - Preferences anchor is permanently locked at index 0 (unmovable,
+          cannot be removed).
+        - Left-click opens Preferences dialog immediately with icon bounce.
+        - Displays classic Plank/Wayplank anchor icon (avoiding collision with
+          system settings).
+        - Right-click menu contains direct links to 4 sections (Appearance,
+          Behaviour, Applications, Docklets) followed by separator.
+   [ok] 6.7 Digital Clock Visual Tile:
+        - Verify Digital Clock displays modern tile with digital numerals
+          (01:18), NOT an analog clock dial with hands.
+   [ok] 6.8 100% Internal Binary GResource Fallbacks:
+        - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
+          (12 levels) render properly from binary.
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7
+          conditions)
+          render properly from binary.
+        - Verify zero file pollution in /usr/share/icons/hicolor/ (only
+          wayplank.svg/plank.svg installed).
+   [ok] 6.9 Drive Ejector Docklet (docklet://ejector):
+        - Displays removable drive icon with orange gradient fallback.
+        - Badge counter displays number of mounted removable drives/volumes.
+        - Left-click: safely unmounts/ejects (if 1 device) or opens device
+          selection menu (if multiple).
+        - Desktop notification displayed on safe removal ("Drive safely
+          removed").
+        - Right-click context menu lists all mounted removable drives with
+          "Eject / Safe Remove" actions.
+   [ok] 6.10a Screen Brightness - Standalone Laptop Internal Display (Fast-Path):
+        - Verify direct internal panel (/sys/class/backlight) control with %
+          badge, 5% mouse-wheel steps, left-click presets (25/50/75/100%), and
+          real-time sync with physical Fn keys.
+   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External Displays (DDC/CI):
+        - Verify 'brightnessctl set 40%', physical Fn keys, wheel steps, and
+          presets synchronize internal panel and external monitors cleanly via
+          ddcutil with 350ms I2C settle debounce and clamshell support.
+   [ok] 6.11 Weather Forecast Docklet (docklet://weather) & Vector Icon Fallback:
+        - Left-click opens WeatherWindow showing current condition, high/low,
+          humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
+          badge, city search (WeatherCityDialog) with IP geolocation fallback,
+          and crisp GResource SVG icons on any icon theme.
+   [ok] 6.12 Docklet Right-Click Context Menu Consistency:
+        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
+          Brightness, Weather, Network) show clean, focused context menus.
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
+        - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
+          states, SSID/IP tooltip, left-click Network Settings, middle-click
+          Copy IP, and context menu.
+   [ok] 6.14 Docklets Accordion & Expansion Modes:
+        - Accordion collapsed at rest: expands on hover. Enable 'Click to
+          Expand' in Preferences -> Appearance: hover no longer expands;
+          left-clicking Preferences expands docklets; second click opens
+          Preferences dialog.
+        - Universal Interaction Invalidation: Accordion collapse timer is
+          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
+          Weather) or menu is open. On close, restarts full delay if cursor
+          is outside, or keeps drawer open if cursor is on dock.
+   [ok] 6.15 Global System Pressure Engine (docklet://cpu):
+        - Replaces custom dual-gauge card with standard theme icon
+          (utilities-system-monitor;;cpu) and native numeric top badge.
+        - Badge counter displays combined system pressure with % [0-100%]
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU,
+          RAM, Disk).
+        - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
+   [ok] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Verify Battery, Volume (up to 150% overamplified icon), and MPRIS
+          Media Player render theme icons with embedded GResource SVG
+          fallbacks and % badges.
+   [ok] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+        - Verify compact top badges (~34% icon height) show crisp units (°C/°F
+          on Weather, % on CPU/Battery/Volume/Network/Brightness, plain
+          integers on Ejector/unread) across all icon sizes and zoom.
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+        - Verify left-click toggles notification mute (bell <-> muted icon),
+          syncs bidirectionally with desktop DND state, and suppresses
+          'FAT/Test Files/Testers/test_notification.py' banners when active.
+7. PREFERENCES & CONFIGURATION
+   (Ctrl + Right-Click -> Preferences or via docklet://preferences)
+   [ok] 7.1 Window Opening & Foreground Raising:
+        - Preferences dialog opens centered without glitch.
+        - Preferences, Help, and About dialogs raise immediately to foreground
+          over other windows (Wayland focus bypass).
+   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size Slider Resiliency:
+        Real-time slider resizing works smoothly across all values (24px to
+        64px+); auto-shrink does NOT crush icons to 24px minimum due to
+        separator count or uninitialized monitor geometry
+   [ok] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+        - Verify Default (adaptive dark/light GTK+), stock themes
+          (Arian/IFtiger Dark & Light, Transparent), and legacy
+          ~/.local/share/plank/themes switch live without restart.
+   [ok] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Verified live: dock dynamically follows Primary Display)
+   [ok] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays; cold start on
+        fractional scaling (e.g. 4K@1.5x).
+        - CLI procedure on minimal GNOME (via gdctl):
+          gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
+          gdctl set --logical-monitor --primary --scale 1.25 --monitor eDP-1
+          killall wayplank; wayplank &
+          gdctl set --logical-monitor --primary --scale 1 --monitor eDP-1
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+        - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
+          Docklets with matching icons and instant live add/remove toggling.
+   [ok] 7.9 Categorize Items Toggle, Apps & Layout Anchors & Free Mode:
+        - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
+          [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
+          'WayPlank Always Left' at index 0), hiding empty-section separators.
+        - Verify 'Align by Type' sorts Free Mode items cleanly and toggling
+          Categorize/Accordion OFF expands docklets without leftover timers or
+          stored separator URIs.
+   [ok] 7.10 Accordion Collapse Delay Slider:
+        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
+          Preferences -> Appearance (visible only when Accordion is active).
+   [ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+        - Interactive Shortcuts & Gestures window and terminal cheatsheet
+          ('wayplank --help') document Accordion controls, directional
+          indicators, retention, right-click shortcuts, and icon chooser.
+   [ok] 7.12 Shortcuts & Gestures Centering:
+        - Bug: set_titlebar() cleared window title to NULL ('wayplank'),
+          causing Mutter bridge to misclassify dialog as dock.
+   [ok] 7.13 Workspace Only Wayland Dormancy:
+        - Open Preferences -> Behaviour tab.
+        - Verify 'Workspace Only' switch is insensitive (greyed out).
+        - Verify hovering either the switch or label displays tooltip:
+          "Workspace filtering is not yet supported under Wayland".
+        - Verify dock remains stable and all running applications remain
+          accessible.
+   [ok] 7.14 Show Unpinned Dynamic Refresh:
+        - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
+        - When enabled (ON), all running unpinned applications immediately
+          appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately,
+          leaving only pinned apps.
+   [ok] 7.15 Cross-Compositor Peer Dialog Stacking & Sub-Popup Decoupling:
+        - Open Preferences, then click Weather or Session on dock:
+          Weather/Session opens immediately in foreground on the 1st click.
+        - Click Preferences: Preferences raises cleanly above Weather/Session.
+        - Click Weather/Session again while in foreground: toggles off cleanly.
+        - Open Location dialog from Weather: stays upfront over WeatherWindow.
+   [ok] 7.16 AboutDialog Native CSD HeaderBar & Close Action on Mutter:
+        - Open About WayPlank dialog from dock context menu on GNOME Shell.
+        - Verify window renders complete HeaderBar, title, and functional Close
+          button; verify dialog can be closed with mouse click or Escape.
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix:
+        move to all screens and all edges
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY
+   [ok] 9.1 Sleep & Resume Wakeup:
+        Suspend machine -> resume from sleep; compositor remains responsive
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect:
+        Screen layout storm absorbed by debouncer
+   [ok] 9.3 Rapid Geometry Storm:
+        Rapidly move/maximize/restore windows -> updates throttled smoothly
+   [ok] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly ONE script instance alive
+   [ok] 9.5 Process Lifecycle (--replace / kill):
+        Restart dock via 'wayplank --replace' -> cleanly takes over
+   [ok] 9.6 Signal Disconnect Safety:
+        Opening and closing Preferences multiple times leaves no dangling
+        callbacks or memory leaks
+   [ok] 9.7 Rapid Display Reconfiguration / DPI Storm:
+        Repeated rapid scaling/DPI modifications -> zero compositor lockups or
+        event stalls
+   [ok] 9.8 (Cross-Compositor) Window Title & State Flood Debounce:
+         Rapid burst of window title changes or fast open/close cycle ->
+        absorbed
+         by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [ok] 9.9 GNOME Shell Crash Safety Mode Auto-Recovery & Extension:
+        - Verify MutterBackend detects GNOME Safety Mode
+          ('disable-user-extensions = true') on startup, re-enables
+          'wayplank-bridge@wayplank.org', and anchors dock cleanly.
+   [ko->ok] 9.10 Screen Lock / Unlock, Idle, DPMS Sleep/Wake Self-Healing & Live Upgrade Reload (Issue #18):
+        - Lock screen (Super + L), trigger DPMS monitor sleep/wake or output
+          reconnect, and unlock: verify dock restores visibility, anchoring,
+          and exclusive space automatically with zero manual CLI restart.
+        - Run 'sudo dpkg -i build/wayplank_0.7.0_amd64.deb' while WayPlank is
+          running: verify seamless SIGWINCH live binary reload with zero
+          duplicate processes.
+        BUG (Issue #18): Dock vanished after screen lock/unlock, idle, or DPMS
+          sleep because GNOME disabled 'wayplank-bridge' in 'unlock-dialog',
+          trapping unmapped DockWindow in a PositionDock Catch-22 deadlock.
+        SOLUTION: Broke the Mutter PositionDock / DockWindow.hide() deadlock
+          via '_lastDockGeo' caching, connected 'monitors-changed' +
+          'bridge_reconnected' + 'org.gnome.ScreenSaver' +
+          'login1.Session.Unlock' to 'schedule_dock_refresh()', added
+          'dock_unmapped' recovery in PositionManager, and wired SIGWINCH live
+          reload on '.deb' upgrades.
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
+   [ok] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
+        - Automated spec builder creates clean RPM packages for openSUSE
+          Tumbleweed/Leap & Fedora/RHEL
+        - Multi-distro package manager detection (zypper, dnf, apt for rpmbuild)
+        - Clean install with rpm -Uvh / zypper install
+   [ok] 10.2 Headless / Non-Interactive Packaging Variables:
+        - WAYPLANK_NO_PROMPT=1, CI=1, NONINTERACTIVE=1 bypass interactive
+          prompts across
+          BuildBin.sh, BuildDeb.sh, and BuildRpm.sh
+   [ok] 10.3 Dock Overflow Smooth Scrolling Engine:
+        - Clamps dock background to screen width/height when items exceed
+          monitor bounds
+        - Mouse wheel on dock surface smoothly scrolls items back and forth with
+          60 FPS interpolation
+        - Clipped rendering prevents scrolled-out items/shadows from bleeding
+          past background
+   [ok] 10.4 Docklet Scroll Conflict Isolation:
+        - Scrolling over Volume docklet adjusts audio volume without scrolling
+          dock
+        - Scrolling over Brightness docklet adjusts screen brightness without
+          scrolling dock
+   [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
+        - Accordion in-line expand/collapse operates harmoniously alongside
+          overflow scrolling
+   [ok] 10.6 Urgent Window Auto-Scrolling:
+        - Off-screen dock items receiving urgent state call ensure_item_visible
+          and scroll into view
+   [ok] 10.7 "Scroll on Overflow" Preference Switch:
+        - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
+          scroll-overflow)
+        - When ON: dock icons preserve target size and scroll with wheel
+        - When OFF: dock icons auto-shrink down to fit screen (classic Plank
+          behavior)
+   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
+        - In Shrink Mode, verify physical screen-limit tick mark, red SVG
+          teardrop slider above capacity, and warning label when icons
+          auto-shrink; in Scroll Mode, redline clears.
+   [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
+        - Left/right (and vertical top/bottom) subtle edge gradients and
+          chevrons indicate scrollable content
+        - Right chevron coordinates correctly offset with (+ rect.width -), zero
+          horizontal line artifacts
+   [ok] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [ok] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and
+            MutterBridge
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+================================================================================
+
+11. ERGONOMIC ENHANCEMENTS, DND REMOTE URLS & PORTAL COLOR-SCHEME (v0.6.2.2
+  FOCUS)
+   [ok] 11.1 DND Remote URL Delivery (http:// and https:// Web URLs):
+        - Dragging a remote web URL from browser address bar or link over
+          compatible dock item (browser or web-enabled app)
+        - Dispatches cleanly via DesktopAppInfo.launch_uris() without URI-escape
+          mismatches or silent drop aborts
+   [ok] 11.2 Hover Window Activation During Drag-and-Drop:
+        - When dragging an external payload (file or URL) and hovering over a
+          running application icon for >500ms, dock automatically raises that
+          application's window to the foreground
+        - Operator can release cursor directly inside target application's
+          workspace
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+        - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
+          key changes
+        - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
+          when OS switches between Light and Dark mode without requiring dock
+          restart
+   [ok] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
+   [ok] 11.5 Interactive Theme Manager (Install Archives & Native File Chooser):
+        - Click '+' in Preferences -> Appearance -> Theme to install
+          '.zip'/'.tar.gz' archives from 'FAT/Test Files/Themes/' via portal
+          chooser; verify user theme trash deletion and system theme lock.
+   [ok] 11.6 Strict FreeDesktop MIME Type Drop Validation:
+        - Drag incompatible file (e.g. 'Sergio Melas CV.pdf' from
+          FAT/Test Files/Files/) onto text editors (Kate, VS Code) or Dolphin.
+        - App icon bounces and strictly rejects the incompatible file (does not
+          attempt to open, does not fall back to pinning).
+        - Drag compatible file (e.g. text file or folder) onto Kate / Dolphin ->
+          accepted and opened properly.
+   [ok] 11.7 Canonical Launcher Deduplication & Desktop Pinning Precedence:
+        - Drag .desktop file (e.g. 'Youtube.desktop' from FAT/Test Files/Links/)
+          onto dock while hovering near/over a web browser icon.
+        - Dock strictly prioritizes pinning the launcher over opening it in
+          browser; launcher is pinned to dock.
+        - Drag the same .desktop again -> repositioned along the dock, NO
+          duplicate '-1.dockitem' created on disk or dock.
+        - Canonical URI matching handles percent-encoding ('Test%20Files'),
+          symlinks ('Desktop' vs 'Others'), and desktop IDs.
+   [ko->ok] 11.8 Clean Drag-Off Removal, VSync 3-Beat Unpin Pipeline & Destruction Animation:
+        - Drag pinned icon off dock (or right-click -> uncheck 'Keep in
+          Dock'): verify slot holds in place, plays Unpin Effect 0..7 at
+          configured Effect Duration (or downward slide when None = 8),
+          smoothly closes gap, and leaves zero ghost icons (or exactly 1
+          unpinned icon if app is running).
+        BUG: Legacy global cursor coordinates misplaced Wayland unpin
+          animations, collapsing the slot early spawned duplicate transient
+          icons on running apps, and menu unpin bypassed the configured Unpin
+          Effect.
+        SOLUTION: Extracted HAL overlay positioning into
+          SurfaceCoordinateService.vala, implemented a timer-free VSync 3-Beat
+          removal state machine with PendingRemovalLauncher deduplication, and
+          routed both drag-off and menu unpin through
+          'remove_item_with_effect()' at 'EffectDuration'.
+12. MULTI-WINDOW PREVIEW CARDS, RECENT FILES JUMP LIST & STOCK THEMES (v0.6.2.3)
+   [ok] 12.1 Stock Theme Suite Integration (Dark & Light Variants):
+        - Bundled classic 'Dark' and 'Light' stock themes load cleanly from
+          /usr/share/wayplank/themes/
+        - Both variants render properly and switch dynamically without errors
+        - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
+          Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
+          monitoring, and Theme.vala dynamic palette luminance fallback.
+   [ok] 12.2 Recent Files Jump List in Context Menus:
+        - Right-clicking compatible applications in dock displays 'Recent
+          Documents' submenu powered by FreeDesktop Gtk.RecentManager
+        - Selecting a recent document opens it directly in target application
+   [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
+        - Left-click on app icon with 2+ open windows displays floating Cairo
+          preview cards with live window thumbnails.
+        - Dynamic bounds recalculation operates cleanly across KWin, Mutter,
+          and Labwc without horizontal dock distortion.
+        - Mutter bridge classification and LayerShell coordinates verified.
+        - 450ms exit zone crossing mask prevents premature dismissal when moving
+          cursor from dock icon towards popup cards.
+        - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
+   [ok] 12.4 Window Activation & Selection from Card:
+        - Clicking a window card brings corresponding window forward and gives
+          it focus
+        - Middle-click or close button on card closes target window instance
+   [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
+        - Preferences -> Behaviour includes toggle switch to select between
+          classical cyclic window switching and multi-window preview cards
+13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
+   [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
+        - Verify 'System Menu Access' persists Modes 1..4: Docklets Only
+          (strict), Docklets Only (auto fallback), All Icons, and Dedicated
+          Icon on dock.
+   [ok] 13.2 Minimalist Dock Setup & Context Menu Preferences Removal:
+        - In Mode 4, right-click Preferences icon -> 'Remove from Dock':
+          verify poof removal and automatic migration to Mode 2 (or Mode 3 in
+          Free Mode).
+   [ok] 13.3 Free Mode (Uncategorized) Protection & Dynamic Migration:
+        - Toggle 'Categorize Items' OFF: verify Modes 1 & 2 hide from dropdown
+          and migrate automatically to Mode 3 ('All Icons').
+   [ok] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
+        - Verify Accordion collapses toward outer edge (leftmost when Docklets
+          left, rightmost when Docklets on Right), expands on hover or click
+          ('Click to Expand') and during drag-over, and never collapses <= 1
+          docklet.
+   [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
+        - Open Preferences dialog: verify window default dimensions are compact
+          (560x480) with zero horizontal label wrapping or forced stretching.
+          - Verify Accordion controls and collapse delay are cleanly laid out on
+          dedicated rows.
+        - Verify all new settings strings are localized with zh_CN prioritized #1,
+          plus it, es, fr, ca, de, uk in po/generate_translations.py.
+   [ok] 13.6 Strict Minimalist Mode 1 ('Docklets Only' - No App Fallback):
+        - In Mode 1 with zero docklets, verify app right-click menus stay pure
+          (no system items) while 'Ctrl + Right Click' anywhere opens the
+          WayPlank system menu.
+   [ok] 13.7 Monolithic In-Memory Multi-Language Live Switching & English Fallback:
+        - Run '"FAT/Test Files/Localization/switch_lang.sh" <lang>' across
+          zh_CN, it, es, fr, ca, de, uk, and en: verify 100% UI translation
+          from in-RAM GResource (.mo) with zero '/usr/share/locale/' files.
+   [ok] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
+        - Verify compact 2x3 'Item Management' grid and permanent 3-column
+          'Icons Visual Effects' bar ([Launch Effect], [Focused App], [Unpin
+          Effect] with classic defaults at index 0) in Preferences ->
+          Behaviour.
+        - Verify 'Effect Duration' slider (300-1500 ms, default 600 ms) scales
+          speed live and auto-hides when all 3 selectors are 'None'; cycle all
+          9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
+          and all 8 languages.
+================================================================================
+SESSION 1 RESULT: PASSED (GNOME / Mutter Backend) - 100% ISA-88 QUALIFIED
+================================================================================
+  * Tests: 128 | Passed Baseline: 121 [ok] | Squashed: 7 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
+
+================================================================================
+SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE | 8 SQUASHED | 0 OPEN]
+================================================================================
+================================================================================
+
+0. Crashes during test
+   [ko->ok] 0.1 KWin D-Bus Service Watcher, Bridge Self-Healing, Instant Startup & Smooth Hover:
+        - Launch WayPlank and simulate 'kwin_wayland --replace'; verify
+          freeze-free startup, automatic D-Bus script reload, and 60 FPS
+          pointer hover at <= 5% CPU (0.1% idle).
+        BUG: KWin restart dropped the bridge script, initial
+          'on_kwin_appeared' double-reloaded the script + ran synchronous
+          'kscreen-doctor' on startup, and HoverWindow map/unmap triggered
+          KWin UpdateWindowState storms.
+        SOLUTION: Added 'last_kwin_owner' single-load guard with crash
+          auto-reload, background 'kscreen-probe' thread, portal-decoupled
+          startup, KWin 'isWayplankOrIgnoredClient' popup filter +
+          '__wayplank_primary_panel__' geometry guard, and multi-size
+          SurfaceCache + 50ms VSync motion hold.
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu:
+        Launch unpinned app -> Right-click -> "Keep in Dock"
+   [ok] 1.2 Unpinning via Menu:
+        Right-click pinned item -> Uncheck "Keep in Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+        - In Free Mode, dragging an app past Trash strictly clamps before
+          Trash; Trash is never displaced.
+   [ok] 1.4 Pin via External Drag & Drop:
+        Drag .desktop / app from menu/files onto dock
+   [ok] 1.5 Drag-Off Removal (Poof):
+        - Drag pinned icon away from dock -> poof animation.
+        - Drag a running pinned app off dock (or onto Trash): poof
+          animation plays, app unpins and moves to running transient
+          section BEFORE Trash (never past Trash or into trash zone).
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+        - Verified 0-byte files (application/x-zerosize filename fallback),
+          payloads with %F/%U, bounce feedback and window activation.
+        - Verified dropping an incompatible file onto an icon cleanly rejects
+          the drop without falling back to pinning the file to the dock.
+   [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+        - Verify Folders and Docklets stay clamped within their own sections,
+          and locked items (Preferences, Separator, Trash) abort drag cleanly.
+        - Verify dragging apps across the Pinned/Unpinned divider pins or
+          unpins them without crossing into Folders, Docklets, or Trash.
+   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+        - Left-click toggles non-modal dark folder popup anchored 4px from
+          icon with 60 FPS zoom following, subfolder back-navigation, and
+          450ms crossing grace.
+        - Right-click opens dock management menu ('Keep in Dock', 'Open in
+          File Browser', 'Preferences'); hovering other icons or leaving dock
+          auto-dismisses popup.
+   [ok] 1.9 First-Run Onboarding & Default Drawers:
+        - Fresh config generates 4 categorized drawers (Internet, Office,
+          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+        - Right-click app or folder -> 'Change Icon...': verify instant
+          search, custom GIO icon persistence, and 'Restore Default'
+          (including automatic fallback if custom theme icon is missing).
+        - Verify empty folders show a default folder icon and dropping a
+          folder anywhere on the dock pins it as a drawer.
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+        - Verify running apps inside a folder show 1 or 2 dots on the folder
+          dock icon and per-row dots inside the open popup without clipping.
+        - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
+          false dots on Gmail/YouTube/Drive '--app=URL' shortcuts).
+        - Launch a Chrome '--app=URL' shortcut, 'NoDisplay=true' PWA, '.sh'
+          profile/Incognito wrapper, or sibling binary (VS Code, MATLAB,
+          Scilab): verify pinned icon and matching folder row light up
+          together in isolation.
+        - Drag a folder onto dock gap -> pins in [Folders]; drag
+          folder/launcher/file onto a folder icon OR open FolderMenuWindow ->
+          copies in and live-refreshes rows and dots.
+        BUG: Normal Chrome falsely lit '--app=URL' folder shortcuts via shared
+          domain tokens, '.sh' wrappers scored below 115 or cross-matched
+          PWAs, 'NoDisplay=true' PWAs and sibling binaries (VS
+          Code/MATLAB/Scilab) only lit one icon, and open folder popups lacked
+          DnD.
+        SOLUTION: Added full-URI 'uri_identities' + '>=115' Reverse Canonical
+          Guard, '.sh' wrapper unwrapping (score 116) with profile/Incognito
+          title matching and PWA isolation, bidirectional PWA <-> '--app=URL'
+          and sibling WMClass inheritance, plus '[Folders]' & open-popup DnD
+          with live re-indexing.
+   [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
+        - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
+          Ctrl+Click or Middle-Click launches a new instance, mouse wheel
+          cycles open windows, and row right-click menu stays open cleanly
+          without 'Keep in Dock'.
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+        Click running app icon -> activates & brings to front; click already
+        active window -> minimizes
+   [ok] 2.4 Left Click (Multiple Windows Focus Cycling):
+        When 2+ windows are open, left-clicking app icon cycles focus directly
+        through open instances using 'activate' (NEVER minimizes the currently
+        focused window in between cycles)
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click):
+        - Shows window list, quicklists, and "Close".
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
+          in browser with working Table of Contents anchor jumps.
+        - Right-click on ANY item or dock background includes
+          '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
+   [ok] 2.7 Attention / Urgent State:
+        Window requesting attention -> bounce/pulse effect using test_urgency.py
+        in FAT folder (Note: Under KDE Plasma, Konsole must be running/open
+        prior to executing test).
+   [ok] 2.8 Close All (Multiple Windows):
+        Right-click app with 2+ windows -> "Close All" closes all instances
+   [ok] 2.9 Window List Selection:
+        Right-click app with 2+ windows -> click window title in list brings
+        that window to front
+   [ok] 2.10 Scroll-Wheel Window Cycling:
+        Scroll wheel over app icon with 2+ windows -> cycles focus through
+        instances
+   [ok] 2.11 Fullscreen Window Inhibit:
+        Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
+        steals input
+   [ok] 2.12 Sandbox & Complex Launcher Matching:
+        Launch Flatpak/Snap, Firejail, or shell wrapper app -> shows running
+        indicator dot on pinned launcher (no duplicate icons)
+   [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact,
+        no JSON parse errors or vanished indicators
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+        - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
+          browser profile) alongside native/Flatpak apps: verify each spawns
+          its own isolated icon and running count.
+        - Verify short app names ('Gram', 'Web') never hijack substring titles
+          ('Instagram', 'Open WebUI').
+        BUG (Issue #6): Empty cmdline rejected PWA '.desktop' entries,
+          substring title matching hijacked short names, and multiple Chrome
+          PWAs on the same profile overcounted via shared master PID cmdline.
+        SOLUTION: Enforced authoritative primary ID matching, word-boundary
+          title matching, 'is_best_launcher_for_window' transient creation,
+          and strict 'pwa_id' ('crx_<id>') window-identifier scoring (120)
+          isolated from shared '--profile-directory' tokens.
+   [ko->ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding Dialog Masking (Issues #14, #16):
+        - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
+          independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
+          minimize/restore, pinning, and cold relaunch.
+        - Launch a CLI GUI app or AppImage/Snap/Flatpak from terminal: verify
+          transient dock icon appears, stays bound across dynamic title
+          changes, and cleans up on close if unpinned.
+        - Run 'zenity --info --text="Test"': verify zero dock icon and zero
+          synthetic '.desktop' file created.
+        BUG (Issues #14 & #16): Exec-less 'NoDisplay=true' templates (QEMU)
+          and CLI-launched GUI apps / AppImages / Snaps missed dock icons or
+          lost binding on title updates, while helper dialogs ('zenity')
+          needed suppression.
+        SOLUTION: Expanded DataDirFolders for Snap/Flatpak desktop paths,
+          resolved CLI AppImage FUSE paths via '/proc/<pid>/environ'
+          ('APPIMAGE='), stabilized synthetic launcher binding via
+          'has_startup_wm_class', added Labwc main-PID '/proc' scoring, and
+          replaced 'matched_exec_less_desktop' with zero-hardcoding dialog
+          masking ('WindowInfo.IsDialog' + XDG 'NoDisplay=true' entries with
+          'Exec=').
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides & Layer-Shell Input Passthrough:
+        - None hide mode: dock remains permanently visible on screen.
+        - Verify dock keeps exclusive_zone at 0 so it never displaces desktop panels.
+        - Verify transparent areas outside the dock pill pass clicks cleanly
+          through to underlying desktop and windows.
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent):
+        Window overlaps dock -> hides; moves away -> reveals
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+        - With Hide Dock enabled, verify 'Pressure Reveal' OFF gives a 10px
+          hover reveal zone and ON enforces a 1px edge pressure barrier.
+        - Verify switches and 'Click Behavior' options across Preferences
+          display clear tooltips.
+   [ok] 3.8 Accordion Retention on Dock Hide/Unhide:
+        - If dock closes (e.g. intellihide) and reopens before delay expires,
+          drawer remains open.
+        - Timer cancels upon cursor re-entry.
+   [ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Run 'python3 "FAT/Test Files/Testers/test_fullscreen.py"' and press
+          F11 from unmaximized window: verify dock hides across all HideModes
+          (including 'None') and 100% of 0px edge clicks reach the tester; Esc
+          restores dock.
+   [ko->ok] 3.10 Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17):
+        - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
+          100% clickable (never greyed out) in Preferences -> Behaviour.
+        - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
+          'Icon Zoom' and tiles maximized windows flush against dock across
+          all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
+          'Reserve Screen Space' (both in GUI and via 'gsettings set').
+        BUG (Issue #17): Greyed-out 'Reserve Screen Space' sensitivity lock
+          confused users when 'Hide Dock' or 'Icon Zoom' was active, and CLI
+          'gsettings set' did not clear conflicting keys.
+        SOLUTION: Removed sensitivity grey-out and implemented an
+          edge-triggered SR Flip-Flop in DockPreferences.vala ('S =
+          ^ReserveSpace' clears HideDock & IconZoom; 'R = ^HideDock v
+          ^IconZoom' clears ReserveSpace) across GUI and CLI 'gsettings', with
+          3-way idempotence caching in DockWindow.update_exclusive_zone().
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ok] 4.1 Empty Workspace Switch:
+        Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [ok] 4.2 Occupied Workspace Switch:
+        Switch back to WS1 -> dock hides again immediately
+   [ok] 4.3 Sticky Windows:
+        Window set on all workspaces -> dock dodges on every workspace
+   [ok] 4.4 Dynamic Workspaces:
+        Adding or removing dynamic workspaces on the fly -> handled without
+        stale lookups or crashes
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement:
+        Hover each item -> centered tooltip with correct arrow
+   [ok] 5.2 No Flickering:
+        Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+        - Hovering dock or tooltips never steals active window focus; full
+          dock width responds with zero dead zones.
+        - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
+          above the visible dock pill pass 100% through to underlying windows.
+   [ok] 5.5 Tooltip Badges & Clean Identity:
+        - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
+        - In free mode: tooltips display item type badges ('• Folder', '•
+          Running', '• Docklet').
+        - In categorized mode: clean title is displayed without redundant
+          badges.
+   [ok] 5.6 Accordion Directional Tooltip Indicator:
+        - Master Preferences anchor tooltip dynamically displays directional
+          arrow (▸ / ◂) indicating the docklet accordion expansion state.
+6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
+   [ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D / Meta + D / Ctrl + F12) minimizes
+          all normal windows and keeps WayPlank visible on the desktop.
+        - Pressing Super + D again cleanly restores all previously hidden windows.
+   [ok] 6.2 Trash Docklet:
+        Displays state; click opens; drag files to trash; right-click empty
+   [ok] 6.3 External Trash Sync:
+        Empty/fill trash from external file manager (Dolphin) -> icon updates
+        state via D-Bus
+   [ok] 6.4 Screenshot Docklet:
+        Click triggers rectangular selection (stationary animation,
+        AnimationType.NONE - no mid-air leap); context menu triggers
+        area/full/window/folder
+   [ok] 6.5 Session & Power Docklet (docklet://session):
+        - Left-click opens Centered Session Dialog (SessionWindow).
+        - Test Lock Screen (loginctl / KScreenLocker).
+        - Test Switch User (DisplayManager Seat SwitchToGreeter).
+        - Test Logout, Suspend, Restart, Shutdown with in-place confirmation
+          screens.
+        - Verify right-click context menu shortcuts.
+   [ok] 6.6 Preferences Docklet (docklet://preferences):
+        - Preferences anchor is permanently locked at index 0 (unmovable,
+          cannot be removed).
+        - Left-click opens Preferences window immediately.
+        - Displays classic Plank/Wayplank anchor icon.
+        - Right-click menu contains direct links to 4 sections followed by
+          separator.
+   [ok] 6.7 Digital Clock Visual Tile:
+        - Verify Digital Clock displays modern tile with digital numerals
+          (01:18), NOT an analog clock dial with hands.
+   [ok] 6.8 100% Internal Binary GResource Fallbacks:
+        - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
+          (12 levels) render properly from binary.
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7
+          conditions)
+          render properly from binary.
+        - Verify zero file pollution in /usr/share/icons/hicolor/ (only
+          wayplank.svg/plank.svg installed).
+   [ok] 6.9 Drive Ejector Docklet (docklet://ejector):
+        - Displays removable drive icon with orange gradient fallback.
+        - Badge counter displays number of mounted removable drives/volumes.
+        - Left-click: safely unmounts/ejects (if 1 device) or opens device
+          selection menu (if multiple).
+        - Desktop notification displayed on safe removal ("Drive safely
+          removed").
+        - Right-click context menu lists all mounted removable drives with
+          "Eject / Safe Remove" actions.
+   [ok] 6.10a Screen Brightness - Standalone Laptop Internal Display (Fast-Path):
+        - Verify direct internal panel (/sys/class/backlight) control with %
+          badge, 5% mouse-wheel steps, left-click presets (25/50/75/100%), and
+          real-time sync with physical Fn keys.
+   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External Displays (KWin DRM / DDC):
+        - Verify 'brightnessctl set 40%', physical Fn keys, wheel steps, and
+          presets synchronize internal panel and external monitors cleanly via
+          kscreen-doctor with 350ms settle debounce and clamshell support.
+   [ok] 6.11 Weather Forecast Docklet (docklet://weather) & Vector Icon Fallback:
+        - Left-click opens WeatherWindow showing current condition, high/low,
+          humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
+          badge, city search (WeatherCityDialog) with IP geolocation fallback,
+          and crisp GResource SVG icons on any icon theme.
+   [ok] 6.12 Docklet Right-Click Context Menu Consistency:
+        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
+          Brightness, Weather, Network) show clean, focused context menus.
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
+        - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
+          states, SSID/IP tooltip, left-click Network Settings, middle-click
+          Copy IP, and context menu.
+   [ok] 6.14 Docklets Accordion & Expansion Modes:
+        - Accordion collapsed at rest: expands on hover. Enable 'Click to
+          Expand' in Preferences -> Appearance: hover no longer expands;
+          left-clicking Preferences expands docklets; second click opens
+          Preferences dialog.
+        - Universal Interaction Invalidation: Accordion collapse timer is
+          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
+          Weather) or menu is open. On close, restarts full delay if cursor
+          is outside, or keeps drawer open if cursor is on dock.
+   [ok] 6.15 Global System Pressure Engine (docklet://cpu):
+        - Replaces custom dual-gauge card with standard theme icon
+          (utilities-system-monitor;;cpu) and native numeric top badge.
+        - Badge counter displays combined system pressure with % [0-100%]
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU,
+          RAM, Disk).
+        - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
+   [ok] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Verify Battery, Volume (up to 150% overamplified icon), and MPRIS
+          Media Player render theme icons with embedded GResource SVG
+          fallbacks and % badges.
+   [ok] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+        - Verify compact top badges (~34% icon height) show crisp units (°C/°F
+          on Weather, % on CPU/Battery/Volume/Network/Brightness, plain
+          integers on Ejector/unread) across all icon sizes and zoom.
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+        - Verify left-click toggles notification mute (bell <-> muted icon),
+          syncs bidirectionally with desktop DND state, and suppresses
+          'FAT/Test Files/Testers/test_notification.py' banners when active.
+7. PREFERENCES & CONFIGURATION
+   (Ctrl + Right-Click -> Preferences or via docklet://preferences)
+   [ok] 7.1 Window Opening & Foreground Raising:
+        - Preferences dialog opens centered without glitch.
+        - Preferences, Help, and About dialogs raise immediately to foreground
+          over other windows (Wayland focus bypass).
+   [ok] 7.2 Position on Screen & KDE Plasma 6 Dynamic Floating Top Panel:
+        - Bottom, Left, Right edge anchoring works cleanly.
+        - Position: Top on KDE Plasma 6 Wayland:
+          * In unmaximized / desktop state with Plasma floating panel enabled,
+            panel dynamically floats downward with curved corners and shadow.
+            WayPlank applies dynamic 8px top margin offset, preventing panel
+            from overlapping dock running indicator dots and flare.
+          * When any window is maximized or touches the top screen edge on the dock's
+            active monitor, KDE Plasma automatically de-floats the panel to a 0-gap edge strut.
+            WayPlank instantly reacts to window state changes via KWinBridge,
+            clearing the 8px offset to sit flush against the de-floated panel
+            with 0 gap and 0 overlap.
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size Slider Resiliency:
+        Real-time slider resizing works smoothly across all values (24px to
+        64px+); auto-shrink does NOT crush icons to 24px minimum due to
+        separator count or uninitialized monitor geometry
+   [ok] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+        - Verify Default (adaptive dark/light GTK+), stock themes
+          (Arian/IFtiger Dark & Light, Transparent), and legacy
+          ~/.local/share/plank/themes switch live without restart.
+   [ko->ok] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Verified live: dock dynamically follows Primary Display)
+        BUG: Heterogeneous multi-monitor switches sized before layer-shell
+          monitor rebinding, floating panel checks were global across screens,
+          and 'On Primary Display' lacked KWin primary panel tracking.
+        SOLUTION: Bound layer-shell monitor before layout sizing with
+          unconditional GtkWindow resize + buffer reset, scoped floating panel
+          checks per monitor, and added in-RAM Plasma primary panel output
+          tracking in KWinBridge/KWinBackend.
+   [ok] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays; cold start on
+        fractional scaling (e.g. 4K@1.5x).
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+        - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
+          Docklets with matching icons and instant live add/remove toggling.
+   [ok] 7.9 Categorize Items Toggle, Apps & Layout Anchors & Free Mode:
+        - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
+          [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
+          'WayPlank Always Left' at index 0), hiding empty-section separators.
+        - Verify 'Align by Type' sorts Free Mode items cleanly and toggling
+          Categorize/Accordion OFF expands docklets without leftover timers or
+          stored separator URIs.
+   [ok] 7.10 Accordion Collapse Delay Slider:
+        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
+          Preferences -> Appearance (visible only when Accordion is active).
+   [ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+        - Interactive Shortcuts & Gestures window and terminal cheatsheet
+          ('wayplank --help') document Accordion controls, directional
+          indicators, retention, right-click shortcuts, and icon chooser.
+   [ok] 7.12 Shortcuts & Gestures Centering:
+        - Window opens properly centered on screen under KWin.
+   [ok] 7.13 Workspace Only Wayland Dormancy:
+        - Open Preferences -> Behaviour tab.
+        - Verify 'Workspace Only' switch is insensitive (greyed out).
+        - Verify hovering either the switch or label displays tooltip:
+          "Workspace filtering is not yet supported under Wayland".
+        - Verify dock remains stable and all running applications remain
+          accessible.
+   [ok] 7.14 Show Unpinned Dynamic Refresh:
+        - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
+        - When enabled (ON), all running unpinned applications immediately
+          appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately,
+          leaving only pinned apps.
+   [ok] 7.15 Cross-Compositor Peer Dialog Stacking & Sub-Popup Decoupling:
+        - Open Preferences, then click Weather or Session on dock:
+          Weather/Session opens immediately in foreground on the 1st click.
+        - Click Preferences: Preferences raises cleanly above Weather/Session.
+        - Click Weather/Session again while in foreground: toggles off cleanly.
+        - Open Location dialog from Weather: stays upfront over WeatherWindow.
+   [ok] 7.16 Native CSD HeaderBar & Close Action across Compositors:
+        - Open About WayPlank dialog from dock context menu on KDE Plasma.
+        - Verify window renders complete HeaderBar, title, and functional Close
+          button; verify dialog can be closed with mouse click or Escape.
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix:
+        move to all screens and all edges
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY
+   [ok] 9.1 Sleep & Resume Wakeup:
+        Suspend machine with 5+ windows -> resume; KWin decorations remain 100%
+        responsive (50ms QTimer debounce)
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect:
+        Screen layout storm absorbed by debouncer without KWin lockup
+   [ok] 9.3 Rapid Geometry Storm:
+        Rapidly move/maximize/restore windows -> updates throttled smoothly
+   [ok] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly ONE instance alive
+   [ok] 9.5 Process Lifecycle (--replace / kill):
+        Restart dock via 'wayplank --replace' -> cleanly takes over without
+        zombie scripts
+   [ok] 9.6 Signal Disconnect Safety:
+        Opening and closing Preferences multiple times leaves no dangling
+        callbacks or memory leaks
+   [ok] 9.7 Rapid Display Reconfiguration / DPI Storm:
+        Repeated rapid scaling/DPI modifications -> zero compositor lockups or
+        event stalls
+   [ok] 9.8 (Cross-Compositor) Window Title & State Flood Debounce:
+        Rapid burst of window title changes or fast open/close cycle -> absorbed
+        by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [ko->ok] 9.9 Screen Lock / Unlock, Idle, DPMS Sleep/Wake Self-Healing & Live Upgrade Reload (Issue #18):
+        - Lock screen, trigger DPMS monitor sleep/wake or output reconnect,
+          and unlock: verify dock restores visibility, anchoring, and
+          exclusive space automatically with zero manual CLI restart.
+        - Run 'sudo dpkg -i build/wayplank_0.7.0_amd64.deb' while WayPlank is
+          running: verify seamless SIGWINCH live binary reload with zero
+          duplicate processes.
+        BUG (Issue #18): Dock could remain unmapped after screen lock/unlock,
+          idle, or same-resolution DPMS monitor sleep/wake.
+        SOLUTION: Connected 'bridge_reconnected', 'ScreenSaver.ActiveChanged',
+          and 'login1.Session.Unlock' to 'schedule_dock_refresh()', added
+          'dock_unmapped' recovery in PositionManager.screen_changed(), and
+          wired SIGWINCH live reload on '.deb' upgrades.
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
+   [ok] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
+        - Automated spec builder creates clean RPM packages for openSUSE
+          Tumbleweed/Leap & Fedora/RHEL
+        - Multi-distro package manager detection (zypper, dnf, apt for rpmbuild)
+        - Clean install with rpm -Uvh / zypper install
+   [ok] 10.2 Headless / Non-Interactive Packaging Variables:
+        - WAYPLANK_NO_PROMPT=1, CI=1, NONINTERACTIVE=1 bypass interactive
+          prompts across
+          BuildBin.sh, BuildDeb.sh, and BuildRpm.sh
+   [ok] 10.3 Dock Overflow Smooth Scrolling Engine:
+        - Clamps dock background to screen width/height when items exceed
+          monitor bounds
+        - Mouse wheel on dock surface smoothly scrolls items back and forth with
+          60 FPS interpolation
+        - Clipped rendering prevents scrolled-out items/shadows from bleeding
+          past background
+   [ok] 10.4 Docklet Scroll Conflict Isolation:
+        - Scrolling over Volume docklet adjusts audio volume without scrolling
+          dock
+        - Scrolling over Brightness docklet adjusts screen brightness without
+          scrolling dock
+   [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
+        - Accordion in-line expand/collapse operates harmoniously alongside
+          overflow scrolling
+   [ok] 10.6 Urgent Window Auto-Scrolling:
+        - Off-screen dock items receiving urgent state call ensure_item_visible
+          and scroll into view
+   [ok] 10.7 "Scroll on Overflow" Preference Switch:
+        - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
+          scroll-overflow)
+        - When ON: dock icons preserve target size and scroll with wheel
+        - When OFF: dock icons auto-shrink down to fit screen (classic Plank
+          behavior)
+   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
+        - In Shrink Mode, verify physical screen-limit tick mark, red SVG
+          teardrop slider above capacity, and warning label when icons
+          auto-shrink; in Scroll Mode, redline clears.
+   [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
+        - Left/right (and vertical top/bottom) subtle edge gradients and
+          chevrons indicate scrollable content
+        - Right chevron coordinates correctly offset with (+ rect.width -), zero
+          horizontal line artifacts
+   [ok] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [ok] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and KWinBridge
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+================================================================================
+
+11. ERGONOMIC ENHANCEMENTS, DND REMOTE URLS & PORTAL COLOR-SCHEME (v0.6.2.2
+  FOCUS)
+   [ok] 11.1 DND Remote URL Delivery (http:// and https:// Web URLs):
+        - Dragging a remote web URL from browser address bar or link over
+          compatible dock item (browser or web-enabled app)
+        - Dispatches cleanly via DesktopAppInfo.launch_uris() without URI-escape
+          mismatches or silent drop aborts
+   [ok] 11.2 Hover Window Activation During Drag-and-Drop:
+        - When dragging an external payload (file or URL) and hovering over a
+          running application icon for >500ms, dock automatically raises that
+          application's window to the foreground
+        - Operator can release cursor directly inside target application's
+          workspace
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+        - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
+          key changes
+        - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
+          when OS switches between Light and Dark mode without requiring dock
+          restart
+   [ok] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
+   [ok] 11.5 Interactive Theme Manager (Install Archives & Native File Chooser):
+        - Click '+' in Preferences -> Appearance -> Theme to install
+          '.zip'/'.tar.gz' archives from 'FAT/Test Files/Themes/' via portal
+          chooser; verify user theme trash deletion and system theme lock.
+   [ok] 11.6 Strict FreeDesktop MIME Type Drop Validation:
+        - Drag incompatible file (e.g. 'Sergio Melas CV.pdf' from
+          FAT/Test Files/Files/) onto text editors (Kate, VS Code) or Dolphin.
+        - App icon bounces and strictly rejects the incompatible file (does not
+          attempt to open, does not fall back to pinning).
+        - Drag compatible file (e.g. text file or folder) onto Kate / Dolphin ->
+          accepted and opened properly.
+   [ok] 11.7 Canonical Launcher Deduplication & Desktop Pinning Precedence:
+        - Drag .desktop file (e.g. 'Youtube.desktop' from FAT/Test Files/Links/)
+          onto dock while hovering near/over a web browser icon.
+        - Dock strictly prioritizes pinning the launcher over opening it in
+          browser; launcher is pinned to dock.
+        - Drag the same .desktop again -> repositioned along the dock, NO
+          duplicate '-1.dockitem' created on disk or dock.
+        - Canonical URI matching handles percent-encoding ('Test%20Files'),
+          symlinks ('Desktop' vs 'Others'), and desktop IDs.
+   [ko->ok] 11.8 Clean Drag-Off Removal, VSync 3-Beat Unpin Pipeline & Destruction Animation:
+        - Drag pinned icon off dock (or right-click -> uncheck 'Keep in
+          Dock'): verify slot holds in place, plays Unpin Effect 0..7 at
+          configured Effect Duration (or downward slide when None = 8),
+          smoothly closes gap, and leaves zero ghost icons (or exactly 1
+          unpinned icon if app is running).
+        BUG: Legacy global cursor coordinates misplaced Wayland unpin
+          animations, collapsing the slot early spawned duplicate transient
+          icons on running apps, and menu unpin bypassed the configured Unpin
+          Effect.
+        SOLUTION: Extracted HAL overlay positioning into
+          SurfaceCoordinateService.vala, implemented a timer-free VSync 3-Beat
+          removal state machine with PendingRemovalLauncher deduplication, and
+          routed both drag-off and menu unpin through
+          'remove_item_with_effect()' at 'EffectDuration'.
+12. MULTI-WINDOW PREVIEW CARDS, RECENT FILES JUMP LIST & STOCK THEMES (v0.6.2.3)
+   [ok] 12.1 Stock Theme Suite Integration (Dark & Light Variants):
+        - Bundled classic 'Dark' and 'Light' stock themes load cleanly from
+          /usr/share/wayplank/themes/
+        - Both variants render properly and switch dynamically without errors
+        - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
+          Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
+          monitoring, and Theme.vala dynamic palette luminance fallback.
+   [ok] 12.2 Recent Files Jump List in Context Menus:
+        - Right-clicking compatible applications in dock displays 'Recent
+          Documents' submenu powered by FreeDesktop Gtk.RecentManager
+        - Selecting a recent document opens it directly in target application
+   [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
+        - Left-click on app icon with 2+ open windows displays floating Cairo
+          preview cards with live window thumbnails.
+        - Dynamic bounds recalculation operates cleanly across KWin, Mutter,
+          and Labwc without horizontal dock distortion.
+        - Mutter bridge classification and LayerShell coordinates verified.
+        - 450ms exit zone crossing mask prevents premature dismissal when moving
+          cursor from dock icon towards popup cards.
+        - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
+   [ok] 12.4 Window Activation & Selection from Card:
+        - Clicking a window card brings corresponding window forward and gives
+          it focus
+        - Middle-click or close button on card closes target window instance
+   [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
+        - Preferences -> Behaviour includes toggle switch to select between
+          classical cyclic window switching and multi-window preview cards
+   [ok] 12.6 Live Window Thumbnail Capture on KWin (First Hover & Alpha Opacity):
+        - Hover or click an application with 2+ open windows on KDE Plasma.
+        - Verify preview cards show crisp, live window content on the very first
+          appearance, without blank/empty viewports or transparent rendering.
+        - Verify autostart desktop entry incorporates restricted D-Bus permissions
+          for org.kde.KWin.ScreenShot2.
+13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
+   [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
+        - Verify 'System Menu Access' persists Modes 1..4: Docklets Only
+          (strict), Docklets Only (auto fallback), All Icons, and Dedicated
+          Icon on dock.
+   [ok] 13.2 Minimalist Dock Setup & Context Menu Preferences Removal:
+        - In Mode 4, right-click Preferences icon -> 'Remove from Dock':
+          verify poof removal and automatic migration to Mode 2 (or Mode 3 in
+          Free Mode).
+   [ok] 13.3 Free Mode (Uncategorized) Protection & Dynamic Migration:
+        - Toggle 'Categorize Items' OFF: verify Modes 1 & 2 hide from dropdown
+          and migrate automatically to Mode 3 ('All Icons').
+   [ok] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
+        - Verify Accordion collapses toward outer edge (leftmost when Docklets
+          left, rightmost when Docklets on Right), expands on hover or click
+          ('Click to Expand') and during drag-over, and never collapses <= 1
+          docklet.
+   [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
+        - Open Preferences dialog: verify window default dimensions are compact
+          (560x480) with zero horizontal label wrapping or forced stretching.
+        - Verify Accordion controls and collapse delay are cleanly laid out on
+          dedicated rows.
+        - Verify all new settings strings are localized with zh_CN prioritized #1,
+          plus it, es, fr, ca, de, uk in po/generate_translations.py.
+   [ok] 13.6 Strict Minimalist Mode 1 ('Docklets Only' - No App Fallback):
+        - In Mode 1 with zero docklets, verify app right-click menus stay pure
+          (no system items) while 'Ctrl + Right Click' anywhere opens the
+          WayPlank system menu.
+   [ok] 13.7 Monolithic In-Memory Multi-Language Live Switching & English Fallback:
+        - Run '"FAT/Test Files/Localization/switch_lang.sh" <lang>' across
+          zh_CN, it, es, fr, ca, de, uk, and en: verify 100% UI translation
+          from in-RAM GResource (.mo) with zero '/usr/share/locale/' files.
+   [ok] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
+        - Verify compact 2x3 'Item Management' grid and permanent 3-column
+          'Icons Visual Effects' bar ([Launch Effect], [Focused App], [Unpin
+          Effect] with classic defaults at index 0) in Preferences ->
+          Behaviour.
+        - Verify 'Effect Duration' slider (300-1500 ms, default 600 ms) scales
+          speed live and auto-hides when all 3 selectors are 'None'; cycle all
+          9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
+          and all 8 languages.
+================================================================================
+SESSION 2 RESULT: PASSED (KDE PLASMA / KWin Backend) - 100% ISA-88 QUALIFIED
+================================================================================
+  * Tests: 126 | Passed Baseline: 118 [ok] | Squashed: 8 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+================================================================================
+
+================================================================================
+SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8 SQUASHED | 0 OPEN | 2 NA]
+================================================================================
+================================================================================
+
+0. Crashes during test
+   [ko->ok] 0.1 Zero Compositor Crashes, Instantaneous Autostart & Smooth Hover:
+        - Full regression pass on Labwc / wlroots: verify zero crashes or
+          protocol errors, T=0ms login autostart, and smooth 60 FPS pointer
+          hover at <= 5% CPU (0.1% idle).
+        BUG: Xfce/Labwc delayed XDG autostart by ~8s in
+          'xfsm_startup_timeout', DND startup blocked on D-Bus, PID cache
+          invalidated on title changes, and WayPlank popup surfaces fired
+          redundant toplevel state callbacks.
+        SOLUTION: Synced '~/.config/{,xfce4/}labwc/autostart' for T=0ms
+          launch, used NO_AUTO_START (150ms) in DND docklet, keyed PID cache
+          by 'id|app_id', filtered 'is_wayplank_toplevel()' in
+          wlr-toplevel-bridge.c, and added multi-size SurfaceCache + 50ms
+          VSync motion hold.
+1. ICON & LAUNCHER MANAGEMENT
+   [ok] 1.1 Pinning via Menu:
+        Launch unpinned app -> Right-click -> "Keep in Dock"
+   [ok] 1.2 Unpinning via Menu:
+        Right-click pinned item -> Uncheck "Keep in Dock"
+   [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
+        - In Free Mode, dragging an app past Trash strictly clamps before
+          Trash; Trash is never displaced.
+   [ok] 1.4 Pin via External Drag & Drop:
+        Drag .desktop / app from menu/files onto dock
+   [ok] 1.5 Drag-Off Removal (Poof):
+        - Drag pinned icon away from dock -> poof animation.
+        - Drag a running pinned app off dock (or onto Trash): poof
+          animation plays, app unpins and moves to running transient
+          section BEFORE Trash (never past Trash or into trash zone).
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+        - Verified 0-byte files (application/x-zerosize filename fallback),
+          payloads with %F/%U, bounce feedback and window activation.
+        - Verified dropping an incompatible file onto an icon cleanly rejects
+          the drop without falling back to pinning the file to the dock.
+   [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+        - Verify Folders and Docklets stay clamped within their own sections,
+          and locked items (Preferences, Separator, Trash) abort drag cleanly.
+        - Verify dragging apps across the Pinned/Unpinned divider pins or
+          unpins them without crossing into Folders, Docklets, or Trash.
+   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+        - Left-click toggles non-modal dark folder popup anchored 4px from
+          icon with 60 FPS zoom following, subfolder back-navigation, and
+          450ms crossing grace.
+        - Right-click opens dock management menu ('Keep in Dock', 'Open in
+          File Browser', 'Preferences'); hovering other icons or leaving dock
+          auto-dismisses popup.
+   [ok] 1.9 First-Run Onboarding & Default Drawers:
+        - Fresh config generates 4 categorized drawers (Internet, Office,
+          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+        - Right-click app or folder -> 'Change Icon...': verify instant
+          search, custom GIO icon persistence, and 'Restore Default'
+          (including automatic fallback if custom theme icon is missing).
+        - Verify empty folders show a default folder icon and dropping a
+          folder anywhere on the dock pins it as a drawer.
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+        - Verify running apps inside a folder show 1 or 2 dots on the folder
+          dock icon and per-row dots inside the open popup without clipping.
+        - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
+          false dots on Gmail/YouTube/Drive '--app=URL' shortcuts).
+        - Launch a Chrome '--app=URL' shortcut, 'NoDisplay=true' PWA, '.sh'
+          profile/Incognito wrapper, or sibling binary (VS Code, MATLAB,
+          Scilab): verify pinned icon and matching folder row light up
+          together in isolation.
+        - Drag a folder onto dock gap -> pins in [Folders]; drag
+          folder/launcher/file onto a folder icon OR open FolderMenuWindow ->
+          copies in and live-refreshes rows and dots.
+        BUG: Normal Chrome falsely lit '--app=URL' folder shortcuts via shared
+          domain tokens, '.sh' wrappers scored below 115 or cross-matched
+          PWAs, 'NoDisplay=true' PWAs and sibling binaries (VS
+          Code/MATLAB/Scilab) only lit one icon, and open folder popups lacked
+          DnD.
+        SOLUTION: Added full-URI 'uri_identities' + '>=115' Reverse Canonical
+          Guard, '.sh' wrapper unwrapping (score 116) with profile/Incognito
+          title matching and PWA isolation, bidirectional PWA <-> '--app=URL'
+          and sibling WMClass inheritance, plus '[Folders]' & open-popup DnD
+          with live re-indexing.
+   [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
+        - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
+          Ctrl+Click or Middle-Click launches a new instance, mouse wheel
+          cycles open windows, and row right-click menu stays open cleanly
+          without 'Keep in Dock'.
+2. WINDOW MANAGEMENT & RUNNING STATES
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
+   [ok] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+        Click running app icon -> activates & brings to front; click already
+        active window -> minimizes
+   [ok] 2.4 Left Click (Multiple Windows Focus Cycling):
+        When 2+ windows are open, left-clicking app icon cycles focus directly
+        through open instances using 'activate' (NEVER minimizes the currently
+        focused window in between cycles)
+   [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
+   [ok] 2.6 Context Menu (Right Click):
+        - Shows window list, quicklists, and "Close".
+        - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
+          in browser with working Table of Contents anchor jumps.
+        - Right-click on ANY item or dock background includes
+          '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
+   [NA] 2.7 Attention / Urgent State:
+        Window requesting attention -> bounce/pulse effect using test_urgency.py
+        in FAT folder
+        Not applicable, in LabWc there i not transmission of urgent state trough
+        the compositor so this feature is not available in LabWc
+   [ok] 2.8 Close All (Multiple Windows):
+        Right-click app with 2+ windows -> "Close All" closes all instances
+   [ok] 2.9 Window List Selection:
+        Right-click app with 2+ windows -> click window title in list brings
+        that window to front
+   [ok] 2.10 Scroll-Wheel Window Cycling:
+        Scroll wheel over app icon with 2+ windows -> cycles focus through
+        instances
+   [ok] 2.11 Fullscreen Window Inhibit:
+        Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
+        steals input
+   [ok] 2.12 Sandbox & Complex Launcher Matching:
+        Launch Flatpak/Snap, Firejail, or shell wrapper app -> shows running
+        indicator dot on pinned launcher (no duplicate icons)
+   [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
+        Open window with non-ASCII / accented characters
+        (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
+        window list remain intact,
+        no JSON parse errors or vanished indicators
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+        - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
+          browser profile) alongside native/Flatpak apps: verify each spawns
+          its own isolated icon and running count.
+        - Verify short app names ('Gram', 'Web') never hijack substring titles
+          ('Instagram', 'Open WebUI').
+        BUG (Issue #6): Empty cmdline rejected PWA '.desktop' entries,
+          substring title matching hijacked short names, and multiple Chrome
+          PWAs on the same profile overcounted via shared master PID cmdline.
+        SOLUTION: Enforced authoritative primary ID matching, word-boundary
+          title matching, 'is_best_launcher_for_window' transient creation,
+          and strict 'pwa_id' ('crx_<id>') window-identifier scoring (120)
+          isolated from shared '--profile-directory' tokens.
+   [ko->ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding Dialog Masking (Issues #14, #16):
+        - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
+          independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
+          minimize/restore, pinning, and cold relaunch.
+        - Launch a CLI GUI app or AppImage/Snap/Flatpak from terminal: verify
+          transient dock icon appears, stays bound across dynamic title
+          changes, and cleans up on close if unpinned.
+        - Run 'zenity --info --text="Test"': verify zero dock icon and zero
+          synthetic '.desktop' file created.
+        BUG (Issues #14 & #16): Exec-less 'NoDisplay=true' templates (QEMU)
+          and CLI-launched GUI apps / AppImages / Snaps missed dock icons or
+          lost binding on title updates, while helper dialogs ('zenity')
+          needed suppression.
+        SOLUTION: Expanded DataDirFolders for Snap/Flatpak desktop paths,
+          resolved CLI AppImage FUSE paths via '/proc/<pid>/environ'
+          ('APPIMAGE='), stabilized synthetic launcher binding via
+          'has_startup_wm_class', added Labwc main-PID '/proc' scoring, and
+          replaced 'matched_exec_less_desktop' with zero-hardcoding dialog
+          masking ('WindowInfo.IsDialog' + XDG 'NoDisplay=true' entries with
+          'Exec=').
+3. HIDE & DODGE MODES
+   [ok] 3.1 None: Dock permanently visible, never hides
+   [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
+   [ok] 3.3 Intellihide (Intelligent):
+        Window overlaps dock -> hides; moves away -> reveals
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+        - With Hide Dock enabled, verify 'Pressure Reveal' OFF gives a 10px
+          hover reveal zone and ON enforces a 1px edge pressure barrier.
+        - Verify switches and 'Click Behavior' options across Preferences
+          display clear tooltips.
+   [ok] 3.8 Accordion Retention on Dock Hide/Unhide:
+        - If dock closes (e.g. intellihide) and reopens before delay expires,
+          drawer remains open.
+        - Timer cancels upon cursor re-entry.
+   [ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click Passthrough (Issue #10):
+        - Run 'python3 "FAT/Test Files/Testers/test_fullscreen.py"' and press
+          F11 from unmaximized window: verify dock hides across all HideModes
+          (including 'None') and 100% of 0px edge clicks reach the tester; Esc
+          restores dock.
+   [ko->ok] 3.10 Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17):
+        - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
+          100% clickable (never greyed out) in Preferences -> Behaviour.
+        - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
+          'Icon Zoom' and tiles maximized windows flush against dock across
+          all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
+          'Reserve Screen Space' (both in GUI and via 'gsettings set').
+        BUG (Issue #17): Greyed-out 'Reserve Screen Space' sensitivity lock
+          confused users when 'Hide Dock' or 'Icon Zoom' was active, and CLI
+          'gsettings set' did not clear conflicting keys.
+        SOLUTION: Removed sensitivity grey-out and implemented an
+          edge-triggered SR Flip-Flop in DockPreferences.vala ('S =
+          ^ReserveSpace' clears HideDock & IconZoom; 'R = ^HideDock v
+          ^IconZoom' clears ReserveSpace) across GUI and CLI 'gsettings', with
+          3-way idempotence caching in DockWindow.update_exclusive_zone().
+4. VIRTUAL DESKTOPS & WORKSPACES
+   [ok] 4.1 Empty Workspace Switch:
+        Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
+   [ok] 4.2 Occupied Workspace Switch:
+        Switch back to WS1 -> dock hides again immediately
+   [ok] 4.3 Sticky Windows:
+        Window set on all workspaces -> dock dodges on every workspace
+   [ok] 4.4 Dynamic Workspaces:
+        Adding or removing dynamic workspaces on the fly -> handled without
+        stale lookups or crashes
+5. TOOLTIPS & HOVER VISUALS
+   [ok] 5.1 Tooltip Placement:
+        Hover each item -> centered tooltip with correct arrow
+   [ok] 5.2 No Flickering:
+        Fast mouse movement -> smooth tooltip transitions, no stuck popups
+   [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
+   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+        - Hovering dock or tooltips never steals active window focus; full
+          dock width responds with zero dead zones.
+        - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
+          above the visible dock pill pass 100% through to underlying windows.
+   [ok] 5.5 Tooltip Badges & Clean Identity:
+        - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
+        - In free mode: tooltips display item type badges ('• Folder', '•
+          Running', '• Docklet').
+        - In categorized mode: clean title is displayed without redundant
+          badges.
+   [ok] 5.6 Accordion Directional Tooltip Indicator:
+        - Master Preferences anchor tooltip dynamically displays directional
+          arrow (▸ / ◂) indicating the docklet accordion expansion state.
+6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
+   [ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+        - Click minimizes all windows; second click restores all.
+        - Triggering global shortcut (Super + D / ToggleShowDesktop) minimizes
+          standard windows while WayPlank remains visible on the desktop.
+   [ok] 6.2 Trash Docklet:
+        Displays state; click opens; drag files to trash; right-click empty
+   [ok] 6.3 External Trash Sync:
+        Empty/fill trash from external file manager -> icon updates state via
+        D-Bus
+   [ok] 6.4 Screenshot Docklet:
+        Click triggers rectangular selection (stationary animation,
+        AnimationType.NONE - no mid-air leap); context menu triggers
+        area/full/window/folder
+        Bug no screenshot is take
+        Solution reimplemented trought grim & slurp
+   [ok] 6.5 Session & Power Docklet (docklet://session):
+        - Left-click opens Centered Session Dialog (SessionWindow).
+        - Test Lock Screen (loginctl / swaylock fallback).
+        - Test Logout (labwc --exit / loginctl terminate-session).
+        - Test Suspend, Restart, Shutdown with in-place modal confirmation
+          screens.
+        - Verify right-click context menu shortcuts.
+   [ok] 6.6 Preferences Docklet (docklet://preferences):
+        - Preferences anchor is permanently locked at index 0 (unmovable,
+          cannot be removed).
+        - Left-click opens Preferences window immediately.
+        - Displays classic Plank/Wayplank anchor icon.
+        - Right-click menu contains direct links to 4 sections followed by
+          separator.
+   [ok] 6.7 Digital Clock Visual Tile:
+        - Verify Digital Clock displays modern tile with digital numerals
+          (01:18), NOT an analog clock dial with hands.
+   [ok] 6.8 100% Internal Binary GResource Fallbacks:
+        - Volume scale (Muted, Low, Med, High, Overamplified) and Battery scale
+          (12 levels) render properly from binary.
+        - Brightness scale (High, Med, Low, Base) and Weather scale (7
+          conditions)
+          render properly from binary.
+        - Verify zero file pollution in /usr/share/icons/hicolor/ (only
+          wayplank.svg/plank.svg installed).
+   [ok] 6.9 Drive Ejector Docklet (docklet://ejector):
+        - Displays removable drive icon with orange gradient fallback.
+        - Badge counter displays number of mounted removable drives/volumes.
+        - Left-click: safely unmounts/ejects (if 1 device) or opens device
+          selection menu (if multiple).
+        - Desktop notification displayed on safe removal ("Drive safely
+          removed").
+        - Right-click context menu lists all mounted removable drives with
+          "Eject / Safe Remove" actions.
+   [ok] 6.10a Screen Brightness - Standalone Laptop Internal Display (Fast-Path):
+        - Verify direct internal panel (/sys/class/backlight) control with %
+          badge, 5% mouse-wheel steps, left-click presets (25/50/75/100%), and
+          real-time sync with physical Fn keys.
+   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External Displays (DDC/CI):
+        - Verify 'brightnessctl set 40%', physical Fn keys, wheel steps, and
+          presets synchronize internal panel and external monitors cleanly via
+          ddcutil with 350ms I2C settle debounce and clamshell support.
+   [ok] 6.11 Weather Forecast Docklet (docklet://weather) & Vector Icon Fallback:
+        - Left-click opens WeatherWindow showing current condition, high/low,
+          humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
+          badge, city search (WeatherCityDialog) with IP geolocation fallback,
+          and crisp GResource SVG icons on any icon theme.
+   [ok] 6.12 Docklet Right-Click Context Menu Consistency:
+        - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
+          MPRIS, Battery, Volume, Screenshot, Session, Ejector,
+          Brightness, Weather, Network) show clean, focused context menus.
+   [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
+        - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
+          states, SSID/IP tooltip, left-click Network Settings, middle-click
+          Copy IP, and context menu.
+   [ok] 6.14 Docklets Accordion & Expansion Modes:
+        - Accordion collapsed at rest: expands on hover. Enable 'Click to
+          Expand' in Preferences -> Appearance: hover no longer expands;
+          left-clicking Preferences expands docklets; second click opens
+          Preferences dialog.
+        - Universal Interaction Invalidation: Accordion collapse timer is
+          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
+          Weather) or menu is open. On close, restarts full delay if cursor
+          is outside, or keeps drawer open if cursor is on dock.
+   [ok] 6.15 Global System Pressure Engine (docklet://cpu):
+        - Replaces custom dual-gauge card with standard theme icon
+          (utilities-system-monitor;;cpu) and native numeric top badge.
+        - Badge counter displays combined system pressure with % [0-100%]
+          (e.g. 12%) calculated as 0.60 * max(CPU, RAM, Disk) + 0.40 * mean(CPU,
+          RAM, Disk).
+        - Tooltip shows detailed per-resource breakdown (CPU, RAM, Disk I/O).
+   [ok] 6.16 Docklet Icon Standardization & Two-Tier Resolution:
+        - Verify Battery, Volume (up to 150% overamplified icon), and MPRIS
+          Media Player render theme icons with embedded GResource SVG
+          fallbacks and % badges.
+   [ok] 6.17 Docklet Numeric Badge Proportions, Units & Geometry:
+        - Verify compact top badges (~34% icon height) show crisp units (°C/°F
+          on Weather, % on CPU/Battery/Volume/Network/Brightness, plain
+          integers on Ejector/unread) across all icon sizes and zoom.
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+        - Verify left-click toggles notification mute (bell <-> muted icon),
+          syncs bidirectionally with desktop DND state, and suppresses
+          'FAT/Test Files/Testers/test_notification.py' banners when active.
+7. PREFERENCES & CONFIGURATION
+   (Ctrl + Right-Click -> Preferences or via docklet://preferences)
+   [ok] 7.1 Window Opening & Foreground Raising:
+        - Preferences dialog opens centered without glitch.
+        - Preferences, Help, and About dialogs raise immediately to foreground
+          over other windows (Wayland focus bypass).
+   [ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [ok] 7.3 Alignment: Start, Center, End, Fill alignment works
+   [ok] 7.4 Icon Size Slider Resiliency:
+        Real-time slider resizing works smoothly across all values (24px to
+        64px+); auto-shrink does NOT crush icons to 24px minimum due to
+        separator count or uninitialized monitor geometry
+   [ok] 7.5 Theme Switching, Adaptive Dynamic Gtk+ Engine & Legacy Plank Compatibility:
+        - Verify Default (adaptive dark/light GTK+), stock themes
+          (Arian/IFtiger Dark & Light, Transparent), and legacy
+          ~/.local/share/plank/themes switch live without restart.
+   [ko->ok] 7.6 Multi-Monitor: Output monitor selector & Honest UI Primary Display on Labwc:
+        - Verify that on Labwc (wlroots), where the compositor protocol has no native
+          concept of a 'Primary Display', the 'On Primary Display' switch is disabled
+          (Honest UI: active = false, sensitive = false) with universal tooltip
+          "Not supported by this compositor" and the output monitor dropdown
+          is immediately enabled so the user can directly select any connected monitor.
+        BUG: 'On Primary Display' switch was active on Labwc despite wlroots
+          having no primary display protocol concept.
+        SOLUTION: Disabled 'On Primary Display' via Honest UI
+          ('WindowCapabilities.primary_display_supported() == false') with
+          explanatory tooltip and enabled direct monitor selection.
+   [ok] 7.7 HiDPI & Fractional Scaling:
+        Move dock/windows between 100% and 125%/150% displays; cold start on
+        fractional scaling (e.g. 4K@1.5x).
+        - CLI procedure on Labwc (via wlr-randr):
+          sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
+          killall wayplank; wayplank &
+          wlr-randr --output eDP-1 --scale 1
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+        - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
+          Docklets with matching icons and instant live add/remove toggling.
+   [ok] 7.9 Categorize Items Toggle, Apps & Layout Anchors & Free Mode:
+        - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
+          [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
+          'WayPlank Always Left' at index 0), hiding empty-section separators.
+        - Verify 'Align by Type' sorts Free Mode items cleanly and toggling
+          Categorize/Accordion OFF expands docklets without leftover timers or
+          stored separator URIs.
+   [ok] 7.10 Accordion Collapse Delay Slider:
+        - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
+          Preferences -> Appearance (visible only when Accordion is active).
+   [ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+        - Interactive Shortcuts & Gestures window and terminal cheatsheet
+          ('wayplank --help') document Accordion controls, directional
+          indicators, retention, right-click shortcuts, and icon chooser.
+   [ok] 7.12 Shortcuts & Gestures Centering:
+        - Does not apply (no window positioning possible in Labwc).
+   [ok] 7.13 Workspace Only Wayland Dormancy:
+        - Open Preferences -> Behaviour tab.
+        - Verify 'Workspace Only' switch is insensitive (greyed out).
+        - Verify hovering either the switch or label displays tooltip:
+          "Workspace filtering is not yet supported under Wayland".
+        - Verify dock remains stable and all running applications remain
+          accessible.
+   [ok] 7.14 Show Unpinned Dynamic Refresh:
+        - Open Preferences -> Behaviour tab -> toggle "Show Unpinned".
+        - When enabled (ON), all running unpinned applications immediately
+          appear on the dock without requiring window focus.
+        - When disabled (OFF), all unpinned applications disappear immediately,
+          leaving only pinned apps.
+   [ok] 7.15 Cross-Compositor Peer Dialog Stacking & Sub-Popup Decoupling:
+        - Open Preferences, then click Weather or Session on dock:
+          Weather/Session opens immediately in foreground on the 1st click.
+        - Click Preferences: Preferences raises cleanly above Weather/Session.
+        - Click Weather/Session again while in foreground: toggles off cleanly.
+        - Open Location dialog from Weather: stays upfront over WeatherWindow.
+   [ok] 7.16 Native CSD HeaderBar & Close Action across Compositors:
+        - Open About WayPlank dialog from dock context menu on Labwc.
+        - Verify window renders complete HeaderBar, title, and functional Close
+          button; verify dialog can be closed with mouse click or Escape.
+8. MULTI MONITOR VALIDATION MATRIX
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix:
+        move to all screens and all edges
+9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY
+   [ok] 9.1 Sleep & Resume Wakeup:
+        Suspend machine -> resume; Labwc remains 100% responsive
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect:
+        Screen layout storm absorbed by 250ms debouncer & physical
+        coordinate matching
+   [ok] 9.3 Rapid Geometry Storm:
+        Rapidly move/maximize/restore windows -> updates throttled smoothly
+   [ok] 9.4 Single Script Instance:
+        Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
+        exactly ONE instance alive (N/A on wlroots/Labwc - native C bridge)
+   [ok] 9.5 Process Lifecycle (--replace / kill):
+        Restart dock via 'wayplank --replace' -> cleanly takes over
+   [ok] 9.6 Signal Disconnect Safety:
+        Opening and closing Preferences multiple times leaves no dangling
+        callbacks or memory leaks
+   [ok] 9.7 Rapid Display Reconfiguration / DPI Storm:
+        Repeated rapid scaling/DPI modifications -> zero compositor lockups or
+        event stalls
+   [ok] 9.8 (Cross-Compositor) Window Title & State Flood Debounce:
+        Rapid burst of window title changes or fast open/close cycle -> absorbed
+        by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
+   [ko->ok] 9.9 Screen Lock / Unlock, Idle, DPMS Sleep/Wake Self-Healing & Live Upgrade Reload (Issue #18):
+        - Lock screen, trigger DPMS monitor sleep/wake or output reconnect,
+          and unlock: verify dock restores visibility, anchoring, and
+          exclusive space automatically with zero manual CLI restart.
+        - Run 'sudo dpkg -i build/wayplank_0.7.0_amd64.deb' while WayPlank is
+          running: verify seamless SIGWINCH live binary reload with zero
+          duplicate processes.
+        BUG (Issue #18): Dock could remain unmapped after screen lock/unlock,
+          idle, or same-resolution DPMS monitor sleep/wake.
+        SOLUTION: Connected 'ScreenSaver.ActiveChanged' and
+          'login1.Session.Unlock' to 'schedule_dock_refresh()', added
+          'dock_unmapped' recovery in PositionManager.screen_changed(), and
+          wired SIGWINCH live reload on '.deb' upgrades.
+10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
+   [ok] 10.1 Native openSUSE / Fedora RPM Packaging (BuildRpm.sh):
+        - Automated spec builder creates clean RPM packages for openSUSE
+          Tumbleweed/Leap & Fedora/RHEL
+        - Multi-distro package manager detection (zypper, dnf, apt for rpmbuild)
+        - Clean install with rpm -Uvh / zypper install
+   [ok] 10.2 Headless / Non-Interactive Packaging Variables:
+        - WAYPLANK_NO_PROMPT=1, CI=1, NONINTERACTIVE=1 bypass interactive
+          prompts across
+          BuildBin.sh, BuildDeb.sh, and BuildRpm.sh
+   [ok] 10.3 Dock Overflow Smooth Scrolling Engine:
+        - Clamps dock background to screen width/height when items exceed
+          monitor bounds
+        - Mouse wheel on dock surface smoothly scrolls items back and forth with
+          60 FPS interpolation
+        - Clipped rendering prevents scrolled-out items/shadows from bleeding
+          past background
+   [ok] 10.4 Docklet Scroll Conflict Isolation:
+        - Scrolling over Volume docklet adjusts audio volume without scrolling
+          dock
+        - Scrolling over Brightness docklet adjusts screen brightness without
+          scrolling dock
+   [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
+        - Accordion in-line expand/collapse operates harmoniously alongside
+          overflow scrolling
+   [NA] 10.6 Urgent Window Auto-Scrolling:
+        - Off-screen dock items receiving urgent state call ensure_item_visible
+          and scroll into view
+        Not applicable, in LabWc there i not transmission of urgent state trough
+        the compositor so this feature is not available in LabWc
+   [ok] 10.7 "Scroll on Overflow" Preference Switch:
+        - Preferences -> Behaviour -> Item Management toggle switch (GSettings:
+          scroll-overflow)
+        - When ON: dock icons preserve target size and scroll with wheel
+        - When OFF: dock icons auto-shrink down to fit screen (classic Plank
+          behavior)
+   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
+        - In Shrink Mode, verify physical screen-limit tick mark, red SVG
+          teardrop slider above capacity, and warning label when icons
+          auto-shrink; in Scroll Mode, redline clears.
+   [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
+        - Left/right (and vertical top/bottom) subtle edge gradients and
+          chevrons indicate scrollable content
+        - Right chevron coordinates correctly offset with (+ rect.width -), zero
+          horizontal line artifacts
+   [ok] 10.10 Launcher Deduplication & Item Reuse (ItemFactory):
+        - Dragging or pinning an already pinned application cleanly reuses the
+          existing .dockitem file instead of creating -1.dockitem, -2.dockitem
+          duplicates in ~/.config/wayplank/dock1/launchers/
+        - Loading dock elements prunes any duplicate .dockitem files sharing the
+          same launcher URI from disk and memory
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+   [ok] 10.11 Ghost Window & Screen-Sharing Bridge Shielding:
+        - Utility background helper windows (such as xwaylandvideobridge used
+          during Discord, Zoom, Teams, WebRTC screen sharing) are filtered out
+        - Windows with skipTaskbar == true or specialWindow == true are excluded
+          from spawning ghost dock items in ApplicationDiscovery and
+            LabwcBackend
+        - Attributed to IFtiger-hu (史有虎) downstream fork contribution
+================================================================================
+
+11. ERGONOMIC ENHANCEMENTS, DND REMOTE URLS & PORTAL COLOR-SCHEME (v0.6.2.2
+  FOCUS)
+   [ok] 11.1 DND Remote URL Delivery (http:// and https:// Web URLs):
+        - Dragging a remote web URL from browser address bar or link over
+          compatible dock item (browser or web-enabled app)
+        - Dispatches cleanly via DesktopAppInfo.launch_uris() without URI-escape
+          mismatches or silent drop aborts
+   [ok] 11.2 Hover Window Activation During Drag-and-Drop:
+        - When dragging an external payload (file or URL) and hovering over a
+          running application icon for >500ms, dock automatically raises that
+          application's window to the foreground
+        - Operator can release cursor directly inside target application's
+          workspace
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+        - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
+          key changes
+        - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
+          when OS switches between Light and Dark mode without requiring dock
+          restart
+   [ok] 11.4 ReverseRoundness & Theme Subsystem Restructuring:
+        - Concave skirt Cairo arc rendering with 0.75 proportional clearance
+        - Theme catalog cleanup (Default promoted to top adaptive GTK engine,
+          Arian Theme Dark/Light pairs, IFtiger Theme Dark/Light imported,
+          Matte purged, natural fallback to Default for missing themes)
+   [ok] 11.5 Interactive Theme Manager (Install Archives & Native File Chooser):
+        - Click '+' in Preferences -> Appearance -> Theme to install
+          '.zip'/'.tar.gz' archives from 'FAT/Test Files/Themes/' via portal
+          chooser; verify user theme trash deletion and system theme lock.
+   [ok] 11.6 Strict FreeDesktop MIME Type Drop Validation:
+        - Drag incompatible file (e.g. 'Sergio Melas CV.pdf' from
+          FAT/Test Files/Files/) onto text editors (Kate, VS Code) or Dolphin.
+        - App icon bounces and strictly rejects the incompatible file (does not
+          attempt to open, does not fall back to pinning).
+        - Drag compatible file (e.g. text file or folder) onto Kate / Dolphin ->
+          accepted and opened properly.
+   [ok] 11.7 Canonical Launcher Deduplication & Desktop Pinning Precedence:
+        - Drag .desktop file (e.g. 'Youtube.desktop' from FAT/Test Files/Links/)
+          onto dock while hovering near/over a web browser icon.
+        - Dock strictly prioritizes pinning the launcher over opening it in
+          browser; launcher is pinned to dock.
+        - Drag the same .desktop again -> repositioned along the dock, NO
+          duplicate '-1.dockitem' created on disk or dock.
+        - Canonical URI matching handles percent-encoding ('Test%20Files'),
+          symlinks ('Desktop' vs 'Others'), and desktop IDs.
+   [ko->ok] 11.8 Clean Drag-Off Removal, VSync 3-Beat Unpin Pipeline & Destruction Animation:
+        - Drag pinned icon off dock (or right-click -> uncheck 'Keep in
+          Dock'): verify slot holds in place, plays Unpin Effect 0..7 at
+          configured Effect Duration (or downward slide when None = 8),
+          smoothly closes gap, and leaves zero ghost icons (or exactly 1
+          unpinned icon if app is running).
+        BUG: Legacy global cursor coordinates misplaced Wayland unpin
+          animations, collapsing the slot early spawned duplicate transient
+          icons on running apps, and menu unpin bypassed the configured Unpin
+          Effect.
+        SOLUTION: Extracted HAL overlay positioning into
+          SurfaceCoordinateService.vala, implemented a timer-free VSync 3-Beat
+          removal state machine with PendingRemovalLauncher deduplication, and
+          routed both drag-off and menu unpin through
+          'remove_item_with_effect()' at 'EffectDuration'.
+12. MULTI-WINDOW PREVIEW CARDS, RECENT FILES JUMP LIST & STOCK THEMES (v0.6.2.3)
+   [ok] 12.1 Stock Theme Suite Integration (Dark & Light Variants):
+        - Bundled classic 'Dark' and 'Light' stock themes load cleanly from
+          /usr/share/wayplank/themes/
+        - Both variants render properly and switch dynamically without errors
+        - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
+          Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
+          monitoring, and Theme.vala dynamic palette luminance fallback.
+   [ok] 12.2 Recent Files Jump List in Context Menus:
+        - Right-clicking compatible applications in dock displays 'Recent
+          Documents' submenu powered by FreeDesktop Gtk.RecentManager
+        - Selecting a recent document opens it directly in target application
+   [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
+        - Left-click on app icon with 2+ open windows displays floating Cairo
+          preview cards with live window thumbnails.
+        - Dynamic bounds recalculation operates cleanly across KWin, Mutter,
+          and Labwc without horizontal dock distortion.
+        - On Labwc / wlroots, gracefully falls back to elegant blank card with
+          centered app icon & window caption without protocol crash.
+        - 450ms exit zone crossing mask prevents premature dismissal when moving
+          cursor from dock icon towards popup cards.
+        - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
+   [ok] 12.4 Window Activation & Selection from Card:
+        - Clicking a window card brings corresponding window forward and gives
+          it focus
+        - Middle-click or close button on card closes target window instance
+   [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
+        - Preferences -> Behaviour includes toggle switch to select between
+          classical cyclic window switching and multi-window preview cards
+13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
+   [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
+        - Verify 'System Menu Access' persists Modes 1..4: Docklets Only
+          (strict), Docklets Only (auto fallback), All Icons, and Dedicated
+          Icon on dock.
+   [ok] 13.2 Minimalist Dock Setup & Context Menu Preferences Removal:
+        - In Mode 4, right-click Preferences icon -> 'Remove from Dock':
+          verify poof removal and automatic migration to Mode 2 (or Mode 3 in
+          Free Mode).
+   [ok] 13.3 Free Mode (Uncategorized) Protection & Dynamic Migration:
+        - Toggle 'Categorize Items' OFF: verify Modes 1 & 2 hide from dropdown
+          and migrate automatically to Mode 3 ('All Icons').
+   [ok] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
+        - Verify Accordion collapses toward outer edge (leftmost when Docklets
+          left, rightmost when Docklets on Right), expands on hover or click
+          ('Click to Expand') and during drag-over, and never collapses <= 1
+          docklet.
+   [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
+        - Open Preferences dialog: verify window default dimensions are compact
+          (560x480) with zero horizontal label wrapping or forced stretching.
+        - Verify Accordion controls and collapse delay are cleanly laid out on
+          dedicated rows.
+        - Verify all new settings strings are localized with zh_CN prioritized #1,
+          plus it, es, fr, ca, de, uk in po/generate_translations.py.
+   [ok] 13.6 Strict Minimalist Mode 1 ('Docklets Only' - No App Fallback):
+        - In Mode 1 with zero docklets, verify app right-click menus stay pure
+          (no system items) while 'Ctrl + Right Click' anywhere opens the
+          WayPlank system menu.
+   [ok] 13.7 Monolithic In-Memory Multi-Language Live Switching & English Fallback:
+        - Run '"FAT/Test Files/Localization/switch_lang.sh" <lang>' across
+          zh_CN, it, es, fr, ca, de, uk, and en: verify 100% UI translation
+          from in-RAM GResource (.mo) with zero '/usr/share/locale/' files.
+   [ok] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
+        - Verify compact 2x3 'Item Management' grid and permanent 3-column
+          'Icons Visual Effects' bar ([Launch Effect], [Focused App], [Unpin
+          Effect] with classic defaults at index 0) in Preferences ->
+          Behaviour.
+        - Verify 'Effect Duration' slider (300-1500 ms, default 600 ms) scales
+          speed live and auto-hides when all 3 selectors are 'None'; cycle all
+          9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
+          and all 8 languages.
+================================================================================
+SESSION 3 RESULT: PASSED (LABWC / wlroots Backend) - 100% ISA-88 QUALIFIED
+================================================================================
+  * Tests: 125 | Passed Baseline: 115 [ok] | Squashed: 8 [ko->ok]
+  * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko] | Final Compliance: 100% (123/123 Applicable)
+================================================================================

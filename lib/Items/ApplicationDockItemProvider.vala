@@ -170,6 +170,12 @@ namespace Plank
 		bool window_has_pinned_item (WindowInfo window)
 		{
 			var discovery = ApplicationDiscovery.get_default ();
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.drag_manager.RemovalActive && dock.drag_manager.PendingRemovalLauncher.length > 0) {
+				if (discovery.is_best_launcher_for_window (dock.drag_manager.PendingRemovalLauncher, window))
+					return true;
+			}
+
 			foreach (var element in internal_elements) {
 				unowned ApplicationDockItem? appitem = (element as ApplicationDockItem);
 				if (appitem == null || (appitem is TransientDockItem))
@@ -212,7 +218,8 @@ namespace Plank
 				    res_class == "wayplank" || res_class == "plank" ||
 				    res_name == "wayplank" || res_name == "plank" ||
 				    desk_name == "wayplank.desktop" || desk_name == "plank.desktop" || desk_name == "wayplank" || desk_name == "plank" ||
-				    caption == "wayplank" || caption == "wayplank-hover")
+				    caption == "wayplank" || caption == "wayplank-hover" || caption == "wayplank-poof" ||
+				    caption == "wayplank-folder-menu" || caption == "wayplank-hover-cards")
 					continue;
 
 				// If a window is already handled by a pinned dock item, don't create a transient item
@@ -252,13 +259,16 @@ namespace Plank
 				}
 			}
 
+			var seen_transient_launchers = new Gee.HashSet<string> ();
 			foreach (var element in internal_elements.to_array ()) {
 				unowned TransientDockItem? transient = (element as TransientDockItem);
 				if (transient == null)
 					continue;
 
-				if (is_pinned_only () || !active_transient_launchers.contains (transient.Launcher))
+				if (is_pinned_only () || !active_transient_launchers.contains (transient.Launcher) || seen_transient_launchers.contains (transient.Launcher))
 					remove (transient);
+				else
+					seen_transient_launchers.add (transient.Launcher);
 			}
 		}
 

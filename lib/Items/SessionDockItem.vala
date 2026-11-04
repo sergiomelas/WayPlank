@@ -87,9 +87,24 @@ namespace Plank
 			suspend_item.activate.connect (() => { suspend (); });
 			items.add (suspend_item);
 
+			var hibernate_item = create_menu_item (_("_Hibernate"), "system-suspend-hibernate", true);
+			hibernate_item.sensitive = can_hibernate ();
+			hibernate_item.activate.connect (() => { hibernate (); });
+			items.add (hibernate_item);
+
+			var hybrid_item = create_menu_item (_("H_ybrid Sleep"), "system-suspend-hibernate", true);
+			hybrid_item.sensitive = can_hybrid_sleep ();
+			hybrid_item.activate.connect (() => { hybrid_sleep (); });
+			items.add (hybrid_item);
+
 			var reboot_item = create_menu_item (_("_Restart..."), "system-reboot", true);
 			reboot_item.activate.connect (() => { restart (true); });
 			items.add (reboot_item);
+
+			var uefi_item = create_menu_item (_("_UEFI / BIOS..."), "preferences-system", true);
+			uefi_item.sensitive = can_reboot_to_firmware ();
+			uefi_item.activate.connect (() => { reboot_to_firmware (true); });
+			items.add (uefi_item);
 
 			var shutdown_item = create_menu_item (_("_Shut Down..."), "system-shutdown", true);
 			shutdown_item.activate.connect (() => { shutdown (true); });
@@ -300,6 +315,45 @@ namespace Plank
 			lock_screen ();
 		}
 
+		static bool query_login1_capability (string method_name)
+		{
+			try {
+				var bus = Bus.get_sync (BusType.SYSTEM, null);
+				var res = bus.call_sync (
+					"org.freedesktop.login1",
+					"/org/freedesktop/login1",
+					"org.freedesktop.login1.Manager",
+					method_name,
+					null,
+					new VariantType ("(s)"),
+					DBusCallFlags.NONE,
+					1000,
+					null
+				);
+				string status = "";
+				res.get ("(s)", out status);
+				return (status == "yes" || status == "challenge");
+			} catch (Error e) {
+				debug ("SessionDockItem: %s query failed: %s", method_name, e.message);
+				return false;
+			}
+		}
+
+		public static bool can_hibernate ()
+		{
+			return query_login1_capability ("CanHibernate");
+		}
+
+		public static bool can_hybrid_sleep ()
+		{
+			return query_login1_capability ("CanHybridSleep");
+		}
+
+		public static bool can_reboot_to_firmware ()
+		{
+			return query_login1_capability ("CanRebootToFirmwareSetup");
+		}
+
 		public static void suspend ()
 		{
 			debug ("SessionDockItem: suspending system");
@@ -311,6 +365,67 @@ namespace Plank
 				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Suspend true");
 			} catch (Error e) {
 				warning ("Failed to suspend: %s", e.message);
+			}
+		}
+
+		public static void hibernate ()
+		{
+			debug ("SessionDockItem: hibernating system");
+			try {
+				Process.spawn_command_line_async ("systemctl hibernate");
+				return;
+			} catch (Error e) { }
+			try {
+				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Hibernate true");
+			} catch (Error e) {
+				warning ("Failed to hibernate: %s", e.message);
+			}
+		}
+
+		public static void hybrid_sleep ()
+		{
+			debug ("SessionDockItem: hybrid-sleeping system");
+			try {
+				Process.spawn_command_line_async ("systemctl hybrid-sleep");
+				return;
+			} catch (Error e) { }
+			try {
+				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.HybridSleep true");
+			} catch (Error e) {
+				warning ("Failed to hybrid-sleep: %s", e.message);
+			}
+		}
+
+		public static void reboot_to_firmware (bool prompt_if_needed)
+		{
+			debug ("SessionDockItem: reboot to UEFI/BIOS firmware setup requested (prompt=%s)", prompt_if_needed.to_string ());
+
+			if (prompt_if_needed && !confirm_dialog (_("Reboot to UEFI / BIOS"), _("Are you sure you want to restart your computer and enter the UEFI / BIOS firmware settings?"), _("UEFI / BIOS"))) {
+				return;
+			}
+
+			try {
+				Process.spawn_command_line_async ("systemctl reboot --firmware-setup");
+				return;
+			} catch (Error e) { }
+
+			try {
+				var bus = Bus.get_sync (BusType.SYSTEM, null);
+				bus.call_sync (
+					"org.freedesktop.login1",
+					"/org/freedesktop/login1",
+					"org.freedesktop.login1.Manager",
+					"SetRebootToFirmwareSetup",
+					new Variant ("(b)", true),
+					null,
+					DBusCallFlags.NONE,
+					1500,
+					null
+				);
+				restart (false);
+				return;
+			} catch (Error e) {
+				warning ("Failed to reboot to firmware setup: %s", e.message);
 			}
 		}
 

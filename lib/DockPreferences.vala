@@ -94,7 +94,7 @@ namespace Plank
 		[Description(nick = "pressure-reveal", blurb = "Whether to use pressure-based revealing of the dock if the support is available.")]
 		public bool PressureReveal { get; set; }
 		
-		[Description(nick = "reserve-space", blurb = "Whether to reserve screen space matching the dock thickness when hiding is disabled (Panel Mode).")]
+		[Description(nick = "reserve-space", blurb = "Whether to reserve screen space matching the dock thickness (Panel Mode). Enabling this automatically disables Hide Dock and Icon Zoom; enabling either automatically disables Reserve Screen Space.")]
 		public bool ReserveSpace { get; set; default = false; }
 		
 		[Description(nick = "pinned-only", blurb = "Whether to show only pinned applications. Useful for running more then one dock.")]
@@ -121,6 +121,12 @@ namespace Plank
 		[Description(nick = "categorize-items", blurb = "Whether to categorize dock items by type (Folders, Apps, Docklets, Running, Trash).")]
 		public bool CategorizeItems { get; set; }
 		
+		[Description(nick = "anchor-always-left", blurb = "Whether to always anchor the WayPlank icon at the far left with its own separator.")]
+		public bool AnchorAlwaysLeft { get; set; default = false; }
+		
+		[Description(nick = "docklets-on-right", blurb = "Whether to place the docklets category on the right after unpinned apps and before Trash.")]
+		public bool DockletsOnRight { get; set; default = true; }
+		
 		[Description(nick = "accordion-docklets", blurb = "Whether to collapse docklets in-line showing only the first one at rest.")]
 		public bool AccordionDocklets { get; set; }
 		
@@ -143,6 +149,20 @@ namespace Plank
 
 		[Description(nick = "system-menu-access", blurb = "System menu and preferences access mode (1: Docklets only, 2: Docklets only with fallback, 3: All icons, 4: Dedicated icon on dock).")]
 		public int SystemMenuAccess { get; set; default = 4; }
+
+		[Description(nick = "active-highlight", blurb = "Focused application highlight style (0: Classic Box, 1: Icon Glow, 2: Spotlight, 3: Rounded Card, 4: Accent Bar, 5: Rim Halo, 6: Floor Reflection, 7: None).")]
+		public int ActiveHighlight { get; set; default = 0; }
+
+		[Description(nick = "launch-animation", blurb = "Application launch and click animation (0: Bounce, 1: Elastic, 2: Pulse, 3: Spring, 4: Ripple, 5: Flip, 6: Swing, 7: Flash, 8: None).")]
+		public int LaunchAnimation { get; set; default = 0; }
+
+		[Description(nick = "unpin-animation", blurb = "Application unpin and removal animation (0: Poof Cloud, 1: Shrink & Fade, 2: Implode Spin, 3: Shatter Burst, 4: Vaporize, 5: 3D Tumble, 6: Shockwave, 7: Pixel Dissolve, 8: None).")]
+		public int UnpinAnimation { get; set; default = 0; }
+
+		[Description(nick = "effect-duration", blurb = "Duration in milliseconds (100 to 1000) for icon launch, focus highlight transition, and unpin animations.")]
+		public int EffectDuration { get; set; default = 600; }
+
+		bool updating_sr_latch = false;
 		
 		/**
 		 * {@inheritDoc}
@@ -151,9 +171,57 @@ namespace Plank
 		{
 			Object (settings: create_settings ("net.launchpad.plank.dock.settings", "/net/launchpad/plank/docks/%s/".printf (name)));
 		}
+
+		construct
+		{
+			if (ReserveSpace && (HideMode != HideType.NONE || ZoomEnabled)) {
+				updating_sr_latch = true;
+				if (HideMode != HideType.NONE)
+					HideMode = HideType.NONE;
+				if (ZoomEnabled)
+					ZoomEnabled = false;
+				updating_sr_latch = false;
+			}
+
+			notify["ReserveSpace"].connect (on_sr_reserve_changed);
+			notify["HideMode"].connect (on_sr_reset_changed);
+			notify["ZoomEnabled"].connect (on_sr_reset_changed);
+		}
 		
 		~DockPreferences ()
 		{
+			notify["ReserveSpace"].disconnect (on_sr_reserve_changed);
+			notify["HideMode"].disconnect (on_sr_reset_changed);
+			notify["ZoomEnabled"].disconnect (on_sr_reset_changed);
+		}
+
+		void on_sr_reserve_changed ()
+		{
+			if (updating_sr_latch)
+				return;
+
+			// S = rising edge of ReserveSpace: deactivate Hide Dock and Icon Zoom without locking
+			if (ReserveSpace) {
+				updating_sr_latch = true;
+				if (HideMode != HideType.NONE)
+					HideMode = HideType.NONE;
+				if (ZoomEnabled)
+					ZoomEnabled = false;
+				updating_sr_latch = false;
+			}
+		}
+
+		void on_sr_reset_changed ()
+		{
+			if (updating_sr_latch)
+				return;
+
+			// R = rising edge of Hide Dock or Icon Zoom: deactivate ReserveSpace without locking
+			if ((HideMode != HideType.NONE || ZoomEnabled) && ReserveSpace) {
+				updating_sr_latch = true;
+				ReserveSpace = false;
+				updating_sr_latch = false;
+			}
 		}
 		
 		/**
@@ -216,6 +284,24 @@ namespace Plank
 					Theme = Plank.Theme.DEFAULT_NAME;
 				else if (Theme.contains ("/"))
 					Theme = Theme.replace ("/", "");
+				break;
+			case "ActiveHighlight":
+				if (ActiveHighlight < 0 || ActiveHighlight > 7)
+					ActiveHighlight = 0;
+				break;
+			case "LaunchAnimation":
+				if (LaunchAnimation < 0 || LaunchAnimation > 8)
+					LaunchAnimation = 0;
+				break;
+			case "UnpinAnimation":
+				if (UnpinAnimation < 0 || UnpinAnimation > 8)
+					UnpinAnimation = 0;
+				break;
+			case "EffectDuration":
+				if (EffectDuration < 300)
+					EffectDuration = 300;
+				else if (EffectDuration > 1500)
+					EffectDuration = 1500;
 				break;
 			}
 		}

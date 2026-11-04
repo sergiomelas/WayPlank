@@ -30,35 +30,102 @@ namespace Plank
 		Gee.HashSet<string> primary_tokens = new Gee.HashSet<string> ();
 		Gee.HashSet<string> word_tokens = new Gee.HashSet<string> ();
 		Gee.HashSet<string> executable_tokens = new Gee.HashSet<string> ();
+		Gee.HashSet<string> dedicated_binaries = new Gee.HashSet<string> ();
+		Gee.HashSet<string> startup_wm_classes = new Gee.HashSet<string> ();
 		Gee.ArrayList<string> argument_tokens = new Gee.ArrayList<string> ();
 		string app_name = "";
+		string alnum_app_name = "";
 		string base_id = "";
+		string pwa_id = "";
+		string web_app_host = "";
+		string web_app_alt_host = "";
+		string web_app_brand = "";
+		bool has_startup_wm_class = false;
+		bool is_non_app_desktop = false;
+		bool is_browser_url_bookmark = false;
+		bool is_chromium_webapp = false;
+		bool has_browser_executable = false;
+
+		public File desktop_file { get; private set; }
+		public string desktop_uri { get; private set; default = ""; }
+		public string normalized_id { get; private set; default = ""; }
+		public bool has_exec { get; private set; default = false; }
 		
 		public ApplicationIdentity (File desktop_file)
 		{
+			this.desktop_file = desktop_file;
+			this.desktop_uri = desktop_file.get_uri ();
 			base_id = normalize (desktop_file.get_basename ());
+			this.normalized_id = base_id;
 			add_token (base_id);
 			primary_tokens.add (base_id);
 			var path = desktop_file.get_path ();
 			if (path == null)
 				return;
+			if (GLib.FileUtils.test (path, GLib.FileTest.IS_SYMLINK)) {
+				string? real_target = Posix.realpath (path);
+				if (real_target != null && real_target != "") {
+					var real_base = GLib.Path.get_basename (real_target);
+					if (real_base.down ().has_suffix (".desktop")) {
+						var norm_real = normalize (real_base);
+						if (norm_real != "") {
+							add_token (norm_real);
+							primary_tokens.add (norm_real);
+						}
+					}
+				}
+			}
 			try {
 				var key_file = new KeyFile ();
 				key_file.load_from_file (path, KeyFileFlags.NONE);
+				if (key_file.has_key (KeyFileDesktop.GROUP, "Type")) {
+					var dtype = key_file.get_string (KeyFileDesktop.GROUP, "Type").strip ();
+					if (dtype == "Link") {
+						string link_target = "";
+						if (key_file.has_key (KeyFileDesktop.GROUP, "URL"))
+							link_target = key_file.get_string (KeyFileDesktop.GROUP, "URL").strip ();
+						else if (key_file.has_key (KeyFileDesktop.GROUP, "URL[$e]"))
+							link_target = key_file.get_string (KeyFileDesktop.GROUP, "URL[$e]").strip ();
+						string resolved_desktop = "";
+						if (link_target.has_prefix ("file://")) {
+							try { resolved_desktop = GLib.Filename.from_uri (link_target); } catch { }
+						} else if (link_target.has_prefix ("/")) {
+							resolved_desktop = link_target;
+						}
+						if (resolved_desktop != "" && resolved_desktop.down ().has_suffix (".desktop") && GLib.FileUtils.test (resolved_desktop, GLib.FileTest.EXISTS)) {
+							var norm_linked = normalize (GLib.Path.get_basename (resolved_desktop));
+							if (norm_linked != "") {
+								add_token (norm_linked);
+								primary_tokens.add (norm_linked);
+							}
+							key_file = new KeyFile ();
+							key_file.load_from_file (resolved_desktop, KeyFileFlags.NONE);
+						} else {
+							is_non_app_desktop = true;
+						}
+					} else if (dtype != "" && dtype != "Application") {
+						is_non_app_desktop = true;
+					}
+				}
 				if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
 					var swmc = key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass");
 					add_token (swmc);
 					add_token_variants (swmc);
 					var norm_swmc = normalize (swmc);
 					if (norm_swmc != "") {
+						has_startup_wm_class = true;
 						primary_tokens.add (norm_swmc);
 						if (norm_swmc.has_prefix ("crx_")) {
 							var crx_id = norm_swmc.substring (4);
 							if (crx_id.length >= 3) {
+								pwa_id = crx_id;
+								is_chromium_webapp = true;
 								add_token (crx_id);
 								primary_tokens.add (crx_id);
 								argument_tokens.add (crx_id);
 							}
+						} else {
+							startup_wm_classes.add (norm_swmc);
 						}
 					}
 				}
@@ -67,29 +134,46 @@ namespace Plank
 					add_token (gmc);
 					add_token_variants (gmc);
 					var norm_gmc = normalize (gmc);
-					if (norm_gmc != "")
+					if (norm_gmc != "") {
 						primary_tokens.add (norm_gmc);
+						startup_wm_classes.add (norm_gmc);
+					}
 				}
 				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
 					var raw_name = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
 					if (raw_name != "") {
 						app_name = raw_name.down ();
+						alnum_app_name = to_alnum_lower (raw_name);
 						add_token (app_name);
 						add_token_variants (raw_name);
 					}
 				}
+				bool has_desktop_url_key = false;
+				string desktop_url_val = "";
+				if (key_file.has_key (KeyFileDesktop.GROUP, "URL"))
+					desktop_url_val = key_file.get_string (KeyFileDesktop.GROUP, "URL").strip ().down ();
+				else if (key_file.has_key (KeyFileDesktop.GROUP, "URL[$e]"))
+					desktop_url_val = key_file.get_string (KeyFileDesktop.GROUP, "URL[$e]").strip ().down ();
+				if (desktop_url_val.has_prefix ("http://") || desktop_url_val.has_prefix ("https://"))
+					has_desktop_url_key = true;
+
 				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
 					var command = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
 					if (command != "") {
-						parse_exec_command (command);
+						has_exec = true;
+						parse_exec_command (command, has_desktop_url_key);
+					} else if (has_desktop_url_key && !has_startup_wm_class) {
+						is_browser_url_bookmark = true;
 					}
+				} else if (has_desktop_url_key && !has_startup_wm_class) {
+					is_browser_url_bookmark = true;
 				}
 			} catch (Error e) {
 				debug ("Unable to read desktop identity '%s': %s", desktop_file.get_path (), e.message);
 			}
 		}
 
-		private void parse_exec_command (string command)
+		private void parse_exec_command (string command, bool has_desktop_url_key = false)
 		{
 			var unwrap_tokens = unwrap_command_string (command);
 			if (unwrap_tokens.size == 0)
@@ -102,6 +186,7 @@ namespace Plank
 			}
 
 			// If the target executable is a shell script (.sh), inspect it!
+			bool has_isolated_browser_flag = false;
 			if (raw_exe.has_suffix (".sh")) {
 				string? script_target = null;
 				if (GLib.FileUtils.test (raw_exe, GLib.FileTest.IS_REGULAR)) {
@@ -111,35 +196,89 @@ namespace Plank
 				}
 
 				if (script_target != null) {
-					inspect_script_file (script_target);
+					inspect_script_file (script_target, ref has_isolated_browser_flag);
 				}
 			}
+
+			bool is_browser = is_browser_binary (exe_name);
+			bool is_generic_runtime = is_generic_runtime_binary (exe_name);
+			bool has_positional_url = false;
 
 			for (int i = 1; i < unwrap_tokens.size; i++) {
 				var part = unwrap_tokens.get (i).strip ().replace ("\"", "").replace ("'", "");
 				if (part == "" || part.has_prefix ("%") || part.has_prefix ("@"))
 					continue;
 
+				var part_down = part.down ();
+				if (part_down.has_prefix ("http://") || part_down.has_prefix ("https://")) {
+					has_positional_url = true;
+					continue;
+				}
+
+				if ((part_down == "--app" || part_down == "-app") && i + 1 < unwrap_tokens.size) {
+					var app_url = unwrap_tokens.get (i + 1).strip ().replace ("\"", "").replace ("'", "").down ();
+					if (app_url != "" && !app_url.has_prefix ("-")) {
+						is_chromium_webapp = true;
+						if (!app_url.contains ("://") && app_url.contains (".") && !app_url.has_prefix ("/"))
+							app_url = "https://" + app_url;
+						if (app_url.has_prefix ("http://") || app_url.has_prefix ("https://"))
+							extract_web_app_host (app_url);
+						i++;
+						continue;
+					}
+				}
+
+				if (part_down == "--class" || part_down == "-class" || part_down == "--profile" || part_down == "-profile" || part_down == "--user-data-dir") {
+					has_isolated_browser_flag = true;
+					if (i + 1 < unwrap_tokens.size) {
+						var cls_val = unwrap_tokens.get (i + 1).strip ().replace ("\"", "").replace ("'", "").down ();
+						if (cls_val != "" && !cls_val.has_prefix ("-")) {
+							argument_tokens.add (cls_val);
+							i++;
+						}
+					}
+					continue;
+				}
+
+				if (part == "-P" || part == "--ProfileManager") {
+					has_isolated_browser_flag = true;
+					if (i + 1 < unwrap_tokens.size) {
+						var prof_val = unwrap_tokens.get (i + 1).strip ().replace ("\"", "").replace ("'", "").down ();
+						if (prof_val != "" && !prof_val.has_prefix ("-")) {
+							argument_tokens.add (prof_val);
+							i++;
+						}
+					}
+					continue;
+				}
+
 				// Parameter option with value like --profile-directory="Profile 14", --app-id=..., or --app=...
 				if (part.contains ("=")) {
 					var eq = part.index_of_char ('=');
 					var opt_key = part.substring (0, eq).down ();
-					if (opt_key.contains ("profile") || opt_key.contains ("class") || opt_key.contains ("app")) {
+					if (opt_key == "--class" || opt_key == "-class"
+						|| opt_key.contains ("user-data-dir")
+						|| (opt_key.contains ("profile") && !opt_key.contains ("profile-directory")))
+						has_isolated_browser_flag = true;
+					if (opt_key.contains ("profile") || opt_key.contains ("user-data-dir") || opt_key.contains ("class") || opt_key.contains ("app")) {
 						var val = part.substring (eq + 1).strip ().replace ("\"", "").replace ("'", "").down ();
 						if (val != "" && val.length >= 3) {
+							if (opt_key.contains ("app-id") && pwa_id == "") {
+								pwa_id = val;
+								is_chromium_webapp = true;
+								add_token (val);
+								primary_tokens.add (val);
+							} else if (opt_key == "--app" || opt_key == "-app") {
+								is_chromium_webapp = true;
+								var norm_url = (!val.contains ("://") && val.contains (".") && !val.has_prefix ("/")) ? ("https://" + val) : val;
+								if (norm_url.has_prefix ("http://") || norm_url.has_prefix ("https://")) {
+									extract_web_app_host (norm_url);
+									continue;
+								}
+							}
 							argument_tokens.add (val);
 							if (val.has_prefix ("http://") || val.has_prefix ("https://")) {
-								var slash_idx = val.index_of ("://");
-								var host_part = val.substring (slash_idx + 3);
-								var end_host = host_part.index_of_char ('/');
-								if (end_host > 0)
-									host_part = host_part.substring (0, end_host);
-								var at_idx = host_part.last_index_of_char ('@');
-								if (at_idx >= 0)
-									host_part = host_part.substring (at_idx + 1);
-								var port_idx = host_part.index_of_char (':');
-								if (port_idx > 0)
-									host_part = host_part.substring (0, port_idx);
+								var host_part = parse_url_host (val);
 								if (host_part != "") {
 									argument_tokens.add (host_part);
 									var host_dot = host_part.last_index_of_char ('.');
@@ -148,29 +287,144 @@ namespace Plank
 										var first_dot = sld.last_index_of_char ('.');
 										if (first_dot >= 0)
 											sld = sld.substring (first_dot + 1);
-										if (sld.length >= 3 && !is_common_stopword (sld))
+										if (sld.length >= 3 && !is_common_stopword (sld) && !is_browser_vendor_stopword (sld))
 											argument_tokens.add (sld);
 									}
 								}
 							}
 						}
 					}
+					continue;
 				}
 
-				var target_name = File.new_for_path (part).get_basename ().down ();
-				if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !target_name.has_prefix ("@") && !is_generic_argument_stopword (target_name)) {
-					argument_tokens.add (target_name);
-					var dot = target_name.last_index_of_char ('.');
-					if (dot > 0) {
-						var sub_name = target_name.substring (0, dot);
-						if (!is_generic_argument_stopword (sub_name))
-							argument_tokens.add (sub_name);
+				if (is_generic_runtime) {
+					var target_name = File.new_for_path (part).get_basename ().down ();
+					if (target_name != "" && target_name != "." && !target_name.has_prefix ("-") && !target_name.has_prefix ("@") && !is_generic_argument_stopword (target_name)) {
+						argument_tokens.add (target_name);
+						var dot = target_name.last_index_of_char ('.');
+						if (dot > 0) {
+							var sub_name = target_name.substring (0, dot);
+							if (!is_generic_argument_stopword (sub_name))
+								argument_tokens.add (sub_name);
+						}
 					}
 				}
 			}
+
+			// If this launcher is a specific PWA (--app-id or StartupWMClass=crx_) or standalone URL web-app (--app=URL),
+			// purge shared browser flags (e.g. --profile-directory) from argument_tokens
+			// so multiple web-apps or normal browser windows in the same profile never cross-match.
+			// Conversely, a browser shortcut opening an http(s):// URL in a regular browser tab (even with
+			// --profile-directory=...) without --app-id, --app, StartupWMClass, or --class is a URL bookmark
+			// and must never hijack the main browser's window identity.
+			if (pwa_id != "") {
+				argument_tokens.clear ();
+				argument_tokens.add (pwa_id);
+			} else if (web_app_host != "") {
+				argument_tokens.clear ();
+				argument_tokens.add (web_app_host);
+				if (web_app_alt_host != "")
+					argument_tokens.add (web_app_alt_host);
+			} else if ((is_browser || has_browser_executable)
+				&& (has_desktop_url_key || has_positional_url)
+				&& !has_startup_wm_class
+				&& !has_isolated_browser_flag) {
+				is_browser_url_bookmark = true;
+				argument_tokens.clear ();
+			}
 		}
 
-		private void inspect_script_file (string script_path)
+		private static string parse_url_host (string url)
+		{
+			var slash_idx = url.index_of ("://");
+			if (slash_idx < 0)
+				return "";
+			var host_part = url.substring (slash_idx + 3);
+			var end_slash = host_part.index_of_char ('/');
+			if (end_slash >= 0)
+				host_part = host_part.substring (0, end_slash);
+			var end_query = host_part.index_of_char ('?');
+			if (end_query >= 0)
+				host_part = host_part.substring (0, end_query);
+			var end_hash = host_part.index_of_char ('#');
+			if (end_hash >= 0)
+				host_part = host_part.substring (0, end_hash);
+			var at_idx = host_part.last_index_of_char ('@');
+			if (at_idx >= 0)
+				host_part = host_part.substring (at_idx + 1);
+			var port_idx = host_part.index_of_char (':');
+			if (port_idx > 0)
+				host_part = host_part.substring (0, port_idx);
+			return host_part.strip ();
+		}
+
+		private static string to_alnum_lower (string text)
+		{
+			var sb = new StringBuilder ();
+			var down = text.down ();
+			int idx = 0;
+			unichar c;
+			while (down.get_next_char (ref idx, out c)) {
+				if (c.isalnum ())
+					sb.append_unichar (c);
+			}
+			return sb.str;
+		}
+
+		private static string extract_url_brand (string host)
+		{
+			string h = host.down ().strip ();
+			string[] prefixes = { "www.", "m.", "open.", "play.", "app.", "listen.", "watch.", "tv.", "web." };
+			foreach (unowned string p in prefixes) {
+				if (h.has_prefix (p) && h.length > p.length + 3) {
+					h = h.substring (p.length);
+					break;
+				}
+			}
+			string[] multi_tlds = {
+				".co.uk", ".org.uk", ".gov.uk", ".ac.uk",
+				".com.au", ".net.au", ".org.au",
+				".co.jp", ".co.nz", ".co.za", ".co.kr", ".co.in", ".co.il",
+				".com.br", ".com.mx", ".com.ar", ".com.es", ".com.tr"
+			};
+			bool stripped_tld = false;
+			foreach (unowned string tld in multi_tlds) {
+				if (h.has_suffix (tld) && h.length > tld.length) {
+					h = h.substring (0, h.length - tld.length);
+					stripped_tld = true;
+					break;
+				}
+			}
+			if (!stripped_tld) {
+				var last_dot = h.last_index_of_char ('.');
+				if (last_dot > 0)
+					h = h.substring (0, last_dot);
+			}
+			var sub_dot = h.last_index_of_char ('.');
+			if (sub_dot >= 0)
+				h = h.substring (sub_dot + 1);
+			if (h.length < 3 || is_common_stopword (h) || is_browser_vendor_stopword (h))
+				return "";
+			return h;
+		}
+
+		private void extract_web_app_host (string url)
+		{
+			var host_part = parse_url_host (url);
+			if (host_part == "")
+				return;
+			web_app_host = host_part;
+			if (host_part.has_prefix ("www.")) {
+				var stripped_www = host_part.substring (4);
+				if (stripped_www.contains (".") && stripped_www.length >= 4)
+					web_app_alt_host = stripped_www;
+			} else if (host_part.contains (".")) {
+				web_app_alt_host = "www." + host_part;
+			}
+			web_app_brand = extract_url_brand (host_part);
+		}
+
+		private void inspect_script_file (string script_path, ref bool has_isolated_browser_flag)
 		{
 			try {
 				string content;
@@ -181,8 +435,13 @@ namespace Plank
 				if (content.length > 4096)
 					return;
 
-				// Fast check: must start with a shell shebang
-				if (!content.has_prefix ("#!/bin/") && !content.has_prefix ("#!/usr/bin/env") && !content.has_prefix ("#! /bin/"))
+				// Fast check: accept any #! shebang or .sh wrapper without binary NUL bytes
+				int check_len = int.min (content.length, 512);
+				for (int bi = 0; bi < check_len; bi++) {
+					if (content.data[bi] == 0)
+						return;
+				}
+				if (!content.has_prefix ("#!") && !script_path.down ().has_suffix (".sh"))
 					return;
 
 				string[] lines = content.split ("\n");
@@ -190,12 +449,15 @@ namespace Plank
 					var line = raw_line.strip ();
 					if (line == "" || line.has_prefix ("#"))
 						continue;
-					// Skip shell builtins and non-launcher utilities
+					// Skip shell builtins, control flow, and non-launcher utilities
 					if (line.has_prefix ("echo ") || line.has_prefix ("printf ") || line.has_prefix ("export ") ||
 					    line.has_prefix ("sleep ") || line.has_prefix ("killall ") || line.has_prefix ("kill ") ||
+					    line.has_prefix ("pidof ") || line.has_prefix ("pgrep ") || line.has_prefix ("pkill ") ||
 					    line.has_prefix ("cd ") || line.has_prefix ("mkdir ") || line.has_prefix ("wait") ||
 					    line.has_prefix ("exit") || line.has_prefix ("trap ") || line.has_prefix ("source ") ||
-					    line.has_prefix (". "))
+					    line.has_prefix ("set ") || line.has_prefix ("if ") || line.has_prefix ("elif ") ||
+					    line == "else" || line == "fi" || line.has_prefix ("case ") || line == "esac" ||
+					    line == ";;" || line == "}" || line == "{" || line.has_prefix (". "))
 						continue;
 
 					var script_tokens = unwrap_command_string (line);
@@ -206,12 +468,41 @@ namespace Plank
 						}
 						for (int i = 1; i < script_tokens.size; i++) {
 							var s_arg = script_tokens.get (i).strip ().replace ("\"", "").replace ("'", "");
+							var s_down = s_arg.down ();
+							if (s_arg == "-P" || s_arg == "--ProfileManager"
+								|| s_down == "--class" || s_down == "-class"
+								|| s_down == "--profile" || s_down == "-profile"
+								|| s_down == "--user-data-dir") {
+								has_isolated_browser_flag = true;
+								if (i + 1 < script_tokens.size) {
+									var next_val = script_tokens.get (i + 1).strip ().replace ("\"", "").replace ("'", "").down ();
+									if (next_val != "" && !next_val.has_prefix ("-")) {
+										argument_tokens.add (next_val);
+										i++;
+									}
+								}
+								continue;
+							}
 							if (s_arg.contains ("=")) {
 								var eq = s_arg.index_of_char ('=');
 								var opt_key = s_arg.substring (0, eq).down ();
-								if (opt_key.contains ("profile") || opt_key.contains ("class") || opt_key.contains ("app")) {
+								if (opt_key == "--class" || opt_key == "-class"
+									|| opt_key.contains ("user-data-dir")
+									|| (opt_key.contains ("profile") && !opt_key.contains ("profile-directory")))
+									has_isolated_browser_flag = true;
+								if (opt_key.contains ("profile") || opt_key.contains ("user-data-dir") || opt_key.contains ("class") || opt_key.contains ("app")) {
 									var val = s_arg.substring (eq + 1).strip ().replace ("\"", "").replace ("'", "").down ();
 									if (val != "" && val.length >= 3) {
+										if (opt_key.contains ("app-id") && pwa_id == "") {
+											pwa_id = val;
+											is_chromium_webapp = true;
+											add_token (val);
+											primary_tokens.add (val);
+										} else if ((opt_key == "--app" || opt_key == "-app") && (val.has_prefix ("http://") || val.has_prefix ("https://"))) {
+											is_chromium_webapp = true;
+											extract_web_app_host (val);
+											continue;
+										}
 										argument_tokens.add (val);
 									}
 								}
@@ -250,8 +541,8 @@ namespace Plank
 					continue;
 				}
 
-				// 2. Skip env or /usr/bin/env
-				if (base_p == "env") {
+				// 2. Skip env / exec shell wrappers
+				if (base_p == "env" || base_p == "exec") {
 					idx++;
 					continue;
 				}
@@ -273,7 +564,7 @@ namespace Plank
 					continue;
 				}
 
-				if (base_p == "flatpak") {
+				if (base_p == "flatpak" || base_p == "snap") {
 					idx++;
 					if (idx < parts.length && parts[idx] == "run")
 						idx++;
@@ -285,6 +576,21 @@ namespace Plank
 							}
 						}
 						idx++;
+					}
+					continue;
+				}
+
+				if (base_p == "gtk-launch") {
+					idx++;
+					while (idx < parts.length && parts[idx].has_prefix ("-"))
+						idx++;
+					if (idx < parts.length) {
+						var launched_id = normalize (parts[idx]);
+						if (launched_id != "") {
+							add_token (launched_id);
+							primary_tokens.add (launched_id);
+							register_dedicated_binary (launched_id);
+						}
 					}
 					continue;
 				}
@@ -301,6 +607,14 @@ namespace Plank
 			return result;
 		}
 
+		private void register_dedicated_binary (string bin_token)
+		{
+			if (bin_token == "" || bin_token.length < 2 || is_generic_runtime_binary (bin_token))
+				return;
+			dedicated_binaries.add (bin_token);
+			primary_tokens.add (bin_token);
+		}
+
 		private void add_executable_token (string raw_name)
 		{
 			var norm = normalize (raw_name);
@@ -308,6 +622,11 @@ namespace Plank
 				return;
 			executable_tokens.add (norm);
 			tokens.add (norm);
+			register_dedicated_binary (norm);
+			if (is_chromium_browser_binary (norm))
+				is_chromium_webapp = true;
+			if (is_browser_binary (norm))
+				has_browser_executable = true;
 
 			// Prefix match for dashed binaries (e.g. qemu-system-x86_64 -> qemu)
 			var first_dash = norm.index_of_char ('-');
@@ -325,10 +644,15 @@ namespace Plank
 				if (base_name.length >= 3) {
 					executable_tokens.add (base_name);
 					tokens.add (base_name);
+					register_dedicated_binary (base_name);
 				}
 			} else {
 				executable_tokens.add (norm + "-bin");
 				tokens.add (norm + "-bin");
+				if (!is_generic_runtime_binary (norm)) {
+					dedicated_binaries.add (norm + "-bin");
+					primary_tokens.add (norm + "-bin");
+				}
 			}
 
 			// Auto-register AppImage aliases by stripping .AppImage, architectures, and semantic version numbers
@@ -337,6 +661,7 @@ namespace Plank
 				if (appimage_base.length >= 3) {
 					executable_tokens.add (appimage_base);
 					tokens.add (appimage_base);
+					register_dedicated_binary (appimage_base);
 					string[] arches = { "-x86_64", "_x86_64", "-x64", "_x64", "-amd64", "_amd64", "-linux", "_linux", "-i386", "_i386", "-arm64", "_arm64", "-aarch64", "_aarch64" };
 					var arch_stripped = appimage_base;
 					foreach (var arch in arches) {
@@ -353,6 +678,7 @@ namespace Plank
 							tokens.add (clean_name);
 							tokens.add (clean_name.replace ("-", " "));
 							tokens.add (clean_name.replace ("_", " "));
+							register_dedicated_binary (clean_name);
 						}
 					} catch (Error e) { }
 				}
@@ -365,6 +691,7 @@ namespace Plank
 						tokens.add (clean_name);
 						tokens.add (clean_name.replace ("-", " "));
 						tokens.add (clean_name.replace ("_", " "));
+						register_dedicated_binary (clean_name);
 					}
 				} catch (Error e) { }
 			}
@@ -393,6 +720,10 @@ namespace Plank
 			} else if (norm == "code" || norm == "visual-studio-code") {
 				executable_tokens.add ("code");
 				tokens.add ("com.microsoft.vscode");
+				dedicated_binaries.add ("code");
+				dedicated_binaries.add ("com.microsoft.vscode");
+				primary_tokens.add ("code");
+				primary_tokens.add ("com.microsoft.vscode");
 			}
 		}
 
@@ -511,6 +842,233 @@ namespace Plank
 			return normalized;
 		}
 		
+		private static bool is_chromium_browser_binary (string exe_name)
+		{
+			var n = normalize (exe_name);
+			return n == "google-chrome" || n == "google-chrome-stable" || n == "google-chrome-beta" || n == "google-chrome-unstable" ||
+			       n == "chrome" || n == "chromium" || n == "chromium-browser" ||
+			       n == "brave" || n == "brave-browser" || n == "brave-browser-stable" ||
+			       n == "microsoft-edge" || n == "microsoft-edge-stable" || n == "msedge" ||
+			       n == "vivaldi" || n == "vivaldi-stable" || n == "opera";
+		}
+
+		private static bool is_browser_binary (string exe_name)
+		{
+			var n = normalize (exe_name);
+			return is_chromium_browser_binary (n) ||
+			       n == "firefox" || n == "firefox-esr" || n == "firefox-bin" || n == "librewolf" || n == "zen" || n == "zen-bin";
+		}
+
+		private static bool is_generic_runtime_binary (string exe_name)
+		{
+			var n = normalize (exe_name);
+			if (is_browser_binary (n) || n.has_prefix ("qemu-") || n.has_suffix (".sh"))
+				return true;
+			return n == "sh" || n == "bash" || n == "dash" || n == "zsh" || n == "fish" || n == "env" ||
+			       n == "java" || n == "javaw" || n == "python" || n == "python2" || n == "python3" ||
+			       n == "perl" || n == "ruby" || n == "node" || n == "nodejs" || n == "deno" || n == "bun" ||
+			       n == "php" || n == "lua" || n == "wish" || n == "tclsh" ||
+			       n == "mono" || n == "dotnet" || n == "electron" ||
+			       n == "wine" || n == "wine64" || n == "wine-preloader" || n == "wine64-preloader" ||
+			       n == "dosbox" || n == "scummvm" || n == "retroarch" ||
+			       n == "flatpak" || n == "snap" || n == "xdg-open" || n == "gio" ||
+			       n == "kde-open" || n == "kde-open5" || n == "kioclient" || n == "kioclient5" ||
+			       n == "exo-open" || n == "gtk-launch" || n == "rundll32" ||
+			       n == "qemu" || n == "steam" || n == "lutris" || n == "heroic";
+		}
+
+		private static bool has_browser_tab_suffix (string lower_caption)
+		{
+			return lower_caption.has_suffix (" - google chrome") ||
+			       lower_caption.has_suffix (" — google chrome") ||
+			       lower_caption.contains (" - google chrome - ") ||
+			       lower_caption.contains (" - google chrome (") ||
+			       lower_caption.has_suffix (" - chromium") ||
+			       lower_caption.has_suffix (" — chromium") ||
+			       lower_caption.contains (" - chromium - ") ||
+			       lower_caption.contains (" - chromium (") ||
+			       lower_caption.has_suffix (" - brave") ||
+			       lower_caption.has_suffix (" — brave") ||
+			       lower_caption.contains (" - brave - ") ||
+			       lower_caption.contains (" - brave (") ||
+			       lower_caption.has_suffix (" - microsoft\u200b edge") ||
+			       lower_caption.has_suffix (" - microsoft edge") ||
+			       lower_caption.contains (" - microsoft edge - ") ||
+			       lower_caption.contains (" - microsoft edge (") ||
+			       lower_caption.has_suffix (" - vivaldi") ||
+			       lower_caption.has_suffix (" - opera") ||
+			       lower_caption.has_suffix (" - mozilla firefox") ||
+			       lower_caption.has_suffix (" — mozilla firefox") ||
+			       lower_caption.contains (" - mozilla firefox (") ||
+			       lower_caption.contains (" — mozilla firefox (") ||
+			       lower_caption.has_suffix (" - firefox") ||
+			       lower_caption.has_suffix (" - mullvad browser") ||
+			       lower_caption.has_suffix (" — mullvad browser") ||
+			       lower_caption.has_suffix (" — librewolf") ||
+			       lower_caption.has_prefix ("devtools - ") ||
+			       lower_caption == "devtools" ||
+			       lower_caption == "google chrome" ||
+			       lower_caption == "chromium" ||
+			       lower_caption == "brave" ||
+			       lower_caption == "microsoft edge" ||
+			       lower_caption == "vivaldi" ||
+			       lower_caption == "opera" ||
+			       lower_caption == "mozilla firefox" ||
+			       lower_caption == "firefox" ||
+			       lower_caption == "mullvad browser" ||
+			       lower_caption == "librewolf" ||
+			       lower_caption == "new tab" ||
+			       lower_caption == "untitled";
+		}
+
+		public static bool has_explicit_webapp_window_id (WindowInfo window)
+		{
+			var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+			foreach (var wid in win_ids) {
+				if (wid == null || wid == "")
+					continue;
+				var norm = normalize (wid);
+				if (norm == "" || is_browser_binary (norm))
+					continue;
+				if (norm.has_prefix ("crx_") || norm.contains ("__") ||
+				    norm.has_prefix ("chrome-") || norm.has_prefix ("chromium-") ||
+				    norm.has_prefix ("brave-") || norm.has_prefix ("msedge-") ||
+				    norm.has_prefix ("vivaldi-"))
+					return true;
+			}
+			return false;
+		}
+
+		public static bool is_plain_browser_window (WindowInfo window)
+		{
+			if (has_explicit_webapp_window_id (window))
+				return false;
+			if (window.Caption != "" && has_browser_tab_suffix (window.Caption.down ().strip ()))
+				return true;
+			bool has_any_browser_id = false;
+			var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+			foreach (var wid in win_ids) {
+				if (wid == null || wid == "")
+					continue;
+				var norm = normalize (wid);
+				if (norm == "")
+					continue;
+				if (!is_browser_binary (norm))
+					return false;
+				has_any_browser_id = true;
+			}
+			return has_any_browser_id && window.Caption.strip () == "";
+		}
+
+		private static bool is_browser_vendor_stopword (string word)
+		{
+			return word == "google" || word == "chrome" || word == "chromium" ||
+			       word == "mozilla" || word == "firefox" || word == "brave" ||
+			       word == "microsoft" || word == "edge" || word == "msedge" ||
+			       word == "vivaldi" || word == "opera";
+		}
+
+		public bool is_web_app ()
+		{
+			return pwa_id != "" || web_app_host != "";
+		}
+
+		public bool is_browser_launcher ()
+		{
+			return has_browser_executable && !is_web_app ();
+		}
+
+		public bool is_specialized ()
+		{
+			return pwa_id != "" || web_app_host != "" || is_browser_url_bookmark || is_non_app_desktop || argument_tokens.size > 0;
+		}
+
+		public bool shares_application_with (ApplicationIdentity other)
+		{
+			if (this == other)
+				return true;
+			if (this.is_specialized () || other.is_specialized ())
+				return false;
+			foreach (var bin in dedicated_binaries) {
+				if (other.dedicated_binaries.contains (bin))
+					return true;
+			}
+			foreach (var swmc in startup_wm_classes) {
+				if (other.startup_wm_classes.contains (swmc))
+					return true;
+			}
+			if (has_browser_executable && other.has_browser_executable) {
+				foreach (var exe in executable_tokens) {
+					if (is_browser_binary (exe) && other.executable_tokens.contains (exe))
+						return true;
+				}
+			}
+			return false;
+		}
+
+		public void inherit_sibling_wm_classes (ApplicationIdentity sibling)
+		{
+			if (!shares_application_with (sibling))
+				return;
+			foreach (var swmc in sibling.startup_wm_classes) {
+				tokens.add (swmc);
+				primary_tokens.add (swmc);
+			}
+		}
+
+		private static bool web_brand_matches_identity (string brand, ApplicationIdentity target)
+		{
+			if (brand == "" || brand.length < 3)
+				return false;
+			if (target.web_app_brand != "" && brand == target.web_app_brand)
+				return true;
+			if (target.alnum_app_name != "" && brand == target.alnum_app_name)
+				return true;
+			if (target.alnum_app_name.length >= 5 && brand.has_prefix (target.alnum_app_name))
+				return true;
+			if (target.app_name != "" && contains_word (target.app_name, brand))
+				return true;
+			return false;
+		}
+
+		public bool matches_web_app_identity (ApplicationIdentity other)
+		{
+			if (this == other)
+				return true;
+			if (!this.is_web_app () || !other.is_web_app ())
+				return false;
+			if (pwa_id != "" && pwa_id == other.pwa_id)
+				return true;
+			if (web_app_host != "" && other.web_app_host != "") {
+				if (web_app_host == other.web_app_host ||
+				    (web_app_alt_host != "" && (web_app_alt_host == other.web_app_host || web_app_alt_host == other.web_app_alt_host)) ||
+				    (other.web_app_alt_host != "" && web_app_host == other.web_app_alt_host))
+					return true;
+			}
+
+			bool compatible_browser = (is_chromium_webapp && other.is_chromium_webapp);
+			if (!compatible_browser) {
+				foreach (var exe in executable_tokens) {
+					if (other.executable_tokens.contains (exe)) {
+						compatible_browser = true;
+						break;
+					}
+				}
+			}
+			if (!compatible_browser && executable_tokens.size > 0 && other.executable_tokens.size > 0)
+				return false;
+
+			if (alnum_app_name != "" && alnum_app_name.length >= 3 &&
+			    !is_common_stopword (alnum_app_name) && !is_browser_vendor_stopword (alnum_app_name) &&
+			    alnum_app_name == other.alnum_app_name)
+				return true;
+
+			if (web_brand_matches_identity (web_app_brand, other) || web_brand_matches_identity (other.web_app_brand, this))
+				return true;
+
+			return false;
+		}
+
 		public bool matches (WindowInfo window)
 		{
 			return match_score (window) > 0;
@@ -518,10 +1076,95 @@ namespace Plank
 
 		public int match_score (WindowInfo window)
 		{
+			if (is_non_app_desktop || is_browser_url_bookmark)
+				return 0;
+
+			// Strict PWA Isolation: Single-process browsers (Chrome/Chromium/Brave/Edge) share a single
+			// master PID and /proc/<pid>/cmdline across all open browser and PWA windows.
+			// Therefore, a launcher with an explicit pwa_id (--app-id or StartupWMClass=crx_) MUST match
+			// strictly against the window's own compositor identifiers, never via shared Cmdline or plain browser tabs.
+			if (pwa_id != "") {
+				if (is_plain_browser_window (window))
+					return 0;
+				bool pwa_matched = false;
+				var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+				foreach (var wid in win_ids) {
+					if (wid != null && wid != "" && wid.down ().contains (pwa_id)) {
+						pwa_matched = true;
+						break;
+					}
+				}
+				if (pwa_matched)
+					return 120;
+				if (web_app_host == "")
+					return 0;
+			}
+
+			// Strict Standalone Web-App URL Isolation (--app=http(s)://...):
+			// Match against compositor window identifiers (Wayland chrome-<host>__* or XWayland instance),
+			// or chromeless standalone web-app windows (never plain browser tabs or shared /proc/<pid>/cmdline).
+			if (web_app_host != "") {
+				if (is_plain_browser_window (window))
+					return 0;
+
+				var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
+				foreach (var wid in win_ids) {
+					if (wid == null || wid == "")
+						continue;
+					var wid_down = wid.down ();
+					if (wid_down.contains (web_app_host) || (web_app_alt_host != "" && wid_down.contains (web_app_alt_host)))
+						return 120;
+				}
+
+				foreach (var wid in win_ids) {
+					if (wid == null || wid == "")
+						continue;
+					var norm_wid = normalize (wid);
+					if (norm_wid.has_prefix ("chrome-") && norm_wid.contains ("__"))
+						return 0;
+				}
+
+				if (window.Caption != "") {
+					var cap_down = window.Caption.down ().strip ();
+					bool browser_matches = false;
+					foreach (var wid in win_ids) {
+						if (wid == null || wid == "")
+							continue;
+						var norm_wid = normalize (wid);
+						if (executable_tokens.contains (norm_wid) ||
+						    (is_chromium_webapp && (norm_wid.has_prefix ("crx_") || norm_wid.has_prefix ("chrome-")))) {
+							browser_matches = true;
+							break;
+						}
+					}
+					if (!browser_matches && window.Executable != "" && executable_tokens.contains (normalize (window.Executable)))
+						browser_matches = true;
+
+					if (browser_matches) {
+						if (app_name != "" && app_name.length >= 3 && !is_common_stopword (app_name) && !is_browser_vendor_stopword (app_name)) {
+							if (contains_word (cap_down, app_name))
+								return 118;
+							if (app_name.contains ("+")) {
+								var compact_plus = app_name.replace (" ", "");
+								if (compact_plus.length >= 4 && cap_down.contains (compact_plus))
+									return 118;
+							}
+						}
+						if (web_app_brand != "" && web_app_brand.length >= 3) {
+							if (contains_word (cap_down, web_app_brand))
+								return 118;
+							if (web_app_brand.length >= 8 && to_alnum_lower (cap_down).contains (web_app_brand))
+								return 118;
+						}
+					}
+				}
+				return 0;
+			}
+
 			// Check if the window directly matches this desktop entry's primary identity
-			// (DesktopFileName, ApplicationId, or ResourceClass matching desktop basename or StartupWMClass)
+			// (DesktopFileName, ApplicationId, ResourceClass, or ResourceName matching desktop basename or StartupWMClass)
 			bool primary_identity_matched = false;
-			var primary_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass };
+			var primary_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			foreach (var val in primary_values) {
 				if (val != null && val != "") {
 					var norm = normalize (val);
@@ -536,6 +1179,11 @@ namespace Plank
 			// check if the window matches those arguments.
 			bool specialized = (argument_tokens.size > 0);
 			bool args_matched = false;
+
+			// Plain browser & browser profile launchers (e.g. google-chrome.desktop, Chrome.sh, chrome-private.sh, winchrome-syensqo.sh)
+			// must NEVER match standalone PWA / --app=URL windows sharing the master browser PID.
+			if (has_browser_executable && !is_web_app () && has_explicit_webapp_window_id (window))
+				return 0;
 
 			// Guard 1: Argument matching can ONLY apply if the window's underlying application or binary
 			// matches this launcher. Unrelated applications (e.g. Dolphin) must never match Chrome web apps or Steam shortcuts.
@@ -577,7 +1225,8 @@ namespace Plank
 					if (arg.length >= 5) {
 						if ((window.ApplicationId != "" && window.ApplicationId.down ().contains (arg)) ||
 						    (window.DesktopFileName != "" && window.DesktopFileName.down ().contains (arg)) ||
-						    (window.ResourceClass != "" && window.ResourceClass.down ().contains (arg))) {
+						    (window.ResourceClass != "" && window.ResourceClass.down ().contains (arg)) ||
+						    (window.ResourceName != "" && window.ResourceName.down ().contains (arg))) {
 							args_matched = true;
 							break;
 						}
@@ -599,7 +1248,7 @@ namespace Plank
 			// it must NEVER hijack generic instances or different instances of the application
 			// (unless the window specifically identified itself via exact desktop file id).
 			bool exact_desktop_id_matched = false;
-			var desktop_id_values = new string?[] { window.DesktopFileName, window.ApplicationId };
+			var desktop_id_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceName };
 			foreach (var val in desktop_id_values) {
 				if (val != null && val != "") {
 					var norm = normalize (val);
@@ -614,20 +1263,27 @@ namespace Plank
 				return 0;
 			}
 
-			// Guard: Synthetic launchers (wayplank-app-*) are strictly bound to their unique sanitized instance name.
-			// A synthetic launcher for VM-Alpha must NEVER hijack VM-Beta or other instances.
+			// Guard: Instance-named synthetic launchers (wayplank-app-* without StartupWMClass, e.g. multi-VM)
+			// are strictly bound to their unique sanitized instance name so VM-Alpha never hijacks VM-Beta.
+			// Class-bound synthetic launchers (with StartupWMClass, e.g. CLI/AppImage apps whose titles change
+			// dynamically as documents/notes open) require primary_identity_matched instead.
 			if (base_id.has_prefix ("wayplank-app-")) {
-				var synth_key = base_id.substring ("wayplank-app-".length);
-				var win_app_name = window.Caption != "" ? window.Caption : (window.ResourceName != "" ? window.ResourceName : window.ResourceClass);
-				var win_clean_name = ApplicationDiscovery.sanitize_name_for_app (win_app_name, normalize (window.ResourceClass));
-				if (win_clean_name != synth_key) {
-					return 0;
+				if (has_startup_wm_class) {
+					if (!primary_identity_matched)
+						return 0;
+				} else {
+					var synth_key = base_id.substring ("wayplank-app-".length);
+					var win_app_name = window.Caption != "" ? window.Caption : (window.ResourceName != "" ? window.ResourceName : window.ResourceClass);
+					var win_clean_name = ApplicationDiscovery.sanitize_name_for_app (win_app_name, normalize (window.ResourceClass));
+					if (win_clean_name != synth_key) {
+						return 0;
+					}
 				}
 			}
 
 			var values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			var scores = new int[] { 100, 95, 85, 80 };
-			var best = (args_matched && !primary_identity_matched) ? 110 : (primary_identity_matched ? 100 : 0);
+			var best = (args_matched && primary_identity_matched) ? 120 : (args_matched ? 116 : (primary_identity_matched ? 100 : 0));
 			if (specialized && !args_matched && !exact_desktop_id_matched)
 				best = 0;
 			for (var i = 0; i < values.length; i++) {

@@ -228,7 +228,7 @@ namespace Plank
 			main_vbox.pack_start (forecast_box, true, true, 0);
 
 			// 5. Bottom Action Buttons
-			var btn_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
+			var btn_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
 			btn_box.margin_top = 8;
 
 			var refresh_btn = new Gtk.Button.with_label (_("🔄 Refresh"));
@@ -254,6 +254,14 @@ namespace Plank
 			main_vbox.pack_start (btn_box, false, false, 0);
 
 			add (main_vbox);
+
+			this.map.connect (() => {
+				set_focus (null);
+			});
+			this.map_event.connect (() => {
+				set_focus (null);
+				return false;
+			});
 		}
 
 		public void update_ui ()

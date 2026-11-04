@@ -37,6 +37,7 @@ namespace Plank
 		DBusConnection? bus = null;
 		FileMonitor? kdeglobals_monitor = null;
 		GLib.Settings? gnome_settings = null;
+		bool shutting_down = false;
 
 		public static SystemTheme get_default ()
 		{
@@ -44,6 +45,13 @@ namespace Plank
 				default_instance = new SystemTheme ();
 			}
 			return default_instance;
+		}
+
+		public static void cleanup_if_active ()
+		{
+			if (default_instance != null) {
+				default_instance.cleanup ();
+			}
 		}
 
 		construct
@@ -77,6 +85,12 @@ namespace Plank
 
 		~SystemTheme ()
 		{
+			cleanup ();
+		}
+
+		public void cleanup ()
+		{
+			shutting_down = true;
 			if (bus != null) {
 				if (subscription_id > 0) {
 					bus.signal_unsubscribe (subscription_id);
@@ -95,38 +109,56 @@ namespace Plank
 
 		public void refresh_state ()
 		{
+			if (shutting_down)
+				return;
+
 			bool detected_dark = false;
 			bool detected = false;
 
 			// 1. Try XDG Desktop Portal (standard across modern Wayland desktops: KDE Plasma 6+, GNOME 42+)
 			try {
 				var session_bus = Bus.get_sync (BusType.SESSION, null);
-				var res = session_bus.call_sync (
-					"org.freedesktop.portal.Desktop",
-					"/org/freedesktop/portal/desktop",
-					"org.freedesktop.portal.Settings",
-					"Read",
-					new Variant ("(ss)", "org.freedesktop.appearance", "color-scheme"),
-					null,
+				var owner_res = session_bus.call_sync (
+					"org.freedesktop.DBus",
+					"/org/freedesktop/DBus",
+					"org.freedesktop.DBus",
+					"NameHasOwner",
+					new Variant ("(s)", "org.freedesktop.portal.Desktop"),
+					new VariantType ("(b)"),
 					DBusCallFlags.NONE,
-					500,
+					100,
 					null
 				);
+				bool portal_ready = false;
+				owner_res.get ("(b)", out portal_ready);
+				if (portal_ready) {
+					var res = session_bus.call_sync (
+						"org.freedesktop.portal.Desktop",
+						"/org/freedesktop/portal/desktop",
+						"org.freedesktop.portal.Settings",
+						"Read",
+						new Variant ("(ss)", "org.freedesktop.appearance", "color-scheme"),
+						null,
+						DBusCallFlags.NO_AUTO_START,
+						150,
+						null
+					);
 
-				Variant outer_v;
-				res.get ("(v)", out outer_v);
-				Variant val = outer_v;
-				while (val.is_of_type (VariantType.VARIANT))
-					val = val.get_variant ();
+					Variant outer_v;
+					res.get ("(v)", out outer_v);
+					Variant val = outer_v;
+					while (val.is_of_type (VariantType.VARIANT))
+						val = val.get_variant ();
 
-				if (val.is_of_type (VariantType.UINT32)) {
-					uint32 code = val.get_uint32 ();
-					if (code == 1) { // 1: Prefer dark
-						detected_dark = true;
-						detected = true;
-					} else if (code == 2) { // 2: Prefer light
-						detected_dark = false;
-						detected = true;
+					if (val.is_of_type (VariantType.UINT32)) {
+						uint32 code = val.get_uint32 ();
+						if (code == 1) { // 1: Prefer dark
+							detected_dark = true;
+							detected = true;
+						} else if (code == 2) { // 2: Prefer light
+							detected_dark = false;
+							detected = true;
+						}
 					}
 				}
 			} catch (Error e) {

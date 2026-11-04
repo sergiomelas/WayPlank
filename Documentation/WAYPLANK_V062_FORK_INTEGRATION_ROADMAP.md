@@ -205,18 +205,18 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
 Every phase was validated against our standard **Multi-Compositor FAT Matrix** (`FAT/`):
 
 1. **Packaging Validation**:
-   - Tested `./BuildDeb.sh` on Debian Sid / Ubuntu 24.04 -> `build/wayplank_0.6.2.3_amd64.deb`.
-   - Tested `./BuildRpm.sh` on openSUSE Tumbleweed, openSUSE Leap, Fedora 41, and Debian Sid -> `build/wayplank-0.6.2.3-1.x86_64.rpm`.
+   - Tested `./BuildDeb.sh` on Debian Sid / Ubuntu 24.04 -> `build/wayplank_0.7.0_amd64.deb` (and `v0.6.2.x` series).
+   - Tested `./BuildRpm.sh` on openSUSE Tumbleweed, openSUSE Leap, Fedora 41, and Debian Sid -> `build/wayplank-0.7.0-1.x86_64.rpm` (and `v0.6.2.x` series).
    - Verified generated packages install cleanly, register icons, compile schemas, and execute `wayplank --replace`.
 2. **Deduplication FAT Point**:
    - Rapidly dragged-and-dropped the same application multiple times; verified zero duplicate `.dockitem` files are spawned in `~/.config/wayplank/dock1/launchers/`.
 3. **Overflow Scrolling FAT Point**:
    - Pinned 35+ applications on a 1080p display; verified dock clamps to screen edges, renders cleanly, and mouse wheel scrolls fluidly through the entire launcher sequence without glitching.
-4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard)**:
-   - **Session 1 (GNOME Shell / Mutter)**: 125 tests | 106 `[ok]` | 19 `[ko->ok]` | 100% PASS
-   - **Session 2 (KDE Plasma 6 / KWin)**: 123 tests | 108 `[ok]` | 15 `[ko->ok]` | 100% PASS
-   - **Session 3 (Labwc / wlroots)**: 122 tests | 110 `[ok]` | 10 `[ko->ok]` | 2 `[NA]` | 100% PASS
-   - **Total Verification**: 370 Tests Defined | 324 Baseline `[ok]` | 44 Squashed `[ko->ok]` | 2 `[NA]` | 0 Open Defects (100% Compliant).
+4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard & FAT 0.7.0 Public Beta 1 Consolidation)**:
+   - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (121 `[ok]` + 7 `[ko->ok]`) | 100% PASS
+   - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (118 `[ok]` + 8 `[ko->ok]`) | 100% PASS
+   - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (115 `[ok]` + 8 `[ko->ok]` + 2 `[NA]`) | 100% PASS
+   - **Total Verification**: 379 Tests Defined | 377/377 Applicable Passed in `v0.7.0` (`354 [ok]` + `23 [ko->ok]`) | 2 `[NA]` | 0 Open Defects (100% Compliant).
 
 ---
 
@@ -227,24 +227,24 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
 2. **README.md Acknowledgments**:
    - Dedicated section acknowledging **史有虎 (IFtiger-hu)** (@IFtiger-hu-hub).
 3. **Changelog Documentation**:
-   - All integrated features documented in `Changelogs/CHANGELOG_v0.6.2.md` with explicit credits and commit references.
+   - All integrated features documented in `Changelogs/CHANGELOG_v0.6.2.md` and consolidated in `Changelogs/CHANGELOG_v0.7.0.md` with explicit credits and commit references.
 
 ---
 
 ## 7. 🏁 Community Unification Completed & Release Timeline
 
-The unification of upstream WayPlank with the community fork of **IFtiger-hu (史有虎)** has reached 100% completion across all three planned rounds:
-- **Round 1 (v0.6.2.1)**: Distribution tooling, RPM packaging, launcher deduplication, overflow scrolling.
+The unification of upstream WayPlank with the community fork of **IFtiger-hu (史有虎)** has reached 100% completion across all three planned rounds and graduated into **Public Beta 1 (`v0.7.0`)**:
+- **Round 1 (v0.6.2.1)**: Distribution tooling, RPM packaging, launcher deduplication, overflow scrolling. *(100% FAT passed)*.
 - **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(100% FAT passed)*.
-- **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking, and community enhancements. *(100% FAT passed, currently live on GitHub)*.
+- **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking, and community enhancements. *(100% FAT passed — Official Closure of the Alpha & Pre-Beta Era)*.
+- **Public Beta 1 (v0.7.0)**: Monolithic in-memory localization engine (`7` languages + native English, `487` strings), GNOME Shell extension `version: 4`, and full `379`-point ISA-88 Phase B baseline consolidation (`377/377` applicable passed — 100% PASS). *(Active Release)*.
 
 ### 📅 Master Release Trajectory:
-1. **October 22, 2026 (Week 43)**: **Official GitHub Release of v0.6.2.3 (Round 3)** — 100% FAT qualified!
-2. **Week 44 (Oct 26 – Nov 1, 2026)**: Community feedback, translator submissions, and downstream collaborator synchronization window.
-3. **Week 45 (Monday, November 2, 2026)**: **Official Launch of WayPlank Public Beta (v0.7.0) on GitHub!**
-4. **Release Candidate Stage (v0.8.x)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging stabilization.
-5. **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone and daily driver release across all Linux distros.
-6. **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
+1. **October 22 – November 1, 2026 (Weeks 43–44)**: **Completion & Official Closure of v0.6.2.3 (Round 3)** — 100% FAT qualified (`370` tests, `44` squashed bugs)!
+2. **November 1, 2026**: **Official Launch of WayPlank Public Beta 1 (v0.7.0) on GitHub!**
+3. **Release Candidate Stage (v0.8.x)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging stabilization.
+4. **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone and daily driver release across all Linux distros.
+5. **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 
 ---
 *WayPlank Project Documentation • Maintained by Sergio Melas & Contributors*

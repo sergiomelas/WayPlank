@@ -30,6 +30,8 @@ namespace Plank
 		private DBusConnection? session_bus = null;
 		private uint dbus_signal_id = 0;
 		private uint poll_timer_id = 0;
+		private bool is_disposed = false;
+		private bool poll_in_flight = false;
 
 		public DoNotDisturbDockItem ()
 		{
@@ -65,12 +67,13 @@ namespace Plank
 				);
 			}
 
-			query_initial_state ();
+			schedule_dnd_poll ();
 			start_timer ();
 		}
 
 		~DoNotDisturbDockItem ()
 		{
+			is_disposed = true;
 			stop_timer ();
 			if (dbus_signal_id > 0 && session_bus != null) {
 				session_bus.signal_unsubscribe (dbus_signal_id);
@@ -78,11 +81,33 @@ namespace Plank
 			}
 		}
 
+		public override void cleanup ()
+		{
+			is_disposed = true;
+			stop_timer ();
+			if (dbus_signal_id > 0 && session_bus != null) {
+				session_bus.signal_unsubscribe (dbus_signal_id);
+				dbus_signal_id = 0;
+			}
+			base.cleanup ();
+		}
+
+		public override void @delete ()
+		{
+			is_disposed = true;
+			stop_timer ();
+			if (dbus_signal_id > 0 && session_bus != null) {
+				session_bus.signal_unsubscribe (dbus_signal_id);
+				dbus_signal_id = 0;
+			}
+			base.@delete ();
+		}
+
 		private void start_timer ()
 		{
 			if (poll_timer_id == 0) {
 				poll_timer_id = Timeout.add_seconds (5, () => {
-					query_initial_state ();
+					schedule_dnd_poll ();
 					return true;
 				});
 			}
@@ -110,54 +135,67 @@ namespace Plank
 			}
 		}
 
-		private void query_initial_state ()
+		private static bool probe_dnd_state (DBusConnection? bus, uint cookie_snapshot)
 		{
-			if (session_bus == null)
-				return;
-
-			// 1. Query org.freedesktop.Notifications.Inhibited property
-			try {
-				var res = session_bus.call_sync (
-					"org.freedesktop.Notifications",
-					"/org/freedesktop/Notifications",
-					"org.freedesktop.DBus.Properties",
-					"Get",
-					new Variant ("(ss)", "org.freedesktop.Notifications", "Inhibited"),
-					new VariantType ("(v)"),
-					DBusCallFlags.NONE,
-					1000,
-					null
-				);
-				var inner = res.get_child_value (0).get_variant ();
-				set_dnd_state (inner.get_boolean ());
-				return;
-			} catch (Error e) { }
-
-			// 2. GNOME GSettings fallback
-			if (Environment.find_program_in_path ("gsettings") != null) {
+			if (bus != null) {
 				try {
-					string stdout_out;
-					Process.spawn_command_line_sync ("gsettings get org.gnome.desktop.notifications show-banners", out stdout_out, null, null);
-					if (stdout_out.strip () == "false") {
-						set_dnd_state (true);
-						return;
-					}
+					var res = bus.call_sync (
+						"org.freedesktop.Notifications",
+						"/org/freedesktop/Notifications",
+						"org.freedesktop.DBus.Properties",
+						"Get",
+						new Variant ("(ss)", "org.freedesktop.Notifications", "Inhibited"),
+						new VariantType ("(v)"),
+						DBusCallFlags.NO_AUTO_START,
+						150,
+						null
+					);
+					var inner = res.get_child_value (0).get_variant ();
+					return inner.get_boolean ();
 				} catch (Error e) { }
 			}
 
-			// 3. Dunst fallback
+			if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)
+				&& Environment.find_program_in_path ("gsettings") != null) {
+				try {
+					string stdout_out;
+					Process.spawn_command_line_sync ("gsettings get org.gnome.desktop.notifications show-banners", out stdout_out, null, null);
+					if (stdout_out.strip () == "false")
+						return true;
+				} catch (Error e) { }
+			}
+
 			if (Environment.find_program_in_path ("dunstctl") != null) {
 				try {
 					string stdout_out;
 					Process.spawn_command_line_sync ("dunstctl is-paused", out stdout_out, null, null);
-					if (stdout_out.strip () == "true") {
-						set_dnd_state (true);
-						return;
-					}
+					if (stdout_out.strip () == "true")
+						return true;
 				} catch (Error e) { }
 			}
 
-			set_dnd_state (inhibit_cookie > 0);
+			return (cookie_snapshot > 0);
+		}
+
+		private void schedule_dnd_poll ()
+		{
+			if (is_disposed || poll_in_flight || session_bus == null)
+				return;
+			poll_in_flight = true;
+			DBusConnection? bus_ref = session_bus;
+			uint cookie_snap = inhibit_cookie;
+
+			new Thread<void*> ("wayplank-dnd-poll", () => {
+				bool active = probe_dnd_state (bus_ref, cookie_snap);
+				Idle.add (() => {
+					poll_in_flight = false;
+					if (is_disposed)
+						return false;
+					set_dnd_state (active);
+					return false;
+				});
+				return null;
+			});
 		}
 
 		private void on_properties_changed (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)

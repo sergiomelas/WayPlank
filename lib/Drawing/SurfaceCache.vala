@@ -108,7 +108,7 @@ namespace Plank
 				if (s1 == s2)
 					return 0;
 				
-				return (2 * (s1.width - s2.width) + s2.height - s2.height);
+				return (2 * (s1.width - s2.width) + s1.height - s2.height);
 			}
 			
 			public int compare_with (uint16 width, uint16 height)
@@ -123,6 +123,8 @@ namespace Plank
 		Gee.HashMap<SurfaceInfo, Surface> cache_map;
 		unowned SurfaceInfo? last_info;
 		Mutex cache_mutex;
+		double cached_scale_x = 1.0;
+		double cached_scale_y = 1.0;
 		
 		uint clean_up_timer_id = 0U;
 		
@@ -159,7 +161,18 @@ namespace Plank
 		public Surface? get_surface<G> (int width, int height, Surface model, DrawFunc<G> draw_func, DrawDataFunc<G>? draw_data_func)
 			requires (width >= 0 && height >= 0)
 		{
+			double sx = 1.0, sy = 1.0;
+			model.Internal.get_device_scale (out sx, out sy);
+
 			cache_mutex.lock ();
+			
+			if (sx != cached_scale_x || sy != cached_scale_y) {
+				cache_map.clear ();
+				infos.clear ();
+				last_info = null;
+				cached_scale_x = sx;
+				cached_scale_y = sy;
+			}
 			
 			unowned SurfaceInfo? info;
 			SurfaceInfo? current_info = null;

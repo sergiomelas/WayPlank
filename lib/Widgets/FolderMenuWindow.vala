@@ -120,6 +120,102 @@ namespace Plank
 					return handle_app_scroll (hovered_app_uri, hovered_win_count, event);
 				return false;
 			});
+
+			setup_drag_dest ();
+
+			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
+		}
+
+		bool folder_drop_pending = false;
+
+		void setup_drag_dest ()
+		{
+			Gtk.TargetEntry te1 = { "text/uri-list", 0, 0 };
+			Gtk.TargetEntry te2 = { "application/x-desktop", 0, 0 };
+			Gtk.TargetEntry te3 = { "text/plain;charset=utf-8", 0, 0 };
+			Gtk.TargetEntry te4 = { "UTF8_STRING", 0, 0 };
+			Gtk.TargetEntry te5 = { "text/plain", 0, 0 };
+			Gtk.drag_dest_set (this, Gtk.DestDefaults.MOTION | Gtk.DestDefaults.DROP,
+				{ te1, te2, te3, te4, te5 },
+				Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK);
+
+			drag_motion.connect ((context, x, y, time_) => {
+				pointer_inside = true;
+				cancel_dismiss_timer ();
+				Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
+				return true;
+			});
+
+			drag_leave.connect ((context, time_) => {
+				if (folder_drop_pending)
+					return;
+				pointer_inside = false;
+				if (!context_menu_active)
+					schedule_dismiss (DISMISS_DELAY);
+			});
+
+			drag_drop.connect ((context, x, y, time_) => {
+				if (current_dir == null)
+					return false;
+				folder_drop_pending = true;
+				pointer_inside = true;
+				cancel_dismiss_timer ();
+				Gdk.Atom target_atom = Gtk.drag_dest_find_target (this, context, null);
+				if (target_atom != Gdk.Atom.NONE)
+					Gtk.drag_get_data (this, context, target_atom, time_);
+				else
+					Gtk.drag_get_data (this, context, Gdk.Atom.intern ("text/uri-list", false), time_);
+				return true;
+			});
+
+			drag_data_received.connect ((context, x, y, selection_data, info, time_) => {
+				if (!folder_drop_pending)
+					return;
+				folder_drop_pending = false;
+
+				var uris = new Gee.ArrayList<string> ();
+				string[]? raw_uris = selection_data.get_uris ();
+				if (raw_uris != null && raw_uris.length > 0) {
+					foreach (unowned string s in raw_uris) {
+						var resolved = DragManager.resolve_drop_uri (s);
+						if (resolved != null && !uris.contains (resolved))
+							uris.add (resolved);
+					}
+				}
+				if (uris.size == 0) {
+					string? raw_text = selection_data.get_text ();
+					if (raw_text != null && raw_text.length > 0) {
+						foreach (unowned string line in raw_text.split ("\n")) {
+							var resolved = DragManager.resolve_drop_uri (line);
+							if (resolved != null && !uris.contains (resolved))
+								uris.add (resolved);
+						}
+					}
+				}
+
+				bool copied = false;
+				if (current_dir != null && uris.size > 0) {
+					copied = FileDockItem.copy_uris_into_directory (current_dir, uris);
+					if (copied) {
+						if (TargetItem != null)
+							TargetItem.refresh_launchers ();
+						ApplicationDiscovery.get_default ().refresh_index_now ();
+						populate_items ();
+						show_all ();
+						update_position ();
+					}
+				}
+				Gtk.drag_finish (context, copied, false, time_);
+			});
+		}
+
+		void on_windows_refreshed ()
+		{
+			if (get_visible () && current_dir != null && !context_menu_active) {
+				populate_items ();
+				show_all ();
+				update_position ();
+			}
 		}
 
 		bool on_enter (Gdk.EventCrossing event)
@@ -209,6 +305,7 @@ namespace Plank
 
 		public override void destroy ()
 		{
+			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
 			cancel_dismiss_timer ();
 			remove_theme_style ();
 			base.destroy ();
@@ -216,6 +313,7 @@ namespace Plank
 
 		~FolderMenuWindow ()
 		{
+			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
 			cancel_dismiss_timer ();
 			remove_theme_style ();
 		}
@@ -487,7 +585,8 @@ namespace Plank
 					display_name = info.get_display_name () ?? display_name;
 				} catch { }
 
-				var row = create_row ("folder", display_name, true);
+				int sub_win_count = count_subdir_running_windows (child);
+				var row = create_row ("folder", display_name, true, sub_win_count);
 				row.enter_notify_event.connect (() => {
 					hovered_app_uri = null;
 					hovered_win_count = 0;
@@ -606,6 +705,28 @@ namespace Plank
 			}
 
 			items_box.show_all ();
+		}
+
+		int count_subdir_running_windows (File dir)
+		{
+			int total = 0;
+			try {
+				var enumerator = dir.enumerate_children (
+					FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN,
+					FileQueryInfoFlags.NONE,
+					null
+				);
+				FileInfo? info;
+				while ((info = enumerator.next_file (null)) != null) {
+					if (info.get_is_hidden ())
+						continue;
+					var name = info.get_name ();
+					if (name.has_suffix (".desktop")) {
+						total += WindowManager.get_default ().window_count_for_app (dir.get_child (name).get_uri ());
+					}
+				}
+			} catch { }
+			return total;
 		}
 
 		bool handle_app_scroll (string app_uri, int win_count, Gdk.EventScroll event)

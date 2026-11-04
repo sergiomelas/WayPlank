@@ -232,8 +232,8 @@ namespace Plank
 				update_needed = true;
 			}
 			
-			// disable hiding if menu is visible, folder menu is visible, or drags are active
-			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive);
+			// disable hiding if menu is visible, folder menu is visible, drags are active, or destruction handshake is running
+			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive || drag_manager.RemovalActive);
 			if (Disabled != disabled) {
 				Disabled = disabled;
 				update_needed = true;

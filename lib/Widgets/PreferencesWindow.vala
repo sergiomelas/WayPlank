@@ -53,9 +53,17 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.SpinButton sp_hide_delay;
 		[GtkChild]
+		unowned Gtk.Scale s_hide_delay;
+		[GtkChild]
 		unowned Gtk.SpinButton sp_unhide_delay;
 		[GtkChild]
+		unowned Gtk.Scale s_unhide_delay;
+		[GtkChild]
+		unowned Gtk.SpinButton sp_offset;
+		[GtkChild]
 		unowned Gtk.Scale s_offset;
+		[GtkChild]
+		unowned Gtk.SpinButton sp_zoom_percent;
 		[GtkChild]
 		unowned Gtk.Scale s_zoom_percent;
 		[GtkChild]
@@ -64,6 +72,18 @@ namespace Plank
 		unowned Gtk.SpinButton sp_iconsize;
 		[GtkChild]
 		unowned Gtk.Label l_iconsize_hint;
+		[GtkChild]
+		unowned Gtk.Label l_icon_alignment;
+		[GtkChild]
+		unowned Gtk.Label l_hide_mode;
+		[GtkChild]
+		unowned Gtk.Label l_pressure1;
+		[GtkChild]
+		unowned Gtk.Label l_pressure2;
+		[GtkChild]
+		unowned Gtk.Label l_pressure;
+		[GtkChild]
+		unowned Gtk.Label l_anticipate_zoom;
 		
 		[GtkChild]
 		unowned Gtk.Adjustment adj_hide_delay;
@@ -78,6 +98,8 @@ namespace Plank
 		
 		[GtkChild]
 		unowned Gtk.Switch sw_hide;
+		[GtkChild]
+		unowned Gtk.Label l_primary_display;
 		[GtkChild]
 		unowned Gtk.Switch sw_primary_display;
 		[GtkChild]
@@ -103,9 +125,19 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Button btn_reorder_free_items;
 		[GtkChild]
-		unowned Gtk.Box box_accordion;
+		unowned Gtk.Label l_docklets_on_right;
+		[GtkChild]
+		unowned Gtk.Switch sw_docklets_on_right;
+		[GtkChild]
+		unowned Gtk.Label l_anchor_always_left;
+		[GtkChild]
+		unowned Gtk.Switch sw_anchor_always_left;
+		[GtkChild]
+		unowned Gtk.Label l_accordion_docklets;
 		[GtkChild]
 		unowned Gtk.Switch sw_accordion_docklets;
+		[GtkChild]
+		unowned Gtk.Label l_accordion_click_to_expand;
 		[GtkChild]
 		unowned Gtk.Switch sw_accordion_click_to_expand;
 		[GtkChild]
@@ -113,11 +145,29 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Box box_accordion_delay;
 		[GtkChild]
+		unowned Gtk.SpinButton sp_accordion_delay;
+		[GtkChild]
 		unowned Gtk.Scale s_accordion_delay;
 		[GtkChild]
 		unowned Gtk.Adjustment adj_accordion_delay;
 		[GtkChild]
 		unowned Gtk.Switch sw_autostart;
+		[GtkChild]
+		unowned Gtk.Label l_effect_duration;
+		[GtkChild]
+		unowned Gtk.Box box_effect_duration;
+		[GtkChild]
+		unowned Gtk.SpinButton sp_effect_duration;
+		[GtkChild]
+		unowned Gtk.Scale s_effect_duration;
+		[GtkChild]
+		unowned Gtk.Adjustment adj_effect_duration;
+		[GtkChild]
+		unowned Gtk.ComboBoxText cb_active_highlight;
+		[GtkChild]
+		unowned Gtk.ComboBoxText cb_launch_animation;
+		[GtkChild]
+		unowned Gtk.ComboBoxText cb_unpin_animation;
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_system_menu_access;
 		[GtkChild]
@@ -201,6 +251,9 @@ namespace Plank
 		Gtk.CssProvider popup_css;
 		Gdk.Screen popup_css_screen;
 		
+		Gtk.SizeGroup sg_appearance_spin;
+		Gtk.SizeGroup sg_behaviour_spin;
+
 		public PreferencesWindow (DockController controller)
 		{
 			Object (controller: controller);
@@ -209,11 +262,37 @@ namespace Plank
 		public void show_page (string page_name)
 		{
 			dock_preferences.set_visible_child_name (page_name);
+			clear_spinbutton_focus ();
+		}
+
+		void clear_spinbutton_focus ()
+		{
+			set_focus (null);
+			if (sp_offset != null)
+				sp_offset.select_region (0, 0);
+			if (sp_iconsize != null)
+				sp_iconsize.select_region (0, 0);
+			if (sp_zoom_percent != null)
+				sp_zoom_percent.select_region (0, 0);
+			if (sp_hide_delay != null)
+				sp_hide_delay.select_region (0, 0);
+			if (sp_unhide_delay != null)
+				sp_unhide_delay.select_region (0, 0);
+			if (sp_effect_duration != null)
+				sp_effect_duration.select_region (0, 0);
+			if (sp_accordion_delay != null)
+				sp_accordion_delay.select_region (0, 0);
+		}
+
+		void on_stack_page_changed (GLib.Object sender, ParamSpec prop)
+		{
+			clear_spinbutton_focus ();
 		}
 		
 		construct
 		{
 			active_instance = this;
+			PlankCompat.i18n_translate_widget (this);
 			set_title (_("WayPlank Preferences"));
 			set_role ("preferences");
 			configure_hide_mode_rows ();
@@ -223,7 +302,17 @@ namespace Plank
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
 			set_focus_on_map (true);
-			set_default_size (560, 480);
+			set_default_size (600, 520);
+
+			sg_appearance_spin = new Gtk.SizeGroup (Gtk.SizeGroupMode.HORIZONTAL);
+			sg_appearance_spin.add_widget (sp_offset);
+			sg_appearance_spin.add_widget (sp_iconsize);
+			sg_appearance_spin.add_widget (sp_zoom_percent);
+
+			sg_behaviour_spin = new Gtk.SizeGroup (Gtk.SizeGroupMode.HORIZONTAL);
+			sg_behaviour_spin.add_widget (sp_hide_delay);
+			sg_behaviour_spin.add_widget (sp_unhide_delay);
+			sg_behaviour_spin.add_widget (sp_effect_duration);
 			
 			dock_preferences.set_transition_type (Gtk.StackTransitionType.SLIDE_LEFT_RIGHT);
 			dock_preferences.set_transition_duration (200);
@@ -237,6 +326,24 @@ namespace Plank
 			}
 
 			foreach (var cell in cb_theme.get_cells ()) {
+				var text_cell = cell as Gtk.CellRendererText;
+				if (text_cell != null) {
+					text_cell.ellipsize = Pango.EllipsizeMode.END;
+				}
+			}
+			foreach (var cell in cb_active_highlight.get_cells ()) {
+				var text_cell = cell as Gtk.CellRendererText;
+				if (text_cell != null) {
+					text_cell.ellipsize = Pango.EllipsizeMode.END;
+				}
+			}
+			foreach (var cell in cb_launch_animation.get_cells ()) {
+				var text_cell = cell as Gtk.CellRendererText;
+				if (text_cell != null) {
+					text_cell.ellipsize = Pango.EllipsizeMode.END;
+				}
+			}
+			foreach (var cell in cb_unpin_animation.get_cells ()) {
 				var text_cell = cell as Gtk.CellRendererText;
 				if (text_cell != null) {
 					text_cell.ellipsize = Pango.EllipsizeMode.END;
@@ -285,14 +392,22 @@ namespace Plank
 			
 			this.map.connect (() => {
 				is_open = true;
+				update_effect_duration_visibility ();
 				update_accordion_visibility ();
 				update_icon_size_feedback ();
+				clear_spinbutton_focus ();
+			});
+			this.map_event.connect (() => {
+				clear_spinbutton_focus ();
+				return false;
 			});
 			this.show.connect (() => {
 				is_open = true;
 				active_instance = this;
+				update_effect_duration_visibility ();
 				update_accordion_visibility ();
 				update_icon_size_feedback ();
+				clear_spinbutton_focus ();
 			});
 			this.hide.connect (() => {
 				is_open = false;
@@ -334,8 +449,9 @@ namespace Plank
 						if (cell is Gtk.CellRendererText && WindowControl.is_labwc () && !supported) {
 							string text = "";
 							model.get (iter, 0, out text);
-							if (!text.contains ("(Requires KWin)"))
-								((Gtk.CellRendererText) cell).text = text + " (Requires KWin)";
+							string req_kwin = _(" (Requires KWin)");
+							if (!text.contains (req_kwin))
+								((Gtk.CellRendererText) cell).text = text + req_kwin;
 						}
 					}
 				});
@@ -367,6 +483,7 @@ namespace Plank
 			switch (prop.name) {
 			case "Alignment":
 				cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
+				update_alignment_sensitivity ();
 				break;
 			case "CurrentWorkspaceOnly":
 				sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
@@ -388,8 +505,7 @@ namespace Plank
 				sw_hide.set_active (hide_active);
 				if (hide_active)
 					cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
-				sw_pressure_reveal.sensitive = hide_active;
-				update_reserve_space_sensitivity ();
+				update_hide_sensitivity ();
 				break;
 			case "ReserveSpace":
 				sw_reserve_space.set_active (prefs.ReserveSpace);
@@ -429,8 +545,7 @@ namespace Plank
 				break;
 			case "ZoomEnabled":
 				sw_zoom_enabled.set_active (prefs.ZoomEnabled);
-				sw_anticipate_zoom.sensitive = prefs.ZoomEnabled;
-				update_reserve_space_sensitivity ();
+				update_zoom_sensitivity ();
 				break;
 			case "AnticipateZoom":
 				sw_anticipate_zoom.set_active (prefs.AnticipateZoom);
@@ -438,6 +553,12 @@ namespace Plank
 			case "CategorizeItems":
 				sw_categorize_items.set_active (prefs.CategorizeItems);
 				update_accordion_visibility ();
+				break;
+			case "AnchorAlwaysLeft":
+				sw_anchor_always_left.set_active (prefs.AnchorAlwaysLeft);
+				break;
+			case "DockletsOnRight":
+				sw_docklets_on_right.set_active (prefs.DockletsOnRight);
 				break;
 			case "AccordionDocklets":
 				sw_accordion_docklets.set_active (prefs.AccordionDocklets);
@@ -472,6 +593,22 @@ namespace Plank
 				break;
 			case "ShowAttentionIndicators":
 				sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);
+				break;
+			case "ActiveHighlight":
+				cb_active_highlight.active_id = prefs.ActiveHighlight.clamp (0, 7).to_string ();
+				update_effect_duration_visibility ();
+				break;
+			case "LaunchAnimation":
+				cb_launch_animation.active_id = prefs.LaunchAnimation.clamp (0, 8).to_string ();
+				update_effect_duration_visibility ();
+				break;
+			case "UnpinAnimation":
+				cb_unpin_animation.active_id = prefs.UnpinAnimation.clamp (0, 8).to_string ();
+				update_effect_duration_visibility ();
+				break;
+			case "EffectDuration":
+				if ((int) Math.round (adj_effect_duration.value) != prefs.EffectDuration)
+					adj_effect_duration.value = prefs.EffectDuration.clamp (300, 1500);
 				break;
 			// Ignored settings
 			case "DockItems":
@@ -704,11 +841,45 @@ namespace Plank
 			prefs.Position = (Gtk.PositionType) int.parse (widget.get_active_id ());
 		}
 		
+		void update_alignment_sensitivity ()
+		{
+			bool fill_active = (prefs.Alignment == Gtk.Align.FILL);
+			l_icon_alignment.sensitive = fill_active;
+			cb_items_alignment.sensitive = fill_active;
+
+			bool offset_active = (prefs.Alignment == Gtk.Align.CENTER);
+			sp_offset.sensitive = offset_active;
+			s_offset.sensitive = offset_active;
+		}
+
+		void update_hide_sensitivity ()
+		{
+			bool hide_active = (prefs.HideMode != HideType.NONE);
+			l_hide_mode.sensitive = hide_active;
+			cb_hidemode.sensitive = hide_active;
+			l_pressure1.sensitive = hide_active;
+			sp_hide_delay.sensitive = hide_active;
+			s_hide_delay.sensitive = hide_active;
+			l_pressure2.sensitive = hide_active;
+			sp_unhide_delay.sensitive = hide_active;
+			s_unhide_delay.sensitive = hide_active;
+			l_pressure.sensitive = hide_active;
+			sw_pressure_reveal.sensitive = hide_active;
+		}
+
+		void update_zoom_sensitivity ()
+		{
+			bool active = prefs.ZoomEnabled;
+			sp_zoom_percent.sensitive = active;
+			s_zoom_percent.sensitive = active;
+			l_anticipate_zoom.sensitive = active;
+			sw_anticipate_zoom.sensitive = active;
+		}
+
 		void alignment_changed (Gtk.ComboBox widget)
 		{
 			prefs.Alignment = (Gtk.Align) int.parse (widget.get_active_id ());
-			cb_items_alignment.sensitive = (prefs.Alignment == Gtk.Align.FILL);
-			s_offset.sensitive = (prefs.Alignment == Gtk.Align.CENTER);
+			update_alignment_sensitivity ();
 		}
 		
 		void items_alignment_changed (Gtk.ComboBox widget)
@@ -728,34 +899,18 @@ namespace Plank
 				else
 					prefs.HideMode = HideType.DODGE_MAXIMIZED;
 				cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
-				cb_hidemode.sensitive = true;
-				sp_hide_delay.sensitive = true;
-				sp_unhide_delay.sensitive = true;
-				sw_pressure_reveal.sensitive = true;
 			} else {
-				prefs.HideMode = HideType.NONE;
-				cb_hidemode.sensitive = false;
-				sp_hide_delay.sensitive = false;
-				sp_unhide_delay.sensitive = false;
-				sw_pressure_reveal.sensitive = false;
+				if (prefs.HideMode != HideType.NONE)
+					prefs.HideMode = HideType.NONE;
 			}
-			update_reserve_space_sensitivity ();
+			update_hide_sensitivity ();
 		}
 
-		void update_reserve_space_sensitivity ()
-		{
-			bool allowed = (prefs.HideMode == HideType.NONE && !prefs.ZoomEnabled);
-			if (!allowed && prefs.ReserveSpace) {
-				prefs.ReserveSpace = false;
-				sw_reserve_space.set_active (false);
-			}
-			sw_reserve_space.sensitive = allowed;
-			l_reserve_space.sensitive = allowed;
-		}
-		
 		void reserve_space_toggled (GLib.Object widget, ParamSpec param)
 		{
-			prefs.ReserveSpace = ((Gtk.Switch) widget).get_active ();
+			bool active = ((Gtk.Switch) widget).get_active ();
+			if (prefs.ReserveSpace != active)
+				prefs.ReserveSpace = active;
 		}
 		
 		void primary_display_toggled (GLib.Object widget, ParamSpec param)
@@ -877,7 +1032,9 @@ namespace Plank
 				success = false;
 			}
 
-			if (!success) {
+			if (success) {
+				WindowControl.sync_autostart (enabled);
+			} else {
 				sw_autostart.notify["active"].disconnect (autostart_toggled);
 				sw_autostart.set_active (!enabled);
 				sw_autostart.notify["active"].connect (autostart_toggled);
@@ -904,6 +1061,49 @@ namespace Plank
 			prefs.WindowClickBehavior = int.parse (widget.get_active_id ());
 		}
 
+		void active_highlight_changed (Gtk.ComboBox widget)
+		{
+			var active_id = widget.get_active_id ();
+			if (active_id != null && active_id != "") {
+				prefs.ActiveHighlight = int.parse (active_id).clamp (0, 7);
+				update_effect_duration_visibility ();
+			}
+		}
+
+		void launch_animation_changed (Gtk.ComboBox widget)
+		{
+			var active_id = widget.get_active_id ();
+			if (active_id != null && active_id != "") {
+				prefs.LaunchAnimation = int.parse (active_id).clamp (0, 8);
+				update_effect_duration_visibility ();
+			}
+		}
+
+		void unpin_animation_changed (Gtk.ComboBox widget)
+		{
+			var active_id = widget.get_active_id ();
+			if (active_id != null && active_id != "") {
+				prefs.UnpinAnimation = int.parse (active_id).clamp (0, 8);
+				update_effect_duration_visibility ();
+			}
+		}
+
+		void effect_duration_changed (Gtk.Adjustment adj)
+		{
+			int val = ((int) Math.round (adj.value)).clamp (300, 1500);
+			if (prefs.EffectDuration != val)
+				prefs.EffectDuration = val;
+		}
+
+		void update_effect_duration_visibility ()
+		{
+			bool any_effect_active = (prefs.LaunchAnimation != 8 || prefs.ActiveHighlight != 7 || prefs.UnpinAnimation != 8);
+			l_effect_duration.sensitive = any_effect_active;
+			box_effect_duration.sensitive = any_effect_active;
+			sp_effect_duration.sensitive = any_effect_active;
+			s_effect_duration.sensitive = any_effect_active;
+		}
+
 		void show_window_cards_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.ShowWindowCards = ((Gtk.Switch) widget).get_active ();
@@ -926,16 +1126,10 @@ namespace Plank
 		
 		void zoom_enabled_toggled (GLib.Object widget, ParamSpec param)
 		{
-			if (((Gtk.Switch) widget).get_active ()) {
-				prefs.ZoomEnabled = true;
-				s_zoom_percent.sensitive = true;
-				sw_anticipate_zoom.sensitive = true;
-			} else {
-				prefs.ZoomEnabled = false;
-				s_zoom_percent.sensitive = false;
-				sw_anticipate_zoom.sensitive = false;
-			}
-			update_reserve_space_sensitivity ();
+			bool active = ((Gtk.Switch) widget).get_active ();
+			if (prefs.ZoomEnabled != active)
+				prefs.ZoomEnabled = active;
+			update_zoom_sensitivity ();
 		}
 
 		void anticipate_zoom_toggled (GLib.Object widget, ParamSpec param)
@@ -950,6 +1144,21 @@ namespace Plank
 		{
 			prefs.CategorizeItems = ((Gtk.Switch) widget).get_active ();
 			update_accordion_visibility ();
+		}
+
+		void docklets_on_right_toggled (GLib.Object widget, ParamSpec param)
+		{
+			prefs.DockletsOnRight = ((Gtk.Switch) widget).get_active ();
+		}
+
+		void anchor_always_left_toggled (GLib.Object widget, ParamSpec param)
+		{
+			bool active = ((Gtk.Switch) widget).get_active ();
+			prefs.AnchorAlwaysLeft = active;
+			if (active && prefs.SystemMenuAccess != 4) {
+				prefs.SystemMenuAccess = 4;
+				update_system_menu_access_options ();
+			}
 		}
 
 		void accordion_docklets_toggled (GLib.Object widget, ParamSpec param)
@@ -988,13 +1197,20 @@ namespace Plank
 			bool cat_active = prefs.CategorizeItems;
 			bool acc_active = cat_active && prefs.AccordionDocklets;
 
-			btn_reorder_free_items.visible = !cat_active;
+			btn_reorder_free_items.sensitive = !cat_active;
 
-			box_accordion.sensitive = cat_active;
+			l_docklets_on_right.sensitive = cat_active;
+			sw_docklets_on_right.sensitive = cat_active;
+			l_anchor_always_left.sensitive = cat_active;
+			sw_anchor_always_left.sensitive = cat_active;
+			l_accordion_docklets.sensitive = cat_active;
+			sw_accordion_docklets.sensitive = cat_active;
+			l_accordion_click_to_expand.sensitive = acc_active;
 			sw_accordion_click_to_expand.sensitive = acc_active;
 
 			l_accordion_delay.sensitive = acc_active;
 			box_accordion_delay.sensitive = acc_active;
+			sp_accordion_delay.sensitive = acc_active;
 			s_accordion_delay.sensitive = acc_active;
 
 			update_system_menu_access_options ();
@@ -1033,6 +1249,10 @@ namespace Plank
 				int val = int.parse (cb_system_menu_access.active_id);
 				if (val >= 1 && val <= 4) {
 					prefs.SystemMenuAccess = val;
+					if (val != 4 && prefs.AnchorAlwaysLeft) {
+						prefs.AnchorAlwaysLeft = false;
+						sw_anchor_always_left.set_active (false);
+					}
 				}
 			}
 		}
@@ -1224,6 +1444,10 @@ namespace Plank
 			adj_zoom_percent.value_changed.connect (zoom_percent_changed);
 			adj_accordion_delay.value_changed.connect (accordion_delay_changed);
 			cb_window_click_behavior.changed.connect (window_click_behavior_changed);
+			cb_active_highlight.changed.connect (active_highlight_changed);
+			cb_launch_animation.changed.connect (launch_animation_changed);
+			cb_unpin_animation.changed.connect (unpin_animation_changed);
+			adj_effect_duration.value_changed.connect (effect_duration_changed);
 			cb_system_menu_access.changed.connect (system_menu_access_changed);
 			sw_hide.notify["active"].connect (hide_toggled);
 			sw_primary_display.notify["active"].connect (primary_display_toggled);
@@ -1238,6 +1462,8 @@ namespace Plank
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].connect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
+			sw_docklets_on_right.notify["active"].connect (docklets_on_right_toggled);
+			sw_anchor_always_left.notify["active"].connect (anchor_always_left_toggled);
 			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].connect (accordion_click_to_expand_toggled);
 			sw_show_window_cards.notify["active"].connect (show_window_cards_toggled);
@@ -1264,6 +1490,8 @@ namespace Plank
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 			get_screen ().monitors_changed.connect (rebuild_monitor_list);
+			dock_preferences.notify["visible-child"].connect (on_stack_page_changed);
+			dock_preferences.notify["transition-running"].connect (on_stack_page_changed);
 			if (controller != null && controller.position_manager != null) {
 				controller.position_manager.notify["icon-size"].connect (on_position_manager_icon_size_changed);
 				controller.position_manager.notify["max-icon-size"].connect (on_position_manager_icon_size_changed);
@@ -1291,6 +1519,10 @@ namespace Plank
 			adj_zoom_percent.value_changed.disconnect (zoom_percent_changed);
 			adj_accordion_delay.value_changed.disconnect (accordion_delay_changed);
 			cb_window_click_behavior.changed.disconnect (window_click_behavior_changed);
+			cb_active_highlight.changed.disconnect (active_highlight_changed);
+			cb_launch_animation.changed.disconnect (launch_animation_changed);
+			cb_unpin_animation.changed.disconnect (unpin_animation_changed);
+			adj_effect_duration.value_changed.disconnect (effect_duration_changed);
 			cb_system_menu_access.changed.disconnect (system_menu_access_changed);
 			sw_hide.notify["active"].disconnect (hide_toggled);
 			sw_primary_display.notify["active"].disconnect (primary_display_toggled);
@@ -1305,6 +1537,8 @@ namespace Plank
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].disconnect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
+			sw_docklets_on_right.notify["active"].disconnect (docklets_on_right_toggled);
+			sw_anchor_always_left.notify["active"].disconnect (anchor_always_left_toggled);
 			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].disconnect (accordion_click_to_expand_toggled);
 			sw_show_window_cards.notify["active"].disconnect (show_window_cards_toggled);
@@ -1331,6 +1565,8 @@ namespace Plank
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
+			dock_preferences.notify["visible-child"].disconnect (on_stack_page_changed);
+			dock_preferences.notify["transition-running"].disconnect (on_stack_page_changed);
 			if (controller != null && controller.position_manager != null) {
 				controller.position_manager.notify["icon-size"].disconnect (on_position_manager_icon_size_changed);
 				controller.position_manager.notify["max-icon-size"].disconnect (on_position_manager_icon_size_changed);
@@ -1357,19 +1593,37 @@ namespace Plank
 					active_pos = pos;
 			}
 			
-			if (prefs.Monitor == "") {
+			bool primary_supported = WindowCapabilities.primary_display_supported ();
+			string primary_tt = primary_supported
+				? _("Automatically display the dock on the primary monitor; disable to choose a specific display")
+				: _("Not supported by this compositor");
+			sw_primary_display.tooltip_text = primary_tt;
+			l_primary_display.tooltip_text = primary_tt;
+			if (!primary_supported) {
+				sw_primary_display.set_active (false);
+				sw_primary_display.sensitive = false;
+				cb_display_plug.sensitive = true;
+				if (active_pos >= 0) {
+					cb_display_plug.set_active (active_pos);
+				} else if (names.length > 0) {
+					cb_display_plug.set_active (0);
+				}
+			} else if (prefs.Monitor == "") {
 				cb_display_plug.set_active (primary_pos);
 				sw_primary_display.set_active (true);
+				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = false;
 			} else if (active_pos >= 0) {
 				cb_display_plug.set_active (active_pos);
 				sw_primary_display.set_active (false);
+				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = true;
 				if (prefs.Monitor != names[active_pos])
 					prefs.Monitor = names[active_pos];
 			} else if (names.length > 0) {
 				cb_display_plug.set_active (0);
 				sw_primary_display.set_active (false);
+				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = true;
 			}
 			
@@ -1402,23 +1656,19 @@ namespace Plank
 				? HideType.DODGE_MAXIMIZED
 				: prefs.HideMode;
 			cb_hidemode.active_id = ((int) effective_mode).to_string ();
-			cb_hidemode.sensitive = (prefs.HideMode != HideType.NONE);
 			cb_position.active_id = ((int) prefs.Position).to_string ();
 			adj_hide_delay.value = prefs.HideDelay;
 			adj_unhide_delay.value = prefs.UnhideDelay;
 
 			rebuild_monitor_list ();
 			
-			sp_hide_delay.sensitive = (prefs.HideMode != HideType.NONE);
-			sp_unhide_delay.sensitive = (prefs.HideMode != HideType.NONE);
-			
 			adj_iconsize.value = prefs.IconSize;
 			adj_offset.value = prefs.Offset;
 			adj_zoom_percent.value = prefs.ZoomPercent;
-			s_offset.sensitive = (prefs.Alignment == Gtk.Align.CENTER);
-			s_zoom_percent.sensitive = prefs.ZoomEnabled;
 			sw_hide.set_active (prefs.HideMode != HideType.NONE);
-			sw_primary_display.set_active (prefs.Monitor == "");
+			bool primary_supported = WindowCapabilities.primary_display_supported ();
+			sw_primary_display.set_active (primary_supported && prefs.Monitor == "");
+			sw_primary_display.sensitive = primary_supported;
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
 			sw_workspace_only.sensitive = false;
 			sw_workspace_only.tooltip_text = _("Workspace filtering is not yet supported under Wayland");
@@ -1430,26 +1680,34 @@ namespace Plank
 			update_system_menu_access_options ();
 			sw_lock_items.set_active (prefs.LockItems);
 			sw_pressure_reveal.set_active (prefs.PressureReveal);
-			sw_pressure_reveal.sensitive = (prefs.HideMode != HideType.NONE);
 			sw_pressure_reveal.tooltip_text = _("Requires touching the physical screen edge (1px) to reveal the dock, preventing accidental triggers; when disabled, reveals 10px before the edge for fluid unhiding");
 			sw_reserve_space.set_active (prefs.ReserveSpace);
-			update_reserve_space_sensitivity ();
-			sw_reserve_space.tooltip_text = _("Reserve screen space matching the dock thickness (Panel Mode) so maximized windows tile without overlapping the dock; requires Hide Dock and Icon Zoom to be disabled (automatically turns off if either is enabled)");
+			sw_reserve_space.sensitive = true;
+			l_reserve_space.sensitive = true;
+			sw_reserve_space.tooltip_text = _("Reserve screen space matching the dock thickness (Panel Mode) so maximized windows tile without overlapping the dock; enabling this automatically turns off Hide Dock and Icon Zoom, and enabling either automatically turns off Reserve Screen Space");
 			l_reserve_space.tooltip_text = sw_reserve_space.tooltip_text;
 			sw_anticipate_zoom.set_active (prefs.AnticipateZoom);
-			sw_anticipate_zoom.sensitive = prefs.ZoomEnabled;
 			sw_anticipate_zoom.tooltip_text = _("Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
+			sw_docklets_on_right.set_active (prefs.DockletsOnRight);
+			sw_anchor_always_left.set_active (prefs.AnchorAlwaysLeft);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
 			sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
-			s_accordion_delay.format_value.connect ((val) => "%.1f s".printf (val));
 			adj_accordion_delay.value = (prefs.AccordionDelay >= 500U ? prefs.AccordionDelay : 1000U) / 1000.0;
 			update_accordion_visibility ();
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
-			cb_items_alignment.sensitive = (prefs.Alignment == Gtk.Align.FILL);
+			update_alignment_sensitivity ();
+			update_hide_sensitivity ();
+			update_zoom_sensitivity ();
+			cb_active_highlight.active_id = prefs.ActiveHighlight.clamp (0, 7).to_string ();
+			cb_launch_animation.active_id = prefs.LaunchAnimation.clamp (0, 8).to_string ();
+			cb_unpin_animation.active_id = prefs.UnpinAnimation.clamp (0, 8).to_string ();
+			adj_effect_duration.value = prefs.EffectDuration.clamp (300, 1500);
+			update_effect_duration_visibility ();
 			update_icon_size_feedback ();
+			clear_spinbutton_focus ();
 		}
 
 		void init_window_tab ()

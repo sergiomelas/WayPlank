@@ -28,6 +28,8 @@ namespace Plank
 		string playback_status = "Stopped";
 		string track_title = "";
 		string track_artist = "";
+		bool is_disposed = false;
+		bool poll_in_flight = false;
 		
 		public MprisDockItem ()
 		{
@@ -45,21 +47,29 @@ namespace Plank
 			Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 			Button = PopupButton.RIGHT;
 			
-			refresh_player_state ();
+			schedule_player_poll ();
 			start_timer ();
 			start_dbus_listener ();
 		}
 		
 		~MprisDockItem ()
 		{
+			is_disposed = true;
 			stop_timer ();
 			stop_dbus_listener ();
+		}
+
+		public override void cleanup ()
+		{
+			is_disposed = true;
+			stop_timer ();
+			stop_dbus_listener ();
+			base.cleanup ();
 		}
 		
 		void on_dbus_properties_changed (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
 		{
-			refresh_player_state ();
-			reset_icon_buffer ();
+			schedule_player_poll ();
 		}
 
 		void start_dbus_listener ()
@@ -96,7 +106,7 @@ namespace Plank
 			if (timer_id != 0)
 				return;
 			
-			timer_id = Timeout.add_seconds (1, on_timer_tick);
+			timer_id = Timeout.add_seconds (2, on_timer_tick);
 		}
 		
 		void stop_timer ()
@@ -114,12 +124,13 @@ namespace Plank
 		
 		public override void @delete ()
 		{
+			is_disposed = true;
 			stop_timer ();
 			stop_dbus_listener ();
 			base.@delete ();
 		}
 
-		void extract_metadata (Variant props, out string title, out string artist)
+		static void extract_metadata (Variant props, out string title, out string artist)
 		{
 			title = "";
 			artist = "";
@@ -145,9 +156,14 @@ namespace Plank
 				}
 			}
 		}
-		
-		void refresh_player_state ()
+
+		static bool probe_mpris_state (out string? found_bus, out string found_status, out string found_title, out string found_artist)
 		{
+			found_bus = null;
+			found_status = "Stopped";
+			found_title = "";
+			found_artist = "";
+
 			try {
 				var bus = Bus.get_sync (BusType.SESSION, null);
 				var names_variant = bus.call_sync (
@@ -161,11 +177,6 @@ namespace Plank
 					500,
 					null
 				);
-				
-				active_player_bus = null;
-				playback_status = "Stopped";
-				track_title = "";
-				track_artist = "";
 
 				string[] names = names_variant.get_child_value (0).get_strv ();
 				foreach (unowned string name in names) {
@@ -196,21 +207,21 @@ namespace Plank
 						extract_metadata (props_dict, out cur_title, out cur_artist);
 
 						if (cur_status == "Playing") {
-							active_player_bus = name;
-							playback_status = cur_status;
-							track_title = cur_title;
-							track_artist = cur_artist;
+							found_bus = name;
+							found_status = cur_status;
+							found_title = cur_title;
+							found_artist = cur_artist;
 							break;
-						} else if (cur_status == "Paused" && (active_player_bus == null || playback_status != "Playing")) {
-							active_player_bus = name;
-							playback_status = cur_status;
-							track_title = cur_title;
-							track_artist = cur_artist;
-						} else if (active_player_bus == null) {
-							active_player_bus = name;
-							playback_status = cur_status;
-							track_title = cur_title;
-							track_artist = cur_artist;
+						} else if (cur_status == "Paused" && (found_bus == null || found_status != "Playing")) {
+							found_bus = name;
+							found_status = cur_status;
+							found_title = cur_title;
+							found_artist = cur_artist;
+						} else if (found_bus == null) {
+							found_bus = name;
+							found_status = cur_status;
+							found_title = cur_title;
+							found_artist = cur_artist;
 						}
 					} catch {
 						try {
@@ -230,52 +241,94 @@ namespace Plank
 								var inner_val = status_val.is_of_type (VariantType.VARIANT) ? status_val.get_variant () : status_val;
 								string cur_status = inner_val.get_string ();
 								if (cur_status == "Playing") {
-									active_player_bus = name;
-									playback_status = cur_status;
+									found_bus = name;
+									found_status = cur_status;
 									break;
-								} else if (cur_status == "Paused" && (active_player_bus == null || playback_status != "Playing")) {
-									active_player_bus = name;
-									playback_status = cur_status;
+								} else if (cur_status == "Paused" && (found_bus == null || found_status != "Playing")) {
+									found_bus = name;
+									found_status = cur_status;
 								}
 							}
 						} catch { }
 					}
 				}
-				
-				if (active_player_bus != null) {
-					if (track_title != "") {
-						if (track_artist != "")
-							Text = "%s - %s (%s)".printf (track_artist, track_title, playback_status);
-						else
-							Text = "%s (%s)".printf (track_title, playback_status);
-					} else {
-						Text = _("Media Player (%s)").printf (playback_status);
-					}
-					
-					if (playback_status == "Playing")
-						Icon = "media-playback-start;;media-playback-start-symbolic;;player_play";
-					else if (playback_status == "Paused")
-						Icon = "media-playback-pause;;media-playback-pause-symbolic;;player_pause";
-					else
-						Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
-				} else {
-					playback_status = "Stopped";
-					track_title = "";
-					track_artist = "";
-					Text = _("Media Player (Inactive)");
-					Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
-				}
+				return true;
 			} catch (Error e) {
+				return false;
+			}
+		}
+
+		void apply_player_state (bool ok, string? found_bus, string found_status, string found_title, string found_artist)
+		{
+			if (!ok) {
+				active_player_bus = null;
 				playback_status = "Stopped";
+				track_title = "";
+				track_artist = "";
 				Text = _("Media Player");
 				Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
+				return;
 			}
+
+			active_player_bus = found_bus;
+			playback_status = found_status;
+			track_title = found_title;
+			track_artist = found_artist;
+
+			if (active_player_bus != null) {
+				string status_text = (playback_status == "Playing")
+					? _("Playing")
+					: ((playback_status == "Paused") ? _("Paused") : _("Stopped"));
+				if (track_title != "") {
+					if (track_artist != "")
+						Text = "%s - %s (%s)".printf (track_artist, track_title, status_text);
+					else
+						Text = "%s (%s)".printf (track_title, status_text);
+				} else {
+					Text = _("Media Player (%s)").printf (status_text);
+				}
+
+				if (playback_status == "Playing")
+					Icon = "media-playback-start;;media-playback-start-symbolic;;player_play";
+				else if (playback_status == "Paused")
+					Icon = "media-playback-pause;;media-playback-pause-symbolic;;player_pause";
+				else
+					Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
+			} else {
+				playback_status = "Stopped";
+				track_title = "";
+				track_artist = "";
+				Text = _("Media Player (Inactive)");
+				Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
+			}
+		}
+
+		void schedule_player_poll ()
+		{
+			if (is_disposed || poll_in_flight)
+				return;
+			poll_in_flight = true;
+
+			new Thread<void*> ("wayplank-mpris-poll", () => {
+				string? found_bus;
+				string found_status;
+				string found_title;
+				string found_artist;
+				bool ok = probe_mpris_state (out found_bus, out found_status, out found_title, out found_artist);
+				Idle.add (() => {
+					poll_in_flight = false;
+					if (is_disposed)
+						return false;
+					apply_player_state (ok, found_bus, found_status, found_title, found_artist);
+					return false;
+				});
+				return null;
+			});
 		}
 		
 		bool on_timer_tick ()
 		{
-			refresh_player_state ();
-			reset_icon_buffer ();
+			schedule_player_poll ();
 			return true;
 		}
 		
@@ -283,22 +336,29 @@ namespace Plank
 		{
 			if (active_player_bus == null)
 				return;
-			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
-				bus.call_sync (
-					active_player_bus,
-					"/org/mpris/MediaPlayer2",
-					"org.mpris.MediaPlayer2.Player",
-					method,
-					null,
-					null,
-					DBusCallFlags.NONE,
-					500,
-					null
-				);
-				refresh_player_state ();
-				reset_icon_buffer ();
-			} catch (Error e) { }
+			string target_bus = active_player_bus;
+			new Thread<void*> ("wayplank-mpris-cmd", () => {
+				try {
+					var bus = Bus.get_sync (BusType.SESSION, null);
+					bus.call_sync (
+						target_bus,
+						"/org/mpris/MediaPlayer2",
+						"org.mpris.MediaPlayer2.Player",
+						method,
+						null,
+						null,
+						DBusCallFlags.NONE,
+						500,
+						null
+					);
+				} catch (Error e) { }
+				Idle.add (() => {
+					if (!is_disposed)
+						schedule_player_poll ();
+					return false;
+				});
+				return null;
+			});
 		}
 		
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)

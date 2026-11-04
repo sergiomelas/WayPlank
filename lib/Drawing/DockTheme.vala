@@ -347,6 +347,7 @@ namespace Plank
 			}
 			
 			cr.save ();
+			cr.save ();
 			cr.rotate (rotate);
 			cr.translate (xoffset, yoffset);
 			if (pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP)
@@ -365,7 +366,349 @@ namespace Plank
 			cr.set_source (gradient);
 			cr.fill ();
 			
-			cr.reset_clip ();
+			cr.restore ();
+		}
+
+		/**
+		 * Draws a soft 360-degree radial aura behind the focused icon without rectangular clipping.
+		 *
+		 * @param surface the surface to draw the glow onto
+		 * @param icon_rect the logical draw region of the icon
+		 * @param color the glow tint color
+		 * @param opacity the active transition opacity [0.0..1.0]
+		 */
+		public void draw_active_icon_glow (Surface surface, Gdk.Rectangle icon_rect, Color color, double opacity)
+		{
+			if (opacity <= 0.0 || icon_rect.width <= 0 || icon_rect.height <= 0)
+				return;
+
+			unowned Cairo.Context cr = surface.Context;
+			double cx = icon_rect.x + icon_rect.width / 2.0;
+			double cy = icon_rect.y + icon_rect.height / 2.0;
+			double r_inner = double.min (icon_rect.width, icon_rect.height) * 0.18;
+			double r_outer = double.max (icon_rect.width, icon_rect.height) * 0.68;
+
+			var radial = new Cairo.Pattern.radial (cx, cy, r_inner, cx, cy, r_outer);
+			radial.add_color_stop_rgba (0.00, color.red, color.green, color.blue, 0.62 * opacity);
+			radial.add_color_stop_rgba (0.42, color.red, color.green, color.blue, 0.42 * opacity);
+			radial.add_color_stop_rgba (0.72, color.red, color.green, color.blue, 0.15 * opacity);
+			radial.add_color_stop_rgba (1.00, color.red, color.green, color.blue, 0.0);
+
+			cr.save ();
+			cr.arc (cx, cy, r_outer, 0, 2.0 * Math.PI);
+			cr.set_source (radial);
+			cr.fill ();
+			cr.restore ();
+		}
+
+		void apply_dock_inner_clip (Cairo.Context cr, Gdk.Rectangle clip_rect, Gtk.PositionType pos)
+		{
+			var rotate = 0.0;
+			var xoffset = 0.0, yoffset = 0.0;
+			switch (pos) {
+			default:
+			case Gtk.PositionType.BOTTOM:
+				xoffset = clip_rect.x;
+				yoffset = clip_rect.y;
+				break;
+			case Gtk.PositionType.TOP:
+				rotate = Math.PI;
+				xoffset = -clip_rect.x - clip_rect.width;
+				yoffset = -clip_rect.height;
+				break;
+			case Gtk.PositionType.LEFT:
+				rotate = Math.PI_2;
+				xoffset = clip_rect.y;
+				yoffset = -clip_rect.width;
+				break;
+			case Gtk.PositionType.RIGHT:
+				rotate = -Math.PI_2;
+				xoffset = -clip_rect.y - clip_rect.height;
+				yoffset = clip_rect.x;
+				break;
+			}
+
+			cr.save ();
+			cr.rotate (rotate);
+			cr.translate (xoffset, yoffset);
+			if (pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP)
+				draw_inner_rect (cr, clip_rect.width, clip_rect.height);
+			else
+				draw_inner_rect (cr, clip_rect.height, clip_rect.width);
+			cr.restore ();
+			cr.set_line_width (LineWidth);
+			cr.clip ();
+		}
+
+		/**
+		 * Draws a soft elliptical spotlight cone shining inward from the dock edge.
+		 */
+		public void draw_active_spotlight (Surface surface, Gdk.Rectangle clip_rect, Gdk.Rectangle icon_rect, Color color, double opacity, Gtk.PositionType pos)
+		{
+			if (opacity <= 0.0 || icon_rect.width <= 0 || icon_rect.height <= 0 || clip_rect.width <= 0 || clip_rect.height <= 0)
+				return;
+
+			unowned Cairo.Context cr = surface.Context;
+			double cx = icon_rect.x + icon_rect.width / 2.0;
+			double cy = icon_rect.y + icon_rect.height / 2.0;
+			double rx = icon_rect.width * 0.72;
+			double ry = clip_rect.height * 0.95;
+
+			switch (pos) {
+			default:
+			case Gtk.PositionType.BOTTOM:
+				cy = clip_rect.y + clip_rect.height;
+				rx = icon_rect.width * 0.72;
+				ry = clip_rect.height * 0.95;
+				break;
+			case Gtk.PositionType.TOP:
+				cy = clip_rect.y;
+				rx = icon_rect.width * 0.72;
+				ry = clip_rect.height * 0.95;
+				break;
+			case Gtk.PositionType.LEFT:
+				cx = clip_rect.x;
+				rx = clip_rect.width * 0.95;
+				ry = icon_rect.height * 0.72;
+				break;
+			case Gtk.PositionType.RIGHT:
+				cx = clip_rect.x + clip_rect.width;
+				rx = clip_rect.width * 0.95;
+				ry = icon_rect.height * 0.72;
+				break;
+			}
+
+			if (rx < 1.0 || ry < 1.0)
+				return;
+
+			cr.save ();
+			apply_dock_inner_clip (cr, clip_rect, pos);
+
+			cr.translate (cx, cy);
+			cr.scale (rx, ry);
+			var radial = new Cairo.Pattern.radial (0, 0, 0.05, 0, 0, 1.0);
+			radial.add_color_stop_rgba (0.00, color.red, color.green, color.blue, 0.72 * opacity);
+			radial.add_color_stop_rgba (0.45, color.red, color.green, color.blue, 0.40 * opacity);
+			radial.add_color_stop_rgba (0.80, color.red, color.green, color.blue, 0.10 * opacity);
+			radial.add_color_stop_rgba (1.00, color.red, color.green, color.blue, 0.0);
+			cr.arc (0, 0, 1.0, 0, 2.0 * Math.PI);
+			cr.set_source (radial);
+			cr.fill ();
+			cr.restore ();
+		}
+
+		/**
+		 * Draws a modern translucent squircle pad behind the focused icon.
+		 */
+		public void draw_active_rounded_card (Surface surface, Gdk.Rectangle icon_rect, Color color, double opacity)
+		{
+			if (opacity <= 0.0 || icon_rect.width <= 0 || icon_rect.height <= 0)
+				return;
+
+			unowned Cairo.Context cr = surface.Context;
+			double pad = double.max (3.0, icon_rect.width * 0.07);
+			double x = icon_rect.x - pad;
+			double y = icon_rect.y - pad;
+			double w = icon_rect.width + 2.0 * pad;
+			double h = icon_rect.height + 2.0 * pad;
+			double r = double.min (w, h) * 0.22;
+
+			cr.save ();
+			cr.new_sub_path ();
+			cr.arc (x + w - r, y + r, r, -Math.PI_2, 0);
+			cr.arc (x + w - r, y + h - r, r, 0, Math.PI_2);
+			cr.arc (x + r, y + h - r, r, Math.PI_2, Math.PI);
+			cr.arc (x + r, y + r, r, Math.PI, 1.5 * Math.PI);
+			cr.close_path ();
+
+			cr.set_source_rgba (color.red, color.green, color.blue, 0.28 * opacity);
+			cr.fill_preserve ();
+
+			cr.set_line_width (1.2);
+			cr.set_source_rgba (
+				double.min (1.0, color.red * 0.7 + 0.3),
+				double.min (1.0, color.green * 0.7 + 0.3),
+				double.min (1.0, color.blue * 0.7 + 0.3),
+				0.55 * opacity
+			);
+			cr.stroke ();
+			cr.restore ();
+		}
+
+		/**
+		 * Draws a sleek glowing accent cap on the inner side of the focused icon
+		 * (above on BOTTOM dock), dynamically following Icon Zoom and Bounce while
+		 * leaving the outer edge completely free for running indicator dots.
+		 */
+		public void draw_active_accent_bar (Surface surface, Gdk.Rectangle icon_rect, int buf_w, int buf_h, Color color, double opacity, Gtk.PositionType pos)
+		{
+			if (opacity <= 0.0 || icon_rect.width <= 0 || icon_rect.height <= 0)
+				return;
+
+			unowned Cairo.Context cr = surface.Context;
+			// Keep tight (1.5px past icon_rect) so it floats ~5px above the visible glyph
+			// yet stays below HoverWindow's 4px tooltip gap during Icon Zoom.
+			const double GAP = 1.5;
+			double half_len = double.max (7.0, icon_rect.width * 0.20);
+			double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+			double cx = icon_rect.x + icon_rect.width / 2.0;
+			double cy = icon_rect.y + icon_rect.height / 2.0;
+
+			switch (pos) {
+			default:
+			case Gtk.PositionType.BOTTOM:
+				cy = double.max (3.5, icon_rect.y - GAP);
+				x1 = cx - half_len; x2 = cx + half_len;
+				y1 = cy; y2 = cy;
+				break;
+			case Gtk.PositionType.TOP:
+				cy = double.min (buf_h - 3.5, icon_rect.y + icon_rect.height + GAP);
+				x1 = cx - half_len; x2 = cx + half_len;
+				y1 = cy; y2 = cy;
+				break;
+			case Gtk.PositionType.LEFT:
+				cx = double.min (buf_w - 3.5, icon_rect.x + icon_rect.width + GAP);
+				x1 = cx; x2 = cx;
+				y1 = cy - half_len; y2 = cy + half_len;
+				break;
+			case Gtk.PositionType.RIGHT:
+				cx = double.max (3.5, icon_rect.x - GAP);
+				x1 = cx; x2 = cx;
+				y1 = cy - half_len; y2 = cy + half_len;
+				break;
+			}
+
+			cr.save ();
+			cr.set_line_cap (Cairo.LineCap.ROUND);
+
+			// Soft outer bar glow
+			cr.set_line_width (6.5);
+			cr.set_source_rgba (color.red, color.green, color.blue, 0.30 * opacity);
+			cr.move_to (x1, y1);
+			cr.line_to (x2, y2);
+			cr.stroke ();
+
+			// Crisp inner luminous capsule
+			cr.set_line_width (2.8);
+			cr.set_source_rgba (color.red, color.green, color.blue, 0.95 * opacity);
+			cr.move_to (x1, y1);
+			cr.line_to (x2, y2);
+			cr.stroke ();
+			cr.restore ();
+		}
+
+		/**
+		 * Draws a backlit perimeter ring halo around the outer silhouette of the focused icon.
+		 */
+		public void draw_active_rim_halo (Surface surface, Gdk.Rectangle icon_rect, Color color, double opacity)
+		{
+			if (opacity <= 0.0 || icon_rect.width <= 0 || icon_rect.height <= 0)
+				return;
+
+			unowned Cairo.Context cr = surface.Context;
+			double cx = icon_rect.x + icon_rect.width / 2.0;
+			double cy = icon_rect.y + icon_rect.height / 2.0;
+			double r_outer = double.max (icon_rect.width, icon_rect.height) * 0.66;
+
+			var radial = new Cairo.Pattern.radial (cx, cy, 0.0, cx, cy, r_outer);
+			radial.add_color_stop_rgba (0.00, color.red, color.green, color.blue, 0.04 * opacity);
+			radial.add_color_stop_rgba (0.48, color.red, color.green, color.blue, 0.08 * opacity);
+			radial.add_color_stop_rgba (0.68, color.red, color.green, color.blue, 0.58 * opacity);
+			radial.add_color_stop_rgba (0.85, color.red, color.green, color.blue, 0.24 * opacity);
+			radial.add_color_stop_rgba (1.00, color.red, color.green, color.blue, 0.0);
+
+			cr.save ();
+			cr.arc (cx, cy, r_outer, 0, 2.0 * Math.PI);
+			cr.set_source (radial);
+			cr.fill ();
+			cr.restore ();
+		}
+
+		/**
+		 * Draws a foreshortened 3D glass-shelf reflection of the focused icon clipped to the dock shelf.
+		 */
+		public void draw_active_reflection (Surface surface, Surface icon_surface, Gdk.Rectangle clip_rect, Gdk.Rectangle icon_rect, int scale_factor, double opacity, Gtk.PositionType pos)
+		{
+			if (opacity <= 0.0 || icon_rect.width <= 0 || icon_rect.height <= 0 || clip_rect.width <= 0 || clip_rect.height <= 0)
+				return;
+
+			unowned Cairo.Context cr = surface.Context;
+			cr.save ();
+			apply_dock_inner_clip (cr, clip_rect, pos);
+			if (pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP)
+				cr.rectangle (icon_rect.x - 1.0, clip_rect.y, icon_rect.width + 2.0, clip_rect.height);
+			else
+				cr.rectangle (clip_rect.x, icon_rect.y - 1.0, clip_rect.width, icon_rect.height + 2.0);
+			cr.clip ();
+
+			// Skip ~8% transparent icon padding at the foot and compress depth by 0.52x
+			// so ~55% of the icon body reflects vividly inside the narrow dock floor strip.
+			const double DEPTH_SCALE = 0.52;
+			const double FOOT_RATIO = 0.92;
+			const double HEAD_RATIO = 0.08;
+
+			Cairo.Pattern fade;
+			double mirror_coord;
+			double end_coord;
+
+			switch (pos) {
+			default:
+			case Gtk.PositionType.BOTTOM:
+				mirror_coord = icon_rect.y + icon_rect.height * 0.93;
+				end_coord = double.max (mirror_coord + 10.0, clip_rect.y + clip_rect.height - 1.0);
+				fade = new Cairo.Pattern.linear (0, mirror_coord, 0, end_coord);
+				break;
+			case Gtk.PositionType.TOP:
+				mirror_coord = icon_rect.y + icon_rect.height * 0.07;
+				end_coord = double.min (mirror_coord - 10.0, clip_rect.y + 1.0);
+				fade = new Cairo.Pattern.linear (0, mirror_coord, 0, end_coord);
+				break;
+			case Gtk.PositionType.LEFT:
+				mirror_coord = icon_rect.x + icon_rect.width * 0.07;
+				end_coord = double.min (mirror_coord - 10.0, clip_rect.x + 1.0);
+				fade = new Cairo.Pattern.linear (mirror_coord, 0, end_coord, 0);
+				break;
+			case Gtk.PositionType.RIGHT:
+				mirror_coord = icon_rect.x + icon_rect.width * 0.93;
+				end_coord = double.max (mirror_coord + 10.0, clip_rect.x + clip_rect.width - 1.0);
+				fade = new Cairo.Pattern.linear (mirror_coord, 0, end_coord, 0);
+				break;
+			}
+
+			fade.add_color_stop_rgba (0.00, 0, 0, 0, 0.80 * opacity);
+			fade.add_color_stop_rgba (0.55, 0, 0, 0, 0.42 * opacity);
+			fade.add_color_stop_rgba (1.00, 0, 0, 0, 0.0);
+
+			double sx = icon_surface.Width > 0 ? ((double) icon_rect.width / icon_surface.Width) : (1.0 / scale_factor);
+			double sy = icon_surface.Height > 0 ? ((double) icon_rect.height / icon_surface.Height) : (1.0 / scale_factor);
+
+			cr.push_group ();
+			switch (pos) {
+			default:
+			case Gtk.PositionType.BOTTOM:
+				cr.translate (icon_rect.x, mirror_coord + DEPTH_SCALE * FOOT_RATIO * icon_rect.height);
+				cr.scale (sx, -DEPTH_SCALE * sy);
+				break;
+			case Gtk.PositionType.TOP:
+				cr.translate (icon_rect.x, mirror_coord + DEPTH_SCALE * HEAD_RATIO * icon_rect.height);
+				cr.scale (sx, -DEPTH_SCALE * sy);
+				break;
+			case Gtk.PositionType.LEFT:
+				cr.translate (mirror_coord + DEPTH_SCALE * HEAD_RATIO * icon_rect.width, icon_rect.y);
+				cr.scale (-DEPTH_SCALE * sx, sy);
+				break;
+			case Gtk.PositionType.RIGHT:
+				cr.translate (mirror_coord + DEPTH_SCALE * FOOT_RATIO * icon_rect.width, icon_rect.y);
+				cr.scale (-DEPTH_SCALE * sx, sy);
+				break;
+			}
+			cr.set_source_surface (icon_surface.Internal, 0, 0);
+			cr.paint ();
+			var refl_group = cr.pop_group ();
+
+			cr.set_source (refl_group);
+			cr.mask (fade);
+			cr.restore ();
 		}
 		
 		/**

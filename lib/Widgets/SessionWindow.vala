@@ -25,6 +25,7 @@ namespace Plank
 		enum ConfirmAction {
 			LOGOUT,
 			RESTART,
+			REBOOT_UEFI,
 			SHUTDOWN
 		}
 
@@ -113,7 +114,7 @@ namespace Plank
 			set_position (Gtk.WindowPosition.CENTER);
 			window_position = Gtk.WindowPosition.CENTER;
 			gravity = Gdk.Gravity.CENTER;
-			set_default_size (460, 310);
+			set_default_size (480, 410);
 			resizable = false;
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
@@ -152,7 +153,7 @@ namespace Plank
 			// Separator
 			actions_box.pack_start (new Gtk.Separator (Gtk.Orientation.HORIZONTAL), false, false, 0);
 
-			// Grid of 6 buttons (2 rows x 3 columns)
+			// Grid of 9 buttons (3 rows x 3 columns)
 			var grid = new Gtk.Grid ();
 			grid.row_spacing = 10;
 			grid.column_spacing = 10;
@@ -188,22 +189,69 @@ namespace Plank
 			});
 			grid.attach (btn_suspend, 0, 1, 1, 1);
 
-			// Col 1, Row 1: Restart (asks confirmation)
+			// Col 1, Row 1: Hibernate (direct, auto-checked via logind)
+			bool hibernate_ok = SessionDockItem.can_hibernate ();
+			var btn_hibernate = create_action_button (
+				_("Hibernate"),
+				"system-suspend-hibernate",
+				hibernate_ok
+					? _("Save session to disk and power off")
+					: _("Hibernation is not available on this system (swap or kernel support missing)"),
+				() => {
+					destroy ();
+					SessionDockItem.hibernate ();
+				}
+			);
+			btn_hibernate.sensitive = hibernate_ok;
+			grid.attach (btn_hibernate, 1, 1, 1, 1);
+
+			// Col 2, Row 1: Hybrid Sleep (direct, auto-checked via logind)
+			bool hybrid_ok = SessionDockItem.can_hybrid_sleep ();
+			var btn_hybrid = create_action_button (
+				_("Hybrid Sleep"),
+				"system-suspend-hibernate",
+				hybrid_ok
+					? _("Save session to disk and put computer into low-power sleep mode")
+					: _("Hybrid Sleep is not available on this system (swap or kernel support missing)"),
+				() => {
+					destroy ();
+					SessionDockItem.hybrid_sleep ();
+				}
+			);
+			btn_hybrid.sensitive = hybrid_ok;
+			grid.attach (btn_hybrid, 2, 1, 1, 1);
+
+			// Col 0, Row 2: Restart (asks confirmation)
 			var btn_restart = create_action_button (_("Restart"), "system-reboot", _("Reboot the operating system"), () => {
 				show_confirmation (ConfirmAction.RESTART);
 			});
-			grid.attach (btn_restart, 1, 1, 1, 1);
+			grid.attach (btn_restart, 0, 2, 1, 1);
 
-			// Col 2, Row 1: Shut Down (asks confirmation, Destructive styling)
+			// Col 1, Row 2: UEFI / BIOS (asks confirmation, auto-checked via logind)
+			bool uefi_ok = SessionDockItem.can_reboot_to_firmware ();
+			var btn_uefi = create_action_button (
+				_("UEFI / BIOS"),
+				"preferences-system",
+				uefi_ok
+					? _("Restart and enter the motherboard UEFI / BIOS firmware settings")
+					: _("UEFI / BIOS firmware setup is not supported on this system"),
+				() => {
+					show_confirmation (ConfirmAction.REBOOT_UEFI);
+				}
+			);
+			btn_uefi.sensitive = uefi_ok;
+			grid.attach (btn_uefi, 1, 2, 1, 1);
+
+			// Col 2, Row 2: Shut Down (asks confirmation, Destructive styling)
 			var btn_shutdown = create_action_button (_("Shut Down"), "system-shutdown", _("Power off the computer"), () => {
 				show_confirmation (ConfirmAction.SHUTDOWN);
 			}, true);
-			grid.attach (btn_shutdown, 2, 1, 1, 1);
+			grid.attach (btn_shutdown, 2, 2, 1, 1);
 
 			actions_box.pack_start (grid, true, true, 0);
 
 			// Bottom action area with Cancel button
-			var bottom_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
+			var bottom_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
 			bottom_box.halign = Gtk.Align.END;
 
 			actions_cancel_btn = new Gtk.Button.with_label (_("Cancel"));
@@ -257,7 +305,7 @@ namespace Plank
 			confirm_cancel_btn.clicked.connect (() => {
 				title = _("Session & Power");
 				stack.set_visible_child_name ("actions");
-				actions_cancel_btn.grab_focus ();
+				set_focus (null);
 			});
 			confirm_btn_box.pack_start (confirm_cancel_btn, false, false, 0);
 
@@ -273,6 +321,9 @@ namespace Plank
 					case ConfirmAction.RESTART:
 						SessionDockItem.restart (false);
 						break;
+					case ConfirmAction.REBOOT_UEFI:
+						SessionDockItem.reboot_to_firmware (false);
+						break;
 					case ConfirmAction.SHUTDOWN:
 						SessionDockItem.shutdown (false);
 						break;
@@ -287,13 +338,20 @@ namespace Plank
 			stack.set_visible_child_name ("actions");
 
 			set_default (actions_cancel_btn);
+			this.map.connect (() => {
+				set_focus (null);
+			});
+			this.map_event.connect (() => {
+				set_focus (null);
+				return false;
+			});
 
 			key_press_event.connect ((w, e) => {
 				if (e.keyval == Gdk.Key.Escape) {
 					if (stack.visible_child_name == "confirm") {
 						title = _("Session & Power");
 						stack.set_visible_child_name ("actions");
-						actions_cancel_btn.grab_focus ();
+						set_focus (null);
 						return Gdk.EVENT_STOP;
 					}
 					destroy ();
@@ -334,6 +392,14 @@ namespace Plank
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Restart System?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to restart your computer? Unsaved changes will be lost.")));
 					confirm_action_btn.label = _("Restart");
+					confirm_action_btn.get_style_context ().remove_class ("destructive-action");
+					confirm_action_btn.get_style_context ().add_class ("suggested-action");
+					break;
+				case ConfirmAction.REBOOT_UEFI:
+					confirm_icon.set_from_icon_name ("preferences-system", Gtk.IconSize.DIALOG);
+					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Reboot to UEFI / BIOS?")));
+					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to restart your computer and enter the UEFI / BIOS firmware settings? Unsaved changes will be lost.")));
+					confirm_action_btn.label = _("UEFI / BIOS");
 					confirm_action_btn.get_style_context ().remove_class ("destructive-action");
 					confirm_action_btn.get_style_context ().add_class ("suggested-action");
 					break;

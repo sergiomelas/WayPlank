@@ -34,6 +34,8 @@ namespace Plank
 		
 		FileMonitor? dir_monitor;
 		Gee.ArrayList<string> contained_launchers = new Gee.ArrayList<string> ();
+		string[]? cached_tile_icons = null;
+		Gdk.Pixbuf?[]? cached_tile_pixbufs = null;
 		bool is_window_connected = false;
 		
 		/**
@@ -75,6 +77,8 @@ namespace Plank
 		~FileDockItem ()
 		{
 			stop_monitor ();
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
 			if (is_window_connected) {
 				WindowManager.get_default ().windows_refreshed.disconnect (update_indicator);
 				is_window_connected = false;
@@ -87,6 +91,8 @@ namespace Plank
 		protected override void load_from_launcher ()
 		{
 			stop_monitor ();
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
 			
 			if (Prefs.Launcher == "")
 				return;
@@ -135,6 +141,8 @@ namespace Plank
 				}
 			}
 			Icon = DEFAULT_ICONS;
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
 			reset_icon_buffer ();
 		}
 
@@ -150,6 +158,8 @@ namespace Plank
 			// automatically restores the custom icon!
 			var resolved = DrawingService.get_icon_from_file (OwnedFile);
 			Icon = (resolved != null && DrawingService.has_icon (resolved)) ? resolved : DEFAULT_ICONS;
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
 			reset_icon_buffer ();
 		}
 		
@@ -169,9 +179,28 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void handle_dir_changed (File f, File? other, FileMonitorEvent event)
 		{
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
+			reset_icon_buffer ();
+			refresh_contained_launchers ();
+			if (event == FileMonitorEvent.CREATED
+				|| event == FileMonitorEvent.DELETED
+				|| event == FileMonitorEvent.MOVED_IN
+				|| event == FileMonitorEvent.MOVED_OUT
+				|| event == FileMonitorEvent.CHANGES_DONE_HINT) {
+				ApplicationDiscovery.get_default ().refresh_index_now ();
+			}
+			update_indicator ();
+		}
+
+		public void refresh_launchers ()
+		{
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
 			reset_icon_buffer ();
 			refresh_contained_launchers ();
 			update_indicator ();
+			needs_redraw ();
 		}
 
 		void refresh_contained_launchers ()
@@ -193,6 +222,20 @@ namespace Plank
 					var name = info.get_name ();
 					if (name.has_suffix (".desktop")) {
 						contained_launchers.add (OwnedFile.get_child (name).get_uri ());
+					} else if (info.get_file_type () == FileType.DIRECTORY) {
+						var sub_dir = OwnedFile.get_child (name);
+						try {
+							var sub_enum = sub_dir.enumerate_children (
+								FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN,
+								FileQueryInfoFlags.NONE,
+								null
+							);
+							FileInfo? sub_info;
+							while ((sub_info = sub_enum.next_file (null)) != null) {
+								if (!sub_info.get_is_hidden () && sub_info.get_name ().has_suffix (".desktop"))
+									contained_launchers.add (sub_dir.get_child (sub_info.get_name ()).get_uri ());
+							}
+						} catch { }
 					}
 				}
 			} catch (Error e) {
@@ -303,31 +346,12 @@ namespace Plank
 			
 			draw_icon_fast (surface);
 			
-			var icons = new Gee.HashMap<string, string> ();
-			var keys = new Gee.ArrayList<string> ();
-			
-			get_files (OwnedFile).map_iterator ().foreach ((display_name, file) => {
-				string icon, text;
-				var uri = file.get_uri ();
-				if (uri.has_suffix (".desktop")) {
-					ApplicationDockItem.parse_launcher (uri, out icon, out text);
-				} else {
-					icon = DrawingService.get_icon_from_file (file) ?? "";
-					text = display_name ?? "";
-				}
-				
-				var key = "%s%s".printf (text, uri);
-				icons.set (key, icon);
-				keys.add (key);
-
-				return true;
-			});
-			
+			unowned string[] tile_icons = get_cached_tile_icons ();
 			var icon_width = (int) ((width - 80 * radius / 33.0) / 2.0);
 			var icon_height = (int) ((height - 80 * radius / 33.0) / 2.0);
 			var offset = (int) ((width - 2 * icon_width) / 3.0);
 			
-			if (keys.size == 0) {
+			if (tile_icons.length == 0) {
 				// Empty folder: draw centered default folder icon on the tray instead of leaving it completely blank
 				var folder_pbuf = DrawingService.load_icon (DEFAULT_ICONS, (int) (width * 0.7), (int) (height * 0.7));
 				if (folder_pbuf != null) {
@@ -339,21 +363,70 @@ namespace Plank
 				return;
 			}
 			
-			var pos = 0;
-			keys.sort ();
-			foreach (var s in keys) {
+			unowned Gdk.Pixbuf?[] tile_pbufs = get_cached_tile_pixbufs ();
+			for (int pos = 0; pos < tile_pbufs.length; pos++) {
 				var x = pos % 2;
 				int y = pos / 2;
-				
-				if (++pos > 4)
-					break;
-				
-				var pbuf = DrawingService.load_icon (icons.get (s), icon_width, icon_height);
-				Gdk.cairo_set_source_pixbuf (cr, pbuf,
-					x * (icon_width + offset) + offset + (icon_width - pbuf.width) / 2,
-					y * (icon_height + offset) + offset + (icon_height - pbuf.height) / 2);
-				cr.paint ();
+				var src_pbuf = tile_pbufs[pos];
+				var pbuf = (src_pbuf != null && icon_width > 0 && icon_height > 0)
+					? DrawingService.ar_scale (src_pbuf, icon_width, icon_height)
+					: null;
+				if (pbuf != null) {
+					Gdk.cairo_set_source_pixbuf (cr, pbuf,
+						x * (icon_width + offset) + offset + (icon_width - pbuf.width) / 2,
+						y * (icon_height + offset) + offset + (icon_height - pbuf.height) / 2);
+					cr.paint ();
+				}
 			}
+		}
+
+		unowned Gdk.Pixbuf?[] get_cached_tile_pixbufs ()
+		{
+			unowned string[] tile_icons = get_cached_tile_icons ();
+			if (cached_tile_pixbufs != null && cached_tile_pixbufs.length == tile_icons.length)
+				return cached_tile_pixbufs;
+
+			var pbufs = new Gdk.Pixbuf?[tile_icons.length];
+			for (int i = 0; i < tile_icons.length; i++)
+				pbufs[i] = DrawingService.load_icon (tile_icons[i], 128, 128);
+
+			cached_tile_pixbufs = (owned) pbufs;
+			return cached_tile_pixbufs;
+		}
+
+		unowned string[] get_cached_tile_icons ()
+		{
+			if (cached_tile_icons != null)
+				return cached_tile_icons;
+
+			var icons = new Gee.HashMap<string, string> ();
+			var keys = new Gee.ArrayList<string> ();
+
+			get_files (OwnedFile).map_iterator ().foreach ((display_name, file) => {
+				string icon, text;
+				var uri = file.get_uri ();
+				if (uri.has_suffix (".desktop")) {
+					ApplicationDockItem.parse_launcher (uri, out icon, out text);
+				} else {
+					icon = DrawingService.get_icon_from_file (file) ?? "";
+					text = display_name ?? "";
+				}
+
+				var key = "%s%s".printf (text, uri);
+				icons.set (key, icon);
+				keys.add (key);
+
+				return true;
+			});
+
+			keys.sort ();
+			int limit = int.min (4, keys.size);
+			var resolved = new string[limit];
+			for (int i = 0; i < limit; i++)
+				resolved[i] = icons.get (keys.get (i)) ?? "";
+
+			cached_tile_icons = (owned) resolved;
+			return cached_tile_icons;
 		}
 		
 		/**
@@ -430,11 +503,11 @@ namespace Plank
 			}
 		}
 
-		public override bool accept_drop (Gee.ArrayList<string> uris)
+		public static bool copy_uris_into_directory (File target_dir, Gee.ArrayList<string> uris)
 		{
-			if (!is_directory ())
+			if (!target_dir.query_exists () || target_dir.query_file_type (FileQueryInfoFlags.NONE, null) != FileType.DIRECTORY)
 				return false;
-			
+
 			bool any_copied = false;
 			foreach (var uri in uris) {
 				try {
@@ -457,37 +530,50 @@ namespace Plank
 					} else {
 						src = File.new_for_commandline_arg (uri);
 					}
-					
+
 					if (!src.query_exists ())
 						continue;
-					
+
 					var basename = src.get_basename ();
 					if (basename == null || basename == "")
 						continue;
-					
-					var dest = OwnedFile.get_child (basename);
-					
-					// Avoid copying onto itself
-					if (src.equal (dest))
+
+					var dest = target_dir.get_child (basename);
+
+					// Avoid copying onto itself or copying a parent directory into its own child
+					if (src.equal (dest) || dest.has_prefix (src))
 						continue;
-					
+
 					copy_file_or_dir (src, dest);
 					if (basename.has_suffix (".desktop") && dest.get_path () != null) {
 						FileUtils.chmod (dest.get_path (), 0755);
 					}
 					any_copied = true;
 				} catch (Error e) {
-					warning ("Failed to copy '%s' into '%s': %s", uri, OwnedFile.get_path () ?? "", e.message);
+					warning ("Failed to copy '%s' into '%s': %s", uri, target_dir.get_path () ?? "", e.message);
 				}
 			}
-			
+			return any_copied;
+		}
+
+		public override bool accept_drop (Gee.ArrayList<string> uris)
+		{
+			if (!is_directory ())
+				return false;
+
+			bool any_copied = copy_uris_into_directory (OwnedFile, uris);
 			if (any_copied) {
+				cached_tile_icons = null;
+			cached_tile_pixbufs = null;
 				reset_icon_buffer ();
+				refresh_contained_launchers ();
+				ApplicationDiscovery.get_default ().refresh_index_now ();
+				update_indicator ();
 				needs_redraw ();
 				ClickedAnimation = AnimationType.BOUNCE;
 				LastClicked = GLib.get_monotonic_time ();
 			}
-			
+
 			return any_copied;
 		}
 		
@@ -540,7 +626,13 @@ namespace Plank
 				&& !default_provider.Prefs.LockItems) {
 				var delete_item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
 				delete_item.active = true;
-				delete_item.activate.connect (() => delete ());
+				delete_item.activate.connect (() => {
+					unowned DockController? dock = get_dock ();
+					if (dock != null && dock.drag_manager != null)
+						dock.drag_manager.remove_item_with_effect (this, false, dock.position_manager.IconSize);
+					else
+						@delete ();
+				});
 				items.add (delete_item);
 			}
 
@@ -678,7 +770,13 @@ namespace Plank
 				&& !default_provider.Prefs.LockItems) {
 				var delete_item = new Gtk.CheckMenuItem.with_mnemonic (_("_Keep in Dock"));
 				delete_item.active = true;
-				delete_item.activate.connect (() => delete ());
+				delete_item.activate.connect (() => {
+					unowned DockController? dock = get_dock ();
+					if (dock != null && dock.drag_manager != null)
+						dock.drag_manager.remove_item_with_effect (this, false, dock.position_manager.IconSize);
+					else
+						@delete ();
+				});
 				items.add (delete_item);
 			}
 			
@@ -737,12 +835,26 @@ namespace Plank
 		{
 			try {
 				var info = file.query_info (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_DISPLAY_NAME, 0);
-				return info.get_display_name () ?? info.get_name ();
+				var raw_name = info.get_display_name () ?? info.get_name ();
+				switch (raw_name) {
+				case "Internet":
+					return _("Internet");
+				case "Office":
+					return _("Office");
+				case "Media":
+					return _("Media");
+				case "Games":
+					return _("Games");
+				case "Utilities":
+					return _("Utilities");
+				default:
+					return raw_name;
+				}
 			} catch { }
 			
 			debug ("Could not get display-name for '%s'", file.get_path () ?? "");
 			
-			return "Unknown";
+			return _("Unknown");
 		}
 	}
 }

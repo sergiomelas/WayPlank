@@ -23,6 +23,7 @@ namespace Plank
 	public class DigitalClockDockItem : DockItem
 	{
 		uint timer_id = 0;
+		string last_rendered_minute = "";
 		
 		public DigitalClockDockItem ()
 		{
@@ -47,6 +48,12 @@ namespace Plank
 		~DigitalClockDockItem ()
 		{
 			stop_timer ();
+		}
+
+		public override void cleanup ()
+		{
+			stop_timer ();
+			base.cleanup ();
 		}
 		
 		void start_timer ()
@@ -84,8 +91,13 @@ namespace Plank
 		
 		bool on_timer_tick ()
 		{
-			update_clock_text ();
-			reset_icon_buffer ();
+			var now = new DateTime.now_local ();
+			Text = now.format ("%A %e %B %Y\n%H:%M:%S");
+			string minute_key = now.format ("%Y-%m-%d %H:%M");
+			if (minute_key != last_rendered_minute) {
+				last_rendered_minute = minute_key;
+				reset_icon_buffer ();
+			}
 			return true;
 		}
 		
@@ -132,6 +144,7 @@ namespace Plank
 			
 			// 2. Render Time & Date
 			var now = new DateTime.now_local ();
+			last_rendered_minute = now.format ("%Y-%m-%d %H:%M");
 			string time_str = now.format ("%H:%M");
 			string date_str = now.format ("%a %d").up ();
 			

@@ -41,17 +41,41 @@ namespace Plank
 			{ null }
 		};
 
+		static bool is_shutting_down = false;
+		public static string? saved_gtk_use_portal = null;
+
+		public static void perform_clean_shutdown ()
+		{
+			if (is_shutting_down)
+				return;
+			is_shutting_down = true;
+
+			if (app_instance != null && app_instance.resume_timer_id > 0U) {
+				GLib.Source.remove (app_instance.resume_timer_id);
+				app_instance.resume_timer_id = 0U;
+			}
+			if (app_instance != null && app_instance.upgrade_signal_source_id > 0U) {
+				GLib.Source.remove (app_instance.upgrade_signal_source_id);
+				app_instance.upgrade_signal_source_id = 0U;
+			}
+
+			SystemTheme.cleanup_if_active ();
+			BrightnessControl.cleanup_if_active ();
+			WindowControl.cleanup ();
+		}
+
 		static void sig_handler (int sig)
 		{
 			warning ("Caught signal (%d), exiting", sig);
-			WindowControl.cleanup ();
-			GLib.Application.get_default ().quit ();
+			perform_clean_shutdown ();
+			Posix.exit (0);
 		}
 		
 		static construct
 		{
 			Posix.signal (Posix.Signal.INT, sig_handler);
 			Posix.signal (Posix.Signal.TERM, sig_handler);
+			Posix.signal (Posix.Signal.HUP, sig_handler);
 		}
 		
 		/**
@@ -251,6 +275,11 @@ namespace Plank
 			assert (app_dbus != null);
 			
 			base.startup ();
+
+			if (saved_gtk_use_portal != null)
+				Environment.set_variable ("GTK_USE_PORTAL", saved_gtk_use_portal, true);
+			else
+				Environment.unset_variable ("GTK_USE_PORTAL");
 			
 			if (!Thread.supported ())
 				critical ("Problem initializing thread support.");
@@ -280,9 +309,13 @@ namespace Plank
 			
 			initialize ();
 			create_docks ();
+			WindowControl.get_default ().bridge_reconnected.connect (() => {
+				schedule_dock_refresh (150);
+			});
 			WindowControl.start ();
 			create_actions ();
 			setup_power_management_listener ();
+			setup_binary_upgrade_watcher ();
 		}
 		
 		/**
@@ -418,10 +451,19 @@ namespace Plank
 			
 			action = new SimpleAction ("quit", null);
 			action.activate.connect (() => {
-				WindowControl.cleanup ();
+				perform_clean_shutdown ();
 				quit ();
 			});
 			add_action (action);
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		public override void shutdown ()
+		{
+			perform_clean_shutdown ();
+			base.shutdown ();
 		}
 		
 		/**
@@ -483,7 +525,7 @@ namespace Plank
 			about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
 			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
 			about_dlg.set_website (main_url);
-			about_dlg.set_website_label ("Website");
+			about_dlg.set_website_label (_("Website"));
 			
 			if (about_authors != null && about_authors.length > 0)
 				about_dlg.set_authors (about_authors);
@@ -944,6 +986,42 @@ namespace Plank
 		}
 
 		uint resume_timer_id = 0U;
+		uint upgrade_signal_source_id = 0U;
+		string startup_exe_path = "";
+		bool is_reloading_for_upgrade = false;
+
+		void setup_binary_upgrade_watcher ()
+		{
+			try {
+				var resolved = FileUtils.read_link ("/proc/self/exe");
+				if (resolved.has_suffix (" (deleted)"))
+					resolved = resolved.substring (0, resolved.length - " (deleted)".length);
+				startup_exe_path = resolved;
+			} catch (Error e) {
+				startup_exe_path = "";
+			}
+
+			upgrade_signal_source_id = GLib.Unix.signal_add ((int) Posix.Signal.WINCH, () => {
+				if (is_shutting_down || is_reloading_for_upgrade || startup_exe_path == "")
+					return true;
+				try {
+					var current_link = FileUtils.read_link ("/proc/self/exe");
+					if (current_link.has_suffix (" (deleted)") && FileUtils.test (startup_exe_path, FileTest.IS_EXECUTABLE)) {
+						is_reloading_for_upgrade = true;
+						message ("Binary upgrade detected at '%s', hot-reloading WayPlank...", startup_exe_path);
+						perform_clean_shutdown ();
+						string[] spawn_argv = { startup_exe_path, "--replace" };
+						if (dock_name != null && dock_name != "")
+							spawn_argv = { startup_exe_path, "--replace", "-n", dock_name };
+						Process.spawn_async (null, spawn_argv, null, SpawnFlags.SEARCH_PATH, null, null);
+						Posix.exit (0);
+					}
+				} catch (Error e) {
+					warning ("Failed to hot-reload upgraded WayPlank binary: %s", e.message);
+				}
+				return true;
+			});
+		}
 
 		void schedule_dock_refresh (uint delay_ms)
 		{
@@ -989,30 +1067,50 @@ namespace Plank
 					}
 				);
 				debug ("Subscribed to systemd-logind PrepareForSleep signal");
-			} catch (Error e) {
-				debug ("Unable to subscribe to systemd-logind PrepareForSleep: %s", e.message);
-			}
 
-			// 2. Listen for ScreenSaver / Screen Lock unlock events (session bus)
-			try {
-				var session_bus = Bus.get_sync (BusType.SESSION, null);
-				session_bus.signal_subscribe (
-					null,
-					"org.freedesktop.ScreenSaver",
-					"ActiveChanged",
+				system_bus.signal_subscribe (
+					"org.freedesktop.login1",
+					"org.freedesktop.login1.Session",
+					"Unlock",
 					null,
 					null,
 					DBusSignalFlags.NONE,
 					(conn, sender, path, iface, signal_name, parameters) => {
-						bool is_active = false;
-						parameters.get ("(b)", out is_active);
-						if (!is_active) {
-							message ("Screen unlocked! Scheduling dock refresh...");
-							schedule_dock_refresh (500);
-						}
+						message ("systemd-logind Session Unlock detected! Scheduling dock refresh...");
+						schedule_dock_refresh (500);
 					}
 				);
-				debug ("Subscribed to ScreenSaver ActiveChanged signal");
+				debug ("Subscribed to systemd-logind Session.Unlock signal");
+			} catch (Error e) {
+				debug ("Unable to subscribe to systemd-logind signals: %s", e.message);
+			}
+
+			// 2. Listen for ScreenSaver / Screen Lock unlock events (session bus: freedesktop + GNOME)
+			try {
+				var session_bus = Bus.get_sync (BusType.SESSION, null);
+				string[] screensaver_ifaces = {
+					"org.freedesktop.ScreenSaver",
+					"org.gnome.ScreenSaver"
+				};
+				foreach (unowned string ss_iface in screensaver_ifaces) {
+					session_bus.signal_subscribe (
+						null,
+						ss_iface,
+						"ActiveChanged",
+						null,
+						null,
+						DBusSignalFlags.NONE,
+						(conn, sender, path, iface, signal_name, parameters) => {
+							bool is_active = false;
+							parameters.get ("(b)", out is_active);
+							if (!is_active) {
+								message ("Screen unlocked (%s)! Scheduling dock refresh...", iface);
+								schedule_dock_refresh (500);
+							}
+						}
+					);
+				}
+				debug ("Subscribed to ScreenSaver ActiveChanged signals");
 			} catch (Error e) {
 				debug ("Unable to subscribe to ScreenSaver ActiveChanged: %s", e.message);
 			}

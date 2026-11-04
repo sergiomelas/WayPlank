@@ -58,6 +58,12 @@ namespace Plank
 		{
 			stop_timer ();
 		}
+
+		public override void cleanup ()
+		{
+			stop_timer ();
+			base.cleanup ();
+		}
 		
 		void start_timer ()
 		{
@@ -212,7 +218,6 @@ namespace Plank
 		bool on_timer_tick ()
 		{
 			update_stats ();
-			reset_icon_buffer ();
 			return true;
 		}
 		

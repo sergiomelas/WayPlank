@@ -2,8 +2,8 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.6.2.3`)  
-> **Period:** 2026-09-19 to 2026-11-01  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.0` Public Beta 1)  
+> **Period:** 2026-09-19 to 2026-11-04  
 > **Standard:** ISA-88 Qualification Standard
 
 ---
@@ -13,17 +13,17 @@
 * **ERA 1 (Pre-FAT Foundation & X11 Purge: `v0.1.0` – `v0.4.2`)**:
   - **Milestones**: 6 (`v0.1.0`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.4.1`, `v0.4.2`)
   - **Architectural Bugs & Blockers Resolved**: **34** `[ko->ok]`
-* **ERA 2 (Multi-Compositor Qualification: `v0.4.3` – `v0.6.2.3`)**:
-  - **Milestones**: 9 (`v0.4.3`, `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.6.0`, `v0.6.1`, `v0.6.2.1`, `v0.6.2.2`, `v0.6.2.3`)
-  - **Formal Tests Executed**: **2,037** Total Test Executions across Compositors
-  - **Tests Passed on First Run**: **1,889** `[ok]`
-  - **Unique Functional Bugs Squashed**: **73** `[ko->ok]`
-  - **Total Compositor Test Verifications**: **111** `[ko->ok]`
+* **ERA 2 (Multi-Compositor Qualification & Public Beta 1: `v0.4.3` – `v0.7.0`)**:
+  - **Milestones**: 10 (`v0.4.3`, `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.6.0`, `v0.6.1`, `v0.6.2.1`, `v0.6.2.2`, `v0.6.2.3`, `v0.7.0`)
+  - **Formal Tests Executed**: **2,416** Total Test Executions across Compositors
+  - **Tests Passed on First Run / Baseline**: **2,243** `[ok]`
+  - **Unique Functional Bugs Squashed**: **81** `[ko->ok]`
+  - **Total Compositor Test Verifications**: **134** `[ko->ok]`
   - **Open Defects Remaining**: **0** `[ko]` (**100% PASS** across all 3 compositors)
 * **GRAND TOTAL ACROSS LIFETIME**:
-  - **Total Milestones**: **15 Releases**
-  - **Total Unique Functional & Architectural Bugs Squashed**: **107** `[ko->ok]`
-  - **Total Multi-Compositor Verification Instances**: **145** `[ko->ok]`
+  - **Total Milestones**: **16 Releases**
+  - **Total Unique Functional & Architectural Bugs Squashed**: **115** `[ko->ok]`
+  - **Total Multi-Compositor Verification Instances**: **168** `[ko->ok]`
 
 ---
 
@@ -46,9 +46,10 @@
 | **`v0.6.1`** | 2026-10-13 | 0-byte MIME & Badges | 246 | 7 | 0 |
 | **`v0.6.2.1`** | 2026-10-17 | Fork & Gold Standard | 282 | 16 | 0 |
 | **`v0.6.2.2`** | 2026-10-20 | Round 2 & DND Docklet | 306 | 5 | 0 |
-| **`v0.6.2.3`** | 2026-11-01 | Previews, Stacks, Comm. | 370 | 27 (44 verif) | 0 (100% PASS) |
-| **ERA 2 SUB** | **Formal FAT** | **9 Multi-Comp. Releases** | **2,037** | **111 verif** | **0** |
-| **TOTAL** | **All Eras** | **15 Milestone Releases** | **2,037** | **107 Uniq.** | **0** |
+| **`v0.6.2.3`** | 2026-11-01 | Previews, Stacks, Comm. | 370 | 27 | 0 |
+| **`v0.7.0`** | 2026-11-04 | Public Beta 1 & Hotfix | 379 | 8 | 0 |
+| **ERA 2 SUB** | **Formal FAT** | **10 Multi-Comp. Releases** | **2,416** | **81** | **0** |
+| **TOTAL** | **All Eras** | **16 Milestone Releases** | **2,416** | **115** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects discovered were formally remediated and verified in `v0.5.1` under standard ISA-88 qualification protocol.*
 
@@ -58,10 +59,10 @@
 
 | Compositor Backend | Verifications Squashed `[ko->ok]` | Share |
 | :--- | :---: | :---: |
-| **GNOME Shell (Mutter Backend)** | 51 | 45.9% |
-| **KDE Plasma 6 (KWin Backend)** | 35 | 31.5% |
-| **Labwc (wlroots Backend)** | 25 | 22.5% |
-| **TOTAL COMPOSITOR PASSES** | **111 / 111** | **100% Passed** |
+| **GNOME Shell (Mutter Backend)** | 58 | 43.3% |
+| **KDE Plasma 6 (KWin Backend)** | 43 | 32.1% |
+| **Labwc (wlroots Backend)** | 33 | 24.6% |
+| **TOTAL COMPOSITOR PASSES** | **134 / 134** | **100% Passed** |
 
 ---
 
@@ -84,7 +85,7 @@
 - Cross-compositor dock persistence on "Show Desktop" (`Super + D`) via KWin D-Bus signal bridge, GNOME Mutter `hide_from_window_list()` + `showing-desktop-changed`, and Labwc `t->active` (`v0.6.2.3` / `6.1`, Issue #13)
 - GNOME Mutter exact surface title classification (`===`) & `show_in_window_list()` self-healing (`v0.6.2.3` / `0.4`)
 
-### 2. Multi-Monitor, Display Geometry & Tooltips (20 Bugs)
+### 2. Multi-Monitor, Display Geometry & Tooltips (21 Bugs)
 - Layer-shell secondary monitor display persistence (`v0.4.1` & `v0.5.1` / `7.2`)
 - Tooltip coordinate translation on secondary screens (`v0.4.1` / `5.2`)
 - Primary display toggle off restoration failure (`v0.5.1` / `7.2`)
@@ -102,6 +103,7 @@
 - GNOME Mutter vertical dock resize-commit race & `size-changed` re-anchoring (`v0.6.2.3` / `7.2`)
 - KDE Plasma 6 multi-monitor per-screen floating panel check & layer-shell `GtkWindow` resize synchronization (`v0.6.2.3` / `7.6`)
 - `HoverWindow` `popup-menu` role standardization & 25ms post-show coordinate re-assertion (`v0.6.2.3` / `5.1`)
+- KDE Plasma 6 primary panel monitor tracking (`__wayplank_primary_panel__` in-RAM KWin bridge & `plasmashell` panel observer) and Labwc Honest UI disable for `On Primary Display` (`WindowCapabilities.primary_display_supported()`) (`v0.7.0` / `7.6`)
 
 ### 3. Docklets & Special Items (19 Bugs)
 - Trash docklet bi-directional D-Bus sync with Dolphin/KIO (`v0.4.2` / `6.1`)
@@ -118,7 +120,7 @@
 - Asynchronous timer elimination & Mutter assertion crash prevention (`v0.6.2.3` / `0.2`)
 - Strict Minimalist Dock Mode (Mode 1: `Docklets Only` — zero app intrusion fallback) (`v0.6.2.3` / `13.6`)
 
-### 4. Hide, Dodge, Hover & Pressure Reveal (13 Bugs)
+### 4. Hide, Dodge, Hover & Pressure Reveal (14 Bugs)
 - Mouse hover zoom stuck on layer-shell surfaces (`v0.3.0` / `3.2`)
 - Intellihide geometric intersection calculation (`v0.4.0` / `4.2`)
 - Fullscreen exclusive zone toggle to 0 (`v0.4.0` / `4.3`)
@@ -129,8 +131,9 @@
 - Two-stage hysteresis flip-flop & `AnticipateZoom` runway pointer click stealing on overlapping windows (`v0.6.2.3` / `5.4`, Issue #12)
 - Direct unmaximized-to-fullscreen auto-hide & `0px` edge click passthrough (`v0.6.2.3` / `3.9`, Issue #10)
 - `ReserveSpace` Panel Mode exclusive zone / synthetic strut & mutual exclusivity guard (`v0.6.2.3` / `3.10`, Issue #9)
+- Edge-triggered SR Flip-Flop for clickable `Reserve Screen Space`, `Hide Dock` & `Icon Zoom` across GUI and CLI `gsettings` (`v0.7.0` / `3.10`, Issue #17)
 
-### 5. Application Matching, Sandboxes & Pinning (18 Bugs)
+### 5. Application Matching, Sandboxes & Pinning (21 Bugs)
 - Asynchronous `/proc` process scanner for Wayland (`v0.2.0` / `2.3`)
 - Multi-tier `.desktop` application discovery & `app_id` matching (`v0.4.0` / `4.4`)
 - 0-byte file drop with `application/x-zerosize` MIME guessing (`v0.6.1` / `1.6`)
@@ -142,12 +145,15 @@
 - Strict FreeDesktop MIME rejection on application drops (`v0.6.2.2` / `11.6`)
 - KISS Drag-Off immediate removal & poof animation (`v0.6.2.2` / `11.8`)
 - Desktop link shortcut (`Type=Link` & `URL[$e]`) parsing and launch (`v0.6.2.2` / `11.1`)
-- Application identity, Chromium PWA & word-boundary matching (`v0.6.2.3` / `2.14`)
+- Application identity, Chromium PWA (`pwa_id` & `ResourceName` multi-PWA profile isolation) & word-boundary matching (`v0.6.2.3` & `v0.7.0` / `2.14`)
 - CLI virtual machines, Exec-less `NoDisplay=true` template matching & `gc_synthetic_launchers()` garbage collection (`v0.6.2.3` / `2.15`, Issue #14)
 - Multi-VM instance isolation & generic argument stopwords (`v0.6.2.3` / `2.15`, Issue #14)
 - `LabwcBackend.resolve_toplevel_process()` $O(1)$ `/proc` PID/cmdline resolver & synthetic `.desktop` self-healing for Labwc VM cold relaunch (`v0.6.2.3` / `2.15`, Issue #14)
+- URI-keyed folder/web-app isolation, `.sh` profile/Incognito wrapper unwrapping (`116 >= 115`), `NoDisplay=true` PWA ↔ `--app=URL` & sibling `WMClass` parity, and open-popup folder DnD (`v0.7.0` / `1.11`)
+- CLI-launched GUI & AppImage (`/proc/<pid>/environ` `APPIMAGE=`) discovery, dynamic-title binding stability & zero-hardcoding dialog masking (`v0.7.0` / `2.15`, Issue #16)
+- HAL `SurfaceCoordinateService` overlay positioning, timer-free VSync 3-Beat unpin pipeline & `PendingRemovalLauncher` deduplication (`v0.7.0` / `11.8`)
 
-### 6. Process Lifecycle, IPC Bridges & Architectural Purge (18 Bugs)
+### 6. Process Lifecycle, IPC Bridges & Architectural Purge (21 Bugs)
 - Purge of 112,000+ lines of obsolete X11 Autotools & VAPIs (`v0.1.0` – `v0.3.0`)
 - Purge of dynamic shared-library docklet plugins (`v0.4.0` / `4.5`)
 - CLI `--replace` / `-r` flag registration & clean `killall` (`v0.4.2` & `v0.5.1`)
@@ -166,6 +172,9 @@
 - KWin preview cards first-hover zero-alpha & autostart `ScreenShot2` authorization (`v0.6.2.3` / `12.6`)
 - GNOME Shell extension error-latch recovery, floating dock concealment & unaccelerated `/proc` throttle (`v0.6.2.3` / `0.3`)
 - GNOME Mutter D-Bus window position recursive loop elimination (`v0.6.2.3` / `2.15` & `0.3`)
+- Cross-compositor instantaneous startup (`GTK_USE_PORTAL=0` / `NameHasOwner` portal decoupling, background `kscreen-doctor` probing, KWin single-load owner guard, Labwc native `autostart` sync), `SIGTERM` clean shutdown handshake & `LC_ALL=C` audio volume locale fix (`v0.7.0` / `0.1` & `0.3`)
+- Screen lock/unlock, idle & DPMS sleep/wake dock self-healing (`_lastDockGeo` Mutter deadlock break, `bridge_reconnected`, `login1.Session.Unlock`, `dock_unmapped` recovery) & `SIGWINCH` live `.deb` upgrade reload (`v0.7.0` / `9.9` & `9.10`, Issue #18)
+- Cross-compositor internal popup window-event filtering, multi-size `SurfaceCache` & 50ms VSync motion hold for 60 FPS hover at `0.1%` idle CPU (`v0.7.0` / `0.1` & `0.3`)
 
 ---
 
@@ -181,3 +190,4 @@
 8. [`FAT/2026-10-17 FAT 0.6.2.1.txt`](2026-10-17%20FAT%200.6.2.1.txt) — Covers `v0.6.2.1` (282 tests, 16 bugs squashed, 100% compliant Gold Standard)
 9. [`FAT/2026-10-20 FAT 0.6.2.2.txt`](2026-10-20%20FAT%200.6.2.2.txt) — Covers `v0.6.2.2` (306 tests, Round 2 completed, 100% compliant, 0 pending, Gold Standard)
 10. [`FAT/2026-11-01 FAT 0.6.2.3.txt`](2026-11-01%20FAT%200.6.2.3.txt) — Covers `v0.6.2.3` (370 tests, Round 3: Window Cards, Dynamic System Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity, Native Peer Stacking, 4-Position System Menu Access, Do Not Disturb Docklet, 7×2 Balanced Preferences Grid, KDE Plasma 6 Multi-Monitor Floating Panel Tracking, Layer-Shell Input Passthrough, Fullscreen Auto-Hide & `0px` Edge Passthrough [Issue #10], Reserve Screen Space / Panel Mode [Issue #9], Show Desktop Persistence [Issue #13], Workspace Switch Visibility [Issue #11], Cold-Start Fractional Scaling [Issue #5], & Multi-VM Instance Tracking with Garbage Collection [Issue #14] on GNOME, KDE Plasma, Labwc)
+11. [`FAT/2026-11-04 FAT 0.7.0.txt`](2026-11-04%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1: 379 tests defined, 377/377 applicable passed: 354 `[ok]` baseline + 23 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 open defects — 100% compliant)

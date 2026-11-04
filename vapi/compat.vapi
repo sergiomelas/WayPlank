@@ -52,6 +52,13 @@ namespace PlankCompat
 	// Conditional compat-layer for Gtk+ 3.19.1+
 	public void gtk_widget_class_set_css_name (GLib.ObjectClass widget_class, string name);
 	public void gtk_widget_path_iter_set_object_name (Gtk.WidgetPath path, int pos, string? name);
+
+	[CCode (cname = "wayplank_i18n_init")]
+	public void i18n_init ();
+	[CCode (cname = "wayplank_i18n_get")]
+	public unowned string i18n_get (string msgid);
+	[CCode (cname = "wayplank_i18n_translate_widget")]
+	public void i18n_translate_widget (Gtk.Widget widget);
 }
 
 

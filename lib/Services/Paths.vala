@@ -119,8 +119,26 @@ namespace Plank
 			CacheHomeFolder = File.new_for_path (Environment.get_user_cache_dir ());
 			
 			var dirs = new Gee.ArrayList<File> ();
-			foreach (unowned string path in Environment.get_system_data_dirs ())
-				dirs.add (File.new_for_path (path));
+			var seen_dir_paths = new Gee.HashSet<string> ();
+			foreach (unowned string path in Environment.get_system_data_dirs ()) {
+				var clean = Path.build_filename (path);
+				if (!seen_dir_paths.contains (clean)) {
+					seen_dir_paths.add (clean);
+					dirs.add (File.new_for_path (path));
+				}
+			}
+			string[] extra_xdg_dirs = {
+				"/var/lib/snapd/desktop",
+				"/var/lib/flatpak/exports/share",
+				Path.build_filename (Environment.get_user_data_dir (), "flatpak", "exports", "share")
+			};
+			foreach (unowned string extra in extra_xdg_dirs) {
+				var clean = Path.build_filename (extra);
+				if (!seen_dir_paths.contains (clean) && FileUtils.test (extra, FileTest.IS_DIR)) {
+					seen_dir_paths.add (clean);
+					dirs.add (File.new_for_path (extra));
+				}
+			}
 			DataDirFolders = dirs;
 			
 			

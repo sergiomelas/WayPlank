@@ -168,6 +168,11 @@ namespace Plank
 			update_size_and_position ();
 		}
 
+		bool excl_initialized = false;
+		bool last_excl_reserve = false;
+		int last_excl_thickness = -1;
+		Gtk.PositionType last_excl_pos = Gtk.PositionType.BOTTOM;
+
 		void update_exclusive_zone ()
 		{
 			bool reserve = controller.prefs.ReserveSpace && controller.prefs.HideMode == HideType.NONE && !controller.prefs.ZoomEnabled;
@@ -175,6 +180,19 @@ namespace Plank
 
 			if (reserve && thickness <= 0)
 				return;
+
+			int eff_thickness = reserve ? thickness : 0;
+			var pos = controller.prefs.Position;
+			if (excl_initialized
+				&& reserve == last_excl_reserve
+				&& eff_thickness == last_excl_thickness
+				&& pos == last_excl_pos) {
+				return;
+			}
+			excl_initialized = true;
+			last_excl_reserve = reserve;
+			last_excl_thickness = eff_thickness;
+			last_excl_pos = pos;
 
 			if (GtkLayerShell.is_supported ()) {
 				if (reserve) {
@@ -186,7 +204,7 @@ namespace Plank
 				}
 			}
 
-			WindowControl.set_reserve_space (reserve, thickness, controller.prefs.Position);
+			WindowControl.set_reserve_space (reserve, thickness, pos);
 		}
 
 		public void cancel_long_press ()
@@ -405,7 +423,7 @@ namespace Plank
 				var button = PopupButton.from_event_button (event);
 
 				if (button == PopupButton.LEFT && controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-					if (!controller.app_provider.docklets_expanded && controller.app_provider.get_docklet_count () > 1 && DefaultApplicationDockItemProvider.is_docklet_element (ClickedItem)) {
+					if (!controller.app_provider.docklets_expanded && controller.app_provider.get_docklet_count () > 1 && controller.app_provider.is_accordion_docklet (ClickedItem)) {
 						controller.app_provider.expand_docklets ();
 						ClickedItem = null;
 						return Gdk.EVENT_STOP;
@@ -507,7 +525,7 @@ namespace Plank
 			bool found_docklet = false;
 
 			foreach (var item in controller.VisibleItems) {
-				if (DefaultApplicationDockItemProvider.is_docklet_element (item)) {
+				if (controller.app_provider.is_accordion_docklet (item)) {
 					var rect = pm.get_hover_region_for_element (item);
 					if (pm.is_horizontal_dock ()) {
 						min_coord = int.min (min_coord, rect.x);
@@ -536,7 +554,7 @@ namespace Plank
 
 		public bool is_hovering_docklets (int x, int y)
 		{
-			if (HoveredItem != null && DefaultApplicationDockItemProvider.is_docklet_element (HoveredItem))
+			if (HoveredItem != null && controller.app_provider != null && controller.app_provider.is_accordion_docklet (HoveredItem))
 				return true;
 			return is_in_docklet_zone (x, y);
 		}
@@ -739,13 +757,8 @@ namespace Plank
 		 * {@inheritDoc}
 		 */
 		public override bool draw (Cairo.Context cr)
-		{   
-			int64 frame_time = 0;
-			var frame_clock = get_frame_clock ();
-			if (frame_clock != null)
-				frame_time = frame_clock.get_frame_time ();
-
-			controller.renderer.draw (cr, frame_time);
+		{
+			controller.renderer.draw (cr, controller.renderer.frame_time);
 
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.update_position ();

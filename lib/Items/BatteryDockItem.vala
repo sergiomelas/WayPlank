@@ -122,9 +122,16 @@ namespace Plank
 				try {
 					if (FileUtils.get_contents (Path.build_filename (bat_dir_path, "status"), out stat_str)) {
 						string s = stat_str.strip ();
-						status_desc = s;
 						is_charging = (s == "Charging");
 						is_full = (s == "Full");
+						if (s == "Discharging")
+							status_desc = _("Discharging");
+						else if (s == "Not charging")
+							status_desc = _("Not charging");
+						else if (s == "Unknown")
+							status_desc = _("Unknown");
+						else
+							status_desc = s;
 					}
 				} catch (Error e) { }
 			} else {
@@ -132,7 +139,7 @@ namespace Plank
 				percentage = 100;
 				is_charging = false;
 				is_full = true;
-				status_desc = "AC Power";
+				status_desc = _("AC Power");
 			}
 
 			if (is_charging) {
@@ -175,7 +182,6 @@ namespace Plank
 		bool on_timer_tick ()
 		{
 			refresh_battery_status ();
-			reset_icon_buffer ();
 			return true;
 		}
 		

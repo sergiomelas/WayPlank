@@ -5,17 +5,34 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Current Live Release: v0.6.2.3 (Round 3)](https://img.shields.io/badge/Live_on_GitHub-v0.6.2.3_(Round_3)-brightgreen.svg)](Changelogs/CHANGELOG_v0.6.2.md)
-> [![Next Release: Public Beta v0.7.0 (Week 45 - Nov 2, 2026)](https://img.shields.io/badge/Next_Release-Public_Beta_v0.7.0_(Week_45)-orange.svg)](README.md)
-> [![FAT: Multi-Compositor Validation (370 Points)](https://img.shields.io/badge/FAT_Status-370_Points_%7C_0_Open_Defects-brightgreen.svg)](FAT/2026-11-01%20FAT%200.6.2.3.txt)
+> [![Current Live Release: v0.7.0 (Public Beta 1)](https://img.shields.io/badge/Live_on_GitHub-v0.7.0_%28Public_Beta_1%29-brightgreen.svg)](Changelogs/CHANGELOG_v0.7.0.md)
+> [![Next Release: v0.7.1 (Public Beta 2)](https://img.shields.io/badge/Next_Release-v0.7.1_%28Public_Beta_2%29-orange.svg)](README.md)
+> [![FAT: 100% Passed (377/377)](https://img.shields.io/badge/FAT_Status-100%25_PASS_%28377%2F377%29_%7C_379_Points-brightgreen.svg)](FAT/2026-11-04%20FAT%200.7.0.txt)
+> [![Localization: 8 Languages (100% In-RAM)](https://img.shields.io/badge/Localization-8_Languages_%28487%2F487_In--RAM%29-blueviolet.svg)](po/README.md)
+> [![Architecture: 100% Monolithic Single Binary](https://img.shields.io/badge/Architecture-Single_Binary_%7C_Zero_Host_Pollution-informational.svg)](README.md)
 
-![Wayplank Release Banner](Release%20Pic.png)
+![Wayplank Release Banner](Beta%20Release%20Pic%20-%20github.png)
+
+> *📌 **Hotfix Update Note (`2026-11-04`):** While the release banner and package identifiers remain `v0.7.0`, an urgent  hotfix update was issued to squash critical post-launch regressions ([#16](https://github.com/sergiomelas/WayPlank/issues/16), [#17](https://github.com/sergiomelas/WayPlank/issues/17), [#18](https://github.com/sergiomelas/WayPlank/issues/18), and hover smoothness) and graduate the **Icons Visual Effects** animation suite — **100% FAT qualified (`377/377` applicable passed)**.*
+
+> [!TIP]
+> ## 🎉 WAYPLANK `v0.7.0` — PUBLIC BETA 1 IS OFFICIALLY LIVE!
+> **The Alpha & Pre-Beta Engineering Era (`v0.1.0` $\longrightarrow$ `v0.6.2.3`) is permanently CLOSED, and the Public Beta Era begins today!**
+>
+> Across **16 consecutive milestone releases**, over **112,000 lines of legacy X11/Autotools code** have been purged, **115 unique functional & architectural bugs** have been squashed across **2,416 formal ISA-88 test definitions**, and all **`377 / 377` applicable FAT validation points (`379` defined: `354 [ok]` baseline + `23 [ko->ok]` squashed, `2 [NA]`, `0` open `[ko]` defects)** have achieved a **100% PASS** rate across **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)**:
+> - 🌍 **100% Automatic Monolithic In-Memory Localization Engine (`GResource`)**: **8 languages** compiled directly into the executable's RAM (**Simplified Chinese `zh_CN`**, **Italian `it`**, **Spanish `es`**, **French `fr`**, **Catalan `ca`**, **German `de`**, **Ukrainian `uk`**, and native **English `en`** — **`487 / 487` strings each**) with automatic OS locale detection and **zero files installed in `/usr/share/locale/`**.
+> - 🎛️ **Configurable Category & Docklet Layout Engine (`Apps & Layout`)**: Place the **Docklets** group on the right immediately before the Trash in **System Tray style (`Docklets on Right`, default)** or on the left after Folders, with symmetric outer-edge Accordion collapsing (collapsing right when on the right, left when on the left), pair **WayPlank Always Left** (fixed far-left anchor with its own separator) alongside **Show Trash** (far-right anchor), and one-click **Align by Type** in Free Mode while preserving 100% seamless drag-to-pin/unpin across `[Pinned Apps] | [Unpinned Apps]`.
+> - 🏛️ **Pure Single-Binary Monolithic Architecture**: **16 built-in docklets**, **6 dock themes**, **52 vector icons**, the **self-deploying GNOME Shell companion bridge (`version: 4`)**, the **KWin D-Bus ECMAScript bridge**, and **all 8 language catalogs** reside inside a single standalone `wayplank` binary.
+> - 🖥️ **Tier-1 Multi-Compositor Parity & Native Packages**: Out-of-the-box runtime auto-detection across **KWin**, **Mutter**, and **Labwc**, shipped with automated **Debian/Ubuntu (`.deb`)** and **openSUSE/Fedora/RHEL (`.rpm`)** native builders!
+> - 🗣️ **Community-Driven Public Beta (`v0.7.x` Open Through Up to Dec 31, 2026)**: The `v0.7.x` Public Beta series (`v0.7.1` Beta 2, `v0.7.2` Beta 3, ...) remains actively open until the community says we are ready for the `v0.8.x` feature freeze (with an upper deadline of **December 31, 2026**). **Tell us what features, workflows, and languages you want to see in WayPlank** via [GitHub Issues](https://github.com/sergiomelas/WayPlank/issues) and [Discussions](https://github.com/sergiomelas/WayPlank/discussions)!
+
+---
 
 > [!IMPORTANT]
 > ### 📅 Master Release Roadmap & Milestone Schedule
-> - 🏛️ **v0.6.2.3 (Final Pre-Beta — Official Closure of the Alpha & Pre-Beta Era)**: Officially live on GitHub with **100% PASS** multi-compositor FAT qualification across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots) (370 test points defined, 368/368 applicable passed: 324 `[ok]` baseline + 44 `[ko->ok]` squashed, 0 open defects, 2 NA). With this release, the foundational Alpha & Pre-Beta cycle (`v0.1.0` $\rightarrow$ `v0.6.2.3`, 15 releases, 107 squashed bugs) is **permanently closed**, paving the way for the **Public Beta (`v0.7.0`)**!
-> - **v0.7.x (Public Beta — Week 45: Monday, Nov 2, 2026)**: Monolithic embedded localization engine (in-memory GResource), community testing, and bug squashing.
-> - **v0.8.x (Release Candidate — RC Series)**: Strict feature freeze, memory leak profiling, distribution packaging hardening (.deb, .rpm, AUR), and preliminary native Windows preview ([WinPlank](Documentation/WINPLANK_PORT_BATTLE_PLAN.md)).
+> - 🚀 **v0.7.0 (Public Beta 1 — Current Live GitHub Release & Hotfix Consolidation)**: Officially live on GitHub with **100% multi-compositor FAT qualification** across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots) (`379` test points defined, `377/377` applicable passed: `354 [ok]` baseline + `23 [ko->ok]` squashed, `0` open `[ko]` defects, `2` `[NA]`), featuring the **100% Monolithic Embedded Localization Engine (`GResource`, 7 languages + English, `487/487` strings, Zero Host Pollution)**, the **Configurable Category & Docklet Layout Engine (`Apps & Layout` — `Docklets on Right` System Tray layout & `WayPlank Always Left` anchor)**, **Icons Visual Effects** (`300–1500 ms` `Effect Duration`), and GNOME Shell Bridge `version: 4`!
+> - 🔄 **v0.7.x (Active Public Beta Series — `v0.7.1` Beta 2, `v0.7.2` Beta 3, ... | Community-Driven Window up to Dec 31, 2026)**: Active multi-week Public Beta cycle dedicated to community feature requests, iterative bug fixing, new language localizations, UX refinements, community PR integrations, and preliminary native Windows preview ([WinPlank](Documentation/WINPLANK_PORT_BATTLE_PLAN.md))—remaining open until the community says we are ready for the `v0.8.x` freeze (hard cap: **December 31, 2026**).
+> - **v0.8.x (Release Candidate — RC Series)**: Following the completion of the `v0.7.x` Public Beta cycle, strict feature freeze, memory leak profiling, and distribution packaging hardening (.deb, .rpm, AUR).
 > - **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distros and Windows 10, 11+.
 > - **v1.0.0 (The Grand Milestone — ~2-Year Horizon)**: The long-term landmark celebrating proven stability and next-gen Wayland protocol standards.
 
@@ -28,22 +45,21 @@
 > Through **Monday, November 16, 2026 (Weeks 45–46)**, WayPlank enters a **2-week maintainer freeze & community testing runway** while the author focuses on upstream Linux kernel maintainer review cycles for the `yogafan` driver series in [**`sergiomelas/lenovo-linux-drivers`**](https://github.com/sergiomelas/lenovo-linux-drivers):
 > 
 > - 🛑 **Maintainer Issue Processing Paused Until Nov 16:** Issues and feature requests opened after the October 30 midnight deadline remain welcome in the tracker, but **will not be actively worked on by the maintainer until November 16, 2026**, with the **sole exception of critical disaster-recovery hotfixes** (e.g., startup crashes or severe blocker regressions).
+> - 🚑 **First Emergency Hotfix Batch (`v0.7.0` Hotfix — Verified 100% PASS `[ko->ok]` on `2026-11-04`):** Resolved critical post-launch regressions across all 3 compositors: automatic dock surface & anchor self-healing after screen lock/unlock, idle, and DPMS monitor sleep/wake plus seamless `SIGWINCH` live reload upon `.deb` upgrades ([#18](https://github.com/sergiomelas/WayPlank/issues/18)), clickable edge-triggered SR Flip-Flop between `Reserve Screen Space`, `Hide Dock`, and `Icon Zoom` across GUI and `gsettings` ([#17](https://github.com/sergiomelas/WayPlank/issues/17)), CLI-launched GUI & AppImage window monitoring with zero-hardcoding dialog masking and Labwc main-PID scoring ([#16](https://github.com/sergiomelas/WayPlank/issues/16)), `.sh` profile wrapper (`116 >= 115`), `NoDisplay=true` Chrome PWA ↔ `--app=URL`, and sibling binary (`VS Code`, `MATLAB`, `Scilab`) co-matching & isolation, direct folder/launcher drag-and-drop onto both the dock `[Folders]` zone and open folder popups, VSync 3-Beat unpin pipeline (`SurfaceCoordinateService`), 60 FPS hover popup-event filtering & multi-size `SurfaceCache` (`0.1%` idle CPU), and graduation of **Icons Visual Effects** (`300–1500 ms` `Effect Duration`) to **Preferences → Behaviour**.
 > - 🤝 **Door Wide Open for Community Contributors:** Community developers and translators are **warmly encouraged to step in**, investigate open issues, and submit Pull Requests or translation updates at any time (following our HAL & FAT qualification guidelines in [`CONTRIBUTING.md`](CONTRIBUTING.md))!
-> - 🚀 **v0.8.x Resumption (Nov 16):** Full maintainer triage, PR merges, and active feature development will resume on **November 16, 2026** for the **v0.8.x Multi-Platform Sprint**!
+> - 🚀 **v0.7.x Public Beta Cycle Resumption (Nov 16 — `v0.7.1` Public Beta 2 & Beyond, up to Dec 31, 2026):** Full maintainer triage, PR merges, community translation integrations, and active Beta feature development will resume on **November 16, 2026** for the ongoing **`v0.7.x` Public Beta Series (`v0.7.1` Beta 2, `v0.7.2` Beta 3, etc.)**. **The Beta will remain actively open until the community says we are ready for the `v0.8.x` feature freeze (with a final deadline of December 31, 2026)—I genuinely want you to tell me what features, workflows, and improvements you want in WayPlank!**
 
 ---
 
 > [!TIP]
-> ### 🌍 Call for Translators — Help Localize WayPlank for Public Beta (v0.7.0)!
-> In preparation for the Public Beta, all translations are maintained in a clean, self-contained Python generator script: [`po/generate_translations.py`](po/generate_translations.py).
-> Complete 100% string coverage already exists for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, **Catalan (`ca`)**, **German (`de`)**, and **Ukrainian (`uk`)**.
+> ### 🌍 Call for Translators — Help Localize WayPlank (`v0.7.x` Public Beta Series)!
+> All WayPlank translations are maintained in a clean, self-contained Python generator script: [`po/generate_translations.py`](po/generate_translations.py).
+> Complete 100% string coverage (`487/487` strings) is shipped in **Public Beta 1 (`v0.7.0`)** for **Simplified Chinese (`zh_CN`)**, **Italian (`it`)**, **Spanish (`es`)**, **French (`fr`)**, **Catalan (`ca`)**, **German (`de`)**, and **Ukrainian (`uk`)** (plus native **English (`en`)**).
 >
 > **Want to add your language (e.g. Portuguese, Polish, Japanese, etc.) or contribute?**
-> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 326 strings are stored in a simple, structured Python dictionary.
+> 1. Open [`po/generate_translations.py`](po/generate_translations.py), where all 487 strings are stored in a simple, structured Python dictionary.
 > 2. Add or update your language entries directly in the dictionary (much cleaner and easier to manage than raw `.po` files!).
-> 3. Submit your updated `generate_translations.py` by opening a [GitHub Issue](https://github.com/sergiomelas/WayPlank/issues)!
->
-> ⏰ **Submission Window**: All languages received via GitHub Issues before the end of next week (**Sunday, November 1, 2026 — Week 44**) will be officially integrated into the Public Beta (v0.7.0) release!
+> 3. Submit your updated `generate_translations.py` by opening a [GitHub Issue](https://github.com/sergiomelas/WayPlank/issues) or Pull Request for inclusion in upcoming `v0.7.x` / `v0.8.x` releases!
 
 ---
 
@@ -55,11 +71,11 @@ I get why it might look like slop at first glance, but this is done with profess
 
 AI is fantastic for rapid prototyping and bringing boilerplate up fast, but this isn't just 'vibe coding'; it's heavily human-reviewed, debugged, and architected for real stability across KWin, Labwc, and Mutter. It’s a robust, hobbyist-driven, native Wayland solution. All compositor features, window previews, and theming integrations are verified with total engineering transparency. Take it or leave it, enjoy the code!
 
-Starting from v0.4.3, Wayplank includes a native Hardware Abstraction Layer (HAL) working out of the box with **KWin (KDE Plasma)**, **Labwc (wlroots)**, and **GNOME Shell (Mutter)**. It auto-detects your compositor at startup without messy configs. 
+With **Public Beta 1 (`v0.7.0`)**, WayPlank ships a mature, battle-tested Hardware Abstraction Layer (HAL) working out of the box on **KDE Plasma 6 (KWin)**, **GNOME Shell (Mutter)**, and **Labwc (wlroots)**—auto-detecting your compositor at startup with zero messy configuration, complete with live Cairo window preview cards, smart multi-zone app drawers, configurable docklet positioning (left or right System Tray style via `Docklets on Right` and `WayPlank Always Left` in `Apps & Layout`), 16 monolithic docklets, 8-language in-RAM localization, real-time dark/light theme switching, fullscreen inhibit, and panel mode. 
 
 ## 🤝 Acknowledgments & Contributors
 
-WayPlank is proudly developed with and for the Linux Wayland community. A huge thank you to our 400+ users, issue reporters, and translators whose real-world feedback has helped squash 107 bugs across 370 validation points!
+WayPlank is proudly developed with and for the Linux Wayland community. A huge thank you to our 400+ users, issue reporters, and translators whose real-world feedback has helped squash 115 bugs across 379 validation points (100% FAT pass rate)!
 
 * **史有虎 (IFtiger-hu)** ([@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub)): Author of the WayPlank community fork, contributor of native openSUSE/Fedora/RHEL RPM packaging (`BuildRpm.sh`), dock overflow smooth scrolling architecture, and launcher deduplication engine.
 
@@ -74,7 +90,7 @@ All community feature ideas, issue reporters, and translation authors are active
 * 📚 [User Guide & Reference Manual](Documentation/USER_GUIDE.md)
 * 🤝 [Contributing Guidelines & Community Tracks](CONTRIBUTING.md)
 * 🌍 [Monolithic Localization & i18n Guide](po/README.md)
-* 🖥️ [Compositors & Nested Desktops Cheatsheet](WAYPLANK_COMPOSITORS_CHEATSHEET.md)
+* 🖥️ [Compositors & Nested Desktops Cheatsheet](FAT/Test%20Files/WAYPLANK_COMPOSITORS_CHEATSHEET.md)
 * 🗺️ [v0.6.2 Fork Integration Roadmap](Documentation/WAYPLANK_V062_FORK_INTEGRATION_ROADMAP.md)
 * 📖 [Technical migration report](Documentation/wayplank_x11_to_wayland_report_en.md)
 * 🛡️ [Lifetime Master Bug & Defect Register](FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
@@ -98,7 +114,7 @@ Feel free to star the repo or follow releases if you want to track progress!
 
 ---
 
-> 🌟 **Compositor Qualification Status:** On KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots), all 370 FAT validation points are verified **100% PASS (368/368 applicable passed, 0 pending, 0 open `[ko]` defects)** under the formal ISA-88 qualification protocol, including Fullscreen Inhibit & 0px Edge Click Passthrough (Issue #10), Reserve Screen Space / Panel Mode (Issue #9), Show Desktop persistence (Issue #13), Workspace Switch visibility on Labwc/Mutter (Issue #11), Cold-Start HiDPI Fractional Scaling (Issue #5), and Multi-VM Exec-less template synthesis with automatic garbage collection (Issue #14). Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
+> 🌟 **Compositor Qualification Status:** On KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots), all 377/377 applicable FAT validation points (`379` defined: `354 [ok]` baseline + `23 [ko->ok]` squashed, `2 [NA]`, `0` pending `[  ]`, `0` open `[ko]` defects — **100% PASS**) are verified under the formal ISA-88 qualification protocol, including Fullscreen Inhibit & 0px Edge Click Passthrough (Issue #10), Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17), Show Desktop persistence (Issue #13), Workspace Switch visibility on Labwc/Mutter (Issue #11), Cold-Start HiDPI Fractional Scaling (Issue #5), CLI GUI / Multi-VM monitoring & zero-hardcoding dialog masking (Issues #14, #16), Screen Lock / DPMS self-healing (Issue #18), and Monolithic In-Memory Multi-Language Live Switching. Every validation point is documented with total engineering transparency in [`FAT/`](FAT/).
 
 ---
 
@@ -121,6 +137,15 @@ Feel free to star the repo or follow releases if you want to track progress!
 <br>
 
 ![Wayplank Full Desktop](Screenshots/3.png)
+
+</details>
+
+<details>
+<summary><b>🌍 Click to view native multi-language localization showcase (Simplified Chinese — zh_CN)</b></summary>
+
+<br>
+
+![WayPlank Multi-Language Localization Showcase](Screenshots/4.png)
 
 </details>
 
@@ -185,7 +210,7 @@ The resulting standalone binary is generated in `build/wayplank`.
 
 ### Option B: Manual Step-by-Step Compilation
 
-If you prefer building manually in your terminal:
+If you prefer building manually in your terminal *(note: `./BuildBin.sh` in Option A is recommended as it also automatically compiles and embeds all `po/*.po` localization catalogs into RAM via `GResource`)*:
 
 ```bash
 # Step 1: Compile embedded GLib resources
@@ -200,6 +225,7 @@ valac -g \
     --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config --pkg wlr-bridge \
     -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
+    -X -include -X include/config.h \
     -X -Ilib -X -Ilib/Protocols -X -Ilib/Services -X -Iinclude -X -w -X -lm -X -lwayland-client \
     $(find lib src -name "*.vala") \
     lib/resources.c \
@@ -240,9 +266,9 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.6.2.3_amd64.deb
+sudo apt install ./build/wayplank_0.7.0_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.6.2.3_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.7.0_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -256,13 +282,13 @@ chmod +x BuildRpm.sh
 ./BuildRpm.sh
 
 # Install on openSUSE with zypper:
-sudo zypper install ./build/wayplank-0.6.2.3-1.x86_64.rpm
+sudo zypper install ./build/wayplank-0.7.0-1.x86_64.rpm
 
 # Or install on Fedora/RHEL with dnf:
-sudo dnf install ./build/wayplank-0.6.2.3-1.x86_64.rpm
+sudo dnf install ./build/wayplank-0.7.0-1.x86_64.rpm
 
 # Or install via rpm directly:
-sudo rpm -Uvh ./build/wayplank-0.6.2.3-1.x86_64.rpm
+sudo rpm -Uvh ./build/wayplank-0.7.0-1.x86_64.rpm
 ```
 
 > 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).
@@ -340,16 +366,18 @@ wayplank -d
   - [x] Multi-distribution packaging parity (Debian `.deb` & openSUSE/Fedora `.rpm`).
   - [x] Incorporate community user contributions, bug reports, and UX requests ahead of Public Beta.
 
-- [ ] Phase 7 (Upcoming) WayPlank Public Beta (v0.7.x)
-  - [ ] **Week 45 (Monday, November 2, 2026): Official Launch of Public Beta (v0.7.0) on GitHub!**
-  - [ ] Monolithic embedded gettext localization engine (`GResource`) with 100% in-memory string resolution.
-  - [ ] Downstream collaborator synchronization & community testing buffer throughout Week 44.
-  - [ ] Broaden community testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
+- [x] Phase 7 (Active — Public Beta 1 Launched) WayPlank Public Beta (v0.7.x)
+  - [x] **Official Launch of Public Beta 1 (v0.7.0) on GitHub!**
+  - [x] Monolithic embedded gettext localization engine (`GResource`) with 100% in-memory string resolution (`487/487` strings across 7 languages + English, Zero Host Pollution).
+  - [x] Configurable Category & Docklet Layout Engine (`Apps & Layout` tab): two-position Docklets (`Docklets on Right` System Tray layout vs. Default Left), symmetric `WayPlank Always Left` & `Show Trash` edge anchors, and one-click `Align by Type` in Free Mode.
+  - [x] Consolidated ISA-88 Phase B FAT baseline across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots) (`379` points defined, `377/377` applicable passed: `354 [ok]` + `23 [ko->ok]`, `2 [NA]`, `0` open `[ko]` defects — **100% PASS**).
+  - [ ] Iterative `v0.7.x` Public Beta releases (`v0.7.1` Public Beta 2, `v0.7.2`, etc.) integrating community feature requests, new language catalogs, and UX refinements until the community signals readiness for the `v0.8.x` freeze (hard cap: December 31, 2026).
+  - [ ] Broaden community field testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
+  - [ ] Preliminary native standalone Windows preview ([WinPlank](Documentation/WINPLANK_PORT_BATTLE_PLAN.md)).
 - [ ] Phase 8 (Planned) WayPlank Release Candidate (v0.8.x)
   - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.
   - [ ] Systematic memory leak profiling (Valgrind / AddressSanitizer) and CPU efficiency audits.
   - [ ] Distribution packaging parity: official Debian (.deb), Fedora/openSUSE (.rpm), and Arch Linux AUR PKGBUILD.
-  - [ ] Preliminary native standalone Windows preview ([WinPlank](Documentation/WINPLANK_PORT_BATTLE_PLAN.md)).
 - [ ] Phase 9 (Planned) WayPlank Long-Term Production Stabilization (v0.9.x)
   - [ ] The official daily driver production milestone, rock-solid across all major Linux compositors (KWin, Mutter, Labwc) and native Windows 10/11+.
   - [ ] Production maintenance releases (`v0.9.1`, `v0.9.2`, etc.) as Wayland protocols and driver stacks evolve.
@@ -359,13 +387,15 @@ wayplank -d
 
 # 📝 Release Highlights & Changelog
 
-> 🏛️ **HISTORIC MILESTONE CLOSURE — END OF THE ALPHA & PRE-BETA ERA (`v0.1.0` $\longrightarrow$ `v0.6.2.3`):**  
-> With the final qualification and sign-off of **`v0.6.2.3`** on **November 1, 2026**, the foundational **Alpha & Pre-Beta Engineering Cycle** of WayPlank is officially and permanently **CLOSED**. Across **15 consecutive releases** in 43 days, over **112,000 lines of legacy X11/Autotools code** were purged, a **3-compositor native Wayland HAL** (**KDE Plasma 6 / KWin**, **GNOME Shell / Mutter**, and **Labwc / wlroots**) was built from the ground up, **107 unique functional & architectural bugs** were squashed across **2,037 formal ISA-88 test executions**, and all **368/368 applicable FAT validation points** achieved a **100% PASS** rate with **0 open defects**. WayPlank now officially graduates into the **Public Beta Era (`v0.7.0`)**! 🚀
+> 🏛️ **HISTORIC MILESTONE CLOSURE — END OF THE ALPHA & PRE-BETA ERA (`v0.1.0` $\longrightarrow$ `v0.6.2.3`) & LAUNCH OF PUBLIC BETA 1 (`v0.7.0`):**  
+> Following the final qualification and sign-off of **`v0.6.2.3`** on **November 1, 2026**, the foundational **Alpha & Pre-Beta Engineering Cycle** of WayPlank is permanently **CLOSED**. Across **15 consecutive releases** in 43 days, over **112,000 lines of legacy X11/Autotools code** were purged, a **3-compositor native Wayland HAL** (**KDE Plasma 6 / KWin**, **GNOME Shell / Mutter**, and **Labwc / wlroots**) was built from the ground up, **107 unique functional & architectural bugs** were squashed across **2,037+ formal ISA-88 test executions**, and all **368/368 applicable FAT validation points** achieved a **100% PASS** rate with **0 open defects**. WayPlank now officially stands in the **Public Beta Era (`v0.7.0` — Public Beta 1)**! 🚀
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
-* 🚀 **v0.6.2.3 (Community & Visual Enhancements) — Current Live GitHub Release (2026-11-01) [COMPLETED / 100% FAT PASSED]**:  
-  Universal Cairo multi-window preview cards with live thumbnails on KWin and GNOME Mutter, real-time light/dark theme switching, built-in Do Not Disturb docklet, configurable System Menu Access, Panel Mode (`ReserveSpace`), Fullscreen Inhibit with 0px edge click passthrough (Issue #10), two-stage hysteresis input mask (`AnticipateZoom`, Issue #12), QEMU multi-VM isolation with Labwc `/proc` cold-relaunch synthesis (Issue #14), dynamic top panel avoidance, folder launcher indicators, and recent files jump lists. Directly paves the way for the **Public Beta (v0.7.0)** launching in Week 45 (Monday, November 2, 2026)!
+* 🚀 **v0.7.0 (Public Beta 1: Monolithic Embedded Localization, Category & Docklet Layout Engine & Hotfix Consolidation) — 2026-11-04 [COMPLETED / 100% FAT PASSED]**:  
+  Activates the 100% Monolithic Embedded Localization Engine (`GResource` in RAM, 7 complete language catalogs `zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk` at `487/487` strings + native `en`, `0` files in `/usr/share/locale/`), introduces the **Category & Docklet Layout Engine** in **Preferences $\rightarrow$ Apps & Layout** (`Docklets on Right` System Tray layout, symmetric `WayPlank Always Left` & `Show Trash` edge anchors, and `Align by Type` in Free Mode), graduates the **26-style Icons Visual Effects suite** (`Launch Effect`, `Focused App`, `Unpin Effect` + `300–1500 ms` `Effect Duration`) to **Preferences $\rightarrow$ Behaviour**, expands the **Session & Power** docklet to a **3×3 control center** (`Hibernate`, `Hybrid Sleep`, and `UEFI / BIOS` with automatic `systemd-logind` capability detection), upgrades the GNOME Shell companion extension to `version: 4`, resolves Issues **#16, #17, and #18** plus `.sh` profile wrapper (`116 >= 115`), `NoDisplay=true` PWA ↔ `--app=URL`, sibling binary (`VS Code`, `MATLAB`, `Scilab`) parity, folder/open-drawer drag-and-drop, Labwc `"Unknown" -> "Monitor"` display label normalization, 60 FPS hover popup-event filtering (`0.1%` idle CPU), and `SIGWINCH` live `.deb` upgrade reload, and passes **100% of applicable FAT test points (`377/377` passed: `354 [ok]` + `23 [ko->ok]`, `2 [NA]`, `0` open `[ko]`)** across KDE Plasma 6 (KWin), GNOME Shell (Mutter), and Labwc (wlroots).
+* 🌟 **v0.6.2.3 (Final Pre-Beta: Community & Visual Enhancements) — 2026-11-01 [COMPLETED / 100% FAT PASSED]**:  
+  Universal Cairo multi-window preview cards with live thumbnails on KWin and GNOME Mutter, real-time light/dark theme switching, built-in Do Not Disturb docklet, configurable System Menu Access, Panel Mode (`ReserveSpace`), Fullscreen Inhibit with 0px edge click passthrough (Issue #10), two-stage hysteresis input mask (`AnticipateZoom`, Issue #12), QEMU multi-VM isolation with Labwc `/proc` cold-relaunch synthesis (Issue #14), dynamic top panel avoidance, folder launcher indicators, and recent files jump lists. Permanently closed the Alpha & Pre-Beta cycle!
 * 🌟 **v0.6.2.2 (Round 2, Pre-Beta) — 2026-10-21 [COMPLETED / 100% FAT PASSED]**:  
   Remote web URL & browser shortcut DND delivery (`DesktopAppInfo.launch_uris`), hover-to-raise target window activation,  
   real-time dark/light portal color-scheme synchronization (`org.freedesktop.portal.Settings`), interactive Theme Manager  

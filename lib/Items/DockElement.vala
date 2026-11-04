@@ -35,10 +35,18 @@ namespace Plank
 		 */
 		public DockContainer? Container { get; set; default = null; }
 		
+		string _text = "";
 		/**
 		 * The dock item's text.
 		 */
-		public string Text { get; set; default = ""; }
+		public string Text {
+			get { return _text; }
+			set {
+				if (_text == value)
+					return;
+				_text = value;
+			}
+		}
 		
 		/**
 		 * Whether the item is currently hidden on the dock.

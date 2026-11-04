@@ -39,6 +39,7 @@ typedef struct {
     gboolean active;
     gboolean maximized;
     gboolean fullscreen;
+    gboolean has_parent;
     int minimized_sequence;
 } WlrToplevel;
 
@@ -156,7 +157,10 @@ handle_toplevel_state (void *data, struct zwlr_foreign_toplevel_handle_v1 *handl
 static void
 handle_toplevel_done (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle)
 {
-    (void)data; (void)handle;
+    (void)handle;
+    WlrToplevel *t = (WlrToplevel *)data;
+    if (is_wayplank_toplevel (t))
+        return;
     if (state_changed_cb) {
         state_changed_cb ();
     }
@@ -166,6 +170,7 @@ static void
 handle_toplevel_closed (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle)
 {
     WlrToplevel *t = (WlrToplevel *)data;
+    gboolean was_wayplank = is_wayplank_toplevel (t);
     if (t) {
         for (GList *h = desktop_hidden_list; h != NULL; h = h->next) {
             if (g_strcmp0 ((const gchar *)h->data, t->uuid) == 0) {
@@ -182,7 +187,7 @@ handle_toplevel_closed (void *data, struct zwlr_foreign_toplevel_handle_v1 *hand
     if (handle) {
         zwlr_foreign_toplevel_handle_v1_destroy (handle);
     }
-    if (state_changed_cb) {
+    if (!was_wayplank && state_changed_cb) {
         state_changed_cb ();
     }
 }
@@ -190,7 +195,10 @@ handle_toplevel_closed (void *data, struct zwlr_foreign_toplevel_handle_v1 *hand
 static void
 handle_toplevel_parent (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, struct zwlr_foreign_toplevel_handle_v1 *parent)
 {
-    (void)data; (void)handle; (void)parent;
+    (void)handle;
+    WlrToplevel *t = (WlrToplevel *)data;
+    if (!t) return;
+    t->has_parent = (parent != NULL);
 }
 
 /* Manager listener */
@@ -402,7 +410,7 @@ wlr_toplevel_bridge_get_window_json (void)
             "\"active\":%s,"
             "\"maximized\":%s,"
             "\"fullscreen\":%s,"
-            "\"normal\":true,"
+            "\"normal\":%s,"
             "\"visible\":%s,"
             "\"minimizedSequence\":%d}",
             t->uuid,
@@ -414,6 +422,7 @@ wlr_toplevel_bridge_get_window_json (void)
             t->active ? "true" : "false",
             (t->maximized || t->fullscreen) ? "true" : "false",
             t->fullscreen ? "true" : "false",
+            t->has_parent ? "false" : "true",
             t->minimized ? "false" : "true",
             t->minimized_sequence
         );

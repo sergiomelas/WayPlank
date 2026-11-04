@@ -25,6 +25,8 @@ namespace Plank
 		uint timer_id = 0;
 		uint dbus_sub_id = 0;
 		ulong netmon_handler_id = 0UL;
+		bool is_disposed = false;
+		bool poll_in_flight = false;
 
 		bool is_connected = false;
 		string connection_type = "none"; // "wifi", "ethernet", "none"
@@ -49,19 +51,29 @@ namespace Plank
 			Icon = "network-wireless-signal-good;;network-wired;;network-idle";
 			Button = PopupButton.RIGHT;
 
-			refresh_network_status ();
+			schedule_network_poll ();
 			start_timer ();
 			start_listeners ();
 		}
 
 		~NetworkDockItem ()
 		{
+			is_disposed = true;
 			stop_timer ();
 			stop_listeners ();
 		}
 
+		public override void cleanup ()
+		{
+			is_disposed = true;
+			stop_timer ();
+			stop_listeners ();
+			base.cleanup ();
+		}
+
 		public override void @delete ()
 		{
+			is_disposed = true;
 			stop_timer ();
 			stop_listeners ();
 			base.@delete ();
@@ -100,8 +112,7 @@ namespace Plank
 			var netmon = NetworkMonitor.get_default ();
 			if (netmon != null) {
 				netmon_handler_id = netmon.network_changed.connect ((available) => {
-					refresh_network_status ();
-					reset_icon_buffer ();
+					schedule_network_poll ();
 				});
 			}
 		}
@@ -126,29 +137,12 @@ namespace Plank
 
 		void on_dbus_signal (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
 		{
-			refresh_network_status ();
-			reset_icon_buffer ();
+			schedule_network_poll ();
 		}
 
 		bool on_timer_tick ()
 		{
-			bool prev_connected = is_connected;
-			string prev_type = connection_type;
-			string prev_name = connection_name;
-			int prev_strength = wifi_strength;
-			string prev_ip = ip_address;
-			string prev_gw = gateway;
-
-			refresh_network_status ();
-
-			if (prev_connected != is_connected ||
-			    prev_type != connection_type ||
-			    prev_name != connection_name ||
-			    prev_strength != wifi_strength ||
-			    prev_ip != ip_address ||
-			    prev_gw != gateway) {
-				reset_icon_buffer ();
-			}
+			schedule_network_poll ();
 			return true;
 		}
 
@@ -157,9 +151,13 @@ namespace Plank
 			return true;
 		}
 
-		void refresh_network_status ()
+		static bool probe_network_manager (out string out_type, out string out_name, out int out_strength, out string out_ip, out string out_gw)
 		{
-			bool found_nm = false;
+			out_type = "none";
+			out_name = "";
+			out_strength = 0;
+			out_ip = "";
+			out_gw = "";
 
 			try {
 				var bus = Bus.get_sync (BusType.SYSTEM, null);
@@ -286,22 +284,28 @@ namespace Plank
 						} catch { }
 					}
 
-					is_connected = true;
-					connection_name = cid;
-					wifi_strength = strength;
-					ip_address = ip;
-					gateway = gw;
-
-					if (raw_type.contains ("wireless")) {
-						connection_type = "wifi";
-					} else {
-						connection_type = "ethernet";
-					}
-					found_nm = true;
+					out_name = cid;
+					out_strength = strength;
+					out_ip = ip;
+					out_gw = gw;
+					out_type = raw_type.contains ("wireless") ? "wifi" : "ethernet";
+					return true;
 				}
 			} catch { }
 
-			if (!found_nm) {
+			return false;
+		}
+
+		void apply_network_status (bool found_nm, string nm_type, string nm_name, int nm_strength, string nm_ip, string nm_gw)
+		{
+			if (found_nm) {
+				is_connected = true;
+				connection_type = nm_type;
+				connection_name = nm_name;
+				wifi_strength = nm_strength;
+				ip_address = nm_ip;
+				gateway = nm_gw;
+			} else {
 				var netmon = NetworkMonitor.get_default ();
 				if (netmon != null && netmon.get_network_available ()) {
 					is_connected = true;
@@ -355,6 +359,27 @@ namespace Plank
 				BadgeText = null;
 				CountVisible = false;
 			}
+		}
+
+		void schedule_network_poll ()
+		{
+			if (is_disposed || poll_in_flight)
+				return;
+			poll_in_flight = true;
+
+			new Thread<void*> ("wayplank-network-poll", () => {
+				string nm_type, nm_name, nm_ip, nm_gw;
+				int nm_strength;
+				bool found_nm = probe_network_manager (out nm_type, out nm_name, out nm_strength, out nm_ip, out nm_gw);
+				Idle.add (() => {
+					poll_in_flight = false;
+					if (is_disposed)
+						return false;
+					apply_network_status (found_nm, nm_type, nm_name, nm_strength, nm_ip, nm_gw);
+					return false;
+				});
+				return null;
+			});
 		}
 
 		public void open_network_settings ()

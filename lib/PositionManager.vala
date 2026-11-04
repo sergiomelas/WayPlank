@@ -119,7 +119,7 @@ namespace Plank
 			var model_counts = new Gee.HashMap<string, int> ();
 			for (int i = 0; i < n_monitors; i++) {
 				var monitor = display.get_monitor (i);
-				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "")
+				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "" && monitor.get_model ().ascii_casecmp ("Unknown") != 0)
 					? monitor.get_model () : "Monitor";
 				model_counts.set (model, model_counts.has_key (model) ? model_counts.get (model) + 1 : 1);
 			}
@@ -128,7 +128,7 @@ namespace Plank
 			var seen_counts = new Gee.HashMap<string, int> ();
 			for (int i = 0; i < n_monitors; i++) {
 				var monitor = display.get_monitor (i);
-				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "")
+				var model = (monitor != null && monitor.get_model () != null && monitor.get_model () != "" && monitor.get_model ().ascii_casecmp ("Unknown") != 0)
 					? monitor.get_model () : "Monitor";
 				var geom = monitor != null ? monitor.get_geometry () : Gdk.Rectangle ();
 				
@@ -316,9 +316,11 @@ namespace Plank
 			int current_scale = (controller != null && controller.window != null) ? controller.window.get_scale_factor () : 1;
 			bool scale_changed = (current_scale != last_scale_factor);
 			last_scale_factor = current_scale;
+			bool dock_unmapped = (monitor != null && controller != null && controller.window != null && !controller.window.get_visible ());
 
 			if (!monitor_changed
 				&& !scale_changed
+				&& !dock_unmapped
 				&& old_monitor_geo.x == monitor_geo.x
 				&& old_monitor_geo.y == monitor_geo.y
 				&& old_monitor_geo.width == monitor_geo.width
@@ -1340,6 +1342,23 @@ namespace Plank
 			}
 			int offset = (top_offset > 0 ? top_offset : 0) + (bottom_offset > 0 ? bottom_offset : 0);
 			return (int) Math.round (icon_sz) + offset;
+		}
+
+		/**
+		 * Returns the unzoomed canonical monitor-local anchor for a dock item:
+		 * - along_coord: resting center coordinate along the dock's edge axis
+		 * - perp_from_dock_base: resting perpendicular distance from dock base edge to icon center
+		 * 100% compositor-agnostic.
+		 */
+		public void get_item_canonical_anchor (DockItem item, out int along_coord, out int perp_from_dock_base)
+		{
+			var val = get_draw_value_for_item (item);
+			if (is_horizontal_dock ())
+				along_coord = (int) Math.round (val.static_center.x > 0 ? val.static_center.x : val.center.x);
+			else
+				along_coord = (int) Math.round (val.static_center.y > 0 ? val.static_center.y : val.center.y);
+
+			perp_from_dock_base = int.max (0, bottom_offset) + (int) Math.round (IconSize / 2.0);
 		}
 
 		public void get_hover_position (DockElement item, out int x, out int y)

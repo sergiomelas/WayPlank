@@ -41,11 +41,13 @@ namespace Plank
 			matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
 			cached_windows = WindowControl.get_windows ();
 			WindowControl.get_default ().state_changed.connect (refresh_windows);
+			ApplicationDiscovery.get_default ().changed.connect (refresh_windows);
 		}
 
 		~WindowManager ()
 		{
 			WindowControl.get_default ().state_changed.disconnect (refresh_windows);
+			ApplicationDiscovery.get_default ().changed.disconnect (refresh_windows);
 		}
 
 		Gee.ArrayList<WindowInfo> cached_windows;

@@ -67,6 +67,7 @@ lib/Services/MutterBackend.vala
 lib/Services/Paths.vala
 lib/Services/Preferences.vala
 lib/Services/Settings.vala
+lib/Services/SurfaceCoordinateService.vala
 lib/Services/SystemTheme.vala
 lib/Services/System.vala
 lib/Services/ThemeManager.vala

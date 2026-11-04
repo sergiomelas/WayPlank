@@ -113,10 +113,12 @@ namespace Plank
 			var lbl_units = new Gtk.Label (_("Units:"));
 			unit_box.pack_start (lbl_units, false, false, 0);
 
-			unit_c_radio = new Gtk.RadioButton.with_label (null, "°C (Celsius)");
-			unit_f_radio = new Gtk.RadioButton.with_label_from_widget (unit_c_radio, "°F (Fahrenheit)");
-			unit_box.pack_start (unit_c_radio, false, false, 0);
-			unit_box.pack_start (unit_f_radio, false, false, 0);
+			var radios_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
+			unit_c_radio = new Gtk.RadioButton.with_label (null, _("°C (Celsius)"));
+			unit_f_radio = new Gtk.RadioButton.with_label_from_widget (unit_c_radio, _("°F (Fahrenheit)"));
+			radios_box.pack_start (unit_c_radio, false, false, 0);
+			radios_box.pack_start (unit_f_radio, false, false, 0);
+			unit_box.pack_start (radios_box, false, false, 0);
 			content_area.pack_start (unit_box, false, false, 0);
 
 			// Dialog action buttons
@@ -124,6 +126,18 @@ namespace Plank
 			var save_btn = add_button (_("Save & Apply"), Gtk.ResponseType.OK);
 			set_default_response (Gtk.ResponseType.OK);
 			save_btn.get_style_context ().add_class ("suggested-action");
+
+			this.map.connect (() => {
+				set_focus (null);
+				if (city_entry != null)
+					city_entry.select_region (0, 0);
+			});
+			this.map_event.connect (() => {
+				set_focus (null);
+				if (city_entry != null)
+					city_entry.select_region (0, 0);
+				return false;
+			});
 
 			show_all ();
 			is_open = true;
@@ -271,6 +285,8 @@ namespace Plank
 			} else {
 				unit_c_radio.active = true;
 			}
+			set_focus (null);
+			city_entry.select_region (0, 0);
 			city_entry.changed.connect (on_city_entry_changed);
 		}
 

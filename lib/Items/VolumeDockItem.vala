@@ -23,8 +23,12 @@ namespace Plank
 	public class VolumeDockItem : DockItem
 	{
 		uint timer_id = 0;
+		uint init_timer_1 = 0;
+		uint init_timer_2 = 0;
 		int volume = 70;
 		bool is_muted = false;
+		bool is_disposed = false;
+		bool poll_in_flight = false;
 		
 		public VolumeDockItem ()
 		{
@@ -42,13 +46,31 @@ namespace Plank
 			Icon = "audio-volume-medium";
 			Button = PopupButton.RIGHT;
 			
-			refresh_volume_status ();
+			refresh_volume_status (true);
+			init_timer_1 = Timeout.add (800, () => {
+				init_timer_1 = 0;
+				schedule_volume_poll ();
+				return false;
+			});
+			init_timer_2 = Timeout.add (1800, () => {
+				init_timer_2 = 0;
+				schedule_volume_poll ();
+				return false;
+			});
 			start_timer ();
 		}
 		
 		~VolumeDockItem ()
 		{
+			is_disposed = true;
 			stop_timer ();
+		}
+
+		public override void cleanup ()
+		{
+			is_disposed = true;
+			stop_timer ();
+			base.cleanup ();
 		}
 		
 		void start_timer ()
@@ -65,6 +87,14 @@ namespace Plank
 				Source.remove (timer_id);
 				timer_id = 0;
 			}
+			if (init_timer_1 != 0) {
+				Source.remove (init_timer_1);
+				init_timer_1 = 0;
+			}
+			if (init_timer_2 != 0) {
+				Source.remove (init_timer_2);
+				init_timer_2 = 0;
+			}
 		}
 		
 		public override bool is_valid ()
@@ -74,55 +104,101 @@ namespace Plank
 		
 		public override void @delete ()
 		{
+			is_disposed = true;
 			stop_timer ();
 			base.@delete ();
 		}
-		
-		void refresh_volume_status ()
+
+		static bool probe_system_volume (out int out_vol, out bool out_muted)
 		{
+			out_vol = 70;
+			out_muted = false;
 			int exit_status;
 			string output;
-			
-			// 1. Try WirePlumber (PipeWire) native wpctl if available
+
 			if (Environment.find_program_in_path ("wpctl") != null) {
 				try {
-					if (Process.spawn_command_line_sync ("wpctl get-volume @DEFAULT_AUDIO_SINK@", out output, null, out exit_status) && exit_status == 0) {
-						is_muted = output.contains ("[MUTED]");
+					if (Process.spawn_command_line_sync ("env LC_ALL=C wpctl get-volume @DEFAULT_AUDIO_SINK@", out output, null, out exit_status) && exit_status == 0) {
 						var idx = output.index_of ("Volume: ");
 						if (idx >= 0) {
+							bool parsed_muted = output.contains ("[MUTED]");
 							var num_part = output.substring (idx + 8).strip ();
 							var space_idx = num_part.index_of (" ");
 							if (space_idx >= 0)
 								num_part = num_part.substring (0, space_idx);
+							num_part = num_part.replace (",", ".");
 							double val = double.parse (num_part);
-							volume = (int) Math.round (val * 100.0);
-							if (volume < 0) volume = 0;
-							update_display ();
-							return;
+							int parsed_vol = (int) Math.round (val * 100.0);
+							if (parsed_vol < 0) parsed_vol = 0;
+							out_vol = parsed_vol;
+							out_muted = parsed_muted;
+							return true;
 						}
 					}
 				} catch (Error e) { }
 			}
-			
-			// 2. PulseAudio / pactl single invocation for both mute and volume
+
 			try {
-				if (Process.spawn_command_line_sync ("sh -c 'pactl get-sink-mute @DEFAULT_SINK@; pactl get-sink-volume @DEFAULT_SINK@'", out output, null, out exit_status) && exit_status == 0) {
-					is_muted = output.contains ("Mute: yes");
+				if (Process.spawn_command_line_sync ("sh -c 'LC_ALL=C pactl get-sink-mute @DEFAULT_SINK@; LC_ALL=C pactl get-sink-volume @DEFAULT_SINK@'", out output, null, out exit_status) && exit_status == 0) {
 					var idx = output.index_of ("%");
 					if (idx > 0) {
+						bool parsed_muted = output.contains ("Mute: yes");
 						var sub = output.slice (0, idx);
 						var last_space = sub.last_index_of (" ");
 						if (last_space >= 0) {
 							string num_str = sub.slice (last_space + 1, sub.length).strip ();
 							int v = int.parse (num_str);
-							if (v >= 0)
-								volume = v;
+							if (v >= 0) {
+								out_vol = v;
+								out_muted = parsed_muted;
+								return true;
+							}
 						}
 					}
 				}
 			} catch (Error e) { }
-			
-			update_display ();
+
+			return false;
+		}
+		
+		void refresh_volume_status (bool is_initial = false)
+		{
+			int parsed_vol;
+			bool parsed_muted;
+			if (probe_system_volume (out parsed_vol, out parsed_muted)) {
+				if (is_initial && (parsed_muted || parsed_vol == 0))
+					return;
+				is_muted = parsed_muted;
+				volume = parsed_vol;
+				update_display ();
+			} else if (!is_initial) {
+				update_display ();
+			}
+		}
+
+		void schedule_volume_poll ()
+		{
+			if (is_disposed || poll_in_flight)
+				return;
+			poll_in_flight = true;
+
+			new Thread<void*> ("wayplank-volume-poll", () => {
+				int parsed_vol;
+				bool parsed_muted;
+				bool ok = probe_system_volume (out parsed_vol, out parsed_muted);
+				Idle.add (() => {
+					poll_in_flight = false;
+					if (is_disposed)
+						return false;
+					if (ok && (volume != parsed_vol || is_muted != parsed_muted)) {
+						volume = parsed_vol;
+						is_muted = parsed_muted;
+						update_display ();
+					}
+					return false;
+				});
+				return null;
+			});
 		}
 		
 		void update_display ()
@@ -152,8 +228,7 @@ namespace Plank
 		
 		bool on_timer_tick ()
 		{
-			refresh_volume_status ();
-			reset_icon_buffer ();
+			schedule_volume_poll ();
 			return true;
 		}
 		
@@ -206,7 +281,6 @@ namespace Plank
 			}
 			
 			update_display ();
-			reset_icon_buffer ();
 		}
 		
 		public void toggle_mute ()
@@ -228,7 +302,6 @@ namespace Plank
 			}
 			
 			update_display ();
-			reset_icon_buffer ();
 		}
 
 		

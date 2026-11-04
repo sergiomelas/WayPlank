@@ -31,6 +31,7 @@ namespace Plank
 		 */
 		public signal void state_changed ();
 		public signal void primary_monitor_changed ();
+		public signal void bridge_reconnected ();
 		
 		static WindowControl? instance;
 		WindowBackend? backend;
@@ -51,6 +52,7 @@ namespace Plank
 			backend = b;
 			backend.state_changed.connect (() => state_changed ());
 			backend.primary_monitor_changed.connect (() => primary_monitor_changed ());
+			backend.bridge_reconnected.connect (() => bridge_reconnected ());
 		}
 		
 		public static void initialize ()
@@ -241,6 +243,11 @@ namespace Plank
 			if (get_default ().backend != null) {
 				get_default ().backend.set_reserve_space (enabled, thickness, position);
 			}
+		}
+
+		public static void sync_autostart (bool enabled)
+		{
+			LabwcBackend.sync_autostart (enabled);
 		}
 
 		public static bool is_kwin ()

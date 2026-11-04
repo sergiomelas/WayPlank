@@ -1,12 +1,13 @@
 # Exhaustive Technical Report: Architectural & Function-by-Function Migration from Plank X11 (0.1_X11) to WayPlank Wayland
 
-> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026
+> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
+> **Release Version:** `v0.7.0` (**Public Beta 1**)
 
 ---
 
 ## 1. Executive Summary & Paradigm Shift
 
-The transition from **Plank 0.1 (X11)** to **WayPlank 0.6.2.3 (Wayland Multi-Compositor Pre-Beta)** represents an exhaustive architectural rewrite of Linux desktop dock mechanics. In traditional X11 window management, any unprivileged client process possessed global desktop access:
+The transition from **Plank 0.1 (X11)** to **WayPlank 0.7.0 (Wayland Multi-Compositor Public Beta 1)** represents an exhaustive architectural rewrite of Linux desktop dock mechanics. In traditional X11 window management, any unprivileged client process possessed global desktop access:
 1. **Global Window Introspection:** Direct querying of root window properties (`_NET_CLIENT_LIST`, `_NET_ACTIVE_WINDOW`, via `Wnck.Screen`).
 2. **Arbitrary Window Placement & Struts:** Positioning via *override-redirect* and reserving desktop display edges by transmitting client messages (`_NET_WM_STRUT_PARTIAL`).
 3. **Global Pointer Tracking & Confinement:** Hardware pointer barriers and off-screen motion tracking via the **XFixes** and **XInput 2.0 (XI2)** extensions.
@@ -18,7 +19,7 @@ Under the **Wayland security model**, all global introspection is intentionally 
 - X11 atoms, client messages, XFixes pointer barriers, and Wnck data structures do not exist.
 - BAMF is completely obsolete, missing Wayland native surface descriptors and abandoned upstream.
 
-To overcome these structural restrictions and build a high-performance, lightweight Wayland dock, **WayPlank 0.6.2.3** introduces a completely redesigned, modular stack:
+To overcome these structural restrictions and build a high-performance, lightweight Wayland dock, **WayPlank 0.7.0** introduces a completely redesigned, modular stack:
 1. **GtkLayerShell (`gtk-layer-shell-0`):** Native `wlr-layer-shell` integration inside GTK3, managing layer positioning (`TOP`), keyboard interaction modes (`NONE`), dynamic edge anchors, and compositor-enforced *exclusive zones* (strut replacement).
 2. **Hardware / Compositor Abstraction Layer (HAL):** An extensible backend architecture (`WindowBackend`, `WindowInfo`, `WindowCapabilities`, `WindowManager`).
 3. **Bi-Directional KWin D-Bus Scripting Bridge:** Event-driven, push-based synchronization with zero polling (**0.0% CPU at idle**) between KWin (KDE Plasma) and WayPlank, delivering window states, geometry intersection, stacking order, and multi-window activation/minimization.
@@ -29,13 +30,14 @@ To overcome these structural restrictions and build a high-performance, lightwei
 8. **Universal Cairo Multi-Window Preview Cards (v0.6.2.3):** Live D-Bus thumbnails on KDE Plasma (`org.kde.KWin.ScreenShot2`) and GNOME Shell Mutter (`/mutter/screen/preview`), with clean blank card fallback on Labwc / wlroots.
 9. **True Dynamic Real-Time Theming (v0.6.2.3):** Dual portal (`org.freedesktop.appearance`), GNOME GSettings, and KDE Plasma (`~/.config/kdeglobals`) synchronization with automatic counterpart Dark/Light swapping.
 10. **Distribution Independence & Packaging (v0.6.2.3):** Standalone Debian/Ubuntu `.deb`, openSUSE/Fedora/RHEL `.rpm`, and Arch/source builds.
-11. **Dynamic Layer-Shell Input Masks, Panel Mode, Fullscreen Inhibit & Multi-VM Isolation (v0.6.2.3 Round 2):** Two-stage hysteresis flip-flop (`AnticipateZoom`, Issue #12), Panel Mode (`ReserveSpace`, Issue #9), Fullscreen Inhibit with `0px` edge click passthrough (Issue #10), Show Desktop persistence (Issue #13), Workspace Switch visibility (Issue #11), Cold-Start Fractional Scaling (Issue #5), and QEMU Multi-VM cold relaunch on KWin/Mutter/Labwc (Issue #14), culminating in **107 squashed bugs**.
+11. **Dynamic Layer-Shell Input Masks, Panel Mode, Fullscreen Inhibit & Multi-VM Isolation (v0.6.2.3 Round 2):** Two-stage hysteresis flip-flop (`AnticipateZoom`, Issue #12), Panel Mode (`ReserveSpace`, Issue #9), Fullscreen Inhibit with `0px` edge click passthrough (Issue #10), Show Desktop persistence (Issue #13), Workspace Switch visibility (Issue #11), Cold-Start Fractional Scaling (Issue #5), and QEMU Multi-VM cold relaunch on KWin/Mutter/Labwc (Issue #14).
+12. **Monolithic Embedded Localization, Layout Engine, 26-Style Visual Effects & Hotfix Consolidation (v0.7.0 Public Beta 1):** 100% in-RAM `GResource` localization (`487/487` strings across 7 languages + native English, `0` files in `/usr/share/locale/`), configurable `Docklets on Right` System Tray layout & symmetric `WayPlank Always Left` / `Show Trash` anchors, `3×3` Session & Power control center (`Hibernate`, `Hybrid Sleep`, `UEFI / BIOS`), 26-style `Icons Visual Effects` suite (`300–1500 ms` `Effect Duration`), `SurfaceCoordinateService` VSync 3-Beat unpin pipeline, CLI AppImage & dialog masking (Issue #16), clickable SR Flip-Flop (Issue #17), screen lock/unlock self-healing & `SIGWINCH` live `.deb` upgrade reload (Issue #18), and 60 FPS popup-event filtering (`0.1%` idle CPU), culminating in **115 lifetime squashed bugs** (`168` multi-compositor verifications, `377/377` FAT passed).
 
 ---
 
 ## 2. Quantitative Metric Overview
 
-| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank 0.6.2.3 (Wayland Multi-Compositor Pre-Beta) | Net Variance |
+| Metric / Parameter | Plank 0.1 (X11 Baseline) | WayPlank 0.7.0 (Wayland Multi-Compositor Public Beta 1) | Net Variance |
 | :--- | :--- | :--- | :--- |
 | **Window Protocol** | X11 / Xlib / GdkX11 | Wayland / GtkLayerShell / Mutter Bridge | Full native Wayland replacement |
 | **Compositor Control** | `libwnck-3.0` + XFixes + XI2 | Multi-Compositor HAL: KWin D-Bus Bridge + Labwc/wlroots (`zwlr_foreign_toplevel_manager_v1`) + GNOME Shell (`MutterBackend`) | Wnck & X11 completely purged |
@@ -47,7 +49,7 @@ To overcome these structural restrictions and build a high-performance, lightwei
 | **Window Cards** | None | Universal Cairo multi-window preview cards with live thumbnails (KWin & Mutter) + Labwc fallback | 100% Wayland multi-instance management |
 | **Theming System** | Static config load | Interactive Theme Manager (.zip/.tar.gz) + Real-time Dark/Light sync across KDE, GNOME & Portal | True dynamic theme switching |
 | **Build & Packaging** | Hardcoded X11 / Wnck toolchains | Native `BuildBin.sh`, `BuildDeb.sh`, `BuildRpm.sh`: 0 Errors, 0 Warnings | Standalone `.deb`, `.rpm` & binary |
-| **FAT Qualification** | None (Ad-hoc testing) | ISA-88 Strict FAT: 370 tests across KDE, GNOME, Labwc (368/368 applicable passed — 100% PASS) | Industrial-grade validation |
+| **FAT Qualification** | None (Ad-hoc testing) | ISA-88 Strict FAT: 379 tests across KDE, GNOME, Labwc (377/377 applicable passed — 100% PASS) | Industrial-grade validation |
 
 ---
 
@@ -345,7 +347,7 @@ The following 14 files were authored from scratch to build the Wayland native st
 - `data/themes/Arian Theme/dock.theme`: High-contrast dark theme optimized for modern Wayland desktops.
 - `data/themes/Arian Theme Light/dock.theme`: Matching light theme.
 - `README.md`: Modern documentation with architecture, build instructions, and compatibility matrix.
-- `Release Pic.png`: Application branding asset.
+- `Beta Release Pic - github.png`: Application branding asset (`doc/banner.png` embedded in `plank.gresource.xml`).
 
 ---
 
@@ -668,8 +670,13 @@ The following section covers every modified file across the codebase, documentin
 - **True Dynamic Light/Dark System Theming**: Intercepts `color-scheme` across FreeDesktop portal, direct GNOME GSettings, and KDE Plasma `kdeglobals`, dynamically swapping counterpart themes (*Arian Light* $\leftrightarrow$ *Arian Dark*, *IFtiger Light* $\leftrightarrow$ *IFtiger Dark*) and re-rendering `Default` in real time.
 - **Recent Files Jump List (`RecentFilesService`)**: FreeDesktop `Gtk.RecentManager` integration inside application right-click context menus.
 - **Packaged Stock Themes Suite**: Bundled `Default` (adaptive GTK), `Arian Theme Dark/Light`, `IFtiger Theme Dark/Light`, and `Transparent` themes.
-- **100% FAT Qualification**: 370 tests defined across KDE Plasma 6, GNOME Mutter, and Labwc with a 100% pass rate (368/368 applicable passed: 324 `[ok]` baseline + 44 `[ko->ok]` squashed, 2 NA, 0 open defects).
-- **Public Beta Planned**: Pre-beta development finalized with v0.6.2.3 live on GitHub (Week 43: Oct 22, 2026), downstream community synchronization throughout Week 44 (Oct 26–Nov 1), and official Public Beta (v0.7.0) launch on GitHub in Week 45 (Monday, November 2, 2026).
+- **100% FAT Qualification**: 370 tests defined across KDE Plasma 6, GNOME Mutter, and Labwc with a 100% pass rate (368/368 applicable passed: 324 `[ok]` baseline + 44 `[ko->ok]` squashed, 2 NA, 0 open defects), permanently closing the Alpha & Pre-Beta development cycle.
+
+### 8.10. Version 0.7.0: Public Beta 1, Monolithic Embedded Localization & Hotfix Consolidation
+- **Monolithic Embedded Localization Catalogs**: Ships 7 complete language catalogs (`zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk` at `487/487` strings — 100%, plus native `en`) compiled directly into RAM via `GResource` with Zero Host Pollution (`0` external files in `/usr/share/locale/`).
+- **Category & Docklet Layout Engine, 3×3 Session & 26-Style Visual Effects**: Adds `Docklets on Right` System Tray layout, symmetric `WayPlank Always Left` & `Show Trash` edge anchors, `Align by Type`, `3×3` Session & Power (`Hibernate`, `Hybrid Sleep`, `UEFI / BIOS` with `systemd-logind` capability detection), and 26 `Icons Visual Effects` styles across `Launch Effect`, `Focused App`, and `Unpin Effect` (`300–1500 ms` `Effect Duration`).
+- **GNOME Shell Companion Extension v4 & Hotfix Engineering**: Increments `wayplank-bridge@wayplank.org` `version` to `4`, extracts `SurfaceCoordinateService` for VSync 3-Beat unpin routing, resolves Issues `#16` (CLI AppImage & dialog masking), `#17` (clickable SR Flip-Flop), and `#18` (lock/unlock/DPMS self-healing & `SIGWINCH` live `.deb` upgrade reload), adds folder/open-popup drag-and-drop, `.sh` wrapper / PWA / sibling `WMClass` parity, Labwc `"Unknown" -> "Monitor"` output label normalization, and 60 FPS popup-event filtering (`0.1%` idle CPU).
+- **Consolidated ISA-88 Qualification (`FAT/2026-11-04 FAT 0.7.0.txt`)**: Qualifies all `377/377` applicable test points (`354 [ok]` + `23 [ko->ok]`, `2 [NA]`) across GNOME Shell (Mutter), KDE Plasma 6 (KWin), and Labwc (wlroots) with `0` open defects (**115 lifetime bugs squashed**, **168 multi-compositor verifications**).
 
 ---
 
@@ -1115,23 +1122,22 @@ With the Round 2 community enhancements—including the Two-Stage Hysteresis Fli
 
 ---
 
-## 22. Conclusion & Public Beta Readiness (v0.6.2.3 Release)
+## 22. Conclusion & Public Beta 1 Launch (v0.7.0 Release)
 
-With **WayPlank v0.6.2.3**, the transition from legacy X11 Plank to a native, modern, multi-compositor Wayland dock reaches full maturity:
+With **WayPlank v0.7.0 (Public Beta 1)**, the transition from legacy X11 Plank to a native, modern, multi-compositor Wayland dock reaches full maturity:
 - **100% Wayland Native & Multi-Compositor:** Fully verified on KDE Plasma 6 (KWin), GNOME Shell 46+ (Mutter), and Labwc (wlroots) across LXQt 2.x and XFCE 4.20 Wayland.
 - **Comprehensive Distribution Independence:** Native automated packaging for Debian/Ubuntu (`.deb`), openSUSE/Fedora/RHEL (`.rpm`), and Arch Linux/generic distros (`BuildBin.sh`).
-- **Exhaustive ISA-88 Qualification:** 370 formal test points defined across 3 compositors (`368/368` applicable passed: `324 [ok]` baseline + `44 [ko->ok]` squashed, `2 [NA]`, `0` open defects — **100% PASS**).
+- **Exhaustive ISA-88 Qualification:** 379 formal test points defined across 3 compositors (`377/377` applicable passed: `354 [ok]` + `23 [ko->ok]` in `FAT/2026-11-04 FAT 0.7.0.txt`, `2 [NA]`, `0` open defects — **100% PASS**).
 - **Enterprise-Grade Stability:** 0.0% idle CPU, zero hardcoding, zero memory leaks, and sub-10ms event reaction times.
 - **Release & Master Trajectory:**
-  - **Current Live GitHub Release**: `v0.6.2.3 (Round 3 & Community Finale)` (Updated Sunday, November 1, 2026, ISO Week 44).
-  - **Downstream Collaborator Runway & Sync**: Week 44 (Monday, October 26 – Sunday, November 1, 2026).
-  - **Public Beta (v0.7.0)**: **Official GitHub Launch in Week 45 (Monday, November 2, 2026)** with monolithic in-memory localization.
+  - **Current Live GitHub Release**: `v0.7.0 (Public Beta 1)` (Monolithic Embedded Localization & Full Multi-Compositor Baseline Consolidation).
+  - **Completed Foundation Finale**: `v0.6.2.3 (Round 3 & Community Finale)` (Official Closure of the Alpha & Pre-Beta Era on November 1, 2026).
   - **Release Candidate Series (v0.8.x)**: Strict feature freeze, memory leak profiling, and packaging hardening.
   - **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone for daily driving across all Linux distros.
   - **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 
-> 🏛️ **Historic Epilogue — Official Closure of the Alpha & Pre-Beta Era (`v0.1.0` $\longrightarrow$ `v0.6.2.3`):**  
-> With the completion and 100% FAT sign-off of WayPlank `v0.6.2.3` on November 1, 2026, the foundational Alpha & Pre-Beta engineering cycle (15 releases, 112,000+ lines of X11 purged, 107 bugs squashed across 2,037 formal test executions) is permanently closed, opening the doors to the **WayPlank Public Beta (`v0.7.0`)**! 🚀
+> 🏛️ **Historic Epilogue — Official Closure of the Alpha & Pre-Beta Era (`v0.1.0` $\longrightarrow$ `v0.6.2.3`) & Launch of Public Beta 1 (`v0.7.0`):**  
+> With the completion and 100% FAT sign-off of WayPlank `v0.6.2.3` on November 1, 2026, the foundational Alpha & Pre-Beta engineering cycle (15 releases, 112,000+ lines of X11 purged, 107 bugs squashed across 2,037+ formal test executions) is permanently closed, and **WayPlank Public Beta 1 (`v0.7.0`)** is officially live! 🚀
 
 
 

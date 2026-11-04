@@ -146,7 +146,7 @@
 		<key name="reserve-space" type="b">
 			<default>false</default>
 			<summary>Reserve screen space (Panel Mode)</summary>
-			<description>Whether to reserve screen space matching the dock thickness when hiding is disabled (Panel Mode).</description>
+			<description>Whether to reserve screen space matching the dock thickness (Panel Mode). Enabling this automatically disables Hide Dock and Icon Zoom; enabling Hide Dock or Icon Zoom automatically disables Reserve Screen Space.</description>
 		</key>
 		<key name="show-dock-item" type="b">
 			<default>false</default>
@@ -184,6 +184,16 @@
 			<summary>Categorize dock items</summary>
 			<description>If true, group items into folders, pinned apps, docklets, unpinned apps, and trash with dynamic separators.</description>
 		</key>
+		<key name="anchor-always-left" type="b">
+			<default>false</default>
+			<summary>Anchor WayPlank icon always at far left with separator</summary>
+			<description>If true, the WayPlank preferences icon is always placed at the far left of the dock with its own vertical separator.</description>
+		</key>
+		<key name="docklets-on-right" type="b">
+			<default>true</default>
+			<summary>Place docklets on the right near Trash</summary>
+			<description>If true, place the docklets category on the right after unpinned running applications and before Trash instead of on the left before applications.</description>
+		</key>
 		<key name="accordion-docklets" type="b">
 			<default>true</default>
 			<summary>Accordion docklets mode</summary>
@@ -216,6 +226,30 @@
 			<default>4</default>
 			<summary>System menu and preferences access mode</summary>
 			<description>1 Docklets only (no fallback), 2 Docklets only with fallback, 3 All icons, 4 Dedicated icon on dock.</description>
+		</key>
+		<key name="active-highlight" type="i">
+			<range min="0" max="7"/>
+			<default>0</default>
+			<summary>Focused application highlight style</summary>
+			<description>0 Classic Box, 1 Icon Glow, 2 Spotlight, 3 Rounded Card, 4 Accent Bar, 5 Rim Halo, 6 Floor Reflection, 7 None.</description>
+		</key>
+		<key name="launch-animation" type="i">
+			<range min="0" max="8"/>
+			<default>0</default>
+			<summary>Application launch and click animation</summary>
+			<description>0 Bounce, 1 Elastic, 2 Pulse, 3 Spring, 4 Ripple, 5 Flip, 6 Swing, 7 Flash, 8 None.</description>
+		</key>
+		<key name="unpin-animation" type="i">
+			<range min="0" max="8"/>
+			<default>0</default>
+			<summary>Application unpin and removal animation</summary>
+			<description>0 Poof Cloud, 1 Shrink &amp; Fade, 2 Implode Spin, 3 Shatter Burst, 4 Vaporize, 5 3D Tumble, 6 Shockwave, 7 Pixel Dissolve, 8 None.</description>
+		</key>
+		<key name="effect-duration" type="i">
+			<range min="300" max="1500"/>
+			<default>600</default>
+			<summary>Visual effect animation duration</summary>
+			<description>Duration in milliseconds (300 to 1500) for icon launch, focus highlight transition, and unpin animations.</description>
 		</key>
 	</schema>
 </schemalist>

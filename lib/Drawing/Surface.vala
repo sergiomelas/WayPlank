@@ -515,13 +515,17 @@ namespace Plank
 						shiftar[x, k] = shift * 4;
 				}
 			
-			var th = new Thread<void*> (null, () => {
-				gaussian_blur_horizontal (abuffer, bbuffer, kernel, gaussWidth, width, height, 0, height / 2, shiftar);
-				return null;
-			});
-			
-			gaussian_blur_horizontal (abuffer, bbuffer, kernel, gaussWidth, width, height, height / 2, height, shiftar);
-			th.join ();
+			if (width * height > 32768) {
+				var th = new Thread<void*> (null, () => {
+					gaussian_blur_horizontal (abuffer, bbuffer, kernel, gaussWidth, width, height, 0, height / 2, shiftar);
+					return null;
+				});
+				
+				gaussian_blur_horizontal (abuffer, bbuffer, kernel, gaussWidth, width, height, height / 2, height, shiftar);
+				th.join ();
+			} else {
+				gaussian_blur_horizontal (abuffer, bbuffer, kernel, gaussWidth, width, height, 0, height, shiftar);
+			}
 			
 			// Clear buffer
 			Posix.memset (abuffer, 0, sizeof(double) * size);
@@ -538,13 +542,17 @@ namespace Plank
 				}
 			
 			// Vertical Pass
-			var th2 = new Thread<void*> (null, () => {
-				gaussian_blur_vertical (bbuffer, abuffer, kernel, gaussWidth, width, height, 0, width / 2, shiftar);
-				return null;
-			});
-			
-			gaussian_blur_vertical (bbuffer, abuffer, kernel, gaussWidth, width, height, width / 2, width, shiftar);
-			th2.join ();
+			if (width * height > 32768) {
+				var th2 = new Thread<void*> (null, () => {
+					gaussian_blur_vertical (bbuffer, abuffer, kernel, gaussWidth, width, height, 0, width / 2, shiftar);
+					return null;
+				});
+				
+				gaussian_blur_vertical (bbuffer, abuffer, kernel, gaussWidth, width, height, width / 2, width, shiftar);
+				th2.join ();
+			} else {
+				gaussian_blur_vertical (bbuffer, abuffer, kernel, gaussWidth, width, height, 0, width, shiftar);
+			}
 			
 			// Save blurred image to original uint8[]
 			for (var i = 0; i < size; i++)

@@ -27,6 +27,7 @@ namespace Plank
 	{
 		public signal void state_changed ();
 		public signal void primary_monitor_changed ();
+		public signal void bridge_reconnected ();
 		public abstract bool start ();
 		public abstract void cleanup ();
 		public abstract bool has_state ();

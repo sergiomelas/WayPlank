@@ -33,7 +33,6 @@ namespace Plank
 		
 		uint timer_id = 0U;
 		ulong widget_realize_handler_id = 0UL;
-		ulong widget_draw_handler_id = 0UL;
 		bool is_updating = false;
 		
 		/**
@@ -48,7 +47,6 @@ namespace Plank
 		{
 			timer_id = widget.add_tick_callback ((Gtk.TickCallback) draw_timeout);
 			widget_realize_handler_id = widget.realize.connect (on_widget_realize);
-			widget_draw_handler_id = widget.draw.connect (on_widget_draw);
 		}
 		
 		~Renderer ()
@@ -61,11 +59,6 @@ namespace Plank
 			if (widget_realize_handler_id > 0UL) {
 				widget.disconnect (widget_realize_handler_id);
 				widget_realize_handler_id = 0UL;
-			}
-			
-			if (widget_draw_handler_id > 0UL) {
-				widget.disconnect (widget_draw_handler_id);
-				widget_draw_handler_id = 0UL;
 			}
 		}
 		
@@ -140,14 +133,6 @@ namespace Plank
 			is_updating = false;
 			animation_finished ();
 			return true;
-		}
-		
-		[CCode (instance_pos = -1)]
-		bool on_widget_draw (Gtk.Widget widget, Cairo.Context cr)
-		{
-			draw (cr, frame_time);
-		
-			return Gdk.EVENT_PROPAGATE;
 		}
 		
 		[CCode (instance_pos = -1)]

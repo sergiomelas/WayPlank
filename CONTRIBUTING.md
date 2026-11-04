@@ -30,8 +30,9 @@ Whether you are reporting a bug, contributing translations, improving themes, te
 
 ## 🗺️ Current Project Status & Roadmap
 
-* **Current Stable / Pre-Beta Release**: `v0.6.2.3` (Community User Contributions).
-* **Upcoming Major Milestone**: **Public Beta (`v0.7.0`)** launching in **Week 45 (Monday, November 2, 2026)**.
+* **Current Public Beta Release**: `v0.7.0` (**Public Beta 1** — Monolithic Embedded Localization & Full Multi-Compositor Baseline Consolidation).
+* **Upcoming Iterative Beta Releases**: `v0.7.1` (**Public Beta 2**), `v0.7.2` (**Public Beta 3**), etc. (Active community-driven Public Beta cycle remaining open for user feature requests, new translations, and refinements until the community signals readiness for the `v0.8.x` Release Candidate freeze, up to **December 31, 2026**).
+* **Completed Foundation Release**: `v0.6.2.3` (Official Closure of the Alpha & Pre-Beta Era).
 * **Tier 1 Supported Compositors**:
   - **KDE Plasma (KWin 6.x)**: Full layer-shell integration, D-Bus scripting bridge, live Cairo preview thumbnails.
   - **GNOME Shell (Mutter 46/47/48)**: Dedicated Mutter extension bridge, live window previews, window Dodge/Intellihide.
@@ -57,6 +58,9 @@ We actively track all community suggestions, bug reports, and translations on [G
 | **[#13](https://github.com/sergiomelas/WayPlank/issues/13)** | [@tcliuqiang](https://github.com/tcliuqiang) | **Dock Hiding on "Show Desktop" (Super + D)** | Compositor HAL / Layer Shell | `[Closed]` (Solved) | Resolved in v0.6.2.3 (FAT Point 6.1 `[ko->ok]`, verified 100% across KWin, Mutter & Labwc): intercepted `showingDesktopChanged` D-Bus signal in `KWinBridge.vala` on KDE Plasma 6; invoked `win.hide_from_window_list()` on dock/hover/poof surfaces and connected `global.workspace_manager.connect('showing-desktop-changed')` in `MutterBackend.vala` on GNOME Shell; gated intersection checks on `t->active` in `wlr-toplevel-bridge.c` on Labwc. |
 | **[#14](https://github.com/sergiomelas/WayPlank/issues/14)** | [@tcliuqiang](https://github.com/tcliuqiang) | **QEMU VM Window Icon Missing from Dock** | Core / Matching | `[Closed]` (Solved) | Resolved in v0.6.2.3 (FAT Point 2.15 `[ko->ok]`, verified 100% across KWin, Mutter & Labwc): indexed Exec-less `NoDisplay=true` desktop templates (`qemu.desktop`), restricted `synthesize_fallback_desktop_file()` strictly to windows matching Exec-less system templates (`matched_exec_less_desktop`) so transient CLI dialog popups (such as `zenity`) never spawn dock icons, added `gc_synthetic_launchers()` garbage collection for unpinned closed synthetic launchers, enforced multi-VM argument isolation in `ApplicationIdentity.vala`, and added $O(1)$-cached `/proc` PID & cmdline resolution (`resolve_toplevel_process`) in `LabwcBackend.vala`. |
 | **[#15](https://github.com/sergiomelas/WayPlank/pull/15)** | [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) | **Fix Matcher Flatpak App Icon & Substring Matching** | Core / Matching | `[Closed]` (Merged) | Resolved in v0.6.2.3: handled Flatpak delimiters (`@@`, `@@u`), `--command=` target parsing, strict token-level basename matching (with `-bin` suffix handling), and canonical `DesktopFileName` match shortcut. Preserved original commit authorship in git history (`90c1d5e`). |
+| **[#16](https://github.com/sergiomelas/WayPlank/issues/16)** | [@tcliuqiang](https://github.com/tcliuqiang) | **CLI-Launched GUI Apps (QEMU, Obsidian) Missing on Dock** | Core / Matching | `[Closed]` (Solved) | Resolved in v0.7.0 (FAT Point 2.15 `[ko->ok]`, verified 100% across KWin, Mutter & Labwc): expanded `DataDirFolders` for Snap/Flatpak desktop paths, resolved CLI AppImage FUSE paths via `/proc/<pid>/environ` (`APPIMAGE=`), stabilized synthetic launcher window binding across dynamic title updates (`has_startup_wm_class`), and replaced `matched_exec_less_desktop` with zero-hardcoding dialog masking (`WindowInfo.IsDialog` + XDG `NoDisplay=true` with `Exec=` tokens). |
+| **[#17](https://github.com/sergiomelas/WayPlank/issues/17)** | [@tcliuqiang](https://github.com/tcliuqiang) | **Reserve Screen Space Greyed Out & CLI `gsettings` Conflict** | Preferences UX / Geometry | `[Closed]` (Solved) | Resolved in v0.7.0 (FAT Point 3.10 `[ko->ok]`, verified 100% across KWin, Mutter & Labwc): replaced the disabled/greyed-out sensitivity lock on `Reserve Screen Space` with a deterministic edge-triggered SR Flip-Flop in `DockPreferences.vala` (`S = ↑ReserveSpace` automatically turns off `Hide Dock` and `Icon Zoom`; `R = ↑HideDock ∨ ↑IconZoom` automatically turns off `ReserveSpace`), keeping all three toggles 100% clickable in Preferences and responsive to CLI `gsettings set` commands, with 3-way idempotence state caching in `DockWindow.update_exclusive_zone()`. |
+| **[#18](https://github.com/sergiomelas/WayPlank/issues/18)** | [@tcliuqiang](https://github.com/tcliuqiang) | **Dock Disappears After Idle / Screen Lock / Monitor Sleep** | Compositor HAL / Lifecycle | `[Closed]` (Solved) | Resolved in v0.7.0 (FAT Point 9.9/9.10 `[ko->ok]`, verified 100% across KWin, Mutter & Labwc): broke the GNOME Mutter `PositionDock` / `DockWindow.hide()` Catch-22 deadlock across `unlock-dialog` extension disable/re-enable cycles via `_lastDockGeo` caching, connected `Main.layoutManager` `monitors-changed` + `WindowControl.bridge_reconnected` + `org.gnome.ScreenSaver` + `login1.Session.Unlock` to `schedule_dock_refresh()`, and added `dock_unmapped` recovery in `PositionManager.screen_changed()`. |
 | **[Discussion #3](https://github.com/sergiomelas/WayPlank/discussions/3)** | [@Gabenoh](https://github.com/Gabenoh) | **Hide Preferences Icon & Minimalist Docklets Mode** | Core UI / Ergonomics | `[Closed]` (Solved) | Resolved in v0.6.2.3: suggested by Gabenoh, implemented 4-position `SystemMenuAccess` engine (Docklets Only, All Icons, Dedicated Icon) and global `Ctrl + Right Click` access shortcut. *(Note: the subsequent pointer input issue discussed at the end of this thread was branched into dedicated Issue #12).* |
 
 ---
@@ -67,7 +71,7 @@ We actively track all community suggestions, bug reports, and translations on [G
 
 WayPlank features a standalone translation architecture managed through a central dictionary script: [`po/generate_translations.py`](po/generate_translations.py).
 
-Currently, **7 languages** are qualified at **100% (326/326 strings)**:
+Currently, **7 languages** are qualified at **100% (487/487 strings)**:
 
 * **Natively Maintained by Author** *(Complete & Closed)*:
   - English (`en`) — In-source native fallback
@@ -192,7 +196,7 @@ cd WayPlank
 
 ### Testing & Quality Assurance (FAT)
 
-WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering 370 validation points (368/368 applicable passed — 100% PASS) across all Tier 1 compositors:
+WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering 379 validation points (377/377 applicable passed — 100% PASS) across all Tier 1 compositors:
 * Test protocols and matrices are maintained in [`FAT/`](FAT/).
 * Any PR introducing new UI, docklets, or window management changes **MUST** be accompanied by verification against the checklist in [`FAT/Template/FAT Template.txt`](FAT/Template/FAT%20Template.txt).
 * Fill out the template across tested compositors, save it as `FAT/<date> FAT from <Contributor name> <version>.txt`, and commit it as part of your pull request.

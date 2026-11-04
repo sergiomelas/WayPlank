@@ -44,7 +44,7 @@ if ! command -v rpmbuild >/dev/null 2>&1; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.6.2.3"
+PKG_VER="0.7.0"
 PKG_REL="1"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RPM_TOPDIR="${BASE_DIR}/build_rpm_workspace"
@@ -131,6 +131,9 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
 fi
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q %{_datadir}/applications/ || true
+fi
+if command -v pkill >/dev/null 2>&1; then
+    pkill -WINCH -x wayplank >/dev/null 2>&1 || true
 fi
 
 %postun

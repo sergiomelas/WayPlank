@@ -51,6 +51,7 @@ namespace Plank
 	{
 		static MutterBackend? instance;
 		Gee.ArrayList<WindowInfo> window_infos = new Gee.ArrayList<WindowInfo> ();
+		string? last_windows_json = null;
 		bool started = false;
 		GnomeBridgeProxy? proxy = null;
 		uint name_watch_id = 0U;
@@ -67,7 +68,7 @@ namespace Plank
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v0623_hover_fix_2";
+		const string BRIDGE_GEN = "v070_hotfix_1";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -75,7 +76,7 @@ namespace Plank
   "uuid": "wayplank-bridge@wayplank.org",
   "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "url": "https://github.com/wayplank",
-  "version": 3
+  "version": 4
 }
 """;
 
@@ -235,9 +236,10 @@ const IFACE_XML = `
 
 export default class WayplankBridgeImpl {
     enable() {
-        this._bridgeGen = 'v0623_hover_fix_2';
+        this._bridgeGen = 'v070_hotfix_1';
         this._signals = [];
         this._wsSignals = [];
+        this._lmSignals = [];
         this._windowSignals = new Map();
         this._desktopRestoredWindows = [];
 
@@ -281,7 +283,8 @@ export default class WayplankBridgeImpl {
         }));
         this._signals.push(display.connect('window-created', (d, win) => {
             this._connectWindow(win);
-            this._notifyWindowsChanged();
+            if (this._classifyWindow(win) === 'other')
+                this._notifyWindowsChanged();
         }));
         const handleFocus = (fw) => {
             if (!fw) {
@@ -308,6 +311,18 @@ export default class WayplankBridgeImpl {
                 this._notifyWindowsChanged();
             }));
             this._wsSignals.push(global.workspace_manager.connect('showing-desktop-changed', () => {
+                this._notifyWindowsChanged();
+            }));
+        }
+        if (Main.layoutManager) {
+            this._lmSignals.push(Main.layoutManager.connect('monitors-changed', () => {
+                if (this._lastDockGeo) {
+                    const dockWin = this._findDockWindow();
+                    if (dockWin) {
+                        const { x, y, width, height } = this._lastDockGeo;
+                        this._applyDockPosition(dockWin, x, y, width, height);
+                    }
+                }
                 this._notifyWindowsChanged();
             }));
         }
@@ -365,6 +380,13 @@ export default class WayplankBridgeImpl {
                 try { global.workspace_manager.disconnect(id); } catch (e) { }
             }
             this._wsSignals = [];
+        }
+
+        if (this._lmSignals && Main.layoutManager) {
+            for (const id of this._lmSignals) {
+                try { Main.layoutManager.disconnect(id); } catch (e) { }
+            }
+            this._lmSignals = [];
         }
 
         if (this._notifyTimeout) {
@@ -738,6 +760,19 @@ export default class WayplankBridgeImpl {
                 }
             }
 
+            let targetX = x;
+            let targetY = y;
+            const dockWin = this._findDockWindow();
+            const dockRect = this._lastDockGeo || (dockWin && dockWin.get_frame_rect ? dockWin.get_frame_rect() : null);
+            if (dockRect && targetMon !== -1) {
+                const monGeo = global.display.get_monitor_geometry(targetMon);
+                const isHorizontal = dockRect.width >= dockRect.height;
+                const isTop = isHorizontal && dockRect.y < monGeo.y + 120;
+                if (isTop && y <= monGeo.y + 120) {
+                    targetY = dockRect.y;
+                }
+            }
+
             // user_op = true: the poof is drawn over the dock (inside the reserve-space strut);
             // a non-user move would be shoved out of the strut by constrain_fully_onscreen.
             const move = () => {
@@ -745,10 +780,10 @@ export default class WayplankBridgeImpl {
                     if (!this._isWindowAlive(win))
                         return;
                     if (win.move_frame) {
-                        win.move_frame(true, x, y);
+                        win.move_frame(true, targetX, targetY);
                     }
                     if (win.move_resize_frame) {
-                        win.move_resize_frame(true, x, y, width, height);
+                        win.move_resize_frame(true, targetX, targetY, width, height);
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move poof error:', e);
@@ -831,6 +866,7 @@ export default class WayplankBridgeImpl {
 
         const sigs = [];
         sigs.push(win.connect('unmanaged', () => {
+            const wasOther = (this._classifyWindow(win) === 'other');
             win._wpUnmanaging = true;
             if (win._wpFirstFrameId) {
                 const act = win.get_compositor_private ? win.get_compositor_private() : null;
@@ -840,7 +876,8 @@ export default class WayplankBridgeImpl {
                 win._wpFirstFrameId = 0;
             }
             this._windowSignals.delete(win);
-            this._notifyWindowsChanged();
+            if (wasOther)
+                this._notifyWindowsChanged();
         }));
         sigs.push(win.connect('notify::minimized', () => {
             this._notifyWindowsChanged();
@@ -986,12 +1023,14 @@ export default class WayplankBridgeImpl {
             const app = tracker.get_window_app(win);
             const desktopFileName = app ? app.get_id() : '';
             const wmClass = win.get_wm_class ? win.get_wm_class() : '';
+            const wmClassInstance = win.get_wm_class_instance ? win.get_wm_class_instance() : '';
             const gtkAppId = win.get_gtk_application_id ? win.get_gtk_application_id() : '';
             const title = win.get_title ? win.get_title() : '';
             const isMinimized = win.minimized;
             const isTop = (win === topWin) || (win === focusWin) || (focusId === id) || (this._lastActiveUuid === id) || (win.has_focus ? win.has_focus() : false);
             const isActive = !isMinimized && isTop;
             const isFullscreen = win.is_fullscreen ? win.is_fullscreen() : false;
+            const isDialog = (windowType === Meta.WindowType.DIALOG) || (win.get_transient_for ? win.get_transient_for() !== null : false);
             const isMaximized = (win.maximized_horizontally && win.maximized_vertically) || isFullscreen;
             const demandsAttention = win.demands_attention ? win.demands_attention : false;
             const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
@@ -1021,12 +1060,13 @@ export default class WayplankBridgeImpl {
                 pid: (win.get_pid ? win.get_pid() : 0),
                 desktopFileName: desktopFileName || '',
                 resourceClass: wmClass || '',
-                resourceName: gtkAppId || '',
+                resourceName: gtkAppId || wmClassInstance || '',
                 caption: title || '',
                 active: isActive,
                 minimized: isMinimized,
                 maximized: isMaximized,
                 fullscreen: isFullscreen,
+                isDialog: isDialog,
                 demandsAttention: demandsAttention,
                 x: x,
                 y: y,
@@ -1247,7 +1287,7 @@ export default class WayplankBridgeImpl {
         if (win) {
             return this._applyDockPosition(win, x, y, width, height);
         }
-        return false;
+        return true;
     }
 
     // D-Bus Method: PositionHover
@@ -1557,9 +1597,10 @@ export default class WayplankBridgeImpl {
 				}
 				message ("MutterBackend: GnomeBridge verified live in GNOME Shell (gen=%s)", active_gen);
 				proxy.windows_changed.connect (on_windows_changed);
-				refresh_window_infos ();
+				refresh_window_infos (true);
 				primary_monitor_changed ();
 				state_changed ();
+				bridge_reconnected ();
 				if (last_width > 0 && last_height > 0) {
 					try {
 						proxy.position_dock (last_x, last_y, last_width, last_height);
@@ -1600,25 +1641,31 @@ export default class WayplankBridgeImpl {
 				bridge_reposition_timer_id = 0U;
 			}
 			proxy = null;
+			last_windows_json = null;
 			window_infos.clear ();
 			state_changed ();
 		}
 
 		void on_windows_changed ()
 		{
-			refresh_window_infos ();
-			state_changed ();
+			if (refresh_window_infos ())
+				state_changed ();
 		}
 
-		void refresh_window_infos ()
+		bool refresh_window_infos (bool force = false)
 		{
 			if (proxy == null)
-				return;
+				return false;
 			try {
 				var json = proxy.get_windows ();
+				if (!force && last_windows_json != null && last_windows_json == json)
+					return false;
+				last_windows_json = json;
 				window_infos = parse_window_infos (json);
+				return true;
 			} catch (Error e) {
 				debug ("MutterBackend: get_windows failed: %s", e.message);
+				return false;
 			}
 		}
 
@@ -1651,7 +1698,7 @@ export default class WayplankBridgeImpl {
 					var name_val = (json.has_member ("resourceName") && !json.get_null_member ("resourceName")) ? json.get_string_member ("resourceName") : "";
 					var caption_val = (json.has_member ("caption") && !json.get_null_member ("caption")) ? json.get_string_member ("caption") : "";
 
-					info.DesktopFileName = desktop_val != null ? desktop_val : "";
+					info.DesktopFileName = (desktop_val != null && !desktop_val.has_prefix ("window:")) ? desktop_val : "";
 					info.ResourceClass = class_val != null ? class_val : "";
 					info.ResourceName = name_val != null ? name_val : "";
 					info.Caption = caption_val != null ? caption_val : "";
@@ -1669,6 +1716,7 @@ export default class WayplankBridgeImpl {
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
 					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
+					info.IsDialog = json.has_member ("isDialog") && json.get_boolean_member ("isDialog");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height")) {
@@ -1710,6 +1758,7 @@ export default class WayplankBridgeImpl {
 				name_watch_id = 0U;
 			}
 			proxy = null;
+			last_windows_json = null;
 			started = false;
 		}
 

@@ -29,6 +29,10 @@ namespace Plank
 		
 		public bool InternalDragActive { get; private set; default = false; }
 
+		public bool RemovalActive { get; private set; default = false; }
+
+		public string PendingRemovalLauncher { get; private set; default = ""; }
+
 		public DockItem? DragItem { get; private set; default = null; }
 		
 		public bool DragNeedsCheck { get; private set; default = true; }
@@ -45,6 +49,7 @@ namespace Plank
 					drag_known = false;
 					drag_data = null;
 					drag_data_requested = false;
+					drop_was_directly_on_item = false;
 					DragNeedsCheck = true;
 				}
 			}
@@ -86,8 +91,20 @@ namespace Plank
 		// or windows are modified/destroyed while dragging.
 		Gdk.DragContext? active_drag_context = null;
 		DockItem? drop_target_item = null;
+		bool drop_was_directly_on_item = false;
 		bool last_hovered_trash = false;
 		bool hovered_item_handler_connected = false;
+
+		int drag_origin_icon_size = 48;
+		uint64 next_removal_tx_id = 0ULL;
+		uint64 active_removal_tx_id = 0ULL;
+		DockItem? pending_removal_item = null;
+		DockContainer? pending_removal_container = null;
+		bool pending_was_pinned = false;
+		bool pending_still_running = false;
+		string pending_launcher_uri = "";
+		ulong poof_completed_handler_id = 0UL;
+		ulong shrink_completed_handler_id = 0UL;
 
 		void connect_hovered_item_handler ()
 		{
@@ -135,6 +152,8 @@ namespace Plank
 			window.drag_failed.connect (drag_failed);
 			
 			prefs.notify["LockItems"].connect (lock_items_changed);
+			if (controller.renderer != null)
+				shrink_completed_handler_id = controller.renderer.removal_shrink_completed.connect (on_removal_shrink_completed);
 			
 			enable_drag_to (window);
 			if (!prefs.LockItems)
@@ -143,6 +162,15 @@ namespace Plank
 		
 		~DragManager ()
 		{
+			flush_active_removal ();
+			if (poof_completed_handler_id > 0UL) {
+				SignalHandler.disconnect (PoofWindow.get_default (), poof_completed_handler_id);
+				poof_completed_handler_id = 0UL;
+			}
+			if (shrink_completed_handler_id > 0UL && controller != null && controller.renderer != null) {
+				SignalHandler.disconnect (controller.renderer, shrink_completed_handler_id);
+				shrink_completed_handler_id = 0UL;
+			}
 			cancel_spring_loaded_timer ();
 			disconnect_hovered_item_handler ();
 			if (controller != null) {
@@ -242,6 +270,8 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void drag_begin (Gtk.Widget w, Gdk.DragContext context)
 		{
+			flush_active_removal ();
+
 			unowned DockWindow window = controller.window;
 			window.cancel_long_press ();
 			
@@ -270,6 +300,8 @@ namespace Plank
 					controller.app_provider.expand_docklets ();
 				}
 			}
+
+			drag_origin_icon_size = controller.position_manager.IconSize;
 			
 			active_drag_context = context;
 			set_drag_icon (context, DragItem, 0.8);
@@ -352,6 +384,20 @@ namespace Plank
 			return false;
 		}
 
+		public static bool is_directory_uri (string uri)
+		{
+			string u = uri.strip ();
+			if (u == "" || u.has_prefix ("http://") || u.has_prefix ("https://") || u.has_prefix ("ftp://"))
+				return false;
+			if (is_desktop_launcher_uri (u))
+				return false;
+			if (u.has_prefix ("file://") || u.has_prefix ("/")) {
+				var f = u.has_prefix ("/") ? File.new_for_path (u) : File.new_for_uri (u);
+				return f.query_exists () && f.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY;
+			}
+			return false;
+		}
+
 		[CCode (instance_pos = -1)]
 		void drag_data_received (Gtk.Widget w, Gdk.DragContext context, int x, int y, Gtk.SelectionData selection_data, uint info, uint time_)
 		{
@@ -401,6 +447,7 @@ namespace Plank
 						Gtk.drag_finish (context, false, false, time_);
 						dropped_on_target = false;
 						drop_target_item = null;
+						drop_was_directly_on_item = false;
 					} else {
 						Gdk.drag_status (context, Gdk.DragAction.COPY, time_);
 					}
@@ -408,13 +455,14 @@ namespace Plank
 				}
 				
 				bool all_launchers = (drag_data.size > 0);
+				bool all_directories = (drag_data.size > 0);
 				foreach (var u in drag_data) {
-					if (!is_desktop_launcher_uri (u)) {
+					if (!is_desktop_launcher_uri (u))
 						all_launchers = false;
-						break;
-					}
+					if (!is_directory_uri (u))
+						all_directories = false;
 				}
-				DragNeedsCheck = !all_launchers;
+				DragNeedsCheck = !(all_launchers || all_directories);
 				
 				controller.renderer.animated_draw ();
 				hovered_item_changed ();
@@ -432,12 +480,15 @@ namespace Plank
 			if (drag_data == null || drag_data.size == 0) {
 				Gtk.drag_finish (context, false, false, time_);
 				drop_target_item = null;
+				drop_was_directly_on_item = false;
 				return;
 			}
+
+			flush_active_removal ();
 			
 			unowned DockWindow window = controller.window;
 			unowned DockItem? item = drop_target_item;
-			if (item == null)
+			if (item == null && drop_was_directly_on_item)
 				item = window.HoveredItem;
 			drop_target_item = null;
 			
@@ -448,16 +499,17 @@ namespace Plank
 				provider = controller.default_provider;
 
 			bool all_desktop = (drag_data.size > 0);
+			bool all_directories = (drag_data.size > 0);
 			bool contains_directory = false;
 			foreach (string uri in drag_data) {
 				string u = uri.strip ();
 				if (!is_desktop_launcher_uri (u))
 					all_desktop = false;
 
-				if (!u.has_prefix ("http://") && !u.has_prefix ("https://")) {
-					var dir_f = File.new_for_uri (u.has_prefix ("/") ? File.new_for_path (u).get_uri () : u);
-					if (dir_f.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY)
-						contains_directory = true;
+				if (is_directory_uri (u)) {
+					contains_directory = true;
+				} else {
+					all_directories = false;
 				}
 			}
 			
@@ -467,12 +519,16 @@ namespace Plank
 			if (item is TrashDockItem && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
 			}
-			// PRIORITY 1: Direct drop onto Folder (FileDockItem)
-			else if (item is FileDockItem && item.can_accept_drop (drag_data)) {
+			// PRIORITY 1a (FAT 11.6): Direct drop of folder(s) onto an application icon that explicitly accepts directories (e.g. Dolphin, Kate, VS Code)
+			else if (all_directories && drop_was_directly_on_item && item is ApplicationDockItem && ((ApplicationDockItem) item).can_accept_directory () && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
 			}
-			// PRIORITY 2: When payload consists of .desktop launchers (Apps, Chrome Apps, Link Shortcuts), PINNING HAS PRIORITY
-			else if (all_desktop) {
+			// PRIORITY 1b: Direct drop of non-directory payloads (.desktop or files) onto an existing Folder (FileDockItem)
+			else if (!all_directories && drop_was_directly_on_item && item is FileDockItem && item.can_accept_drop (drag_data)) {
+				handled = item.accept_drop (drag_data);
+			}
+			// PRIORITY 2: When payload consists of .desktop launchers or folders, PINNING HAS PRIORITY
+			else if (all_desktop || all_directories) {
 				unowned DefaultApplicationDockItemProvider? app_prov = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (!controller.prefs.LockItems && app_prov != null) {
 					// Use hovered item as insertion anchor if it belongs to this provider and is not Trash
@@ -499,35 +555,63 @@ namespace Plank
 						}
 					}
 
-					// In Categorized Mode: handle drops in the Docklets zone or onto a Docklet
+					// In Categorized Mode: ensure folders attach into [Folders] and app launchers attach outside [Docklets]
 					if (controller.prefs.CategorizeItems) {
-						bool in_docklets = false;
-						if (target_anchor != null && DefaultApplicationDockItemProvider.is_docklet_element (target_anchor))
-							in_docklets = true;
-						else if (window.is_hovering_docklets (controller.renderer.local_cursor.x, controller.renderer.local_cursor.y))
-							in_docklets = true;
-
-						if (in_docklets) {
-							// Application launchers cannot live inside the docklets section.
-							// Natural anchor: the start of Pinned Apps (before first pinned app, or before transients/trash).
-							unowned DockItem? first_pinned = null;
-							foreach (var el in app_prov.Elements) {
-								if (el is ApplicationDockItem && !(el is TransientDockItem) && !DefaultApplicationDockItemProvider.is_docklet_element (el)) {
-									first_pinned = el as DockItem;
-									break;
+						if (all_directories) {
+							if (!(target_anchor is FileDockItem)) {
+								int last_folder_idx = -1;
+								for (int i = 0; i < app_prov.Elements.size; i++) {
+									if (app_prov.Elements.get (i) is FileDockItem)
+										last_folder_idx = i;
 								}
-							}
-							if (first_pinned != null) {
-								target_anchor = first_pinned;
-							} else {
-								unowned DockItem? fallback = null;
-								foreach (var el in app_prov.Elements) {
-									if (el is TransientDockItem || el is TrashDockItem) {
-										fallback = el as DockItem;
+								target_anchor = null;
+								if (last_folder_idx >= 0) {
+									for (int i = last_folder_idx + 1; i < app_prov.Elements.size; i++) {
+										var el = app_prov.Elements.get (i) as DockItem;
+										if (el != null && !(el is SeparatorDockItem)) {
+											target_anchor = el;
+											break;
+										}
+									}
+								} else {
+									for (int i = 0; i < app_prov.Elements.size; i++) {
+										var el = app_prov.Elements.get (i) as DockItem;
+										if (el == null || el is SeparatorDockItem || el is PreferencesDockItem || (el.Prefs != null && el.Prefs.Launcher == "docklet://preferences"))
+											continue;
+										target_anchor = el;
 										break;
 									}
 								}
-								target_anchor = fallback;
+							}
+						} else {
+							bool in_docklets = false;
+							if (target_anchor != null && DefaultApplicationDockItemProvider.is_docklet_element (target_anchor))
+								in_docklets = true;
+							else if (window.is_hovering_docklets (controller.renderer.local_cursor.x, controller.renderer.local_cursor.y))
+								in_docklets = true;
+
+							if (in_docklets) {
+								// Application launchers cannot live inside the docklets section.
+								// Natural anchor: the start of Pinned Apps (before first pinned app, or before transients/trash).
+								unowned DockItem? first_pinned = null;
+								foreach (var el in app_prov.Elements) {
+									if (el is ApplicationDockItem && !(el is TransientDockItem) && !DefaultApplicationDockItemProvider.is_docklet_element (el)) {
+										first_pinned = el as DockItem;
+										break;
+									}
+								}
+								if (first_pinned != null) {
+									target_anchor = first_pinned;
+								} else {
+									unowned DockItem? fallback = null;
+									foreach (var el in app_prov.Elements) {
+										if (el is TransientDockItem || el is TrashDockItem) {
+											fallback = el as DockItem;
+											break;
+										}
+									}
+									target_anchor = fallback;
+								}
 							}
 						}
 					}
@@ -545,20 +629,22 @@ namespace Plank
 							handled = true;
 						}
 					}
+					if (handled && all_directories)
+						ApplicationDiscovery.get_default ().refresh_index_now ();
 				}
 			}
 			// PRIORITY 3: Direct drop onto Web Browser for Web Links / URLs
-			else if (item is ApplicationDockItem && ((ApplicationDockItem) item).is_web_browser () && item.can_accept_drop (drag_data)) {
+			else if (drop_was_directly_on_item && item is ApplicationDockItem && ((ApplicationDockItem) item).is_web_browser () && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
 			}
-			// PRIORITY 4: Non-desktop payloads dropped onto specific dock items (App)
-			else if (item != null && item.can_accept_drop (drag_data)) {
+			// PRIORITY 4: Non-desktop payloads dropped directly onto specific dock items (App)
+			else if (drop_was_directly_on_item && item != null && item.can_accept_drop (drag_data)) {
 				if (item is ApplicationDockItem && (!contains_directory || ((ApplicationDockItem) item).can_accept_directory ())) {
 					handled = item.accept_drop (drag_data);
 				}
 			}
-			// PRIORITY 5: Non-desktop payloads (pin file/folder to dock if unhandled and dropped on empty dock space)
-			if (!handled && (item == null || !DragNeedsCheck) && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
+			// PRIORITY 5: Non-desktop regular files dropped on empty dock space (strictly rejecting incompatible drops on an icon per FAT 11.6)
+			if (!handled && !drop_was_directly_on_item && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
 				handled = provider.accept_drop (drag_data);
 			}
 
@@ -569,7 +655,7 @@ namespace Plank
 					string? target_url = null;
 					if (u.has_prefix ("http://") || u.has_prefix ("https://") || u.has_prefix ("ftp://"))
 						target_url = u;
-					else if (!all_desktop)
+					else if (!all_desktop && !all_directories)
 						target_url = System.extract_link_shortcut_url (u);
 
 					if (target_url != null) {
@@ -588,6 +674,9 @@ namespace Plank
 				if (def_prov != null) {
 					def_prov.refresh_separators ();
 				}
+				if (controller.renderer != null && controller.renderer.theme != null) {
+					controller.position_manager.update (controller.renderer.theme);
+				}
 				controller.schedule_serialize_item_positions ();
 				if (controller.renderer != null) {
 					controller.renderer.reset_buffers ();
@@ -601,6 +690,7 @@ namespace Plank
 			ExternalDragActive = false;
 			drag_data = null;
 			dropped_on_target = false;
+			drop_was_directly_on_item = false;
 			controller.check_collapse_after_interaction ();
 			if (controller.renderer != null)
 				controller.renderer.animated_draw ();
@@ -621,7 +711,7 @@ namespace Plank
 				unowned PositionManager pos_mgr = controller.position_manager;
 				foreach (var el in controller.default_provider.VisibleElements) {
 					var item = el as DockItem;
-					if (item != null && (item is TrashDockItem || item is FileDockItem)) {
+					if (item != null && !(item is SeparatorDockItem)) {
 						var r = pos_mgr.get_hover_region_for_element (item);
 						bool matches = false;
 						if (pos_mgr.is_horizontal_dock ())
@@ -636,24 +726,25 @@ namespace Plank
 						}
 					}
 				}
-				if (drop_target_item == null) {
-					var nearest = pos_mgr.get_nearest_item_at (x, y);
-					if (nearest != null && (nearest is TrashDockItem || nearest is FileDockItem)) {
-						var r = pos_mgr.get_hover_region_for_element (nearest);
-						bool matches = false;
-						if (pos_mgr.is_horizontal_dock ())
-							matches = (x >= r.x - 16 && x <= r.x + r.width + 16 && y >= 0 && y < pos_mgr.DockHeight);
-						else
-							matches = (y >= r.y - 16 && y <= r.y + r.height + 16 && x >= 0 && x < pos_mgr.DockWidth);
-						if (matches) {
-							drop_target_item = nearest;
-							if (nearest is TrashDockItem)
-								last_hovered_trash = true;
-						}
+			}
+
+			drop_was_directly_on_item = (drop_target_item != null && !(drop_target_item is SeparatorDockItem));
+
+			if (drop_target_item == null) {
+				unowned PositionManager pos_mgr = controller.position_manager;
+				var nearest = pos_mgr.get_nearest_item_at (x, y);
+				if (nearest != null && nearest is TrashDockItem) {
+					var r = pos_mgr.get_hover_region_for_element (nearest);
+					bool matches = false;
+					if (pos_mgr.is_horizontal_dock ())
+						matches = (x >= r.x - 16 && x <= r.x + r.width + 16 && y >= 0 && y < pos_mgr.DockHeight);
+					else
+						matches = (y >= r.y - 16 && y <= r.y + r.height + 16 && x >= 0 && x < pos_mgr.DockWidth);
+					if (matches) {
+						drop_target_item = nearest;
+						drop_was_directly_on_item = true;
+						last_hovered_trash = true;
 					}
-				}
-				if (drop_target_item == null) {
-					drop_target_item = pos_mgr.get_nearest_item_at (x, y, controller.default_provider);
 				}
 			}
 			if (controller.window.HoveredItem is TrashDockItem || drop_target_item is TrashDockItem)
@@ -697,50 +788,10 @@ namespace Plank
 				bool dropped_on_trash = (drop_target_item is TrashDockItem || controller.window.HoveredItem is TrashDockItem || last_hovered_trash);
 				if (!dropped_on_target || dropped_on_trash) {
 					if (DragItem.can_be_removed ()) {
-						unowned ApplicationDockItem? app_item = (DragItem as ApplicationDockItem);
-						var was_pinned = !(DragItem is TransientDockItem);
-						var still_running = (app_item != null && WindowManager.get_default ().window_count_for_app (DragItem.Launcher) > 0);
-						var launcher_uri = DragItem.Launcher;
-						unowned DockContainer? drag_container = DragItem.Container;
-						
-						// Compute poof position using dock origin (exact same way as tooltips / HoverWindow)
-						int poof_x = 0;
-						int poof_y = 0;
-						controller.position_manager.get_hover_position (DragItem, out poof_x, out poof_y);
-						if (poof_x <= 0) {
-							var crect = controller.position_manager.get_cursor_region ();
-							poof_x = crect.x + crect.width / 2;
-							poof_y = crect.y + crect.height / 2;
-						}
-						var dock_region = controller.position_manager.get_dock_window_region ();
-						var dock_thickness = controller.position_manager.is_horizontal_dock ()
-							? dock_region.height : dock_region.width;
-						var monitor = PositionManager.get_monitor_for_plug_name (controller.window.get_display (), controller.prefs.Monitor);
-						var dock_pos = controller.position_manager.Position;
-
-						DragItem.IsVisible = false;
-						if (drag_container != null && drag_container.Elements.contains (DragItem)) {
-							drag_container.remove (DragItem);
-						}
-						var item_to_delete = DragItem;
+						var target_item = DragItem;
 						DragItem = null;
 						InternalDragActive = false;
-						item_to_delete.delete ();
-						
-						// A pinned app that's still running should keep a temporary icon
-						// instead of disappearing entirely once dragged out of the dock.
-						if (was_pinned && still_running && drag_container != null) {
-							DockElement? trash_target = null;
-							foreach (var el in drag_container.Elements) {
-								if (el is TrashDockItem) {
-									trash_target = el;
-									break;
-								}
-							}
-							drag_container.add (new TransientDockItem.with_launcher (launcher_uri), trash_target);
-						}
-
-						PoofWindow.get_default ().show_at (poof_x, poof_y, dock_pos, dock_thickness, monitor);
+						remove_item_with_effect (target_item, true, drag_origin_icon_size);
 					}
 				} else if (controller.window.HoveredItem == null) {
 					if (controller.prefs.AutoPinning && DragItem is TransientDockItem) {
@@ -753,7 +804,7 @@ namespace Plank
 				// Keep items on the correct side of the pinned/temporary divider after any
 				// reorder: a temporary item resting left of it gets pinned, a pinned item
 				// resting right of it gets unpinned.
-				if (dropped_on_target && !dropped_on_trash && !controller.prefs.LockItems) {
+				if (DragItem != null && dropped_on_target && !dropped_on_trash && !controller.prefs.LockItems) {
 					unowned DefaultApplicationDockItemProvider? provider = (DragItem.Container as DefaultApplicationDockItemProvider);
 					if (provider != null) {
 						unowned Gee.ArrayList<DockElement> elements = provider.Elements;
@@ -785,6 +836,7 @@ namespace Plank
 							for (int i = 0; i < elements.size; i++) {
 								if (elements.get (i) is SeparatorDockItem && i != sep_trash_idx && i != sep_pref_idx) {
 									bool is_before_apps = false;
+									bool is_after_apps = false;
 									if (controller.prefs.CategorizeItems) {
 										if (i > 0) {
 											var prev_el = elements.get (i - 1);
@@ -793,8 +845,14 @@ namespace Plank
 												is_before_apps = true;
 											}
 										}
+										if (i + 1 < elements.size) {
+											var next_el = elements.get (i + 1);
+											if (DefaultApplicationDockItemProvider.is_docklet_element (next_el) || next_el is TrashDockItem) {
+												is_after_apps = true;
+											}
+										}
 									}
-									if (!is_before_apps) {
+									if (!is_before_apps && !is_after_apps) {
 										divider_idx = i;
 										break;
 									}
@@ -822,17 +880,271 @@ namespace Plank
 			last_hovered_trash = false;
 			context.get_device ().get_seat ().ungrab ();
 
+			if (!RemovalActive) {
+				unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+				if (default_app_provider != null) {
+					default_app_provider.refresh_separators ();
+				}
+				controller.check_collapse_after_interaction ();
+				controller.schedule_serialize_item_positions ();
+			}
+			
+			disconnect_hovered_item_handler ();
+			controller.hover.hide ();
+			controller.renderer.animated_draw ();
+			hide_manager.update_hovered ();
+		}
+
+		/**
+		 * Executes dock item unpin/removal through the deterministic 3-beat VSync
+		 * pipeline (slot hold -> PoofWindow destruction -> smooth gap shrink) when
+		 * an Unpin Effect (0..7) is active, or falls back to the classic downward
+		 * dock slide-out animation when Unpin Effect is None (8).
+		 */
+		public void remove_item_with_effect (DockItem item, bool from_drag = false, int origin_icon_size = 0)
+		{
+			flush_active_removal ();
+
+			unowned ApplicationDockItem? app_item = (item as ApplicationDockItem);
+			var was_pinned = !(item is TransientDockItem);
+			var still_running = (app_item != null && WindowManager.get_default ().window_count_for_app (item.Launcher) > 0);
+			var launcher_uri = (item.Launcher != null) ? item.Launcher : "";
+			unowned DockContainer? item_container = item.Container;
+
+			int eff_mode = controller.prefs.UnpinAnimation.clamp (0, 8);
+			int eff_duration_ms = controller.prefs.EffectDuration.clamp (300, 1500);
+
+			// When Unpin Effect is None (8) on non-drag removal (e.g. Keep in Dock uncheck),
+			// preserve the classic downward slide-out animation (leave hidden_removal_item null).
+			if (eff_mode == 8 && !from_drag) {
+				controller.hover.hide ();
+				if (item_container != null && item_container.Elements.contains (item))
+					item_container.remove (item);
+				item.delete ();
+				if (was_pinned && still_running && item_container != null && launcher_uri.length > 0)
+					spawn_transient_if_still_running (item_container, launcher_uri);
+				commit_post_removal_cleanup ();
+				return;
+			}
+
+			pending_removal_item = item;
+			pending_removal_container = item_container;
+			pending_was_pinned = was_pinned;
+			pending_still_running = still_running;
+			pending_launcher_uri = launcher_uri;
+			PendingRemovalLauncher = pending_launcher_uri;
+			active_removal_tx_id = ++next_removal_tx_id;
+			RemovalActive = true;
+
+			controller.hover.hide ();
+
+			// Beat 1 (DESTROYING): hold the slot open & hide the icon immediately (no downward slide)
+			controller.renderer.hold_removal_slot (pending_removal_item);
+
+			int anchor_along = 0;
+			int anchor_perp = 0;
+			controller.position_manager.get_item_canonical_anchor (pending_removal_item, out anchor_along, out anchor_perp);
+
+			var monitor = PositionManager.get_monitor_for_plug_name (controller.window.get_display (), controller.prefs.Monitor);
+			var dock_pos = controller.position_manager.Position;
+			bool reserve_active = controller.prefs.ReserveSpace && controller.prefs.HideMode == HideType.NONE && !controller.prefs.ZoomEnabled;
+			int excl_thickness = reserve_active ? controller.position_manager.get_visual_thickness () : 0;
+
+			int base_size = (origin_icon_size > 0) ? origin_icon_size : controller.position_manager.IconSize;
+			int snap_logical = int.max (24, base_size);
+			Color snap_accent = pending_removal_item.AverageIconColor;
+			Cairo.Surface? icon_snap = null;
+
+			if (eff_mode >= 1 && eff_mode <= 7) {
+				int scale = (controller.window.get_window () != null) ? controller.window.get_window ().get_scale_factor () : 1;
+				int snap_px = snap_logical * scale;
+				var snap_surface = new Surface (snap_px, snap_px);
+				snap_surface.Internal.set_device_scale (scale, scale);
+				var item_surface = pending_removal_item.get_surface_copy (snap_px, snap_px, snap_surface);
+				unowned Cairo.Context snap_cr = snap_surface.Context;
+				if (scale > 1) {
+					snap_cr.save ();
+					snap_cr.scale (1.0 / scale, 1.0 / scale);
+				}
+				snap_cr.set_operator (Cairo.Operator.OVER);
+				snap_cr.set_source_surface (item_surface.Internal, 0, 0);
+				snap_cr.paint ();
+				if (scale > 1)
+					snap_cr.restore ();
+				icon_snap = snap_surface.Internal;
+			}
+
+			if (poof_completed_handler_id == 0UL)
+				poof_completed_handler_id = PoofWindow.get_default ().poof_completed.connect (on_poof_completed);
+
+			PoofWindow.get_default ().show_for_icon_anchor (
+				active_removal_tx_id, anchor_along, anchor_perp, snap_logical,
+				dock_pos, reserve_active, excl_thickness, monitor,
+				eff_mode, icon_snap, snap_accent, eff_duration_ms
+			);
+		}
+
+		void on_poof_completed (uint64 tx_id)
+		{
+			if (!RemovalActive || tx_id == 0ULL || tx_id != active_removal_tx_id)
+				return;
+
+			// Beat 2 (SHRINKING_GAP): remove item from DockContainer while keeping its
+			// visual surface hidden in DockRenderer so EASE_IN_QUINT closes the gap smoothly
+			var item = pending_removal_item;
+			var container = pending_removal_container;
+			if (item != null && container != null && container.Elements.contains (item)) {
+				container.remove (item);
+			}
+
+			if (item != null && controller.VisibleItems.size > 0 && controller.renderer.watch_removal_shrink (item, tx_id)) {
+				return;
+			}
+
+			on_removal_shrink_completed (tx_id);
+		}
+
+		void on_removal_shrink_completed (uint64 tx_id)
+		{
+			if (!RemovalActive || tx_id == 0ULL || tx_id != active_removal_tx_id)
+				return;
+
+			// Beat 3 (FINALIZE): commit deletion, spawn TransientDockItem if still running,
+			// refresh separators, update regions & input mask, and release HideManager hold
+			active_removal_tx_id = 0ULL;
+			controller.renderer.clear_removal_hold ();
+
+			var item = pending_removal_item;
+			var container = pending_removal_container;
+			var was_pinned = pending_was_pinned;
+			var still_running = pending_still_running;
+			var launcher_uri = pending_launcher_uri;
+
+			pending_removal_item = null;
+			pending_removal_container = null;
+			pending_was_pinned = false;
+			pending_still_running = false;
+			pending_launcher_uri = "";
+			PendingRemovalLauncher = "";
+			RemovalActive = false;
+
+			if (item != null) {
+				if (container != null && container.Elements.contains (item)) {
+					item.IsVisible = false;
+					container.remove (item);
+				}
+				item.delete ();
+
+				if (was_pinned && still_running && container != null && launcher_uri.length > 0) {
+					spawn_transient_if_still_running (container, launcher_uri);
+				}
+			}
+
+			commit_post_removal_cleanup ();
+		}
+
+		void flush_active_removal ()
+		{
+			if (!RemovalActive && pending_removal_item == null)
+				return;
+
+			active_removal_tx_id = 0ULL;
+			if (poof_completed_handler_id > 0UL)
+				PoofWindow.get_default ().cancel_active ();
+			if (controller != null && controller.renderer != null)
+				controller.renderer.clear_removal_hold ();
+
+			var item = pending_removal_item;
+			var container = pending_removal_container;
+			var was_pinned = pending_was_pinned;
+			var still_running = pending_still_running;
+			var launcher_uri = pending_launcher_uri;
+
+			pending_removal_item = null;
+			pending_removal_container = null;
+			pending_was_pinned = false;
+			pending_still_running = false;
+			pending_launcher_uri = "";
+			PendingRemovalLauncher = "";
+			RemovalActive = false;
+
+			if (item != null) {
+				if (container != null && container.Elements.contains (item)) {
+					item.IsVisible = false;
+					container.remove (item);
+				}
+				item.delete ();
+
+				if (was_pinned && still_running && container != null && launcher_uri.length > 0) {
+					spawn_transient_if_still_running (container, launcher_uri);
+				}
+			}
+
+			commit_post_removal_cleanup ();
+		}
+
+		void spawn_transient_if_still_running (DockContainer container, string launcher_uri)
+		{
+			unowned ApplicationDockItemProvider? app_prov = container as ApplicationDockItemProvider;
+			if (app_prov != null) {
+				app_prov.sync_compositor_windows ();
+			}
+
+			bool exists = false;
+			var windows = WindowManager.get_default ().matching_windows (launcher_uri);
+			var discovery = ApplicationDiscovery.get_default ();
+			foreach (var el in container.Elements) {
+				unowned ApplicationDockItem? existing = el as ApplicationDockItem;
+				if (existing == null)
+					continue;
+				if (existing.Launcher == launcher_uri) {
+					exists = true;
+					break;
+				}
+				foreach (var w in windows) {
+					if (discovery.is_best_launcher_for_window (existing.Launcher, w)) {
+						exists = true;
+						break;
+					}
+				}
+				if (exists)
+					break;
+			}
+
+			if (!exists && WindowManager.get_default ().window_count_for_app (launcher_uri) > 0) {
+				DockElement? trash_target = null;
+				foreach (var el in container.Elements) {
+					if (el is TrashDockItem) {
+						trash_target = el;
+						break;
+					}
+				}
+				container.add (new TransientDockItem.with_launcher (launcher_uri), trash_target);
+			}
+		}
+
+		void commit_post_removal_cleanup ()
+		{
+			if (controller == null)
+				return;
+
 			unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
 			if (default_app_provider != null) {
 				default_app_provider.refresh_separators ();
 			}
 			controller.check_collapse_after_interaction ();
 			controller.schedule_serialize_item_positions ();
-			
-			disconnect_hovered_item_handler ();
-			controller.hover.hide ();
-			controller.renderer.animated_draw ();
-			hide_manager.update_hovered ();
+
+			if (controller.window != null) {
+				controller.window.update_icon_regions ();
+				controller.window.set_input_mask ();
+			}
+			if (controller.renderer != null) {
+				controller.renderer.animated_draw ();
+			}
+			if (controller.hide_manager != null) {
+				controller.hide_manager.update_hovered ();
+			}
 		}
 
 		[CCode (instance_pos = -1)]
@@ -976,6 +1288,7 @@ namespace Plank
 		}
 
 		enum DragCategory {
+			ANCHOR,
 			FOLDER,
 			DOCKLET,
 			APP,
@@ -985,6 +1298,8 @@ namespace Plank
 
 		DragCategory get_drag_category (DockElement el)
 		{
+			if (el is PreferencesDockItem || (el is DockItem && ((DockItem) el).Prefs != null && ((DockItem) el).Prefs.Launcher == "docklet://preferences"))
+				return DragCategory.ANCHOR;
 			if (el is FileDockItem)
 				return DragCategory.FOLDER;
 			if (el is TrashDockItem)

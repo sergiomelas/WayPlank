@@ -36,6 +36,68 @@ namespace Plank
 			instance = this;
 		}
 
+		public static void sync_autostart_from_desktop_file ()
+		{
+			var desktop_path = Path.build_filename (Environment.get_user_config_dir (), "autostart", "wayplank.desktop");
+			if (FileUtils.test (desktop_path, FileTest.EXISTS))
+				sync_autostart (true);
+		}
+
+		public static void sync_autostart (bool enabled)
+		{
+			string[] rel_dirs = { "labwc", "xfce4/labwc" };
+			foreach (unowned string rel_dir in rel_dirs) {
+				var dir_path = Path.build_filename (Environment.get_user_config_dir (), rel_dir);
+				if (!FileUtils.test (dir_path, FileTest.IS_DIR))
+					continue;
+				var file_path = Path.build_filename (dir_path, "autostart");
+				update_labwc_autostart_file (file_path, enabled);
+			}
+		}
+
+		static void update_labwc_autostart_file (string file_path, bool enabled)
+		{
+			string contents = "";
+			if (FileUtils.test (file_path, FileTest.EXISTS)) {
+				try {
+					FileUtils.get_contents (file_path, out contents);
+				} catch {
+					return;
+				}
+			} else if (!enabled) {
+				return;
+			}
+
+			var lines = contents.split ("\n");
+			var kept = new GLib.StringBuilder ();
+			bool found = false;
+			foreach (unowned string line in lines) {
+				var trimmed = line.strip ();
+				if (trimmed == "wayplank &" || trimmed == "wayplank >/dev/null 2>&1 &" || trimmed.has_prefix ("wayplank ")) {
+					found = true;
+					if (!enabled)
+						continue;
+				}
+				if (kept.len > 0)
+					kept.append_c ('\n');
+				kept.append (line);
+			}
+
+			if (enabled && !found) {
+				if (kept.len > 0 && kept.str[kept.len - 1] != '\n')
+					kept.append_c ('\n');
+				kept.append ("wayplank >/dev/null 2>&1 &\n");
+				try {
+					FileUtils.set_contents (file_path, kept.str);
+					FileUtils.chmod (file_path, 0755);
+				} catch { }
+			} else if (!enabled && found) {
+				try {
+					FileUtils.set_contents (file_path, kept.str);
+				} catch { }
+			}
+		}
+
 		public static unowned LabwcBackend get_default ()
 		{
 			if (instance == null)
@@ -49,8 +111,10 @@ namespace Plank
 				return true;
 
 			started = WlrBridge.init (on_wlr_state_changed);
-			if (started)
+			if (started) {
+				sync_autostart_from_desktop_file ();
 				refresh_window_infos ();
+			}
 			return started;
 		}
 
@@ -181,6 +245,7 @@ namespace Plank
 					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
 					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
 					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
+					info.IsDialog = json.has_member ("normal") && !json.get_boolean_member ("normal");
 					info.DemandsAttention = false;
 					info.CurrentDesktop = true;
 					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
@@ -203,7 +268,7 @@ namespace Plank
 			if (toplevel_pid_cache == null)
 				toplevel_pid_cache = new Gee.HashMap<string, int> ();
 
-			var cache_key = "%s|%s|%s".printf (info.Id, target_cls, info.Caption);
+			var cache_key = "%s|%s".printf (info.Id, target_cls);
 			if (toplevel_pid_cache.has_key (cache_key)) {
 				int cached_pid = toplevel_pid_cache.get (cache_key);
 				if (cached_pid > 0 && FileUtils.test ("/proc/%d/cmdline".printf (cached_pid), FileTest.EXISTS)) {
@@ -255,6 +320,8 @@ namespace Plank
 						continue;
 
 					int score = 10;
+					if (!cmd_lower.contains ("--type=") && !comm.contains ("crashpad"))
+						score += 25;
 					foreach (var tok in caption_tokens) {
 						if (cmd_lower.contains (tok))
 							score += 50;

@@ -260,11 +260,19 @@ namespace Plank
 					}
 				}
 
+				if (keyfile.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
+					var swmc = keyfile.get_string (KeyFileDesktop.GROUP, "StartupWMClass").strip ().down ();
+					if (swmc.has_prefix ("crx_"))
+						return false;
+				}
+
 				string? specific_arg = null;
 				for (int i = 1; i < parts.length; i++) {
 					var p = parts[i].strip ().replace ("\"", "").replace ("'", "");
-					if (p.has_prefix ("--app=")) {
-						specific_arg = p.slice (6, p.length).down ();
+					if (p.has_prefix ("--app-id=") || p.has_prefix ("--app="))
+						return false;
+					if (p.has_prefix ("--profile-directory=")) {
+						specific_arg = p.slice (20, p.length).down ();
 						break;
 					}
 					if (p != "" && !p.has_prefix ("-") && !p.has_prefix ("%")) {

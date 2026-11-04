@@ -179,6 +179,20 @@ namespace Plank
 			ok_button.set_can_default (true);
 			set_default (ok_button);
 
+			this.map.connect (() => {
+				set_focus (null);
+			});
+			this.map_event.connect (() => {
+				set_focus (null);
+				return false;
+			});
+			stack.notify["visible-child"].connect (() => {
+				set_focus (null);
+			});
+			stack.notify["transition-running"].connect (() => {
+				set_focus (null);
+			});
+
 			// Close on Escape key
 			key_press_event.connect ((event) => {
 				if (event.keyval == Gdk.Key.Escape) {

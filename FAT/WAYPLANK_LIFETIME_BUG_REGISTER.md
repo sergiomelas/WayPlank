@@ -3,7 +3,7 @@
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
 > **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.0` Public Beta 1)  
-> **Period:** 2026-09-19 to 2026-11-04  
+> **Period:** 2026-09-19 to 2026-11-05  
 > **Standard:** ISA-88 Qualification Standard
 
 ---
@@ -16,14 +16,14 @@
 * **ERA 2 (Multi-Compositor Qualification & Public Beta 1: `v0.4.3` – `v0.7.0`)**:
   - **Milestones**: 10 (`v0.4.3`, `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.6.0`, `v0.6.1`, `v0.6.2.1`, `v0.6.2.2`, `v0.6.2.3`, `v0.7.0`)
   - **Formal Tests Executed**: **2,416** Total Test Executions across Compositors
-  - **Tests Passed on First Run / Baseline**: **2,243** `[ok]`
-  - **Unique Functional Bugs Squashed**: **81** `[ko->ok]`
-  - **Total Compositor Test Verifications**: **134** `[ko->ok]`
-  - **Open Defects Remaining**: **0** `[ko]` (**100% PASS** across all 3 compositors)
+  - **Tests Passed on First Run / Baseline**: **2,213** `[ok]`
+  - **Unique Functional Bugs Squashed**: **80** `[ko->ok]`
+  - **Total Compositor Test Verifications**: **131** `[ko->ok]`
+  - **Open FAT Regressions Remaining (`2026-11-05` Audit)**: **7 Active Audit Issues (`#19`–`#25`) / 33 `[ko]` Compositor Instances** (**344/377 = 91.2% PASS** across all 3 compositors — queued for `v0.7.1`; plus Community Issues [#16](https://github.com/sergiomelas/WayPlank/issues/16) & [#18](https://github.com/sergiomelas/WayPlank/issues/18) awaiting reporter confirmation and Feature Proposal [#26](https://github.com/sergiomelas/WayPlank/issues/26), totaling `10` open GitHub issues)
 * **GRAND TOTAL ACROSS LIFETIME**:
   - **Total Milestones**: **16 Releases**
-  - **Total Unique Functional & Architectural Bugs Squashed**: **115** `[ko->ok]`
-  - **Total Multi-Compositor Verification Instances**: **168** `[ko->ok]`
+  - **Total Unique Functional & Architectural Bugs Squashed**: **114** `[ko->ok]`
+  - **Total Multi-Compositor Verification Instances**: **165** `[ko->ok]`
 
 ---
 
@@ -47,22 +47,35 @@
 | **`v0.6.2.1`** | 2026-10-17 | Fork & Gold Standard | 282 | 16 | 0 |
 | **`v0.6.2.2`** | 2026-10-20 | Round 2 & DND Docklet | 306 | 5 | 0 |
 | **`v0.6.2.3`** | 2026-11-01 | Previews, Stacks, Comm. | 370 | 27 | 0 |
-| **`v0.7.0`** | 2026-11-04 | Public Beta 1 & Hotfix | 379 | 8 | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **10 Multi-Comp. Releases** | **2,416** | **81** | **0** |
-| **TOTAL** | **All Eras** | **16 Milestone Releases** | **2,416** | **115** | **0** |
+| **`v0.7.0`** | 2026-11-05 | Public Beta 1 & Audit | 379 | 7 | 7 `ko`** |
+| **ERA 2 SUB** | **Formal FAT** | **10 Multi-Comp. Releases** | **2,416** | **80** | **7 `ko`** |
+| **TOTAL** | **All Eras** | **16 Milestone Releases** | **2,416** | **114** | **7 `ko`** |
 
-*\*Note on `v0.5.0`: The 7 `[ko]` defects discovered were formally remediated and verified in `v0.5.1` under standard ISA-88 qualification protocol.*
+*\*Note on `v0.5.0`: The 7 `[ko]` defects discovered were formally remediated and verified in `v0.5.1` under standard ISA-88 qualification protocol.*  
+*\*\*Note on `v0.7.0` (`2026-11-05` Post-Release Deep Audit): 7 non-critical regression groups (GitHub Issues [#19](https://github.com/sergiomelas/WayPlank/issues/19)–[#25](https://github.com/sergiomelas/WayPlank/issues/25), covering 33 `[ko]` compositor test instances across 14 unique FAT points; `344/377` = `91.2% PASS`) are logged openly and queued for remediation in `v0.7.1`.*
 
 ---
 
 ## 🖥️ Compositor Resolution Breakdown (Era 2 Qualification)
 
-| Compositor Backend | Verifications Squashed `[ko->ok]` | Share |
-| :--- | :---: | :---: |
-| **GNOME Shell (Mutter Backend)** | 58 | 43.3% |
-| **KDE Plasma 6 (KWin Backend)** | 43 | 32.1% |
-| **Labwc (wlroots Backend)** | 33 | 24.6% |
-| **TOTAL COMPOSITOR PASSES** | **134 / 134** | **100% Passed** |
+| Compositor Backend | Verifications Squashed `[ko->ok]` | Share | Active Open `[ko]` (`v0.7.1` Queue) |
+| :--- | :---: | :---: | :---: |
+| **GNOME Shell (Mutter Backend)** | 57 | 43.5% | 11 (`91.4% PASS`) |
+| **KDE Plasma 6 (KWin Backend)** | 42 | 32.1% | 11 (`91.3% PASS`) |
+| **Labwc (wlroots Backend)** | 32 | 24.4% | 11 (`91.1% PASS`) |
+| **TOTAL COMPOSITOR VERIFICATIONS** | **131 Squashed** | **100%** | **33 Open (`344/377` — `91.2% PASS`)** |
+
+---
+
+## 🔴 Active Open Regressions (`v0.7.0` Audit — Queued for `v0.7.1`)
+
+1. **[Issue #19](https://github.com/sergiomelas/WayPlank/issues/19)** (`FAT 12.2` `[ko]` — All 3 Compositors): Missing *"Recent Documents"* `Gtk.RecentManager` jump-list submenu in app right-click menus (`RecentFilesService` omitted during `v0.6.2.3` consolidation).
+2. **[Issue #20](https://github.com/sergiomelas/WayPlank/issues/20)** (`FAT 1.11` `[ko]` — All 3 Compositors): Normal Google Chrome windows misassigned to specialized `.sh` browser profile wrappers (`score = 116 >= 115` via shared single-process tokens).
+3. **[Issue #21](https://github.com/sergiomelas/WayPlank/issues/21)** (`FAT 5.6, 7.11, 10.4, 12.4` `[ko]` — All 3 Compositors): Mouse, scroll & modifier gesture regressions (`Shift+Left Click` window cycle, preview card `Middle-Click` close, `MPRIS` wheel/middle-click parity, overflow scroll hijacking, `Ctrl+Alt+Shift+Right Click` inspector, and right-side Accordion tooltip arrow).
+4. **[Issue #22](https://github.com/sergiomelas/WayPlank/issues/22)** (`FAT 2.7` GNOME, `2.9 & 12.6` KDE `[ko]`): Multi-compositor HAL signal & preview cache regressions (Mutter background urgency `WindowsChanged` & `MinimizedSequence`, KWin `captionChanged` dynamic title sync, `KWinThumbnailService` refresh/eviction/`stderr`/Labwc guard).
+5. **[Issue #23](https://github.com/sergiomelas/WayPlank/issues/23)** (`FAT 6.12` GNOME/Labwc, `6.18` Labwc `[ko]`): Labwc Do Not Disturb unguarded `gsettings` early return breaking `dunstctl`/`swaync-client`, and multi-DE KDE settings tool priority ahead of `XDG_CURRENT_DESKTOP`.
+6. **[Issue #24](https://github.com/sergiomelas/WayPlank/issues/24)** (`FAT 1.11, 10.8, 13.8` `[ko]` — All 3 Compositors): Folder `ShowRunningIndicators` & live notify, `PoofWindow` `1500 ms` `EffectDuration` clamp, `ReverseRoundness` 40px skirt in redline capacity math, and CLI `-V` verbose short flag.
+7. **[Issue #25](https://github.com/sergiomelas/WayPlank/issues/25)** (`FAT 1.10` `[ko]` — All 3 Compositors): Custom image file icons on folders strip `file://` in `metadata::custom-icon`, racing `FileMonitor` reload and reverting to the default folder icon.
 
 ---
 
@@ -133,7 +146,7 @@
 - `ReserveSpace` Panel Mode exclusive zone / synthetic strut & mutual exclusivity guard (`v0.6.2.3` / `3.10`, Issue #9)
 - Edge-triggered SR Flip-Flop for clickable `Reserve Screen Space`, `Hide Dock` & `Icon Zoom` across GUI and CLI `gsettings` (`v0.7.0` / `3.10`, Issue #17)
 
-### 5. Application Matching, Sandboxes & Pinning (21 Bugs)
+### 5. Application Matching, Sandboxes & Pinning (20 Bugs)
 - Asynchronous `/proc` process scanner for Wayland (`v0.2.0` / `2.3`)
 - Multi-tier `.desktop` application discovery & `app_id` matching (`v0.4.0` / `4.4`)
 - 0-byte file drop with `application/x-zerosize` MIME guessing (`v0.6.1` / `1.6`)
@@ -149,7 +162,7 @@
 - CLI virtual machines, Exec-less `NoDisplay=true` template matching & `gc_synthetic_launchers()` garbage collection (`v0.6.2.3` / `2.15`, Issue #14)
 - Multi-VM instance isolation & generic argument stopwords (`v0.6.2.3` / `2.15`, Issue #14)
 - `LabwcBackend.resolve_toplevel_process()` $O(1)$ `/proc` PID/cmdline resolver & synthetic `.desktop` self-healing for Labwc VM cold relaunch (`v0.6.2.3` / `2.15`, Issue #14)
-- URI-keyed folder/web-app isolation, `.sh` profile/Incognito wrapper unwrapping (`116 >= 115`), `NoDisplay=true` PWA ↔ `--app=URL` & sibling `WMClass` parity, and open-popup folder DnD (`v0.7.0` / `1.11`)
+- URI-keyed folder/web-app isolation, `NoDisplay=true` PWA ↔ `--app=URL` & sibling `WMClass` parity, and open-popup folder DnD (`v0.7.0` / `1.11` — `.sh` profile wrapper isolation reopened as `#20` for `v0.7.1`)
 - CLI-launched GUI & AppImage (`/proc/<pid>/environ` `APPIMAGE=`) discovery, dynamic-title binding stability & zero-hardcoding dialog masking (`v0.7.0` / `2.15`, Issue #16)
 - HAL `SurfaceCoordinateService` overlay positioning, timer-free VSync 3-Beat unpin pipeline & `PendingRemovalLauncher` deduplication (`v0.7.0` / `11.8`)
 
@@ -190,4 +203,4 @@
 8. [`FAT/2026-10-17 FAT 0.6.2.1.txt`](2026-10-17%20FAT%200.6.2.1.txt) — Covers `v0.6.2.1` (282 tests, 16 bugs squashed, 100% compliant Gold Standard)
 9. [`FAT/2026-10-20 FAT 0.6.2.2.txt`](2026-10-20%20FAT%200.6.2.2.txt) — Covers `v0.6.2.2` (306 tests, Round 2 completed, 100% compliant, 0 pending, Gold Standard)
 10. [`FAT/2026-11-01 FAT 0.6.2.3.txt`](2026-11-01%20FAT%200.6.2.3.txt) — Covers `v0.6.2.3` (370 tests, Round 3: Window Cards, Dynamic System Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity, Native Peer Stacking, 4-Position System Menu Access, Do Not Disturb Docklet, 7×2 Balanced Preferences Grid, KDE Plasma 6 Multi-Monitor Floating Panel Tracking, Layer-Shell Input Passthrough, Fullscreen Auto-Hide & `0px` Edge Passthrough [Issue #10], Reserve Screen Space / Panel Mode [Issue #9], Show Desktop Persistence [Issue #13], Workspace Switch Visibility [Issue #11], Cold-Start Fractional Scaling [Issue #5], & Multi-VM Instance Tracking with Garbage Collection [Issue #14] on GNOME, KDE Plasma, Labwc)
-11. [`FAT/2026-11-04 FAT 0.7.0.txt`](2026-11-04%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1: 379 tests defined, 377/377 applicable passed: 354 `[ok]` baseline + 23 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 open defects — 100% compliant)
+11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 & `2026-11-05` Audit: 379 tests defined, 344/377 applicable passed — `91.2% PASS`: 324 `[ok]` baseline + 20 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 33 `[ko]` open defect instances across Issues [#19](https://github.com/sergiomelas/WayPlank/issues/19)–[#25](https://github.com/sergiomelas/WayPlank/issues/25) queued for `v0.7.1`)

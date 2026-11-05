@@ -18,7 +18,7 @@ Following the formal closure of the **Alpha & Pre-Beta development cycle (`v0.1.
 **WayPlank `v0.7.0`** consolidates the entire architectural and functional foundation built through **`v0.6.2.3`** and activates four Public Beta milestones:
 1. **100% Monolithic Embedded Localization Engine (`GResource` in RAM)**: Compiles all **7 complete language catalogs (`487 / 487` strings — 100%)** directly into the single ELF executable (`/usr/bin/wayplank`) via `data/plank.gresource.xml` with an in-memory GNU `.mo` resolver (`wayplank_i18n_init()` / `wayplank_i18n_get()` in `lib/gtk-compat.c`), achieving **Zero Host Pollution** (`0` files in `/usr/share/locale/`).
 2. **GNOME Shell Companion Extension Version `4` (`wayplank-bridge@wayplank.org`)**: Increments `metadata.json` `version` from `3` (pre-beta `v0.6.2.x` series) to **`4`** for the Public Beta milestone.
-3. **379-Point Public Beta 1 FAT Protocol & Hotfix Consolidation (`FAT/2026-11-04 FAT 0.7.0.txt`)**: Qualifies **379 test points** across GNOME Shell, KDE Plasma 6, and Labwc (`377/377` applicable passed: `354 [ok]` baseline + `23 [ko->ok]` squashed, `2 [NA]`, `0` open `[ko]` defects — **100% PASS**).
+3. **379-Point Public Beta 1 FAT Protocol, Hotfix & Deep Audit (`FAT/2026-11-05 FAT 0.7.0.txt`)**: Evaluates **379 test points** across GNOME Shell, KDE Plasma 6, and Labwc (`344/377` applicable passed — **91.2% PASS**: `324 [ok]` baseline + `20 [ko->ok]` squashed, `2 [NA]`, `33 [ko]` instances across 7 non-critical post-release audit issues [#19](https://github.com/sergiomelas/WayPlank/issues/19)–[#25](https://github.com/sergiomelas/WayPlank/issues/25) queued for `v0.7.1`).
 4. **Full Binary & Distribution Packaging Parity (`0.7.0`)**: Synchronized standalone binary (`build/wayplank`), Debian/Ubuntu package (`build/wayplank_0.7.0_amd64.deb` with `Posix.Signal.WINCH` live re-exec on upgrade), and openSUSE/Fedora/RHEL package (`build/wayplank-0.7.0-1.x86_64.rpm`).
 
 ---
@@ -146,7 +146,7 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
    - Cached `_lastDockGeo` in `MutterBackend` JS `PositionDock()` to break the `unlock-dialog` `DockWindow.hide()` Catch-22 deadlock, connected `Main.layoutManager` `monitors-changed` + `WindowControl.bridge_reconnected` + `org.gnome.ScreenSaver` + `org.freedesktop.login1.Session.Unlock` to `schedule_dock_refresh()`, added `dock_unmapped` recovery in `PositionManager.screen_changed()`, and added `Posix.Signal.WINCH` live re-exec in `AbstractMain.vala` triggered automatically by `DEBIAN/postinst` (`BuildDeb.sh`) upon `sudo dpkg -i` upgrades.
 5. **HAL `SurfaceCoordinateService` & VSync 3-Beat Unpin Pipeline (FAT Point `11.8` `[ko->ok]`)**:
    - Extracted compositor-isolated overlay positioning into `lib/Services/SurfaceCoordinateService.vala`, implemented VSync 3-Beat drag-off and `_Keep in Dock` unpin destruction routing, and eliminated running-app transient ghosting.
-6. **Permanent `Icons Visual Effects` Suite (26 Styles) & `300–1500 ms` `Effect Duration` (FAT Point `13.8` `[ok]`)**:
+6. **Permanent `Icons Visual Effects` Suite (26 Styles) & `300–1500 ms` `Effect Duration` (FAT Point `13.8` — `PoofWindow` `1500 ms` clamp polish tracked in Issue `#24`)**:
    - Graduated the 3-chooser `Icons Visual Effects` bar—`Launch Effect` (`Bounce` default, `Elastic`, `Pulse`, `Spring`, `Ripple`, `Flip`, `Swing`, `Flash`, `None`), `Focused App` (`Classic Box` default, `Icon Glow`, `Spotlight`, `Rounded Card`, `Accent Bar`, `Rim Halo`, `Floor Reflection`, `None`), and `Unpin Effect` (`Poof Cloud` default, `Shrink & Fade`, `Implode Spin`, `Shatter Burst`, `Vaporize`, `3D Tumble`, `Shockwave`, `Pixel Dissolve`, `None`)—and auto-hiding `300–1500 ms` `Effect Duration` slider permanently into **Preferences $\rightarrow$ Behaviour** alongside a compact `2×3` `Item Management` switch grid.
 7. **60 FPS Hover Smoothness, HAL Popup Event Filtering & Multi-Size `SurfaceCache` (FAT Points `0.1/0.3` `[ko->ok]`)**:
    - Filtered internal WayPlank popups (`HoverWindow`, `FolderMenuWindow`, `WindowCardsWindow`, `PoofWindow`) out of KWin (`isWayplankOrIgnoredClient`), Mutter (`_classifyWindow === 'other'`), and Labwc (`is_wayplank_toplevel`) window-list callbacks, added JSON state deduplication and `__wayplank_primary_panel__` geometry guards, upgraded `DockItem.foreground_buffer` to `SurfaceCache<DockItem>`, cached master folder tile pixbufs in `FileDockItem`, and added a `50 ms` VSync motion hold in `DockRenderer` (`<= 5%` active CPU, `0.1%` idle CPU).
@@ -155,13 +155,13 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 
 ---
 
-## 5. 🧪 Public Beta 1 Factory Acceptance Testing (`FAT/2026-11-04 FAT 0.7.0.txt`)
+## 5. 🧪 Public Beta 1 Factory Acceptance Testing & Post-Release Audit (`FAT/2026-11-05 FAT 0.7.0.txt`)
 
-- **379 Total Qualification Test Points Defined (`377/377` Applicable Passed — **100% PASS**, `0` Open `[ko]` Defects)**:
-  - **Session 1 (GNOME Shell / Mutter)**: `128` tests | `121 [ok]` | `7 [ko->ok]` | `0 [NA]` | `0 Open` (`100% PASS`)
-  - **Session 2 (KDE Plasma 6 / KWin)**: `126` tests | `118 [ok]` | `8 [ko->ok]` | `0 [NA]` | `0 Open` (`100% PASS`)
-  - **Session 3 (Labwc / wlroots)**: `125` tests | `115 [ok]` | `8 [ko->ok]` | `2 [NA]` | `0 Open` (`100% PASS`)
-  - **Scoreboard**: `354 [ok]` Consolidated Baseline, `23 [ko->ok]` Squashed, `2 [NA]` Protocol Limitations (`2.7`, `10.6`), `0` Open `[ko]` Defects.
+- **379 Total Qualification Test Points Defined (`344/377` Applicable Passed — **91.2% PASS**, `33` Open `[ko]` Instances Queued for `v0.7.1`)**:
+  - **Session 1 (GNOME Shell / Mutter)**: `128` tests | `111 [ok]` | `6 [ko->ok]` | `0 [NA]` | `11 [ko]` (`91.4% PASS`)
+  - **Session 2 (KDE Plasma 6 / KWin)**: `126` tests | `108 [ok]` | `7 [ko->ok]` | `0 [NA]` | `11 [ko]` (`91.3% PASS`)
+  - **Session 3 (Labwc / wlroots)**: `125` tests | `105 [ok]` | `7 [ko->ok]` | `2 [NA]` | `11 [ko]` (`91.1% PASS`)
+  - **Scoreboard**: `324 [ok]` Consolidated Baseline, `20 [ko->ok]` Squashed, `2 [NA]` Protocol Limitations (`2.7`, `10.6`), `33 [ko]` Open Instances across GitHub Issues [#19](https://github.com/sergiomelas/WayPlank/issues/19)–[#25](https://github.com/sergiomelas/WayPlank/issues/25) targeted for `v0.7.1`.
 
 ---
 

@@ -1,21 +1,21 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-04
+Date: 2026-11-05
 Milestone: V0.7.0 (Public Beta 1: Complete Multi-Compositor Baseline Consolidation,
            Monolithic Embedded Localization & Community Validation)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [PASS]    | 118 [ok] | 8 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100% PASS)
+      [FAIL]    | 108 [ok] | 7 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 11 [ko] (91.3% PASS)
   - GNOME (Mutter Backend):
-      [PASS]    | 121 [ok] | 7 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] (100% PASS)
+      [FAIL]    | 111 [ok] | 6 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 11 [ko] (91.4% PASS)
   - LABWC (wlroots Backend):
-      [PASS]    | 115 [ok] | 8 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] (100% PASS)
+      [FAIL]    | 105 [ok] | 7 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] | 11 [ko] (91.1% PASS)
   - TOTAL SCOREBOARD:
-      379 Tests Defined | 354 [ok] Baseline | 23 [ko->ok] Squashed |
-      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 0 Open Defects ([ko])
-      100% ISA-88 QUALIFICATION ACHIEVED (377/377 Applicable Tests Passed Across All 3 Compositors)
+      379 Tests Defined | 324 [ok] Baseline | 20 [ko->ok] Squashed |
+      0 [ko->test] | 0 Pending [  ] | 2 [NA] Limitations | 33 Open Defects ([ko] - Issues #19-#25, Queued for v0.7.1)
+      QUALIFICATION STATUS: IN REMEDIATION (344/377 Applicable Tests Passed - 91.2% Across All 3 Compositors)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified during v0.6.2.3 testing & consolidated in v0.7.0)
@@ -27,7 +27,7 @@ Test Status Legend (ISA-88 Qualification Standard):
   - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle)
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 SQUASHED | 0 OPEN]
+SESSION 1: GNOME (Mutter Backend) - [OPEN DEFECTS | 111 BASELINE | 6 SQUASHED | 11 OPEN]
 ================================================================================
 ================================================================================
 
@@ -86,13 +86,16 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
    [ok] 1.9 First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [ko] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+        OPEN REGRESSION (Issue #25 - Queued for v0.7.1): Custom image file
+          icons on folders strip 'file://' in 'metadata::custom-icon', racing
+          FileMonitor reload and reverting to default folder icon.
+   [ko] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
         - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
@@ -104,16 +107,10 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
         - Drag a folder onto dock gap -> pins in [Folders]; drag
           folder/launcher/file onto a folder icon OR open FolderMenuWindow ->
           copies in and live-refreshes rows and dots.
-        BUG: Normal Chrome falsely lit '--app=URL' folder shortcuts via shared
-          domain tokens, '.sh' wrappers scored below 115 or cross-matched
-          PWAs, 'NoDisplay=true' PWAs and sibling binaries (VS
-          Code/MATLAB/Scilab) only lit one icon, and open folder popups lacked
-          DnD.
-        SOLUTION: Added full-URI 'uri_identities' + '>=115' Reverse Canonical
-          Guard, '.sh' wrapper unwrapping (score 116) with profile/Incognito
-          title matching and PWA isolation, bidirectional PWA <-> '--app=URL'
-          and sibling WMClass inheritance, plus '[Folders]' & open-popup DnD
-          with live re-indexing.
+        OPEN REGRESSION (Issues #20, #24 - Queued for v0.7.1): Normal Google
+          Chrome windows erroneously match specialized '.sh' profile wrappers
+          (score 116 >= 115 via shared process/caption tokens), and Folder
+          Drawers ignore 'ShowRunningIndicators' preference toggles.
    [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
         - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
@@ -136,9 +133,12 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
           in browser with working Table of Contents anchor jumps.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
-   [ok] 2.7 Attention / Urgent State:
+   [ko] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
+        OPEN REGRESSION (Issue #22 - Queued for v0.7.1): MutterBackend clears
+          urgency on internal popups without emitting WindowsChanged for normal
+          application windows demanding attention.
    [ok] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [ok] 2.9 Window List Selection:
@@ -255,9 +255,11 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
           Running', '• Docklet').
         - In categorized mode: clean title is displayed without redundant
           badges.
-   [ok] 5.6 Accordion Directional Tooltip Indicator:
+   [ko] 5.6 Accordion Directional Tooltip Indicator:
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Directional arrow is
+          reversed when 'Docklets on Right' (default) is enabled.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
    [ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
         - Prerequisite on stock GNOME (if Super+D is unassigned):
@@ -326,10 +328,13 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [ok] 6.12 Docklet Right-Click Context Menu Consistency:
+   [ko] 6.12 Docklet Right-Click Context Menu Consistency:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
+        OPEN REGRESSION (Issue #23 - Queued for v0.7.1): Multi-desktop installs
+          prioritize KDE tools (kcmshell6, plasma-systemmonitor, korganizer)
+          ahead of active XDG_CURRENT_DESKTOP settings launchers.
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -400,10 +405,13 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
    [ok] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
-   [ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+   [ko] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
         - Interactive Shortcuts & Gestures window and terminal cheatsheet
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Shift+Left Click window
+          cycle, MPRIS scroll/middle-click parity, and Ctrl+Alt+Shift+Right
+          Click item inspector do not match documented behavior.
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Bug: set_titlebar() cleared window title to NULL ('wayplank'),
           causing Mutter bridge to misclassify dialog as dock.
@@ -492,11 +500,14 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
           60 FPS interpolation
         - Clipped rendering prevents scrolled-out items/shadows from bleeding
           past background
-   [ok] 10.4 Docklet Scroll Conflict Isolation:
+   [ko] 10.4 Docklet Scroll Conflict Isolation:
         - Scrolling over Volume docklet adjusts audio volume without scrolling
           dock
         - Scrolling over Brightness docklet adjusts screen brightness without
           scrolling dock
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Overflow dock scrolling
+          intercepts mouse-wheel window cycling on running multi-window apps
+          and MPRIS track skipping.
    [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
         - Accordion in-line expand/collapse operates harmoniously alongside
           overflow scrolling
@@ -509,10 +520,12 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
         - When ON: dock icons preserve target size and scroll with wheel
         - When OFF: dock icons auto-shrink down to fit screen (classic Plank
           behavior)
-   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
+   [ko] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
         - In Shrink Mode, verify physical screen-limit tick mark, red SVG
           teardrop slider above capacity, and warning label when icons
           auto-shrink; in Scroll Mode, redline clears.
+        OPEN REGRESSION (Issue #24 - Queued for v0.7.1): Capacity math omits the
+          40px ReverseRoundness theme skirt offset.
    [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
         - Left/right (and vertical top/bottom) subtle edge gradients and
           chevrons indicate scrollable content
@@ -601,10 +614,12 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
         - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
           Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
           monitoring, and Theme.vala dynamic palette luminance fallback.
-   [ok] 12.2 Recent Files Jump List in Context Menus:
+   [ko] 12.2 Recent Files Jump List in Context Menus:
         - Right-clicking compatible applications in dock displays 'Recent
           Documents' submenu powered by FreeDesktop Gtk.RecentManager
         - Selecting a recent document opens it directly in target application
+        OPEN REGRESSION (Issue #19 - Queued for v0.7.1): RecentFilesService and
+          context-menu submenu wiring omitted in v0.6.2.3 consolidation merge.
    [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
         - Left-click on app icon with 2+ open windows displays floating Cairo
           preview cards with live window thumbnails.
@@ -614,10 +629,12 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [ok] 12.4 Window Activation & Selection from Card:
+   [ko] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Middle-click close on
+          preview card is unimplemented in WindowCardsWindow.
    [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
@@ -653,7 +670,7 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
         - Run '"FAT/Test Files/Localization/switch_lang.sh" <lang>' across
           zh_CN, it, es, fr, ca, de, uk, and en: verify 100% UI translation
           from in-RAM GResource (.mo) with zero '/usr/share/locale/' files.
-   [ok] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
+   [ko] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
         - Verify compact 2x3 'Item Management' grid and permanent 3-column
           'Icons Visual Effects' bar ([Launch Effect], [Focused App], [Unpin
           Effect] with classic defaults at index 0) in Preferences ->
@@ -662,15 +679,18 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED / 100% QUALIFIED | 121 BASELINE | 7 
           speed live and auto-hides when all 3 selectors are 'None'; cycle all
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
+        OPEN REGRESSION (Issue #24 - Queued for v0.7.1): PoofWindow clamps
+          EffectDuration at 1000ms instead of 1500ms, ShowRunningIndicators
+          lacks immediate redraw notification, and CLI '-V' triggers version.
 ================================================================================
-SESSION 1 RESULT: PASSED (GNOME / Mutter Backend) - 100% ISA-88 QUALIFIED
+SESSION 1 RESULT: OPEN DEFECTS (GNOME / Mutter Backend) - QUEUED FOR V0.7.1
 ================================================================================
-  * Tests: 128 | Passed Baseline: 121 [ok] | Squashed: 7 [ko->ok]
-  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+  * Tests: 128 | Passed Baseline: 111 [ok] | Squashed: 6 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 11 [ko] (#19-#25) | Final Compliance: 91.4%
 ================================================================================
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE | 8 SQUASHED | 0 OPEN]
+SESSION 2: KDE PLASMA (KWin Backend) - [OPEN DEFECTS | 108 BASELINE | 7 SQUASHED | 11 OPEN]
 ================================================================================
 ================================================================================
 
@@ -723,13 +743,16 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
    [ok] 1.9 First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [ko] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+        OPEN REGRESSION (Issue #25 - Queued for v0.7.1): Custom image file
+          icons on folders strip 'file://' in 'metadata::custom-icon', racing
+          FileMonitor reload and reverting to default folder icon.
+   [ko] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
         - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
@@ -741,16 +764,10 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
         - Drag a folder onto dock gap -> pins in [Folders]; drag
           folder/launcher/file onto a folder icon OR open FolderMenuWindow ->
           copies in and live-refreshes rows and dots.
-        BUG: Normal Chrome falsely lit '--app=URL' folder shortcuts via shared
-          domain tokens, '.sh' wrappers scored below 115 or cross-matched
-          PWAs, 'NoDisplay=true' PWAs and sibling binaries (VS
-          Code/MATLAB/Scilab) only lit one icon, and open folder popups lacked
-          DnD.
-        SOLUTION: Added full-URI 'uri_identities' + '>=115' Reverse Canonical
-          Guard, '.sh' wrapper unwrapping (score 116) with profile/Incognito
-          title matching and PWA isolation, bidirectional PWA <-> '--app=URL'
-          and sibling WMClass inheritance, plus '[Folders]' & open-popup DnD
-          with live re-indexing.
+        OPEN REGRESSION (Issues #20, #24 - Queued for v0.7.1): Normal Google
+          Chrome windows erroneously match specialized '.sh' profile wrappers
+          (score 116 >= 115 via shared process/caption tokens), and Folder
+          Drawers ignore 'ShowRunningIndicators' preference toggles.
    [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
         - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
@@ -779,9 +796,12 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
         prior to executing test).
    [ok] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
-   [ok] 2.9 Window List Selection:
+   [ko] 2.9 Window List Selection:
         Right-click app with 2+ windows -> click window title in list brings
         that window to front
+        OPEN REGRESSION (Issue #22 - Queued for v0.7.1): KWinBridge omits
+          window.captionChanged listener, leaving dynamic tab/document titles
+          stale until focus changes.
    [ok] 2.10 Scroll-Wheel Window Cycling:
         Scroll wheel over app icon with 2+ windows -> cycles focus through
         instances
@@ -897,9 +917,11 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
           Running', '• Docklet').
         - In categorized mode: clean title is displayed without redundant
           badges.
-   [ok] 5.6 Accordion Directional Tooltip Indicator:
+   [ko] 5.6 Accordion Directional Tooltip Indicator:
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Directional arrow is
+          reversed when 'Docklets on Right' (default) is enabled.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
    [ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
         - Click minimizes all windows; second click restores all.
@@ -1049,10 +1071,13 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
    [ok] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
-   [ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+   [ko] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
         - Interactive Shortcuts & Gestures window and terminal cheatsheet
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Shift+Left Click window
+          cycle, MPRIS scroll/middle-click parity, and Ctrl+Alt+Shift+Right
+          Click item inspector do not match documented behavior.
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Window opens properly centered on screen under KWin.
    [ok] 7.13 Workspace Only Wayland Dormancy:
@@ -1134,11 +1159,14 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
           60 FPS interpolation
         - Clipped rendering prevents scrolled-out items/shadows from bleeding
           past background
-   [ok] 10.4 Docklet Scroll Conflict Isolation:
+   [ko] 10.4 Docklet Scroll Conflict Isolation:
         - Scrolling over Volume docklet adjusts audio volume without scrolling
           dock
         - Scrolling over Brightness docklet adjusts screen brightness without
           scrolling dock
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Overflow dock scrolling
+          intercepts mouse-wheel window cycling on running multi-window apps
+          and MPRIS track skipping.
    [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
         - Accordion in-line expand/collapse operates harmoniously alongside
           overflow scrolling
@@ -1151,10 +1179,12 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
         - When ON: dock icons preserve target size and scroll with wheel
         - When OFF: dock icons auto-shrink down to fit screen (classic Plank
           behavior)
-   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
+   [ko] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
         - In Shrink Mode, verify physical screen-limit tick mark, red SVG
           teardrop slider above capacity, and warning label when icons
           auto-shrink; in Scroll Mode, redline clears.
+        OPEN REGRESSION (Issue #24 - Queued for v0.7.1): Capacity math omits the
+          40px ReverseRoundness theme skirt offset.
    [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
         - Left/right (and vertical top/bottom) subtle edge gradients and
           chevrons indicate scrollable content
@@ -1242,10 +1272,12 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
         - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
           Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
           monitoring, and Theme.vala dynamic palette luminance fallback.
-   [ok] 12.2 Recent Files Jump List in Context Menus:
+   [ko] 12.2 Recent Files Jump List in Context Menus:
         - Right-clicking compatible applications in dock displays 'Recent
           Documents' submenu powered by FreeDesktop Gtk.RecentManager
         - Selecting a recent document opens it directly in target application
+        OPEN REGRESSION (Issue #19 - Queued for v0.7.1): RecentFilesService and
+          context-menu submenu wiring omitted in v0.6.2.3 consolidation merge.
    [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
         - Left-click on app icon with 2+ open windows displays floating Cairo
           preview cards with live window thumbnails.
@@ -1255,19 +1287,24 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [ok] 12.4 Window Activation & Selection from Card:
+   [ko] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Middle-click close on
+          preview card is unimplemented in WindowCardsWindow.
    [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
-   [ok] 12.6 Live Window Thumbnail Capture on KWin (First Hover & Alpha Opacity):
+   [ko] 12.6 Live Window Thumbnail Capture on KWin (First Hover & Alpha Opacity):
         - Hover or click an application with 2+ open windows on KDE Plasma.
         - Verify preview cards show crisp, live window content on the very first
           appearance, without blank/empty viewports or transparent rendering.
         - Verify autostart desktop entry incorporates restricted D-Bus permissions
           for org.kde.KWin.ScreenShot2.
+        OPEN REGRESSION (Issue #22 - Queued for v0.7.1): KWinThumbnailService
+          caches first thumbnail indefinitely without refresh or close eviction,
+          logs debug spam to stderr, and runs unguarded on Labwc.
 13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
    [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
         - Verify 'System Menu Access' persists Modes 1..4: Docklets Only
@@ -1300,7 +1337,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
         - Run '"FAT/Test Files/Localization/switch_lang.sh" <lang>' across
           zh_CN, it, es, fr, ca, de, uk, and en: verify 100% UI translation
           from in-RAM GResource (.mo) with zero '/usr/share/locale/' files.
-   [ok] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
+   [ko] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
         - Verify compact 2x3 'Item Management' grid and permanent 3-column
           'Icons Visual Effects' bar ([Launch Effect], [Focused App], [Unpin
           Effect] with classic defaults at index 0) in Preferences ->
@@ -1309,15 +1346,18 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED / 100% QUALIFIED | 118 BASELINE |
           speed live and auto-hides when all 3 selectors are 'None'; cycle all
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
+        OPEN REGRESSION (Issue #24 - Queued for v0.7.1): PoofWindow clamps
+          EffectDuration at 1000ms instead of 1500ms, ShowRunningIndicators
+          lacks immediate redraw notification, and CLI '-V' triggers version.
 ================================================================================
-SESSION 2 RESULT: PASSED (KDE PLASMA / KWin Backend) - 100% ISA-88 QUALIFIED
+SESSION 2 RESULT: OPEN DEFECTS (KDE PLASMA / KWin Backend) - QUEUED FOR V0.7.1
 ================================================================================
-  * Tests: 126 | Passed Baseline: 118 [ok] | Squashed: 8 [ko->ok]
-  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100%
+  * Tests: 126 | Passed Baseline: 108 [ok] | Squashed: 7 [ko->ok]
+  * Protocol Limitations: 0 [NA] | Open Defects: 11 [ko] (#19-#25) | Final Compliance: 91.3%
 ================================================================================
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8 SQUASHED | 0 OPEN | 2 NA]
+SESSION 3: LABWC (wlroots Backend) - [OPEN DEFECTS | 105 BASELINE | 7 SQUASHED | 11 OPEN | 2 NA]
 ================================================================================
 ================================================================================
 
@@ -1370,13 +1410,16 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
    [ok] 1.9 First-Run Onboarding & Default Drawers:
         - Fresh config generates 4 categorized drawers (Internet, Office,
           Media, Games/Utility), default pinned apps, and accordion defaults.
-   [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
+   [ko] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+        OPEN REGRESSION (Issue #25 - Queued for v0.7.1): Custom image file
+          icons on folders strip 'file://' in 'metadata::custom-icon', racing
+          FileMonitor reload and reverting to default folder icon.
+   [ko] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
         - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
@@ -1388,16 +1431,10 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
         - Drag a folder onto dock gap -> pins in [Folders]; drag
           folder/launcher/file onto a folder icon OR open FolderMenuWindow ->
           copies in and live-refreshes rows and dots.
-        BUG: Normal Chrome falsely lit '--app=URL' folder shortcuts via shared
-          domain tokens, '.sh' wrappers scored below 115 or cross-matched
-          PWAs, 'NoDisplay=true' PWAs and sibling binaries (VS
-          Code/MATLAB/Scilab) only lit one icon, and open folder popups lacked
-          DnD.
-        SOLUTION: Added full-URI 'uri_identities' + '>=115' Reverse Canonical
-          Guard, '.sh' wrapper unwrapping (score 116) with profile/Incognito
-          title matching and PWA isolation, bidirectional PWA <-> '--app=URL'
-          and sibling WMClass inheritance, plus '[Folders]' & open-popup DnD
-          with live re-indexing.
+        OPEN REGRESSION (Issues #20, #24 - Queued for v0.7.1): Normal Google
+          Chrome windows erroneously match specialized '.sh' profile wrappers
+          (score 116 >= 115 via shared process/caption tokens), and Folder
+          Drawers ignore 'ShowRunningIndicators' preference toggles.
    [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
         - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
@@ -1541,9 +1578,11 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
           Running', '• Docklet').
         - In categorized mode: clean title is displayed without redundant
           badges.
-   [ok] 5.6 Accordion Directional Tooltip Indicator:
+   [ko] 5.6 Accordion Directional Tooltip Indicator:
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Directional arrow is
+          reversed when 'Docklets on Right' (default) is enabled.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
    [ok] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
         - Click minimizes all windows; second click restores all.
@@ -1607,10 +1646,13 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [ok] 6.12 Docklet Right-Click Context Menu Consistency:
+   [ko] 6.12 Docklet Right-Click Context Menu Consistency:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
+        OPEN REGRESSION (Issue #23 - Queued for v0.7.1): Multi-desktop installs
+          prioritize KDE tools (kcmshell6, plasma-systemmonitor, korganizer)
+          ahead of active XDG_CURRENT_DESKTOP settings launchers.
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -1639,10 +1681,13 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
         - Verify compact top badges (~34% icon height) show crisp units (°C/°F
           on Weather, % on CPU/Battery/Volume/Network/Brightness, plain
           integers on Ejector/unread) across all icon sizes and zoom.
-   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
+   [ko] 6.18 Do Not Disturb Docklet (docklet://dnd):
         - Verify left-click toggles notification mute (bell <-> muted icon),
           syncs bidirectionally with desktop DND state, and suppresses
           'FAT/Test Files/Testers/test_notification.py' banners when active.
+        OPEN REGRESSION (Issue #23 - Queued for v0.7.1): Unguarded gsettings
+          branch returns early on Labwc before reaching dunstctl / swaync-client,
+          causing mute toggle to fail and snap back off on poll.
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
    [ok] 7.1 Window Opening & Foreground Raising:
@@ -1690,10 +1735,13 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
    [ok] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
-   [ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+   [ko] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
         - Interactive Shortcuts & Gestures window and terminal cheatsheet
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Shift+Left Click window
+          cycle, MPRIS scroll/middle-click parity, and Ctrl+Alt+Shift+Right
+          Click item inspector do not match documented behavior.
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Does not apply (no window positioning possible in Labwc).
    [ok] 7.13 Workspace Only Wayland Dormancy:
@@ -1774,11 +1822,14 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
           60 FPS interpolation
         - Clipped rendering prevents scrolled-out items/shadows from bleeding
           past background
-   [ok] 10.4 Docklet Scroll Conflict Isolation:
+   [ko] 10.4 Docklet Scroll Conflict Isolation:
         - Scrolling over Volume docklet adjusts audio volume without scrolling
           dock
         - Scrolling over Brightness docklet adjusts screen brightness without
           scrolling dock
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Overflow dock scrolling
+          intercepts mouse-wheel window cycling on running multi-window apps
+          and MPRIS track skipping.
    [ok] 10.5 Accordion Docklets Drawer Retention & Scroll Synergy:
         - Accordion in-line expand/collapse operates harmoniously alongside
           overflow scrolling
@@ -1793,10 +1844,12 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
         - When ON: dock icons preserve target size and scroll with wheel
         - When OFF: dock icons auto-shrink down to fit screen (classic Plank
           behavior)
-   [ok] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
+   [ko] 10.8 Dynamic Icon Size Capacity Indicator & Tachometer Redline (Appearance Tab):
         - In Shrink Mode, verify physical screen-limit tick mark, red SVG
           teardrop slider above capacity, and warning label when icons
           auto-shrink; in Scroll Mode, redline clears.
+        OPEN REGRESSION (Issue #24 - Queued for v0.7.1): Capacity math omits the
+          40px ReverseRoundness theme skirt offset.
    [ok] 10.9 Edge Fade & Chevron Indicators (Line Artifact Squashed):
         - Left/right (and vertical top/bottom) subtle edge gradients and
           chevrons indicate scrollable content
@@ -1885,10 +1938,12 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
         - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
           Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
           monitoring, and Theme.vala dynamic palette luminance fallback.
-   [ok] 12.2 Recent Files Jump List in Context Menus:
+   [ko] 12.2 Recent Files Jump List in Context Menus:
         - Right-clicking compatible applications in dock displays 'Recent
           Documents' submenu powered by FreeDesktop Gtk.RecentManager
         - Selecting a recent document opens it directly in target application
+        OPEN REGRESSION (Issue #19 - Queued for v0.7.1): RecentFilesService and
+          context-menu submenu wiring omitted in v0.6.2.3 consolidation merge.
    [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
         - Left-click on app icon with 2+ open windows displays floating Cairo
           preview cards with live window thumbnails.
@@ -1899,10 +1954,12 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [ok] 12.4 Window Activation & Selection from Card:
+   [ko] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
+        OPEN REGRESSION (Issue #21 - Queued for v0.7.1): Middle-click close on
+          preview card is unimplemented in WindowCardsWindow.
    [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
@@ -1938,7 +1995,7 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
         - Run '"FAT/Test Files/Localization/switch_lang.sh" <lang>' across
           zh_CN, it, es, fr, ca, de, uk, and en: verify 100% UI translation
           from in-RAM GResource (.mo) with zero '/usr/share/locale/' files.
-   [ok] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
+   [ko] 13.8 Permanent Icons Visual Effects Suite, 2x3 Item Management & 300-1500ms Effect Duration:
         - Verify compact 2x3 'Item Management' grid and permanent 3-column
           'Icons Visual Effects' bar ([Launch Effect], [Focused App], [Unpin
           Effect] with classic defaults at index 0) in Preferences ->
@@ -1947,9 +2004,12 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED / 100% QUALIFIED | 115 BASELINE | 8
           speed live and auto-hides when all 3 selectors are 'None'; cycle all
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
+        OPEN REGRESSION (Issue #24 - Queued for v0.7.1): PoofWindow clamps
+          EffectDuration at 1000ms instead of 1500ms, ShowRunningIndicators
+          lacks immediate redraw notification, and CLI '-V' triggers version.
 ================================================================================
-SESSION 3 RESULT: PASSED (LABWC / wlroots Backend) - 100% ISA-88 QUALIFIED
+SESSION 3 RESULT: OPEN DEFECTS (LABWC / wlroots Backend) - QUEUED FOR V0.7.1
 ================================================================================
-  * Tests: 125 | Passed Baseline: 115 [ok] | Squashed: 8 [ko->ok]
-  * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko] | Final Compliance: 100% (123/123 Applicable)
+  * Tests: 125 | Passed Baseline: 105 [ok] | Squashed: 7 [ko->ok]
+  * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 11 [ko] (#19-#25) | Final Compliance: 91.1% (112/123 Applicable)
 ================================================================================

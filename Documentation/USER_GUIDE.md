@@ -502,7 +502,7 @@ On KDE Plasma (Plasma 5 & Plasma 6), WayPlank communicates with KWin via its nat
 - **Dynamic Top Floating Panel Tracking**: Starting in **v0.6.2.3**, WayPlank actively synchronizes with KDE Plasma 6 floating top panels, adjusting dock dodge offsets and seamlessly tracking when windows maximize to 0-gap edge struts.
 - **Auto-Healing Service Watcher**: If KWin crashes or is manually replaced (`kwin_wayland --replace`), WayPlank's D-Bus service watcher automatically detects the compositor restoration, re-registers the bridge script, and re-engages live tracking with zero manual intervention.
 - **Hardware-Level Display Sync**: Leverages `kscreen-doctor` for atomic multi-monitor brightness and output state synchronization.
-- **Validated 100% FAT Stability**: Fully compliant with the WayPlank Factory Acceptance Test (FAT) matrix on KDE Plasma 6.
+- **ISA-88 FAT Qualification**: Continuously validated against the 379-point WayPlank Factory Acceptance Test (FAT) matrix on KDE Plasma 6 (see [`FAT/`](../FAT/) for live milestone compliance).
 
 ### GNOME Shell: Monolithic Mutter Extension
 Because GNOME Shell (Mutter) does not implement the `zwlr_foreign_toplevel_manager_v1` protocol and restricts foreign window inspection, WayPlank features a self-deploying GNOME Shell extension:

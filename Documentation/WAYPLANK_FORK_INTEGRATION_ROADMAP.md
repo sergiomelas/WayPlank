@@ -1,12 +1,12 @@
-# 🗺️ WayPlank v0.6.2 Roadmap: Fork Integration & Community Unification
+# 🗺️ WayPlank Permanent Community Fork Integration & Cherry-Pick Roadmap
 
-**Document Version:** 1.0  
-**Date:** 2026-10-15  
+**Document Status:** Permanent Living Document (Continuous Multi-Fork Cherry-Picking)  
+**Last Updated:** 2026-11-05 (Initiated 2026-10-15)  
 **Maintainer:** Sergio Melas (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
-**Collaborator & Author:** IFtiger-hu (史有虎) (2212363803@qq.com, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))  
-**Target Milestone:** WayPlank v0.6.2 — "The Community Unification & Distribution Release"  
+**Primary Community Fork Collaborator:** IFtiger-hu (史有虎) (2212363803@qq.com, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) — maintaining 3 active WayPlank forks)  
+**Scope:** Permanent cross-fork scouting, architectural HAL adaptation, attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
 **Upstream Repository:** [https://github.com/sergiomelas/WayPlank](https://github.com/sergiomelas/WayPlank)  
-**Collaborator Fork:** [https://github.com/IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank)  
+**Collaborator Profile & Forks:** [https://github.com/IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) (primary fork: [IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank) + 2 sibling experimental forks)  
 
 ---
 
@@ -212,37 +212,43 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
    - Rapidly dragged-and-dropped the same application multiple times; verified zero duplicate `.dockitem` files are spawned in `~/.config/wayplank/dock1/launchers/`.
 3. **Overflow Scrolling FAT Point**:
    - Pinned 35+ applications on a 1080p display; verified dock clamps to screen edges, renders cleanly, and mouse wheel scrolls fluidly through the entire launcher sequence without glitching.
-4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard & FAT 0.7.0 Public Beta 1 Consolidation)**:
-   - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (121 `[ok]` + 7 `[ko->ok]`) | 100% PASS
-   - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (118 `[ok]` + 8 `[ko->ok]`) | 100% PASS
-   - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (115 `[ok]` + 8 `[ko->ok]` + 2 `[NA]`) | 100% PASS
-   - **Total Verification**: 379 Tests Defined | 377/377 Applicable Passed in `v0.7.0` (`354 [ok]` + `23 [ko->ok]`) | 2 `[NA]` | 0 Open Defects (100% Compliant).
+4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard & FAT 0.7.0 Public Beta 1 Audit)**:
+   - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (111 `[ok]` + 6 `[ko->ok]` + 11 `[ko]`) | 91.4% PASS
+   - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (108 `[ok]` + 7 `[ko->ok]` + 11 `[ko]`) | 91.3% PASS
+   - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (105 `[ok]` + 7 `[ko->ok]` + 2 `[NA]` + 11 `[ko]`) | 91.1% PASS
+   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt`)**: 379 Tests Defined | 344/377 Applicable Passed in `v0.7.0` (`324 [ok]` + `20 [ko->ok]`) | 2 `[NA]` | 33 Open `[ko]` Instances across Issues `#19`–`#25` queued for `v0.7.1` (91.2% PASS).
 
 ---
 
 ## 6. 🤝 Attribution & Documentation Plan
 
-1. **Git Commit Authorship**:
-   - Commits imported using `git cherry-pick` or `git commit --author="史有虎-openSUSE-Tumbleweed <2212363803@qq.com>"`.
-2. **README.md Acknowledgments**:
-   - Dedicated section acknowledging **史有虎 (IFtiger-hu)** (@IFtiger-hu-hub).
+1. **Git Commit Authorship & File Header Copyrights**:
+   - Commits imported using `git cherry-pick` or `git commit --author="史有虎-openSUSE-Tumbleweed <2212363803@qq.com>"` (and equivalent original author metadata for any additional community fork), paired with `Copyright (C) 2026 史有虎 (IFtiger-hu)` in the top header of every modified source file.
+2. **README.md & CONTRIBUTING.md Acknowledgments**:
+   - Dedicated Roll of Honor entries acknowledging **史有虎 (IFtiger-hu)** (@IFtiger-hu-hub) and all downstream fork contributors.
 3. **Changelog Documentation**:
-   - All integrated features documented in `Changelogs/CHANGELOG_v0.6.2.md` and consolidated in `Changelogs/CHANGELOG_v0.7.0.md` with explicit credits and commit references.
+   - All integrated features documented in `Changelogs/CHANGELOG_v0.6.2.md`, `Changelogs/CHANGELOG_v0.7.0.md`, and subsequent `v0.7.x` changelogs with explicit credits and commit references.
 
 ---
 
-## 7. 🏁 Community Unification Completed & Release Timeline
+## 7. 🔄 Phase 1 Unification Completed & Ongoing `v0.7.x` Multi-Fork Cherry-Pick Track
 
-The unification of upstream WayPlank with the community fork of **IFtiger-hu (史有虎)** has reached 100% completion across all three planned rounds and graduated into **Public Beta 1 (`v0.7.0`)**:
+Phase 1 (`v0.6.2.1` – `v0.6.2.3`) reached 100% completion across all three foundational rounds, and this roadmap remains **actively open throughout the `v0.7.x` Public Beta series** for continuous upstream cherry-picking and HAL adaptation across **IFtiger-hu (史有虎)**'s **3 active Chinese WayPlank forks** (as well as any new community forks):
 - **Round 1 (v0.6.2.1)**: Distribution tooling, RPM packaging, launcher deduplication, overflow scrolling. *(100% FAT passed)*.
 - **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(100% FAT passed)*.
 - **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking, and community enhancements. *(100% FAT passed — Official Closure of the Alpha & Pre-Beta Era)*.
-- **Public Beta 1 (v0.7.0)**: Monolithic in-memory localization engine (`7` languages + native English, `487` strings), GNOME Shell extension `version: 4`, and full `379`-point ISA-88 Phase B baseline consolidation (`377/377` applicable passed — 100% PASS). *(Active Release)*.
+- **Public Beta 1 (v0.7.0)**: Monolithic in-memory localization engine (`7` languages + native English, `487` strings), GNOME Shell extension `version: 4`, and `379`-point ISA-88 Phase B protocol (`344/377` applicable passed — `91.2% PASS`, with 7 non-critical issues `#19`–`#25` queued for `v0.7.1`). *(Active Release)*.
+- **Ongoing `v0.7.x` Multi-Fork Cherry-Picking (`v0.7.1` Beta 2 & Beyond)**: Continuous scouting, architectural review, HAL isolation adaptation (`KWin`, `Mutter`, `Labwc`), `po/generate_translations.py` i18n integration, and ISA-88 FAT qualification of new features, docklets, matcher improvements, and UX ideas developed across IFtiger-hu's 3 forks and broader community forks.
 
-### 📅 Master Release Trajectory:
+### 📅 Master Release Trajectory & Continuous Cherry-Pick Log:
 1. **October 22 – November 1, 2026 (Weeks 43–44)**: **Completion & Official Closure of v0.6.2.3 (Round 3)** — 100% FAT qualified (`370` tests, `44` squashed bugs)!
-2. **November 1, 2026**: **Official Launch of WayPlank Public Beta 1 (v0.7.0) on GitHub!**
-3. **Release Candidate Stage (v0.8.x)**: Strict feature freeze, memory leak profiling (Valgrind), and packaging stabilization.
+2. **November 2–5, 2026**: **Official Launch & Post-Release Audit of WayPlank Public Beta 1 (v0.7.0) on GitHub!**
+3. **Ongoing Permanent Track (`v0.7.x`, `v0.8.x`, and Beyond)**: Whenever interesting commits, UX ideas, docklets, or matcher fixes appear across IFtiger-hu's 3 forks or new community forks, they are audited against the 3-Compositor HAL Contract (`KWin`, `Mutter`, `Labwc`), cherry-picked with full author & copyright attribution, localized via `po/generate_translations.py`, and logged below:
+
+| Date / Target Release | Source Fork & Commit / PR | Author | Integrated Feature / Fix | Upstream Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `2026-10-30` (`v0.6.2.3`) | [PR #15](https://github.com/sergiomelas/WayPlank/pull/15) (`90c1d5e`) | 史有虎 (`@IFtiger-hu-hub`) | Flatpak delimiter (`@@`, `@@u`), `--command=` parsing & token basename matching | ✅ Merged & 100% FAT Verified |
+| *Ongoing (`v0.7.1+`)* | *IFtiger-hu 3 active forks / Community forks* | *Community Contributors* | *Continuous monitoring for new cherry-pick candidates* | 🔄 *Active Watch* |
 4. **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone and daily driver release across all Linux distros.
 5. **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 

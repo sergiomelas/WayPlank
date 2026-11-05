@@ -156,7 +156,7 @@ This milestone exemplifies collaborative open-source synergy:
 - **Collaboration Initiated**: 2026-10-15 via direct maintainer exchange.
 - **Authorization**: Full mutual consent to cherry-pick, adapt, and integrate fork features under Option 2.
 - **Git Authorship**: Preserved on all imported code chunks (`史有虎 (IFtiger-hu)`).
-- **Roadmap & Strategy**: Documented in `Documentation/WAYPLANK_V062_FORK_INTEGRATION_ROADMAP.md`.
+- **Roadmap & Strategy**: Documented in `Documentation/WAYPLANK_FORK_INTEGRATION_ROADMAP.md`.
 
 ---
 

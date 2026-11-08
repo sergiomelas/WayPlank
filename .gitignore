@@ -5,6 +5,8 @@ screenshot.png
 *.kate-swp
 .*.kate-swp
 data/glib-2.0/schemas/gschemas.compiled
+data/locale/
+data/.plank.build.gresource.xml
 lib/resources.c
 *.vala.c
 *DOWNSTREAM FORK BUGS & SOLUTIONS*
@@ -22,3 +24,7 @@ FAT/Test Files/Qemu/*.img
 FAT/Test Files/Qemu/*.qcow2
 .idea/
 compositor_sources/
+compositor_descktops_sources/
+Next Steps*
+NEXT_STEPS*
+next_steps*

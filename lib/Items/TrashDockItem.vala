@@ -57,6 +57,12 @@ namespace Plank
 		{
 			stop_monitor ();
 		}
+
+		public override void cleanup ()
+		{
+			stop_monitor ();
+			base.cleanup ();
+		}
 		
 		File get_xdg_trash_files_dir ()
 		{
@@ -391,13 +397,15 @@ namespace Plank
 			empty_item.activate.connect (empty_trash);
 			items.add (empty_item);
 			
-			items.add (new Gtk.SeparatorMenuItem ());
-			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
+				
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 			
 			return items;
 		}

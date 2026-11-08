@@ -107,7 +107,7 @@ namespace Plank
 				var time_str = new DateTime.now_local ().format ("%Y-%m-%d_%H-%M-%S");
 				var target = Path.build_filename (pic_dir, "Screenshot_%s.png".printf (time_str));
 				try {
-					Process.spawn_command_line_async ("sh -c 'grim -g \"$(slurp)\" \"%s\"'".printf (target));
+					Process.spawn_command_line_async ("sh -c 'grim -g \"$(slurp)\" \"$1\"' sh %s".printf (Shell.quote (target)));
 					return;
 				} catch (Error e) {
 					warning ("Failed to launch grim/slurp: %s", e.message);
@@ -158,7 +158,7 @@ namespace Plank
 				var time_str = new DateTime.now_local ().format ("%Y-%m-%d_%H-%M-%S");
 				var target = Path.build_filename (pic_dir, "Screenshot_%s.png".printf (time_str));
 				try {
-					Process.spawn_command_line_async ("grim \"%s\"".printf (target));
+					Process.spawn_command_line_async ("grim %s".printf (Shell.quote (target)));
 					return;
 				} catch (Error e) {
 					warning ("Failed to launch grim: %s", e.message);
@@ -224,7 +224,7 @@ namespace Plank
 			} catch (Error e) { }
 
 			try {
-				Process.spawn_command_line_async ("xdg-open \"%s\"".printf (target_path));
+				Process.spawn_command_line_async ("xdg-open %s".printf (Shell.quote (target_path)));
 			} catch (Error e) {
 				warning ("Failed to open screenshots folder: %s", e.message);
 			}
@@ -262,13 +262,15 @@ namespace Plank
 			folder_item.activate.connect (open_folder);
 			items.add (folder_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
-			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
+				
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 			
 			return items;
 		}

@@ -143,7 +143,11 @@ namespace Plank
 			string host = Environment.get_host_name ();
 
 			var subtitle_label = new Gtk.Label (null);
-			subtitle_label.set_markup ("<span color='#888888'>%s <b>%s</b> @ <b>%s</b></span>".printf (_("Logged in as"), user, host));
+			subtitle_label.set_markup ("<span color='#888888'>%s <b>%s</b> @ <b>%s</b></span>".printf (
+				_("Logged in as"),
+				GLib.Markup.escape_text (user ?? ""),
+				GLib.Markup.escape_text (host ?? "")
+			));
 			subtitle_label.halign = Gtk.Align.START;
 
 			header_box.pack_start (title_label, false, false, 0);

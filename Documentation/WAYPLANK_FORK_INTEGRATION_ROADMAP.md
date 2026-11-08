@@ -4,7 +4,7 @@
 **Last Updated:** 2026-11-05 (Initiated 2026-10-15)  
 **Maintainer:** Sergio Melas (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
 **Primary Community Fork Collaborator:** IFtiger-hu (史有虎) (2212363803@qq.com, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) — maintaining 3 active WayPlank forks)  
-**Scope:** Permanent cross-fork scouting, architectural HAL adaptation, attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
+**Scope:** Permanent cross-fork scouting, architectural HAL adaptation (per [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md)), attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
 **Upstream Repository:** [https://github.com/sergiomelas/WayPlank](https://github.com/sergiomelas/WayPlank)  
 **Collaborator Profile & Forks:** [https://github.com/IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) (primary fork: [IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank) + 2 sibling experimental forks)  
 
@@ -54,9 +54,7 @@ The fork branched from upstream at tag `v0.5.2` (`5729885`) and produced 17 comm
 flowchart TD
     classDef integrated fill:#1b5e20,stroke:#81c784,stroke-width:2px,color:#ffffff;
     classDef upstream fill:#1565c0,stroke:#64b5f6,stroke-width:1px,color:#ffffff;
-    classDef pending fill:#37474f,stroke:#90a4ae,stroke-width:1px,color:#ffffff;
-    classDef modify fill:#e65100,stroke:#ffb74d,stroke-width:2px,color:#ffffff;
-    classDef rejected fill:#b71c1c,stroke:#ef5350,stroke-width:2px,color:#ffffff;
+    classDef halbox fill:#4a148c,stroke:#ce93d8,stroke-width:2px,color:#ffffff;
 
     subgraph Upstream_v061["Upstream v0.6.1 Strengths"]
         U1["KWin DRM Multi-Monitor Brightness (kscreen-doctor)"]:::upstream
@@ -69,33 +67,31 @@ flowchart TD
     end
 
     subgraph Fork_Features["Fork Innovations by IFtiger-hu"]
-        F1["✅ [INTEGRATED - Round 1]<br/>Native openSUSE / Fedora RPM Builder (BuildRpm.sh)"]:::integrated
-        F2["✅ [INTEGRATED - Round 1]<br/>Dock Overflow Smooth Scrolling (PositionManager + Wheel)"]:::integrated
-        F3["✅ [INTEGRATED - Round 1]<br/>Launcher Deduplication & File Reuse (ItemFactory)"]:::integrated
-        F4["✅ [INTEGRATED - Round 1]<br/>Ghost Window Filtering (xwaylandvideobridge)"]:::integrated
-        F5["✅ [INTEGRATED - Round 2]<br/>DND Remote URL Delivery & Hover Window Activation"]:::integrated
-        F6["✅ [INTEGRATED - Round 3]<br/>Recent Files Jump List Service (RecentFilesService)"]:::integrated
-        F7["✅ [INTEGRATED - Round 3]<br/>Universal Multi-Window Cards (WindowCardsWindow)"]:::integrated
+        F1["✅ [Round 1] Native openSUSE / Fedora RPM Builder (BuildRpm.sh)"]:::integrated
+        F2["✅ [Round 1] Dock Overflow Smooth Scrolling (PositionManager + Wheel)"]:::integrated
+        F3["✅ [Round 1] Launcher Deduplication & File Reuse (ItemFactory)"]:::integrated
+        F4["✅ [Round 1] Ghost Window Filtering (xwaylandvideobridge)"]:::integrated
+        F5["✅ [Round 2] DND Remote URL Delivery & Hover Window Activation"]:::integrated
+        F6["✅ [Round 3] Recent Files Jump List Service (RecentFilesService)"]:::integrated
+        F7["✅ [Round 3] Universal Multi-Window Cards (WindowCardsWindow)"]:::integrated
+    end
+
+    subgraph HAL_Box["🏛️ Encapsulated Multi-Compositor HAL Box (HAL_ARCHITECTURE.md)"]
+        HB["📦 Unified HAL (KWin • Mutter • Labwc) + Ghost Window Shield"]:::halbox
     end
 
     subgraph Unified_v062["WayPlank v0.6.2 Unified Milestone"]
-        M1["✅ [INTEGRATED - Round 1]<br/>Unified Package Ecosystem: DEB + RPM + Headless CI"]:::integrated
-        M2["✅ [INTEGRATED - Round 1]<br/>Rock-Solid Multi-Compositor HAL + Ghost Window Shield"]:::integrated
-        M3["✅ [INTEGRATED - Round 1]<br/>Infinite Capacity: Smooth Overflow Scrolling + Redline Slider"]:::integrated
-        M4["✅ [INTEGRATED - Round 2]<br/>Rich DND Ecosystem: Files, Folders, URLs & Hover Raise"]:::integrated
-        M5["✅ [INTEGRATED - Round 2]<br/>Adaptive Theming: Portal Color-Scheme Sync + Theme Manager"]:::integrated
-        M6["✅ [INTEGRATED - Round 3]<br/>Universal Multi-Window Cards: Live KWin/Mutter Thumbnails"]:::integrated
-        M7["✅ [INTEGRATED - Round 3]<br/>Dynamic Theming Sync: Dual Portal + GSettings + kdeglobals"]:::integrated
+        M1["✅ [Round 1] Unified Package Ecosystem: DEB + RPM + Headless CI"]:::integrated
+        M3["✅ [Round 1] Infinite Capacity: Smooth Overflow Scrolling + Redline Slider"]:::integrated
+        M4["✅ [Round 2] Rich DND Ecosystem: Files, Folders, URLs & Hover Raise"]:::integrated
+        M5["✅ [Round 2] Adaptive Theming: Portal Color-Scheme Sync + Theme Manager"]:::integrated
+        M6["✅ [Round 3] Universal Multi-Window Cards: Live KWin/Mutter Thumbnails"]:::integrated
+        M7["✅ [Round 3] Dynamic Theming Sync: Dual Portal + GSettings + kdeglobals"]:::integrated
     end
 
-    Upstream_v061 --> Unified_v062
-    F1 --> Unified_v062
-    F2 --> Unified_v062
-    F3 --> Unified_v062
-    F4 --> Unified_v062
-    F5 --> Unified_v062
-    F6 --> Unified_v062
-    F7 --> Unified_v062
+    Upstream_v061 --> HAL_Box
+    Fork_Features --> HAL_Box
+    HAL_Box --> Unified_v062
 ```
 
 ---
@@ -106,7 +102,7 @@ To preserve linear versioning, eliminate ambiguity, and provide clean standalone
 
 * **v0.6.2.1 (Round 1)**: Native RPM Packaging, Overflow Scrolling, Launcher Deduplication, Ghost Window Shield & Multi-Monitor DDC/CI Sync — ✅ **COMPLETED (Released 2026-10-17)**.
 * **v0.6.2.2 (Round 2)**: DND Remote URLs, Hover Window Raising, FreeDesktop Portal Sync, Theme Manager & Strict MIME — ✅ **COMPLETED (Released 2026-10-21)**.
-* **v0.6.2.3 (Round 3)**: Packaged Stock Themes, Recent Files Jump List, Dynamic Theme Swapping, Universal Multi-Window Cards, Folder Running Dots, Drawer UX Parity & Native Peer Stacking — ✅ **COMPLETED (100% FAT Passed, Released 2026-10-22)**.
+* **v0.6.2.3 (Round 3)**: Packaged Stock Themes, Recent Files Jump List, Dynamic Theme Swapping, Universal Multi-Window Cards, Folder Running Dots, Drawer UX Parity & Native Peer Stacking — ✅ **COMPLETED (100% FAT Passed, Closed 2026-11-01)**.
 
 ---
 
@@ -212,11 +208,11 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
    - Rapidly dragged-and-dropped the same application multiple times; verified zero duplicate `.dockitem` files are spawned in `~/.config/wayplank/dock1/launchers/`.
 3. **Overflow Scrolling FAT Point**:
    - Pinned 35+ applications on a 1080p display; verified dock clamps to screen edges, renders cleanly, and mouse wheel scrolls fluidly through the entire launcher sequence without glitching.
-4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard & FAT 0.7.0 Public Beta 1 Audit)**:
-   - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (111 `[ok]` + 6 `[ko->ok]` + 11 `[ko]`) | 91.4% PASS
-   - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (108 `[ok]` + 7 `[ko->ok]` + 11 `[ko]`) | 91.3% PASS
-   - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (105 `[ok]` + 7 `[ko->ok]` + 2 `[NA]` + 11 `[ko]`) | 91.1% PASS
-   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt`)**: 379 Tests Defined | 344/377 Applicable Passed in `v0.7.0` (`324 [ok]` + `20 [ko->ok]`) | 2 `[NA]` | 33 Open `[ko]` Instances across Issues `#19`–`#25` queued for `v0.7.1` (91.2% PASS).
+4. **Compositor Regression Shield (FAT 0.6.2.3 Final Scoreboard, FAT 0.7.0 Public Beta 1 & FAT 0.7.1 Public Beta 2)**:
+   - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (108 `[ok]` + 14 `[ko->ok]` + 6 `[ko]`) | 95.3% PASS $\rightarrow$ 129 tests in `v0.7.1` (`116 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` | `0 [ko]`)
+   - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (106 `[ok]` + 14 `[ko->ok]` + 6 `[ko]`) | 95.2% PASS $\rightarrow$ 127 tests in `v0.7.1` (`114 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` | `0 [ko]`)
+   - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (103 `[ok]` + 14 `[ko->ok]` + 2 `[NA]` + 6 `[ko]`) | 95.1% PASS $\rightarrow$ 126 tests in `v0.7.1` (`111 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` + `2 [NA]` | `0 [ko]`)
+   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt` $\rightarrow$ `FAT/2026-11-07 FAT 0.7.1.txt`)**: 379 Tests Defined in `v0.7.0` (`359/377` Applicable Passed = `95.2% PASS`, with 18 open `[ko]` transferred to `v0.7.1`) $\rightarrow$ 382 Tests Defined in `v0.7.1` (`341 [ok]` baseline + `3 [ko->ok]` in `FAT 7.17` + `18 [ko->test]` remediations + `18 [  ]` new `v0.7.1` features + `2 [NA]` + `0 [ko]` open defects).
 
 ---
 
@@ -237,19 +233,22 @@ Phase 1 (`v0.6.2.1` – `v0.6.2.3`) reached 100% completion across all three fou
 - **Round 1 (v0.6.2.1)**: Distribution tooling, RPM packaging, launcher deduplication, overflow scrolling. *(100% FAT passed)*.
 - **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(100% FAT passed)*.
 - **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking, and community enhancements. *(100% FAT passed — Official Closure of the Alpha & Pre-Beta Era)*.
-- **Public Beta 1 (v0.7.0)**: Monolithic in-memory localization engine (`7` languages + native English, `487` strings), GNOME Shell extension `version: 4`, and `379`-point ISA-88 Phase B protocol (`344/377` applicable passed — `91.2% PASS`, with 7 non-critical issues `#19`–`#25` queued for `v0.7.1`). *(Active Release)*.
-- **Ongoing `v0.7.x` Multi-Fork Cherry-Picking (`v0.7.1` Beta 2 & Beyond)**: Continuous scouting, architectural review, HAL isolation adaptation (`KWin`, `Mutter`, `Labwc`), `po/generate_translations.py` i18n integration, and ISA-88 FAT qualification of new features, docklets, matcher improvements, and UX ideas developed across IFtiger-hu's 3 forks and broader community forks.
+- **Public Beta 1 (v0.7.0)**: Monolithic in-memory localization engine (`7` languages + native English, `487` strings), GNOME Shell extension `version: 4`, and `379`-point ISA-88 Phase B protocol (`359/377` applicable passed — `95.2% PASS`, with 18 remaining `[ko]` points transferred to `v0.7.1`). *(Concluded & Frozen)*.
+- **Public Beta 2 (v0.7.1)**: First-Run Onboarding (`Classic` vs `Explorer`) with 100% read-only `~/.config/plank` migration, Smart Usage-Adaptive Pinned Apps Accordion, `MONLMIP Rank 1` & full `~/.config/wayplank/latch-state.ini` profile persistence (`FAT 7.17` `[ko->ok]`), `519/519` in-RAM localized strings, browser auto-translated User Guide, Core Feature Freeze (open to community requests), and `382`-point ISA-88 protocol (`341 [ok]` + `3 [ko->ok]` + `18 [ko->test]` + `18 [  ]` + `0 [ko]`). *(Active Release)*.
+- **Ongoing `v0.7.x` Multi-Fork Cherry-Picking (`v0.7.1+` & Beyond)**: Continuous scouting, architectural review, HAL isolation adaptation (`KWin`, `Mutter`, `Labwc`), `po/generate_translations.py` i18n integration, and ISA-88 FAT qualification of new features, docklets, matcher improvements, and UX ideas developed across IFtiger-hu's 3 forks and broader community forks.
 
 ### 📅 Master Release Trajectory & Continuous Cherry-Pick Log:
 1. **October 22 – November 1, 2026 (Weeks 43–44)**: **Completion & Official Closure of v0.6.2.3 (Round 3)** — 100% FAT qualified (`370` tests, `44` squashed bugs)!
-2. **November 2–5, 2026**: **Official Launch & Post-Release Audit of WayPlank Public Beta 1 (v0.7.0) on GitHub!**
-3. **Ongoing Permanent Track (`v0.7.x`, `v0.8.x`, and Beyond)**: Whenever interesting commits, UX ideas, docklets, or matcher fixes appear across IFtiger-hu's 3 forks or new community forks, they are audited against the 3-Compositor HAL Contract (`KWin`, `Mutter`, `Labwc`), cherry-picked with full author & copyright attribution, localized via `po/generate_translations.py`, and logged below:
+2. **November 2–6, 2026**: **Official Launch & Qualification Closure of WayPlank Public Beta 1 (v0.7.0) on GitHub (`359/377` = `95.2% PASS`)!**
+3. **November 7, 2026**: **Launch of WayPlank Public Beta 2 (v0.7.1) & Core Feature Freeze (Open to Community Requests)!**
+4. **Ongoing Permanent Track (`v0.7.x`, `v0.8.x`, and Beyond)**: Whenever interesting commits, UX ideas, docklets, or matcher fixes appear across IFtiger-hu's 3 forks or new community forks, they are audited against the 3-Compositor HAL Contract (`KWin`, `Mutter`, `Labwc`), cherry-picked with full author & copyright attribution, localized via `po/generate_translations.py`, and logged below:
 
 | Date / Target Release | Source Fork & Commit / PR | Author | Integrated Feature / Fix | Upstream Status |
 | :--- | :--- | :--- | :--- | :--- |
 | `2026-10-30` (`v0.6.2.3`) | [PR #15](https://github.com/sergiomelas/WayPlank/pull/15) (`90c1d5e`) | 史有虎 (`@IFtiger-hu-hub`) | Flatpak delimiter (`@@`, `@@u`), `--command=` parsing & token basename matching | ✅ Merged & 100% FAT Verified |
+| `2026-11-07` (`v0.7.1`) | `IFtiger-hu-hub/WayPlank@c981e42` (`kde-plasma` branch) | 史有虎 (`@IFtiger-hu-hub`) | Wrapper script stem extraction (`.sh`/`.py`/`.run`/`.bin`), `16 KB` JetBrains/DevEco wrapper limit, `"studio"`/`"ide"`/`"browser"`/`"player"` stopword isolation & strong-ref `DockWindow.ClickedItem` lifecycle guard | ✅ Cherry-picked & HAL Verified (`v0.7.1`) |
 | *Ongoing (`v0.7.1+`)* | *IFtiger-hu 3 active forks / Community forks* | *Community Contributors* | *Continuous monitoring for new cherry-pick candidates* | 🔄 *Active Watch* |
-4. **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone and daily driver release across all Linux distros.
+4. **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone and daily driver release across all Linux distros and Windows 10/11+.
 5. **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 
 ---

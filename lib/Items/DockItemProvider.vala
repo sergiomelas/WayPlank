@@ -92,7 +92,7 @@ namespace Plank
 		{
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item != null && uri_matches (item.Launcher, uri))
+				if (item != null && (uri_matches (item.Launcher, uri) || (uri == "docklet://trash" && item is TrashDockItem)))
 					return item;
 			}
 			

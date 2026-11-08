@@ -25,6 +25,7 @@ namespace Plank
 	{
 		public static bool is_open { get; private set; default = false; }
 		public static PreferencesWindow? active_instance { get; private set; default = null; }
+		public bool suppress_destroy_on_hide { get; set; default = false; }
 
 		/**
 		 * The controller for this dock.
@@ -119,6 +120,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_anticipate_zoom;
 		[GtkChild]
+		unowned Gtk.Switch sw_tooltips_enabled;
+		[GtkChild]
 		unowned Gtk.Switch sw_zoom_enabled;
 		[GtkChild]
 		unowned Gtk.Switch sw_categorize_items;
@@ -128,8 +131,6 @@ namespace Plank
 		unowned Gtk.Label l_docklets_on_right;
 		[GtkChild]
 		unowned Gtk.Switch sw_docklets_on_right;
-		[GtkChild]
-		unowned Gtk.Label l_anchor_always_left;
 		[GtkChild]
 		unowned Gtk.Switch sw_anchor_always_left;
 		[GtkChild]
@@ -150,6 +151,14 @@ namespace Plank
 		unowned Gtk.Scale s_accordion_delay;
 		[GtkChild]
 		unowned Gtk.Adjustment adj_accordion_delay;
+		[GtkChild]
+		unowned Gtk.Label l_pinned_accordion;
+		[GtkChild]
+		unowned Gtk.ComboBoxText cb_pinned_accordion;
+		[GtkChild]
+		unowned Gtk.SpinButton sp_pinned_count;
+		[GtkChild]
+		unowned Gtk.Adjustment adj_pinned_count;
 		[GtkChild]
 		unowned Gtk.Switch sw_autostart;
 		[GtkChild]
@@ -282,6 +291,8 @@ namespace Plank
 				sp_effect_duration.select_region (0, 0);
 			if (sp_accordion_delay != null)
 				sp_accordion_delay.select_region (0, 0);
+			if (sp_pinned_count != null)
+				sp_pinned_count.select_region (0, 0);
 		}
 
 		void on_stack_page_changed (GLib.Object sender, ParamSpec prop)
@@ -307,11 +318,11 @@ namespace Plank
 			sg_appearance_spin = new Gtk.SizeGroup (Gtk.SizeGroupMode.HORIZONTAL);
 			sg_appearance_spin.add_widget (sp_offset);
 			sg_appearance_spin.add_widget (sp_iconsize);
-			sg_appearance_spin.add_widget (sp_zoom_percent);
 
 			sg_behaviour_spin = new Gtk.SizeGroup (Gtk.SizeGroupMode.HORIZONTAL);
 			sg_behaviour_spin.add_widget (sp_hide_delay);
 			sg_behaviour_spin.add_widget (sp_unhide_delay);
+			sg_behaviour_spin.add_widget (sp_zoom_percent);
 			sg_behaviour_spin.add_widget (sp_effect_duration);
 			
 			dock_preferences.set_transition_type (Gtk.StackTransitionType.SLIDE_LEFT_RIGHT);
@@ -410,22 +421,52 @@ namespace Plank
 				clear_spinbutton_focus ();
 			});
 			this.hide.connect (() => {
+				flush_all_settings_to_disk ();
+				if (suppress_destroy_on_hide)
+					return;
 				is_open = false;
 				if (active_instance == this)
 					active_instance = null;
+			});
+			this.delete_event.connect (() => {
+				flush_all_settings_to_disk ();
+				return false;
 			});
 			
 			notify["controller"].connect (controller_changed);
 			destroy.connect (() => {
+				flush_all_settings_to_disk ();
+				is_destroyed = true;
 				is_open = false;
 				if (active_instance == this)
 					active_instance = null;
 				disconnect_signals ();
+				if (popup_css_screen != null && popup_css != null) {
+					Gtk.StyleContext.remove_provider_for_screen (popup_css_screen, popup_css);
+					popup_css = null;
+				}
+				if (s_iconsize != null && slider_css != null) {
+					s_iconsize.get_style_context ().remove_provider (slider_css);
+					slider_css = null;
+				}
 			});
+		}
+
+		bool is_destroyed = false;
+
+		void flush_all_settings_to_disk ()
+		{
+			if (controller != null)
+				controller.flush_pending_serialization ();
+			if (prefs != null)
+				prefs.flush_to_disk ();
+			AppUsageService.flush_if_active ();
 		}
 
 		~PreferencesWindow ()
 		{
+			flush_all_settings_to_disk ();
+			is_destroyed = true;
 			is_open = false;
 			if (active_instance == this)
 				active_instance = null;
@@ -502,9 +543,10 @@ namespace Plank
 				break;
 			case "HideMode":
 				var hide_active = (prefs.HideMode != HideType.NONE);
-				sw_hide.set_active (hide_active);
 				if (hide_active)
 					cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
+				if (sw_hide.get_active () != hide_active)
+					sw_hide.set_active (hide_active);
 				update_hide_sensitivity ();
 				break;
 			case "ReserveSpace":
@@ -550,6 +592,9 @@ namespace Plank
 			case "AnticipateZoom":
 				sw_anticipate_zoom.set_active (prefs.AnticipateZoom);
 				break;
+			case "TooltipsEnabled":
+				sw_tooltips_enabled.set_active (prefs.TooltipsEnabled);
+				break;
 			case "CategorizeItems":
 				sw_categorize_items.set_active (prefs.CategorizeItems);
 				update_accordion_visibility ();
@@ -568,10 +613,18 @@ namespace Plank
 				sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
 				break;
 			case "AccordionDelay":
-				double delay_sec = (prefs.AccordionDelay >= 500U ? prefs.AccordionDelay : 1000U) / 1000.0;
+				double delay_sec = (prefs.AccordionDelay >= DockPreferences.MIN_ACCORDION_DELAY ? prefs.AccordionDelay : DockPreferences.DEFAULT_ACCORDION_DELAY) / 1000.0;
 				if (Math.fabs (adj_accordion_delay.value - delay_sec) > 0.05) {
 					adj_accordion_delay.value = delay_sec;
 				}
+				break;
+			case "PinnedAccordionMode":
+				cb_pinned_accordion.active_id = prefs.PinnedAccordionMode.clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N).to_string ();
+				update_accordion_visibility ();
+				break;
+			case "PinnedAccordionCount":
+				if ((int) Math.round (adj_pinned_count.value) != prefs.PinnedAccordionCount)
+					adj_pinned_count.value = prefs.PinnedAccordionCount.clamp (DockPreferences.MIN_PINNED_ACCORDION_COUNT, DockPreferences.MAX_PINNED_ACCORDION_COUNT);
 				break;
 			case "ZoomPercent":
 				adj_zoom_percent.value = prefs.ZoomPercent;
@@ -595,23 +648,27 @@ namespace Plank
 				sw_show_attention_indicators.set_active (prefs.ShowAttentionIndicators);
 				break;
 			case "ActiveHighlight":
-				cb_active_highlight.active_id = prefs.ActiveHighlight.clamp (0, 7).to_string ();
+				cb_active_highlight.active_id = prefs.ActiveHighlight.clamp (0, DockPreferences.MAX_ACTIVE_HIGHLIGHT).to_string ();
 				update_effect_duration_visibility ();
 				break;
 			case "LaunchAnimation":
-				cb_launch_animation.active_id = prefs.LaunchAnimation.clamp (0, 8).to_string ();
+				cb_launch_animation.active_id = prefs.LaunchAnimation.clamp (0, DockPreferences.MAX_LAUNCH_ANIMATION).to_string ();
 				update_effect_duration_visibility ();
 				break;
 			case "UnpinAnimation":
-				cb_unpin_animation.active_id = prefs.UnpinAnimation.clamp (0, 8).to_string ();
+				cb_unpin_animation.active_id = prefs.UnpinAnimation.clamp (0, DockPreferences.MAX_UNPIN_ANIMATION).to_string ();
 				update_effect_duration_visibility ();
 				break;
 			case "EffectDuration":
 				if ((int) Math.round (adj_effect_duration.value) != prefs.EffectDuration)
-					adj_effect_duration.value = prefs.EffectDuration.clamp (300, 1500);
+					adj_effect_duration.value = prefs.EffectDuration.clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION);
 				break;
 			// Ignored settings
 			case "DockItems":
+			case "FreeDockItems":
+			case "CategorizedDockItems":
+			case "AutoPinning":
+			case "ShowDockItem":
 				break;
 			default:
 				warning ("%s not supported", prop.name);
@@ -661,7 +718,9 @@ namespace Plank
 		void on_add_theme_clicked ()
 		{
 			// Temporarily hide PreferencesWindow while choosing theme archive
+			suppress_destroy_on_hide = true;
 			this.hide ();
+			suppress_destroy_on_hide = false;
 
 			var chooser = new Gtk.FileChooserNative (
 				_("Install WayPlank Theme"),
@@ -695,6 +754,9 @@ namespace Plank
 			}
 			chooser.destroy ();
 
+			if (is_destroyed)
+				return;
+
 			// Restore PreferencesWindow
 			this.show ();
 			this.present ();
@@ -707,14 +769,20 @@ namespace Plank
 
 			if (themes.size == 0) {
 				var msg = new Gtk.MessageDialog (
-					this,
-					Gtk.DialogFlags.MODAL,
+					null,
+					0,
 					Gtk.MessageType.WARNING,
 					Gtk.ButtonsType.OK,
 					_("No valid WayPlank/Plank theme found in the selected file.\nA valid theme must contain a 'dock.theme' configuration file.")
 				);
+				msg.set_modal (true);
+				msg.set_keep_above (true);
+				msg.set_position (Gtk.WindowPosition.CENTER);
+				this.set_keep_above (false);
 				msg.run ();
 				msg.destroy ();
+				if (!is_destroyed)
+					this.set_keep_above (true);
 				ThemeManager.cleanup_tmp (tmp_dir);
 				return;
 			}
@@ -726,15 +794,21 @@ namespace Plank
 				var dest = Paths.AppThemeFolder.get_child (t.name);
 				if (dest.query_exists ()) {
 					var confirm = new Gtk.MessageDialog (
-						this,
-						Gtk.DialogFlags.MODAL,
+						null,
+						0,
 						Gtk.MessageType.QUESTION,
 						Gtk.ButtonsType.YES_NO,
 						_("A theme named '%s' already exists.\nDo you want to replace it?").printf (t.name)
 					);
+					confirm.set_modal (true);
+					confirm.set_keep_above (true);
+					confirm.set_position (Gtk.WindowPosition.CENTER);
+					this.set_keep_above (false);
 					int res = confirm.run ();
 					confirm.destroy ();
-					if (res != Gtk.ResponseType.YES) {
+					if (!is_destroyed)
+						this.set_keep_above (true);
+					if (is_destroyed || res != Gtk.ResponseType.YES) {
 						ThemeManager.cleanup_tmp (tmp_dir);
 						return;
 					}
@@ -747,11 +821,14 @@ namespace Plank
 				// Multiple themes found in archive: show selection dialog
 				var select_dialog = new Gtk.Dialog.with_buttons (
 					_("Install Themes"),
-					this,
-					Gtk.DialogFlags.MODAL,
+					null,
+					0,
 					_("_Cancel"), Gtk.ResponseType.CANCEL,
 					_("_Install"), Gtk.ResponseType.ACCEPT
 				);
+				select_dialog.set_modal (true);
+				select_dialog.set_keep_above (true);
+				select_dialog.set_position (Gtk.WindowPosition.CENTER);
 				select_dialog.set_default_size (360, 260);
 
 				var content_area = select_dialog.get_content_area ();
@@ -780,7 +857,9 @@ namespace Plank
 				content_area.pack_start (scrolled, true, true, 0);
 				select_dialog.show_all ();
 
-				if (select_dialog.run () == Gtk.ResponseType.ACCEPT) {
+				this.set_keep_above (false);
+				int sel_res = select_dialog.run ();
+				if (!is_destroyed && sel_res == Gtk.ResponseType.ACCEPT) {
 					for (int i = 0; i < themes.size; i++) {
 						if (check_buttons.get (i).active) {
 							var t = themes.get (i);
@@ -792,11 +871,17 @@ namespace Plank
 					}
 				}
 				select_dialog.destroy ();
+				if (!is_destroyed)
+					this.set_keep_above (true);
+				if (is_destroyed) {
+					ThemeManager.cleanup_tmp (tmp_dir);
+					return;
+				}
 			}
 
 			ThemeManager.cleanup_tmp (tmp_dir);
 
-			if (last_installed != null) {
+			if (!is_destroyed && last_installed != null) {
 				prefs.Theme = last_installed;
 				rebuild_theme_list ();
 			}
@@ -809,19 +894,29 @@ namespace Plank
 				return;
 
 			var confirm = new Gtk.MessageDialog (
-				this,
-				Gtk.DialogFlags.MODAL,
+				null,
+				0,
 				Gtk.MessageType.QUESTION,
 				Gtk.ButtonsType.YES_NO,
 				_("Are you sure you want to delete the theme '%s'?\nThis will remove it from ~/.local/share/wayplank/themes/.").printf (current_theme)
 			);
+			confirm.set_modal (true);
+			confirm.set_keep_above (true);
+			confirm.set_position (Gtk.WindowPosition.CENTER);
 
+			this.set_keep_above (false);
 			int res = confirm.run ();
 			confirm.destroy ();
+			if (is_destroyed)
+				return;
+			this.set_keep_above (true);
 
 			if (res == Gtk.ResponseType.YES) {
 				if (ThemeManager.delete_user_theme (current_theme)) {
-					prefs.Theme = Plank.Theme.DEFAULT_NAME;
+					if (Plank.Theme.is_valid_name (current_theme))
+						prefs.notify_property ("Theme");
+					else
+						prefs.Theme = Plank.Theme.DEFAULT_NAME;
 					rebuild_theme_list ();
 				}
 			}
@@ -1065,7 +1160,7 @@ namespace Plank
 		{
 			var active_id = widget.get_active_id ();
 			if (active_id != null && active_id != "") {
-				prefs.ActiveHighlight = int.parse (active_id).clamp (0, 7);
+				prefs.ActiveHighlight = int.parse (active_id).clamp (0, DockPreferences.MAX_ACTIVE_HIGHLIGHT);
 				update_effect_duration_visibility ();
 			}
 		}
@@ -1074,7 +1169,7 @@ namespace Plank
 		{
 			var active_id = widget.get_active_id ();
 			if (active_id != null && active_id != "") {
-				prefs.LaunchAnimation = int.parse (active_id).clamp (0, 8);
+				prefs.LaunchAnimation = int.parse (active_id).clamp (0, DockPreferences.MAX_LAUNCH_ANIMATION);
 				update_effect_duration_visibility ();
 			}
 		}
@@ -1083,21 +1178,23 @@ namespace Plank
 		{
 			var active_id = widget.get_active_id ();
 			if (active_id != null && active_id != "") {
-				prefs.UnpinAnimation = int.parse (active_id).clamp (0, 8);
+				prefs.UnpinAnimation = int.parse (active_id).clamp (0, DockPreferences.MAX_UNPIN_ANIMATION);
 				update_effect_duration_visibility ();
 			}
 		}
 
 		void effect_duration_changed (Gtk.Adjustment adj)
 		{
-			int val = ((int) Math.round (adj.value)).clamp (300, 1500);
+			int val = ((int) Math.round (adj.value)).clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION);
 			if (prefs.EffectDuration != val)
 				prefs.EffectDuration = val;
 		}
 
 		void update_effect_duration_visibility ()
 		{
-			bool any_effect_active = (prefs.LaunchAnimation != 8 || prefs.ActiveHighlight != 7 || prefs.UnpinAnimation != 8);
+			bool any_effect_active = (prefs.LaunchAnimation != DockPreferences.MAX_LAUNCH_ANIMATION
+				|| prefs.ActiveHighlight != DockPreferences.MAX_ACTIVE_HIGHLIGHT
+				|| prefs.UnpinAnimation != DockPreferences.MAX_UNPIN_ANIMATION);
 			l_effect_duration.sensitive = any_effect_active;
 			box_effect_duration.sensitive = any_effect_active;
 			sp_effect_duration.sensitive = any_effect_active;
@@ -1140,6 +1237,16 @@ namespace Plank
 			}
 		}
 
+		void tooltips_enabled_toggled (GLib.Object widget, ParamSpec param)
+		{
+			bool active = ((Gtk.Switch) widget).get_active ();
+			if (prefs.TooltipsEnabled != active)
+				prefs.TooltipsEnabled = active;
+			// Dismiss any tooltip currently on screen as soon as the option is turned off
+			if (!active && controller != null && controller.hover != null)
+				controller.hover.hide ();
+		}
+
 		void categorize_items_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.CategorizeItems = ((Gtk.Switch) widget).get_active ();
@@ -1154,11 +1261,8 @@ namespace Plank
 		void anchor_always_left_toggled (GLib.Object widget, ParamSpec param)
 		{
 			bool active = ((Gtk.Switch) widget).get_active ();
-			prefs.AnchorAlwaysLeft = active;
-			if (active && prefs.SystemMenuAccess != 4) {
-				prefs.SystemMenuAccess = 4;
-				update_system_menu_access_options ();
-			}
+			if (prefs.AnchorAlwaysLeft != active)
+				prefs.AnchorAlwaysLeft = active;
 		}
 
 		void accordion_docklets_toggled (GLib.Object widget, ParamSpec param)
@@ -1176,15 +1280,9 @@ namespace Plank
 		{
 			cb_system_menu_access.changed.disconnect (system_menu_access_changed);
 
-			if (!prefs.CategorizeItems && (prefs.SystemMenuAccess == 1 || prefs.SystemMenuAccess == 2)) {
-				prefs.SystemMenuAccess = 3;
-			}
-
 			cb_system_menu_access.remove_all ();
-			if (prefs.CategorizeItems) {
-				cb_system_menu_access.append ("1", _("Docklets Only"));
-				cb_system_menu_access.append ("2", _("Docklets Only (with fallback)"));
-			}
+			cb_system_menu_access.append ("1", _("Docklets Only"));
+			cb_system_menu_access.append ("2", _("Docklets Only (with fallback)"));
 			cb_system_menu_access.append ("3", _("All Icons (integrated)"));
 			cb_system_menu_access.append ("4", _("Dedicated Icon (on dock)"));
 
@@ -1196,24 +1294,43 @@ namespace Plank
 		{
 			bool cat_active = prefs.CategorizeItems;
 			bool acc_active = cat_active && prefs.AccordionDocklets;
+			bool pin_active = cat_active && prefs.PinnedAccordionMode != DockPreferences.PINNED_ACCORDION_OFF;
+			// Click to Expand and Collapse Delay are shared by both accordions
+			bool any_acc_active = acc_active || pin_active;
 
 			btn_reorder_free_items.sensitive = !cat_active;
 
 			l_docklets_on_right.sensitive = cat_active;
 			sw_docklets_on_right.sensitive = cat_active;
-			l_anchor_always_left.sensitive = cat_active;
-			sw_anchor_always_left.sensitive = cat_active;
 			l_accordion_docklets.sensitive = cat_active;
 			sw_accordion_docklets.sensitive = cat_active;
-			l_accordion_click_to_expand.sensitive = acc_active;
-			sw_accordion_click_to_expand.sensitive = acc_active;
+			l_pinned_accordion.sensitive = cat_active;
+			cb_pinned_accordion.sensitive = cat_active;
+			sp_pinned_count.sensitive = cat_active;
+			sp_pinned_count.visible = (prefs.PinnedAccordionMode == DockPreferences.PINNED_ACCORDION_TOP_N);
+			l_accordion_click_to_expand.sensitive = any_acc_active;
+			sw_accordion_click_to_expand.sensitive = any_acc_active;
 
-			l_accordion_delay.sensitive = acc_active;
-			box_accordion_delay.sensitive = acc_active;
-			sp_accordion_delay.sensitive = acc_active;
-			s_accordion_delay.sensitive = acc_active;
+			l_accordion_delay.sensitive = any_acc_active;
+			box_accordion_delay.sensitive = any_acc_active;
+			sp_accordion_delay.sensitive = any_acc_active;
+			s_accordion_delay.sensitive = any_acc_active;
+		}
 
-			update_system_menu_access_options ();
+		void pinned_accordion_changed (Gtk.ComboBox widget)
+		{
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			prefs.PinnedAccordionMode = int.parse (active_id).clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N);
+			update_accordion_visibility ();
+		}
+
+		void pinned_count_changed (Gtk.Adjustment adj)
+		{
+			int val = ((int) Math.round (adj.value)).clamp (DockPreferences.MIN_PINNED_ACCORDION_COUNT, DockPreferences.MAX_PINNED_ACCORDION_COUNT);
+			if (prefs.PinnedAccordionCount != val)
+				prefs.PinnedAccordionCount = val;
 		}
 
 		void accordion_delay_changed (Gtk.Adjustment adj)
@@ -1247,12 +1364,8 @@ namespace Plank
 		{
 			if (cb_system_menu_access.active_id != null) {
 				int val = int.parse (cb_system_menu_access.active_id);
-				if (val >= 1 && val <= 4) {
+				if (val >= 1 && val <= 4 && prefs.SystemMenuAccess != val) {
 					prefs.SystemMenuAccess = val;
-					if (val != 4 && prefs.AnchorAlwaysLeft) {
-						prefs.AnchorAlwaysLeft = false;
-						sw_anchor_always_left.set_active (false);
-					}
 				}
 			}
 		}
@@ -1387,17 +1500,17 @@ namespace Plank
 		
 		void hide_delay_changed (Gtk.Adjustment adj)
 		{
-			prefs.HideDelay = (int) adj.value;
+			prefs.HideDelay = (uint) Math.round (double.max (0.0, adj.value));
 		}
 		
 		void unhide_delay_changed (Gtk.Adjustment adj)
 		{
-			prefs.UnhideDelay = (int) adj.value;
+			prefs.UnhideDelay = (uint) Math.round (double.max (0.0, adj.value));
 		}
 		
 		void zoom_percent_changed (Gtk.Adjustment adj)
 		{
-			prefs.ZoomPercent = (int) adj.value;
+			prefs.ZoomPercent = (uint) Math.round (double.max (100.0, adj.value));
 		}
 		
 		void monitor_changed (Gtk.ComboBox widget)
@@ -1443,6 +1556,8 @@ namespace Plank
 			adj_offset.value_changed.connect (offset_changed);
 			adj_zoom_percent.value_changed.connect (zoom_percent_changed);
 			adj_accordion_delay.value_changed.connect (accordion_delay_changed);
+			cb_pinned_accordion.changed.connect (pinned_accordion_changed);
+			adj_pinned_count.value_changed.connect (pinned_count_changed);
 			cb_window_click_behavior.changed.connect (window_click_behavior_changed);
 			cb_active_highlight.changed.connect (active_highlight_changed);
 			cb_launch_animation.changed.connect (launch_animation_changed);
@@ -1459,6 +1574,7 @@ namespace Plank
 			sw_pressure_reveal.notify["active"].connect (pressure_reveal_toggled);
 			sw_reserve_space.notify["active"].connect (reserve_space_toggled);
 			sw_anticipate_zoom.notify["active"].connect (anticipate_zoom_toggled);
+			sw_tooltips_enabled.notify["active"].connect (tooltips_enabled_toggled);
 			sw_zoom_enabled.notify["active"].connect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].connect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
@@ -1490,6 +1606,7 @@ namespace Plank
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 			get_screen ().monitors_changed.connect (rebuild_monitor_list);
+			WindowControl.get_default ().primary_monitor_changed.connect (rebuild_monitor_list);
 			dock_preferences.notify["visible-child"].connect (on_stack_page_changed);
 			dock_preferences.notify["transition-running"].connect (on_stack_page_changed);
 			if (controller != null && controller.position_manager != null) {
@@ -1518,6 +1635,8 @@ namespace Plank
 			adj_offset.value_changed.disconnect (offset_changed);
 			adj_zoom_percent.value_changed.disconnect (zoom_percent_changed);
 			adj_accordion_delay.value_changed.disconnect (accordion_delay_changed);
+			cb_pinned_accordion.changed.disconnect (pinned_accordion_changed);
+			adj_pinned_count.value_changed.disconnect (pinned_count_changed);
 			cb_window_click_behavior.changed.disconnect (window_click_behavior_changed);
 			cb_active_highlight.changed.disconnect (active_highlight_changed);
 			cb_launch_animation.changed.disconnect (launch_animation_changed);
@@ -1534,6 +1653,7 @@ namespace Plank
 			sw_pressure_reveal.notify["active"].disconnect (pressure_reveal_toggled);
 			sw_reserve_space.notify["active"].disconnect (reserve_space_toggled);
 			sw_anticipate_zoom.notify["active"].disconnect (anticipate_zoom_toggled);
+			sw_tooltips_enabled.notify["active"].disconnect (tooltips_enabled_toggled);
 			sw_zoom_enabled.notify["active"].disconnect (zoom_enabled_toggled);
 			sw_categorize_items.notify["active"].disconnect (categorize_items_toggled);
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
@@ -1565,6 +1685,7 @@ namespace Plank
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
+			WindowControl.get_default ().primary_monitor_changed.disconnect (rebuild_monitor_list);
 			dock_preferences.notify["visible-child"].disconnect (on_stack_page_changed);
 			dock_preferences.notify["transition-running"].disconnect (on_stack_page_changed);
 			if (controller != null && controller.position_manager != null) {
@@ -1689,22 +1810,25 @@ namespace Plank
 			sw_anticipate_zoom.set_active (prefs.AnticipateZoom);
 			sw_anticipate_zoom.tooltip_text = _("Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock");
 			sw_zoom_enabled.set_active (prefs.ZoomEnabled);
+			sw_tooltips_enabled.set_active (prefs.TooltipsEnabled);
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_docklets_on_right.set_active (prefs.DockletsOnRight);
 			sw_anchor_always_left.set_active (prefs.AnchorAlwaysLeft);
 			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
 			sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
-			adj_accordion_delay.value = (prefs.AccordionDelay >= 500U ? prefs.AccordionDelay : 1000U) / 1000.0;
+			adj_accordion_delay.value = (prefs.AccordionDelay >= DockPreferences.MIN_ACCORDION_DELAY ? prefs.AccordionDelay : DockPreferences.DEFAULT_ACCORDION_DELAY) / 1000.0;
+			cb_pinned_accordion.active_id = prefs.PinnedAccordionMode.clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N).to_string ();
+			adj_pinned_count.value = prefs.PinnedAccordionCount.clamp (DockPreferences.MIN_PINNED_ACCORDION_COUNT, DockPreferences.MAX_PINNED_ACCORDION_COUNT);
 			update_accordion_visibility ();
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();
 			update_alignment_sensitivity ();
 			update_hide_sensitivity ();
 			update_zoom_sensitivity ();
-			cb_active_highlight.active_id = prefs.ActiveHighlight.clamp (0, 7).to_string ();
-			cb_launch_animation.active_id = prefs.LaunchAnimation.clamp (0, 8).to_string ();
-			cb_unpin_animation.active_id = prefs.UnpinAnimation.clamp (0, 8).to_string ();
-			adj_effect_duration.value = prefs.EffectDuration.clamp (300, 1500);
+			cb_active_highlight.active_id = prefs.ActiveHighlight.clamp (0, DockPreferences.MAX_ACTIVE_HIGHLIGHT).to_string ();
+			cb_launch_animation.active_id = prefs.LaunchAnimation.clamp (0, DockPreferences.MAX_LAUNCH_ANIMATION).to_string ();
+			cb_unpin_animation.active_id = prefs.UnpinAnimation.clamp (0, DockPreferences.MAX_UNPIN_ANIMATION).to_string ();
+			adj_effect_duration.value = prefs.EffectDuration.clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION);
 			update_effect_duration_visibility ();
 			update_icon_size_feedback ();
 			clear_spinbutton_focus ();
@@ -1731,9 +1855,31 @@ namespace Plank
 				if (default_provider.item_for_uri (uri) == null)
 					default_provider.add_item_with_uri (uri);
 			} else {
-				unowned DockItem? di = default_provider.item_for_uri (uri);
-				if (di != null)
+				var to_remove = new Gee.ArrayList<DockItem> ();
+				foreach (var el in default_provider.Elements) {
+					unowned DockItem? item = el as DockItem;
+					if (item == null)
+						continue;
+					if (DockItemProvider.uri_matches (item.Launcher, uri) || (uri == "docklet://trash" && item is TrashDockItem))
+						to_remove.add (item);
+				}
+				foreach (var di in to_remove) {
+					if (default_provider.Elements.contains (di))
+						default_provider.remove (di);
 					di.delete ();
+				}
+			}
+			default_provider.refresh_separators ();
+			if (controller.renderer != null && controller.renderer.theme != null) {
+				controller.update_items ();
+				controller.position_manager.update (controller.renderer.theme);
+				controller.renderer.reset_buffers ();
+				controller.renderer.animated_draw ();
+				controller.schedule_serialize_item_positions ();
+				if (controller.window != null) {
+					controller.window.update_icon_regions ();
+					controller.window.set_input_mask ();
+				}
 			}
 		}
 

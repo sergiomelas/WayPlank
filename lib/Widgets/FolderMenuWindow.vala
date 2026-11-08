@@ -39,10 +39,22 @@ namespace Plank
 		Gtk.ScrolledWindow scrolled;
 
 		uint dismiss_timer_id = 0U;
+		uint pos_timer_id = 0U;
 		bool pointer_inside = false;
 		bool context_menu_active = false;
 		string? hovered_app_uri = null;
 		int hovered_win_count = 0;
+		double smooth_scroll_dx = 0.0;
+		double smooth_scroll_dy = 0.0;
+		uint32 last_scroll_time = 0U;
+
+		bool has_last_pos = false;
+		int last_center_x = -1;
+		int last_center_y = -1;
+		int last_pos_w = -1;
+		int last_pos_h = -1;
+		Gtk.PositionType last_pos_edge = Gtk.PositionType.BOTTOM;
+		int last_thickness = -1;
 
 		public FolderMenuWindow (DockController controller)
 		{
@@ -123,7 +135,24 @@ namespace Plank
 
 			setup_drag_dest ();
 
+			hide.connect (() => {
+				has_last_pos = false;
+				cancel_dismiss_timer ();
+				cancel_position_timer ();
+			});
+			unmap.connect (() => {
+				has_last_pos = false;
+			});
+
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
+		}
+
+		void cancel_position_timer ()
+		{
+			if (pos_timer_id > 0U) {
+				GLib.Source.remove (pos_timer_id);
+				pos_timer_id = 0U;
+			}
 		}
 
 		bool folder_drop_pending = false;
@@ -202,7 +231,7 @@ namespace Plank
 						ApplicationDiscovery.get_default ().refresh_index_now ();
 						populate_items ();
 						show_all ();
-						update_position ();
+						update_position (true);
 					}
 				}
 				Gtk.drag_finish (context, copied, false, time_);
@@ -214,8 +243,13 @@ namespace Plank
 			if (get_visible () && current_dir != null && !context_menu_active) {
 				populate_items ();
 				show_all ();
-				update_position ();
+				update_position (true);
 			}
+		}
+
+		public void refresh_if_visible ()
+		{
+			on_windows_refreshed ();
 		}
 
 		bool on_enter (Gdk.EventCrossing event)
@@ -303,24 +337,38 @@ namespace Plank
 			}
 		}
 
+		void clear_items ()
+		{
+			if (items_box == null)
+				return;
+			foreach (var w in items_box.get_children ())
+				w.destroy ();
+		}
+
 		public override void destroy ()
 		{
+			has_last_pos = false;
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
 			cancel_dismiss_timer ();
+			cancel_position_timer ();
+			clear_items ();
 			remove_theme_style ();
 			base.destroy ();
 		}
 
 		~FolderMenuWindow ()
 		{
+			has_last_pos = false;
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
 			cancel_dismiss_timer ();
+			cancel_position_timer ();
 			remove_theme_style ();
 		}
 
 		void apply_theme_style ()
 		{
-			remove_theme_style ();
+			if (css_provider != null)
+				return;
 
 			css_provider = new Gtk.CssProvider ();
 			try {
@@ -440,6 +488,7 @@ namespace Plank
 			history.clear ();
 			pointer_inside = false;
 			cancel_dismiss_timer ();
+			cancel_position_timer ();
 
 			apply_theme_style ();
 
@@ -451,7 +500,16 @@ namespace Plank
 			if (monitor != null && GtkLayerShell.is_supported ())
 				GtkLayerShell.set_monitor (this, monitor);
 
-			update_position ();
+			update_position (true);
+
+			if (!GtkLayerShell.is_supported ()) {
+				pos_timer_id = GLib.Timeout.add (25, () => {
+					pos_timer_id = 0U;
+					if (get_visible () && TargetItem != null)
+						update_position (true);
+					return false;
+				});
+			}
 		}
 
 		public void close_menu (bool force = false)
@@ -459,11 +517,14 @@ namespace Plank
 			if (!force && context_menu_active)
 				return;
 			cancel_dismiss_timer ();
+			cancel_position_timer ();
+			has_last_pos = false;
 			context_menu_active = false;
 			pointer_inside = false;
 			hovered_app_uri = null;
 			hovered_win_count = 0;
 			hide ();
+			clear_items ();
 			TargetItem = null;
 			current_dir = null;
 			history.clear ();
@@ -472,8 +533,7 @@ namespace Plank
 
 		void populate_items ()
 		{
-			foreach (var w in items_box.get_children ())
-				items_box.remove (w);
+			clear_items ();
 
 			if (current_dir == null || !current_dir.query_exists ()) {
 				var empty_lbl = new Gtk.Label (_("Empty Folder"));
@@ -516,12 +576,14 @@ namespace Plank
 				back_box.pack_start (back_lbl, true, true, 0);
 				back_eb.add (back_box);
 
-				back_eb.button_press_event.connect (() => {
+				back_eb.button_press_event.connect ((event) => {
+					if (event.button != Gdk.BUTTON_PRIMARY)
+						return false;
 					if (history.size > 0) {
 						current_dir = history.remove_at (history.size - 1);
 						populate_items ();
 						show_all ();
-						update_position ();
+						update_position (true);
 					}
 					return true;
 				});
@@ -575,6 +637,7 @@ namespace Plank
 			file_keys.sort ();
 
 			int item_count = 0;
+			bool show_running = controller.prefs.ShowRunningIndicators;
 
 			// Add Subdirectories
 			foreach (var k in dir_keys) {
@@ -585,19 +648,21 @@ namespace Plank
 					display_name = info.get_display_name () ?? display_name;
 				} catch { }
 
-				int sub_win_count = count_subdir_running_windows (child);
+				int sub_win_count = show_running ? count_subdir_running_windows (child) : 0;
 				var row = create_row ("folder", display_name, true, sub_win_count);
 				row.enter_notify_event.connect (() => {
 					hovered_app_uri = null;
 					hovered_win_count = 0;
 					return false;
 				});
-				row.button_press_event.connect (() => {
+				row.button_press_event.connect ((event) => {
+					if (event.button != Gdk.BUTTON_PRIMARY)
+						return false;
 					history.add (current_dir);
 					current_dir = child;
 					populate_items ();
 					show_all ();
-					update_position ();
+					update_position (true);
 					return true;
 				});
 				items_box.pack_start (row, false, false, 0);
@@ -618,7 +683,7 @@ namespace Plank
 						icon = "application-x-executable";
 
 					int win_count = WindowManager.get_default ().window_count_for_app (uri);
-					var row = create_row (icon, text, false, win_count);
+					var row = create_row (icon, text, false, show_running ? win_count : 0);
 					row.add_events (Gdk.EventMask.SCROLL_MASK);
 					row.enter_notify_event.connect (() => {
 						hovered_app_uri = uri;
@@ -645,7 +710,16 @@ namespace Plank
 							close_menu (true);
 							return true;
 						} else if (event.button == 1) {
+							bool is_shift = (event.state & Gdk.ModifierType.SHIFT_MASK) != 0;
 							if (win_count > 0) {
+								if (is_shift) {
+									string? cycle_uuid;
+									if (WindowManager.get_default ().cycle_window (uri, true, out cycle_uuid)) {
+										WindowControl.queue_command (cycle_uuid, "activate");
+										close_menu (true);
+										return true;
+									}
+								}
 								int click_behavior = controller.prefs.WindowClickBehavior;
 								bool restore_minimized = controller.prefs.RestoreMinimizedWindows;
 								string? uuid;
@@ -686,7 +760,9 @@ namespace Plank
 						hovered_win_count = 0;
 						return false;
 					});
-					row.button_press_event.connect (() => {
+					row.button_press_event.connect ((event) => {
+						if (event.button != Gdk.BUTTON_PRIMARY)
+							return false;
 						System.get_default ().open (child);
 						if (TargetItem != null)
 							TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
@@ -734,22 +810,48 @@ namespace Plank
 			if (win_count <= 0)
 				return false;
 
-			double dx = 0.0, dy = 0.0;
-			bool has_deltas = (event.direction == Gdk.ScrollDirection.SMOOTH && event.get_scroll_deltas (out dx, out dy));
 			bool forward = false;
-
 			if (event.direction == Gdk.ScrollDirection.UP || event.direction == Gdk.ScrollDirection.RIGHT) {
 				forward = true;
 			} else if (event.direction == Gdk.ScrollDirection.DOWN || event.direction == Gdk.ScrollDirection.LEFT) {
 				forward = false;
 			} else if (event.direction == Gdk.ScrollDirection.SMOOTH) {
-				if (has_deltas) {
-					if (Math.fabs (dy) < 0.1 && Math.fabs (dx) < 0.1)
-						return false;
-					forward = (dy < 0.0 || dx < 0.0);
-				} else {
-					forward = (event.delta_y < 0.0);
+				double dx = 0.0, dy = 0.0;
+				if (!event.get_scroll_deltas (out dx, out dy)) {
+					dx = event.delta_x;
+					dy = event.delta_y;
 				}
+				if (dx == 0.0 && dy == 0.0)
+					return true;
+				if (event.time - last_scroll_time > 400U) {
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				}
+				last_scroll_time = event.time;
+				smooth_scroll_dx += dx;
+				smooth_scroll_dy += dy;
+
+				if (smooth_scroll_dy <= -0.7) {
+					forward = true;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else if (smooth_scroll_dy >= 0.7) {
+					forward = false;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else if (smooth_scroll_dx <= -0.7) {
+					forward = false;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else if (smooth_scroll_dx >= 0.7) {
+					forward = true;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else {
+					return true;
+				}
+			} else {
+				return true;
 			}
 
 			string? uuid;
@@ -855,8 +957,8 @@ namespace Plank
 				if (windows.size > 1) {
 					foreach (var w in windows) {
 						var win_title = (w.Caption != null && w.Caption != "") ? w.Caption : title;
-						if (win_title.length > 50)
-							win_title = win_title.substring (0, 47) + "...";
+						if (win_title.char_count () > 50)
+							win_title = win_title.substring (0, win_title.index_of_nth_char (47)) + "...";
 						var w_item = new Gtk.MenuItem.with_label (win_title);
 						var target_uuid = w.Id;
 						w_item.activate.connect (() => {
@@ -946,6 +1048,15 @@ namespace Plank
 				}
 			}
 
+			var recent_item = RecentFilesService.build_submenu_item (uri, () => {
+				close_menu (true);
+			});
+			if (recent_item != null) {
+				if (menu.get_children ().length () > 0)
+					menu.append (new Gtk.SeparatorMenuItem ());
+				menu.append (recent_item);
+			}
+
 			// Context menu dismiss handling: keep folder menu open if context menu is cancelled
 			menu.hide.connect (() => {
 				context_menu_active = false;
@@ -957,7 +1068,7 @@ namespace Plank
 			menu.popup_at_pointer ((Gdk.Event) event);
 		}
 
-		public void update_position ()
+		public void update_position (bool force = false)
 		{
 			if (TargetItem == null || !TargetItem.is_valid () || !get_visible ())
 				return;
@@ -978,14 +1089,30 @@ namespace Plank
 
 			int center_x = (int) Math.round (val.center.x);
 			int center_y = (int) Math.round (val.center.y);
+			int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
+
+			if (!force && has_last_pos
+				&& center_x == last_center_x
+				&& center_y == last_center_y
+				&& width == last_pos_w
+				&& height == last_pos_h
+				&& pm.Position == last_pos_edge
+				&& visual_thickness == last_thickness) {
+				return;
+			}
+			has_last_pos = true;
+			last_center_x = center_x;
+			last_center_y = center_y;
+			last_pos_w = width;
+			last_pos_h = height;
+			last_pos_edge = pm.Position;
+			last_thickness = visual_thickness;
 
 			if (GtkLayerShell.is_supported ()) {
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
-
-				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
 
 				switch (pm.Position) {
 				case Gtk.PositionType.BOTTOM:
@@ -1075,7 +1202,6 @@ namespace Plank
 
 				int target_x = mon_x + center_x - width / 2;
 				int target_y = mon_y + center_y;
-				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
 				int mutter_offset = 8;
 
 				switch (pm.Position) {

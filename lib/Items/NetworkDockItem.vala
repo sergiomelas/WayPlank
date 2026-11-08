@@ -361,43 +361,44 @@ namespace Plank
 			}
 		}
 
-		void schedule_network_poll ()
+		private static void spawn_network_poll_worker (NetworkDockItem target)
 		{
-			if (is_disposed || poll_in_flight)
-				return;
-			poll_in_flight = true;
+			GLib.WeakRef self_ref = GLib.WeakRef (target);
 
 			new Thread<void*> ("wayplank-network-poll", () => {
 				string nm_type, nm_name, nm_ip, nm_gw;
 				int nm_strength;
 				bool found_nm = probe_network_manager (out nm_type, out nm_name, out nm_strength, out nm_ip, out nm_gw);
 				Idle.add (() => {
-					poll_in_flight = false;
-					if (is_disposed)
+					var self = (NetworkDockItem?) self_ref.get ();
+					if (self == null)
 						return false;
-					apply_network_status (found_nm, nm_type, nm_name, nm_strength, nm_ip, nm_gw);
+					self.poll_in_flight = false;
+					if (self.is_disposed)
+						return false;
+					self.apply_network_status (found_nm, nm_type, nm_name, nm_strength, nm_ip, nm_gw);
 					return false;
 				});
 				return null;
 			});
 		}
 
+		void schedule_network_poll ()
+		{
+			if (is_disposed || poll_in_flight)
+				return;
+			poll_in_flight = true;
+
+			spawn_network_poll_worker (this);
+		}
+
 		public void open_network_settings ()
 		{
-			string[] cmds = {
-				"kcmshell6 kcm_networkmanagement",
-				"kcmshell5 kcm_networkmanagement",
-				"gnome-control-center wifi",
-				"gnome-control-center network",
-				"nm-connection-editor"
-			};
-
-			foreach (var cmd in cmds) {
-				try {
-					AppInfo.create_from_commandline (cmd, null, AppInfoCreateFlags.NONE).launch (null, null);
-					return;
-				} catch { }
-			}
+			System.launch_desktop_utility (
+				{ "kcmshell6 kcm_networkmanagement", "kcmshell5 kcm_networkmanagement" },
+				{ "gnome-control-center wifi", "gnome-control-center network" },
+				{ "nm-connection-editor" }
+			);
 		}
 
 		public void copy_ip_to_clipboard ()
@@ -467,13 +468,15 @@ namespace Plank
 			settings_item.activate.connect (open_network_settings);
 			items.add (settings_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 
 			return items;
 		}

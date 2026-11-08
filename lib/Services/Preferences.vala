@@ -177,6 +177,7 @@ namespace Plank
 			stop_monitor ();
 			
 			backing_file = file;
+			read_only = false;
 			var file_exists = backing_file.query_exists ();
 			
 			if (!read_only) {
@@ -204,6 +205,7 @@ namespace Plank
 				load_prefs ();
 			}
 			
+			last_save_time = GLib.get_monotonic_time ();
 			start_monitor ();
 		}
 		
@@ -216,10 +218,136 @@ namespace Plank
 		{
 			init_from_file (Paths.AppConfigFolder.get_child (filename));
 		}
+
+		/**
+		 * Initializes read-only preferences directly from an embedded GResource KeyFile in RAM.
+		 *
+		 * @param resource_path the GResource path (e.g. /net/launchpad/plank/themes/Transparent/dock.theme)
+		 * @return true if loaded cleanly from embedded resource
+		 */
+		protected bool init_from_resource (string resource_path)
+		{
+			stop_monitor ();
+			backing_file = null;
+			read_only = true;
+
+			Bytes bytes;
+			try {
+				bytes = resources_lookup_data (resource_path, ResourceLookupFlags.NONE);
+			} catch (Error e) {
+				return false;
+			}
+
+			notify.disconnect (handle_notify);
+			freeze_notify ();
+			is_delayed_internal = true;
+
+			try {
+				var file = new KeyFile ();
+				file.load_from_bytes (bytes, KeyFileFlags.NONE);
+
+				(unowned ParamSpec)[] properties = get_class ().list_properties ();
+				foreach (unowned ParamSpec prop in properties) {
+					unowned string group_name = prop.owner_type.name ();
+					unowned string prop_name = prop.get_name ();
+
+					if (!file.has_group (group_name)) {
+						for (var i = 0; i < 3; i++)
+							if (TRANSITION_MAP[i,1] == group_name) {
+								group_name = TRANSITION_MAP[i,0];
+								break;
+							}
+					}
+
+					if (!file.has_group (group_name) || !file.has_key (group_name, prop_name))
+						continue;
+
+					var type = prop.value_type;
+					try {
+						if (type == typeof (int)) {
+							int old_val;
+							@get (prop_name, out old_val);
+							var new_val = file.get_integer (group_name, prop_name);
+							if (old_val == new_val)
+								continue;
+							@set (prop_name, new_val);
+						} else if (type == typeof (uint)) {
+							uint old_val;
+							@get (prop_name, out old_val);
+							var new_val = (uint) file.get_integer (group_name, prop_name);
+							if (old_val == new_val)
+								continue;
+							@set (prop_name, new_val);
+						} else if (type == typeof (double)) {
+							double old_val;
+							@get (prop_name, out old_val);
+							var new_val = file.get_double (group_name, prop_name);
+							if (old_val == new_val)
+								continue;
+							@set (prop_name, new_val);
+						} else if (type == typeof (string)) {
+							string old_val;
+							@get (prop_name, out old_val);
+							var new_val = file.get_string (group_name, prop_name);
+							if (old_val == new_val)
+								continue;
+							@set (prop_name, new_val);
+						} else if (type == typeof (bool)) {
+							bool old_val;
+							@get (prop_name, out old_val);
+							var new_val = file.get_boolean (group_name, prop_name);
+							if (old_val == new_val)
+								continue;
+							@set (prop_name, new_val);
+						} else if (type.is_enum ()) {
+							int old_val;
+							@get (prop_name, out old_val);
+							var new_val = file.get_integer (group_name, prop_name);
+							if (old_val == new_val)
+								continue;
+							@set (prop_name, new_val);
+						} else if (type.is_a (typeof (Color)) || type.is_a (typeof (Gdk.RGBA))) {
+							var val = Value (type);
+							get_property (prop_name, ref val);
+							Color* old_val = val.get_boxed ();
+							var old_val_string = old_val.to_prefs_string ();
+							var new_val_string = file.get_string (group_name, prop_name);
+							if (old_val_string == new_val_string)
+								continue;
+							var new_val = Color.from_prefs_string (new_val_string);
+							val.set_boxed (&new_val);
+							set_property (prop_name, val);
+						} else if (type.is_a (typeof (Serializable))) {
+							Serializable val;
+							@get (prop_name, out val);
+							val.deserialize (file.get_string (group_name, prop_name));
+							continue;
+						} else {
+							continue;
+						}
+
+						call_verify (prop_name);
+					} catch (KeyFileError e) {
+						debug (e.message);
+					}
+				}
+			} catch (Error e) {
+				thaw_notify ();
+				notify.connect (handle_notify);
+				is_delayed_internal = false;
+				return false;
+			}
+
+			thaw_notify ();
+			notify.connect (handle_notify);
+			is_delayed_internal = false;
+			return true;
+		}
 		
 		bool is_delayed = false;
 		bool is_delayed_internal = false;
 		bool is_changed = false;
+		int64 last_save_time = 0;
 		
 		/**
 		 * Delays saving changes to the backing file until apply() is called.
@@ -290,17 +418,29 @@ namespace Plank
 		{
 			if (read_only)
 				return;
+			if (backing_file == null) {
+				read_only = true;
+				deleted ();
+				return;
+			}
 			
+			stop_monitor ();
 			is_delayed = false;
 			is_changed = false;
 			
+			var target_file = backing_file;
+			backing_file = null;
+			read_only = true;
+			
 			try {
-				Logger.verbose ("Preferences.delete ('%s')", backing_file.get_path () ?? "");
-				backing_file.delete ();
+				Logger.verbose ("Preferences.delete ('%s')", target_file.get_path () ?? "");
+				target_file.delete ();
 			} catch (Error e) {
-				warning ("Unable to delete the preferences file '%s'", backing_file.get_path () ?? "");
+				warning ("Unable to delete the preferences file '%s'", target_file.get_path () ?? "");
 				debug (e.message);
 			}
+			
+			deleted ();
 		}
 		
 		void stop_monitor ()
@@ -330,12 +470,21 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void backing_file_changed (File f, File? other, FileMonitorEvent event)
 		{
+			if (backing_file == null || !f.equal (backing_file))
+				return;
+
+			// Ignore self-triggered inotify events queued by our own atomic save_prefs() / init_from_file()
+			if (last_save_time > 0 && (GLib.get_monotonic_time () - last_save_time) < 250000) {
+				if (event == FileMonitorEvent.CHANGES_DONE_HINT || backing_file.query_exists ())
+					return;
+			}
+
 			switch (event) {
 			case FileMonitorEvent.CHANGES_DONE_HINT:
 				load_prefs ();
 				break;
 			case FileMonitorEvent.DELETED:
-				if (!f.query_exists ())
+				if (!backing_file.query_exists ())
 					deleted ();
 				break;
 			default:
@@ -456,7 +605,8 @@ namespace Plank
 			} catch (Error e) {
 				warning ("Unable to load preferences from file '%s'", backing_file_path);
 				debug (e.message);
-				deleted ();
+				if (backing_file == null || !backing_file.query_exists ())
+					deleted ();
 			}
 			
 			thaw_notify ();
@@ -469,9 +619,8 @@ namespace Plank
 		}
 		
 		void save_prefs ()
-			requires (backing_file != null)
 		{
-			if (read_only)
+			if (read_only || backing_file == null)
 				return;
 			
 			string backing_file_path = (backing_file.get_path () ?? "");
@@ -550,6 +699,7 @@ namespace Plank
 				var stream = new DataOutputStream (backing_file.replace (null, false, 0));
 				stream.put_string (file.to_data ());
 				stream.close ();
+				last_save_time = GLib.get_monotonic_time ();
 			} catch (Error e) {
 				warning ("Unable to create the preferences file '%s'", backing_file_path);
 				debug (e.message);

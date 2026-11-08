@@ -79,10 +79,14 @@ namespace Plank
 			stop_monitor ();
 			cached_tile_icons = null;
 			cached_tile_pixbufs = null;
-			if (is_window_connected) {
-				WindowManager.get_default ().windows_refreshed.disconnect (update_indicator);
-				is_window_connected = false;
-			}
+		}
+
+		public override void cleanup ()
+		{
+			stop_monitor ();
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
+			base.cleanup ();
 		}
 		
 		/**
@@ -98,8 +102,7 @@ namespace Plank
 				return;
 			
 			OwnedFile = File.new_for_uri (Prefs.Launcher);
-			var resolved = DrawingService.get_icon_from_file (OwnedFile);
-			Icon = (resolved != null && DrawingService.has_icon (resolved)) ? resolved : DEFAULT_ICONS;
+			Icon = resolve_folder_icon ();
 			
 			if (!OwnedFile.is_native ()) {
 				Text = OwnedFile.get_uri ();
@@ -124,12 +127,52 @@ namespace Plank
 			}
 		}
 
+		string resolve_folder_icon ()
+		{
+			if (Prefs.CustomIcon != "" && DrawingService.has_icon (Prefs.CustomIcon))
+				return Prefs.CustomIcon;
+
+			if (OwnedFile != null) {
+				var resolved = DrawingService.get_icon_from_file (OwnedFile);
+				if (resolved != null && DrawingService.has_icon (resolved))
+					return resolved;
+			}
+
+			return is_directory () ? DEFAULT_ICONS : "text-x-generic";
+		}
+
+		public void apply_custom_icon (string new_icon)
+		{
+			Prefs.CustomIcon = new_icon;
+			if (OwnedFile != null) {
+				try {
+					var info = new FileInfo ();
+					if (new_icon.has_prefix ("/") || new_icon.has_prefix ("file://")) {
+						string uri = new_icon.has_prefix ("file://") ? new_icon : File.new_for_path (new_icon).get_uri ();
+						info.set_attribute_string ("metadata::custom-icon", uri);
+						info.set_attribute_string ("metadata::custom-icon-name", "");
+					} else {
+						info.set_attribute_string ("metadata::custom-icon-name", new_icon);
+						info.set_attribute_string ("metadata::custom-icon", "");
+					}
+					OwnedFile.set_attributes_from_info (info, FileQueryInfoFlags.NONE, null);
+				} catch (Error e) {
+					debug ("FileDockItem: GVFS metadata::custom-icon unavailable (persisted in .dockitem): %s", e.message);
+				}
+			}
+			Icon = new_icon;
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
+			reset_icon_buffer ();
+		}
+
 		/**
 		 * Restores this folder item to its default icon and presentation.
 		 * Clears custom icon metadata on disk when user explicitly resets in IconChooserDialog.
 		 */
 		public void restore_default_icon ()
 		{
+			Prefs.CustomIcon = "";
 			if (OwnedFile != null) {
 				try {
 					var info = new FileInfo ();
@@ -140,7 +183,7 @@ namespace Plank
 					debug ("Failed to clear folder custom icon metadata: %s", e.message);
 				}
 			}
-			Icon = DEFAULT_ICONS;
+			Icon = resolve_folder_icon ();
 			cached_tile_icons = null;
 			cached_tile_pixbufs = null;
 			reset_icon_buffer ();
@@ -149,15 +192,14 @@ namespace Plank
 		protected override void on_icon_theme_changed ()
 		{
 			base.on_icon_theme_changed ();
-			if (OwnedFile == null || !is_directory ())
+			if (OwnedFile == null)
 				return;
 
 			// Re-resolve icon from file against the newly active theme.
 			// If the custom icon exists in this theme, use it. If not, fall back to DEFAULT_ICONS.
 			// IMPORTANT: Never erase the folder's metadata on disk, so returning to the original theme
 			// automatically restores the custom icon!
-			var resolved = DrawingService.get_icon_from_file (OwnedFile);
-			Icon = (resolved != null && DrawingService.has_icon (resolved)) ? resolved : DEFAULT_ICONS;
+			Icon = resolve_folder_icon ();
 			cached_tile_icons = null;
 			cached_tile_pixbufs = null;
 			reset_icon_buffer ();
@@ -245,7 +287,9 @@ namespace Plank
 
 		public void update_indicator ()
 		{
-			if (!is_directory () || contained_launchers.size == 0) {
+			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
+			var show_running = (provider == null || provider.Prefs.ShowRunningIndicators);
+			if (!show_running || !is_directory () || contained_launchers.size == 0) {
 				if (Indicator != IndicatorState.NONE)
 					Indicator = IndicatorState.NONE;
 				return;

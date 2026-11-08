@@ -66,10 +66,17 @@ namespace Plank
 			XdgSessionDesktop result;
 			
 			switch (s.down ().strip ()) {
-			case "gnome": result = XdgSessionDesktop.GNOME; break;
-			case "gnome-xorg": result = XdgSessionDesktop.GNOME; break;
-			case "ubuntu": result = XdgSessionDesktop.UBUNTU; break;
-			case "ubuntu-xorg": result = XdgSessionDesktop.UBUNTU; break;
+			case "gnome":
+			case "gnome-xorg":
+			case "gnome-wayland":
+			case "gnome-classic":
+			case "gnome-classic-wayland":
+			case "gnome-flashback":
+				result = XdgSessionDesktop.GNOME; break;
+			case "ubuntu":
+			case "ubuntu-xorg":
+			case "ubuntu-wayland":
+				result = XdgSessionDesktop.UBUNTU; break;
 			case "kde": result = XdgSessionDesktop.KDE; break;
 			case "plasma": result = XdgSessionDesktop.KDE; break;
 			case "plasmawayland": result = XdgSessionDesktop.KDE; break;
@@ -146,7 +153,7 @@ namespace Plank
 	
 	public static bool environment_is_session_desktop (XdgSessionDesktop type)
 	{
-		return (type in session_desktop);
+		return ((session_desktop & type) != 0);
 	}
 	
 	public static bool environment_is_session_type (XdgSessionType type)
@@ -169,20 +176,29 @@ namespace Plank
 	
 	static XdgSessionDesktop get_xdg_session_desktop ()
 	{
-		unowned string? result;
-		
-		result = Environment.get_variable ("XDG_SESSION_DESKTOP");
-		if (result == null)
-			result = Environment.get_variable ("XDG_CURRENT_DESKTOP");
-		if (result == null)
-			result = Environment.get_variable ("DESKTOP_SESSION");
-		
-		if (result != null)
-			return XdgSessionDesktop.from_string (result);
-		
-		warning ("Neither of XDG_SESSION_DESKTOP, XDG_CURRENT_DESKTOP or DESKTOP_SESSION is set in this environment!");
-		
-		return XdgSessionDesktop.GNOME;
+		XdgSessionDesktop result = 0;
+		bool any_set = false;
+		unowned string? s1 = Environment.get_variable ("XDG_SESSION_DESKTOP");
+		unowned string? s2 = Environment.get_variable ("XDG_CURRENT_DESKTOP");
+		unowned string? s3 = Environment.get_variable ("DESKTOP_SESSION");
+
+		if (s1 != null && s1.strip () != "") {
+			result |= XdgSessionDesktop.from_string (s1);
+			any_set = true;
+		}
+		if (s2 != null && s2.strip () != "") {
+			result |= XdgSessionDesktop.from_string (s2);
+			any_set = true;
+		}
+		if (s3 != null && s3.strip () != "") {
+			result |= XdgSessionDesktop.from_string (s3);
+			any_set = true;
+		}
+
+		if (!any_set)
+			debug ("Neither of XDG_SESSION_DESKTOP, XDG_CURRENT_DESKTOP or DESKTOP_SESSION is set in this environment!");
+
+		return result;
 	}
 	
 	static XdgSessionType get_xdg_session_type ()

@@ -127,6 +127,8 @@ namespace Plank
 			requires (controller.window != null)
 		{
 			controller.position_manager.update (theme);
+			if (controller.app_provider != null)
+				controller.app_provider.refresh_pinned_accordion ();
 			
 			controller.window.notify["HoveredItem"].connect (animated_draw);
 			controller.hide_manager.notify["Hidden"].connect (hidden_changed);
@@ -203,12 +205,12 @@ namespace Plank
 
 		inline int get_effective_launch_duration_ms ()
 		{
-			return controller.prefs.EffectDuration.clamp (300, 1500);
+			return controller.prefs.EffectDuration.clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION);
 		}
 
 		inline int get_effective_active_duration_ms ()
 		{
-			return int.max (80, controller.prefs.EffectDuration.clamp (300, 1500) / 2);
+			return int.max (80, controller.prefs.EffectDuration.clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION) / 2);
 		}
 
 		Color get_item_accent_color (DockItem item)
@@ -244,6 +246,8 @@ namespace Plank
 				reset_buffers ();
 				reset_item_buffers ();
 				controller.position_manager.update (theme);
+				if (controller.app_provider != null)
+					controller.app_provider.refresh_pinned_accordion ();
 				
 				return false;
 			});
@@ -546,6 +550,12 @@ namespace Plank
 				(DrawValuesFunc) post_process_draw_values);
 			
 			background_rect = position_manager.get_background_region ();
+
+			if (controller.hide_manager.Hovered && !controller.hide_manager.Hidden
+				&& local_cursor.x >= 0 && local_cursor.y >= 0
+				&& controller.window != null && !controller.window.menu_is_visible ()) {
+				controller.window.update_hovered (local_cursor.x, local_cursor.y);
+			}
 		}
 		
 		/**
@@ -736,7 +746,6 @@ namespace Plank
 		 * the dock background actually renders (only touches the item's cache
 		 * when the color actually changed, to avoid needless redraw churn).
 		 */
-		Color? last_separator_color = null;
 		Color? cached_background_average_color = null;
 		
 		void update_separator_colors ()
@@ -752,20 +761,23 @@ namespace Plank
 			var color = (is_light
 				? Color () { red = 0.0, green = 0.0, blue = 0.0, alpha = alpha }
 				: Color () { red = 1.0, green = 1.0, blue = 1.0, alpha = alpha });
-			
-			if (last_separator_color != null
-				&& last_separator_color.red == color.red
-				&& last_separator_color.green == color.green
-				&& last_separator_color.blue == color.blue
-				&& last_separator_color.alpha == color.alpha)
-				return;
-			
-			last_separator_color = color;
+			var chevron_color = Color () { red = color.red, green = color.green, blue = color.blue, alpha = 0.85 };
 			
 			foreach (unowned DockItem item in current_items) {
 				unowned SeparatorDockItem? sep = (item as SeparatorDockItem);
-				if (sep != null)
+				if (sep != null && (sep.BarColor.red != color.red
+					|| sep.BarColor.green != color.green
+					|| sep.BarColor.blue != color.blue
+					|| sep.BarColor.alpha != color.alpha)) {
 					sep.BarColor = color;
+				}
+				unowned PinnedExpanderDockItem? expander = (item as PinnedExpanderDockItem);
+				if (expander != null && (expander.ChevronColor.red != chevron_color.red
+					|| expander.ChevronColor.green != chevron_color.green
+					|| expander.ChevronColor.blue != chevron_color.blue
+					|| expander.ChevronColor.alpha != chevron_color.alpha)) {
+					expander.ChevronColor = chevron_color;
+				}
 			}
 		}
 		
@@ -1041,6 +1053,9 @@ namespace Plank
 			unowned SeparatorDockItem? separator = (item as SeparatorDockItem);
 			if (separator != null)
 				separator.set_horizontal_orientation (position_manager.is_horizontal_dock ());
+			unowned PinnedExpanderDockItem? pinned_expander = (item as PinnedExpanderDockItem);
+			if (pinned_expander != null)
+				pinned_expander.set_horizontal_orientation (position_manager.is_horizontal_dock ());
 			var icon_size = (int) draw_value.icon_size * window_scale_factor;
 			var position = position_manager.Position;
 			

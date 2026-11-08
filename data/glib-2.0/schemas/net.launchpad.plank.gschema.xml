@@ -23,7 +23,7 @@
 	</enum>
 
 
-	<schema id="net.launchpad.plank" path="/net/launchpad/plank/" gettext-domain="@GETTEXT_PACKAGE@">
+	<schema id="net.launchpad.plank" path="/net/launchpad/plank/" gettext-domain="wayplank">
 		<child name="docks" schema="net.launchpad.plank.dock.settings"/>
 
 		<key name="enabled-docks" type="as">
@@ -33,7 +33,7 @@
 		</key>
 	</schema>
 
-	<schema id="net.launchpad.plank.dock.settings" gettext-domain="@GETTEXT_PACKAGE@">
+	<schema id="net.launchpad.plank.dock.settings" gettext-domain="wayplank">
 		<key name="alignment" enum='GtkAlignType'>
 			<default>'center'</default>
 			<summary>The alignment for the dock along the monitor's edge</summary>
@@ -155,8 +155,8 @@
 		</key>
 		<key name="theme" type="s">
 			<default>'Default'</default>
-			<summary>The name of the dock theme for Plank to use</summary>
-			<description>Built-in values include "Default", "Matte", "Transparent", and "Gtk+".</description>
+			<summary>The name of the dock theme for WayPlank to use</summary>
+			<description>Built-in values include "Default", "Transparent", "Arian Theme Dark", "Arian Theme Light", "IFtiger Theme Dark", "IFtiger Theme Light", and "Gtk+".</description>
 		</key>
 		<key name="tooltips-enabled" type="b">
 			<default>true</default>
@@ -209,6 +209,18 @@
 			<default>1000</default>
 			<summary>Accordion collapse delay</summary>
 			<description>Length of the delay before auto-collapsing docklets, in milliseconds.</description>
+		</key>
+		<key name="pinned-accordion-mode" type="i">
+			<range min="0" max="2"/>
+			<default>0</default>
+			<summary>Smart pinned apps accordion mode</summary>
+			<description>0 Off, 1 Auto-Fit Capacity (keep as many of the most used pinned apps as fit on screen), 2 Top Most Used (keep the N most used pinned apps). Running, urgent and Keep Always Visible apps are never hidden. Requires Categorize Items.</description>
+		</key>
+		<key name="pinned-accordion-count" type="i">
+			<range min="1" max="20"/>
+			<default>6</default>
+			<summary>Number of pinned apps kept visible</summary>
+			<description>How many of the most used pinned apps stay visible when the pinned apps accordion is set to Top Most Used.</description>
 		</key>
 		<key name="zoom-percent" type="i">
 			<range min="100" max="200"/>

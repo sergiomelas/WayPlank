@@ -54,6 +54,9 @@ namespace Plank
 		string? last_windows_json = null;
 		bool started = false;
 		GnomeBridgeProxy? proxy = null;
+		DBusConnection? session_bus = null;
+		uint display_config_sub_id = 0U;
+		bool pending_monitor_sync = false;
 		uint name_watch_id = 0U;
 		uint ext_enable_timer_id = 0U;
 		uint bridge_reposition_timer_id = 0U;
@@ -68,7 +71,7 @@ namespace Plank
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v070_hotfix_1";
+		const string BRIDGE_GEN = "v070_hotfix_6";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -160,6 +163,11 @@ import Shell from 'gi://Shell';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+try {
+    if (Shell.Screenshot && Shell.Screenshot.composite_to_stream)
+        Gio._promisify(Shell.Screenshot, 'composite_to_stream', 'composite_to_stream_finish');
+} catch (e) { }
+
 const IFACE_XML = `
 <node>
   <interface name="org.wayplank.GnomeBridge">
@@ -236,11 +244,13 @@ const IFACE_XML = `
 
 export default class WayplankBridgeImpl {
     enable() {
-        this._bridgeGen = 'v070_hotfix_1';
+        this._bridgeGen = 'v070_hotfix_6';
         this._signals = [];
         this._wsSignals = [];
         this._lmSignals = [];
         this._windowSignals = new Map();
+        this._minSeq = 0;
+        this._minMap = new Map();
         this._desktopRestoredWindows = [];
 
         // Suppress "Wayplank is ready" notifications safely via WindowAttentionHandler without altering native prototypes
@@ -272,13 +282,19 @@ export default class WayplankBridgeImpl {
         // Hook GNOME display events to notify Wayplank and suppress attention
         const display = global.display;
         this._signals.push(display.connect('window-demands-attention', (d, win) => {
-            if (win && this._classifyWindow(win) !== 'other') {
+            if (!win) return;
+            if (this._classifyWindow(win) !== 'other') {
                 try { win.demands_attention = false; } catch (e) { }
+            } else {
+                this._notifyWindowsChanged();
             }
         }));
         this._signals.push(display.connect('window-marked-urgent', (d, win) => {
-            if (win && this._classifyWindow(win) !== 'other') {
+            if (!win) return;
+            if (this._classifyWindow(win) !== 'other') {
                 try { win.demands_attention = false; } catch (e) { }
+            } else {
+                this._notifyWindowsChanged();
             }
         }));
         this._signals.push(display.connect('window-created', (d, win) => {
@@ -311,6 +327,20 @@ export default class WayplankBridgeImpl {
                 this._notifyWindowsChanged();
             }));
             this._wsSignals.push(global.workspace_manager.connect('showing-desktop-changed', () => {
+                if (!this._handlingShowDesktop) {
+                    const ws = global.workspace_manager.get_active_workspace ? global.workspace_manager.get_active_workspace() : null;
+                    const showing = ws ? !!ws.showing_desktop : false;
+                    const inOverview = !!(Main.overview && Main.overview.visible);
+                    if (showing && !inOverview && typeof global.workspace_manager.unshow_desktop === 'function') {
+                        this._handlingShowDesktop = true;
+                        try {
+                            global.workspace_manager.unshow_desktop();
+                            this.ToggleDesktop();
+                        } catch (e) { }
+                        this._handlingShowDesktop = false;
+                        return;
+                    }
+                }
                 this._notifyWindowsChanged();
             }));
         }
@@ -331,10 +361,17 @@ export default class WayplankBridgeImpl {
         for (const actor of global.get_window_actors()) {
             const win = actor.meta_window;
             if (win) {
-                if (this._classifyWindow(win) === 'other' && win.get_window_type && win.get_window_type() === Meta.WindowType.NORMAL) {
-                    try { if (win.show_in_window_list) win.show_in_window_list(); } catch (e) { }
-                    try { if (win.is_above && win.is_above()) win.unmake_above(); } catch (e) { }
-                    try { if (win.is_on_all_workspaces && win.is_on_all_workspaces()) win.unstick(); } catch (e) { }
+                if (this._classifyWindow(win) === 'other') {
+                    if (win.get_window_type && win.get_window_type() === Meta.WindowType.NORMAL) {
+                        try { if (win.show_in_window_list) win.show_in_window_list(); } catch (e) { }
+                        try { if (win.is_above && win.is_above()) win.unmake_above(); } catch (e) { }
+                        try { if (win.is_on_all_workspaces && win.is_on_all_workspaces()) win.unstick(); } catch (e) { }
+                    }
+                    if (win.minimized) {
+                        const initId = win.get_stable_sequence ? win.get_stable_sequence().toString() : (win.get_id ? win.get_id().toString() : '');
+                        if (initId)
+                            this._minMap.set(initId, ++this._minSeq);
+                    }
                 }
                 this._connectWindow(win);
             }
@@ -395,11 +432,22 @@ export default class WayplankBridgeImpl {
         }
 
         for (const [win, sigs] of this._windowSignals.entries()) {
+            if (win && win._wpFirstFrameId) {
+                const act = win.get_compositor_private ? win.get_compositor_private() : null;
+                if (act) {
+                    try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
+                }
+                win._wpFirstFrameId = 0;
+            }
             for (const id of sigs) {
                 try { win.disconnect(id); } catch (e) { }
             }
         }
         this._windowSignals.clear();
+        if (this._minMap)
+            this._minMap.clear();
+        this._minSeq = 0;
+        this._desktopRestoredWindows = [];
         this._lastActiveUuid = null;
     }
 
@@ -864,9 +912,10 @@ export default class WayplankBridgeImpl {
 
         applyRole(win);
 
+        const winId = win.get_stable_sequence ? win.get_stable_sequence().toString() : (win.get_id ? win.get_id().toString() : '');
         const sigs = [];
         sigs.push(win.connect('unmanaged', () => {
-            const wasOther = (this._classifyWindow(win) === 'other');
+            const cls = this._classifyWindow(win);
             win._wpUnmanaging = true;
             if (win._wpFirstFrameId) {
                 const act = win.get_compositor_private ? win.get_compositor_private() : null;
@@ -875,13 +924,35 @@ export default class WayplankBridgeImpl {
                 }
                 win._wpFirstFrameId = 0;
             }
+            if (this._minMap && winId)
+                this._minMap.delete(winId);
+            if (this._desktopRestoredWindows && winId)
+                this._desktopRestoredWindows = this._desktopRestoredWindows.filter(id => id !== winId);
             this._windowSignals.delete(win);
-            if (wasOther)
+            if (cls === 'dock' && this._strutActor && !this._findDockWindow())
+                this.SetReserveSpace(false, 0, -1);
+            if (cls === 'other')
                 this._notifyWindowsChanged();
         }));
         sigs.push(win.connect('notify::minimized', () => {
+            if (this._minMap && winId) {
+                if (win.minimized)
+                    this._minMap.set(winId, ++this._minSeq);
+                else
+                    this._minMap.delete(winId);
+            }
             this._notifyWindowsChanged();
         }));
+        sigs.push(win.connect('notify::demands-attention', () => {
+            if (this._classifyWindow(win) === 'other')
+                this._notifyWindowsChanged();
+        }));
+        try {
+            sigs.push(win.connect('notify::urgent', () => {
+                if (this._classifyWindow(win) === 'other')
+                    this._notifyWindowsChanged();
+            }));
+        } catch (e) { }
         sigs.push(win.connect('notify::maximized-horizontally', () => {
             this._notifyWindowsChanged();
         }));
@@ -966,8 +1037,10 @@ export default class WayplankBridgeImpl {
 
     _findDockWindow() {
         for (const actor of global.get_window_actors()) {
+            if (!actor || (actor.is_destroyed && actor.is_destroyed()))
+                continue;
             const win = actor.meta_window;
-            if (win && this._classifyWindow(win) === 'dock')
+            if (win && !win._wpUnmanaging && this._classifyWindow(win) === 'dock')
                 return win;
         }
         return null;
@@ -1032,7 +1105,8 @@ export default class WayplankBridgeImpl {
             const isFullscreen = win.is_fullscreen ? win.is_fullscreen() : false;
             const isDialog = (windowType === Meta.WindowType.DIALOG) || (win.get_transient_for ? win.get_transient_for() !== null : false);
             const isMaximized = (win.maximized_horizontally && win.maximized_vertically) || isFullscreen;
-            const demandsAttention = win.demands_attention ? win.demands_attention : false;
+            const demandsAttention = Boolean((win.demands_attention || win.urgent) && win !== focusWin);
+            const minimizedSequence = isMinimized ? (this._minMap ? (this._minMap.get(id) || 0) : 0) : 0;
             const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
             const x = frameRect ? frameRect.x : 0;
             const y = frameRect ? frameRect.y : 0;
@@ -1068,6 +1142,7 @@ export default class WayplankBridgeImpl {
                 fullscreen: isFullscreen,
                 isDialog: isDialog,
                 demandsAttention: demandsAttention,
+                minimizedSequence: minimizedSequence,
                 x: x,
                 y: y,
                 width: width,
@@ -1189,19 +1264,24 @@ export default class WayplankBridgeImpl {
             this._desktopRestoredWindows = [];
             for (const win of windows) {
                 if (!win.minimized) {
-                    this._desktopRestoredWindows.push(win);
+                    const id = win.get_stable_sequence ? win.get_stable_sequence().toString() : (win.get_id ? win.get_id().toString() : '');
+                    if (id)
+                        this._desktopRestoredWindows.push(id);
                     win.minimize();
                 }
             }
         } else {
             if (this._desktopRestoredWindows && this._desktopRestoredWindows.length > 0) {
-                for (const win of this._desktopRestoredWindows) {
-                    try { win.unminimize(); } catch (e) {}
+                for (const uuid of this._desktopRestoredWindows) {
+                    const win = this._findWindowByUuid(uuid);
+                    if (win) {
+                        try { win.unminimize(); } catch (e) {}
+                    }
                 }
                 this._desktopRestoredWindows = [];
             } else {
                 for (const win of windows) {
-                    win.unminimize();
+                    try { win.unminimize(); } catch (e) {}
                 }
             }
         }
@@ -1252,20 +1332,40 @@ export default class WayplankBridgeImpl {
         }
     }
 
-    // D-Bus Method: CaptureWindow
-    CaptureWindow(uuid, filename) {
+    // D-Bus Method: CaptureWindow (GNOME 45-47 get_image + GNOME 48-51 paint_to_content)
+    async CaptureWindow(uuid, filename) {
         try {
             const win = this._findWindowByUuid(uuid);
             if (!win)
                 return false;
             const actor = win.get_compositor_private ? win.get_compositor_private() : null;
-            if (!actor || !actor.get_image)
+            if (!actor)
                 return false;
-            const surface = actor.get_image(null);
-            if (!surface || !surface.writeToPNG)
-                return false;
-            surface.writeToPNG(filename);
-            return true;
+            if (typeof actor.get_image === 'function') {
+                const surface = actor.get_image(null);
+                if (!surface || !surface.writeToPNG)
+                    return false;
+                surface.writeToPNG(filename);
+                return true;
+            }
+            if (typeof actor.paint_to_content === 'function' &&
+                Shell.Screenshot && typeof Shell.Screenshot.composite_to_stream === 'function') {
+                const content = actor.paint_to_content(null);
+                const texture = (content && typeof content.get_texture === 'function') ? content.get_texture() : null;
+                if (!texture)
+                    return false;
+                const file = Gio.File.new_for_path(filename);
+                const stream = file.replace(null, false, Gio.FileCreateFlags.PRIVATE, null);
+                try {
+                    await Shell.Screenshot.composite_to_stream(
+                        texture, 0, 0, -1, -1, 1, null, 0, 0, 1, stream
+                    );
+                } finally {
+                    try { stream.close(null); } catch (e2) { }
+                }
+                return true;
+            }
+            return false;
         } catch (e) {
             console.error('[WayplankBridge] CaptureWindow error:', e);
             return false;
@@ -1427,9 +1527,44 @@ export default class WayplankBridgeImpl {
 				return true;
 
 			started = true;
+			try {
+				session_bus = Bus.get_sync (BusType.SESSION, null);
+				if (session_bus != null) {
+					display_config_sub_id = session_bus.signal_subscribe (
+						null,
+						"org.gnome.Mutter.DisplayConfig",
+						"MonitorsChanged",
+						"/org/gnome/Mutter/DisplayConfig",
+						null,
+						DBusSignalFlags.NONE,
+						on_display_config_monitors_changed
+					);
+				}
+			} catch (Error e) {
+				session_bus = null;
+			}
 			ensure_extension_installed ();
 			connect_bridge ();
 			return true;
+		}
+
+		void on_display_config_monitors_changed (DBusConnection conn, string? sender, string object_path, string interface_name, string signal_name, Variant parameters)
+		{
+			pending_monitor_sync = true;
+			notify_monitor_layout_changed ();
+		}
+
+		void notify_monitor_layout_changed ()
+		{
+			primary_monitor_changed ();
+			if (proxy != null && last_reserve_enabled && last_reserve_thickness > 0) {
+				try {
+					proxy.set_reserve_space (false, 0, last_reserve_position);
+					proxy.set_reserve_space (true, last_reserve_thickness, last_reserve_position);
+				} catch (Error e) {
+					debug ("MutterBackend: set_reserve_space monitor sync: %s", e.message);
+				}
+			}
 		}
 
 		void ensure_extension_installed ()
@@ -1530,23 +1665,16 @@ export default class WayplankBridgeImpl {
 				}
 
 				if (code_changed && current_js != null) {
-					// Upgrade / code updated: reset error latch and cycle disable -> enable.
+					// Upgrade / code updated: reset error latch and cycle disable -> enable atomically.
 					// With the versioned loader, enable() imports impl-<new hash>.js -> new code goes live.
 					// (A one-time logout/login is still needed when the loader itself changes.)
-					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " && gnome-extensions disable " + EXTENSION_UUID + "'");
 					if (ext_enable_timer_id > 0U) {
 						GLib.Source.remove (ext_enable_timer_id);
 						ext_enable_timer_id = 0U;
 					}
-					ext_enable_timer_id = GLib.Timeout.add (300, () => {
-						ext_enable_timer_id = 0U;
-						try {
-							Process.spawn_command_line_async ("gnome-extensions enable " + EXTENSION_UUID);
-						} catch (Error e) { }
-						return false;
-					});
+					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " >/dev/null 2>&1; gnome-extensions disable " + EXTENSION_UUID + " >/dev/null 2>&1; sleep 0.2; gnome-extensions enable " + EXTENSION_UUID + " >/dev/null 2>&1'");
 				} else {
-					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " && gnome-extensions enable " + EXTENSION_UUID + "'");
+					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " >/dev/null 2>&1; gnome-extensions enable " + EXTENSION_UUID + " >/dev/null 2>&1'");
 				}
 			} catch (Error e) {
 				warning ("MutterBackend: failed to deploy extension: %s", e.message);
@@ -1564,8 +1692,17 @@ export default class WayplankBridgeImpl {
 			);
 		}
 
+		void clear_proxy ()
+		{
+			if (proxy != null) {
+				proxy.windows_changed.disconnect (on_windows_changed);
+				proxy = null;
+			}
+		}
+
 		void on_bridge_appeared (DBusConnection connection, string name, string name_owner)
 		{
+			clear_proxy ();
 			try {
 				proxy = Bus.get_proxy_sync (
 					BusType.SESSION,
@@ -1578,21 +1715,15 @@ export default class WayplankBridgeImpl {
 				} catch (Error e) { }
 				if (active_gen != BRIDGE_GEN && !reload_attempted) {
 					reload_attempted = true;
+					clear_proxy ();
 					message ("MutterBackend: Stale GnomeBridge detected in RAM ('%s' != '%s'), forcing live reload...", active_gen, BRIDGE_GEN);
-					try {
-						Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " && gnome-extensions disable " + EXTENSION_UUID + "'");
-					} catch (Error e) { }
 					if (ext_enable_timer_id > 0U) {
 						GLib.Source.remove (ext_enable_timer_id);
 						ext_enable_timer_id = 0U;
 					}
-					ext_enable_timer_id = GLib.Timeout.add (350, () => {
-						ext_enable_timer_id = 0U;
-						try {
-							Process.spawn_command_line_async ("gnome-extensions enable " + EXTENSION_UUID);
-						} catch (Error e) { }
-						return false;
-					});
+					try {
+						Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " >/dev/null 2>&1; gnome-extensions disable " + EXTENSION_UUID + " >/dev/null 2>&1; sleep 0.2; gnome-extensions enable " + EXTENSION_UUID + " >/dev/null 2>&1'");
+					} catch (Error e) { }
 					return;
 				}
 				message ("MutterBackend: GnomeBridge verified live in GNOME Shell (gen=%s)", active_gen);
@@ -1630,17 +1761,18 @@ export default class WayplankBridgeImpl {
 					return false;
 				});
 			} catch (Error e) {
+				clear_proxy ();
 				debug ("MutterBackend: unable to connect to GnomeBridge: %s", e.message);
 			}
 		}
 
-		void on_bridge_vanished (DBusConnection connection, string name)
+		void on_bridge_vanished (DBusConnection? connection, string name)
 		{
 			if (bridge_reposition_timer_id > 0U) {
 				GLib.Source.remove (bridge_reposition_timer_id);
 				bridge_reposition_timer_id = 0U;
 			}
-			proxy = null;
+			clear_proxy ();
 			last_windows_json = null;
 			window_infos.clear ();
 			state_changed ();
@@ -1648,6 +1780,10 @@ export default class WayplankBridgeImpl {
 
 		void on_windows_changed ()
 		{
+			if (pending_monitor_sync) {
+				pending_monitor_sync = false;
+				notify_monitor_layout_changed ();
+			}
 			if (refresh_window_infos ())
 				state_changed ();
 		}
@@ -1718,6 +1854,7 @@ export default class WayplankBridgeImpl {
 					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
 					info.IsDialog = json.has_member ("isDialog") && json.get_boolean_member ("isDialog");
 					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
+					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
 					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height")) {
 						info.Geometry = {
@@ -1753,11 +1890,25 @@ export default class WayplankBridgeImpl {
 				GLib.Source.remove (bridge_reposition_timer_id);
 				bridge_reposition_timer_id = 0U;
 			}
+			if (display_config_sub_id > 0U && session_bus != null) {
+				session_bus.signal_unsubscribe (display_config_sub_id);
+				display_config_sub_id = 0U;
+			}
+			session_bus = null;
+			pending_monitor_sync = false;
 			if (name_watch_id > 0U) {
 				Bus.unwatch_name (name_watch_id);
 				name_watch_id = 0U;
 			}
-			proxy = null;
+			if (proxy != null && last_reserve_enabled) {
+				try {
+					proxy.set_reserve_space (false, 0, last_reserve_position);
+				} catch (Error e) { }
+			}
+			last_reserve_enabled = false;
+			last_reserve_thickness = 0;
+			last_reserve_position = -1;
+			clear_proxy ();
 			last_windows_json = null;
 			started = false;
 		}
@@ -1933,10 +2084,11 @@ export default class WayplankBridgeImpl {
 
 		public bool capture_window (string uuid, string filename)
 		{
-			if (proxy == null)
+			GnomeBridgeProxy? p = proxy;
+			if (p == null)
 				return false;
 			try {
-				return proxy.capture_window (uuid, filename);
+				return p.capture_window (uuid, filename);
 			} catch (Error e) {
 				debug ("MutterBackend: capture_window D-Bus error: %s", e.message);
 				return false;
@@ -1951,12 +2103,15 @@ export default class WayplankBridgeImpl {
 					var json_str = proxy.get_primary_monitor ();
 					var parser = new Json.Parser ();
 					parser.load_from_data (json_str);
-					var obj = parser.get_root ().get_object ();
-					x = (int) obj.get_int_member ("x");
-					y = (int) obj.get_int_member ("y");
-					width = (int) obj.get_int_member ("width");
-					height = (int) obj.get_int_member ("height");
-					return true;
+					var root = parser.get_root ();
+					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
+						var obj = root.get_object ();
+						x = (int) obj.get_int_member ("x");
+						y = (int) obj.get_int_member ("y");
+						width = (int) obj.get_int_member ("width");
+						height = (int) obj.get_int_member ("height");
+						return true;
+					}
 				} catch (Error e) {
 					// Fallback to Mutter DisplayConfig below
 				}

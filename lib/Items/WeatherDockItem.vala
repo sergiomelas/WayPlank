@@ -70,9 +70,37 @@ namespace Plank
 		public WeatherForecastDay[] forecast_days;
 		public string yr_location_id { get; private set; default = ""; }
 
+		private enum WeatherFetchOutcome
+		{
+			OK,
+			NOT_FOUND,
+			OFFLINE
+		}
+
+		private class WeatherFetchResult
+		{
+			public WeatherFetchOutcome outcome = WeatherFetchOutcome.OFFLINE;
+			public string city_name = "";
+			public string country_name = "";
+			public string detected_place = "";
+			public string condition_desc = "";
+			public double current_temp = 0.0;
+			public double feels_like_temp = 0.0;
+			public int humidity = 0;
+			public double wind_speed = 0.0;
+			public int current_code = -1;
+			public double today_temp_max = 0.0;
+			public double today_temp_min = 0.0;
+			public bool has_today_minmax = false;
+			public WeatherForecastDay[] forecast_days = new WeatherForecastDay[0];
+			public string yr_location_id = "";
+		}
+
 		private unowned WeatherDockItemPreferences weather_prefs;
 		private uint timer_id = 0;
 		private bool is_fetching = false;
+		private bool is_disposed = false;
+		private int fetch_generation = 0;
 
 		public WeatherDockItem ()
 		{
@@ -105,18 +133,36 @@ namespace Plank
 
 		~WeatherDockItem ()
 		{
+			is_disposed = true;
 			if (timer_id != 0) {
 				GLib.Source.remove (timer_id);
 				timer_id = 0;
 			}
+			WeatherWindow.detach_item (this);
+			WeatherCityDialog.detach_item (this);
+		}
+
+		public override void cleanup ()
+		{
+			is_disposed = true;
+			if (timer_id != 0) {
+				GLib.Source.remove (timer_id);
+				timer_id = 0;
+			}
+			WeatherWindow.detach_item (this);
+			WeatherCityDialog.detach_item (this);
+			base.cleanup ();
 		}
 
 		public override void @delete ()
 		{
+			is_disposed = true;
 			if (timer_id != 0) {
 				GLib.Source.remove (timer_id);
 				timer_id = 0;
 			}
+			WeatherWindow.detach_item (this);
+			WeatherCityDialog.detach_item (this);
 			base.@delete ();
 		}
 
@@ -133,12 +179,20 @@ namespace Plank
 			city_name = (new_city.length > 0) ? new_city : _("Detecting location...");
 			country_name = "";
 			condition_desc = _("Updating weather...");
+			yr_location_id = "";
+			fetch_generation++;
+			is_fetching = false;
 			WeatherWindow.update_if_open ();
 			refresh_weather ();
 		}
 
 		public void open_location_dialog (Gtk.Window? parent = null)
 		{
+			var existing = WeatherCityDialog.find_for_item (this);
+			if (existing != null) {
+				existing.present ();
+				return;
+			}
 			Gtk.Window? dlg_parent = parent != null ? parent : WeatherWindow.active_instance;
 			var dlg = new WeatherCityDialog (this, dlg_parent);
 			string initial_city = weather_prefs.City.strip ();
@@ -157,13 +211,6 @@ namespace Plank
 
 		public string get_details_url (int day_offset = 0)
 		{
-			if (yr_location_id.length == 0) {
-				string query = city_name;
-				if (query.length > 0 && query != _("Detecting location...") && query != _("Offline") && query != _("Checking weather...")) {
-					resolve_yr_direct_url (query, 0.0, 0.0);
-				}
-			}
-
 			if (yr_location_id.length > 0) {
 				if (day_offset > 0)
 					return "https://www.yr.no/en/forecast/hourly-table/%s?i=%d".printf (yr_location_id, day_offset);
@@ -179,27 +226,92 @@ namespace Plank
 			return "https://www.yr.no/en/search?q=" + GLib.Uri.escape_string (query);
 		}
 
-		public void refresh_weather ()
+		private static void spawn_weather_worker (WeatherDockItem target, int gen, string configured_city, string unit_snap)
 		{
-			if (is_fetching)
-				return;
-			is_fetching = true;
+			GLib.WeakRef self_ref = GLib.WeakRef (target);
 
 			new GLib.Thread<void*> ("weather-worker", () => {
-				do_fetch ();
-				is_fetching = false;
+				var res = perform_fetch (configured_city, unit_snap);
+				GLib.Idle.add (() => {
+					var self = (WeatherDockItem?) self_ref.get ();
+					if (self == null || self.is_disposed)
+						return false;
+					if (gen != self.fetch_generation)
+						return false;
+					self.is_fetching = false;
+					self.apply_fetch_result (res);
+					return false;
+				});
 				return null;
 			});
 		}
 
-		private void do_fetch ()
+		public void refresh_weather ()
 		{
+			if (is_disposed || is_fetching)
+				return;
+			is_fetching = true;
+			int gen = ++fetch_generation;
+			string configured_city = weather_prefs.City.strip ();
+			string unit_snap = units;
+
+			spawn_weather_worker (this, gen, configured_city, unit_snap);
+		}
+
+		private void apply_fetch_result (WeatherFetchResult res)
+		{
+			if (res.detected_place.length > 0 && weather_prefs.City.strip ().length == 0)
+				weather_prefs.City = res.detected_place;
+
+			city_name = res.city_name;
+			country_name = res.country_name;
+			condition_desc = res.condition_desc;
+			current_code = res.current_code;
+			forecast_days = res.forecast_days;
+
+			if (res.outcome == WeatherFetchOutcome.NOT_FOUND) {
+				has_today_minmax = false;
+				yr_location_id = "";
+				CountVisible = false;
+				BadgeText = null;
+				Text = "%s: %s".printf (city_name, condition_desc);
+				Icon = "dialog-warning;;weather-severe-alert;;weather-few-clouds";
+				reset_icon_buffer ();
+				WeatherWindow.update_if_open ();
+				return;
+			}
+
+			if (res.outcome == WeatherFetchOutcome.OFFLINE) {
+				has_today_minmax = false;
+				CountVisible = false;
+				BadgeText = null;
+				Text = "%s: %s".printf (city_name, condition_desc);
+				Icon = "weather-few-clouds;;weather";
+				reset_icon_buffer ();
+				WeatherWindow.update_if_open ();
+				return;
+			}
+
+			current_temp = res.current_temp;
+			feels_like_temp = res.feels_like_temp;
+			humidity = res.humidity;
+			wind_speed = res.wind_speed;
+			today_temp_max = res.today_temp_max;
+			today_temp_min = res.today_temp_min;
+			has_today_minmax = res.has_today_minmax;
+			if (res.yr_location_id.length > 0)
+				yr_location_id = res.yr_location_id;
+
+			update_display ();
+		}
+
+		private static WeatherFetchResult perform_fetch (string configured_city, string unit_snap)
+		{
+			var res = new WeatherFetchResult ();
 			double lat = 0.0;
 			double lon = 0.0;
 			string resolved_city = "";
 			string resolved_country = "";
-
-			string configured_city = weather_prefs.City.strip ();
 
 			// 1. Resolve coordinates
 			if (configured_city.length > 0) {
@@ -213,15 +325,20 @@ namespace Plank
 						var root = parser.get_root ();
 						if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
 							var obj = root.get_object ();
-							if (obj.has_member ("results")) {
+							if (obj.has_member ("results") && !obj.get_null_member ("results")) {
 								var results = obj.get_array_member ("results");
-								if (results.get_length () > 0) {
+								if (results != null && results.get_length () > 0) {
 									var first = results.get_object_element (0);
-									lat = first.get_double_member ("latitude");
-									lon = first.get_double_member ("longitude");
-									resolved_city = first.get_string_member ("name");
-									if (first.has_member ("country"))
-										resolved_country = first.get_string_member ("country");
+									if (first != null) {
+										if (first.has_member ("latitude") && !first.get_null_member ("latitude"))
+											lat = first.get_double_member ("latitude");
+										if (first.has_member ("longitude") && !first.get_null_member ("longitude"))
+											lon = first.get_double_member ("longitude");
+										if (first.has_member ("name") && !first.get_null_member ("name"))
+											resolved_city = first.get_string_member ("name") ?? "";
+										if (first.has_member ("country") && !first.get_null_member ("country"))
+											resolved_country = first.get_string_member ("country") ?? "";
+									}
 								}
 							}
 						}
@@ -232,23 +349,13 @@ namespace Plank
 			// 1b. Handle Geocoding resolution result
 			if (lat == 0.0 && lon == 0.0) {
 				if (configured_city.length > 0) {
-					// Custom city was configured but geocoding could not resolve it!
-					city_name = configured_city;
-					country_name = "";
-					condition_desc = _("Location not found");
-					current_code = -1;
-					forecast_days = new WeatherForecastDay[0];
-
-					GLib.Idle.add (() => {
-						CountVisible = false;
-						BadgeText = null;
-						Text = "%s: %s".printf (city_name, condition_desc);
-						Icon = "dialog-warning;;weather-severe-alert;;weather-few-clouds";
-						reset_icon_buffer ();
-						WeatherWindow.update_if_open ();
-						return false;
-					});
-					return;
+					res.outcome = WeatherFetchOutcome.NOT_FOUND;
+					res.city_name = configured_city;
+					res.country_name = "";
+					res.condition_desc = _("Location not found");
+					res.current_code = -1;
+					res.forecast_days = new WeatherForecastDay[0];
+					return res;
 				}
 
 				// Only if configured_city was EMPTY -> perform automatic IP Geolocation detection
@@ -261,21 +368,16 @@ namespace Plank
 						var root = parser.get_root ();
 						if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
 							var obj = root.get_object ();
-							if (obj.has_member ("lat") && obj.has_member ("lon")) {
+							if (obj.has_member ("lat") && !obj.get_null_member ("lat") && obj.has_member ("lon") && !obj.get_null_member ("lon")) {
 								lat = obj.get_double_member ("lat");
 								lon = obj.get_double_member ("lon");
-								if (obj.has_member ("city"))
-									resolved_city = obj.get_string_member ("city");
-								if (obj.has_member ("country"))
-									resolved_country = obj.get_string_member ("country");
+								if (obj.has_member ("city") && !obj.get_null_member ("city"))
+									resolved_city = obj.get_string_member ("city") ?? "";
+								if (obj.has_member ("country") && !obj.get_null_member ("country"))
+									resolved_country = obj.get_string_member ("country") ?? "";
 
-								if (configured_city.length == 0 && resolved_city.length > 0) {
-									string detected_place = (resolved_country.length > 0) ? "%s, %s".printf (resolved_city, resolved_country) : resolved_city;
-									GLib.Idle.add (() => {
-										weather_prefs.City = detected_place;
-										return false;
-									});
-								}
+								if (configured_city.length == 0 && resolved_city.length > 0)
+									res.detected_place = (resolved_country.length > 0) ? "%s, %s".printf (resolved_city, resolved_country) : resolved_city;
 							}
 						}
 					}
@@ -284,29 +386,21 @@ namespace Plank
 
 			// If network failed completely (offline / no internet):
 			if (lat == 0.0 && lon == 0.0) {
-				city_name = (configured_city.length > 0) ? configured_city : _("Offline");
-				country_name = "";
-				condition_desc = _("No internet connection");
-				current_code = -1;
-				forecast_days = new WeatherForecastDay[0];
-
-				GLib.Idle.add (() => {
-					CountVisible = false;
-					BadgeText = null;
-					Text = "%s: %s".printf (city_name, condition_desc);
-					Icon = "weather-few-clouds;;weather";
-					reset_icon_buffer ();
-					WeatherWindow.update_if_open ();
-					return false;
-				});
-				return;
+				res.outcome = WeatherFetchOutcome.OFFLINE;
+				res.city_name = (configured_city.length > 0) ? configured_city : _("Offline");
+				res.country_name = "";
+				res.condition_desc = _("No internet connection");
+				res.current_code = -1;
+				res.forecast_days = new WeatherForecastDay[0];
+				return res;
 			}
 
 			// 2. Fetch Open-Meteo forecast
-			string unit_param = (units == "F") ? "&temperature_unit=fahrenheit&wind_speed_unit=mph" : "";
+			string unit_param = (unit_snap == "F") ? "&temperature_unit=fahrenheit&wind_speed_unit=mph" : "";
 			string forecast_cmd = "curl -s --max-time 5 'https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,relative_humidity_2m_max,relative_humidity_2m_min&timezone=auto%s'".printf (lat, lon, unit_param);
 			string forecast_out;
 			int f_status;
+			bool fetched_ok = false;
 
 			try {
 				if (Process.spawn_command_line_sync (forecast_cmd, out forecast_out, null, out f_status) && f_status == 0) {
@@ -315,53 +409,58 @@ namespace Plank
 					var root = parser.get_root ();
 					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
 						var obj = root.get_object ();
-						if (obj.has_member ("current")) {
+						if (obj.has_member ("current") && !obj.get_null_member ("current")) {
 							var cur = obj.get_object_member ("current");
-							current_temp = cur.get_double_member ("temperature_2m");
-							feels_like_temp = cur.get_double_member ("apparent_temperature");
-							humidity = (int) cur.get_int_member ("relative_humidity_2m");
-							wind_speed = cur.get_double_member ("wind_speed_10m");
-							current_code = (int) cur.get_int_member ("weather_code");
-							condition_desc = code_to_description (current_code);
+							if (cur != null) {
+								res.current_temp = cur.has_member ("temperature_2m") && !cur.get_null_member ("temperature_2m") ? cur.get_double_member ("temperature_2m") : 0.0;
+								res.feels_like_temp = cur.has_member ("apparent_temperature") && !cur.get_null_member ("apparent_temperature") ? cur.get_double_member ("apparent_temperature") : res.current_temp;
+								res.humidity = cur.has_member ("relative_humidity_2m") && !cur.get_null_member ("relative_humidity_2m") ? (int) cur.get_int_member ("relative_humidity_2m") : 0;
+								res.wind_speed = cur.has_member ("wind_speed_10m") && !cur.get_null_member ("wind_speed_10m") ? cur.get_double_member ("wind_speed_10m") : 0.0;
+								res.current_code = cur.has_member ("weather_code") && !cur.get_null_member ("weather_code") ? (int) cur.get_int_member ("weather_code") : 0;
+								res.condition_desc = code_to_description (res.current_code);
+								fetched_ok = true;
+							}
 						}
 
-						city_name = resolved_city;
-						country_name = resolved_country;
+						res.city_name = resolved_city;
+						res.country_name = resolved_country;
 
 						// Daily forecast
-						if (obj.has_member ("daily")) {
+						if (obj.has_member ("daily") && !obj.get_null_member ("daily")) {
 							var daily = obj.get_object_member ("daily");
-							var max_arr = daily.get_array_member ("temperature_2m_max");
-							var min_arr = daily.get_array_member ("temperature_2m_min");
-							var code_arr = daily.get_array_member ("weather_code");
-							var wind_arr = daily.has_member ("wind_speed_10m_max") ? daily.get_array_member ("wind_speed_10m_max") : null;
-							var h_max_arr = daily.has_member ("relative_humidity_2m_max") ? daily.get_array_member ("relative_humidity_2m_max") : null;
-							var h_min_arr = daily.has_member ("relative_humidity_2m_min") ? daily.get_array_member ("relative_humidity_2m_min") : null;
+							var max_arr = (daily != null && daily.has_member ("temperature_2m_max") && !daily.get_null_member ("temperature_2m_max")) ? daily.get_array_member ("temperature_2m_max") : null;
+							var min_arr = (daily != null && daily.has_member ("temperature_2m_min") && !daily.get_null_member ("temperature_2m_min")) ? daily.get_array_member ("temperature_2m_min") : null;
+							var code_arr = (daily != null && daily.has_member ("weather_code") && !daily.get_null_member ("weather_code")) ? daily.get_array_member ("weather_code") : null;
+							var wind_arr = (daily != null && daily.has_member ("wind_speed_10m_max") && !daily.get_null_member ("wind_speed_10m_max")) ? daily.get_array_member ("wind_speed_10m_max") : null;
+							var h_max_arr = (daily != null && daily.has_member ("relative_humidity_2m_max") && !daily.get_null_member ("relative_humidity_2m_max")) ? daily.get_array_member ("relative_humidity_2m_max") : null;
+							var h_min_arr = (daily != null && daily.has_member ("relative_humidity_2m_min") && !daily.get_null_member ("relative_humidity_2m_min")) ? daily.get_array_member ("relative_humidity_2m_min") : null;
 
-							if (max_arr.get_length () > 0 && min_arr.get_length () > 0) {
-								today_temp_max = max_arr.get_double_element (0);
-								today_temp_min = min_arr.get_double_element (0);
-								has_today_minmax = true;
-							}
-
-							uint total_days = (uint) max_arr.get_length ();
-							uint len = (uint) uint.min (4, total_days);
-							var days = new WeatherForecastDay[len];
-							for (uint i = 0; i < len; i++) {
-								days[i] = new WeatherForecastDay ();
-								days[i].temp_max = max_arr.get_double_element (i);
-								days[i].temp_min = min_arr.get_double_element (i);
-								days[i].weather_code = (int) code_arr.get_int_element (i);
-								days[i].icon_name = code_to_icon_name (days[i].weather_code);
-								if (wind_arr != null && i < wind_arr.get_length ())
-									days[i].wind_speed = wind_arr.get_double_element (i);
-								if (h_max_arr != null && h_min_arr != null && i < h_max_arr.get_length () && i < h_min_arr.get_length ()) {
-									int h_max = (int) h_max_arr.get_int_element (i);
-									int h_min = (int) h_min_arr.get_int_element (i);
-									days[i].humidity = (h_max + h_min) / 2;
+							if (max_arr != null && min_arr != null && code_arr != null) {
+								if (max_arr.get_length () > 0 && min_arr.get_length () > 0) {
+									res.today_temp_max = max_arr.get_double_element (0);
+									res.today_temp_min = min_arr.get_double_element (0);
+									res.has_today_minmax = true;
 								}
+
+								uint total_days = (uint) max_arr.get_length ();
+								uint len = (uint) uint.min (4, (uint) uint.min (total_days, (uint) uint.min ((uint) min_arr.get_length (), (uint) code_arr.get_length ())));
+								var days = new WeatherForecastDay[len];
+								for (uint i = 0; i < len; i++) {
+									days[i] = new WeatherForecastDay ();
+									days[i].temp_max = max_arr.get_double_element (i);
+									days[i].temp_min = min_arr.get_double_element (i);
+									days[i].weather_code = (int) code_arr.get_int_element (i);
+									days[i].icon_name = code_to_icon_name (days[i].weather_code);
+									if (wind_arr != null && i < wind_arr.get_length ())
+										days[i].wind_speed = wind_arr.get_double_element (i);
+									if (h_max_arr != null && h_min_arr != null && i < h_max_arr.get_length () && i < h_min_arr.get_length ()) {
+										int h_max = (int) h_max_arr.get_int_element (i);
+										int h_min = (int) h_min_arr.get_int_element (i);
+										days[i].humidity = (h_max + h_min) / 2;
+									}
+								}
+								res.forecast_days = days;
 							}
-							forecast_days = days;
 						}
 					}
 				}
@@ -369,22 +468,30 @@ namespace Plank
 				warning ("WeatherDockItem: error fetching forecast: %s", e.message);
 			}
 
+			if (!fetched_ok) {
+				res.outcome = WeatherFetchOutcome.OFFLINE;
+				res.city_name = (resolved_city.length > 0) ? resolved_city : ((configured_city.length > 0) ? configured_city : _("Offline"));
+				res.country_name = resolved_country;
+				res.condition_desc = _("No internet connection");
+				res.current_code = -1;
+				res.forecast_days = new WeatherForecastDay[0];
+				return res;
+			}
+
+			res.outcome = WeatherFetchOutcome.OK;
+
 			// 2b. Resolve Yr.no direct location URL
 			string yr_target_city = (resolved_city.length > 0) ? resolved_city : configured_city;
 			if (yr_target_city.length > 0)
-				resolve_yr_direct_url (yr_target_city, lat, lon);
+				res.yr_location_id = resolve_yr_direct_url (yr_target_city, lat, lon);
 
-			// 3. Update UI on Main GTK Thread
-			GLib.Idle.add (() => {
-				update_display ();
-				return false;
-			});
+			return res;
 		}
 
-		private void resolve_yr_direct_url (string query, double target_lat, double target_lon)
+		private static string resolve_yr_direct_url (string query, double target_lat, double target_lon)
 		{
 			if (query.length == 0 || query == _("Detecting location...") || query == _("Offline") || query == _("Checking weather..."))
-				return;
+				return "";
 
 			string yr_search_cmd = "curl -s --max-time 4 'https://www.yr.no/api/v0/locations/search?q=%s'".printf (GLib.Uri.escape_string (query));
 			string yr_out;
@@ -396,31 +503,34 @@ namespace Plank
 					var root = parser.get_root ();
 					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
 						var obj = root.get_object ();
-						if (obj.has_member ("_embedded")) {
+						if (obj.has_member ("_embedded") && !obj.get_null_member ("_embedded")) {
 							var embedded = obj.get_object_member ("_embedded");
-							if (embedded.has_member ("location")) {
+							if (embedded != null && embedded.has_member ("location") && !embedded.get_null_member ("location")) {
 								var loc_arr = embedded.get_array_member ("location");
 								string best_id = "";
 								double min_dist = 1e12;
-								for (uint i = 0; i < loc_arr.get_length (); i++) {
+								for (uint i = 0; loc_arr != null && i < loc_arr.get_length (); i++) {
 									var loc = loc_arr.get_object_element (i);
-									string id = loc.get_string_member ("id");
-									if (loc.has_member ("position") && (target_lat != 0.0 || target_lon != 0.0)) {
+									if (loc == null || !loc.has_member ("id") || loc.get_null_member ("id"))
+										continue;
+									string id = loc.get_string_member ("id") ?? "";
+									if (loc.has_member ("position") && !loc.get_null_member ("position") && (target_lat != 0.0 || target_lon != 0.0)) {
 										var pos = loc.get_object_member ("position");
-										double plat = pos.get_double_member ("lat");
-										double plon = pos.get_double_member ("lon");
-										double d = (plat - target_lat) * (plat - target_lat) + (plon - target_lon) * (plon - target_lon);
-										if (d < min_dist) {
-											min_dist = d;
-											best_id = id;
+										if (pos != null && pos.has_member ("lat") && !pos.get_null_member ("lat") && pos.has_member ("lon") && !pos.get_null_member ("lon")) {
+											double plat = pos.get_double_member ("lat");
+											double plon = pos.get_double_member ("lon");
+											double d = (plat - target_lat) * (plat - target_lat) + (plon - target_lon) * (plon - target_lon);
+											if (d < min_dist) {
+												min_dist = d;
+												best_id = id;
+											}
 										}
 									} else if (best_id.length == 0) {
 										best_id = id;
 									}
 								}
-								if (best_id.length > 0) {
-									yr_location_id = best_id;
-								}
+								if (best_id.length > 0)
+									return best_id;
 							}
 						}
 					}
@@ -428,6 +538,7 @@ namespace Plank
 			} catch (GLib.Error e) {
 				warning ("WeatherDockItem: error resolving Yr.no URL: %s", e.message);
 			}
+			return "";
 		}
 
 		private void update_display ()
@@ -475,13 +586,15 @@ namespace Plank
 			});
 			items.add (unit_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 
 			return items;
 		}

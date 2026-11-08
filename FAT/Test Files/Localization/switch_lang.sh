@@ -33,7 +33,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." 2>/dev/null && pwd || echo "${SCRIPT_DIR}")"
 
 detect_compositor() {
     local desk="${XDG_CURRENT_DESKTOP:-}${XDG_SESSION_DESKTOP:-}${DESKTOP_SESSION:-}"
@@ -52,6 +52,9 @@ AVAILABLE_LANGS=()
 for po in "${REPO_ROOT}"/po/*.po; do
     [ -f "$po" ] && AVAILABLE_LANGS+=("$(basename "$po" .po)")
 done
+if [ "${#AVAILABLE_LANGS[@]}" -eq 0 ]; then
+    AVAILABLE_LANGS=("ca" "de" "es" "fr" "it" "uk" "zh_CN")
+fi
 AVAILABLE_LANGS+=("en")
 
 LANG_INPUT="${1:-}"
@@ -97,7 +100,9 @@ esac
 
 COMPOSITOR="$(detect_compositor)"
 
-if command -v wayplank >/dev/null 2>&1; then
+if [ -x "${SCRIPT_DIR}/wayplank" ]; then
+    WAYPLANK_BIN="${SCRIPT_DIR}/wayplank"
+elif command -v wayplank >/dev/null 2>&1; then
     WAYPLANK_BIN="$(command -v wayplank)"
 elif [ -x "${REPO_ROOT}/build/wayplank" ]; then
     WAYPLANK_BIN="${REPO_ROOT}/build/wayplank"

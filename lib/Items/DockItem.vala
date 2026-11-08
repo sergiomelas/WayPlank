@@ -246,9 +246,9 @@ namespace Plank
 				return;
 			is_cleaned_up = true;
 
-			buffer.clear ();
-			background_buffer.clear ();
-			foreground_buffer.clear ();
+			buffer.stop ();
+			background_buffer.stop ();
+			foreground_buffer.stop ();
 			average_color_valid = false;
 
 			Prefs.notify["Launcher"].disconnect (handle_launcher_changed);
@@ -281,6 +281,7 @@ namespace Plank
 		 */
 		void handle_deleted ()
 		{
+			cleanup ();
 			deleted ();
 		}
 
@@ -306,6 +307,7 @@ namespace Plank
 		 */
 		public virtual void @delete ()
 		{
+			cleanup ();
 			launcher_file_monitor_stop ();
 
 			Prefs.delete ();
@@ -345,6 +347,12 @@ namespace Plank
 			needs_redraw ();
 		}
 		
+		protected bool is_dock_locked ()
+		{
+			unowned DockController? dock = get_dock ();
+			return (dock != null && dock.prefs.LockItems);
+		}
+
 		protected virtual void on_icon_theme_changed ()
 		{
 		}
@@ -354,6 +362,8 @@ namespace Plank
 			// Put Gtk.IconTheme.changed emmitted signals in idle queue to avoid
 			// race conditions with concurrent handles
 			Gdk.threads_add_idle_full (GLib.Priority.LOW, () => {
+				if (is_cleaned_up)
+					return false;
 				on_icon_theme_changed ();
 				reset_icon_buffer ();
 				return false;

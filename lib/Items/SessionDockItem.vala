@@ -116,13 +116,15 @@ namespace Plank
 			session_win_item.activate.connect (() => { SessionWindow.toggle_window (Gtk.get_current_event_time ()); });
 			items.add (session_win_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 
 			return items;
 		}

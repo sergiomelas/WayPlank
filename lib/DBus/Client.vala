@@ -147,12 +147,18 @@ namespace Plank
 				return;
 			}
 			
-			connect_proxies (connection, name, object_path);
+			if (dock_object_path != null && name != null && name != "")
+				connect_proxies (connection, name, dock_object_path);
 		}
 		
 		void connect_proxies (DBusConnection connection, string sender_name, string object_path)
 		{	
 			debug ("Connecting and create proxies for '%s' (%s)", sender_name, object_path);
+			
+			if (items_proxy != null) {
+				items_proxy.changed.disconnect (invalidate_items_cache);
+				items_proxy = null;
+			}
 			
 			try {
 				items_proxy = connection.get_proxy_sync<Plank.DBusItemsIface> (sender_name, object_path, DBusProxyFlags.NONE);
@@ -180,8 +186,10 @@ namespace Plank
 			dock_bus_name = null;
 			dock_object_path = null;
 			
-			items_proxy.changed.disconnect (invalidate_items_cache);
-			items_proxy = null;
+			if (items_proxy != null) {
+				items_proxy.changed.disconnect (invalidate_items_cache);
+				items_proxy = null;
+			}
 		}
 		
 		

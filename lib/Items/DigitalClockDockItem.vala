@@ -212,13 +212,15 @@ namespace Plank
 			});
 			items.add (copy_item);
 			
-			items.add (new Gtk.SeparatorMenuItem ());
-			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
+				
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 			
 			return items;
 		}

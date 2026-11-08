@@ -28,7 +28,7 @@ namespace Plank
 	 */
 	public class PoofWindow : CompositedWindow
 	{
-		const int DEFAULT_RUN_LENGTH = 600 * 1000;
+		const int DEFAULT_RUN_LENGTH = DockPreferences.DEFAULT_EFFECT_DURATION * 1000;
 
 		public signal void poof_completed (uint64 tx_id);
 
@@ -135,7 +135,7 @@ namespace Plank
 			int icon_size, Gtk.PositionType dock_edge, bool reserve_space_active,
 			int dock_exclusive_thickness, Gdk.Monitor? monitor,
 			int effect_mode = 0, Cairo.Surface? icon_snapshot = null, Color? accent = null,
-			int duration_ms = 600)
+			int duration_ms = DockPreferences.DEFAULT_EFFECT_DURATION)
 		{
 			if (tick_cb_id > 0U) {
 				remove_tick_callback (tick_cb_id);
@@ -144,15 +144,15 @@ namespace Plank
 			active_tx_id = 0ULL;
 			icon_surface = null;
 
-			int mode = effect_mode.clamp (0, 8);
-			if (mode == 8) {
+			int mode = effect_mode.clamp (0, DockPreferences.MAX_UNPIN_ANIMATION);
+			if (mode == DockPreferences.MAX_UNPIN_ANIMATION) {
 				if (get_visible ())
 					hide ();
 				poof_completed (tx_id);
 				return;
 			}
 
-			if (mode >= 1 && mode <= 7 && icon_snapshot == null)
+			if (mode >= 1 && mode < DockPreferences.MAX_UNPIN_ANIMATION && icon_snapshot == null)
 				mode = 0;
 
 			if (mode == 0 && (poof_image == null || poof_frames <= 0)) {
@@ -161,7 +161,7 @@ namespace Plank
 			}
 
 			active_effect_mode = mode;
-			active_run_length = (duration_ms >= 100) ? (duration_ms.clamp (100, 1000) * 1000) : DEFAULT_RUN_LENGTH;
+			active_run_length = (duration_ms > 0) ? (duration_ms.clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION) * 1000) : DEFAULT_RUN_LENGTH;
 			icon_surface = icon_snapshot;
 
 			if (accent != null && (accent.red > 0.05 || accent.green > 0.05 || accent.blue > 0.05)) {

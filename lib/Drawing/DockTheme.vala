@@ -25,6 +25,8 @@ namespace Plank
 	 */
 	public class DockTheme : Theme
 	{
+		public const int DEFAULT_HIDE_TIME = 350;
+
 		const double MIN_INDICATOR_SIZE = 0.0;
 		const double MAX_INDICATOR_SIZE = 10.0;
 		const double MAX_ICON_SHADOW_SIZE = 5.0;
@@ -126,8 +128,8 @@ namespace Plank
 			LaunchBounceTime = 600;
 			ActiveTime = 300;
 			SlideTime = 300;
-			FadeTime = 250;
-			HideTime = 250;
+			FadeTime = DEFAULT_HIDE_TIME;
+			HideTime = DEFAULT_HIDE_TIME;
 			GlowSize = 30;
 			GlowTime = 10000;
 			GlowPulseTime = 2000;

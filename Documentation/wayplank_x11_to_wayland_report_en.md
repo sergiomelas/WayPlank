@@ -4,7 +4,7 @@
 > **Document Status:** **Archived Historical Engineering Reference** (Frozen at `v0.1.0` $\longrightarrow$ `v0.6.2.3` Pre-Beta Closure / `v0.7.0` Launch)
 
 > [!NOTE]
-> **Historical Archive Notice:** The architectural migration from legacy X11 (`libwnck-3.0`, `libbamf3`, XFixes/XI2, Autotools) to 100% native multi-compositor Wayland concluded permanently with **`v0.6.2.3`** on November 1, 2026 and the launch of **Public Beta 1 (`v0.7.0`)**. This report is preserved as a frozen engineering reference and is no longer updated on ongoing `v0.7.x+` release cycles. For live architecture, features, and active ISA-88 FAT qualification status, see [`USER_GUIDE.md`](USER_GUIDE.md), [`WAYPLANK_LIFETIME_BUG_REGISTER.md`](../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md), and [`FAT/`](../FAT/).
+> **Historical Archive Notice:** The architectural migration from legacy X11 (`libwnck-3.0`, `libbamf3`, XFixes/XI2, Autotools) to 100% native multi-compositor Wayland concluded permanently with **`v0.6.2.3`** on November 1, 2026 and the launch of **Public Beta 1 (`v0.7.0`)**. This report is preserved as a frozen engineering reference and is no longer updated on ongoing `v0.7.x+` release cycles. For live HAL architecture, features, and active ISA-88 FAT qualification status, see [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md), [USER_GUIDE.md](USER_GUIDE.md), [WAYPLANK_LIFETIME_BUG_REGISTER.md](../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md), and [FAT/](../FAT/).
 
 ---
 
@@ -58,67 +58,38 @@ To overcome these structural restrictions and build a high-performance, lightwei
 
 ## 3. High-Level Architectural Diagrams
 
-### 3.1. Subsystem Architecture & IPC Dataflow
+### 3.1. Subsystem Architecture & Encapsulated HAL Dataflow
 
 ```mermaid
 flowchart TD
-    subgraph Compositors ["Wayland Compositor Layer"]
-        KWinComp["KWin / KDE Plasma\n(KWin Scripting Engine & Workspace API)"]
-        WlrComp["Labwc / wlroots Compositors\n(zwlr_foreign_toplevel_manager_v1)"]
-        MutterComp["GNOME Shell / Mutter\n(Native Monolithic Extension)"]
-        LayerCompositor["Layer Surface Compositor\n(wlr-layer-shell / gtk-layer-shell)"]
+    subgraph UI ["🎨 Portable GTK3 & Cairo Dock Layer (src/ + lib/)"]
+        DockWindow["DockWindow, WindowCardsWindow, HoverWindow, PoofWindow, FolderMenuWindow"]
+        AppItem["ApplicationDockItem & 16 Monolithic Docklets"]
+        WindowManager["WindowManager & ApplicationIdentity"]
     end
 
-    subgraph Bridges ["Compositor Bridge Layer"]
-        DBusIface["KWin D-Bus Bridge (KWinBridge)\nMethods: update_window_state, fetch_pending_command"]
-        WlrBridge["Native C Protocol Bridge (wlr-toplevel-bridge.c)\nDirect libwayland-client event loop integration"]
-        MutterBridge["Mutter D-Bus Bridge (org.wayplank.GnomeBridge)\nEmbedded extension IPC"]
+    subgraph HAL_BOX ["🏛️ Encapsulated HAL Box (HAL_ARCHITECTURE.md)"]
+        WindowControl["WindowControl & Polymorphic HAL Contracts (IDockShell • IWindowBackend • IThumbnailProvider)"]
+        KWinBackend["KWinBackend + KWinBridge (ECMAScript & ScreenShot2)"]
+        MutterBackend["MutterBackend + GnomeBridge Extension IPC"]
+        LabwcBackend["LabwcBackend + wlr-toplevel-bridge.c + gtk-layer-shell"]
+        WindowControl --> KWinBackend
+        WindowControl --> MutterBackend
+        WindowControl --> LabwcBackend
     end
 
-    subgraph WayPlankCore ["WayPlank Core Layer"]
-        WindowControl["WindowControl\n(Runtime Compositor Discovery & Dispatcher)"]
-        WindowBackend["WindowBackend (HAL Interface)"]
-        KWinBackend["KWinBackend Implementation"]
-        LabwcBackend["LabwcBackend Implementation"]
-        MutterBackend["MutterBackend Implementation"]
-        WindowManager["WindowManager\n(Cycle / Minimize / Stacking Resolution)"]
-        AppDiscovery["ApplicationDiscovery\n(FileMonitor inotify + 300ms debounce)"]
-        AppIdentity["ApplicationIdentity\n(Multi-Attribute Heuristic Matcher)"]
-        Matcher["Matcher Service\n(/proc UID-isolated Process Scanner)"]
+    subgraph Compositors ["🖥️ Wayland Compositor Layer"]
+        KWinComp["KDE Plasma 6 / KWin"]
+        MutterComp["GNOME Shell / Mutter"]
+        WlrComp["Labwc / wlroots Compositors"]
     end
 
-    subgraph UI ["GTK3 & Layer Shell Interface"]
-        DockWindow["DockWindow\n(GtkLayerShell: TOP layer, Exclusive Zone)"]
-        AppItem["ApplicationDockItem\n(Reactive Badges, Indicator Dots, Actions)"]
-        SepItem["SeparatorDockItem\n(Themed Native Divider)"]
-        HoverWin["HoverWindow (OVERLAY tooltip)"]
-        PoofWin["PoofWindow (OVERLAY animation)"]
-        FolderMenuWin["FolderMenuWindow (OVERLAY folder launcher menu)"]
-    end
-
-    KWinComp <-->|D-Bus Push / Pull| DBusIface
-    DBusIface <--> KWinBackend
-    WlrComp <-->|Wayland Wire Protocol| WlrBridge
-    WlrBridge <--> LabwcBackend
-    MutterComp <-->|D-Bus Session Bus| MutterBridge
-    MutterBridge <--> MutterBackend
-
-    KWinBackend --> WindowBackend
-    LabwcBackend --> WindowBackend
-    MutterBackend --> WindowBackend
-    WindowControl --> WindowBackend
-    WindowBackend --> WindowManager
-    Matcher --> WindowManager
-    AppDiscovery --> AppIdentity
-    AppIdentity --> AppItem
-    WindowManager --> AppItem
-    LayerCompositor <-->|Wayland Protocol| DockWindow
-    LayerCompositor <-->|Wayland Protocol| HoverWin
-    LayerCompositor <-->|Wayland Protocol| PoofWin
-    LayerCompositor <-->|Wayland Protocol| FolderMenuWin
-    DockWindow --> AppItem
-    DockWindow --> SepItem
-    DockWindow --> FolderMenuWin
+    DockWindow --> WindowControl
+    AppItem --> WindowManager
+    WindowManager --> WindowControl
+    KWinBackend <-->|"D-Bus Push / Pull"| KWinComp
+    MutterBackend <-->|"Extension Session IPC"| MutterComp
+    LabwcBackend <-->|"Wayland Wire Protocol"| WlrComp
 ```
 
 ---
@@ -128,9 +99,9 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     autonumber
-    participant DW as DockWindow
-    participant PM as PositionManager
-    participant LS as GtkLayerShell
+    participant DW as DockWindow (Core)
+    participant PM as PositionManager (Core)
+    participant LS as 🏛️ HAL Box: GtkLayerShell / IDockShell (HAL_ARCHITECTURE.md)
     participant Comp as Wayland Compositor
 
     Note over DW: Initialization Phase
@@ -164,25 +135,29 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    Click["User Clicks Dock Icon\n(ApplicationDockItem.on_clicked)"] --> CheckOpen{"Does app have\nopen windows?"}
-    CheckOpen -- "0 Windows" --> Launch["Launch New Instance\n(GDesktopAppInfo.launch)"]
-    CheckOpen -- "1 Window" --> CheckActive{"Is window active\nand focused?"}
-    
-    CheckActive -- "Yes" --> MinAction["Queue 'toggle' (Minimize)\nvia WindowManager"]
-    CheckActive -- "No" --> ActAction["Queue 'activate' (Raise/Focus)\nvia WindowManager"]
-    
+    Click["User Clicks Dock Icon (ApplicationDockItem.on_clicked)"] --> CheckOpen{"Does app have open windows?"}
+    CheckOpen -- "0 Windows" --> Launch["Launch New Instance (GDesktopAppInfo.launch)"]
+    CheckOpen -- "1 Window" --> CheckActive{"Is window active and focused?"}
+
+    CheckActive -- "Yes" --> MinAction["Queue 'toggle' (Minimize) via WindowManager"]
+    CheckActive -- "No" --> ActAction["Queue 'activate' (Raise/Focus) via WindowManager"]
+
     CheckOpen -- "Multiple Windows (>1)" --> ClickPref{"User Click Preference"}
     ClickPref -- "0: Smart Focus" --> TopMost["Raise most recent window"]
     ClickPref -- "1: Focus All" --> RaiseAll["Queue raise for all instances"]
-    ClickPref -- "2: Cycle Windows" --> Cycle["Cycle to next window in stacking order\n(Restore if minimized)"]
+    ClickPref -- "2: Cycle Windows" --> Cycle["Cycle to next window in stacking order (Restore if minimized)"]
 
-    MinAction --> Dispatch["KWinBridge.queue_command(uuid, action)"]
+    MinAction --> Dispatch["WindowManager Dispatch Queue (uuid, action)"]
     ActAction --> Dispatch
     TopMost --> Dispatch
     RaiseAll --> Dispatch
     Cycle --> Dispatch
-    Dispatch --> DBus["KWin D-Bus Bridge"]
-    DBus --> KWinExec["KWin Script executes action on client"]
+
+    subgraph HAL_EXEC ["🏛️ HAL Box: IWindowBackend (HAL_ARCHITECTURE.md)"]
+        Exec["Active Compositor Driver Executes Action (KWin / Mutter / Labwc)"]
+    end
+
+    Dispatch --> Exec
 ```
 
 ---
@@ -1134,9 +1109,10 @@ With **WayPlank v0.7.0 (Public Beta 1)**, the transition from legacy X11 Plank t
 - **Enterprise-Grade Stability:** 0.0% idle CPU, zero hardcoding, zero memory leaks, and sub-10ms event reaction times.
 - **Release & Master Trajectory:**
   - **Current Live GitHub Release**: `v0.7.0 (Public Beta 1)` (Monolithic Embedded Localization & Full Multi-Compositor Baseline Consolidation).
+  - **Active Public Beta Series (v0.7.x)**: Community features, physical `hal/` extraction (`v0.7.1`), iterative bug fixing, and preliminary native Windows preview ([WinPlank](WINPLANK_PORT_BATTLE_PLAN.md)) up to December 31, 2026.
   - **Completed Foundation Finale**: `v0.6.2.3 (Round 3 & Community Finale)` (Official Closure of the Alpha & Pre-Beta Era on November 1, 2026).
   - **Release Candidate Series (v0.8.x)**: Strict feature freeze, memory leak profiling, and packaging hardening.
-  - **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone for daily driving across all Linux distros.
+  - **Long-Term Production Stabilization (v0.9.x)**: The battle-tested production milestone for daily driving across all Linux distros and Windows 10/11+.
   - **Grand Milestone Horizon (v1.0.0 — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.
 
 > 🏛️ **Historic Epilogue — Official Closure of the Alpha & Pre-Beta Era (`v0.1.0` $\longrightarrow$ `v0.6.2.3`) & Launch of Public Beta 1 (`v0.7.0`):**  

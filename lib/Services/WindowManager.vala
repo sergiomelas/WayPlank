@@ -39,7 +39,10 @@ namespace Plank
 		WindowManager ()
 		{
 			matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
+			known_window_ids = new Gee.HashSet<string> ();
+			ApplicationIdentity.init_browser_profile_tracking ();
 			cached_windows = WindowControl.get_windows ();
+			sync_window_profiles ();
 			WindowControl.get_default ().state_changed.connect (refresh_windows);
 			ApplicationDiscovery.get_default ().changed.connect (refresh_windows);
 		}
@@ -52,10 +55,74 @@ namespace Plank
 
 		Gee.ArrayList<WindowInfo> cached_windows;
 		Gee.HashMap<string, Gee.ArrayList<WindowInfo>> matches_cache;
+		Gee.HashSet<string> known_window_ids;
+		bool initial_browser_scan_done = false;
+
+		public void clear_matches_cache ()
+		{
+			matches_cache.clear ();
+		}
+
+		public void on_browser_profile_resolved ()
+		{
+			if (cached_windows != null) {
+				foreach (var w in cached_windows) {
+					if (w.Id != "")
+						ApplicationIdentity.get_locked_window_launcher_uri (w);
+				}
+			}
+			matches_cache.clear ();
+			windows_refreshed ();
+		}
+
+		void sync_window_profiles ()
+		{
+			if (!initial_browser_scan_done && cached_windows.size > 0) {
+				initial_browser_scan_done = true;
+				foreach (var w in cached_windows) {
+					if (w.Id != "")
+						known_window_ids.add (w.Id);
+				}
+				ApplicationIdentity.scan_initial_windows (cached_windows);
+				return;
+			}
+
+			var current_ids = new Gee.HashSet<string> ();
+			var pid_counts = new Gee.HashMap<int, int> ();
+			var pid_indices = new Gee.HashMap<int, int> ();
+
+			foreach (var w in cached_windows) {
+				if (w.Id != "")
+					current_ids.add (w.Id);
+				if (w.Pid > 0)
+					pid_counts.set (w.Pid, (pid_counts.has_key (w.Pid) ? pid_counts.get (w.Pid) : 0) + 1);
+			}
+
+			var removed_ids = new Gee.ArrayList<string> ();
+			foreach (var old_id in known_window_ids) {
+				if (!current_ids.contains (old_id))
+					removed_ids.add (old_id);
+			}
+			foreach (var rem_id in removed_ids) {
+				known_window_ids.remove (rem_id);
+				ApplicationIdentity.on_window_closed (rem_id);
+			}
+
+			foreach (var w in cached_windows) {
+				int idx = pid_indices.has_key (w.Pid) ? pid_indices.get (w.Pid) : 0;
+				pid_indices.set (w.Pid, idx + 1);
+				if (w.Id != "" && !known_window_ids.contains (w.Id)) {
+					known_window_ids.add (w.Id);
+					int total = pid_counts.has_key (w.Pid) ? pid_counts.get (w.Pid) : 1;
+					ApplicationIdentity.on_window_opened (w, false, total, idx);
+				}
+			}
+		}
 
 		void refresh_windows ()
 		{
 			cached_windows = WindowControl.get_windows ();
+			sync_window_profiles ();
 			matches_cache.clear ();
 			windows_refreshed ();
 		}
@@ -71,7 +138,9 @@ namespace Plank
 		static bool matches_app (WindowInfo window, string app_id)
 		{
 			var normalized = normalize_id (app_id);
-			if (window.ApplicationId == normalized)
+			if (normalized == "")
+				return false;
+			if (window.ApplicationId == normalized || normalize_id (window.DesktopFileName) == normalized)
 				return true;
 			var separator = window.ApplicationId.last_index_of_char ('.');
 			return separator >= 0 && window.ApplicationId.substring (separator + 1) == normalized;
@@ -95,7 +164,7 @@ namespace Plank
 				if (identity != null) {
 					if (discovery.is_best_launcher_for_window (launcher_uri, window))
 						result.add (window);
-				} else if (matches_app (window, app_id)) {
+				} else if (app_id != null && matches_app (window, app_id)) {
 					result.add (window);
 				}
 			}

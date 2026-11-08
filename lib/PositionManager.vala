@@ -60,7 +60,7 @@ namespace Plank
 			last_scale_factor = controller.window.get_scale_factor ();
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = get_effective_monitor_geometry (monitor);
-			current_monitor = monitor;
+			current_monitor_ref.set (monitor);
 			
 			screen_is_composited = screen.is_composited ();
 		}
@@ -98,7 +98,8 @@ namespace Plank
 				break;
 			case "IconSize":
 			case "ScrollOverflow":
-				update (controller.renderer.theme);
+				if (controller.renderer != null && controller.renderer.theme != null)
+					update (controller.renderer.theme);
 				break;
 			case "ZoomPercent":
 			case "ZoomEnabled":
@@ -247,7 +248,7 @@ namespace Plank
 		void prefs_monitor_changed ()
 		{
 			if (controller != null && controller.window != null) {
-				current_monitor = null;
+				current_monitor_ref.set (null);
 				screen_changed (controller.window.get_screen ());
 			}
 		}
@@ -258,7 +259,7 @@ namespace Plank
 				on_screen_topology_changed (controller.window.get_screen ());
 		}
 
-		weak Gdk.Monitor? current_monitor = null;
+		GLib.WeakRef current_monitor_ref;
 		int last_scale_factor = 1;
 
 		Gdk.Rectangle get_effective_monitor_geometry (Gdk.Monitor? monitor)
@@ -310,8 +311,9 @@ namespace Plank
 			var old_monitor_geo = monitor_geo;
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
 			monitor_geo = get_effective_monitor_geometry (monitor);
-			bool monitor_changed = (monitor != current_monitor);
-			current_monitor = monitor;
+			var prev_monitor = (Gdk.Monitor?) current_monitor_ref.get ();
+			bool monitor_changed = (monitor != prev_monitor);
+			current_monitor_ref.set (monitor);
 
 			int current_scale = (controller != null && controller.window != null) ? controller.window.get_scale_factor () : 1;
 			bool scale_changed = (current_scale != last_scale_factor);
@@ -350,6 +352,11 @@ namespace Plank
 			
 			thaw_notify ();
 			updating_screen = false;
+
+			// Capacity changed with the monitor/scale: re-evaluate the Smart Pinned Accordion.
+			// Event-driven (debounced topology change), never from a draw/motion tick.
+			if (controller.app_provider != null)
+				controller.app_provider.refresh_pinned_accordion ();
 		}
 		
 		void screen_composited_changed (Gdk.Screen screen)
@@ -358,7 +365,8 @@ namespace Plank
 			
 			screen_is_composited = screen.is_composited ();
 			
-			update (controller.renderer.theme);
+			if (controller.renderer != null && controller.renderer.theme != null)
+				update (controller.renderer.theme);
 			
 			thaw_notify ();
 		}
@@ -614,7 +622,7 @@ namespace Plank
 			var sep_slot = (int) Math.round ((ItemPadding + IconSize) / 2.0);
 			var total = 0;
 			foreach (var item in controller.VisibleItems) {
-				if (item is SeparatorDockItem)
+				if (item is SeparatorDockItem || item is PinnedExpanderDockItem)
 					total += sep_slot;
 				else
 					total += (ItemPadding + IconSize);
@@ -624,7 +632,7 @@ namespace Plank
 
 		double get_item_slot (DockItem item)
 		{
-			if (item is SeparatorDockItem)
+			if (item is SeparatorDockItem || item is PinnedExpanderDockItem)
 				return Math.round ((ItemPadding + IconSize) / 2.0);
 			return (double) (ItemPadding + IconSize);
 		}
@@ -641,7 +649,7 @@ namespace Plank
 			
 			double eff_count = 0.0;
 			foreach (var item in items) {
-				if (item is SeparatorDockItem)
+				if (item is SeparatorDockItem || item is PinnedExpanderDockItem)
 					eff_count += 0.5;
 				else
 					eff_count += 1.0;
@@ -650,7 +658,8 @@ namespace Plank
 			if (eff_count <= 0.0)
 				return DockPreferences.MAX_ICON_SIZE;
 			
-			double overhead = 2.0 * HorizPadding + 4.0 * LineWidth + eff_count * ItemPadding;
+			double rev_extra = 2.0 * get_reverse_roundness_padding (ReverseRoundness, BottomRoundness);
+			double overhead = 2.0 * HorizPadding + 4.0 * LineWidth + rev_extra + eff_count * ItemPadding;
 			double available_for_icons = (double) max_width - overhead;
 			if (available_for_icons <= 0.0)
 				return DockPreferences.MIN_ICON_SIZE;
@@ -658,6 +667,40 @@ namespace Plank
 			int fit_size = (int) Math.floor (available_for_icons / eff_count);
 			fit_size = (fit_size / 2) * 2;
 			return fit_size.clamp (DockPreferences.MIN_ICON_SIZE, DockPreferences.MAX_ICON_SIZE);
+		}
+
+		/**
+		 * How many full icon slots fit along the dock edge when icons have the PREFERRED
+		 * size (prefs.IconSize), regardless of any current auto-shrink. Used by the Smart
+		 * Pinned Accordion (Auto-Fit Capacity). Pure geometry read: no IPC, no layout
+		 * mutation. Separators count as half a slot at the caller's side.
+		 *
+		 * @return the capacity in slots, or -1.0 while geometry/theme are not ready yet
+		 */
+		public double get_preferred_slot_capacity ()
+		{
+			if (controller.renderer == null || controller.renderer.theme == null)
+				return -1.0;
+
+			bool horiz = (controller.prefs.Position == Gtk.PositionType.TOP
+				|| controller.prefs.Position == Gtk.PositionType.BOTTOM);
+			var max_width = (horiz ? monitor_geo.width : monitor_geo.height);
+			if (max_width <= 0)
+				return -1.0;
+
+			var theme = controller.renderer.theme;
+			var icon_size = controller.prefs.IconSize;
+			var scaled_icon_size = icon_size / 10.0;
+			var item_padding = (int) (theme.ItemPadding * scaled_icon_size);
+			var horiz_padding = (int) (theme.HorizPadding * scaled_icon_size);
+			var rev_extra = 2 * get_reverse_roundness_padding (theme.ReverseRoundness, theme.BottomRoundness);
+
+			double available = (double) (max_width - 2 * horiz_padding - 4 * theme.LineWidth - rev_extra);
+			double slot = (double) (item_padding + icon_size);
+			if (available <= 0.0 || slot <= 0.0)
+				return 0.0;
+
+			return Math.floor (available / slot);
 		}
 
 		void update_dimensions ()
@@ -1134,11 +1177,14 @@ namespace Plank
 			if (post_func != null)
 				post_func (draw_values);
 			
-			update_background_region (draw_values[items.first ()], draw_values[items.last ()]);
+			update_background_region (draw_values[items.first ()], draw_values[items.last ()],
+				(items.first () is SeparatorDockItem || items.first () is PinnedExpanderDockItem),
+				(items.last () is SeparatorDockItem || items.last () is PinnedExpanderDockItem));
 			
 			draw_values.map_iterator ().foreach ((i, val) => {
+				bool is_half_slot = (i is SeparatorDockItem || i is PinnedExpanderDockItem);
 				val.draw_region = get_item_draw_region (val);
-				val.hover_region = get_item_hover_region (val);
+				val.hover_region = get_item_hover_region (val, is_half_slot);
 				val.background_region = get_item_background_region (val);
 				return true;
 			});
@@ -1183,7 +1229,7 @@ namespace Plank
 			return rect;
 		}
 		
-		Gdk.Rectangle get_item_hover_region (DockItemDrawValue val)
+		Gdk.Rectangle get_item_hover_region (DockItemDrawValue val, bool is_half_slot = false)
 		{
 			Gdk.Rectangle rect;
 			
@@ -1191,20 +1237,21 @@ namespace Plank
 			var top_padding = (top_offset < 0 ? 0 : top_offset);
 			var bottom_padding = bottom_offset;
 			var width = val.icon_size, height = val.icon_size;
+			var along_span = is_half_slot ? Math.round ((val.icon_size + item_padding) / 2.0) : (val.icon_size + item_padding);
 			
 			switch (Position) {
 			default:
 			case Gtk.PositionType.BOTTOM:
-				width += item_padding;
+				width = along_span;
 				break;
 			case Gtk.PositionType.TOP:
-				width += item_padding;
+				width = along_span;
 				break;
 			case Gtk.PositionType.LEFT:
-				height += item_padding;
+				height = along_span;
 				break;
 			case Gtk.PositionType.RIGHT:
-				height += item_padding;
+				height = along_span;
 				break;
 			}
 			
@@ -1587,7 +1634,8 @@ namespace Plank
 			return background_rect;
 		}
 		
-		void update_background_region (DockItemDrawValue val_first, DockItemDrawValue val_last)
+		void update_background_region (DockItemDrawValue val_first, DockItemDrawValue val_last,
+			bool first_is_half_slot = false, bool last_is_half_slot = false)
 		{
 			var x = 0, y = 0, width = 0, height = 0;
 			
@@ -1628,9 +1676,11 @@ namespace Plank
 			
 			var center_first = val_first.center;
 			var center_last = val_last.center;
-			var padding = ItemPadding + 2 * HorizPadding + 4 * LineWidth;
-			var padding_first = (val_first.icon_size + padding) / 2.0;
-			var padding_last = (val_last.icon_size + padding) / 2.0;
+			var outer_pad = 2 * HorizPadding + 4 * LineWidth;
+			var first_span = first_is_half_slot ? Math.round ((val_first.icon_size + ItemPadding) / 2.0) : (val_first.icon_size + ItemPadding);
+			var last_span = last_is_half_slot ? Math.round ((val_last.icon_size + ItemPadding) / 2.0) : (val_last.icon_size + ItemPadding);
+			var padding_first = (first_span + outer_pad) / 2.0;
+			var padding_last = (last_span + outer_pad) / 2.0;
 			
 			if (max_scroll_offset > 0.0) {
 				if (is_horizontal_dock ()) {

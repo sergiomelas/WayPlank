@@ -78,8 +78,21 @@ namespace Plank
 		bool drag_data_requested = false;
 		uint marker = 0U;
 		uint drag_hover_timer_id = 0U;
+		uint drag_leave_idle_id = 0U;
 		uint spring_hover_timer_id = 0U;
-		weak DockItem? spring_hover_target = null;
+		DockItem? spring_hover_target = null;
+
+		void cancel_drag_timers ()
+		{
+			if (drag_hover_timer_id > 0U) {
+				GLib.Source.remove (drag_hover_timer_id);
+				drag_hover_timer_id = 0U;
+			}
+			if (drag_leave_idle_id > 0U) {
+				GLib.Source.remove (drag_leave_idle_id);
+				drag_leave_idle_id = 0U;
+			}
+		}
 		
 		Gee.ArrayList<string>? drag_data = null;
 		
@@ -171,6 +184,7 @@ namespace Plank
 				SignalHandler.disconnect (controller.renderer, shrink_completed_handler_id);
 				shrink_completed_handler_id = 0UL;
 			}
+			cancel_drag_timers ();
 			cancel_spring_loaded_timer ();
 			disconnect_hovered_item_handler ();
 			if (controller != null) {
@@ -277,7 +291,8 @@ namespace Plank
 			
 			DragItem = window.HoveredItem;
 			
-			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem || DragItem is PreferencesDockItem || (DragItem.Prefs != null && DragItem.Prefs.Launcher == "docklet://preferences"))
+			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is PinnedExpanderDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem
+				|| ((controller.prefs.CategorizeItems || controller.prefs.AnchorAlwaysLeft) && (DragItem is PreferencesDockItem || (DragItem.Prefs != null && DragItem.Prefs.Launcher == "docklet://preferences"))))
 				DragItem = null;
 			
 			if (DragItem == null) {
@@ -298,6 +313,14 @@ namespace Plank
 				controller.app_provider.cancel_collapse_timer ();
 				if (DefaultApplicationDockItemProvider.is_docklet_element (DragItem)) {
 					controller.app_provider.expand_docklets ();
+				}
+			}
+
+			// Smart Pinned Accordion: show every pinned app so the item can be dropped anywhere
+			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
+				controller.app_provider.cancel_collapse_timer ();
+				if (DragItem is ApplicationDockItem) {
+					controller.app_provider.expand_pinned ();
 				}
 			}
 
@@ -540,14 +563,14 @@ namespace Plank
 					if (target_anchor == null)
 						target_anchor = controller.position_manager.get_current_target_item (app_prov);
 
-					// Never anchor directly onto a SeparatorDockItem because separators are regenerated dynamically
-					if (target_anchor is SeparatorDockItem) {
+					// Never anchor directly onto a SeparatorDockItem or PinnedExpanderDockItem because they are generated dynamically
+					if (target_anchor is SeparatorDockItem || target_anchor is PinnedExpanderDockItem) {
 						int sep_idx = app_prov.Elements.index_of (target_anchor);
 						target_anchor = null;
 						if (sep_idx >= 0) {
 							for (int i = sep_idx + 1; i < app_prov.Elements.size; i++) {
 								var el = app_prov.Elements.get (i) as DockItem;
-								if (el != null && !(el is SeparatorDockItem)) {
+								if (el != null && !(el is SeparatorDockItem) && !(el is PinnedExpanderDockItem)) {
 									target_anchor = el;
 									break;
 								}
@@ -568,7 +591,7 @@ namespace Plank
 								if (last_folder_idx >= 0) {
 									for (int i = last_folder_idx + 1; i < app_prov.Elements.size; i++) {
 										var el = app_prov.Elements.get (i) as DockItem;
-										if (el != null && !(el is SeparatorDockItem)) {
+										if (el != null && !(el is SeparatorDockItem) && !(el is PinnedExpanderDockItem)) {
 											target_anchor = el;
 											break;
 										}
@@ -576,7 +599,7 @@ namespace Plank
 								} else {
 									for (int i = 0; i < app_prov.Elements.size; i++) {
 										var el = app_prov.Elements.get (i) as DockItem;
-										if (el == null || el is SeparatorDockItem || el is PreferencesDockItem || (el.Prefs != null && el.Prefs.Launcher == "docklet://preferences"))
+										if (el == null || el is SeparatorDockItem || el is PinnedExpanderDockItem || el is PreferencesDockItem || (el.Prefs != null && el.Prefs.Launcher == "docklet://preferences"))
 											continue;
 										target_anchor = el;
 										break;
@@ -705,13 +728,14 @@ namespace Plank
 			controller.hide_manager.update_hovered_with_coords (x, y);
 			controller.window.update_hovered (x, y);
 			drop_target_item = controller.window.HoveredItem;
+			cancel_drag_timers ();
 			cancel_spring_loaded_timer ();
 			
 			if (drop_target_item == null) {
 				unowned PositionManager pos_mgr = controller.position_manager;
 				foreach (var el in controller.default_provider.VisibleElements) {
 					var item = el as DockItem;
-					if (item != null && !(item is SeparatorDockItem)) {
+					if (item != null && !(item is SeparatorDockItem) && !(item is PinnedExpanderDockItem)) {
 						var r = pos_mgr.get_hover_region_for_element (item);
 						bool matches = false;
 						if (pos_mgr.is_horizontal_dock ())
@@ -728,7 +752,7 @@ namespace Plank
 				}
 			}
 
-			drop_was_directly_on_item = (drop_target_item != null && !(drop_target_item is SeparatorDockItem));
+			drop_was_directly_on_item = (drop_target_item != null && !(drop_target_item is SeparatorDockItem) && !(drop_target_item is PinnedExpanderDockItem));
 
 			if (drop_target_item == null) {
 				unowned PositionManager pos_mgr = controller.position_manager;
@@ -773,6 +797,7 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void drag_end (Gtk.Widget w, Gdk.DragContext context)
 		{
+			cancel_drag_timers ();
 			cancel_spring_loaded_timer ();
 			unowned HideManager hide_manager = controller.hide_manager;
 			
@@ -790,7 +815,8 @@ namespace Plank
 					if (DragItem.can_be_removed ()) {
 						var target_item = DragItem;
 						DragItem = null;
-						InternalDragActive = false;
+						cancel_drag_timers ();
+			InternalDragActive = false;
 						remove_item_with_effect (target_item, true, drag_origin_icon_size);
 					}
 				} else if (controller.window.HoveredItem == null) {
@@ -820,7 +846,7 @@ namespace Plank
 							}
 
 							int sep_pref_idx = -1;
-							if (elements.size > 1 && elements.get (1) is SeparatorDockItem) {
+							if (controller.prefs.AnchorAlwaysLeft && elements.size > 1 && elements.get (1) is SeparatorDockItem) {
 								var first_el = elements.get (0);
 								if (first_el is PreferencesDockItem || (first_el is DockItem && ((DockItem) first_el).Prefs != null && ((DockItem) first_el).Prefs.Launcher == "docklet://preferences")) {
 									sep_pref_idx = 1;
@@ -871,6 +897,7 @@ namespace Plank
 				}
 			}
 			
+			cancel_drag_timers ();
 			InternalDragActive = false;
 			DragItem = null;
 			active_drag_context = null;
@@ -911,12 +938,12 @@ namespace Plank
 			var launcher_uri = (item.Launcher != null) ? item.Launcher : "";
 			unowned DockContainer? item_container = item.Container;
 
-			int eff_mode = controller.prefs.UnpinAnimation.clamp (0, 8);
-			int eff_duration_ms = controller.prefs.EffectDuration.clamp (300, 1500);
+			int eff_mode = controller.prefs.UnpinAnimation.clamp (0, DockPreferences.MAX_UNPIN_ANIMATION);
+			int eff_duration_ms = controller.prefs.EffectDuration.clamp (DockPreferences.MIN_EFFECT_DURATION, DockPreferences.MAX_EFFECT_DURATION);
 
 			// When Unpin Effect is None (8) on non-drag removal (e.g. Keep in Dock uncheck),
 			// preserve the classic downward slide-out animation (leave hidden_removal_item null).
-			if (eff_mode == 8 && !from_drag) {
+			if (eff_mode == DockPreferences.MAX_UNPIN_ANIMATION && !from_drag) {
 				controller.hover.hide ();
 				if (item_container != null && item_container.Elements.contains (item))
 					item_container.remove (item);
@@ -1150,6 +1177,7 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void drag_leave (Gtk.Widget w, Gdk.DragContext context, uint time_)
 		{
+			cancel_drag_timers ();
 			cancel_spring_loaded_timer ();
 			if (dropped_on_target)
 				return;
@@ -1169,8 +1197,13 @@ namespace Plank
 			
 			if (ExternalDragActive) {
 				disconnect_hovered_item_handler ();
+				if (drag_leave_idle_id > 0U) {
+					GLib.Source.remove (drag_leave_idle_id);
+					drag_leave_idle_id = 0U;
+				}
 				
-				Gdk.threads_add_idle (() => {
+				drag_leave_idle_id = Gdk.threads_add_idle (() => {
+					drag_leave_idle_id = 0U;
 					if (dropped_on_target)
 						return false;
 					ExternalDragActive = false;
@@ -1201,6 +1234,10 @@ namespace Plank
 [CCode (instance_pos = -1)]
 		bool drag_motion (Gtk.Widget w, Gdk.DragContext context, int x, int y, uint time_)
 		{
+			if (drag_leave_idle_id > 0U) {
+				GLib.Source.remove (drag_leave_idle_id);
+				drag_leave_idle_id = 0U;
+			}
 			if (RepositionMode)
 				return true;
 
@@ -1257,6 +1294,15 @@ namespace Plank
 					controller.app_provider.expand_docklets ();
 				}
 			}
+
+			// Smart Pinned Accordion: dragging over the expander opens it (spring-loaded like docklets)
+			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
+				if (controller.app_provider.pinned_expanded) {
+					controller.app_provider.cancel_collapse_timer ();
+				} else if (window.HoveredItem is PinnedExpanderDockItem) {
+					controller.app_provider.expand_pinned ();
+				}
+			}
 			
 			bool over_trash = (window.HoveredItem is TrashDockItem);
 			if (!over_trash) {
@@ -1304,7 +1350,7 @@ namespace Plank
 				return DragCategory.FOLDER;
 			if (el is TrashDockItem)
 				return DragCategory.TRASH;
-			if (el is SeparatorDockItem)
+			if (el is SeparatorDockItem || el is PinnedExpanderDockItem)
 				return DragCategory.SEPARATOR;
 			if (el is PlankDockItem || (el is DockItem && ((DockItem) el).Prefs != null && ((DockItem) el).Prefs.Launcher != null && ((DockItem) el).Prefs.Launcher.has_prefix ("docklet://")))
 				return DragCategory.DOCKLET;
@@ -1361,16 +1407,26 @@ namespace Plank
 							}
 							return;
 						}
-						// If hovering on the separator between pinned and unpinned apps, cross it
-						if (hovered_item is SeparatorDockItem) {
-							if (drag_idx < hover_idx && hover_idx + 1 < elements.size) {
-								var target = elements.get (hover_idx + 1);
-								if (target != DragItem && get_drag_category (target) == DragCategory.APP)
-									DragItem.Container.move_to (DragItem, target);
-							} else if (drag_idx > hover_idx && hover_idx > 0) {
-								var target = elements.get (hover_idx - 1);
-								if (target != DragItem && get_drag_category (target) == DragCategory.APP)
-									DragItem.Container.move_to (DragItem, target);
+						// If hovering on the separator or expander between pinned and unpinned apps, cross it
+						if (hovered_item is SeparatorDockItem || hovered_item is PinnedExpanderDockItem) {
+							if (drag_idx < hover_idx) {
+								for (int step = hover_idx + 1; step < elements.size; step++) {
+									var target = elements.get (step);
+									if (target is SeparatorDockItem || target is PinnedExpanderDockItem)
+										continue;
+									if (target != DragItem && get_drag_category (target) == DragCategory.APP)
+										DragItem.Container.move_to (DragItem, target);
+									break;
+								}
+							} else if (drag_idx > hover_idx) {
+								for (int step = hover_idx - 1; step >= 0; step--) {
+									var target = elements.get (step);
+									if (target is SeparatorDockItem || target is PinnedExpanderDockItem)
+										continue;
+									if (target != DragItem && get_drag_category (target) == DragCategory.APP)
+										DragItem.Container.move_to (DragItem, target);
+									break;
+								}
 							}
 							return;
 						}
@@ -1400,7 +1456,7 @@ namespace Plank
 						}
 						return;
 					}
-					if (hovered_item is SeparatorDockItem)
+					if (hovered_item is SeparatorDockItem || hovered_item is PinnedExpanderDockItem)
 						return;
 
 					if (get_drag_category (hovered_item) == drag_cat)
@@ -1410,7 +1466,7 @@ namespace Plank
 				
 				// Identify Preferences anchor, separators, and Trash markers
 				int sep_pref_idx = -1;
-				if (elements.size > 1 && elements.get (1) is SeparatorDockItem) {
+				if (controller.prefs.AnchorAlwaysLeft && elements.size > 1 && elements.get (1) is SeparatorDockItem) {
 					var first_el = elements.get (0);
 					if (first_el is PreferencesDockItem || (first_el is DockItem && ((DockItem) first_el).Prefs != null && ((DockItem) first_el).Prefs.Launcher == "docklet://preferences")) {
 						sep_pref_idx = 1;
@@ -1479,7 +1535,8 @@ namespace Plank
 				}
 
 				// Rule 3: Ordinary item hover within allowed bounds
-				DragItem.Container.move_to (DragItem, hovered_item);
+				if (!(hovered_item is PinnedExpanderDockItem))
+					DragItem.Container.move_to (DragItem, hovered_item);
 			}
 			
 			if (drag_hover_timer_id > 0U) {

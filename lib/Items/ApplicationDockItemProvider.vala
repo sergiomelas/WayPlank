@@ -112,7 +112,7 @@ namespace Plank
 			}
 
 			foreach (var el in internal_elements) {
-				if (el is SeparatorDockItem || el is TransientDockItem) {
+				if (el is SeparatorDockItem || el is PinnedExpanderDockItem || el is TransientDockItem) {
 					return el as DockItem;
 				}
 			}
@@ -222,6 +222,13 @@ namespace Plank
 				    caption == "wayplank-folder-menu" || caption == "wayplank-hover-cards")
 					continue;
 
+				// Wait for pending cold-start browser profile resolution (120ms) before spawning a transient dock item
+				if (ApplicationIdentity.is_plain_browser_window (window) &&
+				    !ApplicationIdentity.has_explicit_webapp_window_id (window) &&
+				    ApplicationIdentity.is_window_profile_pending (window) &&
+				    ApplicationIdentity.get_window_browser_profile (window) == "")
+					continue;
+
 				// If a window is already handled by a pinned dock item, don't create a transient item
 				if (window_has_pinned_item (window))
 					continue;
@@ -278,7 +285,7 @@ namespace Plank
 
 			foreach (var element in internal_elements) {
 				unowned DockItem? item = (element as DockItem);
-				if (item == null || (item is TransientDockItem) || (item is SeparatorDockItem))
+				if (item == null || (item is TransientDockItem) || (item is SeparatorDockItem) || (item is PinnedExpanderDockItem))
 					continue;
 
 				var dock_item_filename = item.DockItemFilename;
@@ -305,12 +312,12 @@ namespace Plank
 			}
 		}
 
-		protected void delay_items_monitor ()
+		public void delay_items_monitor ()
 		{
 			delay_items_monitor_handle = true;
 		}
 
-		protected void resume_items_monitor ()
+		public void resume_items_monitor ()
 		{
 			delay_items_monitor_handle = false;
 			process_queued_files ();
@@ -341,7 +348,7 @@ namespace Plank
 					target = find_default_target_for_item (item.Prefs.Launcher);
 				} else {
 					foreach (var el in internal_elements) {
-						if (el is SeparatorDockItem || el is TransientDockItem) {
+						if (el is SeparatorDockItem || el is PinnedExpanderDockItem || el is TransientDockItem) {
 							target = el as DockItem;
 							break;
 						}

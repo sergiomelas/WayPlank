@@ -141,6 +141,123 @@ translations = {
         "de": "Symbol-Vergrößerung vorwegnehmen:",
         "uk": "Передбачати збільшення значків:"
     },
+    "Icon Tooltips:": {
+        "zh_CN": "图标提示:",
+        "it": "Suggerimenti icone:",
+        "es": "Descripciones de iconos:",
+        "fr": "Info-bulles des icônes :",
+        "ca": "Descripcions de les icones:",
+        "de": "Symbol-Kurzinfos:",
+        "uk": "Підказки піктограм:"
+    },
+    "Show a name tooltip when hovering dock icons": {
+        "zh_CN": "悬停在程序坞图标上时显示名称提示",
+        "it": "Mostra il nome dell'icona quando passi il mouse sulle icone del dock",
+        "es": "Mostrar el nombre del icono al pasar el ratón sobre los iconos del dock",
+        "fr": "Afficher le nom de l'icône au survol des icônes du dock",
+        "ca": "Mostra el nom de la icona en passar el ratolí per sobre de les icones del dock",
+        "de": "Beim Überfahren der Dock-Symbole einen Namenshinweis anzeigen",
+        "uk": "Показувати назву піктограми при наведенні вказівника на піктограми панелі"
+    },
+    "Pinned Accordion:": {
+        "zh_CN": "固定应用折叠:",
+        "it": "Fisarmonica app fissate:",
+        "es": "Acordeón de apps ancladas:",
+        "fr": "Accordéon des apps épinglées :",
+        "ca": "Acordió d'apps fixades:",
+        "de": "Angeheftete Apps einklappen:",
+        "uk": "Згортання закріплених програм:"
+    },
+    "Off": {
+        "zh_CN": "关闭",
+        "it": "Disattivato",
+        "es": "Desactivado",
+        "fr": "Désactivé",
+        "ca": "Desactivat",
+        "de": "Aus",
+        "uk": "Вимкнено"
+    },
+    "Auto-Fit Capacity": {
+        "zh_CN": "自动适应容量",
+        "it": "Adatta alla capacità",
+        "es": "Ajuste automático a la capacidad",
+        "fr": "Adapter à la capacité",
+        "ca": "Ajusta a la capacitat",
+        "de": "Automatisch an Kapazität anpassen",
+        "uk": "Автопідбір за місткістю"
+    },
+    "Top Most Used": {
+        "zh_CN": "最常用的前 N 个",
+        "it": "Più usate (Top N)",
+        "es": "Más usadas (Top N)",
+        "fr": "Les plus utilisées (Top N)",
+        "ca": "Més usades (Top N)",
+        "de": "Meistgenutzte (Top N)",
+        "uk": "Найуживаніші (Top N)"
+    },
+    "Hide the least used pinned apps behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, apps needing attention and apps marked Keep Always Visible always stay. Requires Categorize Items": {
+        "zh_CN": "将最少使用的固定应用收起到展开按钮后面。自动适应会保留屏幕能容纳的数量,最常用模式保留最常用的 N 个。正在运行、需要关注或标记为“始终保持可见”的应用始终显示。需要启用“分类项目”",
+        "it": "Nasconde dietro un espansore le app fissate meno usate. Adatta alla capacità ne tiene quante ne stanno sullo schermo, Più usate tiene le N più usate. Le app in esecuzione, che richiedono attenzione o marcate «Mantieni sempre visibile» restano sempre. Richiede Categorizza elementi",
+        "es": "Oculta tras un expansor las apps ancladas menos usadas. Ajuste automático conserva las que caben en pantalla, Más usadas conserva las N más usadas. Las apps en ejecución, que requieren atención o marcadas como «Mantener siempre visible» siempre permanecen. Requiere Categorizar elementos",
+        "fr": "Masque les apps épinglées les moins utilisées derrière un extenseur. Adapter à la capacité en garde autant que l'écran en contient, Les plus utilisées garde les N plus utilisées. Les apps en cours d'exécution, demandant l'attention ou marquées « Toujours visible » restent toujours. Nécessite Catégoriser les éléments",
+        "ca": "Amaga darrere d'un expansor les apps fixades menys usades. Ajusta a la capacitat en conserva tantes com càpiguen a la pantalla, Més usades conserva les N més usades. Les apps en execució, que requereixen atenció o marcades com a «Mantén sempre visible» sempre hi són. Requereix Categoritza elements",
+        "de": "Blendet die am wenigsten genutzten angehefteten Apps hinter einem Erweiterungssymbol aus. Automatisch behält so viele, wie auf den Bildschirm passen, Meistgenutzte behält die N meistgenutzten. Laufende Apps, Apps mit Aufmerksamkeitsanforderung und als „Immer sichtbar halten“ markierte Apps bleiben immer sichtbar. Erfordert „Elemente kategorisieren“",
+        "uk": "Приховує найрідше використовувані закріплені програми за кнопкою розгортання. Автопідбір залишає стільки, скільки вміщується на екрані, Найуживаніші залишає N найуживаніших. Запущені програми, програми, що потребують уваги, та позначені «Завжди видима» завжди залишаються. Потрібне «Категоризувати елементи»"
+    },
+    "Number of most used pinned apps kept visible": {
+        "zh_CN": "保持可见的最常用固定应用数量",
+        "it": "Numero di app fissate più usate mantenute visibili",
+        "es": "Número de apps ancladas más usadas que permanecen visibles",
+        "fr": "Nombre d'apps épinglées les plus utilisées gardées visibles",
+        "ca": "Nombre d'apps fixades més usades que es mantenen visibles",
+        "de": "Anzahl der meistgenutzten angehefteten Apps, die sichtbar bleiben",
+        "uk": "Кількість найуживаніших закріплених програм, що залишаються видимими"
+    },
+    "Keep Always _Visible": {
+        "zh_CN": "始终保持可见(_V)",
+        "it": "Mantieni sempre _visibile",
+        "es": "Mantener siempre _visible",
+        "fr": "Toujours _visible",
+        "ca": "Mantén sempre _visible",
+        "de": "Immer _sichtbar halten",
+        "uk": "Завжди _видима"
+    },
+    "Collapse pinned apps": {
+        "zh_CN": "收起固定应用",
+        "it": "Comprimi app fissate",
+        "es": "Contraer apps ancladas",
+        "fr": "Réduire les apps épinglées",
+        "ca": "Redueix les apps fixades",
+        "de": "Angeheftete Apps einklappen",
+        "uk": "Згорнути закріплені програми"
+    },
+    "Hidden pinned apps: %d": {
+        "zh_CN": "已隐藏的固定应用: %d",
+        "it": "App fissate nascoste: %d",
+        "es": "Apps ancladas ocultas: %d",
+        "fr": "Apps épinglées masquées : %d",
+        "ca": "Apps fixades amagades: %d",
+        "de": "Ausgeblendete angeheftete Apps: %d",
+        "uk": "Приховані закріплені програми: %d"
+    },
+    "Print app usage ranking": {
+        "zh_CN": "打印应用使用排名",
+        "it": "Stampa classifica di utilizzo app",
+        "es": "Imprimir ranking de uso de apps",
+        "fr": "Afficher le classement d'utilisation des apps",
+        "ca": "Imprimeix la classificació d'ús d'apps",
+        "de": "App-Nutzungsranking ausgeben",
+        "uk": "Вивести рейтинг використання програм"
+    },
+    "Print usage score": {
+        "zh_CN": "打印使用得分",
+        "it": "Stampa punteggio di utilizzo",
+        "es": "Imprimir puntuación de uso",
+        "fr": "Afficher le score d'utilisation",
+        "ca": "Imprimeix la puntuació d'ús",
+        "de": "Nutzungswert ausgeben",
+        "uk": "Вивести оцінку використання"
+    },
     "Application": {
         "zh_CN": "应用程序",
         "it": "Applicazione",
@@ -4496,6 +4613,168 @@ translations = {
         "ca": "Durada en mil·lisegons (de 300 ms a 1500 ms) de les animacions visuals de les icones",
         "de": "Dauer der visuellen Symbolanimationen in Millisekunden (300 ms bis 1500 ms)",
         "uk": "Тривалість візуальних анімацій піктограм у мілісекундах (від 300 мс до 1500 мс)"
+    },
+    "Welcome to WayPlank": {
+        "zh_CN": "欢迎使用 WayPlank",
+        "it": "Benvenuto in WayPlank",
+        "es": "Bienvenido a WayPlank",
+        "fr": "Bienvenue dans WayPlank",
+        "ca": "Us donem la benvinguda a WayPlank",
+        "de": "Willkommen bei WayPlank",
+        "uk": "Ласкаво просимо до WayPlank"
+    },
+    "Your existing Plank launchers, folders and compatible settings have been imported safely without modifying ~/.config/plank. Choose how you want WayPlank to start:": {
+        "zh_CN": "您现有的 Plank 启动器、文件夹和兼容设置已安全导入，且未修改 ~/.config/plank。请选择 WayPlank 的启动方式：",
+        "it": "I tuoi launcher, le cartelle e le impostazioni compatibili di Plank sono stati importati in sicurezza senza modificare ~/.config/plank. Scegli come avviare WayPlank:",
+        "es": "Sus lanzadores, carpetas y ajustes compatibles de Plank se han importado de forma segura sin modificar ~/.config/plank. Elija cómo desea iniciar WayPlank:",
+        "fr": "Vos lanceurs, dossiers et paramètres compatibles de Plank ont été importés en toute sécurité sans modifier ~/.config/plank. Choisissez comment démarrer WayPlank :",
+        "ca": "Els vostres llançadors, carpetes i paràmetres compatibles de Plank s'han importat de manera segura sense modificar ~/.config/plank. Trieu com voleu iniciar WayPlank:",
+        "de": "Ihre vorhandenen Plank-Starter, Ordner und kompatiblen Einstellungen wurden sicher importiert, ohne ~/.config/plank zu verändern. Wählen Sie, wie WayPlank starten soll:",
+        "uk": "Ваші наявні пускачі, теки та сумісні параметри Plank безпечно імпортовано без зміни ~/.config/plank. Оберіть спосіб запуску WayPlank:"
+    },
+    "Choose how you want to initialize your dock:": {
+        "zh_CN": "请选择您的程序坞初始化方式：",
+        "it": "Scegli come inizializzare il tuo dock:",
+        "es": "Elija cómo desea inicializar su dock:",
+        "fr": "Choisissez comment initialiser votre dock :",
+        "ca": "Trieu com voleu inicialitzar el vostre dock:",
+        "de": "Wählen Sie, wie Ihr Dock initialisiert werden soll:",
+        "uk": "Оберіть спосіб ініціалізації вашого дока:"
+    },
+    "WayPlank Classic": {
+        "zh_CN": "WayPlank 经典模式",
+        "it": "WayPlank Classic",
+        "es": "WayPlank Clásico",
+        "fr": "WayPlank Classique",
+        "ca": "WayPlank Clàssic",
+        "de": "WayPlank Klassisch",
+        "uk": "WayPlank Класичний"
+    },
+    "Start classical near old Plank and discover at your pace": {
+        "zh_CN": "以贴近传统 Plank 的经典方式启动，按您的节奏逐步探索",
+        "it": "Inizia vicino al classico Plank e scopri le novità al tuo ritmo",
+        "es": "Inicie cerca del Plank clásico y descubra las novedades a su propio ritmo",
+        "fr": "Démarrez proche du Plank classique et découvrez les nouveautés à votre rythme",
+        "ca": "Inicieu a prop del Plank clàssic i descobriu les novetats al vostre ritme",
+        "de": "Starten Sie klassisch wie beim alten Plank und entdecken Sie Neues in Ihrem Tempo",
+        "uk": "Почніть у класичному стилі старого Plank і відкривайте нове у власному темпі"
+    },
+    "Keeps your dock minimal in Free Mode with your existing items, core pinned applications and Trash, without auto-adding category folders or accordion drawers.": {
+        "zh_CN": "在自由模式下保持极简程序坞，仅保留您现有的项目、核心固定应用和回收站，不自动添加分类文件夹或折叠抽屉。",
+        "it": "Mantiene il dock minimale in Modalità Libera con i tuoi elementi esistenti, le applicazioni fissate essenziali e il Cestino, senza aggiungere automaticamente cartelle di categoria o cassetti a fisarmonica.",
+        "es": "Mantiene su dock minimalista en Modo Libre con sus elementos existentes, aplicaciones ancladas esenciales y la Papelera, sin añadir automáticamente carpetas de categorías ni cajones en acordeón.",
+        "fr": "Garde votre dock minimaliste en Mode Libre avec vos éléments existants, les applications épinglées essentielles et la Corbeille, sans ajouter automatiquement des dossiers de catégories ou des tiroirs accordéon.",
+        "ca": "Manté el dock minimalista en Mode Lliure amb els vostres elements existents, les aplicacions fixades essencials i la Paperera, sense afegir automàticament carpetes de categories ni calaixos en acordió.",
+        "de": "Hält Ihr Dock im freien Modus minimalistisch mit Ihren vorhandenen Elementen, angehefteten Kernanwendungen und dem Papierkorb, ohne automatisch Kategorieordner oder Akkordeon-Schubladen hinzuzufügen.",
+        "uk": "Зберігає док мінімалістичним у вільному режимі з наявними елементами, основними закріпленими програмами та Смітником, без автоматичного додавання тек категорій чи шухляд-акордеонів."
+    },
+    "Start Classic": {
+        "zh_CN": "启用经典模式",
+        "it": "Avvia Classic",
+        "es": "Iniciar Clásico",
+        "fr": "Démarrer en Classique",
+        "ca": "Inicia en Clàssic",
+        "de": "Klassisch starten",
+        "uk": "Запустити класичний"
+    },
+    "WayPlank Explorer": {
+        "zh_CN": "WayPlank 探索模式",
+        "it": "WayPlank Explorer",
+        "es": "WayPlank Explorer",
+        "fr": "WayPlank Explorer",
+        "ca": "WayPlank Explorer",
+        "de": "WayPlank Explorer",
+        "uk": "WayPlank Експлорер"
+    },
+    "Start modern with all new features in the best experience spot": {
+        "zh_CN": "以最佳体验配置启用全部现代新功能",
+        "it": "Inizia in modalità moderna con tutte le nuove funzioni nella configurazione ottimale",
+        "es": "Inicie en modo moderno con todas las nuevas funciones en el punto óptimo de experiencia",
+        "fr": "Démarrez en mode moderne avec toutes les nouvelles fonctionnalités dans la configuration optimale",
+        "ca": "Inicieu en mode modern amb totes les noves funcions en la configuració òptima",
+        "de": "Starten Sie modern mit allen neuen Funktionen in der optimalen Einstellung",
+        "uk": "Почніть у сучасному режимі з усіма новими функціями в оптимальній конфігурації"
+    },
+    "Enables Smart Categorized Layout, 4 Application Folder Drawers, System Tray Docklets with Accordion, Smart Pinned Apps Accordion, and Window Preview Cards.": {
+        "zh_CN": "启用智能分类布局、4 个应用分类文件夹抽屉、带折叠功能的系统托盘插件、智能固定应用折叠以及多窗口预览卡片。",
+        "it": "Attiva il Layout Categorizzato Intelligente, 4 Cartelle Applicazioni, i Docklet di sistema con Fisarmonica, la Fisarmonica Intelligente per le App Fissate e le Schede di Anteprima Finestre.",
+        "es": "Activa el Diseño Categorizado Inteligente, 4 Carpetas de Aplicaciones, Docklets de bandeja con Acordeón, Acordeón Inteligente de Apps Ancladas y Tarjetas de Vista Previa.",
+        "fr": "Active la disposition catégorisée intelligente, 4 tiroirs de dossiers d'applications, les docklets système en accordéon, l'accordéon intelligent des apps épinglées et les cartes d'aperçu des fenêtres.",
+        "ca": "Activa la disposició categoritzada intel·ligent, 4 carpetes d'aplicacions, els docklets de safata amb acordió, l'acordió intel·ligent d'apps fixades i les targetes de previsualització.",
+        "de": "Aktiviert intelligentes kategorisiertes Layout, 4 Anwendungsordner-Schubladen, System-Tray-Docklets mit Akkordeon, intelligentes Akkordeon für angeheftete Apps und Fenster-Vorschaukarten.",
+        "uk": "Вмикає розумний категоризований макет, 4 теки програм, системні докліти з акордеоном, розумний акордеон закріплених програм і картки перегляду вікон."
+    },
+    "Start Explorer": {
+        "zh_CN": "启用探索模式",
+        "it": "Avvia Explorer",
+        "es": "Iniciar Explorer",
+        "fr": "Démarrer en Explorer",
+        "ca": "Inicia en Explorer",
+        "de": "Explorer starten",
+        "uk": "Запустити експлорер"
+    },
+    "You can switch or customize any feature at any time in WayPlank Preferences.": {
+        "zh_CN": "您可以随时在 WayPlank 首选项中切换或自定义任何功能。",
+        "it": "Puoi cambiare o personalizzare qualsiasi funzione in ogni momento nelle Preferenze di WayPlank.",
+        "es": "Puede cambiar o personalizar cualquier función en cualquier momento en las Preferencias de WayPlank.",
+        "fr": "Vous pouvez modifier ou personnaliser n'importe quelle fonctionnalité à tout moment dans les Préférences de WayPlank.",
+        "ca": "Podeu canviar o personalitzar qualsevol funció en qualsevol moment a les Preferències de WayPlank.",
+        "de": "Sie können jede Funktion jederzeit in den WayPlank-Einstellungen wechseln oder anpassen.",
+        "uk": "Ви можете будь-коли змінити або налаштувати будь-яку функцію в Параметрах WayPlank."
+    },
+    "Pinned Expander (» / «)": {
+        "zh_CN": "固定应用展开钮 (» / «)",
+        "it": "Espansore app fissate (» / «)",
+        "es": "Expansor de apps ancladas (» / «)",
+        "fr": "Extenseur d'apps épinglées (» / «)",
+        "ca": "Expansor d'apps fixades (» / «)",
+        "de": "Angeheftete-Apps-Erweiterung (» / «)",
+        "uk": "Розширювач закріплених програм (» / «)"
+    },
+    "Hover or click to expand hidden pinned apps (Auto-Fit or Top Most Used); click « to collapse in Click-to-Expand mode": {
+        "zh_CN": "悬停或点击以展开隐藏的固定应用（自动适应或最常用模式）；在“点击展开”模式下点击 « 收起",
+        "it": "Passa il mouse o fai clic per espandere le app fissate nascoste (Adatta alla capacità o Più usate); fai clic su « per comprimere in modalità Clic per espandere",
+        "es": "Pase el ratón o haga clic para expandir las apps ancladas ocultas (Ajuste automático o Más usadas); haga clic en « para contraer en modo Clic para expandir",
+        "fr": "Survolez ou cliquez pour déployer les apps épinglées masquées (Adapter à la capacité ou Les plus utilisées) ; cliquez sur « pour réduire en mode Cliquer pour déployer",
+        "ca": "Passeu el ratolí o feu clic per desplegar les apps fixades amagades (Ajusta a la capacitat o Més usades); feu clic a « per reduir en mode Clic per desplegar",
+        "de": "Überfahren oder klicken, um ausgeblendete angeheftete Apps auszuklappen (Automatisch oder Meistgenutzte); im Klick-Modus auf « klicken zum Einklappen",
+        "uk": "Наведіть або клацніть, щоб розгорнути приховані закріплені програми (Автопідбір або Найуживаніші); клацніть « для згортання в режимі «Клацнути для розгортання»"
+    },
+    "Load environment failed": {
+        "zh_CN": "加载环境配置失败",
+        "it": "Caricamento dell'ambiente non riuscito",
+        "es": "Error al cargar el entorno",
+        "fr": "Échec du chargement de l'environnement",
+        "ca": "Ha fallat la càrrega de l'entorn",
+        "de": "Laden der Umgebung fehlgeschlagen",
+        "uk": "Помилка завантаження середовища"
+    },
+    "Defaulting partially to default config for:": {
+        "zh_CN": "以下配置项已部分恢复为默认配置：",
+        "it": "Ripristino parziale alla configurazione predefinita per:",
+        "es": "Restableciendo parcialmente a la configuración predeterminada para:",
+        "fr": "Réinitialisation partielle à la configuration par défaut pour :",
+        "ca": "S'està restablint parcialment a la configuració predeterminada per a:",
+        "de": "Teilweises Zurücksetzen auf die Standardkonfiguration für:",
+        "uk": "Часткове скидання до типової конфігурації для:"
+    },
+    "All settings (corrupted latch-state.ini)": {
+        "zh_CN": "全部设置 (latch-state.ini 已损坏)",
+        "it": "Tutte le impostazioni (latch-state.ini corrotto)",
+        "es": "Todos los ajustes (latch-state.ini dañado)",
+        "fr": "Tous les paramètres (latch-state.ini corrompu)",
+        "ca": "Tots els paràmetres (latch-state.ini malmès)",
+        "de": "Alle Einstellungen (latch-state.ini beschädigt)",
+        "uk": "Усі параметри (latch-state.ini пошкоджено)"
+    },
+    "Discarded corrupted or invalid dockitem:": {
+        "zh_CN": "已丢弃损坏或无效的启动器项 (.dockitem)：",
+        "it": "Elemento dockitem corrotto o non valido scartato:",
+        "es": "Elemento dockitem dañado o no válido descartado:",
+        "fr": "Élément dockitem corrompu ou invalide ignoré :",
+        "ca": "S'ha descartat l'element dockitem malmès o no vàlid:",
+        "de": "Beschädigtes oder ungültiges Dockitem verworfen:",
+        "uk": "Відхилено пошкоджений або недійсний елемент dockitem:"
     }
 }
 
@@ -4582,24 +4861,37 @@ def format_po_string(s):
 
 import glob
 
-repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+candidate_root = os.path.dirname(script_dir)
+if os.path.exists(os.path.join(candidate_root, "data", "ui", "preferences.ui")):
+    repo_root = candidate_root
+else:
+    repo_root = script_dir
 os.chdir(repo_root)
+os.makedirs("po", exist_ok=True)
 
 version_file = os.path.join(repo_root, "VERSION")
-pkg_version = open(version_file, "r", encoding="utf-8").read().strip() if os.path.exists(version_file) else "0.7.0"
+pkg_version = open(version_file, "r", encoding="utf-8").read().splitlines()[0].strip() if os.path.exists(version_file) else "0.7.1"
 
 vala_files = sorted(glob.glob("lib/**/*.vala", recursive=True) + glob.glob("src/**/*.vala", recursive=True))
-ui_files = ["data/ui/preferences.ui"]
-subprocess.run([
-    "xgettext",
-    "--package-name=wayplank",
-    f"--package-version={pkg_version}",
-    "--msgid-bugs-address=sergiomelas@gmail.com",
-    "--copyright-holder=Sergio Melas <sergiomelas@gmail.com>",
-    "--from-code=UTF-8",
-    "-k_", "-kN_",
-    "-o", "po/wayplank.pot"
-] + vala_files + ui_files, check=True)
+ui_files = ["data/ui/preferences.ui"] if os.path.exists("data/ui/preferences.ui") else []
+if vala_files and ui_files:
+    subprocess.run([
+        "xgettext",
+        "--package-name=wayplank",
+        f"--package-version={pkg_version}",
+        "--msgid-bugs-address=sergiomelas@gmail.com",
+        "--copyright-holder=Sergio Melas <sergiomelas@gmail.com>",
+        "--from-code=UTF-8",
+        "-k_", "-kN_",
+        "-o", "po/wayplank.pot"
+    ] + vala_files + ui_files, check=True)
+else:
+    with open("po/wayplank.pot", "w", encoding="utf-8") as f:
+        f.write(f'msgid ""\nmsgstr ""\n"Project-Id-Version: wayplank {pkg_version}\\n"\n"MIME-Version: 1.0\\n"\n"Content-Type: text/plain; charset=UTF-8\\n"\n"Content-Transfer-Encoding: 8bit\\n"\n\n')
+        for k in sorted(translations.keys()):
+            id_str = format_po_string(k).replace("msgstr ", "msgid ", 1)
+            f.write(f"#: standalone:1\n{id_str}\nmsgstr \"\"\n\n")
 
 for lang_info in languages:
     code = lang_info["code"]

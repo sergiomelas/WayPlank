@@ -271,13 +271,16 @@ namespace Plank
 		 *
 		 * @param text the text to show
 		 */
-		public void set_text (string text)
+		public void set_text (string? text)
 		{
-			label.set_text (text);
-			if (text != null)
+			string safe_text = text ?? "";
+			label.set_text (safe_text);
+			if (safe_text != "")
 				label.show ();
 			else
 				label.hide ();
+			queue_resize ();
+			queue_draw ();
 		}
 		
 		/**

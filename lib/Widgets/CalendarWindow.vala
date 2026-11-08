@@ -37,15 +37,13 @@ namespace Plank
 				return;
 			}
 
-			// 1. Try launching a full standalone calendar application if available
-			string[] calendar_apps = { "merkuro-calendar", "kalendar", "korganizer", "gnome-calendar", "xfce4-calendar" };
-			foreach (var app in calendar_apps) {
-				if (Environment.find_program_in_path (app) != null) {
-					try {
-						Process.spawn_command_line_async (app);
-						return;
-					} catch (Error e) { }
-				}
+			// 1. Try launching a full standalone calendar application matching active desktop
+			if (System.launch_desktop_utility (
+				{ "merkuro-calendar", "kalendar", "korganizer" },
+				{ "gnome-calendar" },
+				{ "xfce4-calendar" }
+			)) {
+				return;
 			}
 
 			// 2. Fallback: Display native embedded GTK calendar popup

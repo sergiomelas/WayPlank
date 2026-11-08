@@ -373,6 +373,44 @@ namespace Plank
 
 			return null;
 		}
+
+		/**
+		 * Launches a desktop settings / utility command prioritizing tools native to
+		 * the currently active XDG session desktop before falling back to generic or
+		 * cross-desktop alternatives.
+		 */
+		public static bool launch_desktop_utility (string[] kde_cmds, string[] gnome_cmds, string[] generic_cmds)
+		{
+			var ordered = new Gee.ArrayList<string> ();
+			if (environment_is_session_desktop (XdgSessionDesktop.KDE)) {
+				foreach (unowned string c in kde_cmds) ordered.add (c);
+				foreach (unowned string c in generic_cmds) ordered.add (c);
+				foreach (unowned string c in gnome_cmds) ordered.add (c);
+			} else if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)) {
+				foreach (unowned string c in gnome_cmds) ordered.add (c);
+				foreach (unowned string c in generic_cmds) ordered.add (c);
+				foreach (unowned string c in kde_cmds) ordered.add (c);
+			} else {
+				foreach (unowned string c in generic_cmds) ordered.add (c);
+				foreach (unowned string c in gnome_cmds) ordered.add (c);
+				foreach (unowned string c in kde_cmds) ordered.add (c);
+			}
+
+			foreach (var cmd in ordered) {
+				var trimmed = cmd.strip ();
+				if (trimmed == "")
+					continue;
+				var prog = trimmed.split (" ")[0];
+				if (GLib.Environment.find_program_in_path (prog) != null) {
+					try {
+						GLib.Process.spawn_command_line_async (trimmed);
+						return true;
+					} catch (GLib.Error e) { }
+				}
+			}
+
+			return false;
+		}
 		
 		void internal_launch (File? app, GLib.List<File> files)
 		{

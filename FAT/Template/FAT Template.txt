@@ -1,9 +1,10 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-04
-Milestone: V0.7.0 (Public Beta 1: Complete Multi-Compositor Baseline Consolidation,
-           Monolithic Embedded Localization & Community Validation)
+Date: 2026-11-07
+Milestone: V0.7.1 (Public Beta 2: First-Run Onboarding Classic/Explorer, Pinned
+           Apps Accordion, MONLMIP Rank 1, Full Profile Persistence & Core
+           Feature Freeze)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
@@ -16,7 +17,7 @@ Compositor Validation Status & Qualification Scoreboard:
       [  ] Tests Executed | [  ] [ok] | [  ] Bugs Squashed | [  ] Open Defects
 
 Test Status Legend (ISA-88 Qualification Standard):
-  - [ok]        : Compliant / Passed (Verified during v0.6.2.3 testing & consolidated in v0.7.0)
+  - [ok]        : Compliant / Passed (Verified during v0.7.0 testing & consolidated in v0.7.1)
   - [  ]        : Pending test execution / Open test point
   - [ko]        : Non-conformance / Defect logged
   - [ko->test]  : Remediation need still to be tested
@@ -65,9 +66,14 @@ SESSION 1: GNOME (Mutter Backend)
         - Right-click opens dock management menu ('Keep in Dock', 'Open in
           File Browser', 'Preferences'); hovering other icons or leaving dock
           auto-dismisses popup.
-   [  ] 1.9 First-Run Onboarding & Default Drawers:
-        - Fresh config generates 4 categorized drawers (Internet, Office,
-          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [  ] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
+        - On first start without 'onboarding-done', verify 100% read-only
+          migration of compatible .dockitem launchers/folders from
+          ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
+          for X11 sessions).
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
+          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
+          Window Cards) without ever deleting existing user items or folders.
    [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
@@ -102,10 +108,14 @@ SESSION 1: GNOME (Mutter Backend)
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click):
+   [  ] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
         - Shows window list, quicklists, and "Close".
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
-          in browser with working Table of Contents anchor jumps.
+          in browser with working Table of Contents anchor jumps, automatic
+          translation into the active WayPlank locale (compatible with
+          "FAT/Test Files/Localization/switch_lang.sh" without changing OS
+          language, plus China-safe fallback and #wp-lang-select switcher), and
+          untranslated <pre>/<code>/.mermaid blocks.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
@@ -167,13 +177,14 @@ SESSION 1: GNOME (Mutter Backend)
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17):
+   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
           'Icon Zoom' and tiles maximized windows flush against dock across
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
-          'Reserve Screen Space' (both in GUI and via 'gsettings set').
+          'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
+          persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -205,12 +216,13 @@ SESSION 1: GNOME (Mutter Backend)
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+   [  ] 6.1 Show Desktop Docklet, Global Shortcut (Super + D) & Desktop Edit/Overview Mode:
         - Prerequisite on stock GNOME (if Super+D is unassigned):
           gsettings set org.gnome.desktop.wm.keybindings show-desktop "['<Super>d']"
         - Click minimizes all windows; second click restores all.
         - Triggering global shortcut (Super + D) minimizes all normal windows
-          while keeping dock visible and interactive on the desktop surface.
+          while keeping dock visible and interactive on the desktop surface;
+          desktop-initiated Overview/Edit Mode passes through without conflict.
         - Second trigger restores all previously minimized windows.
    [  ] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
@@ -281,15 +293,16 @@ SESSION 1: GNOME (Mutter Backend)
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion & Expansion Modes:
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to
-          Expand' in Preferences -> Appearance: hover no longer expands;
-          left-clicking Preferences expands docklets; second click opens
-          Preferences dialog.
-        - Universal Interaction Invalidation: Accordion collapse timer is
-          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
-          Weather) or menu is open. On close, restarts full delay if cursor
-          is outside, or keeps drawer open if cursor is on dock.
+   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
+        - Docklets Accordion expands on hover or click ('Click to Expand');
+          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
+          Most Used') collapses excess non-running pinned apps behind the
+          '»' / '«' expander item using GNOME shell-app-usage frecency
+          ranking while keeping running/urgent apps visible.
+        - Both accordions remain 100% live (expanding and collapsing after
+          AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
+          About windows are open, holding open only during active context
+          menus, folder/preview popups, or modal sub-dialogs.
    [  ] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
@@ -338,16 +351,18 @@ SESSION 1: GNOME (Mutter Backend)
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with matching icons and instant live add/remove toggling.
-   [  ] 7.9 Categorize Items Toggle, Apps & Layout Anchors & Free Mode:
+          Docklets with 'Show Trash' centered beneath the grid and instant
+          live add/remove toggling.
+   [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
           'WayPlank Always Left' at index 0), hiding empty-section separators.
-        - Verify 'Align by Type' sorts Free Mode items cleanly and toggling
-          Categorize/Accordion OFF expands docklets without leftover timers or
-          stored separator URIs.
+        - Verify 'WayPlank Always Left' remains clickable in Free Mode and
+          promotes 'Categorize Items' ON via MONLMIP Rank 1 while preserving
+          its state across Categorize ON/OFF toggles; verify 'Align by Type'
+          sorts Free Mode items cleanly.
    [  ] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
@@ -381,6 +396,17 @@ SESSION 1: GNOME (Mutter Backend)
         - Open About WayPlank dialog from dock context menu on GNOME Shell.
         - Verify window renders complete HeaderBar, title, and functional Close
           button; verify dialog can be closed with mouse click or Escape.
+   [  ] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
+        - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
+          Used'), Focused App Highlight, Accordion Delay, and layout options,
+          then close Preferences: verify all 43 DockPreferences keys + 5
+          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
+          restored 100% across restarts even after dconf reset.
+        - Run '"FAT/Test Files/Environment/Test environments.sh"' across
+          Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
+          CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
+          subprocess fallback, per-key validation, and 'Load environment failed'
+          startup popup listing defaulted keys/items.
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
@@ -414,7 +440,7 @@ SESSION 1: GNOME (Mutter Backend)
         - Lock screen (Super + L), trigger DPMS monitor sleep/wake or output
           reconnect, and unlock: verify dock restores visibility, anchoring,
           and exclusive space automatically with zero manual CLI restart.
-        - Run 'sudo dpkg -i build/wayplank_0.7.0_amd64.deb' while WayPlank is
+        - Run 'sudo dpkg -i build/wayplank_0.7.1_amd64.deb' while WayPlank is
           running: verify seamless SIGWINCH live binary reload with zero
           duplicate processes.
 10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
@@ -527,9 +553,10 @@ SESSION 1: GNOME (Mutter Backend)
           smoothly closes gap, and leaves zero ghost icons (or exactly 1
           unpinned icon if app is running).
 12. MULTI-WINDOW PREVIEW CARDS, RECENT FILES JUMP LIST & STOCK THEMES (v0.6.2.3)
-   [  ] 12.1 Stock Theme Suite Integration (Dark & Light Variants):
-        - Bundled classic 'Dark' and 'Light' stock themes load cleanly from
-          /usr/share/wayplank/themes/
+   [  ] 12.1 Monolithic Embedded Stock Theme Suite Integration (Dark & Light Variants):
+        - Bundled classic 'Dark', 'Light', and 'Transparent' stock themes load
+          cleanly from in-RAM GResource with zero '/usr/share/wayplank/themes/'
+          host pollution (preserving user theme overrides in '~/.local/share/')
         - Both variants render properly and switch dynamically without errors
         - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
           Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
@@ -642,9 +669,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Right-click opens dock management menu ('Keep in Dock', 'Open in
           File Browser', 'Preferences'); hovering other icons or leaving dock
           auto-dismisses popup.
-   [  ] 1.9 First-Run Onboarding & Default Drawers:
-        - Fresh config generates 4 categorized drawers (Internet, Office,
-          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [  ] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
+        - On first start without 'onboarding-done', verify 100% read-only
+          migration of compatible .dockitem launchers/folders from
+          ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
+          for X11 sessions).
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
+          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
+          Window Cards) without ever deleting existing user items or folders.
    [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
@@ -679,10 +711,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click):
+   [  ] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
         - Shows window list, quicklists, and "Close".
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
-          in browser with working Table of Contents anchor jumps.
+          in browser with working Table of Contents anchor jumps, automatic
+          translation into the active WayPlank locale (compatible with
+          "FAT/Test Files/Localization/switch_lang.sh" without changing OS
+          language, plus China-safe fallback and #wp-lang-select switcher), and
+          untranslated <pre>/<code>/.mermaid blocks.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
@@ -749,13 +785,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17):
+   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
           'Icon Zoom' and tiles maximized windows flush against dock across
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
-          'Reserve Screen Space' (both in GUI and via 'gsettings set').
+          'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
+          persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -787,11 +824,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+   [  ] 6.1 Show Desktop Docklet, Global Shortcut (Super + D) & Desktop Edit/Overview Mode:
         - Click minimizes all windows; second click restores all.
         - Triggering global shortcut (Super + D) minimizes all normal windows
           while keeping dock visible and interactive on the desktop surface.
         - Second trigger restores all previously minimized windows.
+        - Entering KDE Plasma Desktop/Panel Edit Mode (Issue #27) is allowed
+          through without resetting showDesktop(false), automatically hiding
+          WayPlank (FullscreenInhibit) until Edit Mode exits.
    [  ] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
    [  ] 6.3 External Trash Sync:
@@ -856,15 +896,16 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion & Expansion Modes:
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to
-          Expand' in Preferences -> Appearance: hover no longer expands;
-          left-clicking Preferences expands docklets; second click opens
-          Preferences dialog.
-        - Universal Interaction Invalidation: Accordion collapse timer is
-          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
-          Weather) or menu is open. On close, restarts full delay if cursor
-          is outside, or keeps drawer open if cursor is on dock.
+   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
+        - Docklets Accordion expands on hover or click ('Click to Expand');
+          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
+          Most Used') collapses excess non-running pinned apps behind the
+          '»' / '«' expander item using GNOME shell-app-usage frecency
+          ranking while keeping running/urgent apps visible.
+        - Both accordions remain 100% live (expanding and collapsing after
+          AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
+          About windows are open, holding open only during active context
+          menus, folder/preview popups, or modal sub-dialogs.
    [  ] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
@@ -924,16 +965,18 @@ SESSION 2: KDE PLASMA (KWin Backend)
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with matching icons and instant live add/remove toggling.
-   [  ] 7.9 Categorize Items Toggle, Apps & Layout Anchors & Free Mode:
+          Docklets with 'Show Trash' centered beneath the grid and instant
+          live add/remove toggling.
+   [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
           'WayPlank Always Left' at index 0), hiding empty-section separators.
-        - Verify 'Align by Type' sorts Free Mode items cleanly and toggling
-          Categorize/Accordion OFF expands docklets without leftover timers or
-          stored separator URIs.
+        - Verify 'WayPlank Always Left' remains clickable in Free Mode and
+          promotes 'Categorize Items' ON via MONLMIP Rank 1 while preserving
+          its state across Categorize ON/OFF toggles; verify 'Align by Type'
+          sorts Free Mode items cleanly.
    [  ] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
@@ -966,6 +1009,17 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Open About WayPlank dialog from dock context menu on KDE Plasma.
         - Verify window renders complete HeaderBar, title, and functional Close
           button; verify dialog can be closed with mouse click or Escape.
+   [  ] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
+        - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
+          Used'), Focused App Highlight, Accordion Delay, and layout options,
+          then close Preferences: verify all 43 DockPreferences keys + 5
+          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
+          restored 100% across restarts even after dconf reset.
+        - Run '"FAT/Test Files/Environment/Test environments.sh"' across
+          Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
+          CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
+          subprocess fallback, per-key validation, and 'Load environment failed'
+          startup popup listing defaulted keys/items.
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
@@ -996,7 +1050,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Lock screen, trigger DPMS monitor sleep/wake or output reconnect,
           and unlock: verify dock restores visibility, anchoring, and
           exclusive space automatically with zero manual CLI restart.
-        - Run 'sudo dpkg -i build/wayplank_0.7.0_amd64.deb' while WayPlank is
+        - Run 'sudo dpkg -i build/wayplank_0.7.1_amd64.deb' while WayPlank is
           running: verify seamless SIGWINCH live binary reload with zero
           duplicate processes.
 10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
@@ -1108,9 +1162,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
           smoothly closes gap, and leaves zero ghost icons (or exactly 1
           unpinned icon if app is running).
 12. MULTI-WINDOW PREVIEW CARDS, RECENT FILES JUMP LIST & STOCK THEMES (v0.6.2.3)
-   [  ] 12.1 Stock Theme Suite Integration (Dark & Light Variants):
-        - Bundled classic 'Dark' and 'Light' stock themes load cleanly from
-          /usr/share/wayplank/themes/
+   [  ] 12.1 Monolithic Embedded Stock Theme Suite Integration (Dark & Light Variants):
+        - Bundled classic 'Dark', 'Light', and 'Transparent' stock themes load
+          cleanly from in-RAM GResource with zero '/usr/share/wayplank/themes/'
+          host pollution (preserving user theme overrides in '~/.local/share/')
         - Both variants render properly and switch dynamically without errors
         - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
           Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals
@@ -1229,9 +1284,14 @@ SESSION 3: LABWC (wlroots Backend)
         - Right-click opens dock management menu ('Keep in Dock', 'Open in
           File Browser', 'Preferences'); hovering other icons or leaving dock
           auto-dismisses popup.
-   [  ] 1.9 First-Run Onboarding & Default Drawers:
-        - Fresh config generates 4 categorized drawers (Internet, Office,
-          Media, Games/Utility), default pinned apps, and accordion defaults.
+   [  ] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
+        - On first start without 'onboarding-done', verify 100% read-only
+          migration of compatible .dockitem launchers/folders from
+          ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
+          for X11 sessions).
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
+          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
+          Window Cards) without ever deleting existing user items or folders.
    [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
@@ -1266,10 +1326,14 @@ SESSION 3: LABWC (wlroots Backend)
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
    [  ] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click):
+   [  ] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
         - Shows window list, quicklists, and "Close".
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
-          in browser with working Table of Contents anchor jumps.
+          in browser with working Table of Contents anchor jumps, automatic
+          translation into the active WayPlank locale (compatible with
+          "FAT/Test Files/Localization/switch_lang.sh" without changing OS
+          language, plus China-safe fallback and #wp-lang-select switcher), and
+          untranslated <pre>/<code>/.mermaid blocks.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
    [  ] 2.7 Attention / Urgent State:
@@ -1333,13 +1397,14 @@ SESSION 3: LABWC (wlroots Backend)
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode & SR Flip-Flop (Issues #9, #17):
+   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
           'Icon Zoom' and tiles maximized windows flush against dock across
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
-          'Reserve Screen Space' (both in GUI and via 'gsettings set').
+          'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
+          persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -1373,7 +1438,7 @@ SESSION 3: LABWC (wlroots Backend)
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop Docklet & Global Shortcut (Super + D):
+   [  ] 6.1 Show Desktop Docklet, Global Shortcut (Super + D) & Desktop Edit/Overview Mode:
         - Click minimizes all windows; second click restores all.
         - Triggering global shortcut (Super + D) minimizes all normal windows
           while keeping dock visible and interactive on the desktop surface.
@@ -1442,15 +1507,16 @@ SESSION 3: LABWC (wlroots Backend)
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion & Expansion Modes:
-        - Accordion collapsed at rest: expands on hover. Enable 'Click to
-          Expand' in Preferences -> Appearance: hover no longer expands;
-          left-clicking Preferences expands docklets; second click opens
-          Preferences dialog.
-        - Universal Interaction Invalidation: Accordion collapse timer is
-          held/inhibited while any dialog (Preferences, Help, Icon Chooser,
-          Weather) or menu is open. On close, restarts full delay if cursor
-          is outside, or keeps drawer open if cursor is on dock.
+   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
+        - Docklets Accordion expands on hover or click ('Click to Expand');
+          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
+          Most Used') collapses excess non-running pinned apps behind the
+          '»' / '«' expander item using GNOME shell-app-usage frecency
+          ranking while keeping running/urgent apps visible.
+        - Both accordions remain 100% live (expanding and collapsing after
+          AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
+          About windows are open, holding open only during active context
+          menus, folder/preview popups, or modal sub-dialogs.
    [  ] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
@@ -1499,16 +1565,18 @@ SESSION 3: LABWC (wlroots Backend)
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid & Visual Parity:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with matching icons and instant live add/remove toggling.
-   [  ] 7.9 Categorize Items Toggle, Apps & Layout Anchors & Free Mode:
+          Docklets with 'Show Trash' centered beneath the grid and instant
+          live add/remove toggling.
+   [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
           'WayPlank Always Left' at index 0), hiding empty-section separators.
-        - Verify 'Align by Type' sorts Free Mode items cleanly and toggling
-          Categorize/Accordion OFF expands docklets without leftover timers or
-          stored separator URIs.
+        - Verify 'WayPlank Always Left' remains clickable in Free Mode and
+          promotes 'Categorize Items' ON via MONLMIP Rank 1 while preserving
+          its state across Categorize ON/OFF toggles; verify 'Align by Type'
+          sorts Free Mode items cleanly.
    [  ] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
@@ -1541,6 +1609,17 @@ SESSION 3: LABWC (wlroots Backend)
         - Open About WayPlank dialog from dock context menu on Labwc.
         - Verify window renders complete HeaderBar, title, and functional Close
           button; verify dialog can be closed with mouse click or Escape.
+   [  ] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
+        - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
+          Used'), Focused App Highlight, Accordion Delay, and layout options,
+          then close Preferences: verify all 43 DockPreferences keys + 5
+          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
+          restored 100% across restarts even after dconf reset.
+        - Run '"FAT/Test Files/Environment/Test environments.sh"' across
+          Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
+          CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
+          subprocess fallback, per-key validation, and 'Load environment failed'
+          startup popup listing defaulted keys/items.
 8. MULTI MONITOR VALIDATION MATRIX
    [  ] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
@@ -1570,7 +1649,7 @@ SESSION 3: LABWC (wlroots Backend)
         - Lock screen, trigger DPMS monitor sleep/wake or output reconnect,
           and unlock: verify dock restores visibility, anchoring, and
           exclusive space automatically with zero manual CLI restart.
-        - Run 'sudo dpkg -i build/wayplank_0.7.0_amd64.deb' while WayPlank is
+        - Run 'sudo dpkg -i build/wayplank_0.7.1_amd64.deb' while WayPlank is
           running: verify seamless SIGWINCH live binary reload with zero
           duplicate processes.
 10. FORK INTEGRATION, OVERFLOW SMOOTH SCROLLING & RPM PACKAGING (v0.6.2.1 FOCUS)
@@ -1685,9 +1764,10 @@ SESSION 3: LABWC (wlroots Backend)
           smoothly closes gap, and leaves zero ghost icons (or exactly 1
           unpinned icon if app is running).
 12. MULTI-WINDOW PREVIEW CARDS, RECENT FILES JUMP LIST & STOCK THEMES (v0.6.2.3)
-   [  ] 12.1 Stock Theme Suite Integration (Dark & Light Variants):
-        - Bundled classic 'Dark' and 'Light' stock themes load cleanly from
-          /usr/share/wayplank/themes/
+   [  ] 12.1 Monolithic Embedded Stock Theme Suite Integration (Dark & Light Variants):
+        - Bundled classic 'Dark', 'Light', and 'Transparent' stock themes load
+          cleanly from in-RAM GResource with zero '/usr/share/wayplank/themes/'
+          host pollution (preserving user theme overrides in '~/.local/share/')
         - Both variants render properly and switch dynamically without errors
         - Real-time automatic Light/Dark mode switching on KDE Plasma, GNOME &
           Labwc via portal SettingChanged, GSettings color-scheme, kdeglobals

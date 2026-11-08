@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.0\n"
+"Project-Id-Version: wayplank 0.7.1\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-04 16:48+0100\n"
+"POT-Creation-Date: 2026-11-09 07:07+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,55 +17,76 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: lib/Factories/AbstractMain.vala:493
+#: lib/DockPreferences.vala:396 lib/DockPreferences.vala:406
+#: lib/Factories/AbstractMain.vala:776
+msgid "All settings (corrupted latch-state.ini)"
+msgstr ""
+
+#: lib/Factories/AbstractMain.vala:548
 msgid "About WayPlank"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:519
+#: lib/Factories/AbstractMain.vala:574
 msgid "Fully supported compositors: none"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:520
+#: lib/Factories/AbstractMain.vala:575
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:523
+#: lib/Factories/AbstractMain.vala:578
 msgid "Partially supported compositors: none"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:524
+#: lib/Factories/AbstractMain.vala:579
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:528
+#: lib/Factories/AbstractMain.vala:583
 msgid "Website"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:539 src/Main.vala:142
+#: lib/Factories/AbstractMain.vala:594 src/Main.vala:206
 msgid "translator-credits"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:292 lib/Widgets/FolderMenuWindow.vala:869
+#: lib/Factories/AbstractMain.vala:767 lib/Factories/AbstractMain.vala:777
+msgid "Defaulting partially to default config for:"
+msgstr ""
+
+#: lib/Factories/AbstractMain.vala:769 lib/Factories/AbstractMain.vala:773
+msgid "Discarded corrupted or invalid dockitem:"
+msgstr ""
+
+#: lib/Factories/AbstractMain.vala:796 lib/Factories/AbstractMain.vala:799
+msgid "Load environment failed"
+msgstr ""
+
+#: lib/Items/ApplicationDockItem.vala:334 lib/Widgets/FolderMenuWindow.vala:971
 msgid "Close _All"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:301 lib/Widgets/FolderMenuWindow.vala:879
+#: lib/Items/ApplicationDockItem.vala:343 lib/Widgets/FolderMenuWindow.vala:981
 msgid "_Close"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:373 lib/Items/FileDockItem.vala:627
-#: lib/Items/FileDockItem.vala:771
+#: lib/Items/ApplicationDockItem.vala:425 lib/Items/FileDockItem.vala:671
+#: lib/Items/FileDockItem.vala:815
 msgid "_Keep in Dock"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:380 lib/Items/FileDockItem.vala:645
-#: lib/Items/FileDockItem.vala:795
+#: lib/Items/ApplicationDockItem.vala:431
+msgid "Keep Always _Visible"
+msgstr ""
+
+#: lib/Items/ApplicationDockItem.vala:441 lib/Items/FileDockItem.vala:689
+#: lib/Items/FileDockItem.vala:839
 msgid "Change _Icon..."
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:395
+#: lib/Items/ApplicationDockItem.vala:456
 #, c-format
 msgid "Drop to open with %s"
 msgstr ""
@@ -74,53 +95,53 @@ msgstr ""
 msgid "Battery"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:128
+#: lib/Items/BatteryDockItem.vala:134
 msgid "Discharging"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:130
+#: lib/Items/BatteryDockItem.vala:136
 msgid "Not charging"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:132 lib/Items/FileDockItem.vala:857
+#: lib/Items/BatteryDockItem.vala:138 lib/Items/FileDockItem.vala:901
 msgid "Unknown"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:142
+#: lib/Items/BatteryDockItem.vala:148
 msgid "AC Power"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:146
+#: lib/Items/BatteryDockItem.vala:152
 #, c-format
 msgid "Battery: %d%% (Charging)"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:148
+#: lib/Items/BatteryDockItem.vala:154
 #, c-format
 msgid "Battery: %d%% (Full)"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:150
+#: lib/Items/BatteryDockItem.vala:156
 #, c-format
 msgid "Battery: %d%% (%s)"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:218
+#: lib/Items/BatteryDockItem.vala:219
 msgid "_Power Settings..."
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:226 lib/Items/BrightnessDockItem.vala:212
-#: lib/Items/ClockDockItem.vala:219 lib/Items/CpuDockItem.vala:257
-#: lib/Items/DigitalClockDockItem.vala:217
-#: lib/Items/DoNotDisturbDockItem.vala:403 lib/Items/EjectorDockItem.vala:272
-#: lib/Items/MprisDockItem.vala:402 lib/Items/NetworkDockItem.vala:472
-#: lib/Items/ScreenshotDockItem.vala:267 lib/Items/SessionDockItem.vala:121
-#: lib/Items/ShowDesktopDockItem.vala:75 lib/Items/TrashDockItem.vala:396
-#: lib/Items/VolumeDockItem.vala:358 lib/Items/WeatherDockItem.vala:480
+#: lib/Items/BatteryDockItem.vala:228 lib/Items/BrightnessDockItem.vala:204
+#: lib/Items/ClockDockItem.vala:226 lib/Items/CpuDockItem.vala:258
+#: lib/Items/DigitalClockDockItem.vala:218
+#: lib/Items/DoNotDisturbDockItem.vala:659 lib/Items/EjectorDockItem.vala:284
+#: lib/Items/MprisDockItem.vala:730 lib/Items/NetworkDockItem.vala:474
+#: lib/Items/ScreenshotDockItem.vala:268 lib/Items/SessionDockItem.vala:122
+#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:403
+#: lib/Items/VolumeDockItem.vala:367 lib/Items/WeatherDockItem.vala:592
 msgid "_Remove from Dock"
 msgstr ""
 
-#: lib/Items/BrightnessDockItem.vala:88 data/ui/preferences.ui:2291
+#: lib/Items/BrightnessDockItem.vala:88 data/ui/preferences.ui:2411
 msgid "Screen Brightness"
 msgstr ""
 
@@ -150,7 +171,7 @@ msgstr ""
 msgid "Clock"
 msgstr ""
 
-#: lib/Items/ClockDockItem.vala:210 lib/Items/DigitalClockDockItem.vala:208
+#: lib/Items/ClockDockItem.vala:216 lib/Items/DigitalClockDockItem.vala:208
 msgid "_Copy Time"
 msgstr ""
 
@@ -167,156 +188,170 @@ msgstr ""
 msgid "_System Monitor..."
 msgstr ""
 
-#: lib/Items/DigitalClockDockItem.vala:40 data/ui/preferences.ui:1983
+#: lib/Items/DefaultApplicationDockItemProvider.vala:549
+msgid "Collapse pinned apps"
+msgstr ""
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:551
+#, c-format
+msgid "Hidden pinned apps: %d"
+msgstr ""
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:553
+#: lib/Widgets/DockWindow.vala:866
+msgid "Click to expand"
+msgstr ""
+
+#: lib/Items/DigitalClockDockItem.vala:40 data/ui/preferences.ui:2103
 msgid "Digital Clock"
 msgstr ""
 
-#: lib/Items/DoNotDisturbDockItem.vala:48
-#: lib/Items/DoNotDisturbDockItem.vala:383 data/ui/preferences.ui:1826
+#: lib/Items/DoNotDisturbDockItem.vala:99
+#: lib/Items/DoNotDisturbDockItem.vala:638 data/ui/preferences.ui:1946
 msgid "Do Not Disturb"
 msgstr ""
 
-#: lib/Items/DoNotDisturbDockItem.vala:134
+#: lib/Items/DoNotDisturbDockItem.vala:239
 msgid "Notifications: Silenced (Do Not Disturb)"
 msgstr ""
 
-#: lib/Items/DoNotDisturbDockItem.vala:134
+#: lib/Items/DoNotDisturbDockItem.vala:239
 msgid "Notifications: Active"
 msgstr ""
 
-#: lib/Items/DoNotDisturbDockItem.vala:390
+#: lib/Items/DoNotDisturbDockItem.vala:645
 msgid "Resume Notifications"
 msgstr ""
 
-#: lib/Items/DoNotDisturbDockItem.vala:390
+#: lib/Items/DoNotDisturbDockItem.vala:645
 msgid "Silence Notifications"
 msgstr ""
 
-#: lib/Items/DoNotDisturbDockItem.vala:397
+#: lib/Items/DoNotDisturbDockItem.vala:652
 msgid "_Notification Settings..."
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:48 data/ui/preferences.ui:2342
+#: lib/Items/EjectorDockItem.vala:48 data/ui/preferences.ui:2462
 msgid "Removable Drives"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:140
+#: lib/Items/EjectorDockItem.vala:146
 #, c-format
 msgid "Removable Drives (%u mounted)"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:144
+#: lib/Items/EjectorDockItem.vala:150
 msgid "Removable Drives (None connected)"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:182 lib/Items/EjectorDockItem.vala:203
+#: lib/Items/EjectorDockItem.vala:188 lib/Items/EjectorDockItem.vala:210
 msgid "Safe to Remove"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:183
+#: lib/Items/EjectorDockItem.vala:189
 #, c-format
 msgid "Device '%s' has been safely unmounted."
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:218 lib/Items/EjectorDockItem.vala:254
+#: lib/Items/EjectorDockItem.vala:227 lib/Items/EjectorDockItem.vala:265
 #, c-format
 msgid "Eject '%s'"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:224 lib/Items/EjectorDockItem.vala:260
+#: lib/Items/EjectorDockItem.vala:233 lib/Items/EjectorDockItem.vala:271
 msgid "Eject All Devices"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:243
+#: lib/Items/EjectorDockItem.vala:253
 msgid "No removable devices connected"
 msgstr ""
 
-#: lib/Items/EjectorDockItem.vala:265
+#: lib/Items/EjectorDockItem.vala:276
 msgid "No Removable Devices"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:471
+#: lib/Items/FileDockItem.vala:515
 #, c-format
 msgid "Drop to copy into %s"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:612 lib/Widgets/FolderMenuWindow.vala:479
-#: lib/Widgets/FolderMenuWindow.vala:702
+#: lib/Items/FileDockItem.vala:656 lib/Widgets/FolderMenuWindow.vala:539
+#: lib/Widgets/FolderMenuWindow.vala:778
 msgid "Empty Folder"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:639
+#: lib/Items/FileDockItem.vala:683
 msgid "_Open in File Browser"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:707
+#: lib/Items/FileDockItem.vala:751
 msgid "Empty"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:783 lib/Widgets/FolderMenuWindow.vala:940
-#: lib/Widgets/PreferencesWindow.vala:670
+#: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1042
+#: lib/Widgets/PreferencesWindow.vala:729
 msgid "_Open"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:787
+#: lib/Items/FileDockItem.vala:831
 msgid "Open Containing _Folder"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:841
+#: lib/Items/FileDockItem.vala:885
 msgid "Internet"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:843
+#: lib/Items/FileDockItem.vala:887
 msgid "Office"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:845
+#: lib/Items/FileDockItem.vala:889
 msgid "Media"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:847
+#: lib/Items/FileDockItem.vala:891
 msgid "Games"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:849
+#: lib/Items/FileDockItem.vala:893
 msgid "Utilities"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:46 lib/Items/MprisDockItem.vala:268
-#: data/ui/preferences.ui:2034
+#: lib/Items/MprisDockItem.vala:61 lib/Items/MprisDockItem.vala:489
+#: lib/Services/ApplicationIdentity.vala:3399 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:280
+#: lib/Items/MprisDockItem.vala:452 lib/Items/MprisDockItem.vala:680
 msgid "Playing"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:281
+#: lib/Items/MprisDockItem.vala:453 lib/Items/MprisDockItem.vala:681
 msgid "Paused"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:281
+#: lib/Items/MprisDockItem.vala:453 lib/Items/MprisDockItem.vala:681
 msgid "Stopped"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:288
+#: lib/Items/MprisDockItem.vala:462
 #, c-format
 msgid "Media Player (%s)"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:301
+#: lib/Items/MprisDockItem.vala:474
 msgid "Media Player (Inactive)"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:388
+#: lib/Items/MprisDockItem.vala:715
 msgid "Play / _Pause"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:392
+#: lib/Items/MprisDockItem.vala:719
 msgid "_Next Track"
 msgstr ""
 
-#: lib/Items/MprisDockItem.vala:396
+#: lib/Items/MprisDockItem.vala:723
 msgid "P_revious Track"
 msgstr ""
 
@@ -333,7 +368,7 @@ msgstr ""
 msgid "Wi-Fi: %s (%d%%) - %s"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:330 lib/Items/NetworkDockItem.vala:435
+#: lib/Items/NetworkDockItem.vala:330 lib/Items/NetworkDockItem.vala:436
 #, c-format
 msgid "Wi-Fi: %s (%d%%)"
 msgstr ""
@@ -344,34 +379,34 @@ msgid "Ethernet: %s - %s"
 msgstr ""
 
 #: lib/Items/NetworkDockItem.vala:348 lib/Items/NetworkDockItem.vala:350
-#: lib/Items/NetworkDockItem.vala:437
+#: lib/Items/NetworkDockItem.vala:438
 msgid "Connected"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:350 lib/Items/NetworkDockItem.vala:437
+#: lib/Items/NetworkDockItem.vala:350 lib/Items/NetworkDockItem.vala:438
 #, c-format
 msgid "Ethernet: %s"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:357 lib/Items/NetworkDockItem.vala:439
+#: lib/Items/NetworkDockItem.vala:357 lib/Items/NetworkDockItem.vala:440
 msgid "Network: Disconnected"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:447
+#: lib/Items/NetworkDockItem.vala:448
 #, c-format
 msgid "IP: %s"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:453
+#: lib/Items/NetworkDockItem.vala:454
 #, c-format
 msgid "Gateway: %s"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:462
 msgid "Copy _IP Address"
 msgstr ""
 
-#: lib/Items/NetworkDockItem.vala:466
+#: lib/Items/NetworkDockItem.vala:467
 msgid "_Network Settings..."
 msgstr ""
 
@@ -383,12 +418,12 @@ msgstr ""
 msgid "Drop to add to dock"
 msgstr ""
 
-#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:164
+#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:175
 msgid "Report a _Bug Online..."
 msgstr ""
 
-#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:156
-#: lib/Widgets/DockWindow.vala:1214
+#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:167
+#: lib/Widgets/DockWindow.vala:1289
 msgid "_Shortcuts & Gestures..."
 msgstr ""
 
@@ -456,20 +491,20 @@ msgstr ""
 msgid "_Do Not Disturb"
 msgstr ""
 
-#: lib/Items/PlankDockItem.vala:136
+#: lib/Items/PlankDockItem.vala:147
 msgid "_Preferences"
 msgstr ""
 
-#: lib/Items/PlankDockItem.vala:140 lib/Items/PreferencesDockItem.vala:160
+#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:171
 msgid "User Guide..."
 msgstr ""
 
-#: lib/Items/PlankDockItem.vala:144 lib/Items/PreferencesDockItem.vala:168
+#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:179
 msgid "_About"
 msgstr ""
 
-#: lib/Items/PlankDockItem.vala:152 lib/Items/PreferencesDockItem.vala:175
-#: lib/Widgets/DockWindow.vala:1226
+#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:186
+#: lib/Widgets/DockWindow.vala:1301
 msgid "_Quit"
 msgstr ""
 
@@ -477,27 +512,27 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
-#: lib/Items/PreferencesDockItem.vala:136 lib/Widgets/DockWindow.vala:1220
+#: lib/Items/PreferencesDockItem.vala:147 lib/Widgets/DockWindow.vala:1295
 msgid "_Preferences..."
 msgstr ""
 
-#: lib/Items/PreferencesDockItem.vala:140
+#: lib/Items/PreferencesDockItem.vala:151
 msgid "_Appearance..."
 msgstr ""
 
-#: lib/Items/PreferencesDockItem.vala:144
+#: lib/Items/PreferencesDockItem.vala:155
 msgid "_Behaviour..."
 msgstr ""
 
-#: lib/Items/PreferencesDockItem.vala:148
+#: lib/Items/PreferencesDockItem.vala:159
 msgid "A_pplications..."
 msgstr ""
 
-#: lib/Items/PreferencesDockItem.vala:152
+#: lib/Items/PreferencesDockItem.vala:163
 msgid "_Docklets..."
 msgstr ""
 
-#: lib/Items/ScreenshotDockItem.vala:39 data/ui/preferences.ui:2189
+#: lib/Items/ScreenshotDockItem.vala:39 data/ui/preferences.ui:2309
 msgid "Screenshot"
 msgstr ""
 
@@ -517,7 +552,7 @@ msgstr ""
 msgid "Open Screenshots Folder"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:39 data/ui/preferences.ui:2240
+#: lib/Items/SessionDockItem.vala:39 data/ui/preferences.ui:2360
 msgid "Session / Power"
 msgstr ""
 
@@ -561,63 +596,63 @@ msgstr ""
 msgid "Session _Dialog..."
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:403
+#: lib/Items/SessionDockItem.vala:405
 msgid "Reboot to UEFI / BIOS"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:403
+#: lib/Items/SessionDockItem.vala:405
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings?"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:403 lib/Widgets/SessionWindow.vala:233
-#: lib/Widgets/SessionWindow.vala:402
+#: lib/Items/SessionDockItem.vala:405 lib/Widgets/SessionWindow.vala:237
+#: lib/Widgets/SessionWindow.vala:406
 msgid "UEFI / BIOS"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:436 lib/Widgets/SessionWindow.vala:180
-#: lib/Widgets/SessionWindow.vala:386
+#: lib/Items/SessionDockItem.vala:438 lib/Widgets/SessionWindow.vala:184
+#: lib/Widgets/SessionWindow.vala:390
 msgid "Log Out"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:436
+#: lib/Items/SessionDockItem.vala:438
 msgid "Are you sure you want to log out of this session?"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:489
+#: lib/Items/SessionDockItem.vala:491
 msgid "Restart System"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:489
+#: lib/Items/SessionDockItem.vala:491
 msgid "Are you sure you want to restart your computer?"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:489 lib/Widgets/SessionWindow.vala:225
-#: lib/Widgets/SessionWindow.vala:394
+#: lib/Items/SessionDockItem.vala:491 lib/Widgets/SessionWindow.vala:229
+#: lib/Widgets/SessionWindow.vala:398
 msgid "Restart"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:531
+#: lib/Items/SessionDockItem.vala:533
 msgid "Shut Down System"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:531
+#: lib/Items/SessionDockItem.vala:533
 msgid "Are you sure you want to shut down your computer?"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:531 lib/Widgets/SessionWindow.vala:246
-#: lib/Widgets/SessionWindow.vala:410
+#: lib/Items/SessionDockItem.vala:533 lib/Widgets/SessionWindow.vala:250
+#: lib/Widgets/SessionWindow.vala:414
 msgid "Shut Down"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:586 lib/Widgets/IconChooserDialog.vala:158
-#: lib/Widgets/IconChooserDialog.vala:289 lib/Widgets/SessionWindow.vala:257
-#: lib/Widgets/SessionWindow.vala:302 lib/Widgets/WeatherCityDialog.vala:125
+#: lib/Items/SessionDockItem.vala:588 lib/Widgets/IconChooserDialog.vala:203
+#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:261
+#: lib/Widgets/SessionWindow.vala:306 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr ""
 
-#: lib/Items/ShowDesktopDockItem.vala:39 data/ui/preferences.ui:1931
+#: lib/Items/ShowDesktopDockItem.vala:39 data/ui/preferences.ui:2051
 msgid "Show Desktop"
 msgstr ""
 
@@ -629,24 +664,24 @@ msgstr ""
 msgid "Trash"
 msgstr ""
 
-#: lib/Items/TrashDockItem.vala:174
+#: lib/Items/TrashDockItem.vala:180
 msgid "Trash (Empty)"
 msgstr ""
 
-#: lib/Items/TrashDockItem.vala:177
+#: lib/Items/TrashDockItem.vala:183
 msgid "Trash (1 item)"
 msgstr ""
 
-#: lib/Items/TrashDockItem.vala:180
+#: lib/Items/TrashDockItem.vala:186
 #, c-format
 msgid "Trash (%u items)"
 msgstr ""
 
-#: lib/Items/TrashDockItem.vala:385
+#: lib/Items/TrashDockItem.vala:391
 msgid "_Open Trash"
 msgstr ""
 
-#: lib/Items/TrashDockItem.vala:389
+#: lib/Items/TrashDockItem.vala:395
 msgid "_Empty Trash"
 msgstr ""
 
@@ -654,209 +689,273 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
-#: lib/Items/VolumeDockItem.vala:207
+#: lib/Items/VolumeDockItem.vala:217
 #, c-format
 msgid "Volume: %d%% (Muted)"
 msgstr ""
 
-#: lib/Items/VolumeDockItem.vala:212
+#: lib/Items/VolumeDockItem.vala:222
 #, c-format
 msgid "Volume: %d%%"
 msgstr ""
 
-#: lib/Items/VolumeDockItem.vala:340
+#: lib/Items/VolumeDockItem.vala:350
 msgid "Un_mute"
 msgstr ""
 
-#: lib/Items/VolumeDockItem.vala:340
+#: lib/Items/VolumeDockItem.vala:350
 msgid "_Mute"
 msgstr ""
 
-#: lib/Items/VolumeDockItem.vala:344
+#: lib/Items/VolumeDockItem.vala:354
 msgid "_Audio Settings..."
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:62 lib/Items/WeatherDockItem.vala:145
-#: lib/Items/WeatherDockItem.vala:162 lib/Items/WeatherDockItem.vala:177
-#: lib/Items/WeatherDockItem.vala:386
+#: lib/Items/WeatherDockItem.vala:62 lib/Items/WeatherDockItem.vala:199
+#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:493
 msgid "Checking weather..."
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:92
+#: lib/Items/WeatherDockItem.vala:120
 msgid "Weather"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:133 lib/Items/WeatherDockItem.vala:162
-#: lib/Items/WeatherDockItem.vala:177 lib/Items/WeatherDockItem.vala:386
-#: lib/Widgets/WeatherWindow.vala:275
+#: lib/Items/WeatherDockItem.vala:179 lib/Items/WeatherDockItem.vala:224
+#: lib/Items/WeatherDockItem.vala:493 lib/Widgets/WeatherWindow.vala:297
 msgid "Detecting location..."
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:135
+#: lib/Items/WeatherDockItem.vala:181
 msgid "Updating weather..."
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:145 lib/Items/WeatherDockItem.vala:162
-#: lib/Items/WeatherDockItem.vala:177 lib/Items/WeatherDockItem.vala:287
-#: lib/Items/WeatherDockItem.vala:386
+#: lib/Items/WeatherDockItem.vala:199 lib/Items/WeatherDockItem.vala:224
+#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:473
+#: lib/Items/WeatherDockItem.vala:493
 msgid "Offline"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:238
+#: lib/Items/WeatherDockItem.vala:355
 msgid "Location not found"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:289
+#: lib/Items/WeatherDockItem.vala:392 lib/Items/WeatherDockItem.vala:475
 msgid "No internet connection"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:458
+#: lib/Items/WeatherDockItem.vala:569
 msgid "Refresh Weather"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:464
+#: lib/Items/WeatherDockItem.vala:575
 msgid "Set Location..."
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:470
+#: lib/Items/WeatherDockItem.vala:581
 msgid "Switch to Fahrenheit (°F)"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:470
+#: lib/Items/WeatherDockItem.vala:581
 msgid "Switch to Celsius (°C)"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:492
+#: lib/Items/WeatherDockItem.vala:605
 msgid "Clear sky"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:606
 msgid "Mainly clear"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:494 lib/Items/WeatherDockItem.vala:520
+#: lib/Items/WeatherDockItem.vala:607 lib/Items/WeatherDockItem.vala:633
 msgid "Partly cloudy"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:495
+#: lib/Items/WeatherDockItem.vala:608
 msgid "Overcast"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:497
+#: lib/Items/WeatherDockItem.vala:610
 msgid "Foggy"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:500
+#: lib/Items/WeatherDockItem.vala:613
 msgid "Drizzle"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:502
+#: lib/Items/WeatherDockItem.vala:615
 msgid "Freezing drizzle"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:504
+#: lib/Items/WeatherDockItem.vala:617
 msgid "Rain"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:505
+#: lib/Items/WeatherDockItem.vala:618
 msgid "Heavy rain"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:507
+#: lib/Items/WeatherDockItem.vala:620
 msgid "Freezing rain"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:509
+#: lib/Items/WeatherDockItem.vala:622
 msgid "Snow"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:510
+#: lib/Items/WeatherDockItem.vala:623
 msgid "Heavy snow"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:511
+#: lib/Items/WeatherDockItem.vala:624
 msgid "Snow grains"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:513
+#: lib/Items/WeatherDockItem.vala:626
 msgid "Rain showers"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:514
+#: lib/Items/WeatherDockItem.vala:627
 msgid "Violent rain showers"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:516
+#: lib/Items/WeatherDockItem.vala:629
 msgid "Snow showers"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:517
+#: lib/Items/WeatherDockItem.vala:630
 msgid "Thunderstorm"
 msgstr ""
 
-#: lib/Items/WeatherDockItem.vala:519
+#: lib/Items/WeatherDockItem.vala:632
 msgid "Thunderstorm with hail"
 msgstr ""
 
-#: lib/Widgets/CalendarWindow.vala:65
+#: lib/Services/RecentFilesService.vala:272
+msgid "Recent Files"
+msgstr ""
+
+#: lib/Widgets/CalendarWindow.vala:63
 msgid "Calendar"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:838
+#: lib/Widgets/DockWindow.vala:849
 msgid "Folder"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:840
+#: lib/Widgets/DockWindow.vala:851
 msgid "Running"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:842
+#: lib/Widgets/DockWindow.vala:853
 msgid "Docklet"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:854 lib/Widgets/DockWindow.vala:856
-#: lib/Widgets/DockWindow.vala:859 data/ui/preferences.ui:2474
+#: lib/Widgets/DockWindow.vala:866 lib/Widgets/DockWindow.vala:868
+#: lib/Widgets/DockWindow.vala:871 data/ui/preferences.ui:2594
 msgid "Docklets"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:854
-msgid "Click to expand"
-msgstr ""
-
-#: lib/Widgets/DockWindow.vala:1239 lib/Widgets/DockWindow.vala:1269
+#: lib/Widgets/DockWindow.vala:1339 lib/Widgets/DockWindow.vala:1381
 msgid "Developer _Tools"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:1245
+#: lib/Widgets/DockWindow.vala:1346
 msgid "Open config folder"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:1251
+#: lib/Widgets/DockWindow.vala:1355
 msgid "Open current theme file"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:1276
+#: lib/Widgets/DockWindow.vala:1362
+msgid "Print app usage ranking"
+msgstr ""
+
+#: lib/Widgets/DockWindow.vala:1388
 msgid "Print info to stdout"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:1284
+#: lib/Widgets/DockWindow.vala:1398
 msgid "Open dockitem file"
 msgstr ""
 
-#: lib/Widgets/DockWindow.vala:1291
+#: lib/Widgets/DockWindow.vala:1407
 msgid "Open launcher file"
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:512
+#: lib/Widgets/DockWindow.vala:1414
+msgid "Print usage score"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:101 lib/Widgets/FirstRunWindow.vala:103
+msgid "Welcome to WayPlank"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:126
+msgid ""
+"Your existing Plank launchers, folders and compatible settings have been "
+"imported safely without modifying ~/.config/plank. Choose how you want "
+"WayPlank to start:"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:127
+msgid "Choose how you want to initialize your dock:"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:140
+msgid "WayPlank Classic"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:141
+msgid "Start classical near old Plank and discover at your pace"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:142
+msgid ""
+"Keeps your dock minimal in Free Mode with your existing items, core pinned "
+"applications and Trash, without auto-adding category folders or accordion "
+"drawers."
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:143
+msgid "Start Classic"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:150
+msgid "WayPlank Explorer"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:151
+msgid "Start modern with all new features in the best experience spot"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:152
+msgid ""
+"Enables Smart Categorized Layout, 4 Application Folder Drawers, System Tray "
+"Docklets with Accordion, Smart Pinned Apps Accordion, and Window Preview "
+"Cards."
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:153
+msgid "Start Explorer"
+msgstr ""
+
+#: lib/Widgets/FirstRunWindow.vala:160
+msgid ""
+"You can switch or customize any feature at any time in WayPlank Preferences."
+msgstr ""
+
+#: lib/Widgets/FolderMenuWindow.vala:572
 msgid "Back"
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:831
+#: lib/Widgets/FolderMenuWindow.vala:933
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:933
+#: lib/Widgets/FolderMenuWindow.vala:1035
 msgid "_New Window"
 msgstr ""
 
@@ -929,360 +1028,370 @@ msgid ""
 msgstr ""
 
 #: lib/Widgets/HelpWindow.vala:89
-msgid "Accordion Auto-Retention"
+msgid "Pinned Expander (» / «)"
 msgstr ""
 
 #: lib/Widgets/HelpWindow.vala:89
+msgid ""
+"Hover or click to expand hidden pinned apps (Auto-Fit or Top Most Used); "
+"click « to collapse in Click-to-Expand mode"
+msgstr ""
+
+#: lib/Widgets/HelpWindow.vala:90
+msgid "Accordion Auto-Retention"
+msgstr ""
+
+#: lib/Widgets/HelpWindow.vala:90
 msgid ""
 "Drawer stays open during menus & dialogs; full countdown (0.5s–20s) restarts "
 "on close"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:90
+#: lib/Widgets/HelpWindow.vala:91
 msgid "Mouse Scroll on Brightness"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:90
+#: lib/Widgets/HelpWindow.vala:91
 msgid "Adjust display brightness with multi-monitor hardware sync"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:91
+#: lib/Widgets/HelpWindow.vala:92
 msgid "Mouse Scroll on Volume"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:91
+#: lib/Widgets/HelpWindow.vala:92
 msgid "Adjust master audio volume up or down"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:92
+#: lib/Widgets/HelpWindow.vala:93
 msgid "Middle Click on MPRIS"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:92
+#: lib/Widgets/HelpWindow.vala:93
 msgid "Play or pause media playback"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:93
+#: lib/Widgets/HelpWindow.vala:94
 msgid "Mouse Scroll on MPRIS"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:93
+#: lib/Widgets/HelpWindow.vala:94
 msgid "Skip to next or previous media track"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:94
+#: lib/Widgets/HelpWindow.vala:95
 msgid "Interactions and gestures on application icons, drawers and docklets"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:94
+#: lib/Widgets/HelpWindow.vala:95
 msgid "Mouse Actions"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:99
+#: lib/Widgets/HelpWindow.vala:100
 msgid "Drag icon along dock (Free Mode)"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:99
+#: lib/Widgets/HelpWindow.vala:100
 msgid "Freely reorder launchers, docklets, and folders anywhere on the dock"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:100
+#: lib/Widgets/HelpWindow.vala:101
 msgid "Drag icon along dock (Categorized)"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:100
+#: lib/Widgets/HelpWindow.vala:101
 msgid ""
 "Reorder strictly within category bounds; Preferences anchor stays locked"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:101
+#: lib/Widgets/HelpWindow.vala:102
 msgid "Drag icon off dock"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:101
+#: lib/Widgets/HelpWindow.vala:102
 msgid "Unpin / remove launcher from dock (with poof animation)"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:102
+#: lib/Widgets/HelpWindow.vala:103
 msgid "Drop file on app icon"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:102
+#: lib/Widgets/HelpWindow.vala:103
 msgid "Open the dropped file directly with that application"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:103
+#: lib/Widgets/HelpWindow.vala:104
 msgid "Drop web URL on browser"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:103
+#: lib/Widgets/HelpWindow.vala:104
 msgid "Drop http:// or https:// URL onto browser icon to open in new tab"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:104
+#: lib/Widgets/HelpWindow.vala:105
 msgid "Hover over icon during DND"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:104
+#: lib/Widgets/HelpWindow.vala:105
 msgid "Spring-loaded hover (500ms) brings target window to foreground"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:105
+#: lib/Widgets/HelpWindow.vala:106
 msgid "Drop .desktop or folder"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:105
+#: lib/Widgets/HelpWindow.vala:106
 msgid "Pin a new application or folder drawer to the dock"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:106
+#: lib/Widgets/HelpWindow.vala:107
 msgid "Align by Type (Preferences)"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:106
+#: lib/Widgets/HelpWindow.vala:107
 msgid ""
 "One-shot sort in Free mode: [Plank] -> [Folders] -> [Docklets] -> [Apps] -> "
 "[Trash]"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:107
+#: lib/Widgets/HelpWindow.vala:108
 msgid "Organizing, pinning, reordering and interacting with dock items"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:107
+#: lib/Widgets/HelpWindow.vala:108
 msgid "Drag & Drop"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:112
+#: lib/Widgets/HelpWindow.vala:113
 msgid "Mouse Scroll on Dock Body"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:112
+#: lib/Widgets/HelpWindow.vala:113
 msgid "Smoothly scroll overflowing dock items when capacity is reached"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:113
+#: lib/Widgets/HelpWindow.vala:114
 msgid "Ctrl + Mouse Scroll Up"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:113
+#: lib/Widgets/HelpWindow.vala:114
 msgid "Increase dock icon size dynamically in real-time"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:114
+#: lib/Widgets/HelpWindow.vala:115
 msgid "Ctrl + Mouse Scroll Down"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:114
+#: lib/Widgets/HelpWindow.vala:115
 msgid "Decrease dock icon size dynamically in real-time"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:115
+#: lib/Widgets/HelpWindow.vala:116
 msgid "Ctrl + Right Click"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:115
+#: lib/Widgets/HelpWindow.vala:116
 msgid "Open dock preferences menu directly, even over an icon"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:116
+#: lib/Widgets/HelpWindow.vala:117
 msgid "Right Click on space / separator"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:116
+#: lib/Widgets/HelpWindow.vala:117
 msgid "Open dock preferences menu from any empty dock area or separator"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:117
+#: lib/Widgets/HelpWindow.vala:118
 msgid "Right Click -> Change Icon..."
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:117
+#: lib/Widgets/HelpWindow.vala:118
 msgid "Choose system icon or custom image for any launcher or folder drawer"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:118
+#: lib/Widgets/HelpWindow.vala:119
 msgid "Right Click -> Shortcuts & Gestures"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:118
+#: lib/Widgets/HelpWindow.vala:119
 msgid "Open this interactive guide directly from any item context menu"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:119
+#: lib/Widgets/HelpWindow.vala:120
 msgid "Preferences -> Theme Manager"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:119
+#: lib/Widgets/HelpWindow.vala:120
 msgid "Install theme archives (.zip, .tar.gz) and manage custom dock themes"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:120
+#: lib/Widgets/HelpWindow.vala:121
 msgid "Dynamic Counterpart Swapping"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:120
+#: lib/Widgets/HelpWindow.vala:121
 msgid "Real-time automatic Light/Dark mode switching on KDE and GNOME"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:121
+#: lib/Widgets/HelpWindow.vala:122
 msgid "Ctrl + Alt + Shift + Right Click"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:121
+#: lib/Widgets/HelpWindow.vala:122
 msgid "Open Developer Tools submenu (inspect launcher, config, theme)"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:122
+#: lib/Widgets/HelpWindow.vala:123
 msgid "Dynamic zoom, overflow scrolling, theme management and developer tools"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:122
+#: lib/Widgets/HelpWindow.vala:123
 msgid "Shortcuts & Tools"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:153 lib/Widgets/HelpWindow.vala:154
+#: lib/Widgets/HelpWindow.vala:154 lib/Widgets/HelpWindow.vala:155
 msgid "WayPlank Shortcuts & Gestures"
 msgstr ""
 
-#: lib/Widgets/HelpWindow.vala:170 lib/Widgets/PreferencesWindow.vala:377
+#: lib/Widgets/HelpWindow.vala:171 lib/Widgets/PreferencesWindow.vala:388
 msgid "OK"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:49
+#: lib/Widgets/IconChooserDialog.vala:56
 #, c-format
 msgid "Change Icon - %s"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:105
+#: lib/Widgets/IconChooserDialog.vala:150
 msgid "Select icon for: "
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:121
+#: lib/Widgets/IconChooserDialog.vala:166
 msgid "Search theme icons (e.g. browser, folder, games, edit)..."
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:125
+#: lib/Widgets/IconChooserDialog.vala:170
 msgid "_Browse File..."
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:128
+#: lib/Widgets/IconChooserDialog.vala:173
 msgid "Choose a custom image file (PNG, SVG, ICO) from disk"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:154
+#: lib/Widgets/IconChooserDialog.vala:199
 msgid "Restore Default"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:155
+#: lib/Widgets/IconChooserDialog.vala:200
 msgid "Revert to the original default icon"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:160
+#: lib/Widgets/IconChooserDialog.vala:205
 msgid "Apply"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:286
+#: lib/Widgets/IconChooserDialog.vala:337
 msgid "Select Icon File"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:290
+#: lib/Widgets/IconChooserDialog.vala:340
 msgid "Select"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:294
+#: lib/Widgets/IconChooserDialog.vala:345
 msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:307
-#: lib/Widgets/PreferencesWindow.vala:688
+#: lib/Widgets/IconChooserDialog.vala:358
+#: lib/Widgets/PreferencesWindow.vala:747
 msgid "All Files"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:296
+#: lib/Widgets/PreferencesWindow.vala:307
 msgid "WayPlank Preferences"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:452
+#: lib/Widgets/PreferencesWindow.vala:493
 msgid " (Requires KWin)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:655
+#: lib/Widgets/PreferencesWindow.vala:712
 #, c-format
 msgid "Delete user theme '%s'"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:657
+#: lib/Widgets/PreferencesWindow.vala:714
 msgid "System themes cannot be deleted"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:667
+#: lib/Widgets/PreferencesWindow.vala:726
 msgid "Install WayPlank Theme"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:671
-#: lib/Widgets/PreferencesWindow.vala:752
+#: lib/Widgets/PreferencesWindow.vala:730
+#: lib/Widgets/PreferencesWindow.vala:826
 msgid "_Cancel"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:675
+#: lib/Widgets/PreferencesWindow.vala:734
 msgid "Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:714
+#: lib/Widgets/PreferencesWindow.vala:776
 msgid ""
 "No valid WayPlank/Plank theme found in the selected file.\n"
 "A valid theme must contain a 'dock.theme' configuration file."
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:733
+#: lib/Widgets/PreferencesWindow.vala:801
 #, c-format
 msgid ""
 "A theme named '%s' already exists.\n"
 "Do you want to replace it?"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:749
+#: lib/Widgets/PreferencesWindow.vala:823
 msgid "Install Themes"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:753
+#: lib/Widgets/PreferencesWindow.vala:827
 msgid "_Install"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:758
+#: lib/Widgets/PreferencesWindow.vala:835
 msgid "The archive contains multiple themes. Select which ones to install:"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:816
+#: lib/Widgets/PreferencesWindow.vala:901
 #, c-format
 msgid ""
 "Are you sure you want to delete the theme '%s'?\n"
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1185
+#: lib/Widgets/PreferencesWindow.vala:1284 data/ui/preferences.ui:554
 msgid "Docklets Only"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1186 data/ui/preferences.ui:1706
+#: lib/Widgets/PreferencesWindow.vala:1285 data/ui/preferences.ui:555
 msgid "Docklets Only (with fallback)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1188 data/ui/preferences.ui:1707
+#: lib/Widgets/PreferencesWindow.vala:1286 data/ui/preferences.ui:556
 msgid "All Icons (integrated)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1189 data/ui/preferences.ui:1708
+#: lib/Widgets/PreferencesWindow.vala:1287 data/ui/preferences.ui:557
 msgid "Dedicated Icon (on dock)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1351
+#: lib/Widgets/PreferencesWindow.vala:1464
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1354
+#: lib/Widgets/PreferencesWindow.vala:1467
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1290,12 +1399,12 @@ msgid ""
 "the dock smoothly scrolls with mouse wheel when items exceed screen space."
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1365
+#: lib/Widgets/PreferencesWindow.vala:1478
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1367
+#: lib/Widgets/PreferencesWindow.vala:1480
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1304,12 +1413,12 @@ msgid ""
 "Behaviour."
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1375
+#: lib/Widgets/PreferencesWindow.vala:1488
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1377
+#: lib/Widgets/PreferencesWindow.vala:1490
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1317,32 +1426,32 @@ msgid ""
 "shrinking activates)."
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1598 data/ui/preferences.ui:225
-#: data/ui/preferences.ui:238
+#: lib/Widgets/PreferencesWindow.vala:1719 data/ui/preferences.ui:232
+#: data/ui/preferences.ui:245
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1599
+#: lib/Widgets/PreferencesWindow.vala:1720
 msgid "Not supported by this compositor"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1674 data/ui/preferences.ui:923
-#: data/ui/preferences.ui:938
+#: lib/Widgets/PreferencesWindow.vala:1795 data/ui/preferences.ui:1448
+#: data/ui/preferences.ui:1462
 msgid "Workspace filtering is not yet supported under Wayland"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1683 data/ui/preferences.ui:757
-#: data/ui/preferences.ui:770
+#: lib/Widgets/PreferencesWindow.vala:1804 data/ui/preferences.ui:849
+#: data/ui/preferences.ui:862
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
 "preventing accidental triggers; when disabled, reveals 10px before the edge "
 "for fluid unhiding"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1687 data/ui/preferences.ui:784
-#: data/ui/preferences.ui:797
+#: lib/Widgets/PreferencesWindow.vala:1808 data/ui/preferences.ui:876
+#: data/ui/preferences.ui:889
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
 "windows tile without overlapping the dock; enabling this automatically turns "
@@ -1350,16 +1459,16 @@ msgid ""
 "Reserve Screen Space"
 msgstr ""
 
-#: lib/Widgets/PreferencesWindow.vala:1690 data/ui/preferences.ui:982
-#: data/ui/preferences.ui:995
+#: lib/Widgets/PreferencesWindow.vala:1811 data/ui/preferences.ui:1008
+#: data/ui/preferences.ui:1022
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
 "magnetic feel; disable to strictly pass mouse clicks through to windows "
 "positioned immediately behind or above the dock"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:306
-#: lib/Widgets/SessionWindow.vala:352
+#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:310
+#: lib/Widgets/SessionWindow.vala:356
 msgid "Session & Power"
 msgstr ""
 
@@ -1367,750 +1476,786 @@ msgstr ""
 msgid "Session &amp; Power"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:146
+#: lib/Widgets/SessionWindow.vala:147
 msgid "Logged in as"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:166
+#: lib/Widgets/SessionWindow.vala:170
 msgid "Lock Screen"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:166
+#: lib/Widgets/SessionWindow.vala:170
 msgid "Lock the current session"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:173
+#: lib/Widgets/SessionWindow.vala:177
 msgid "Switch User"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:173
+#: lib/Widgets/SessionWindow.vala:177
 msgid "Switch to another user or login screen"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:180
+#: lib/Widgets/SessionWindow.vala:184
 msgid "Log out of the current session"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:186
+#: lib/Widgets/SessionWindow.vala:190
 msgid "Suspend"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:186
+#: lib/Widgets/SessionWindow.vala:190
 msgid "Put computer into low-power sleep mode"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:195
+#: lib/Widgets/SessionWindow.vala:199
 msgid "Hibernate"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:198
+#: lib/Widgets/SessionWindow.vala:202
 msgid "Save session to disk and power off"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:199
+#: lib/Widgets/SessionWindow.vala:203
 msgid ""
 "Hibernation is not available on this system (swap or kernel support missing)"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:211
+#: lib/Widgets/SessionWindow.vala:215
 msgid "Hybrid Sleep"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:214
+#: lib/Widgets/SessionWindow.vala:218
 msgid "Save session to disk and put computer into low-power sleep mode"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:215
+#: lib/Widgets/SessionWindow.vala:219
 msgid ""
 "Hybrid Sleep is not available on this system (swap or kernel support missing)"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:225
+#: lib/Widgets/SessionWindow.vala:229
 msgid "Reboot the operating system"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:236
+#: lib/Widgets/SessionWindow.vala:240
 msgid "Restart and enter the motherboard UEFI / BIOS firmware settings"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:237
+#: lib/Widgets/SessionWindow.vala:241
 msgid "UEFI / BIOS firmware setup is not supported on this system"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:246
+#: lib/Widgets/SessionWindow.vala:250
 msgid "Power off the computer"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:379
+#: lib/Widgets/SessionWindow.vala:383
 msgid "Confirm Session Action"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:384
+#: lib/Widgets/SessionWindow.vala:388
 msgid "Log Out of Session?"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:385
+#: lib/Widgets/SessionWindow.vala:389
 msgid "Are you sure you want to log out of your current session?"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:392
+#: lib/Widgets/SessionWindow.vala:396
 msgid "Restart System?"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:393
+#: lib/Widgets/SessionWindow.vala:397
 msgid ""
 "Are you sure you want to restart your computer? Unsaved changes will be lost."
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:400
+#: lib/Widgets/SessionWindow.vala:404
 msgid "Reboot to UEFI / BIOS?"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:401
+#: lib/Widgets/SessionWindow.vala:405
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings? Unsaved changes will be lost."
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:408
+#: lib/Widgets/SessionWindow.vala:412
 msgid "Shut Down Computer?"
 msgstr ""
 
-#: lib/Widgets/SessionWindow.vala:409
+#: lib/Widgets/SessionWindow.vala:413
 msgid ""
 "Are you sure you want to turn off your computer? Unsaved changes will be "
 "lost."
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:42
+#: lib/Widgets/WeatherCityDialog.vala:83
 msgid "Weather Location Settings"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:70
+#: lib/Widgets/WeatherCityDialog.vala:107
 msgid "City / Location:"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:77
+#: lib/Widgets/WeatherCityDialog.vala:114
 msgid "e.g. Rome, London, New York..."
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:79
+#: lib/Widgets/WeatherCityDialog.vala:116
 msgid "Clear location (re-detect via IP)"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:96
+#: lib/Widgets/WeatherCityDialog.vala:133
 msgid ""
 "ℹ️ Leave blank (or click ✖ to clear) to re-detect your location using IP."
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:113
+#: lib/Widgets/WeatherCityDialog.vala:150
 msgid "Units:"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:117
+#: lib/Widgets/WeatherCityDialog.vala:154
 msgid "°C (Celsius)"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:118
+#: lib/Widgets/WeatherCityDialog.vala:155
 msgid "°F (Fahrenheit)"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:126
+#: lib/Widgets/WeatherCityDialog.vala:163
 msgid "Save & Apply"
 msgstr ""
 
-#: lib/Widgets/WeatherCityDialog.vala:332
+#: lib/Widgets/WeatherCityDialog.vala:426
 msgid "Location not found. Please choose from suggestions or leave blank."
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:111 data/ui/preferences.ui:2393
+#: lib/Widgets/WeatherWindow.vala:126 data/ui/preferences.ui:2513
 msgid "Weather Forecast"
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:157
+#: lib/Widgets/WeatherWindow.vala:174
 msgid "Loading weather..."
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:221
+#: lib/Widgets/WeatherWindow.vala:240
 msgid "3-Day Forecast"
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:234
+#: lib/Widgets/WeatherWindow.vala:253
 msgid "🔄 Refresh"
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:241
+#: lib/Widgets/WeatherWindow.vala:261
 msgid "⚙️ Location..."
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:248
+#: lib/Widgets/WeatherWindow.vala:269
 msgid "Close"
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:285
+#: lib/Widgets/WeatherWindow.vala:307
 msgid "Please verify internet connection or location in Settings."
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:298
+#: lib/Widgets/WeatherWindow.vala:320
 msgid "Today"
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:302
+#: lib/Widgets/WeatherWindow.vala:324
 #, c-format
 msgid "Feels like %d%s"
 msgstr ""
 
-#: lib/Widgets/WeatherWindow.vala:386
+#: lib/Widgets/WeatherWindow.vala:410
 msgid "No forecast data available"
 msgstr ""
 
-#: lib/Widgets/WindowCardsWindow.vala:375
+#: lib/Widgets/WindowCardsWindow.vala:480
 msgid "Application"
 msgstr ""
 
-#: lib/Widgets/WindowCardsWindow.vala:489
+#: lib/Widgets/WindowCardsWindow.vala:601
 msgid "Minimized"
 msgstr ""
 
-#: src/Main.vala:84
+#: src/Main.vala:148
 msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr ""
 
-#: src/Main.vala:86
+#: src/Main.vala:150
 msgid "WayPlank - Unsupported Session"
 msgstr ""
 
-#: data/ui/preferences.ui:107
+#: data/ui/preferences.ui:114
 msgid "Theme:"
 msgstr ""
 
-#: data/ui/preferences.ui:141
+#: data/ui/preferences.ui:148
 msgid "Install Theme from Archive (.zip, .tar.gz, .theme)..."
 msgstr ""
 
-#: data/ui/preferences.ui:162
+#: data/ui/preferences.ui:169
 msgid "Delete Selected User Theme"
 msgstr ""
 
-#: data/ui/preferences.ui:190
+#: data/ui/preferences.ui:197
 msgid "Position:"
 msgstr ""
 
-#: data/ui/preferences.ui:205
+#: data/ui/preferences.ui:212
 msgid "Left"
 msgstr ""
 
-#: data/ui/preferences.ui:206
+#: data/ui/preferences.ui:213
 msgid "Right"
 msgstr ""
 
-#: data/ui/preferences.ui:207
+#: data/ui/preferences.ui:214
 msgid "Top"
 msgstr ""
 
-#: data/ui/preferences.ui:208
+#: data/ui/preferences.ui:215
 msgid "Bottom"
 msgstr ""
 
-#: data/ui/preferences.ui:223
+#: data/ui/preferences.ui:230
 msgid "On Primary Display:"
 msgstr ""
 
-#: data/ui/preferences.ui:263
+#: data/ui/preferences.ui:270
 msgid "Alignment:"
 msgstr ""
 
-#: data/ui/preferences.ui:285
+#: data/ui/preferences.ui:292
 msgid "Fill"
 msgstr ""
 
-#: data/ui/preferences.ui:286 data/ui/preferences.ui:361
+#: data/ui/preferences.ui:293 data/ui/preferences.ui:368
 msgid "Start"
 msgstr ""
 
-#: data/ui/preferences.ui:287 data/ui/preferences.ui:362
+#: data/ui/preferences.ui:294 data/ui/preferences.ui:369
 msgid "End"
 msgstr ""
 
-#: data/ui/preferences.ui:288 data/ui/preferences.ui:363
+#: data/ui/preferences.ui:295 data/ui/preferences.ui:370
 msgid "Center"
 msgstr ""
 
-#: data/ui/preferences.ui:308 data/ui/preferences.ui:322
+#: data/ui/preferences.ui:315 data/ui/preferences.ui:329
 msgid "Offset in percent from the center of the screen-edge"
 msgstr ""
 
-#: data/ui/preferences.ui:347
+#: data/ui/preferences.ui:354
 msgid "Icon Alignment:"
 msgstr ""
 
-#: data/ui/preferences.ui:380
+#: data/ui/preferences.ui:387
 msgid "Icon Size:"
 msgstr ""
 
-#: data/ui/preferences.ui:382
+#: data/ui/preferences.ui:389
 msgid ""
 "Preferred dock item size in pixels (24px to 128px); when screen space is "
 "full, items auto-shrink unless Scroll on Overflow is enabled"
 msgstr ""
 
-#: data/ui/preferences.ui:413
+#: data/ui/preferences.ui:420
 msgid "Adjust dock item size in pixels (24px to 128px)"
 msgstr ""
 
-#: data/ui/preferences.ui:431
+#: data/ui/preferences.ui:438
 msgid ""
 "Adjust dock item size in pixels; turning red indicates the screen capacity "
 "is exceeded and icons are auto-shrunk"
 msgstr ""
 
-#: data/ui/preferences.ui:453
+#: data/ui/preferences.ui:460
 msgid "Dynamic indicator of screen space capacity and auto-shrink status"
 msgstr ""
 
-#: data/ui/preferences.ui:474
-msgid "Icon Zoom:"
-msgstr ""
-
-#: data/ui/preferences.ui:476 data/ui/preferences.ui:489
-#: data/ui/preferences.ui:507 data/ui/preferences.ui:524
-msgid "Smoothly magnify icons under the mouse cursor"
-msgstr ""
-
-#: data/ui/preferences.ui:534
-msgid "Appearance"
-msgstr ""
-
-#: data/ui/preferences.ui:555
-msgid "Hide Dock"
-msgstr ""
-
-#: data/ui/preferences.ui:571
-msgid "Hide Dock:"
-msgstr ""
-
-#: data/ui/preferences.ui:572 data/ui/preferences.ui:585
-msgid ""
-"Enable automatic dock hiding according to the selected Hide Mode; when "
-"disabled, the dock remains permanently visible"
-msgstr ""
-
-#: data/ui/preferences.ui:598
-msgid "Hide Mode:"
-msgstr ""
-
-#: data/ui/preferences.ui:611
-msgid "Intellihide"
-msgstr ""
-
-#: data/ui/preferences.ui:612
-msgid "Autohide"
-msgstr ""
-
-#: data/ui/preferences.ui:613
-msgid "Dodge maximized window"
-msgstr ""
-
-#: data/ui/preferences.ui:614
-msgid "Window Dodge"
-msgstr ""
-
-#: data/ui/preferences.ui:615
-msgid "Dodge active window"
-msgstr ""
-
-#: data/ui/preferences.ui:628
-msgid "Hide Delay (ms):"
-msgstr ""
-
-#: data/ui/preferences.ui:629 data/ui/preferences.ui:647
-#: data/ui/preferences.ui:672
-msgid "Delay in ms before hiding the dock"
-msgstr ""
-
-#: data/ui/preferences.ui:692
-msgid "Unhide Delay (ms):"
-msgstr ""
-
-#: data/ui/preferences.ui:693 data/ui/preferences.ui:711
-#: data/ui/preferences.ui:736
-msgid "Delay in ms before showing the dock"
-msgstr ""
-
-#: data/ui/preferences.ui:756
-msgid "Pressure Reveal:"
-msgstr ""
-
-#: data/ui/preferences.ui:783
-msgid "Reserve Screen Space:"
-msgstr ""
-
-#: data/ui/preferences.ui:812
-msgid "Item Management"
-msgstr ""
-
-#: data/ui/preferences.ui:836
-msgid "Show Unpinned:"
-msgstr ""
-
-#: data/ui/preferences.ui:837 data/ui/preferences.ui:851
-msgid "Display running applications on the dock even if they are not pinned"
-msgstr ""
-
-#: data/ui/preferences.ui:865
-msgid "Lock Icons:"
-msgstr ""
-
-#: data/ui/preferences.ui:866 data/ui/preferences.ui:880
-msgid ""
-"Lock dock icons in place to prevent accidental dragging, reordering, or "
-"removal"
-msgstr ""
-
-#: data/ui/preferences.ui:894
-msgid "Start on Login:"
-msgstr ""
-
-#: data/ui/preferences.ui:895 data/ui/preferences.ui:908
-msgid "Automatically launch WayPlank when logging into your desktop session"
-msgstr ""
-
-#: data/ui/preferences.ui:921
-msgid "Workspace Only:"
-msgstr ""
-
-#: data/ui/preferences.ui:952
+#: data/ui/preferences.ui:481
 msgid "Scroll on Overflow:"
 msgstr ""
 
-#: data/ui/preferences.ui:953 data/ui/preferences.ui:967
+#: data/ui/preferences.ui:483 data/ui/preferences.ui:496
 msgid ""
 "Smoothly scroll items with mouse wheel when dock exceeds screen space, "
 "preserving full icon size instead of auto-shrinking icons"
 msgstr ""
 
-#: data/ui/preferences.ui:981
-msgid "Anticipate Icon Zoom:"
+#: data/ui/preferences.ui:510
+msgid "Icon Tooltips:"
 msgstr ""
 
-#: data/ui/preferences.ui:1017
-msgid "Icons Visual Effects"
+#: data/ui/preferences.ui:512 data/ui/preferences.ui:525
+msgid "Show a name tooltip when hovering dock icons"
 msgstr ""
 
-#: data/ui/preferences.ui:1048
-msgid "Launch Effect:"
-msgstr ""
-
-#: data/ui/preferences.ui:1049 data/ui/preferences.ui:1057
-msgid "Animation played when launching or clicking an application icon"
-msgstr ""
-
-#: data/ui/preferences.ui:1059
-msgid "Bounce"
-msgstr ""
-
-#: data/ui/preferences.ui:1060
-msgid "Elastic"
-msgstr ""
-
-#: data/ui/preferences.ui:1061
-msgid "Pulse"
-msgstr ""
-
-#: data/ui/preferences.ui:1062
-msgid "Spring"
-msgstr ""
-
-#: data/ui/preferences.ui:1063
-msgid "Ripple"
-msgstr ""
-
-#: data/ui/preferences.ui:1064
-msgid "Flip"
-msgstr ""
-
-#: data/ui/preferences.ui:1065
-msgid "Swing"
-msgstr ""
-
-#: data/ui/preferences.ui:1066
-msgid "Flash"
-msgstr ""
-
-#: data/ui/preferences.ui:1067 data/ui/preferences.ui:1103
-#: data/ui/preferences.ui:1140
-msgid "None"
-msgstr ""
-
-#: data/ui/preferences.ui:1085
-msgid "Focused App:"
-msgstr ""
-
-#: data/ui/preferences.ui:1086 data/ui/preferences.ui:1094
-msgid "Highlight style for the currently focused application on the dock"
-msgstr ""
-
-#: data/ui/preferences.ui:1096
-msgid "Classic Box"
-msgstr ""
-
-#: data/ui/preferences.ui:1097
-msgid "Icon Glow"
-msgstr ""
-
-#: data/ui/preferences.ui:1098
-msgid "Spotlight"
-msgstr ""
-
-#: data/ui/preferences.ui:1099
-msgid "Rounded Card"
-msgstr ""
-
-#: data/ui/preferences.ui:1100
-msgid "Accent Bar"
-msgstr ""
-
-#: data/ui/preferences.ui:1101
-msgid "Rim Halo"
-msgstr ""
-
-#: data/ui/preferences.ui:1102
-msgid "Floor Reflection"
-msgstr ""
-
-#: data/ui/preferences.ui:1121
-msgid "Unpin Effect:"
-msgstr ""
-
-#: data/ui/preferences.ui:1122 data/ui/preferences.ui:1130
-msgid "Animation played when removing or unpinning an icon from the dock"
-msgstr ""
-
-#: data/ui/preferences.ui:1132
-msgid "Poof Cloud"
-msgstr ""
-
-#: data/ui/preferences.ui:1133
-msgid "Shrink & Fade"
-msgstr ""
-
-#: data/ui/preferences.ui:1134
-msgid "Implode Spin"
-msgstr ""
-
-#: data/ui/preferences.ui:1135
-msgid "Shatter Burst"
-msgstr ""
-
-#: data/ui/preferences.ui:1136
-msgid "Vaporize"
-msgstr ""
-
-#: data/ui/preferences.ui:1137
-msgid "3D Tumble"
-msgstr ""
-
-#: data/ui/preferences.ui:1138
-msgid "Shockwave"
-msgstr ""
-
-#: data/ui/preferences.ui:1139
-msgid "Pixel Dissolve"
-msgstr ""
-
-#: data/ui/preferences.ui:1159
-msgid "Effect Duration:"
-msgstr ""
-
-#: data/ui/preferences.ui:1160 data/ui/preferences.ui:1185
-#: data/ui/preferences.ui:1203
-msgid "Duration in milliseconds (300 ms to 1500 ms) for icon visual animations"
-msgstr ""
-
-#: data/ui/preferences.ui:1221
-msgid "Behaviour"
-msgstr ""
-
-#: data/ui/preferences.ui:1242
-msgid "Window Management"
-msgstr ""
-
-#: data/ui/preferences.ui:1255
-msgid "Click Behavior:"
-msgstr ""
-
-#: data/ui/preferences.ui:1256 data/ui/preferences.ui:1268
-msgid "How clicking a running application icon interacts with its windows"
-msgstr ""
-
-#: data/ui/preferences.ui:1270
-msgid "Smart: Focus, toggle or cycle windows"
-msgstr ""
-
-#: data/ui/preferences.ui:1271
-msgid "Focus: Raise active window to front"
-msgstr ""
-
-#: data/ui/preferences.ui:1272
-msgid "Cycle: Step through open windows"
-msgstr ""
-
-#: data/ui/preferences.ui:1285
-msgid "Window Preview Cards:"
-msgstr ""
-
-#: data/ui/preferences.ui:1286 data/ui/preferences.ui:1298
-msgid ""
-"Display floating visual preview cards when interacting with applications "
-"that have multiple open windows"
-msgstr ""
-
-#: data/ui/preferences.ui:1310
-msgid "Restore Minimized:"
-msgstr ""
-
-#: data/ui/preferences.ui:1311 data/ui/preferences.ui:1323
-msgid "Restore and unminimize windows when clicking their dock icon"
-msgstr ""
-
-#: data/ui/preferences.ui:1337
-msgid "Indicators"
-msgstr ""
-
-#: data/ui/preferences.ui:1350
-msgid "Show Running:"
-msgstr ""
-
-#: data/ui/preferences.ui:1351 data/ui/preferences.ui:1363
-msgid "Display indicator dots beneath icons for actively running applications"
-msgstr ""
-
-#: data/ui/preferences.ui:1375
-msgid "Show Attention:"
-msgstr ""
-
-#: data/ui/preferences.ui:1376 data/ui/preferences.ui:1388
-msgid ""
-"Highlight or animate indicator dots when an application requests user "
-"attention"
-msgstr ""
-
-#: data/ui/preferences.ui:1403
-msgid "Categories & Layout"
-msgstr ""
-
-#: data/ui/preferences.ui:1417
-msgid "Categorize Items:"
-msgstr ""
-
-#: data/ui/preferences.ui:1419 data/ui/preferences.ui:1438
-msgid ""
-"Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with "
-"dynamic separators"
-msgstr ""
-
-#: data/ui/preferences.ui:1451
-msgid ""
-"One-shot reorder: arrange dock items by Folders, Docklets, and Applications "
-"without enabling rigid categories or extra separators"
-msgstr ""
-
-#: data/ui/preferences.ui:1469
-msgid "Align by Type"
-msgstr ""
-
-#: data/ui/preferences.ui:1493
-msgid "Docklets on Right:"
-msgstr ""
-
-#: data/ui/preferences.ui:1494 data/ui/preferences.ui:1507
-msgid ""
-"Place the Docklets group on the right near the Trash (System Tray style) "
-"instead of on the left before applications"
-msgstr ""
-
-#: data/ui/preferences.ui:1519
-msgid "WayPlank Always Left:"
-msgstr ""
-
-#: data/ui/preferences.ui:1520 data/ui/preferences.ui:1533
-msgid ""
-"Always anchor the WayPlank icon at the far left of the dock with its own "
-"vertical separator"
-msgstr ""
-
-#: data/ui/preferences.ui:1546
-msgid "Show Trash:"
-msgstr ""
-
-#: data/ui/preferences.ui:1548 data/ui/preferences.ui:1561
-msgid "Show the Trash Bin icon on the dock"
-msgstr ""
-
-#: data/ui/preferences.ui:1573
-msgid "Docklet Accordion:"
-msgstr ""
-
-#: data/ui/preferences.ui:1574 data/ui/preferences.ui:1587
-msgid "Collapse docklets in-line showing only the first item; expand on hover"
-msgstr ""
-
-#: data/ui/preferences.ui:1600
-msgid "Click to Expand:"
-msgstr ""
-
-#: data/ui/preferences.ui:1601 data/ui/preferences.ui:1614
-msgid ""
-"Expand docklets only when clicking the Master Preferences icon instead of on "
-"hover"
-msgstr ""
-
-#: data/ui/preferences.ui:1626
-msgid "Collapse Delay:"
-msgstr ""
-
-#: data/ui/preferences.ui:1653 data/ui/preferences.ui:1671
-msgid "Delay before collapsing docklets accordion back to master icon"
-msgstr ""
-
-#: data/ui/preferences.ui:1691
+#: data/ui/preferences.ui:538
 msgid "Preferences & System Menu:"
 msgstr ""
 
-#: data/ui/preferences.ui:1692 data/ui/preferences.ui:1704
+#: data/ui/preferences.ui:540 data/ui/preferences.ui:552
 msgid ""
 "Controls where the Preferences icon and system control menu appear on the "
 "dock"
 msgstr ""
 
-#: data/ui/preferences.ui:1720
+#: data/ui/preferences.ui:572
+msgid "WayPlank Always Left:"
+msgstr ""
+
+#: data/ui/preferences.ui:574 data/ui/preferences.ui:587
+msgid ""
+"Always anchor the WayPlank icon at the far left of the dock with its own "
+"vertical separator"
+msgstr ""
+
+#: data/ui/preferences.ui:601
+msgid "Show Trash:"
+msgstr ""
+
+#: data/ui/preferences.ui:603 data/ui/preferences.ui:616
+msgid "Show the Trash Bin icon on the dock"
+msgstr ""
+
+#: data/ui/preferences.ui:626
+msgid "Appearance"
+msgstr ""
+
+#: data/ui/preferences.ui:647
+msgid "Hide Dock"
+msgstr ""
+
+#: data/ui/preferences.ui:663
+msgid "Hide Dock:"
+msgstr ""
+
+#: data/ui/preferences.ui:664 data/ui/preferences.ui:677
+msgid ""
+"Enable automatic dock hiding according to the selected Hide Mode; when "
+"disabled, the dock remains permanently visible"
+msgstr ""
+
+#: data/ui/preferences.ui:690
+msgid "Hide Mode:"
+msgstr ""
+
+#: data/ui/preferences.ui:703
+msgid "Intellihide"
+msgstr ""
+
+#: data/ui/preferences.ui:704
+msgid "Autohide"
+msgstr ""
+
+#: data/ui/preferences.ui:705
+msgid "Dodge maximized window"
+msgstr ""
+
+#: data/ui/preferences.ui:706
+msgid "Window Dodge"
+msgstr ""
+
+#: data/ui/preferences.ui:707
+msgid "Dodge active window"
+msgstr ""
+
+#: data/ui/preferences.ui:720
+msgid "Hide Delay (ms):"
+msgstr ""
+
+#: data/ui/preferences.ui:721 data/ui/preferences.ui:739
+#: data/ui/preferences.ui:764
+msgid "Delay in ms before hiding the dock"
+msgstr ""
+
+#: data/ui/preferences.ui:784
+msgid "Unhide Delay (ms):"
+msgstr ""
+
+#: data/ui/preferences.ui:785 data/ui/preferences.ui:803
+#: data/ui/preferences.ui:828
+msgid "Delay in ms before showing the dock"
+msgstr ""
+
+#: data/ui/preferences.ui:848
+msgid "Pressure Reveal:"
+msgstr ""
+
+#: data/ui/preferences.ui:875
+msgid "Reserve Screen Space:"
+msgstr ""
+
+#: data/ui/preferences.ui:904
+msgid "Item Management"
+msgstr ""
+
+#: data/ui/preferences.ui:920
+msgid "Icon Zoom:"
+msgstr ""
+
+#: data/ui/preferences.ui:922 data/ui/preferences.ui:942
+#: data/ui/preferences.ui:961 data/ui/preferences.ui:979
+msgid "Smoothly magnify icons under the mouse cursor"
+msgstr ""
+
+#: data/ui/preferences.ui:1007
+msgid "Anticipate Icon Zoom:"
+msgstr ""
+
+#: data/ui/preferences.ui:1036
+msgid "Lock Icons:"
+msgstr ""
+
+#: data/ui/preferences.ui:1037 data/ui/preferences.ui:1051
+msgid ""
+"Lock dock icons in place to prevent accidental dragging, reordering, or "
+"removal"
+msgstr ""
+
+#: data/ui/preferences.ui:1065
+msgid "Start on Login:"
+msgstr ""
+
+#: data/ui/preferences.ui:1066 data/ui/preferences.ui:1079
+msgid "Automatically launch WayPlank when logging into your desktop session"
+msgstr ""
+
+#: data/ui/preferences.ui:1101
+msgid "Icons Visual Effects"
+msgstr ""
+
+#: data/ui/preferences.ui:1132
+msgid "Launch Effect:"
+msgstr ""
+
+#: data/ui/preferences.ui:1133 data/ui/preferences.ui:1141
+msgid "Animation played when launching or clicking an application icon"
+msgstr ""
+
+#: data/ui/preferences.ui:1143
+msgid "Bounce"
+msgstr ""
+
+#: data/ui/preferences.ui:1144
+msgid "Elastic"
+msgstr ""
+
+#: data/ui/preferences.ui:1145
+msgid "Pulse"
+msgstr ""
+
+#: data/ui/preferences.ui:1146
+msgid "Spring"
+msgstr ""
+
+#: data/ui/preferences.ui:1147
+msgid "Ripple"
+msgstr ""
+
+#: data/ui/preferences.ui:1148
+msgid "Flip"
+msgstr ""
+
+#: data/ui/preferences.ui:1149
+msgid "Swing"
+msgstr ""
+
+#: data/ui/preferences.ui:1150
+msgid "Flash"
+msgstr ""
+
+#: data/ui/preferences.ui:1151 data/ui/preferences.ui:1187
+#: data/ui/preferences.ui:1224
+msgid "None"
+msgstr ""
+
+#: data/ui/preferences.ui:1169
+msgid "Focused App:"
+msgstr ""
+
+#: data/ui/preferences.ui:1170 data/ui/preferences.ui:1178
+msgid "Highlight style for the currently focused application on the dock"
+msgstr ""
+
+#: data/ui/preferences.ui:1180
+msgid "Classic Box"
+msgstr ""
+
+#: data/ui/preferences.ui:1181
+msgid "Icon Glow"
+msgstr ""
+
+#: data/ui/preferences.ui:1182
+msgid "Spotlight"
+msgstr ""
+
+#: data/ui/preferences.ui:1183
+msgid "Rounded Card"
+msgstr ""
+
+#: data/ui/preferences.ui:1184
+msgid "Accent Bar"
+msgstr ""
+
+#: data/ui/preferences.ui:1185
+msgid "Rim Halo"
+msgstr ""
+
+#: data/ui/preferences.ui:1186
+msgid "Floor Reflection"
+msgstr ""
+
+#: data/ui/preferences.ui:1205
+msgid "Unpin Effect:"
+msgstr ""
+
+#: data/ui/preferences.ui:1206 data/ui/preferences.ui:1214
+msgid "Animation played when removing or unpinning an icon from the dock"
+msgstr ""
+
+#: data/ui/preferences.ui:1216
+msgid "Poof Cloud"
+msgstr ""
+
+#: data/ui/preferences.ui:1217
+msgid "Shrink & Fade"
+msgstr ""
+
+#: data/ui/preferences.ui:1218
+msgid "Implode Spin"
+msgstr ""
+
+#: data/ui/preferences.ui:1219
+msgid "Shatter Burst"
+msgstr ""
+
+#: data/ui/preferences.ui:1220
+msgid "Vaporize"
+msgstr ""
+
+#: data/ui/preferences.ui:1221
+msgid "3D Tumble"
+msgstr ""
+
+#: data/ui/preferences.ui:1222
+msgid "Shockwave"
+msgstr ""
+
+#: data/ui/preferences.ui:1223
+msgid "Pixel Dissolve"
+msgstr ""
+
+#: data/ui/preferences.ui:1243
+msgid "Effect Duration:"
+msgstr ""
+
+#: data/ui/preferences.ui:1244 data/ui/preferences.ui:1269
+#: data/ui/preferences.ui:1287
+msgid "Duration in milliseconds (300 ms to 1500 ms) for icon visual animations"
+msgstr ""
+
+#: data/ui/preferences.ui:1305
+msgid "Behaviour"
+msgstr ""
+
+#: data/ui/preferences.ui:1326
+msgid "Window Management"
+msgstr ""
+
+#: data/ui/preferences.ui:1339
+msgid "Click Behavior:"
+msgstr ""
+
+#: data/ui/preferences.ui:1340 data/ui/preferences.ui:1352
+msgid "How clicking a running application icon interacts with its windows"
+msgstr ""
+
+#: data/ui/preferences.ui:1354
+msgid "Smart: Focus, toggle or cycle windows"
+msgstr ""
+
+#: data/ui/preferences.ui:1355
+msgid "Focus: Raise active window to front"
+msgstr ""
+
+#: data/ui/preferences.ui:1356
+msgid "Cycle: Step through open windows"
+msgstr ""
+
+#: data/ui/preferences.ui:1369
+msgid "Window Preview Cards:"
+msgstr ""
+
+#: data/ui/preferences.ui:1370 data/ui/preferences.ui:1382
+msgid ""
+"Display floating visual preview cards when interacting with applications "
+"that have multiple open windows"
+msgstr ""
+
+#: data/ui/preferences.ui:1394
+msgid "Restore Minimized:"
+msgstr ""
+
+#: data/ui/preferences.ui:1395 data/ui/preferences.ui:1407
+msgid "Restore and unminimize windows when clicking their dock icon"
+msgstr ""
+
+#: data/ui/preferences.ui:1419
+msgid "Show Unpinned:"
+msgstr ""
+
+#: data/ui/preferences.ui:1420 data/ui/preferences.ui:1433
+msgid "Display running applications on the dock even if they are not pinned"
+msgstr ""
+
+#: data/ui/preferences.ui:1446
+msgid "Workspace Only:"
+msgstr ""
+
+#: data/ui/preferences.ui:1476
+msgid "Indicators"
+msgstr ""
+
+#: data/ui/preferences.ui:1489
+msgid "Show Running:"
+msgstr ""
+
+#: data/ui/preferences.ui:1490 data/ui/preferences.ui:1502
+msgid "Display indicator dots beneath icons for actively running applications"
+msgstr ""
+
+#: data/ui/preferences.ui:1514
+msgid "Show Attention:"
+msgstr ""
+
+#: data/ui/preferences.ui:1515 data/ui/preferences.ui:1527
+msgid ""
+"Highlight or animate indicator dots when an application requests user "
+"attention"
+msgstr ""
+
+#: data/ui/preferences.ui:1542
+msgid "Categories & Layout"
+msgstr ""
+
+#: data/ui/preferences.ui:1556
+msgid "Categorize Items:"
+msgstr ""
+
+#: data/ui/preferences.ui:1558 data/ui/preferences.ui:1577
+msgid ""
+"Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with "
+"dynamic separators"
+msgstr ""
+
+#: data/ui/preferences.ui:1590
+msgid ""
+"One-shot reorder: arrange dock items by Folders, Docklets, and Applications "
+"without enabling rigid categories or extra separators"
+msgstr ""
+
+#: data/ui/preferences.ui:1608
+msgid "Align by Type"
+msgstr ""
+
+#: data/ui/preferences.ui:1632
+msgid "Docklets on Right:"
+msgstr ""
+
+#: data/ui/preferences.ui:1633 data/ui/preferences.ui:1646
+msgid ""
+"Place the Docklets group on the right near the Trash (System Tray style) "
+"instead of on the left before applications"
+msgstr ""
+
+#: data/ui/preferences.ui:1658
+msgid "Docklet Accordion:"
+msgstr ""
+
+#: data/ui/preferences.ui:1659 data/ui/preferences.ui:1672
+msgid "Collapse docklets in-line showing only the first item; expand on hover"
+msgstr ""
+
+#: data/ui/preferences.ui:1685
+msgid "Click to Expand:"
+msgstr ""
+
+#: data/ui/preferences.ui:1686 data/ui/preferences.ui:1699
+msgid ""
+"Expand docklets only when clicking the Master Preferences icon instead of on "
+"hover"
+msgstr ""
+
+#: data/ui/preferences.ui:1711
+msgid "Pinned Accordion:"
+msgstr ""
+
+#: data/ui/preferences.ui:1713 data/ui/preferences.ui:1732
+msgid ""
+"Hide the least used pinned apps behind an expander. Auto-Fit keeps as many "
+"as fit on screen, Top Most Used keeps the N most used. Running apps, apps "
+"needing attention and apps marked Keep Always Visible always stay. Requires "
+"Categorize Items"
+msgstr ""
+
+#: data/ui/preferences.ui:1734
+msgid "Off"
+msgstr ""
+
+#: data/ui/preferences.ui:1735
+msgid "Auto-Fit Capacity"
+msgstr ""
+
+#: data/ui/preferences.ui:1736
+msgid "Top Most Used"
+msgstr ""
+
+#: data/ui/preferences.ui:1757
+msgid "Number of most used pinned apps kept visible"
+msgstr ""
+
+#: data/ui/preferences.ui:1777
+msgid "Collapse Delay:"
+msgstr ""
+
+#: data/ui/preferences.ui:1804 data/ui/preferences.ui:1822
+msgid "Delay before collapsing docklets accordion back to master icon"
+msgstr ""
+
+#: data/ui/preferences.ui:1840
 msgid "Apps & Layout"
 msgstr ""
 
-#: data/ui/preferences.ui:1741
+#: data/ui/preferences.ui:1861
 msgid "Built-in Docklets"
 msgstr ""
 
-#: data/ui/preferences.ui:1775
+#: data/ui/preferences.ui:1895
 msgid "CPU & RAM Monitor"
 msgstr ""
 
-#: data/ui/preferences.ui:1827 data/ui/preferences.ui:1841
+#: data/ui/preferences.ui:1947 data/ui/preferences.ui:1961
 msgid "Toggle desktop notifications and Do Not Disturb mode"
 msgstr ""
 
-#: data/ui/preferences.ui:1880
+#: data/ui/preferences.ui:2000
 msgid "Analog Clock"
 msgstr ""
 
-#: data/ui/preferences.ui:2086
+#: data/ui/preferences.ui:2206
 msgid "Battery Monitor"
 msgstr ""
 
-#: data/ui/preferences.ui:2137
+#: data/ui/preferences.ui:2257
 msgid "Volume Control"
 msgstr ""
 
-#: data/ui/preferences.ui:2444
+#: data/ui/preferences.ui:2564
 msgid "Network / Wi-Fi"
 msgstr ""

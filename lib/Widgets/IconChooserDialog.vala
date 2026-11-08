@@ -22,7 +22,14 @@ namespace Plank
 {
 	public class IconChooserDialog : Gtk.Dialog
 	{
-		public static bool is_open { get; private set; default = false; }
+		private static int open_count = 0;
+		private static Gee.HashMap<DockItem, unowned IconChooserDialog>? active_item_dialogs = null;
+		public static bool is_open {
+			get { return open_count > 0; }
+		}
+		private bool counted_open = false;
+		private bool is_destroyed = false;
+		private bool browse_in_progress = false;
 
 		private const int ICON_DISPLAY_SIZE = 36;
 		private const int MAX_VISIBLE_ICONS = 180;
@@ -59,9 +66,29 @@ namespace Plank
 			set_skip_taskbar_hint (true);
 			set_skip_pager_hint (true);
 
-			is_open = true;
-			this.show.connect (() => { is_open = true; });
-			this.hide.connect (() => { is_open = false; });
+			counted_open = true;
+			open_count++;
+			this.show.connect (() => {
+				if (!is_destroyed && !counted_open) {
+					counted_open = true;
+					open_count++;
+				}
+			});
+			this.hide.connect (() => {
+				if (!browse_in_progress && counted_open) {
+					counted_open = false;
+					if (open_count > 0)
+						open_count--;
+				}
+			});
+			this.destroy.connect (() => {
+				is_destroyed = true;
+				if (counted_open) {
+					counted_open = false;
+					if (open_count > 0)
+						open_count--;
+				}
+			});
 
 			this.original_icon = current_icon;
 			this.item_name = item_name;
@@ -71,9 +98,27 @@ namespace Plank
 			load_theme_icons_async ();
 		}
 
+		~IconChooserDialog ()
+		{
+			is_destroyed = true;
+			if (counted_open) {
+				counted_open = false;
+				if (open_count > 0)
+					open_count--;
+			}
+			if (search_debounce_id > 0) {
+				GLib.Source.remove (search_debounce_id);
+				search_debounce_id = 0;
+			}
+		}
+
 		public override void destroy ()
 		{
-			is_open = false;
+			if (counted_open) {
+				counted_open = false;
+				if (open_count > 0)
+					open_count--;
+			}
 			if (search_debounce_id > 0) {
 				GLib.Source.remove (search_debounce_id);
 				search_debounce_id = 0;
@@ -282,12 +327,18 @@ namespace Plank
 
 		private void on_browse_file_clicked ()
 		{
-			var chooser = new Gtk.FileChooserDialog (
+			if (browse_in_progress || is_destroyed)
+				return;
+
+			browse_in_progress = true;
+			this.hide ();
+
+			var chooser = new Gtk.FileChooserNative (
 				_("Select Icon File"),
-				this,
+				null,
 				Gtk.FileChooserAction.OPEN,
-				_("Cancel"), Gtk.ResponseType.CANCEL,
-				_("Select"), Gtk.ResponseType.ACCEPT
+				_("Select"),
+				_("Cancel")
 			);
 
 			var filter = new Gtk.FileFilter ();
@@ -308,18 +359,27 @@ namespace Plank
 			all_filter.add_pattern ("*");
 			chooser.add_filter (all_filter);
 
+			string? chosen_path = null;
 			if (chooser.run () == Gtk.ResponseType.ACCEPT) {
-				string? chosen_path = chooser.get_filename ();
-				if (chosen_path != null && chosen_path != "") {
-					selected_icon = chosen_path;
-					is_reset_to_default = false;
-					update_preview_image (selected_icon);
-					preview_label.set_text (selected_icon);
-					btn_apply.sensitive = true;
-				}
+				chosen_path = chooser.get_filename ();
 			}
 
 			chooser.destroy ();
+			browse_in_progress = false;
+
+			if (is_destroyed)
+				return;
+
+			this.show ();
+			this.present ();
+
+			if (chosen_path != null && chosen_path != "") {
+				selected_icon = chosen_path;
+				is_reset_to_default = false;
+				update_preview_image (selected_icon);
+				preview_label.set_text (selected_icon);
+				btn_apply.sensitive = true;
+			}
 		}
 
 		private void handle_response (int response_id)
@@ -338,16 +398,29 @@ namespace Plank
 
 		public static void show_for_launcher (ApplicationDockItem item)
 		{
+			if (active_item_dialogs == null)
+				active_item_dialogs = new Gee.HashMap<DockItem, unowned IconChooserDialog> ();
+			var existing = active_item_dialogs.get (item);
+			if (existing != null && !existing.is_destroyed) {
+				existing.present ();
+				return;
+			}
+
 			var dlg = new IconChooserDialog (item.Icon, item.Text);
+			active_item_dialogs.set (item, dlg);
 			dlg.response.connect ((resp) => {
-				if (resp == Gtk.ResponseType.OK && dlg.selected_icon != null) {
-					apply_launcher_icon (item, dlg.selected_icon);
-				} else if (resp == Gtk.ResponseType.APPLY || dlg.is_reset_to_default) {
-					reset_launcher_icon (item);
+				if (item.Container != null) {
+					if (resp == Gtk.ResponseType.OK && dlg.selected_icon != null) {
+						apply_launcher_icon (item, dlg.selected_icon);
+					} else if (resp == Gtk.ResponseType.APPLY || dlg.is_reset_to_default) {
+						reset_launcher_icon (item);
+					}
 				}
 				dlg.destroy ();
 			});
 			dlg.destroy.connect (() => {
+				if (active_item_dialogs != null && active_item_dialogs.get (item) == dlg)
+					active_item_dialogs.unset (item);
 				item.get_dock ()?.check_collapse_after_interaction (dlg);
 			});
 			dlg.present ();
@@ -355,6 +428,8 @@ namespace Plank
 
 		private static void apply_launcher_icon (ApplicationDockItem item, string new_icon)
 		{
+			if (item.Container == null)
+				return;
 			string launcher_uri = item.Prefs.Launcher;
 			if (launcher_uri == "" || !launcher_uri.has_prefix ("file://"))
 				return;
@@ -367,10 +442,26 @@ namespace Plank
 			DirUtils.create_with_parents (user_apps_dir, 0755);
 
 			string dest_path = Path.build_filename (user_apps_dir, Path.get_basename (src_path));
+			bool created_by_wayplank = !FileUtils.test (dest_path, FileTest.EXISTS);
 
 			try {
 				var kf = new KeyFile ();
 				kf.load_from_file (src_path, KeyFileFlags.KEEP_COMMENTS | KeyFileFlags.KEEP_TRANSLATIONS);
+				if (created_by_wayplank)
+					kf.set_boolean (KeyFileDesktop.GROUP, "X-WayPlank-Created", true);
+				if (!kf.has_key (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon")) {
+					try {
+						string orig_icon = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
+						if (orig_icon != null && orig_icon != "")
+							kf.set_string (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon", orig_icon);
+					} catch { }
+				}
+				try {
+					foreach (unowned string k in kf.get_keys (KeyFileDesktop.GROUP)) {
+						if (k.has_prefix ("Icon["))
+							kf.remove_key (KeyFileDesktop.GROUP, k);
+					}
+				} catch { }
 				kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON, new_icon);
 				kf.save_to_file (dest_path);
 
@@ -381,6 +472,7 @@ namespace Plank
 					warning ("Could not convert dest_path to uri: %s", e.message);
 				}
 				item.Icon = new_icon;
+				ApplicationDiscovery.get_default ().refresh_index_now ();
 			} catch (Error e) {
 				critical ("Could not save custom launcher desktop file: %s", e.message);
 			}
@@ -388,6 +480,8 @@ namespace Plank
 
 		private static void reset_launcher_icon (ApplicationDockItem item)
 		{
+			if (item.Container == null)
+				return;
 			string launcher_uri = item.Prefs.Launcher;
 			if (launcher_uri == "" || !launcher_uri.has_prefix ("file://"))
 				return;
@@ -397,14 +491,47 @@ namespace Plank
 				return;
 
 			string basename = Path.get_basename (cur_path);
-			string sys_path = Path.build_filename ("/usr/share/applications", basename);
-			if (!FileUtils.test (sys_path, FileTest.EXISTS))
-				sys_path = Path.build_filename ("/usr/local/share/applications", basename);
+			string user_apps_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
+			string user_desktop = Path.build_filename (user_apps_dir, basename);
 
-			if (FileUtils.test (sys_path, FileTest.EXISTS)) {
-				// Remove user override if present
-				string user_apps_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
-				string user_desktop = Path.build_filename (user_apps_dir, basename);
+			string? sys_path = null;
+			foreach (unowned string data_dir in Environment.get_system_data_dirs ()) {
+				string candidate = Path.build_filename (data_dir, "applications", basename);
+				if (candidate != user_desktop && FileUtils.test (candidate, FileTest.EXISTS)) {
+					sys_path = candidate;
+					break;
+				}
+			}
+			if (sys_path == null) {
+				string[] extra_dirs = {
+					Path.build_filename (Environment.get_user_data_dir (), "flatpak", "exports", "share", "applications"),
+					"/var/lib/flatpak/exports/share/applications",
+					"/var/lib/snapd/desktop/applications",
+					"/usr/local/share/applications",
+					"/usr/share/applications"
+				};
+				foreach (unowned string dir in extra_dirs) {
+					string candidate = Path.build_filename (dir, basename);
+					if (candidate != user_desktop && FileUtils.test (candidate, FileTest.EXISTS)) {
+						sys_path = candidate;
+						break;
+					}
+				}
+			}
+
+			bool can_unlink_user_override = false;
+			if (sys_path != null && FileUtils.test (user_desktop, FileTest.EXISTS)) {
+				try {
+					var ukf = new KeyFile ();
+					ukf.load_from_file (user_desktop, KeyFileFlags.NONE);
+					if (ukf.has_key (KeyFileDesktop.GROUP, "X-WayPlank-Created")
+						&& ukf.get_boolean (KeyFileDesktop.GROUP, "X-WayPlank-Created")) {
+						can_unlink_user_override = true;
+					}
+				} catch { }
+			}
+
+			if (sys_path != null && (!FileUtils.test (user_desktop, FileTest.EXISTS) || can_unlink_user_override)) {
 				if (FileUtils.test (user_desktop, FileTest.EXISTS)) {
 					FileUtils.unlink (user_desktop);
 				}
@@ -414,26 +541,62 @@ namespace Plank
 				} catch (ConvertError e) {
 					warning ("Could not convert sys_path to uri: %s", e.message);
 				}
+			} else if (FileUtils.test (cur_path, FileTest.EXISTS)) {
+				// Pre-existing user .desktop (or user-only .desktop): preserve custom keys and restore original icon
+				try {
+					var kf = new KeyFile ();
+					kf.load_from_file (cur_path, KeyFileFlags.KEEP_COMMENTS | KeyFileFlags.KEEP_TRANSLATIONS);
+					string? restored_icon = null;
+					if (kf.has_key (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon")) {
+						restored_icon = kf.get_string (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon");
+						kf.remove_key (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon");
+					} else if (sys_path != null) {
+						try {
+							var skf = new KeyFile ();
+							skf.load_from_file (sys_path, KeyFileFlags.NONE);
+							if (skf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON))
+								restored_icon = skf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
+						} catch { }
+					}
+					if (restored_icon != null && restored_icon != "") {
+						kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON, restored_icon);
+						kf.save_to_file (cur_path);
+					}
+				} catch { }
 			}
 
 			// Reload icon from desktop file
 			string icon, text;
 			ApplicationDockItem.parse_launcher (item.Prefs.Launcher, out icon, out text);
 			item.Icon = icon;
+			ApplicationDiscovery.get_default ().refresh_index_now ();
 		}
 
 		public static void show_for_folder (FileDockItem item)
 		{
+			if (active_item_dialogs == null)
+				active_item_dialogs = new Gee.HashMap<DockItem, unowned IconChooserDialog> ();
+			var existing = active_item_dialogs.get (item);
+			if (existing != null && !existing.is_destroyed) {
+				existing.present ();
+				return;
+			}
+
 			var dlg = new IconChooserDialog (item.Icon, item.Text);
+			active_item_dialogs.set (item, dlg);
 			dlg.response.connect ((resp) => {
-				if (resp == Gtk.ResponseType.OK && dlg.selected_icon != null) {
-					apply_folder_icon (item, dlg.selected_icon);
-				} else if (resp == Gtk.ResponseType.APPLY || dlg.is_reset_to_default) {
-					reset_folder_icon (item);
+				if (item.Container != null) {
+					if (resp == Gtk.ResponseType.OK && dlg.selected_icon != null) {
+						apply_folder_icon (item, dlg.selected_icon);
+					} else if (resp == Gtk.ResponseType.APPLY || dlg.is_reset_to_default) {
+						reset_folder_icon (item);
+					}
 				}
 				dlg.destroy ();
 			});
 			dlg.destroy.connect (() => {
+				if (active_item_dialogs != null && active_item_dialogs.get (item) == dlg)
+					active_item_dialogs.unset (item);
 				item.get_dock ()?.check_collapse_after_interaction (dlg);
 			});
 			dlg.present ();
@@ -441,26 +604,7 @@ namespace Plank
 
 		private static void apply_folder_icon (FileDockItem item, string new_icon)
 		{
-			if (item.OwnedFile == null)
-				return;
-
-			try {
-				var info = new FileInfo ();
-				if (new_icon.has_prefix ("/") || new_icon.has_prefix ("file://")) {
-					string path = new_icon;
-					if (path.has_prefix ("file://"))
-						path = Filename.from_uri (path);
-					info.set_attribute_string ("metadata::custom-icon", path);
-					info.set_attribute_string ("metadata::custom-icon-name", "");
-				} else {
-					info.set_attribute_string ("metadata::custom-icon-name", new_icon);
-					info.set_attribute_string ("metadata::custom-icon", "");
-				}
-				item.OwnedFile.set_attributes_from_info (info, FileQueryInfoFlags.NONE, null);
-				item.Icon = new_icon;
-			} catch (Error e) {
-				warning ("Failed to set folder custom icon: %s", e.message);
-			}
+			item.apply_custom_icon (new_icon);
 		}
 
 		private static void reset_folder_icon (FileDockItem item)

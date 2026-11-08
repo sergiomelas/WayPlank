@@ -256,8 +256,8 @@ namespace Plank
 				}
 				
 				prefs_changed_timer_id = Gdk.threads_add_timeout (UPDATE_TIMEOUT, () => {
-					update_window_intersect ();
 					prefs_changed_timer_id = 0U;
+					update_window_intersect ();
 					return false;
 				});
 				break;
@@ -338,8 +338,19 @@ namespace Plank
 		void update_hidden ()
 		{
 			if (Disabled) {
-				if (Hidden)
+				if (hide_timer_id > 0U) {
+					GLib.Source.remove (hide_timer_id);
+					hide_timer_id = 0U;
+				}
+				if (unhide_timer_id > 0U) {
+					GLib.Source.remove (unhide_timer_id);
+					unhide_timer_id = 0U;
+				}
+				if (Hidden) {
 					Hidden = false;
+					if (controller.window != null)
+						controller.window.set_input_mask ();
+				}
 				return;
 			}
 
@@ -427,9 +438,11 @@ namespace Plank
 				return;
 			
 			hide_timer_id = Gdk.threads_add_timeout (controller.prefs.HideDelay, () => {
-				if (!Hidden)
-					Hidden = true;
 				hide_timer_id = 0U;
+				if (!Hidden && !Disabled) {
+					Hidden = true;
+					controller.window.set_input_mask ();
+				}
 				return false;
 			});
 		}
@@ -456,11 +469,11 @@ namespace Plank
 				return;
 			
 			unhide_timer_id = Gdk.threads_add_timeout (controller.prefs.UnhideDelay, () => {
+				unhide_timer_id = 0U;
 				if (Hidden) {
 					Hidden = false;
 					controller.window.set_input_mask ();
 				}
-				unhide_timer_id = 0U;
 				return false;
 			});
 		}

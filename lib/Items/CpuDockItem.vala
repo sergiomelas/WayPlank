@@ -224,12 +224,12 @@ namespace Plank
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				string[] monitors = { "plasma-systemmonitor", "gnome-system-monitor", "ksysguard" };
-				foreach (var mon in monitors) {
-					try {
-						Process.spawn_command_line_async (mon);
-						return AnimationType.BOUNCE;
-					} catch (Error e) { }
+				if (System.launch_desktop_utility (
+					{ "plasma-systemmonitor", "ksysguard" },
+					{ "gnome-system-monitor" },
+					{ "xfce4-taskmanager", "lxtask" }
+				)) {
+					return AnimationType.BOUNCE;
 				}
 			}
 			
@@ -252,13 +252,15 @@ namespace Plank
 			});
 			items.add (mon_item);
 			
-			items.add (new Gtk.SeparatorMenuItem ());
-			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
+				
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 			
 			return items;
 		}

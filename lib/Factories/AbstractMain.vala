@@ -42,6 +42,9 @@ namespace Plank
 		};
 
 		static bool is_shutting_down = false;
+		static uint sigint_source_id = 0U;
+		static uint sigterm_source_id = 0U;
+		static uint sighup_source_id = 0U;
 		public static string? saved_gtk_use_portal = null;
 
 		public static void perform_clean_shutdown ()
@@ -50,32 +53,78 @@ namespace Plank
 				return;
 			is_shutting_down = true;
 
-			if (app_instance != null && app_instance.resume_timer_id > 0U) {
-				GLib.Source.remove (app_instance.resume_timer_id);
-				app_instance.resume_timer_id = 0U;
+			if (sigint_source_id > 0U) {
+				GLib.Source.remove (sigint_source_id);
+				sigint_source_id = 0U;
 			}
-			if (app_instance != null && app_instance.upgrade_signal_source_id > 0U) {
-				GLib.Source.remove (app_instance.upgrade_signal_source_id);
-				app_instance.upgrade_signal_source_id = 0U;
+			if (sigterm_source_id > 0U) {
+				GLib.Source.remove (sigterm_source_id);
+				sigterm_source_id = 0U;
+			}
+			if (sighup_source_id > 0U) {
+				GLib.Source.remove (sighup_source_id);
+				sighup_source_id = 0U;
+			}
+
+			if (app_instance != null) {
+				if (app_instance.first_run_dlg != null) {
+					app_instance.first_run_dlg.cancel_without_applying ();
+					app_instance.first_run_dlg.destroy ();
+					app_instance.first_run_dlg = null;
+				}
+				if (app_instance.env_error_dlg != null) {
+					app_instance.env_error_dlg.destroy ();
+					app_instance.env_error_dlg = null;
+				}
+				foreach (var dock in app_instance.docks) {
+					dock.flush_pending_serialization ();
+					if (dock.prefs != null)
+						dock.prefs.flush_to_disk ();
+				}
+
+				if (app_instance.resume_timer_id > 0U) {
+					GLib.Source.remove (app_instance.resume_timer_id);
+					app_instance.resume_timer_id = 0U;
+				}
+				if (app_instance.upgrade_signal_source_id > 0U) {
+					GLib.Source.remove (app_instance.upgrade_signal_source_id);
+					app_instance.upgrade_signal_source_id = 0U;
+				}
+				app_instance.teardown_power_management_listener ();
 			}
 
 			SystemTheme.cleanup_if_active ();
 			BrightnessControl.cleanup_if_active ();
+			AppUsageService.shutdown_if_active ();
 			WindowControl.cleanup ();
+			GLib.Settings.sync ();
 		}
 
-		static void sig_handler (int sig)
+		static bool handle_unix_termination_signal (int sig)
 		{
 			warning ("Caught signal (%d), exiting", sig);
 			perform_clean_shutdown ();
-			Posix.exit (0);
+			if (app_instance != null)
+				app_instance.quit ();
+			else
+				Posix.exit (0);
+			return false;
 		}
 		
 		static construct
 		{
-			Posix.signal (Posix.Signal.INT, sig_handler);
-			Posix.signal (Posix.Signal.TERM, sig_handler);
-			Posix.signal (Posix.Signal.HUP, sig_handler);
+			sigint_source_id = GLib.Unix.signal_add ((int) Posix.Signal.INT, () => {
+				sigint_source_id = 0U;
+				return handle_unix_termination_signal ((int) Posix.Signal.INT);
+			});
+			sigterm_source_id = GLib.Unix.signal_add ((int) Posix.Signal.TERM, () => {
+				sigterm_source_id = 0U;
+				return handle_unix_termination_signal ((int) Posix.Signal.TERM);
+			});
+			sighup_source_id = GLib.Unix.signal_add ((int) Posix.Signal.HUP, () => {
+				sighup_source_id = 0U;
+				return handle_unix_termination_signal ((int) Posix.Signal.HUP);
+			});
 		}
 		
 		/**
@@ -166,14 +215,17 @@ namespace Plank
 
 		public static void check_collapse_all_docks (Gtk.Window? closing_win = null)
 		{
-			if (app_instance != null && app_instance.primary_dock != null) {
-				app_instance.primary_dock.check_collapse_after_interaction (closing_win);
+			if (app_instance != null) {
+				foreach (var dock in app_instance.docks)
+					dock.check_collapse_after_interaction (closing_win);
 			}
 		}
 
 		Gtk.AboutDialog? about_dlg;
 		PreferencesWindow? preferences_dlg;
 		HelpWindow? help_dlg;
+		FirstRunWindow? first_run_dlg;
+		Gtk.MessageDialog? env_error_dlg;
 		DockController? primary_dock;
 		Gee.ArrayList<DockController> docks;
 		
@@ -333,6 +385,10 @@ namespace Plank
 			if (dock_name != null && dock_name != "") {
 				message ("Running with 1 dock ('%s')", dock_name);
 				add_dock (create_dock (dock_name));
+				if (primary_dock != null && primary_dock.prefs.load_environment_failed)
+					show_load_environment_failed (primary_dock);
+				else if (primary_dock != null && primary_dock.is_first_run_launch)
+					show_first_run (primary_dock);
 				return;
 			}
 			
@@ -351,6 +407,11 @@ namespace Plank
 			message ("Running with %i docks ('%s')", enabled_docks.length, string.joinv ("', '", enabled_docks));
 			foreach (unowned string dock_name in enabled_docks)
 				add_dock (create_dock (dock_name));
+
+			if (primary_dock != null && primary_dock.prefs.load_environment_failed)
+				show_load_environment_failed (primary_dock);
+			else if (primary_dock != null && primary_dock.is_first_run_launch)
+				show_first_run (primary_dock);
 		}
 		
 		DockController create_dock (string dock_name)
@@ -434,12 +495,6 @@ namespace Plank
 			action = new SimpleAction ("guide", null);
 			action.activate.connect (() => {
 				show_guide ();
-			});
-			add_action (action);
-
-			action = new SimpleAction ("report", null);
-			action.activate.connect (() => {
-				show_report ();
 			});
 			add_action (action);
 			
@@ -545,15 +600,21 @@ namespace Plank
 			
 			about_dlg.hide.connect (() => {
 				is_about_open = false;
+				if (about_dlg == null)
+					return;
 				Gtk.Window? old = about_dlg;
-				about_dlg.destroy ();
 				about_dlg = null;
-				if (primary_dock != null)
-					primary_dock.check_collapse_after_interaction (old);
+				old.destroy ();
+				check_collapse_all_docks (old);
 			});
 
 			about_dlg.destroy.connect (() => {
 				is_about_open = false;
+				if (about_dlg != null) {
+					Gtk.Window? old = about_dlg;
+					about_dlg = null;
+					check_collapse_all_docks (old);
+				}
 			});
 			
 			raise_and_focus_window (about_dlg, click_time);
@@ -617,18 +678,20 @@ namespace Plank
 				preferences_dlg.show_page (page_name);
 			
 			preferences_dlg.destroy.connect (() => {
+				if (preferences_dlg == null)
+					return;
 				Gtk.Window? old = preferences_dlg;
 				preferences_dlg = null;
-				if (primary_dock != null)
-					primary_dock.check_collapse_after_interaction (old);
+				check_collapse_all_docks (old);
 			});
 			
 			preferences_dlg.hide.connect (() => {
+				if (preferences_dlg == null || preferences_dlg.suppress_destroy_on_hide)
+					return;
 				Gtk.Window? old = preferences_dlg;
-				preferences_dlg.destroy ();
 				preferences_dlg = null;
-				if (primary_dock != null)
-					primary_dock.check_collapse_after_interaction (old);
+				old.destroy ();
+				check_collapse_all_docks (old);
 			});
 			
 			raise_and_focus_window (preferences_dlg, click_time);
@@ -645,21 +708,122 @@ namespace Plank
 			help_dlg = new HelpWindow ();
 
 			help_dlg.destroy.connect (() => {
+				if (help_dlg == null)
+					return;
 				Gtk.Window? old = help_dlg;
 				help_dlg = null;
-				if (primary_dock != null)
-					primary_dock.check_collapse_after_interaction (old);
+				check_collapse_all_docks (old);
 			});
 
 			help_dlg.hide.connect (() => {
+				if (help_dlg == null)
+					return;
 				Gtk.Window? old = help_dlg;
-				help_dlg.destroy ();
 				help_dlg = null;
-				if (primary_dock != null)
-					primary_dock.check_collapse_after_interaction (old);
+				old.destroy ();
+				check_collapse_all_docks (old);
 			});
 
 			raise_and_focus_window (help_dlg, click_time);
+		}
+
+		void show_first_run (DockController controller)
+		{
+			uint32 click_time = Gtk.get_current_event_time ();
+			if (first_run_dlg != null) {
+				raise_and_focus_window (first_run_dlg, click_time);
+				return;
+			}
+
+			first_run_dlg = new FirstRunWindow (controller);
+
+			first_run_dlg.destroy.connect (() => {
+				if (first_run_dlg == null)
+					return;
+				Gtk.Window? old = first_run_dlg;
+				first_run_dlg = null;
+				check_collapse_all_docks (old);
+			});
+
+			first_run_dlg.hide.connect (() => {
+				if (first_run_dlg == null)
+					return;
+				Gtk.Window? old = first_run_dlg;
+				first_run_dlg = null;
+				old.destroy ();
+				check_collapse_all_docks (old);
+			});
+
+			raise_and_focus_window (first_run_dlg, click_time);
+		}
+
+		void show_load_environment_failed (DockController controller)
+		{
+			string details = controller.prefs.load_environment_failed_details;
+			string discarded = controller.prefs.discarded_dockitems_details;
+			string secondary = "";
+			if (details != "" && discarded != "") {
+				secondary = "%s\n%s\n\n%s\n%s".printf (
+					_("Defaulting partially to default config for:"),
+					details,
+					_("Discarded corrupted or invalid dockitem:"),
+					discarded
+				);
+			} else if (discarded != "") {
+				secondary = "%s\n%s".printf (_("Discarded corrupted or invalid dockitem:"), discarded);
+			} else {
+				if (details == "")
+					details = _("All settings (corrupted latch-state.ini)");
+				secondary = "%s\n%s".printf (_("Defaulting partially to default config for:"), details);
+			}
+			warning ("Load environment failed — %s", secondary.replace ("\n", " "));
+
+			if (Environment.get_variable ("WAYPLANK_NO_PROMPT") == "1")
+				return;
+
+			uint32 click_time = Gtk.get_current_event_time ();
+			if (env_error_dlg != null) {
+				raise_and_focus_window (env_error_dlg, click_time);
+				return;
+			}
+
+			env_error_dlg = new Gtk.MessageDialog (
+				null,
+				0,
+				Gtk.MessageType.WARNING,
+				Gtk.ButtonsType.OK,
+				"%s",
+				_("Load environment failed")
+			);
+			env_error_dlg.secondary_text = secondary;
+			env_error_dlg.set_title (_("Load environment failed"));
+			env_error_dlg.set_role ("help");
+			env_error_dlg.set_position (Gtk.WindowPosition.CENTER);
+			env_error_dlg.set_keep_above (true);
+
+			env_error_dlg.response.connect (() => {
+				if (env_error_dlg != null)
+					env_error_dlg.hide ();
+			});
+
+			env_error_dlg.destroy.connect (() => {
+				if (env_error_dlg == null)
+					return;
+				Gtk.Window? old = env_error_dlg;
+				env_error_dlg = null;
+				check_collapse_all_docks (old);
+			});
+
+			env_error_dlg.hide.connect (() => {
+				if (env_error_dlg == null)
+					return;
+				Gtk.Window? old = env_error_dlg;
+				env_error_dlg = null;
+				old.destroy ();
+				check_collapse_all_docks (old);
+			});
+
+			raise_and_focus_window (env_error_dlg, click_time);
 		}
 
 		void show_guide ()
@@ -692,9 +856,59 @@ namespace Plank
 			DirUtils.create_with_parents (cache_dir, 0755);
 			string html_path = Path.build_filename (cache_dir, "wayplank_user_guide.html");
 
+			string?[] env_candidates = {
+				Environment.get_variable ("LANGUAGE"),
+				Environment.get_variable ("LC_ALL"),
+				Environment.get_variable ("LC_MESSAGES"),
+				Environment.get_variable ("LANG"),
+				Intl.setlocale (LocaleCategory.MESSAGES, null)
+			};
+			string sys_lang = "en";
+			foreach (unowned string? cand_raw in env_candidates) {
+				if (cand_raw == null || cand_raw.strip () == "")
+					continue;
+				string first_tok = cand_raw.split (":")[0].strip ();
+				int dot_idx = first_tok.index_of_char ('.');
+				if (dot_idx >= 0)
+					first_tok = first_tok.substring (0, dot_idx);
+				int at_idx = first_tok.index_of_char ('@');
+				if (at_idx >= 0)
+					first_tok = first_tok.substring (0, at_idx);
+				string norm_loc = first_tok.down ().replace ("-", "_");
+				if (norm_loc == "" || norm_loc == "c" || norm_loc == "posix")
+					continue;
+				if (norm_loc == "en" || norm_loc.has_prefix ("en_")) {
+					sys_lang = "en";
+					break;
+				}
+				if (norm_loc == "zh_tw" || norm_loc == "zh_hk" || norm_loc == "zh_hant") {
+					sys_lang = "zh-TW";
+					break;
+				}
+				if (norm_loc.has_prefix ("zh")) {
+					sys_lang = "zh-CN";
+					break;
+				}
+				string base_lang = norm_loc.split ("_")[0];
+				if (base_lang.length >= 2 && base_lang.length <= 3) {
+					bool valid_iso = true;
+					for (int ci = 0; ci < base_lang.length; ci++) {
+						char ch = base_lang[ci];
+						if (ch < 'a' || ch > 'z') {
+							valid_iso = false;
+							break;
+						}
+					}
+					if (valid_iso) {
+						sys_lang = base_lang;
+						break;
+					}
+				}
+			}
+
 			var builder = new StringBuilder ();
 			builder.append ("""<!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="yes">
 <head>
   <meta charset="utf-8">
   <title>WayPlank - User Guide & Reference Manual</title>
@@ -730,13 +944,55 @@ namespace Plank
     h1, h2, h3, h4, h5, h6 {
       scroll-margin-top: 24px;
     }
+    #wp-lang-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(128, 128, 128, 0.10);
+      border: 1px solid rgba(128, 128, 128, 0.22);
+      font-size: 13px;
+    }
+    #wp-lang-select {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(128, 128, 128, 0.35);
+      background: inherit;
+      color: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #wp-trans-status {
+      opacity: 0.78;
+      font-size: 12px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://res.zvo.cn/translate/translate.js" async onerror="this.remove()"></script>
 </head>
 <body class="markdown-body">
+  <div id="wp-lang-bar" class="notranslate" translate="no">
+    <span id="wp-trans-status">🌐 Language:</span>
+    <select id="wp-lang-select" aria-label="Language">
+      <option value="en">English (Original)</option>
+      <option value="zh-CN">中文 (简体)</option>
+      <option value="it">Italiano</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="ca">Català</option>
+      <option value="de">Deutsch</option>
+      <option value="uk">Українська</option>
+    </select>
+  </div>
   <div id="content">Loading user guide...</div>
   <script>
+    const INITIAL_LANG = '""");
+			builder.append (sys_lang);
+			builder.append ("""';
     const b64 = '""");
 			builder.append (guide_b64);
 			builder.append ("""';
@@ -771,7 +1027,7 @@ namespace Plank
           let codeText = typeof token === 'object' && token !== null ? token.text : token;
           let codeLang = typeof token === 'object' && token !== null ? token.lang : lang;
           if (codeLang === 'mermaid') {
-            return '<pre class="mermaid">' + codeText + '</pre>';
+            return '<pre class="mermaid notranslate" translate="no">' + codeText + '</pre>';
           }
           return origCode(token, lang, escaped);
         };
@@ -780,13 +1036,19 @@ namespace Plank
         const contentDiv = document.getElementById('content');
         contentDiv.innerHTML = marked.parse(md);
 
-        // Ensure every heading has matching slug IDs for navigation
+        contentDiv.querySelectorAll('pre, code, .mermaid, kbd, tt').forEach(el => {
+          el.classList.add('notranslate');
+          el.setAttribute('translate', 'no');
+        });
+
+        // Ensure every heading has matching slug IDs for navigation before any translation
         document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
           const raw = h.textContent.trim();
           const slug = slugify(raw);
           if (!h.id) {
             h.id = slug;
           }
+          h.setAttribute('data-orig-slug', slug);
           const altSlug = slug.replace(/^[0-9]+-/, '');
           if (altSlug && altSlug !== slug) {
             const anchor = document.createElement('a');
@@ -823,8 +1085,8 @@ namespace Plank
           if (!target) {
             const normTarget = targetId.toLowerCase().replace(/[^a-z0-9]/g, '');
             for (const h of document.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
-              const normH = h.textContent.toLowerCase().replace(/[^a-z0-9]/g, '');
-              if (normH.includes(normTarget) || normTarget.includes(normH)) {
+              const origSlug = (h.getAttribute('data-orig-slug') || h.textContent).toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (origSlug.includes(normTarget) || normTarget.includes(origSlug)) {
                 target = h;
                 break;
               }
@@ -840,6 +1102,154 @@ namespace Plank
 
         if (typeof mermaid !== 'undefined') {
           mermaid.run({ querySelector: '.mermaid' });
+        }
+
+        // Multi-Provider Auto-Translator (Europe Fast-Path + China-Safe Fallback)
+        const textNodes = [];
+        const walker = document.createTreeWalker(contentDiv, NodeFilter.SHOW_TEXT, {
+          acceptNode: function(node) {
+            if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+            const p = node.parentElement;
+            if (!p || p.closest('pre, code, .mermaid, .notranslate, script, style, kbd, tt')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        });
+        let n;
+        while ((n = walker.nextNode())) {
+          textNodes.push({ node: n, orig: n.nodeValue });
+        }
+
+        async function fetchWithTimeout(url, ms) {
+          const ctrl = new AbortController();
+          const id = setTimeout(() => ctrl.abort(), ms);
+          try {
+            const res = await fetch(url, { signal: ctrl.signal });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+          } finally {
+            clearTimeout(id);
+          }
+        }
+
+        async function translateBatchGoogle(batchText, targetLang) {
+          const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl='
+            + encodeURIComponent(targetLang) + '&dt=t&q=' + encodeURIComponent(batchText);
+          const data = await fetchWithTimeout(url, 2800);
+          if (!Array.isArray(data) || !Array.isArray(data[0])) throw new Error('Invalid GTX response');
+          return data[0].map(part => part[0] || '').join('');
+        }
+
+        async function translateBatchMyMemory(batchText, targetLang) {
+          const mmLang = targetLang === 'zh-CN' ? 'zh-CN' : targetLang;
+          const url = 'https://api.mymemory.translated.net/get?q='
+            + encodeURIComponent(batchText) + '&langpair=en|' + encodeURIComponent(mmLang);
+          const data = await fetchWithTimeout(url, 4500);
+          if (!data || !data.responseData || !data.responseData.translatedText) {
+            throw new Error('Invalid MyMemory response');
+          }
+          return data.responseData.translatedText;
+        }
+
+        async function translateChunk(lines, targetLang) {
+          const joined = lines.join('\n');
+          try {
+            const out = await Promise.any([
+              translateBatchGoogle(joined, targetLang),
+              translateBatchMyMemory(joined, targetLang)
+            ]);
+            const split = out.split('\n');
+            if (split.length === lines.length) return split;
+          } catch (_) {}
+          return null;
+        }
+
+        let activeTranslateToken = 0;
+        async function applyGuideLanguage(targetLang) {
+          const myToken = ++activeTranslateToken;
+          const statusEl = document.getElementById('wp-trans-status');
+          if (!targetLang || targetLang === 'en') {
+            textNodes.forEach(item => { item.node.nodeValue = item.orig; });
+            if (statusEl) statusEl.textContent = '🌐 Language:';
+            return;
+          }
+
+          if (statusEl) statusEl.textContent = '⏳ Translating (' + targetLang + ')...';
+
+          // If China-native ZVO translate.js is loaded and user is in zh-CN, allow fallback if chunking fails
+          const SEP_CHARS = 420;
+          let batchIndices = [];
+          let batchLines = [];
+          let curLen = 0;
+
+          async function flushBatch() {
+            if (batchIndices.length === 0 || myToken !== activeTranslateToken) return;
+            const idxs = batchIndices;
+            const lns = batchLines;
+            batchIndices = [];
+            batchLines = [];
+            curLen = 0;
+            const translated = await translateChunk(lns, targetLang);
+            if (myToken !== activeTranslateToken) return;
+            if (translated) {
+              for (let i = 0; i < idxs.length; i++) {
+                const origVal = textNodes[idxs[i]].orig;
+                const lead = origVal.match(/^\s*/)[0];
+                const trail = origVal.match(/\s*$/)[0];
+                textNodes[idxs[i]].node.nodeValue = lead + translated[i].trim() + trail;
+              }
+            } else if (window.translate && typeof window.translate.execute === 'function') {
+              try {
+                const zvoMap = {
+                  'zh-CN': 'chinese_simplified',
+                  'it': 'italian',
+                  'es': 'spanish',
+                  'fr': 'french',
+                  'ca': 'catalan',
+                  'de': 'german',
+                  'uk': 'ukrainian'
+                };
+                if (zvoMap[targetLang]) {
+                  window.translate.selectLanguageTag.show = false;
+                  window.translate.changeLanguage(zvoMap[targetLang]);
+                }
+              } catch (_) {}
+            }
+          }
+
+          for (let i = 0; i < textNodes.length; i++) {
+            const clean = textNodes[i].orig.replace(/\s+/g, ' ').trim();
+            if (!clean || /^[0-9.\-+/*=()[\]{}:;,\s]+$/.test(clean)) continue;
+            if (curLen + clean.length > SEP_CHARS && batchLines.length > 0) {
+              await flushBatch();
+              if (myToken !== activeTranslateToken) return;
+            }
+            batchIndices.push(i);
+            batchLines.push(clean);
+            curLen += clean.length + 1;
+          }
+          await flushBatch();
+          if (myToken === activeTranslateToken && statusEl) {
+            statusEl.textContent = '🌐 Language (' + targetLang + '):';
+          }
+        }
+
+        const langSel = document.getElementById('wp-lang-select');
+        if (langSel) {
+          if (INITIAL_LANG && !Array.from(langSel.options).some(o => o.value === INITIAL_LANG)) {
+            const customOpt = document.createElement('option');
+            customOpt.value = INITIAL_LANG;
+            customOpt.textContent = INITIAL_LANG.toUpperCase();
+            langSel.appendChild(customOpt);
+          }
+          langSel.value = INITIAL_LANG;
+          langSel.addEventListener('change', function() {
+            applyGuideLanguage(this.value);
+          });
+          if (INITIAL_LANG && INITIAL_LANG !== 'en') {
+            applyGuideLanguage(INITIAL_LANG);
+          }
         }
       } else {
         document.getElementById('content').innerHTML = '<div style="padding:15px; background:rgba(255,165,0,0.1); border:1px solid orange; border-radius:6px; margin-bottom:20px;"><strong>Notice:</strong> Offline mode active (CDN unreachable). Displaying raw documentation below.</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
@@ -862,126 +1272,6 @@ namespace Plank
 				}
 			} catch (GLib.Error e) {
 				warning ("Failed to save/open guide HTML: %s", e.message);
-			}
-		}
-
-		void show_report ()
-		{
-			string report_b64 = "";
-			try {
-				var bytes = GLib.resources_lookup_data ("/net/launchpad/plank/doc/report.md", GLib.ResourceLookupFlags.NONE);
-				if (bytes != null) {
-					unowned uint8[] data = bytes.get_data ();
-					report_b64 = GLib.Base64.encode (data);
-				}
-			} catch (GLib.Error e) {
-				warning ("Failed to load report resource: %s", e.message);
-				return;
-			}
-
-			if (report_b64 == "")
-				return;
-
-			string cache_dir = Path.build_filename (Environment.get_user_cache_dir (), "wayplank");
-			DirUtils.create_with_parents (cache_dir, 0755);
-			string html_path = Path.build_filename (cache_dir, "wayplank_migration_report.html");
-
-			var builder = new StringBuilder ();
-			builder.append ("""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>WayPlank - Wayland Migration & Architecture Report</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
-  <style>
-    body {
-      box-sizing: border-box;
-      min-width: 200px;
-      max-width: 1060px;
-      margin: 0 auto;
-      padding: 40px 24px;
-      background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-    }
-    @media (prefers-color-scheme: light) {
-      body { background-color: #ffffff; color: #24292f; }
-    }
-    .markdown-body {
-      background-color: transparent !important;
-    }
-    .mermaid {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      margin: 24px 0;
-      overflow-x: auto;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head>
-<body class="markdown-body">
-  <div id="content">Loading documentation report...</div>
-  <script>
-    const b64 = '""");
-			builder.append (report_b64);
-			builder.append ("""';
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const md = new TextDecoder().decode(bytes);
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    try {
-      if (typeof marked !== 'undefined') {
-        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (typeof mermaid !== 'undefined') {
-          mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
-        }
-
-        const renderer = new marked.Renderer();
-        const origCode = renderer.code.bind(renderer);
-        renderer.code = function(token, lang, escaped) {
-          let codeText = typeof token === 'object' && token !== null ? token.text : token;
-          let codeLang = typeof token === 'object' && token !== null ? token.lang : lang;
-          if (codeLang === 'mermaid') {
-            return '<pre class="mermaid">' + codeText + '</pre>';
-          }
-          return origCode(token, lang, escaped);
-        };
-
-        marked.setOptions({ renderer: renderer });
-        document.getElementById('content').innerHTML = marked.parse(md);
-
-        if (typeof mermaid !== 'undefined') {
-          mermaid.run({ querySelector: '.mermaid' });
-        }
-      } else {
-        document.getElementById('content').innerHTML = '<div style="padding:15px; background:rgba(255,165,0,0.1); border:1px solid orange; border-radius:6px; margin-bottom:20px;"><strong>Notice:</strong> Offline mode active (CDN unreachable). Displaying raw documentation below.</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
-      }
-    } catch (e) {
-      document.getElementById('content').innerHTML = '<div style="color:red; padding:20px;">Error rendering report: ' + e.message + '</div><pre style="white-space: pre-wrap; font-family: monospace;">' + escapeHtml(md) + '</pre>';
-    }
-  </script>
-</body>
-</html>
-""");
-
-			try {
-				FileUtils.set_contents (html_path, builder.str);
-				string uri = "file://" + html_path;
-				try {
-					AppInfo.launch_default_for_uri (uri, null);
-				} catch (GLib.Error err) {
-					System.get_default ().open_uri (uri);
-				}
-			} catch (GLib.Error e) {
-				warning ("Failed to save/open report HTML: %s", e.message);
 			}
 		}
 
@@ -1008,13 +1298,17 @@ namespace Plank
 					var current_link = FileUtils.read_link ("/proc/self/exe");
 					if (current_link.has_suffix (" (deleted)") && FileUtils.test (startup_exe_path, FileTest.IS_EXECUTABLE)) {
 						is_reloading_for_upgrade = true;
-						message ("Binary upgrade detected at '%s', hot-reloading WayPlank...", startup_exe_path);
+						upgrade_signal_source_id = 0U;
+						string saved_exe = startup_exe_path;
+						string? saved_dock = dock_name;
+						message ("Binary upgrade detected at '%s', hot-reloading WayPlank...", saved_exe);
 						perform_clean_shutdown ();
-						string[] spawn_argv = { startup_exe_path, "--replace" };
-						if (dock_name != null && dock_name != "")
-							spawn_argv = { startup_exe_path, "--replace", "-n", dock_name };
+						string[] spawn_argv = { saved_exe, "--replace" };
+						if (saved_dock != null && saved_dock != "")
+							spawn_argv = { saved_exe, "--replace", "-n", saved_dock };
 						Process.spawn_async (null, spawn_argv, null, SpawnFlags.SEARCH_PATH, null, null);
 						Posix.exit (0);
+						return false;
 					}
 				} catch (Error e) {
 					warning ("Failed to hot-reload upgraded WayPlank binary: %s", e.message);
@@ -1045,12 +1339,43 @@ namespace Plank
 			}
 		}
 
+		uint login_sleep_sub_id = 0U;
+		uint login_unlock_sub_id = 0U;
+		Gee.ArrayList<uint>? screensaver_sub_ids = null;
+
+		void teardown_power_management_listener ()
+		{
+			if (login_sleep_sub_id > 0U || login_unlock_sub_id > 0U) {
+				try {
+					var system_bus = Bus.get_sync (BusType.SYSTEM, null);
+					if (login_sleep_sub_id > 0U) {
+						system_bus.signal_unsubscribe (login_sleep_sub_id);
+						login_sleep_sub_id = 0U;
+					}
+					if (login_unlock_sub_id > 0U) {
+						system_bus.signal_unsubscribe (login_unlock_sub_id);
+						login_unlock_sub_id = 0U;
+					}
+				} catch (Error e) { }
+			}
+			if (screensaver_sub_ids != null && screensaver_sub_ids.size > 0) {
+				try {
+					var session_bus = Bus.get_sync (BusType.SESSION, null);
+					foreach (uint id in screensaver_sub_ids) {
+						if (id > 0U)
+							session_bus.signal_unsubscribe (id);
+					}
+				} catch (Error e) { }
+				screensaver_sub_ids.clear ();
+			}
+		}
+
 		void setup_power_management_listener ()
 		{
 			// 1. Listen for systemd-logind sleep/resume events (system bus)
 			try {
 				var system_bus = Bus.get_sync (BusType.SYSTEM, null);
-				system_bus.signal_subscribe (
+				login_sleep_sub_id = system_bus.signal_subscribe (
 					"org.freedesktop.login1",
 					"org.freedesktop.login1.Manager",
 					"PrepareForSleep",
@@ -1068,7 +1393,7 @@ namespace Plank
 				);
 				debug ("Subscribed to systemd-logind PrepareForSleep signal");
 
-				system_bus.signal_subscribe (
+				login_unlock_sub_id = system_bus.signal_subscribe (
 					"org.freedesktop.login1",
 					"org.freedesktop.login1.Session",
 					"Unlock",
@@ -1088,12 +1413,13 @@ namespace Plank
 			// 2. Listen for ScreenSaver / Screen Lock unlock events (session bus: freedesktop + GNOME)
 			try {
 				var session_bus = Bus.get_sync (BusType.SESSION, null);
+				screensaver_sub_ids = new Gee.ArrayList<uint> ();
 				string[] screensaver_ifaces = {
 					"org.freedesktop.ScreenSaver",
 					"org.gnome.ScreenSaver"
 				};
 				foreach (unowned string ss_iface in screensaver_ifaces) {
-					session_bus.signal_subscribe (
+					uint sub_id = session_bus.signal_subscribe (
 						null,
 						ss_iface,
 						"ActiveChanged",
@@ -1109,6 +1435,7 @@ namespace Plank
 							}
 						}
 					);
+					screensaver_sub_ids.add (sub_id);
 				}
 				debug ("Subscribed to ScreenSaver ActiveChanged signals");
 			} catch (Error e) {

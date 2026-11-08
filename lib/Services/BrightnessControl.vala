@@ -56,8 +56,10 @@ namespace Plank
 		private int current_percent = 100;
 		private bool user_has_set_sp = false;
 		private uint timer_id = 0;
+		private uint sp_reset_timer_id = 0;
 		private uint apply_timer_id = 0;
 		private uint inbound_sync_timer_id = 0;
+		private GLib.FileMonitor? sysfs_monitor = null;
 		private int pending_hardware_target = -1;
 		private int pending_auto_sync_target = -1;
 		private int64 last_user_action_time = 0;
@@ -74,6 +76,7 @@ namespace Plank
 		private Gee.ArrayList<string> kscreen_outputs = new Gee.ArrayList<string> ();
 		private bool kscreen_probe_running = false;
 		private Gee.ArrayList<int> ddcutil_displays = new Gee.ArrayList<int> ();
+		private bool ddcutil_probe_running = false;
 		private Gee.ArrayList<string> backlight_devices = new Gee.ArrayList<string> ();
 		private Mutex ddc_mutex;
 		private int pending_ddc_target = -1;
@@ -82,7 +85,6 @@ namespace Plank
 		private ulong mon_rem_id = 0;
 		private bool shutting_down = false;
 		private bool brightness_poll_running = false;
-		private uint fallback_tick_counter = 0;
 
 		public int get_percent ()
 		{
@@ -186,15 +188,66 @@ namespace Plank
 					detect_backlight_device ();
 					refresh_kscreen_outputs ();
 					refresh_ddcutil_displays ();
+					update_polling_strategy ();
 				});
 				mon_rem_id = display.monitor_removed.connect ((m) => {
 					detect_backlight_device ();
 					refresh_kscreen_outputs ();
 					refresh_ddcutil_displays ();
+					update_polling_strategy ();
 				});
 			}
 
-			timer_id = GLib.Timeout.add (500, on_timer_tick);
+			update_polling_strategy ();
+		}
+
+		private void stop_sysfs_monitor ()
+		{
+			if (sysfs_monitor != null) {
+				sysfs_monitor.cancel ();
+				sysfs_monitor = null;
+			}
+		}
+
+		private void setup_sysfs_monitor ()
+		{
+			stop_sysfs_monitor ();
+			if (shutting_down || backlight_device == null)
+				return;
+
+			string cur_path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
+			try {
+				var f = GLib.File.new_for_path (cur_path);
+				sysfs_monitor = f.monitor_file (GLib.FileMonitorFlags.NONE, null);
+				sysfs_monitor.changed.connect ((file, other, ev) => {
+					if (shutting_down)
+						return;
+					if (ev == GLib.FileMonitorEvent.CHANGED || ev == GLib.FileMonitorEvent.CHANGES_DONE_HINT) {
+						if (last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) < 250000)
+							return;
+						refresh_brightness (false);
+					}
+				});
+			} catch (GLib.Error e) {
+				sysfs_monitor = null;
+			}
+		}
+
+		private void update_polling_strategy ()
+		{
+			if (timer_id != 0) {
+				GLib.Source.remove (timer_id);
+				timer_id = 0;
+			}
+			if (shutting_down)
+				return;
+
+			// Event-driven D-Bus signals handle KDE & GNOME; desktop PCs without backlight need zero timers.
+			bool has_dbus_events = (kde_available && kde_signal_id != 0) || (gnome_available && gnome_signal_id != 0);
+			bool has_any_pollable_backend = (backlight_device != null || kde_available || gnome_available);
+			if (!has_dbus_events && has_any_pollable_backend) {
+				timer_id = GLib.Timeout.add_seconds (5, on_timer_tick);
+			}
 		}
 
 		~BrightnessControl ()
@@ -205,10 +258,16 @@ namespace Plank
 		public void cleanup ()
 		{
 			shutting_down = true;
+			stop_sysfs_monitor ();
 
 			if (timer_id != 0) {
 				GLib.Source.remove (timer_id);
 				timer_id = 0;
+			}
+
+			if (sp_reset_timer_id != 0) {
+				GLib.Source.remove (sp_reset_timer_id);
+				sp_reset_timer_id = 0;
 			}
 
 			if (apply_timer_id != 0) {
@@ -321,7 +380,7 @@ namespace Plank
 				if (kde_max_brightness <= 0)
 					kde_max_brightness = 10000;
 				int new_pct = (int) Math.round (((double) val / (double) kde_max_brightness) * 100.0);
-				new_pct = new_pct.clamp (1, 100);
+				new_pct = new_pct.clamp (0, 100);
 				if ((new_pct - target_sp).abs () > 2) {
 					target_sp = new_pct;
 					current_percent = new_pct;
@@ -350,7 +409,7 @@ namespace Plank
 				var bright_var = changed_props.lookup_value ("Brightness", null);
 				if (bright_var != null) {
 					int val = bright_var.get_variant ().get_int32 ();
-					int new_pct = val.clamp (1, 100);
+					int new_pct = val.clamp (0, 100);
 					if ((new_pct - target_sp).abs () > 2) {
 						target_sp = new_pct;
 						current_percent = new_pct;
@@ -391,6 +450,7 @@ namespace Plank
 			} catch (GLib.Error e) {
 				backlight_device = null;
 			}
+			setup_sysfs_monitor ();
 		}
 
 		private uint32 get_device_max_brightness (string dev)
@@ -447,16 +507,20 @@ namespace Plank
 						var root = parser.get_root ();
 						if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
 							var obj = root.get_object ();
-							if (obj.has_member ("outputs")) {
+							if (obj.has_member ("outputs") && !obj.get_null_member ("outputs")) {
 								var arr = obj.get_array_member ("outputs");
-								for (uint i = 0; i < arr.get_length (); i++) {
-									var out_obj = arr.get_object_element (i);
-									bool connected = out_obj.has_member ("connected") ? out_obj.get_boolean_member ("connected") : false;
-									bool enabled = out_obj.has_member ("enabled") ? out_obj.get_boolean_member ("enabled") : true;
-									if (connected && enabled && out_obj.has_member ("name")) {
-										string name = out_obj.get_string_member ("name");
-										if (name != null && name.length > 0) {
-											detected.add (name);
+								if (arr != null) {
+									for (uint i = 0; i < arr.get_length (); i++) {
+										var out_obj = arr.get_object_element (i);
+										if (out_obj == null)
+											continue;
+										bool connected = (out_obj.has_member ("connected") && !out_obj.get_null_member ("connected")) ? out_obj.get_boolean_member ("connected") : false;
+										bool enabled = (out_obj.has_member ("enabled") && !out_obj.get_null_member ("enabled")) ? out_obj.get_boolean_member ("enabled") : true;
+										if (connected && enabled && out_obj.has_member ("name") && !out_obj.get_null_member ("name")) {
+											string name = out_obj.get_string_member ("name") ?? "";
+											if (name.length > 0) {
+												detected.add (name);
+											}
 										}
 									}
 								}
@@ -468,11 +532,16 @@ namespace Plank
 				}
 
 				GLib.Idle.add (() => {
-					kscreen_outputs.clear ();
-					kscreen_outputs.add_all (detected);
 					ddc_mutex.lock ();
 					kscreen_probe_running = false;
 					ddc_mutex.unlock ();
+					if (shutting_down)
+						return GLib.Source.REMOVE;
+					bool was_empty = kscreen_outputs.is_empty;
+					kscreen_outputs.clear ();
+					kscreen_outputs.add_all (detected);
+					if (was_empty && !kscreen_outputs.is_empty)
+						brightness_changed (current_percent);
 					return GLib.Source.REMOVE;
 				});
 				return null;
@@ -496,12 +565,22 @@ namespace Plank
 				return;
 			}
 
+			ddc_mutex.lock ();
+			if (ddcutil_probe_running) {
+				ddc_mutex.unlock ();
+				return;
+			}
+			ddcutil_probe_running = true;
+			ddc_mutex.unlock ();
+
 			new GLib.Thread<void*> ("ddcutil-probe", () => {
+				var detected = new Gee.ArrayList<int> ();
+				bool ok = false;
 				try {
 					string out_str;
 					int exit_code;
 					if (GLib.Process.spawn_command_line_sync ("ddcutil detect --terse", out out_str, null, out exit_code) && exit_code == 0) {
-						var detected = new Gee.ArrayList<int> ();
+						ok = true;
 						var lines = out_str.split ("\n");
 						foreach (var line in lines) {
 							var trimmed = line.strip ();
@@ -515,29 +594,41 @@ namespace Plank
 								}
 							}
 						}
-						GLib.Idle.add (() => {
-							ddc_mutex.lock ();
-							ddcutil_displays.clear ();
-							ddcutil_displays.add_all (detected);
-							ddc_mutex.unlock ();
-							return GLib.Source.REMOVE;
-						});
 					}
 				} catch (GLib.Error e) { }
+				GLib.Idle.add (() => {
+					ddc_mutex.lock ();
+					ddcutil_probe_running = false;
+					if (shutting_down) {
+						ddc_mutex.unlock ();
+						return GLib.Source.REMOVE;
+					}
+					bool became_available = false;
+					if (ok) {
+						bool was_empty = ddcutil_displays.is_empty;
+						ddcutil_displays.clear ();
+						ddcutil_displays.add_all (detected);
+						became_available = (was_empty && !ddcutil_displays.is_empty);
+					}
+					ddc_mutex.unlock ();
+					if (became_available)
+						brightness_changed (current_percent);
+					return GLib.Source.REMOVE;
+				});
 				return null;
 			});
 		}
 
-		private int query_fallback_brightness_blocking (string? bl_dev, ref int cached_kde_max, out bool out_kde_avail, out bool out_gnome_avail)
+		private static int query_fallback_brightness_blocking (DBusConnection? bus, string? bl_dev, ref int cached_kde_max, bool in_kde_avail, bool in_gnome_avail, out bool out_kde_avail, out bool out_gnome_avail)
 		{
 			int pct_result = -1;
-			out_kde_avail = kde_available;
-			out_gnome_avail = gnome_available;
+			out_kde_avail = in_kde_avail;
+			out_gnome_avail = in_gnome_avail;
 
 			// 2. Try KDE Solid PowerManagement D-Bus (Desktop PC or when backlight_device is null)
-			if (pct_result < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.KDE)) {
+			if (pct_result < 0 && bus != null && environment_is_session_desktop (XdgSessionDesktop.KDE)) {
 				try {
-					var reply = session_bus.call_sync (
+					var reply = bus.call_sync (
 						"org.kde.Solid.PowerManagement",
 						"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
 						"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
@@ -550,7 +641,7 @@ namespace Plank
 					);
 					int cur = reply.get_child_value (0).get_int32 ();
 					if (cached_kde_max <= 0) {
-						var reply_max = session_bus.call_sync (
+						var reply_max = bus.call_sync (
 							"org.kde.Solid.PowerManagement",
 							"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
 							"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
@@ -573,9 +664,9 @@ namespace Plank
 			}
 
 			// 3. Try GNOME SettingsDaemon Power D-Bus
-			if (pct_result < 0 && session_bus != null && environment_is_session_desktop (XdgSessionDesktop.GNOME)) {
+			if (pct_result < 0 && bus != null && environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)) {
 				try {
-					var reply = session_bus.call_sync (
+					var reply = bus.call_sync (
 						"org.gnome.SettingsDaemon.Power",
 						"/org/gnome/SettingsDaemon/Power",
 						"org.freedesktop.DBus.Properties",
@@ -587,11 +678,11 @@ namespace Plank
 						null
 					);
 					GLib.Variant val_var = reply.get_child_value (0).get_variant ();
-					int val = 0;
+					int val = -1;
 					if (val_var.is_of_type (GLib.VariantType.INT32)) val = val_var.get_int32 ();
 					else if (val_var.is_of_type (GLib.VariantType.UINT32)) val = (int) val_var.get_uint32 ();
 					else if (val_var.is_of_type (GLib.VariantType.DOUBLE)) val = (int) Math.round (val_var.get_double ());
-					if (val > 0) {
+					if (val >= 0) {
 						pct_result = val;
 						out_gnome_avail = true;
 					}
@@ -610,7 +701,7 @@ namespace Plank
 						if (parts.length >= 4) {
 							string pct_str = parts[3].replace ("%", "").strip ();
 							int pct = int.parse (pct_str);
-							if (pct > 0) {
+							if (pct_str.length > 0 && (pct > 0 || pct_str == "0")) {
 								pct_result = pct;
 							}
 						}
@@ -623,9 +714,9 @@ namespace Plank
 
 		private void apply_polled_brightness (int polled_pct, bool is_initial_read)
 		{
-			if (polled_pct > 0 && !user_has_set_sp) {
-				int clamped = polled_pct.clamp (1, 100);
-				if ((clamped - target_sp).abs () > 2) {
+			if (polled_pct >= 0 && !user_has_set_sp) {
+				int clamped = polled_pct.clamp (0, 100);
+				if (is_initial_read || (clamped - target_sp).abs () > 2) {
 					target_sp = clamped;
 					current_percent = target_sp;
 					brightness_changed (target_sp);
@@ -637,6 +728,10 @@ namespace Plank
 
 		private void refresh_brightness (bool is_initial_read = false)
 		{
+			if (user_has_set_sp && last_user_action_time > 0 && (GLib.get_monotonic_time () - last_user_action_time) > 2500000) {
+				user_has_set_sp = false;
+			}
+
 			// If user has set an authoritative Set Point (SP), do not let periodic polling overwrite it!
 			if (user_has_set_sp)
 				return;
@@ -645,20 +740,24 @@ namespace Plank
 
 			// 1. Direct hardware backlight device (Physical ground truth for laptop internal panels: AMD, Intel, NVIDIA/ACPI)
 			if (backlight_device != null) {
-				string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
+				string actual_path = "/sys/class/backlight/%s/actual_brightness".printf (backlight_device);
+				string cur_path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
+				string path = GLib.FileUtils.test (actual_path, GLib.FileTest.EXISTS) ? actual_path : cur_path;
 				try {
 					string content;
 					GLib.FileUtils.get_contents (path, out content);
 					int64 raw = int64.parse (content.strip ());
-					if (raw > max_raw_brightness)
-						max_raw_brightness = (uint32) raw;
-					if (max_raw_brightness > 0) {
-						initial_pct = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
+					if (raw >= 0) {
+						if (raw > max_raw_brightness)
+							max_raw_brightness = (uint32) raw;
+						if (max_raw_brightness > 0) {
+							initial_pct = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
+						}
 					}
 				} catch (GLib.Error e) { }
 			}
 
-			if (initial_pct > 0) {
+			if (initial_pct >= 0) {
 				apply_polled_brightness (initial_pct, is_initial_read);
 				return;
 			}
@@ -666,7 +765,7 @@ namespace Plank
 			if (is_initial_read) {
 				int km = kde_max_brightness;
 				bool ka, ga;
-				initial_pct = query_fallback_brightness_blocking (backlight_device, ref km, out ka, out ga);
+				initial_pct = query_fallback_brightness_blocking (session_bus, backlight_device, ref km, kde_available, gnome_available, out ka, out ga);
 				kde_max_brightness = km;
 				kde_available = ka;
 				gnome_available = ga;
@@ -678,26 +777,32 @@ namespace Plank
 			if ((kde_available && kde_signal_id != 0) || (gnome_available && gnome_signal_id != 0) || (!kde_available && !gnome_available))
 				return;
 
-			fallback_tick_counter++;
-			if ((fallback_tick_counter & 3) != 0 || brightness_poll_running || shutting_down)
+			if (brightness_poll_running || shutting_down)
 				return;
 
 			brightness_poll_running = true;
-			string? bl_snapshot = backlight_device;
-			int km_snapshot = kde_max_brightness;
+			spawn_brightness_poll_worker (this, session_bus, backlight_device, kde_max_brightness, kde_available, gnome_available);
+		}
+
+		private static void spawn_brightness_poll_worker (BrightnessControl ctrl, DBusConnection? bus_snap, string? bl_snapshot, int km_snapshot, bool ka_snapshot, bool ga_snapshot)
+		{
+			GLib.WeakRef ctrl_ref = GLib.WeakRef (ctrl);
 			new GLib.Thread<void*> ("wayplank-brightness-poll", () => {
 				int km_local = km_snapshot;
 				bool ka_local, ga_local;
-				int polled = query_fallback_brightness_blocking (bl_snapshot, ref km_local, out ka_local, out ga_local);
+				int polled = query_fallback_brightness_blocking (bus_snap, bl_snapshot, ref km_local, ka_snapshot, ga_snapshot, out ka_local, out ga_local);
 				GLib.Idle.add (() => {
-					brightness_poll_running = false;
-					if (shutting_down)
+					var self = (BrightnessControl?) ctrl_ref.get ();
+					if (self == null)
+						return GLib.Source.REMOVE;
+					self.brightness_poll_running = false;
+					if (self.shutting_down)
 						return GLib.Source.REMOVE;
 					if (km_local > 0)
-						kde_max_brightness = km_local;
-					kde_available = ka_local;
-					gnome_available = ga_local;
-					apply_polled_brightness (polled, false);
+						self.kde_max_brightness = km_local;
+					self.kde_available = ka_local;
+					self.gnome_available = ga_local;
+					self.apply_polled_brightness (polled, false);
 					return GLib.Source.REMOVE;
 				});
 				return null;
@@ -729,6 +834,17 @@ namespace Plank
 			current_percent = target;
 			user_has_set_sp = true;
 			last_user_action_time = GLib.get_monotonic_time ();
+			if (sp_reset_timer_id != 0) {
+				GLib.Source.remove (sp_reset_timer_id);
+				sp_reset_timer_id = 0;
+			}
+			sp_reset_timer_id = GLib.Timeout.add (2500, () => {
+				sp_reset_timer_id = 0;
+				user_has_set_sp = false;
+				if (!shutting_down)
+					refresh_brightness (false);
+				return GLib.Source.REMOVE;
+			});
 			brightness_changed (target_sp);
 
 			// Cancel any pending inbound auto-sync so user selection takes immediate priority
@@ -965,6 +1081,10 @@ namespace Plank
 				}
 				ddc_mutex.unlock ();
 				if (displays.is_empty) {
+					ddc_mutex.lock ();
+					pending_ddc_target = -1;
+					ddc_worker_active = false;
+					ddc_mutex.unlock ();
 					break;
 				}
 

@@ -89,6 +89,7 @@ namespace Plank
 		 * The directory containing .dockitem files.
 		 */
 		public File launchers_dir;
+		public Gee.ArrayList<string> corrupted_dockitems = new Gee.ArrayList<string> ();
 		
 		/**
 		 * Creates a new {@link DockElement} from a .dockitem.
@@ -176,12 +177,16 @@ namespace Plank
 				keyfile.load_from_file (file.get_path (), KeyFileFlags.NONE);
 				
 				unowned string group_name = typeof (DockItemPreferences).name ();
-				if (keyfile.has_group (group_name))
-					return keyfile.get_string (group_name, "Launcher");
+				if (keyfile.has_group (group_name)) {
+					var val = keyfile.get_string (group_name, "Launcher");
+					return val.contains ("..") ? "" : val;
+				}
 				
 				// 0.10.1 > 0.10.9/0.11.x
-				if (keyfile.has_group ("PlankItemsDockItemPreferences"))
-					return keyfile.get_string ("PlankItemsDockItemPreferences", "Launcher");
+				if (keyfile.has_group ("PlankItemsDockItemPreferences")) {
+					var val = keyfile.get_string ("PlankItemsDockItemPreferences", "Launcher");
+					return val.contains ("..") ? "" : val;
+				}
 			} catch (Error e) {
 				warning ("%s (%s)", e.message, file.get_basename ());
 			}
@@ -198,6 +203,7 @@ namespace Plank
 		 */
 		public Gee.ArrayList<DockElement> load_elements (GLib.File source_dir, string[]? ordering = null)
 		{
+			corrupted_dockitems.clear ();
 			var result = new Gee.ArrayList<DockElement> ();
 			
 			if (!source_dir.query_exists ()) {
@@ -208,11 +214,12 @@ namespace Plank
 			debug ("Loading dock elements from '%s'", source_dir.get_path ());
 			
 			var elements = new Gee.HashMap<string,DockElement> ();
+			var filenames = new Gee.ArrayList<string> ();
 			var count = 0U;
 			
 			try {
 				var enumerator = source_dir.enumerate_children (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN, 0);
-				FileInfo info;
+				FileInfo? info;
 				while ((info = enumerator.next_file ()) != null) {
 					var filename = info.get_name ();
 					if (info.get_is_hidden () || !filename.has_suffix (".dockitem"))
@@ -223,28 +230,46 @@ namespace Plank
 						break;
 					}
 					
-					var file = source_dir.get_child (filename);
-					var element = make_element (file);
-					
-					unowned DockItemProvider? provider = (element as DockItemProvider);
-					if (provider != null) {
-						elements.set (filename, element);
-						continue;
-					}
-					
-					unowned DockItem? item = (element as DockItem);
-					if (item == null)
-						continue;
-					
-					if (!item.is_valid ()) {
-						warning ("The launcher '%s' in dock item '%s' does not exist. Removing '%s'.", item.Launcher, file.get_path (), item.DockItemFilename);
-						item.delete ();
-					} else {
-						elements.set (filename, element);
-					}
+					filenames.add (filename);
 				}
+				try { enumerator.close (null); } catch { }
 			} catch (Error e) {
 				critical ("Error loading dock elements from '%s'. (%s)", source_dir.get_path () ?? "", e.message);
+			}
+			
+			foreach (var filename in filenames) {
+				var file = source_dir.get_child (filename);
+				var launcher_check = get_launcher_from_dockitem (file);
+				if (launcher_check == "") {
+					if (!corrupted_dockitems.contains (filename))
+						corrupted_dockitems.add (filename);
+					try { file.delete (); } catch (Error e) { }
+					continue;
+				}
+				var element = make_element (file);
+				
+				unowned DockItemProvider? provider = (element as DockItemProvider);
+				if (provider != null) {
+					elements.set (filename, element);
+					continue;
+				}
+				
+				unowned DockItem? item = (element as DockItem);
+				if (item == null) {
+					if (!corrupted_dockitems.contains (filename))
+						corrupted_dockitems.add (filename);
+					try { file.delete (); } catch (Error e) { }
+					continue;
+				}
+				
+				if (!item.is_valid ()) {
+					warning ("The launcher '%s' in dock item '%s' does not exist. Removing '%s'.", item.Launcher, file.get_path (), item.DockItemFilename);
+					if (!corrupted_dockitems.contains (filename))
+						corrupted_dockitems.add (filename);
+					item.delete ();
+				} else {
+					elements.set (filename, element);
+				}
 			}
 			
 			// Downstream contribution by IFtiger-hu (史有虎): Clean launcher deduplication & duplicate disk pruning
@@ -499,8 +524,146 @@ namespace Plank
 			}
 		}
 
+		static bool is_supported_docklet_uri (string launcher)
+		{
+			return (launcher == "docklet://trash"
+				|| launcher == "docklet://cpu"
+				|| launcher == "docklet://clock"
+				|| launcher == "docklet://desktop"
+				|| launcher == "docklet://digital-clock"
+				|| launcher == "docklet://mpris"
+				|| launcher == "docklet://battery"
+				|| launcher == "docklet://volume"
+				|| launcher == "docklet://screenshot"
+				|| launcher == "docklet://session"
+				|| launcher == "docklet://preferences"
+				|| launcher == "docklet://ejector"
+				|| launcher == "docklet://brightness"
+				|| launcher == "docklet://weather"
+				|| launcher == "docklet://network"
+				|| launcher == "docklet://dnd"
+				|| launcher == "docklet://donotdisturb");
+		}
+
 		/**
-		 * Creates a bunch of default .dockitem's and category folders.
+		 * Copies compatible .dockitem files (apps, user folders, and supported docklets)
+		 * from legacy ~/.config/plank/<dock>/launchers into ~/.config/wayplank/<dock>/launchers
+		 * in 100% read-only mode so X11 Plank sessions remain completely untouched.
+		 */
+		public bool migrate_legacy_plank_items (GLib.File legacy_launchers_dir, GLib.File? target_dir = null)
+		{
+			if (!legacy_launchers_dir.query_exists ())
+				return false;
+
+			if (target_dir == null)
+				target_dir = launchers_dir;
+			if (target_dir == null)
+				return false;
+
+			Paths.ensure_directory_exists (target_dir);
+			int migrated_count = 0;
+
+			try {
+				var enumerator = legacy_launchers_dir.enumerate_children (
+					FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN, 0);
+				FileInfo? info;
+				while ((info = enumerator.next_file (null)) != null) {
+					var filename = info.get_name ();
+					if (info.get_is_hidden () || !filename.has_suffix (".dockitem"))
+						continue;
+
+					var src_file = legacy_launchers_dir.get_child (filename);
+					var launcher = get_launcher_from_dockitem (src_file);
+					if (launcher == "")
+						continue;
+
+					if (launcher.has_prefix ("docklet://")) {
+						if (!is_supported_docklet_uri (launcher)) {
+							debug ("Skipping unsupported legacy Plank docklet '%s' (%s)", launcher, filename);
+							continue;
+						}
+					} else {
+						var lf = File.new_for_uri (launcher);
+						if (!lf.query_exists ())
+							continue;
+					}
+
+					var dst_file = target_dir.get_child (filename);
+					if (!dst_file.query_exists ()) {
+						try {
+							src_file.copy (dst_file, FileCopyFlags.NONE, null, null);
+							migrated_count++;
+						} catch (Error e) {
+							warning ("Unable to copy legacy Plank dockitem '%s': %s", filename, e.message);
+						}
+					} else {
+						migrated_count++;
+					}
+				}
+			} catch (Error e) {
+				warning ("Error scanning legacy Plank launchers '%s': %s", legacy_launchers_dir.get_path () ?? "", e.message);
+			}
+
+			return (migrated_count > 0);
+		}
+
+		/**
+		 * Creates classic Plank-style default .dockitem's (core pinned apps + Preferences + Trash,
+		 * without auto-generated category folders or extra docklets).
+		 */
+		public void make_classic_items ()
+		{
+			debug ("ItemFactory: creating classic default pinned applications and trash...");
+			make_dock_item ("docklet://preferences");
+			make_default_pinned_apps ();
+			make_dock_item ("docklet://trash");
+			debug ("ItemFactory: classic items successfully created.");
+		}
+
+		/**
+		 * Instantiates only .dockitem files from source_dir whose Launcher URI is not yet present in provider.
+		 */
+		public Gee.ArrayList<DockItem> load_missing_items (GLib.File source_dir, DockItemProvider provider)
+		{
+			var result = new Gee.ArrayList<DockItem> ();
+			if (!source_dir.query_exists ())
+				return result;
+
+			var filenames = new Gee.ArrayList<string> ();
+			try {
+				var enumerator = source_dir.enumerate_children (
+					FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN, 0);
+				FileInfo? info;
+				while ((info = enumerator.next_file (null)) != null) {
+					var filename = info.get_name ();
+					if (info.get_is_hidden () || !filename.has_suffix (".dockitem"))
+						continue;
+					filenames.add (filename);
+				}
+				try { enumerator.close (null); } catch { }
+			} catch (Error e) {
+				warning ("Error loading missing dock items from '%s': %s", source_dir.get_path () ?? "", e.message);
+			}
+
+			foreach (var filename in filenames) {
+				var file = source_dir.get_child (filename);
+				var launcher = get_launcher_from_dockitem (file);
+				if (launcher == "" || provider.item_for_uri (launcher) != null)
+					continue;
+
+				var element = make_element (file);
+				unowned DockItem? item = element as DockItem;
+				if (item != null && item.is_valid ())
+					result.add (item);
+				else if (item != null)
+					item.cleanup ();
+			}
+
+			return result;
+		}
+
+		/**
+		 * Creates a bunch of default .dockitem's and category folders (WayPlank Explorer mode).
 		 */
 		public void make_default_items ()
 		{
@@ -569,8 +732,12 @@ namespace Plank
 			
 			if (is_valid && target_dir != null) {
 				var file = new KeyFile ();
+				var group_name = typeof (DockItemPreferences).name ();
 				
-				file.set_string (typeof (DockItemPreferences).name (), "Launcher", target_uri);
+				file.set_string (group_name, "Launcher", target_uri);
+				file.set_string (group_name, "CustomIcon", "");
+				file.set_string (group_name, "BrowserProfile", "");
+				file.set_boolean (group_name, "KeepVisible", false);
 				
 				try {
 					// find a unique file name, based on the name of the launcher
@@ -578,10 +745,6 @@ namespace Plank
 					var launcher_base = (index_of_last_dot >= 0 ? basename.slice (0, index_of_last_dot) : basename);
 					var dockitem = "%s.dockitem".printf (launcher_base);
 					var dockitem_file = target_dir.get_child (dockitem);
-					
-					if (is_docklet && dockitem_file.query_exists ()) {
-						try { dockitem_file.delete (null); } catch { }
-					}
 					
 					// Reuse or update existing dock item to avoid duplicate files (KISS)
 					if (dockitem_file.query_exists ()) {

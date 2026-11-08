@@ -431,6 +431,8 @@ namespace Plank
 			
 			internal_elements[index] = new_element;
 			old_element.Container = null;
+			if (old_element is DockItem)
+				((DockItem) old_element).cleanup ();
 			new_element.Container = this;
 			
 			new_element.AddTime = old_element.AddTime;
@@ -458,6 +460,8 @@ namespace Plank
 			
 			internal_elements.remove (element);
 			element.Container = null;
+			if (element is DockItem)
+				((DockItem) element).cleanup ();
 		}
 		
 		protected abstract void connect_element (DockElement element);

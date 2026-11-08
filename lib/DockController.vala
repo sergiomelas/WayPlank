@@ -56,6 +56,9 @@ namespace Plank
 		DockItem? dock_itself_item;
 		uint serialize_item_positions_timer_id = 0U;
 		bool is_initialized = false;
+
+		public bool is_first_run_launch { get; private set; default = false; }
+		public bool migrated_from_legacy_plank { get; private set; default = false; }
 		
 		/**
 		 * List of all items on this dock
@@ -184,6 +187,10 @@ namespace Plank
 			if (GtkLayerShell.is_supported ())
 				window.present ();
 			window.queue_draw ();
+
+			// Geometry and theme are known now: let the Smart Pinned Accordion decide
+			if (app_provider != null)
+				app_provider.refresh_pinned_accordion ();
 		}
 		
 		/**
@@ -208,6 +215,8 @@ namespace Plank
 				target_items = prefs.DockItems;
 			}
 			var elements = Factory.item_factory.load_elements (launchers_folder, target_items);
+			if (Factory.item_factory.corrupted_dockitems.size > 0)
+				prefs.report_corrupted_dockitems (Factory.item_factory.corrupted_dockitems);
 
 			foreach (var element in elements)
 				if (element is DockItem)
@@ -243,7 +252,7 @@ namespace Plank
 			DockItemProvider provider;
 			
 			// If we made the default-launcher-directory or it is empty,
-			// assume a first run and pre-populate with modern launchers
+			// assume a first run and pre-populate with launchers
 			bool is_first_run = Paths.ensure_directory_exists (launchers_folder);
 			if (!is_first_run) {
 				try {
@@ -254,17 +263,158 @@ namespace Plank
 			}
 			
 			if (is_first_run) {
-				debug ("First run or empty launchers detected: initializing modern defaults...");
-				prefs.CategorizeItems = true;
-				prefs.AccordionDocklets = true;
-				prefs.ShowDockItem = false;
-				Factory.item_factory.make_default_items ();
+				var onboarding_marker = config_folder.get_child ("onboarding-done");
+				var legacy_launchers = Paths.ConfigHomeFolder.get_child ("plank").get_child (name).get_child ("launchers");
+				bool headless = (Environment.get_variable ("WAYPLANK_NO_PROMPT") == "1"
+					|| Environment.get_variable ("CI") == "1"
+					|| Environment.get_variable ("NONINTERACTIVE") == "1");
+
+				if (Factory.item_factory.migrate_legacy_plank_items (legacy_launchers, launchers_folder)) {
+					debug ("First run: migrated compatible launchers and folders from legacy ~/.config/plank/%s/launchers (read-only)...", name);
+					migrated_from_legacy_plank = true;
+					if ((prefs.FreeDockItems == null || prefs.FreeDockItems.length == 0)
+						&& prefs.DockItems != null && prefs.DockItems.length > 0) {
+						prefs.FreeDockItems = prefs.DockItems;
+					}
+					prefs.CategorizeItems = false;
+					prefs.AccordionDocklets = false;
+					prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
+					prefs.SystemMenuAccess = 3;
+					prefs.AnchorAlwaysLeft = false;
+					prefs.ShowDockItem = false;
+					is_first_run_launch = !headless && !onboarding_marker.query_exists ();
+				} else if (headless) {
+					debug ("First run (headless): wiping residual settings and initializing modern Explorer defaults...");
+					if (!prefs.has_profile_settings_on_disk ()) {
+						prefs.reset_all ();
+						prefs.DockItems = {};
+						prefs.FreeDockItems = {};
+						prefs.CategorizedDockItems = {};
+						prefs.DockletsOnRight = true;
+						prefs.AccordionDocklets = true;
+						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_AUTO_FIT;
+						prefs.ShowWindowCards = true;
+						prefs.SystemMenuAccess = 4;
+						prefs.AnchorAlwaysLeft = true;
+						prefs.ShowDockItem = false;
+						prefs.CategorizeItems = true;
+					}
+					Factory.item_factory.make_default_items ();
+					try {
+						FileUtils.set_contents (onboarding_marker.get_path (), "explorer\n");
+					} catch { }
+				} else {
+					debug ("First run: wiping residual settings, initializing classic baseline and scheduling onboarding choice...");
+					if (!prefs.has_profile_settings_on_disk ()) {
+						prefs.reset_all ();
+						prefs.DockItems = {};
+						prefs.FreeDockItems = {};
+						prefs.CategorizedDockItems = {};
+						prefs.AccordionDocklets = false;
+						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
+						prefs.SystemMenuAccess = 3;
+						prefs.AnchorAlwaysLeft = false;
+						prefs.ShowDockItem = false;
+						prefs.CategorizeItems = false;
+					}
+					Factory.item_factory.make_classic_items ();
+					is_first_run_launch = !onboarding_marker.query_exists ();
+				}
+				prefs.flush_to_disk ();
 				debug ("done.");
+			} else if (!prefs.has_profile_settings_on_disk ()) {
+				prefs.flush_to_disk ();
 			}
 			
 			provider = new DefaultApplicationDockItemProvider (prefs, launchers_folder);
 			
 			return provider;
+		}
+
+		/**
+		 * Applies the user's selected first-run onboarding profile (Classic vs Explorer)
+		 * non-destructively without ever deleting existing user launchers or folders.
+		 */
+		public void apply_onboarding_profile (bool explorer_mode)
+		{
+			is_first_run_launch = false;
+			var onboarding_marker = config_folder.get_child ("onboarding-done");
+			try {
+				FileUtils.set_contents (onboarding_marker.get_path (), explorer_mode ? "explorer\n" : "classic\n");
+			} catch { }
+
+			unowned DefaultApplicationDockItemProvider? def_prov = default_provider as DefaultApplicationDockItemProvider;
+			Factory.item_factory.launchers_dir = launchers_folder;
+
+			if (!explorer_mode) {
+				// WayPlank Classic: preserve 100% of existing/migrated launchers and folders
+				if (def_prov != null)
+					def_prov.delay_items_monitor ();
+				if (default_provider != null && default_provider.item_for_uri ("docklet://trash") == null) {
+					var tf = Factory.item_factory.make_dock_item ("docklet://trash", launchers_folder);
+					if (tf != null) {
+						var el = Factory.item_factory.make_element (tf) as DockItem;
+						if (el != null && el.is_valid ())
+							default_provider.add (el);
+					}
+				}
+				if (def_prov != null)
+					def_prov.resume_items_monitor ();
+				prefs.delay ();
+				if (!migrated_from_legacy_plank) {
+					prefs.DockItems = {};
+					prefs.FreeDockItems = {};
+					prefs.CategorizedDockItems = {};
+				}
+				prefs.AccordionDocklets = false;
+				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
+				prefs.SystemMenuAccess = 3;
+				prefs.AnchorAlwaysLeft = false;
+				prefs.ShowDockItem = false;
+				prefs.CategorizeItems = false;
+				prefs.apply ();
+			} else {
+				// WayPlank Explorer: keep all existing/migrated items and add modern folders + docklets
+				if (def_prov != null)
+					def_prov.delay_items_monitor ();
+				Factory.item_factory.make_default_items ();
+				if (default_provider != null) {
+					var missing = Factory.item_factory.load_missing_items (launchers_folder, default_provider);
+					foreach (var item in missing)
+						default_provider.add (item);
+				}
+				if (def_prov != null)
+					def_prov.resume_items_monitor ();
+				prefs.delay ();
+				if (!migrated_from_legacy_plank) {
+					prefs.DockItems = {};
+					prefs.FreeDockItems = {};
+					prefs.CategorizedDockItems = {};
+				}
+				prefs.DockletsOnRight = true;
+				prefs.AccordionDocklets = true;
+				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_AUTO_FIT;
+				prefs.ShowWindowCards = true;
+				prefs.SystemMenuAccess = 4;
+				prefs.AnchorAlwaysLeft = true;
+				prefs.ShowDockItem = false;
+				prefs.CategorizeItems = true;
+				prefs.apply ();
+			}
+
+			if (def_prov != null) {
+				def_prov.deduplicate_items ();
+				def_prov.ensure_preferences_dockitem ();
+				def_prov.deduplicate_items ();
+				def_prov.refresh_separators ();
+				def_prov.refresh_pinned_accordion ();
+			}
+
+			update_items ();
+			position_manager.update (renderer.theme);
+			window.update_size_and_position ();
+			renderer.animated_draw ();
+			schedule_serialize_item_positions ();
 		}
 		
 		void update_show_dock_item ()
@@ -404,7 +554,7 @@ namespace Plank
 			update_visible_elements ();
 			update_items ();
 			
-			if (added.size != removed.size)
+			if (added.size > 0 || removed.size > 0)
 				position_manager.update (renderer.theme);
 			
 			window.update_icon_regions ();
@@ -445,6 +595,15 @@ namespace Plank
 			renderer.animated_draw ();
 		}
 		
+		public void flush_pending_serialization ()
+		{
+			if (serialize_item_positions_timer_id > 0U) {
+				Source.remove (serialize_item_positions_timer_id);
+				serialize_item_positions_timer_id = 0U;
+				serialize_item_positions ();
+			}
+		}
+
 		public void schedule_serialize_item_positions ()
 		{
 			if (serialize_item_positions_timer_id > 0U)
@@ -456,6 +615,8 @@ namespace Plank
 		bool serialize_item_positions ()
 		{
 			serialize_item_positions_timer_id = 0U;
+			if (prefs == null || internal_elements == null)
+				return false;
 
 			var item_list = new Gee.ArrayList<string> ();
 
@@ -483,6 +644,7 @@ namespace Plank
 			} else {
 				prefs.CategorizedDockItems = item_list.to_array ();
 			}
+			prefs.flush_to_disk ();
 
 			return false;
 		}
@@ -494,12 +656,14 @@ namespace Plank
 			window.update_layer_shell_monitor ();
 			position_manager.update_dock_position ();
 			window.update_size_and_position ();
-			renderer.reset_buffers ();
+			if (renderer != null)
+				renderer.reset_buffers ();
 			hide_manager.wake_up ();
 			window.show_all ();
 			if (GtkLayerShell.is_supported ())
 				window.present ();
-			renderer.animated_draw ();
+			if (renderer != null)
+				renderer.animated_draw ();
 		}
 
 		public bool is_interaction_active (Gtk.Window? closing_win = null)
@@ -513,15 +677,9 @@ namespace Plank
 			if (drag_manager != null && (drag_manager.InternalDragActive || drag_manager.ExternalDragActive))
 				return true;
 
-			if (PreferencesWindow.is_open && (closing_win == null || !(closing_win is PreferencesWindow)))
-				return true;
-			if (HelpWindow.is_open && (closing_win == null || !(closing_win is HelpWindow)))
-				return true;
 			if (IconChooserDialog.is_open && (closing_win == null || !(closing_win is IconChooserDialog)))
 				return true;
 			if (WeatherCityDialog.is_open && (closing_win == null || !(closing_win is WeatherCityDialog)))
-				return true;
-			if (AbstractMain.is_about_open && (closing_win == null || !(closing_win is Gtk.AboutDialog)))
 				return true;
 			if (CalendarWindow.is_open () && (closing_win == null || !(closing_win is CalendarWindow)))
 				return true;
@@ -535,7 +693,7 @@ namespace Plank
 
 		public void check_collapse_after_interaction (Gtk.Window? closing_win = null)
 		{
-			if (prefs.CategorizeItems && prefs.AccordionDocklets && app_provider != null) {
+			if (app_provider != null && app_provider.is_accordion_enabled ()) {
 				if (hide_manager.Hovered) {
 					app_provider.cancel_collapse_timer ();
 				} else if (!is_interaction_active (closing_win)) {

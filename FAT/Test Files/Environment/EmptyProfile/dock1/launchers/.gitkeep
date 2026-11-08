@@ -1,0 +1,2 @@
+# EmptyProfile placeholder: directory intentionally contains no latch-state.ini and no .dockitem files
+# to test clean virgin profile initialization and First-Run Onboarding (Classic vs Explorer).

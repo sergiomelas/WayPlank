@@ -1,7 +1,8 @@
 # 🖥️ WayPlank Compositors & Desktops Cheatsheet
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
-> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026
+> **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
+> **Master HAL Specification:** [Documentation/HAL_ARCHITECTURE.md](../../Documentation/HAL_ARCHITECTURE.md)
 
 ---
 

@@ -47,7 +47,7 @@ namespace Plank
 		/**
 		 * The item which "received" the button-pressed signal (if any).
 		 */
-		unowned DockItem? ClickedItem { get; private set; }
+		DockItem? ClickedItem { get; private set; default = null; }
 
 		/**
 		 * The popup menu for this dock.
@@ -67,7 +67,7 @@ namespace Plank
 		int window_position_retry = 0;
 		Gdk.Event? last_button_event = null;
 
-		weak Gdk.Monitor? tracked_monitor = null;
+		Gdk.Monitor? tracked_monitor = null;
 		ulong monitor_workarea_handler_id = 0UL;
 
 		/**
@@ -163,7 +163,8 @@ namespace Plank
 		{
 			if (GtkLayerShell.is_supported ())
 				update_layer_shell_anchors ();
-			controller.position_manager.update (controller.renderer.theme);
+			if (controller.renderer != null && controller.renderer.theme != null)
+				controller.position_manager.update (controller.renderer.theme);
 			update_exclusive_zone ();
 			update_size_and_position ();
 		}
@@ -225,9 +226,11 @@ namespace Plank
 			} else {
 				WindowControl.get_default ().state_changed.disconnect (on_backend_state_changed);
 			}
-			if (tracked_monitor != null && monitor_workarea_handler_id != 0UL) {
-				tracked_monitor.disconnect (monitor_workarea_handler_id);
-				monitor_workarea_handler_id = 0UL;
+			if (tracked_monitor != null) {
+				if (monitor_workarea_handler_id != 0UL) {
+					tracked_monitor.disconnect (monitor_workarea_handler_id);
+					monitor_workarea_handler_id = 0UL;
+				}
 				tracked_monitor = null;
 			}
 			if (controller != null && controller.prefs != null) {
@@ -250,6 +253,11 @@ namespace Plank
 				GLib.Source.remove (hover_reposition_timer_id);
 				hover_reposition_timer_id = 0U;
 			}
+			if (HoveredItem != null)
+				HoveredItem.notify["Text"].disconnect (on_hovered_item_text_changed);
+			ClickedItem = null;
+			HoveredItem = null;
+			HoveredItemProvider = null;
 		}
 
 		void update_layer_shell_anchors ()
@@ -326,7 +334,8 @@ namespace Plank
 
 			if (GtkLayerShell.get_monitor (this) != monitor) {
 				GtkLayerShell.set_monitor (this, monitor);
-				controller.renderer.reset_buffers ();
+				if (controller.renderer != null)
+					controller.renderer.reset_buffers ();
 				update_exclusive_zone ();
 				update_layer_shell_anchors ();
 			}
@@ -355,8 +364,10 @@ namespace Plank
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
 
-			if (controller.drag_manager.InternalDragActive)
+			if (controller.drag_manager.InternalDragActive) {
+				ClickedItem = null;
 				return Gdk.EVENT_STOP;
+			}
 
 			if (HoveredItem == null)
 				update_hovered ((int) event.x, (int) event.y);
@@ -365,8 +376,10 @@ namespace Plank
 			last_button_event = ((Gdk.Event) event).copy ();
 
 			var button = PopupButton.from_event_button (event);
-			if (button != PopupButton.LEFT && show_menu (HoveredItem, button, event.state, (int) event.x, (int) event.y, (Gdk.Event) event))
+			if (button != PopupButton.LEFT && show_menu (HoveredItem, button, event.state, (int) event.x, (int) event.y, (Gdk.Event) event)) {
+				ClickedItem = null;
 				return Gdk.EVENT_STOP;
+			}
 
 			cancel_long_press ();
 
@@ -411,8 +424,10 @@ namespace Plank
 				return Gdk.EVENT_STOP;
 			}
 
-			if (controller.drag_manager.InternalDragActive)
+			if (controller.drag_manager.InternalDragActive) {
+				ClickedItem = null;
 				return Gdk.EVENT_STOP;
+			}
 
 			if (HoveredItem != null && ClickedItem == null && menu_is_visible ())
 				menu.hide ();
@@ -430,6 +445,17 @@ namespace Plank
 					}
 				}
 
+				// Smart Pinned Accordion expander: click expands; with "Click to Expand" it also collapses.
+				// (In hover mode the accordion expands on hover and collapses through the shared timer.)
+				if (button == PopupButton.LEFT && ClickedItem is PinnedExpanderDockItem && controller.app_provider != null) {
+					if (!controller.app_provider.pinned_expanded)
+						controller.app_provider.expand_pinned ();
+					else if (controller.prefs.AccordionClickToExpand)
+						controller.app_provider.collapse_pinned ();
+					ClickedItem = null;
+					return Gdk.EVENT_STOP;
+				}
+
 				if (button == PopupButton.LEFT && ClickedItem is FileDockItem && ((FileDockItem) ClickedItem).is_directory ()) {
 					if (controller.folder_menu.get_visible () && controller.folder_menu.TargetItem == ClickedItem) {
 						controller.folder_menu.close_menu ();
@@ -442,7 +468,8 @@ namespace Plank
 				}
 
 				bool has_ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK) != 0;
-				if (button == PopupButton.LEFT && !has_ctrl && ClickedItem is ApplicationDockItem) {
+				bool has_shift = (event.state & Gdk.ModifierType.SHIFT_MASK) != 0;
+				if (button == PopupButton.LEFT && !has_ctrl && !has_shift && ClickedItem is ApplicationDockItem) {
 					var app_item = (ApplicationDockItem) ClickedItem;
 					unowned DefaultApplicationDockItemProvider? provider = (app_item.Container as DefaultApplicationDockItemProvider);
 					var show_cards = (provider != null ? provider.Prefs.ShowWindowCards : true);
@@ -481,6 +508,8 @@ namespace Plank
 			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
 				return Gdk.EVENT_PROPAGATE;
 
+			cancel_long_press ();
+
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.on_dock_leave ();
 
@@ -488,6 +517,7 @@ namespace Plank
 				controller.window_cards.on_dock_leave ();
 
 			if (!menu_is_visible ()) {
+				ClickedItem = null;
 				set_hovered_provider (null);
 				set_hovered (null);
 				controller.hide_manager.update_hovered_with_coords (-1, -1);
@@ -495,7 +525,7 @@ namespace Plank
 					if (controller.app_provider != null)
 						controller.app_provider.cancel_collapse_timer ();
 				} else {
-					if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+					if (controller.app_provider != null && controller.app_provider.is_accordion_enabled ()) {
 						controller.app_provider.schedule_collapse_docklets (controller.prefs.AccordionDelay);
 					}
 				}
@@ -582,6 +612,15 @@ namespace Plank
 				}
 			}
 
+			// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
+			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
+				if (controller.app_provider.pinned_expanded) {
+					controller.app_provider.cancel_collapse_timer ();
+				} else if (!controller.prefs.AccordionClickToExpand && HoveredItem is PinnedExpanderDockItem) {
+					controller.app_provider.expand_pinned ();
+				}
+			}
+
 			controller.renderer.animated_draw ();
 
 			return Gdk.EVENT_PROPAGATE;
@@ -610,6 +649,15 @@ namespace Plank
 				}
 			}
 
+			// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
+			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
+				if (controller.app_provider.pinned_expanded) {
+					controller.app_provider.cancel_collapse_timer ();
+				} else if (!controller.prefs.AccordionClickToExpand && HoveredItem is PinnedExpanderDockItem) {
+					controller.app_provider.expand_pinned ();
+				}
+			}
+
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.on_dock_hover (HoveredItem);
 
@@ -625,6 +673,7 @@ namespace Plank
 		public override void drag_begin (Gdk.DragContext context)
 		{
 			cancel_long_press ();
+			ClickedItem = null;
 		}
 
 		/**
@@ -635,14 +684,14 @@ namespace Plank
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
 
-			if (controller.drag_manager.InternalDragActive)
+			if (controller.drag_manager.InternalDragActive) {
+				ClickedItem = null;
 				return Gdk.EVENT_STOP;
+			}
 
 			// Retain accordion expansion during wheel scrolling
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-				if (controller.app_provider.docklets_expanded) {
-					controller.app_provider.cancel_collapse_timer ();
-				}
+			if (controller.app_provider != null && controller.app_provider.is_any_expanded ()) {
+				controller.app_provider.cancel_collapse_timer ();
 			}
 
 			Gdk.ScrollDirection direction = event.direction;
@@ -677,16 +726,11 @@ namespace Plank
 						smooth_scroll_dy = 0.0;
 						smooth_scroll_dx = 0.0;
 					} else {
-						if (controller.position_manager.max_scroll_offset > 0.0) {
-							string? item_type_name = (HoveredItem != null) ? HoveredItem.get_type ().name () : null;
-							bool is_volume = (item_type_name != null && item_type_name.contains ("Volume"));
-							bool is_brightness = (item_type_name != null && item_type_name.contains ("Brightness"));
-							if (!is_volume && !is_brightness) {
-								double d = (Math.fabs (raw_dx) > Math.fabs (raw_dy)) ? raw_dx : raw_dy;
-								if (Math.fabs (d) > 0.02) {
-									controller.position_manager.scroll_by (d * 50.0);
-									return Gdk.EVENT_STOP;
-								}
+						if (controller.position_manager.max_scroll_offset > 0.0 && !item_captures_scroll (HoveredItem)) {
+							double d = (Math.fabs (raw_dx) > Math.fabs (raw_dy)) ? raw_dx : raw_dy;
+							if (Math.fabs (d) > 0.02) {
+								controller.position_manager.scroll_by (d * 50.0);
+								return Gdk.EVENT_STOP;
 							}
 						}
 						return Gdk.EVENT_STOP;
@@ -710,18 +754,13 @@ namespace Plank
 			// =====================================================================
 			// Dock Overflow Smooth Scrolling (Fork Integration by 史有虎 / IFtiger-hu)
 			// =====================================================================
-			if (controller.position_manager.max_scroll_offset > 0.0) {
-				string? item_type_name = (HoveredItem != null) ? HoveredItem.get_type ().name () : null;
-				bool is_volume = (item_type_name != null && item_type_name.contains ("Volume"));
-				bool is_brightness = (item_type_name != null && item_type_name.contains ("Brightness"));
-				if (!is_volume && !is_brightness) {
-					if (direction == Gdk.ScrollDirection.LEFT || direction == Gdk.ScrollDirection.UP) {
-						controller.position_manager.scroll_by (-80.0);
-						return Gdk.EVENT_STOP;
-					} else if (direction == Gdk.ScrollDirection.RIGHT || direction == Gdk.ScrollDirection.DOWN) {
-						controller.position_manager.scroll_by (80.0);
-						return Gdk.EVENT_STOP;
-					}
+			if (controller.position_manager.max_scroll_offset > 0.0 && !item_captures_scroll (HoveredItem)) {
+				if (direction == Gdk.ScrollDirection.LEFT || direction == Gdk.ScrollDirection.UP) {
+					controller.position_manager.scroll_by (-80.0);
+					return Gdk.EVENT_STOP;
+				} else if (direction == Gdk.ScrollDirection.RIGHT || direction == Gdk.ScrollDirection.DOWN) {
+					controller.position_manager.scroll_by (80.0);
+					return Gdk.EVENT_STOP;
 				}
 			}
 
@@ -732,6 +771,17 @@ namespace Plank
 			}
 
 			return Gdk.EVENT_STOP;
+		}
+
+		bool item_captures_scroll (DockItem? item)
+		{
+			if (item == null)
+				return false;
+			if (item is VolumeDockItem || item is BrightnessDockItem || item is MprisDockItem)
+				return true;
+			if (item is ApplicationDockItem)
+				return WindowManager.get_default ().window_count_for_app (((ApplicationDockItem) item).Launcher) > 1;
+			return false;
 		}
 
 		/**
@@ -789,16 +839,91 @@ namespace Plank
 			HoveredItemProvider = provider;
 		}
 
+		string format_hovered_tooltip_text ()
+		{
+			if (HoveredItem == null || HoveredItem.Text == null || HoveredItem.Text == "")
+				return "";
+			string tooltip_text = HoveredItem.Text;
+			if (!controller.prefs.CategorizeItems) {
+				if (HoveredItem is FileDockItem) {
+					tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Folder"));
+				} else if (HoveredItem is TransientDockItem) {
+					tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Running"));
+				} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
+					tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
+				}
+			} else if (controller.prefs.AccordionDocklets && controller.app_provider != null
+				&& controller.app_provider.get_docklet_count () > 1
+				&& HoveredItem == controller.app_provider.get_anchor_docklet ()) {
+				unowned DefaultApplicationDockItemProvider? app_prov = controller.app_provider;
+				bool is_horiz = controller.position_manager.is_horizontal_dock ();
+				bool on_right = controller.prefs.DockletsOnRight;
+				string arrow_expand = is_horiz ? (on_right ? "◂" : "▸") : (on_right ? "▴" : "▾");
+				string arrow_collapse = is_horiz ? (on_right ? "▸" : "◂") : (on_right ? "▾" : "▴");
+
+				if (app_prov != null && !app_prov.docklets_expanded) {
+					if (controller.prefs.AccordionClickToExpand) {
+						tooltip_text = "%s • %s %s (%s)".printf (HoveredItem.Text, _("Docklets"), arrow_expand, _("Click to expand"));
+					} else {
+						tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_expand);
+					}
+				} else {
+					tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_collapse);
+				}
+			}
+			return tooltip_text;
+		}
+
+		void present_hovered_tooltip ()
+		{
+			if (HoveredItem == null
+				|| HoveredItem is SeparatorDockItem
+				|| !controller.prefs.TooltipsEnabled
+				|| controller.drag_manager.InternalDragActive
+				|| controller.drag_manager.ExternalDragActive)
+				return;
+
+			string? tooltip_text = format_hovered_tooltip_text ();
+			if (tooltip_text == null || tooltip_text == "") {
+				controller.hover.hide ();
+				return;
+			}
+
+			unowned HoverWindow hover = controller.hover;
+			int x, y;
+			hover.set_text (tooltip_text);
+			controller.position_manager.get_hover_position (HoveredItem, out x, out y);
+			var dock_region = controller.position_manager.get_dock_window_region ();
+			var dock_thickness = GtkLayerShell.is_supported ()
+				? controller.position_manager.get_visual_thickness () + 40
+				: (controller.position_manager.is_horizontal_dock () ? dock_region.height : dock_region.width);
+			var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
+			hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
+
+			if (menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible ())
+				hover.hide ();
+		}
+
+		void on_hovered_item_text_changed ()
+		{
+			if (HoveredItem != null && controller.hover.get_visible ())
+				present_hovered_tooltip ();
+		}
+
 		void set_hovered (DockItem? item)
 		{
 			if (HoveredItem == item)
 				return;
 
-			if (HoveredItem != null)
+			if (HoveredItem != null) {
+				HoveredItem.notify["Text"].disconnect (on_hovered_item_text_changed);
 				HoveredItem.hovered ();
+			}
 
-			if (item != null)
+			if (item != null) {
+				item.notify["Text"].connect (on_hovered_item_text_changed);
 				item.hovered ();
+			}
 
 			HoveredItem = item;
 
@@ -823,54 +948,10 @@ namespace Plank
 				return;
 
 			hover_reposition_timer_id = Gdk.threads_add_timeout (HOVER_DELAY_TIME, () => {
-				if (HoveredItem == null) {
-					hover_reposition_timer_id = 0U;
-					return false;
-				}
-
 				hover_reposition_timer_id = 0U;
-				unowned HoverWindow hover = controller.hover;
-
-				int x, y;
-				string tooltip_text = HoveredItem.Text;
-				if (!controller.prefs.CategorizeItems) {
-					if (HoveredItem is FileDockItem) {
-						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Folder"));
-					} else if (HoveredItem is TransientDockItem) {
-						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Running"));
-					} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
-						tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
-					}
-				} else if (controller.prefs.AccordionDocklets && controller.app_provider != null
-					&& controller.app_provider.get_docklet_count () > 1
-					&& HoveredItem == controller.app_provider.get_anchor_docklet ()) {
-					unowned DefaultApplicationDockItemProvider? app_prov = controller.app_provider;
-					bool is_horiz = controller.position_manager.is_horizontal_dock ();
-					string arrow_expand = is_horiz ? "▸" : "▾";
-					string arrow_collapse = is_horiz ? "◂" : "▴";
-
-					if (app_prov != null && !app_prov.docklets_expanded) {
-						if (controller.prefs.AccordionClickToExpand) {
-							tooltip_text = "%s • %s %s (%s)".printf (HoveredItem.Text, _("Docklets"), arrow_expand, _("Click to expand"));
-						} else {
-							tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_expand);
-						}
-					} else {
-						tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_collapse);
-					}
-				}
-				hover.set_text (tooltip_text);
-				controller.position_manager.get_hover_position (HoveredItem, out x, out y);
-				var dock_region = controller.position_manager.get_dock_window_region ();
-				var dock_thickness = GtkLayerShell.is_supported ()
-					? controller.position_manager.get_visual_thickness () + 40
-					: (controller.position_manager.is_horizontal_dock () ? dock_region.height : dock_region.width);
-				var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
-				hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
-
-				if (menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible ())
-					hover.hide ();
-
+				if (HoveredItem == null)
+					return false;
+				present_hovered_tooltip ();
 				return false;
 			});
 		}
@@ -888,29 +969,7 @@ namespace Plank
 			Gdk.Rectangle rect;
 
 			bool drag_active = (controller.drag_manager.ExternalDragActive || controller.drag_manager.InternalDragActive);
-
-			if (HoveredItem != null) {
-				rect = position_manager.get_hover_region_for_element (HoveredItem);
-				bool within_hovered = false;
-				if (drag_active) {
-					if (position_manager.is_horizontal_dock ()) {
-						within_hovered = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
-					} else {
-						within_hovered = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
-					}
-				} else {
-					within_hovered = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
-				}
-				if (within_hovered) {
-					if (drag_item == HoveredItem) {
-						set_hovered_provider (HoveredItem.Container as DockItemProvider);
-						set_hovered (null);
-						return false;
-					} else {
-						return true;
-					}
-				}
-			}
+			bool is_horiz = position_manager.is_horizontal_dock ();
 
 			rect = position_manager.get_cursor_region ();
 			if (y < rect.y || y >= rect.y + rect.height || x < rect.x || x >= rect.x + rect.width) {
@@ -929,7 +988,7 @@ namespace Plank
 					rect = position_manager.get_hover_region_for_element (item);
 					bool matches = false;
 					if (drag_active) {
-						if (position_manager.is_horizontal_dock ()) {
+						if (is_horiz) {
 							matches = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
 						} else {
 							matches = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
@@ -955,10 +1014,10 @@ namespace Plank
 				rect = position_manager.get_hover_region_for_element (provider);
 				bool matches_prov = false;
 				if (drag_active) {
-					if (position_manager.is_horizontal_dock ()) {
+					if (is_horiz) {
 						matches_prov = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
 					} else {
-						matches_prov = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
+						matches_prov = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
 					}
 				} else {
 					matches_prov = (y >= rect.y && y < rect.y + rect.height && x >= rect.x && x < rect.x + rect.width);
@@ -969,11 +1028,14 @@ namespace Plank
 				set_hovered_provider (provider);
 				found_hovered_provider = true;
 
+				unowned DockItem? best_el2 = null;
+				double best_dist = double.MAX;
+
 				foreach (var element2 in provider.VisibleElements) {
 					rect = position_manager.get_hover_region_for_element (element2);
 					bool matches_el2 = false;
 					if (drag_active) {
-						if (position_manager.is_horizontal_dock ()) {
+						if (is_horiz) {
 							matches_el2 = (x >= rect.x && x < rect.x + rect.width && y >= 0 && y < position_manager.DockHeight);
 						} else {
 							matches_el2 = (y >= rect.y && y < rect.y + rect.height && x >= 0 && x < position_manager.DockWidth);
@@ -984,10 +1046,19 @@ namespace Plank
 					if (!matches_el2)
 						continue;
 
-					if (drag_item == element2)
-						break;
+					double center_coord = is_horiz ? (rect.x + rect.width / 2.0) : (rect.y + rect.height / 2.0);
+					double cursor_coord = is_horiz ? (double) x : (double) y;
+					double dist = Math.fabs (cursor_coord - center_coord);
+					if (dist < best_dist) {
+						best_dist = dist;
+						best_el2 = element2 as DockItem;
+					}
+				}
 
-					set_hovered (element2 as DockItem);
+				if (best_el2 != null) {
+					if (drag_item == best_el2)
+						break;
+					set_hovered (best_el2);
 					return true;
 				}
 			}
@@ -1005,6 +1076,8 @@ namespace Plank
 			update_layer_shell_anchors ();
 
 			var win_rect = position_manager.get_dock_window_region ();
+			if (win_rect.width <= 0 || win_rect.height <= 0)
+				return;
 
 			int width_current, height_current;
 			get_size_request (out width_current, out height_current);
@@ -1014,7 +1087,8 @@ namespace Plank
 				Logger.verbose ("DockWindow.set_size_request (width = %i, height = %i)", win_rect.width, win_rect.height);
 				set_size_request (win_rect.width, win_rect.height);
 				resize (win_rect.width, win_rect.height);
-				controller.renderer.reset_buffers ();
+				if (controller.renderer != null)
+					controller.renderer.reset_buffers ();
 
 				update_icon_regions ();
 				input_rect = { -1, -1, -1, -1 };
@@ -1085,31 +1159,32 @@ namespace Plank
 			Gtk.MenuPositionFunc? position_func = null;
 			message ("DockWindow: show_menu mapped_button=%u item=%s", (uint) button, item != null ? item.Text : "null");
 
+			bool has_ctrl = (state & Gdk.ModifierType.CONTROL_MASK) != 0;
+			bool has_alt = (state & Gdk.ModifierType.MOD1_MASK) != 0;
+			bool has_shift = (state & Gdk.ModifierType.SHIFT_MASK) != 0;
+			bool is_debug_combo = (has_ctrl && has_alt && has_shift);
+			bool is_plain_ctrl = (has_ctrl && !has_alt && !has_shift);
+
 			if ((button & PopupButton.RIGHT) != 0
-				&& (item == null || item is SeparatorDockItem || (state & Gdk.ModifierType.CONTROL_MASK) != 0)) {
+				&& (item == null || item is SeparatorDockItem || item is PinnedExpanderDockItem || is_plain_ctrl)) {
 				if (controller.prefs.SystemMenuAccess != 4) {
 					menu_items = new Gee.ArrayList<Gtk.MenuItem> ();
 					PreferencesDockItem.append_full_system_menu (controller, menu_items);
 				} else {
 					menu_items = Factory.item_factory.get_item_for_dock ().get_menu_items ();
 				}
-				if ((state & Gdk.ModifierType.MOD1_MASK) != 0
-					&& (state & Gdk.ModifierType.SHIFT_MASK) != 0)
+				if (is_debug_combo)
 					menu_items.add_all (get_dock_debug_menu_items (controller));
 				set_hovered_provider (null);
 				set_hovered (null);
 			} else if (item != null && item.is_valid () && item.has_menu_for_button (button)) {
 				menu_items = item.get_menu_items_for_button (button);
-				if ((state & Gdk.ModifierType.MOD1_MASK) != 0
-					&& (state & Gdk.ModifierType.SHIFT_MASK) != 0)
+				if (is_debug_combo)
 					menu_items.add_all (get_item_debug_menu_items (item));
 				position_func = (Gtk.MenuPositionFunc) position_menu;
 
 				if ((button & PopupButton.RIGHT) != 0 && !(item is PreferencesDockItem) && !(item is PlankDockItem)) {
 					int access = controller.prefs.SystemMenuAccess;
-					if (!controller.prefs.CategorizeItems && (access == 1 || access == 2)) {
-						access = 3;
-					}
 					if (access == 3) {
 						PreferencesDockItem.append_full_system_menu (controller, menu_items);
 					} else if (access == 2) {
@@ -1230,6 +1305,31 @@ namespace Plank
 			items.add (quit_item);
 		}
 
+		static void open_debug_file (File? file)
+		{
+			if (file == null || file.get_path () == null || !file.query_exists ())
+				return;
+
+			if (file.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
+				System.get_default ().open (file);
+				return;
+			}
+
+			try {
+				var text_app = AppInfo.get_default_for_type ("text/plain", false);
+				if (text_app != null) {
+					var list = new GLib.List<File> ();
+					list.append (file);
+					if (text_app.launch (list, System.get_default ().context))
+						return;
+				}
+			} catch (Error e) {
+				warning ("Failed to open '%s' with text/plain handler: %s", file.get_uri (), e.message);
+			}
+
+			System.get_default ().open (file);
+		}
+
 		static Gee.ArrayList<Gtk.MenuItem> get_dock_debug_menu_items (DockController controller)
 		{
 			var debug_items = new Gee.ArrayList<Gtk.MenuItem> ();
@@ -1242,15 +1342,27 @@ namespace Plank
 
 			Gtk.MenuItem menu_item;
 
+			var config_folder = controller.config_folder;
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open config folder"));
 			menu_item.activate.connect (() => {
-				System.get_default ().open (controller.config_folder);
+				open_debug_file (config_folder);
 			});
+			menu_item.sensitive = (config_folder != null && config_folder.get_path () != null && config_folder.query_exists ());
 			dev_submenu.append (menu_item);
 
+			File? theme_file = (controller.renderer != null && controller.renderer.theme != null)
+				? controller.renderer.theme.get_backing_file () : null;
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open current theme file"));
 			menu_item.activate.connect (() => {
-				System.get_default ().open (controller.renderer.theme.get_backing_file ());
+				open_debug_file (theme_file);
+			});
+			menu_item.sensitive = (theme_file != null && theme_file.get_path () != null && theme_file.query_exists ());
+			dev_submenu.append (menu_item);
+
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print app usage ranking"));
+			menu_item.activate.connect (() => {
+				print ("Smart Pinned Accordion — usage ranking (score = frecency, 2-week half-life):\n%s",
+					AppUsageService.get_default ().describe_top (20));
 			});
 			dev_submenu.append (menu_item);
 
@@ -1275,24 +1387,35 @@ namespace Plank
 			var dock_item_file = item.Prefs.get_backing_file ();
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print info to stdout"));
 			menu_item.activate.connect (() => {
-				print ("DockItemFile: '%s'\nText = '%s'\nIcon = '%s'\nLauncher = '%s'\n",
+				print ("DockItemFile: '%s'\nText = '%s'\nIcon = '%s'\nLauncher = '%s'\nCustomIcon = '%s'\nBrowserProfile = '%s'\nKeepVisible = %s\n",
 					dock_item_file != null ? dock_item_file.get_uri () : "",
-					item.Text, item.Icon, item.Launcher);
+					item.Text, item.Icon, item.Launcher,
+					item.Prefs.CustomIcon, item.Prefs.BrowserProfile,
+					item.Prefs.KeepVisible ? "true" : "false");
 			});
 			dev_submenu.append (menu_item);
 
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open dockitem file"));
 			menu_item.activate.connect (() => {
-				System.get_default ().open (dock_item_file);
+				open_debug_file (dock_item_file);
 			});
-			menu_item.sensitive = (dock_item_file != null && dock_item_file.query_exists ());
+			menu_item.sensitive = (dock_item_file != null && dock_item_file.get_path () != null && dock_item_file.query_exists ());
 			dev_submenu.append (menu_item);
 
+			File? launcher_file = (item.Launcher != null && item.Launcher.has_prefix ("file://"))
+				? File.new_for_uri (item.Launcher) : null;
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Open launcher file"));
 			menu_item.activate.connect (() => {
-				System.get_default ().open (File.new_for_uri (item.Launcher));
+				open_debug_file (launcher_file);
 			});
-			menu_item.sensitive = (item.Launcher != "");
+			menu_item.sensitive = (launcher_file != null && launcher_file.get_path () != null && launcher_file.query_exists ());
+			dev_submenu.append (menu_item);
+
+			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print usage score"));
+			menu_item.activate.connect (() => {
+				print ("%s\n", AppUsageService.get_default ().describe (item.Launcher));
+			});
+			menu_item.sensitive = (item is ApplicationDockItem && item.Launcher != null && item.Launcher != "");
 			dev_submenu.append (menu_item);
 
 			dev_submenu.show_all ();
@@ -1313,6 +1436,7 @@ namespace Plank
 
 			controller.check_collapse_after_interaction ();
 
+			ClickedItem = null;
 			menu_items = null;
 		}
 

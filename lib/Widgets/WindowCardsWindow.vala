@@ -44,6 +44,19 @@ namespace Plank
 		uint pos_timer_1_id = 0U;
 		uint pos_timer_2_id = 0U;
 		bool pointer_inside = false;
+		Gtk.CssProvider? css_provider = null;
+		unowned Gdk.Screen? css_screen = null;
+
+		bool has_last_pos = false;
+		int last_center_x = -1;
+		int last_center_y = -1;
+		int last_pos_w = -1;
+		int last_pos_h = -1;
+		Gtk.PositionType last_pos_edge = Gtk.PositionType.BOTTOM;
+		int last_thickness = -1;
+		double smooth_scroll_dx = 0.0;
+		double smooth_scroll_dy = 0.0;
+		uint32 last_scroll_time = 0U;
 
 		static Pango.FontDescription? cached_font_title = null;
 		static Pango.FontDescription? cached_font_sub = null;
@@ -119,14 +132,55 @@ namespace Plank
 			});
 			scroll_event.connect (on_scroll);
 
+			hide.connect (() => {
+				has_last_pos = false;
+				cancel_dismiss_timer ();
+				cancel_position_timers ();
+			});
+			unmap.connect (() => {
+				has_last_pos = false;
+			});
+
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
+		}
+
+		void remove_theme_style ()
+		{
+			if (css_provider != null) {
+				unowned Gdk.Screen? screen = css_screen ?? get_screen () ?? Gdk.Screen.get_default ();
+				if (screen != null)
+					Gtk.StyleContext.remove_provider_for_screen (screen, css_provider);
+				css_provider = null;
+				css_screen = null;
+			}
+		}
+
+		void clear_cards ()
+		{
+			if (cards_box == null)
+				return;
+			foreach (var child in cards_box.get_children ())
+				child.destroy ();
+		}
+
+		public override void destroy ()
+		{
+			has_last_pos = false;
+			cancel_dismiss_timer ();
+			cancel_position_timers ();
+			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
+			clear_cards ();
+			remove_theme_style ();
+			base.destroy ();
 		}
 
 		~WindowCardsWindow ()
 		{
+			has_last_pos = false;
 			cancel_dismiss_timer ();
 			cancel_position_timers ();
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
+			remove_theme_style ();
 		}
 
 		void cancel_position_timers ()
@@ -146,7 +200,50 @@ namespace Plank
 			if (TargetItem == null)
 				return false;
 
-			bool forward = (event.direction == Gdk.ScrollDirection.UP || event.direction == Gdk.ScrollDirection.RIGHT || event.delta_y < 0);
+			bool forward = false;
+			if (event.direction == Gdk.ScrollDirection.UP || event.direction == Gdk.ScrollDirection.RIGHT) {
+				forward = true;
+			} else if (event.direction == Gdk.ScrollDirection.DOWN || event.direction == Gdk.ScrollDirection.LEFT) {
+				forward = false;
+			} else if (event.direction == Gdk.ScrollDirection.SMOOTH) {
+				double raw_dx = 0.0, raw_dy = 0.0;
+				if (!event.get_scroll_deltas (out raw_dx, out raw_dy)) {
+					raw_dx = event.delta_x;
+					raw_dy = event.delta_y;
+				}
+				if (raw_dx == 0.0 && raw_dy == 0.0)
+					return Gdk.EVENT_STOP;
+				if (event.time - last_scroll_time > 400U) {
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				}
+				last_scroll_time = event.time;
+				smooth_scroll_dx += raw_dx;
+				smooth_scroll_dy += raw_dy;
+
+				if (smooth_scroll_dy <= -0.7) {
+					forward = true;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else if (smooth_scroll_dy >= 0.7) {
+					forward = false;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else if (smooth_scroll_dx <= -0.7) {
+					forward = false;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else if (smooth_scroll_dx >= 0.7) {
+					forward = true;
+					smooth_scroll_dx = 0.0;
+					smooth_scroll_dy = 0.0;
+				} else {
+					return Gdk.EVENT_STOP;
+				}
+			} else {
+				return Gdk.EVENT_STOP;
+			}
+
 			string? uuid;
 			if (WindowManager.get_default ().cycle_window (TargetItem.Launcher, forward, out uuid)) {
 				WindowControl.queue_command (uuid, "activate");
@@ -168,7 +265,7 @@ namespace Plank
 			// If window count changed, rebuild cards
 			if (windows.size != cards_box.get_children ().length ()) {
 				populate_cards ();
-				update_position ();
+				update_position (true);
 			} else {
 				// Re-draw all cards to shift active cyan highlight
 				cards_box.queue_draw ();
@@ -177,9 +274,12 @@ namespace Plank
 
 		void apply_theme_style ()
 		{
-			var css = new Gtk.CssProvider ();
+			if (css_provider != null)
+				return;
+
+			css_provider = new Gtk.CssProvider ();
 			try {
-				css.load_from_data (
+				css_provider.load_from_data (
 					"window.wayplank-window-cards {\n" +
 					"    background-color: transparent;\n" +
 					"}\n" +
@@ -188,9 +288,12 @@ namespace Plank
 					"    background-color: transparent;\n" +
 					"}\n"
 				);
-				Gtk.StyleContext.add_provider_for_screen (
-					get_screen (), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-				);
+				css_screen = get_screen () ?? Gdk.Screen.get_default ();
+				if (css_screen != null) {
+					Gtk.StyleContext.add_provider_for_screen (
+						css_screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+					);
+				}
 			} catch (GLib.Error e) {
 				warning ("WindowCardsWindow css error: %s", e.message);
 			}
@@ -237,6 +340,8 @@ namespace Plank
 		{
 			TargetItem = item;
 			pointer_inside = false;
+			smooth_scroll_dx = 0.0;
+			smooth_scroll_dy = 0.0;
 			cancel_dismiss_timer ();
 			cancel_position_timers ();
 
@@ -248,18 +353,18 @@ namespace Plank
 			if (monitor != null && GtkLayerShell.is_supported ())
 				GtkLayerShell.set_monitor (this, monitor);
 
-			update_position ();
+			update_position (true);
 
 			pos_timer_1_id = GLib.Timeout.add (25, () => {
 				pos_timer_1_id = 0U;
 				if (get_visible () && TargetItem != null)
-					update_position ();
+					update_position (true);
 				return false;
 			});
 			pos_timer_2_id = GLib.Timeout.add (75, () => {
 				pos_timer_2_id = 0U;
 				if (get_visible () && TargetItem != null)
-					update_position ();
+					update_position (true);
 				return false;
 			});
 		}
@@ -269,6 +374,7 @@ namespace Plank
 			cancel_dismiss_timer ();
 			cancel_position_timers ();
 			hide ();
+			clear_cards ();
 			TargetItem = null;
 			controller.check_collapse_after_interaction (this);
 		}
@@ -297,8 +403,7 @@ namespace Plank
 
 		void populate_cards ()
 		{
-			foreach (var child in cards_box.get_children ())
-				cards_box.remove (child);
+			clear_cards ();
 
 			if (TargetItem == null)
 				return;
@@ -379,13 +484,20 @@ namespace Plank
 			int prev_h = 104;
 
 			Gdk.Pixbuf? thumb_pixbuf = KWinThumbnailService.get_default ().get_cached (win.Id);
-			if (thumb_pixbuf == null) {
+			if (thumb_pixbuf == null || KWinThumbnailService.get_default ().is_stale (win.Id)) {
+				GLib.WeakRef self_ref = GLib.WeakRef (this);
+				GLib.WeakRef da_ref = GLib.WeakRef (da);
 				KWinThumbnailService.get_default ().request_thumbnail (win.Id, prev_w, prev_h, (pix) => {
 					if (pix != null) {
 						thumb_pixbuf = pix;
-						da.queue_draw ();
-						cards_box.queue_draw ();
-						this.queue_draw ();
+						var self_win = (WindowCardsWindow?) self_ref.get ();
+						var da_widget = (Gtk.DrawingArea?) da_ref.get ();
+						if (da_widget != null && da_widget.get_realized ())
+							da_widget.queue_draw ();
+						if (self_win != null && self_win.get_visible ()) {
+							self_win.cards_box.queue_draw ();
+							self_win.queue_draw ();
+						}
 					}
 				});
 			}
@@ -595,20 +707,18 @@ namespace Plank
 				double close_y = 111.0 + (CARD_HEIGHT - 111.0) / 2.0;
 				bool is_close_click = (Math.hypot (event.x - close_x, event.y - close_y) <= 13.0);
 
-				if (event.button == Gdk.BUTTON_PRIMARY) {
-					if (is_close_click) {
-						WindowControl.queue_command (win.Id, "close");
-						cards_box.remove (eb);
-						eb.destroy ();
-						if (cards_box.get_children ().length () == 0) {
-							close_cards ();
-						} else {
-							update_position ();
-						}
-					} else {
-						WindowControl.queue_command (win.Id, "activate");
+				if ((event.button == Gdk.BUTTON_PRIMARY && is_close_click) || event.button == Gdk.BUTTON_MIDDLE) {
+					WindowControl.queue_command (win.Id, "close");
+					eb.destroy ();
+					if (cards_box.get_children ().length () == 0) {
 						close_cards ();
+					} else {
+						update_position ();
 					}
+					return Gdk.EVENT_STOP;
+				} else if (event.button == Gdk.BUTTON_PRIMARY) {
+					WindowControl.queue_command (win.Id, "activate");
+					close_cards ();
 					return Gdk.EVENT_STOP;
 				}
 				return Gdk.EVENT_PROPAGATE;
@@ -621,7 +731,7 @@ namespace Plank
 		 * Positions the window cards using exact coordinates derived from PositionManager,
 		 * identical to FolderMenuWindow and HoverWindow.
 		 */
-		public void update_position ()
+		public void update_position (bool force = false)
 		{
 			if (TargetItem == null || !TargetItem.is_valid () || !get_visible ())
 				return;
@@ -650,14 +760,30 @@ namespace Plank
 
 			int center_x = (int) Math.round (val.center.x);
 			int center_y = (int) Math.round (val.center.y);
+			int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
+
+			if (!force && has_last_pos
+				&& center_x == last_center_x
+				&& center_y == last_center_y
+				&& width == last_pos_w
+				&& height == last_pos_h
+				&& pm.Position == last_pos_edge
+				&& visual_thickness == last_thickness) {
+				return;
+			}
+			has_last_pos = true;
+			last_center_x = center_x;
+			last_center_y = center_y;
+			last_pos_w = width;
+			last_pos_h = height;
+			last_pos_edge = pm.Position;
+			last_thickness = visual_thickness;
 
 			if (GtkLayerShell.is_supported ()) {
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
 				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
-
-				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
 
 				switch (pm.Position) {
 				case Gtk.PositionType.BOTTOM:
@@ -747,7 +873,6 @@ namespace Plank
 
 				int target_x = mon_x + center_x - width / 2;
 				int target_y = mon_y + center_y;
-				int visual_thickness = pm.get_visual_thickness_for_item (TargetItem);
 				int mutter_offset = 8;
 
 				switch (pm.Position) {

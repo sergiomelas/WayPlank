@@ -28,9 +28,9 @@ Following the formal closure of the **Alpha & Pre-Beta development cycle (`v0.1.
 ### 2.1. Architectural Design & Zero Host Pollution Philosophy
 Unlike traditional Unix applications that scatter locale catalogs across `/usr/share/locale/<lang>/LC_MESSAGES/wayplank.mo`, WayPlank adheres strictly to its **Monolithic Standalone Executable Guarantee**:
 - **Zero Runtime Filesystem Dependency**: All `.mo` binary catalogs are compiled at build time (`msgfmt -c`) and embedded directly inside `build/wayplank` as `GResource` byte streams (`/net/launchpad/plank/locale/<lang>/wayplank.mo`).
-- **In-Memory $O(1)$ Hash Resolution (`lib/gtk-compat.c`)**:
-  - `wayplank_i18n_init()` detects the active system locale via `setlocale(LC_MESSAGES, "")` and `g_get_language_names()`, looks up the matching embedded `.mo` resource in RAM, parses its binary header (`0x950412de`), and populates a `GHashTable` in memory.
-  - `wayplank_i18n_get(const char *msgid)` performs an $O(1)$ lookup in RAM and falls back instantaneously to the original English `msgid` pointer when running under `en`, `C`, or `POSIX` locales without disk I/O or heap allocation.
+- **In-Memory $O(\log N)$ Binary-Search Resolution (`lib/gtk-compat.c`)**:
+  - `wayplank_i18n_init()` detects the active system locale via `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`, and `setlocale(LC_MESSAGES, "")`, matches it against `WAYPLANK_EMBEDDED_LANGS`, looks up the embedded `.mo` resource in RAM (`g_resources_lookup_data`), and validates its binary header (`0x950412de`) and string offset tables with zero heap duplication.
+  - `wayplank_i18n_get(const char *msgid)` performs a zero-allocation binary search directly over the sorted `.mo` byte table in RAM (paired with `wayplank_i18n_translate_widget()` for GtkBuilder UI trees) and falls back instantaneously to the original English `msgid` pointer when running under `en`, `C`, or `POSIX` locales without disk I/O.
 - **Vala & C Translation Interception (`include/config.h`)**:
   ```c
   const char* wayplank_i18n_get (const char* msgid);
@@ -73,7 +73,7 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 - **Chromium PWA Isolation & Word-Boundary Token Matching (Issue #6 / FAT Point 2.14)**:
   - Exact primary matching on `DesktopFileName`, `ApplicationId`, and `StartupWMClass` (`crx_<id>`) plus Unicode word-boundary matching (`contains_word`), preventing false-positive hijacking and ensuring standalone PWAs instantiate distinct dock items.
 - **Pure FreeDesktop Exec-Less Template Guard, Labwc `/proc` Resolver & Synthetic Launcher GC (Issue #14 / FAT Point 2.15)**:
-  - Restricts `synthesize_fallback_desktop_file()` strictly to windows matching an installed Exec-less desktop template (`matched_exec_less_desktop`), preventing transient CLI utilities (`zenity`) from spawning dock icons.
+  - Restricted `synthesize_fallback_desktop_file()` in `v0.6.2.3` to windows matching an installed Exec-less desktop template (`matched_exec_less_desktop` — subsequently generalized in Section 4.2 of the `v0.7.0` hotfix into zero-hardcoding `WindowInfo.IsDialog` + XDG `NoDisplay=true` `Exec=` dialog masking), preventing transient CLI utilities (`zenity`, `kdialog`) from spawning dock icons.
   - Implements `resolve_toplevel_process()` in `LabwcBackend.vala` ($O(1)$-cached `/proc` PID and command-line resolution) and self-healing `wayplank-app-*.desktop` launchers so multiple distinct CLI QEMU VMs pin, isolate, and cold-relaunch 100% across KWin, Mutter, and Labwc.
   - Automatically purges unpinned `wayplank-app-*.desktop` files via `gc_synthetic_launchers()` when their windows close.
 
@@ -106,9 +106,8 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 
 ### 3.8. 16 Built-In Zero-Dependency Docklets, 7×2 Grid & 4-Mode System Menu Access
 - **16 Embedded Docklets**:
-  - **14 in the symmetric 7×2 Docklets Grid**: `Clippy`, `Clock`, `Battery`, `Trash` (also accessible in Apps & Layout), `Desktop` (Show Desktop), `Applications`, `Workspaces`, `Weather`, `Session` (3×3 Session & Power control center with `Lock Screen`, `Switch User`, `Log Out`, `Suspend`, `Hibernate`, `Hybrid Sleep`, `Restart`, `UEFI / BIOS`, and `Shut Down` + automatic `systemd-logind` capability detection), `CPUMonitor`, `Volume`, `MPRIS` (Media Player with Album Art, `Align by Type`, middle-click Play/Pause, scroll track skip), `Brightness`, and `Network` (`nmcli` Wi-Fi/Ethernet monitor).
-  - **Do Not Disturb (`docklet://dnd`)**: Desktop notification mute toggle synchronized with KDE Plasma and GNOME Shell.
-  - **Dedicated Preferences Docklet (`docklet://preferences`)**: Automatically placed on the dock when System Menu Access Mode 4 is selected.
+  - **14 in the symmetric 7×2 Docklets Grid (`Preferences -> Docklets`)**: `Clock` (`docklet://clock`), `Digital Clock` (`docklet://digital-clock`), `Battery` (`docklet://battery`), `CPU / System Pressure` (`docklet://cpu`), `Show Desktop` (`docklet://desktop`), `MPRIS` (`docklet://mpris` — Media Player with Album Art), `Volume` (`docklet://volume`), `Screenshot` (`docklet://screenshot`), `Session` (`docklet://session` — 3×3 Session & Power control center with `Lock Screen`, `Switch User`, `Log Out`, `Suspend`, `Hibernate`, `Hybrid Sleep`, `Restart`, `UEFI / BIOS`, and `Shut Down` + automatic `systemd-logind` capability detection), `Brightness` (`docklet://brightness`), `Removable Drive Ejector` (`docklet://ejector`), `Weather` (`docklet://weather`), `Network` (`docklet://network` — Wi-Fi/Ethernet monitor), and `Do Not Disturb` (`docklet://dnd`).
+  - **2 Edge-Anchored System Docklets (`Preferences -> Apps & Layout`)**: `Trash` (`docklet://trash`, controlled via `Show Trash`) and `Preferences` (`docklet://preferences`, controlled via `System Menu Access` Mode 4 or `WayPlank Always Left`).
 - **4-Position System Menu Access & Category Layout Engine (`Preferences -> Apps & Layout`)**:
   - Consolidated **Categories & Layout** into the third Preferences tab (**Apps & Layout**), streamlining the **Behaviour** and **Appearance** tabs.
   - Added **`Docklets on Right` (`docklets-on-right`)**: Allows moving the Docklets group to the right side immediately before Trash (System Tray style, after unpinned running apps) while keeping Pinned and Unpinned Apps strictly adjacent so drag-to-pin/unpin across their divider remains 100% intact.
@@ -125,7 +124,7 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 - **HoverWindow Popup Standardization & Exact Mutter Classification (FAT Points 5.1 & 0.4)**: Uses `set_role("popup-menu")` and `Gdk.WindowTypeHint.POPUP_MENU` across all floating dock popups (`HoverWindow`, `FolderMenuWindow`, `WindowCardsWindow`) and enforces strict `===` title matching in `MutterBackend.vala` (`_classifyWindow`).
 - **Two-Stage Hysteresis Input Mask & Transparent Passthrough (Issue #12 / FAT Point 5.4)**:
   - Configurable **Anticipate Icon Zoom** (`anticipate-zoom`, default `true`) in **Preferences $\rightarrow$ Behaviour**. When disabled, the layer-shell input region strictly hugs the 60 px visual dock pill at rest so 100% of clicks above the dock pass through to underlying windows, dynamically expanding upward by `hover_region` only while an icon is actively hovered.
-- **Reserve Screen Space / Panel Mode (Issue #9 / FAT Point 3.8)**:
+- **Reserve Screen Space / Panel Mode (Issue #9 / FAT Point 3.10)**:
   - Configurable **Reserve Screen Space** (`reserve-space`) in **Preferences $\rightarrow$ Behaviour** (mutually exclusive with Auto-Hide and Icon Zoom). Uses `GtkLayerShell.set_exclusive_zone` on KWin/Labwc and physical-monitor-anchored (`monGeo`) chrome struts (`affectsStruts: true`) with dynamic content-hashed ES module reloading (`impl-<hash>.js`, `version: 4`) and unconstrained `user_op = true` positioning on GNOME Shell.
 - **Fullscreen Window Inhibit & 0px Edge Click Passthrough (Issue #10 / FAT Point 3.9)**:
   - Detects direct unmaximized-to-fullscreen transitions (`Fullscreen` state and `fullscreen_window_intersects()`) across KWin, Mutter, and Labwc, hides the dock across all `HideMode`s (including `HideType.NONE`) via `FullscreenInhibit`, and sets `get_cursor_region()` to `{ 0, 0, 0, 0 }` so 100% of `0px` screen-edge clicks pass through to fullscreen apps (Remmina, MPV, browsers, games).
@@ -167,11 +166,16 @@ WayPlank `v0.7.0` includes the complete set of features, docklets, and HAL engin
 
 ## 6. 🗺️ Master Release Trajectory
 
-```
-v0.6.2.3 (Pre-Beta Finale) ──► v0.7.0 (Public Beta 1) ──► v0.7.x (Public Beta 2, 3...) ──► v0.8.x (Release Candidate) ──► v0.9.x (Stabilization) ──► v1.0.0 (Grand Milestone)
+```mermaid
+flowchart LR
+    V0623["v0.6.2.3 (Pre-Beta Finale)"] --> V070["v0.7.0 (Public Beta 1)"]
+    V070 --> V07X["v0.7.x (Public Beta 2, 3...)"]
+    V07X --> V08X["v0.8.x (Release Candidate)"]
+    V08X --> V09X["v0.9.x (Stabilization)"]
+    V09X --> V100["v1.0.0 (Grand Milestone)"]
 ```
 
-- **v0.7.x (Active Public Beta Series — `v0.7.0` Beta 1, `v0.7.1` Beta 2, `v0.7.2` Beta 3, ... | Community-Driven Window up to Dec 31, 2026)**: Monolithic localization engine, community-driven feature additions, iterative bug fixing, new language catalogs, UX refinements, and broadened field testing across KWin, Mutter, Labwc, Sway, and Hyprland—remaining open until the community says we are ready for the `v0.8.x` freeze (upper deadline: **December 31, 2026**).
+- **v0.7.x (Active Public Beta Series — `v0.7.1` Consolidation Next, `v0.7.2+` `hal/` & Windows | Community-Driven Window up to Dec 31, 2026)**: Monolithic localization engine, `v0.7.1` post-audit bug consolidation (`#19`–`#25`) & Smart Usage-Adaptive Accordion (`#26`), community-driven feature additions, new language catalogs, UX refinements, broadened field testing across KWin, Mutter, Labwc, Sway, and Hyprland, and dedicated **`v0.7.2+`** physical `hal/` extraction ([HAL_ARCHITECTURE.md](../Documentation/HAL_ARCHITECTURE.md)) & preliminary native Windows preview ([WinPlank](../Documentation/WINPLANK_PORT_BATTLE_PLAN.md))—remaining open until the community says we are ready for the `v0.8.x` freeze (upper deadline: **December 31, 2026**).
 - **v0.8.x (Release Candidate Series)**: Following the completion of the `v0.7.x` Public Beta cycle, strict feature freeze, memory leak profiling (Valgrind), and packaging stabilization.
-- **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distributions.
+- **v0.9.x (Long-Term Production Stabilization)**: The official battle-tested production milestone for daily driving across all Linux distributions and Windows 10/11+.
 - **v1.0.0 (Grand Milestone Horizon — ~2 Years)**: Definitive landmark release celebrating multi-year proven stability and mature Wayland protocol standards.

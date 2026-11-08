@@ -63,7 +63,17 @@ namespace Plank
 		}
 		
 		string? unity_dbusname = null;
+		string base_launcher_text = "";
 		int prev_window_count = 0;
+		int browser_profile_reg_id = 0;
+		bool scanned_running = false;
+
+		/**
+		 * Whether this app counts as running for the Smart Pinned Accordion: it has windows,
+		 * or the last process scan found it. Kept apart from Indicator so that it does not
+		 * depend on the "Show Running" preference.
+		 */
+		public bool running_for_accordion { get; private set; default = false; }
 		
 		/**
 		 * {@inheritDoc}
@@ -89,6 +99,7 @@ namespace Plank
 			desktop_action_ids = new Gee.HashMap<string, string> ();
 			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
+			Prefs.notify["BrowserProfile"].connect (handle_browser_profile_changed);
 			
 			load_from_launcher ();
 			prev_window_count = WindowManager.get_default ().window_count_for_app (Launcher);
@@ -105,6 +116,12 @@ namespace Plank
 
 			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
+			Prefs.notify["BrowserProfile"].disconnect (handle_browser_profile_changed);
+
+			if (browser_profile_reg_id > 0) {
+				ApplicationDiscovery.get_default ().update_item_browser_profile (browser_profile_reg_id, "", "");
+				browser_profile_reg_id = 0;
+			}
 
 			supported_mime_types = null;
 			actions = null;
@@ -155,6 +172,11 @@ namespace Plank
 			}
 		}
 		
+		public void refresh_indicator ()
+		{
+			update_indicator (false);
+		}
+
 		protected void update_indicator (bool scan_process)
 		{
 			unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
@@ -163,6 +185,14 @@ namespace Plank
 			var window_manager = WindowManager.get_default ();
 			var window_count = window_manager.window_count_for_app (Launcher);
 			var running = (window_count > 0 || (scan_process && is_running ()));
+			if (scan_process)
+				scanned_running = (window_count == 0 && running);
+			else if (window_count > 0)
+				scanned_running = false;
+			var prev_running_for_accordion = running_for_accordion;
+			running_for_accordion = (window_count > 0 || scanned_running);
+			if (scan_process && prev_running_for_accordion != running_for_accordion && provider != null)
+				provider.refresh_pinned_accordion ();
 			
 			var had_open_windows = (prev_window_count > 0);
 			prev_window_count = window_count;
@@ -197,10 +227,14 @@ namespace Plank
 				ClickedAnimation = AnimationType.BOUNCE;
 				LastClicked = GLib.get_monotonic_time ();
 			}
+
+			update_profile_tooltip_text ();
 		}
 		
 		void launch ()
 		{
+			// Explicit launch from the dock: feeds the Smart Pinned Accordion usage score
+			AppUsageService.get_default ().note_launch (Launcher);
 			System.get_default ().launch (File.new_for_uri (Prefs.Launcher));
 		}
 		
@@ -217,6 +251,14 @@ namespace Plank
 				}
 			
 			if (button == PopupButton.LEFT) {
+				if ((mod & Gdk.ModifierType.SHIFT_MASK) != 0) {
+					string? cycle_uuid;
+					if (WindowManager.get_default ().cycle_window (Launcher, true, out cycle_uuid)) {
+						message ("Wayplank: shift-click on '%s' -> cycle window uuid=%s", Text, cycle_uuid);
+						WindowControl.queue_command (cycle_uuid, "activate");
+						return AnimationType.NONE;
+					}
+				}
 				var app_id = File.new_for_uri (Launcher).get_basename ();
 				unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
 				var click_behavior = (provider != null ? provider.Prefs.WindowClickBehavior : 0);
@@ -323,6 +365,7 @@ namespace Plank
 						
 						var item = create_menu_item (s, values.length > 1 ? values[1] : "", true);
 						item.activate.connect (() => {
+							AppUsageService.get_default ().note_launch (Launcher);
 							if (action_id != null) {
 								string? path = null;
 								if (Launcher.has_prefix ("file://"))
@@ -344,6 +387,15 @@ namespace Plank
 							}
 						});
 						items.add (item);
+					}
+				}
+
+				if (Launcher != "") {
+					var recent_item = RecentFilesService.build_submenu_item (Launcher);
+					if (recent_item != null) {
+						if (items.size > 0)
+							items.add (new Gtk.SeparatorMenuItem ());
+						items.add (recent_item);
 					}
 				}
 			}
@@ -374,6 +426,15 @@ namespace Plank
 				item.active = !(this is TransientDockItem);
 				item.activate.connect (() => pin_launcher ());
 				items.add (item);
+
+				if (!(this is TransientDockItem) && default_provider.is_pinned_accordion_enabled ()) {
+					var keep_item = new Gtk.CheckMenuItem.with_mnemonic (_("Keep Always _Visible"));
+					keep_item.active = Prefs.KeepVisible;
+					keep_item.activate.connect (() => {
+						Prefs.KeepVisible = !Prefs.KeepVisible;
+					});
+					items.add (keep_item);
+				}
 			}
 			
 			if (!is_window () && Launcher != "" && has_executable_launcher ()) {
@@ -588,6 +649,45 @@ namespace Plank
 			return true;
 		}
 		
+		void update_profile_tooltip_text ()
+		{
+			if (Prefs.Launcher == "")
+				return;
+			var identity = ApplicationDiscovery.get_default ().identity_for_launcher (Prefs.Launcher);
+			if (identity == null || !identity.is_browser_launcher ())
+				return;
+
+			var wins = WindowManager.get_default ().matching_windows (Prefs.Launcher);
+			foreach (var w in wins) {
+				string? locked_disp = ApplicationIdentity.get_locked_window_display_name (w);
+				if (locked_disp != null && locked_disp != "") {
+					if (Text != locked_disp)
+						Text = locked_disp;
+					return;
+				}
+			}
+
+			string? prof = (Prefs.BrowserProfile != null && Prefs.BrowserProfile.strip () != "")
+				? Prefs.BrowserProfile.strip ()
+				: identity.detected_browser_profile;
+
+			if (prof != null && prof != "") {
+				string? formatted = ApplicationIdentity.format_chrome_profile_identity_name (prof);
+				if (formatted != null && formatted != "" && Text != formatted)
+					Text = formatted;
+			} else if (base_launcher_text != null && base_launcher_text != "" && Text != base_launcher_text) {
+				Text = base_launcher_text;
+			}
+		}
+
+		void handle_browser_profile_changed ()
+		{
+			if (Prefs.Launcher != "")
+				browser_profile_reg_id = ApplicationDiscovery.get_default ().update_item_browser_profile (browser_profile_reg_id, Prefs.Launcher, Prefs.BrowserProfile);
+			update_profile_tooltip_text ();
+			update_indicator (false);
+		}
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -598,9 +698,16 @@ namespace Plank
 			
 			string icon, text;
 			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types, desktop_action_ids);
-			Icon = icon;
+			if (icon != null && icon != "")
+				Icon = icon;
 			ForcePixbuf = null;
-			Text = text;
+			if (text != null && text != "") {
+				base_launcher_text = text;
+				Text = text;
+			}
+
+			browser_profile_reg_id = ApplicationDiscovery.get_default ().update_item_browser_profile (browser_profile_reg_id, Prefs.Launcher, Prefs.BrowserProfile);
+			update_profile_tooltip_text ();
 
 			accepts_payload = false;
 			try {

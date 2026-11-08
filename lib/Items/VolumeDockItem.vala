@@ -176,29 +176,39 @@ namespace Plank
 			}
 		}
 
-		void schedule_volume_poll ()
+		private static void spawn_volume_poll_worker (VolumeDockItem target)
 		{
-			if (is_disposed || poll_in_flight)
-				return;
-			poll_in_flight = true;
+			GLib.WeakRef self_ref = GLib.WeakRef (target);
 
 			new Thread<void*> ("wayplank-volume-poll", () => {
 				int parsed_vol;
 				bool parsed_muted;
 				bool ok = probe_system_volume (out parsed_vol, out parsed_muted);
 				Idle.add (() => {
-					poll_in_flight = false;
-					if (is_disposed)
+					var self = (VolumeDockItem?) self_ref.get ();
+					if (self == null)
 						return false;
-					if (ok && (volume != parsed_vol || is_muted != parsed_muted)) {
-						volume = parsed_vol;
-						is_muted = parsed_muted;
-						update_display ();
+					self.poll_in_flight = false;
+					if (self.is_disposed)
+						return false;
+					if (ok && (self.volume != parsed_vol || self.is_muted != parsed_muted)) {
+						self.volume = parsed_vol;
+						self.is_muted = parsed_muted;
+						self.update_display ();
 					}
 					return false;
 				});
 				return null;
 			});
+		}
+
+		void schedule_volume_poll ()
+		{
+			if (is_disposed || poll_in_flight)
+				return;
+			poll_in_flight = true;
+
+			spawn_volume_poll_worker (this);
 		}
 		
 		void update_display ()
@@ -343,23 +353,23 @@ namespace Plank
 			
 			var mixer_item = create_menu_item (_("_Audio Settings..."), "multimedia-volume-control", true);
 			mixer_item.activate.connect (() => {
-				string[] mixers = { "kcmshell6 kcm_pulseaudio", "kcmshell5 kcm_pulseaudio", "pavucontrol" };
-				foreach (var m in mixers) {
-					try {
-						Process.spawn_command_line_async (m);
-						break;
-					} catch (Error e) { }
-				}
+				System.launch_desktop_utility (
+					{ "kcmshell6 kcm_pulseaudio", "kcmshell5 kcm_pulseaudio" },
+					{ "gnome-control-center sound" },
+					{ "pavucontrol" }
+				);
 			});
 			items.add (mixer_item);
 			
-			items.add (new Gtk.SeparatorMenuItem ());
-			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
+				
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 			
 			return items;
 		}

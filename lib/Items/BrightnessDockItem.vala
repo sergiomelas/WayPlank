@@ -190,30 +190,23 @@ namespace Plank
 
 			var settings_item = create_menu_item (_("_Display Settings..."), "preferences-desktop-display", true);
 			settings_item.activate.connect (() => {
-				string[] cmd_candidates = {
-					"systemsettings kcm_kscreen",
-					"kcmshell6 kcm_kscreen",
-					"kcmshell5 kcm_kscreen",
-					"gnome-control-center display",
-					"wdisplays",
-					"arandr"
-				};
-				foreach (var cmd in cmd_candidates) {
-					try {
-						GLib.Process.spawn_command_line_async (cmd);
-						break;
-					} catch (GLib.Error e) { }
-				}
+				System.launch_desktop_utility (
+					{ "systemsettings kcm_kscreen", "kcmshell6 kcm_kscreen", "kcmshell5 kcm_kscreen" },
+					{ "gnome-control-center display" },
+					{ "wdisplays", "arandr" }
+				);
 			});
 			items.add (settings_item);
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 
 			return items;
 		}

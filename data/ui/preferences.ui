@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with plank.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<interface domain="plank">
+<interface domain="wayplank">
   <requires lib="gtk+" version="3.10"/>
   <!-- interface-license-type gplv3 -->
   <!-- interface-name plank -->
@@ -69,6 +69,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
     <property name="value">600</property>
     <property name="step_increment">50</property>
     <property name="page_increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_pinned_count">
+    <property name="lower">1</property>
+    <property name="upper">20</property>
+    <property name="value">6</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">2</property>
   </object>
   <template class="PlankPreferencesWindow" parent="GtkWindow">
     <property name="can_focus">False</property>
@@ -460,20 +467,20 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 </child>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">1</property>
                 <property name="top_attach">5</property>
-                <property name="width">2</property>
+                <property name="width">3</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="l_iconzoom">
+              <object class="GtkLabel" id="l_scroll_overflow">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="margin_right">6</property>
-                <property name="label" translatable="yes">Icon Zoom:</property>
+                <property name="label" translatable="yes">Scroll on Overflow:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -481,12 +488,12 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="sw_zoom_enabled">
+              <object class="GtkSwitch" id="sw_scroll_overflow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -494,17 +501,15 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkSpinButton" id="sp_zoom_percent">
+              <object class="GtkLabel" id="l_tooltips_enabled">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hexpand">False</property>
-                <property name="valign">center</property>
-                <property name="width_chars">4</property>
-                <property name="xalign">0.5</property>
-                <property name="invisible_char">•</property>
-                <property name="adjustment">adj_zoom_percent</property>
-                <property name="numeric">True</property>
-                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="margin_right">6</property>
+                <property name="label" translatable="yes">Icon Tooltips:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Show a name tooltip when hovering dock icons</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -512,20 +517,107 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkScale" id="s_zoom_percent">
+              <object class="GtkSwitch" id="sw_tooltips_enabled">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hexpand">True</property>
+                <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="adjustment">adj_zoom_percent</property>
-                <property name="round_digits">0</property>
-                <property name="digits">0</property>
-                <property name="draw_value">False</property>
-                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                <property name="tooltip_text" translatable="yes">Show a name tooltip when hovering dock icons</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
                 <property name="top_attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_system_menu_access">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_right">6</property>
+                <property name="label" translatable="yes">Preferences &amp; System Menu:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="cb_system_menu_access">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
+                <items>
+                  <item id="1" translatable="yes">Docklets Only</item>
+                  <item id="2" translatable="yes">Docklets Only (with fallback)</item>
+                  <item id="3" translatable="yes">All Icons (integrated)</item>
+                  <item id="4" translatable="yes">Dedicated Icon (on dock)</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">7</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_anchor_always_left">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_right">6</property>
+                <property name="label" translatable="yes">WayPlank Always Left:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Always anchor the WayPlank icon at the far left of the dock with its own vertical separator</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">8</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_anchor_always_left">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Always anchor the WayPlank icon at the far left of the dock with its own vertical separator</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">8</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_show_trash">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="margin_right">6</property>
+                <property name="label" translatable="yes">Show Trash:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">8</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_show_trash">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">8</property>
               </packing>
             </child>
           </object>
@@ -801,7 +893,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="top_attach">4</property>
               </packing>
             </child>
-            <!-- Section 2: Item Management (2x3 Grid) -->
+            <!-- Section 2: Item Management -->
             <child>
               <object class="GtkLabel" id="l_application_windows">
                 <property name="visible">True</property>
@@ -821,20 +913,99 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="l_iconzoom">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Icon Zoom:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_iconzoom">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">6</property>
+                <property name="hexpand">True</property>
+                <child>
+                  <object class="GtkSwitch" id="sw_zoom_enabled">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="sp_zoom_percent">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">False</property>
+                    <property name="valign">center</property>
+                    <property name="width_chars">4</property>
+                    <property name="xalign">0.5</property>
+                    <property name="invisible_char">•</property>
+                    <property name="adjustment">adj_zoom_percent</property>
+                    <property name="numeric">True</property>
+                    <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScale" id="s_zoom_percent">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="valign">center</property>
+                    <property name="adjustment">adj_zoom_percent</property>
+                    <property name="round_digits">0</property>
+                    <property name="digits">0</property>
+                    <property name="draw_value">False</property>
+                    <property name="tooltip_text" translatable="yes">Smoothly magnify icons under the mouse cursor</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">6</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkGrid" id="grid_item_management">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <property name="row_spacing">7</property>
                 <property name="column_spacing">8</property>
-                <!-- Row 0, Col 0: Show Unpinned -->
+                <!-- Row 0, Col 0: Anticipate Icon Zoom -->
                 <child>
-                  <object class="GtkLabel" id="l_show_unpinned">
+                  <object class="GtkLabel" id="l_anticipate_zoom">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="halign">end</property>
-                    <property name="label" translatable="yes">Show Unpinned:</property>
-                    <property name="tooltip_text" translatable="yes">Display running applications on the dock even if they are not pinned</property>
+                    <property name="label" translatable="yes">Anticipate Icon Zoom:</property>
+                    <property name="tooltip_text" translatable="yes">Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -842,13 +1013,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSwitch" id="sw_show_unpinned">
+                  <object class="GtkSwitch" id="sw_anticipate_zoom">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
                     <property name="hexpand">True</property>
-                    <property name="tooltip_text" translatable="yes">Display running applications on the dock even if they are not pinned</property>
+                    <property name="tooltip_text" translatable="yes">Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock</property>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -912,97 +1083,10 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="top_attach">0</property>
                   </packing>
                 </child>
-                <!-- Row 1, Col 0: Workspace Only -->
-                <child>
-                  <object class="GtkLabel" id="l_workspace_only">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="label" translatable="yes">Workspace Only:</property>
-                    <property name="justify">right</property>
-                    <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="sw_workspace_only">
-                    <property name="visible">True</property>
-                    <property name="sensitive">False</property>
-                    <property name="can_focus">True</property>
-                    <property name="halign">start</property>
-                    <property name="valign">center</property>
-                    <property name="hexpand">True</property>
-                    <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <!-- Row 1, Col 1: Scroll on Overflow -->
-                <child>
-                  <object class="GtkLabel" id="l_scroll_overflow">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="margin_left">8</property>
-                    <property name="label" translatable="yes">Scroll on Overflow:</property>
-                    <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="sw_scroll_overflow">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="halign">start</property>
-                    <property name="valign">center</property>
-                    <property name="hexpand">True</property>
-                    <property name="tooltip_text" translatable="yes">Smoothly scroll items with mouse wheel when dock exceeds screen space, preserving full icon size instead of auto-shrinking icons</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">3</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <!-- Row 1, Col 2: Anticipate Icon Zoom -->
-                <child>
-                  <object class="GtkLabel" id="l_anticipate_zoom">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="margin_left">8</property>
-                    <property name="label" translatable="yes">Anticipate Icon Zoom:</property>
-                    <property name="tooltip_text" translatable="yes">Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">4</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="sw_anticipate_zoom">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="halign">start</property>
-                    <property name="valign">center</property>
-                    <property name="tooltip_text" translatable="yes">Begins icon magnification as the cursor approaches the dock for a fluid, magnetic feel; disable to strictly pass mouse clicks through to windows positioned immediately behind or above the dock</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">5</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">7</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1021,7 +1105,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">7</property>
+                <property name="top_attach">8</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1146,7 +1230,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">8</property>
+                <property name="top_attach">9</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1161,7 +1245,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">9</property>
+                <property name="top_attach">10</property>
               </packing>
             </child>
             <child>
@@ -1211,7 +1295,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">9</property>
+                <property name="top_attach">10</property>
                 <property name="width">3</property>
               </packing>
             </child>
@@ -1327,6 +1411,61 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="top_attach">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="l_show_unpinned">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Show Unpinned:</property>
+                <property name="tooltip_text" translatable="yes">Display running applications on the dock even if they are not pinned</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_show_unpinned">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Display running applications on the dock even if they are not pinned</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_workspace_only">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="label" translatable="yes">Workspace Only:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_workspace_only">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
             <!-- Section 2: Indicators -->
             <child>
               <object class="GtkLabel" id="l_indicators">
@@ -1339,7 +1478,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">3</property>
+                <property name="top_attach">4</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1352,7 +1491,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -1364,7 +1503,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -1377,7 +1516,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">2</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
@@ -1389,7 +1528,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">3</property>
-                <property name="top_attach">4</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <!-- Section 3: Categories & Layout -->
@@ -1405,7 +1544,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">5</property>
+                <property name="top_attach">6</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1420,7 +1559,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">7</property>
               </packing>
             </child>
             <child>
@@ -1481,7 +1620,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">7</property>
               </packing>
             </child>
             <child>
@@ -1495,7 +1634,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">2</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">7</property>
               </packing>
             </child>
             <child>
@@ -1505,60 +1644,6 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="halign">start</property>
                 <property name="valign">center</property>
                 <property name="tooltip_text" translatable="yes">Place the Docklets group on the right near the Trash (System Tray style) instead of on the left before applications</property>
-              </object>
-              <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_anchor_always_left">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">WayPlank Always Left:</property>
-                <property name="tooltip_text" translatable="yes">Always anchor the WayPlank icon at the far left of the dock with its own vertical separator</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_anchor_always_left">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Always anchor the WayPlank icon at the far left of the dock with its own vertical separator</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_show_trash">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Show Trash:</property>
-                <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_show_trash">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Show the Trash Bin icon on the dock</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -1619,6 +1704,72 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="l_pinned_accordion">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Pinned Accordion:</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Hide the least used pinned apps behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, apps needing attention and apps marked Keep Always Visible always stay. Requires Categorize Items</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_pinned_accordion">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">6</property>
+                <property name="hexpand">True</property>
+                <child>
+                  <object class="GtkComboBoxText" id="cb_pinned_accordion">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="tooltip_text" translatable="yes">Hide the least used pinned apps behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, apps needing attention and apps marked Keep Always Visible always stay. Requires Categorize Items</property>
+                    <items>
+                      <item id="0" translatable="yes">Off</item>
+                      <item id="1" translatable="yes">Auto-Fit Capacity</item>
+                      <item id="2" translatable="yes">Top Most Used</item>
+                    </items>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="sp_pinned_count">
+                    <property name="visible">False</property>
+                    <property name="no_show_all">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="width_chars">3</property>
+                    <property name="xalign">0.5</property>
+                    <property name="invisible_char">•</property>
+                    <property name="adjustment">adj_pinned_count</property>
+                    <property name="numeric">True</property>
+                    <property name="tooltip_text" translatable="yes">Number of most used pinned apps kept visible</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">9</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel" id="l_accordion_delay">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -1628,7 +1779,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">9</property>
+                <property name="top_attach">10</property>
               </packing>
             </child>
             <child>
@@ -1676,37 +1827,6 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="position">1</property>
                   </packing>
                 </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">9</property>
-                <property name="width">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_system_menu_access">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Preferences &amp; System Menu:</property>
-                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">10</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="cb_system_menu_access">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="hexpand">True</property>
-                <property name="tooltip_text" translatable="yes">Controls where the Preferences icon and system control menu appear on the dock</property>
-                <items>
-                  <item id="1" translatable="yes">Docklets Only (with fallback)</item>
-                  <item id="2" translatable="yes">All Icons (integrated)</item>
-                  <item id="3" translatable="yes">Dedicated Icon (on dock)</item>
-                </items>
               </object>
               <packing>
                 <property name="left_attach">1</property>

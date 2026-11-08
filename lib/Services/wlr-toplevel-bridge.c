@@ -47,6 +47,7 @@ static struct wl_display *wl_display_conn = NULL;
 static struct wl_registry *wl_registry_obj = NULL;
 static struct zwlr_foreign_toplevel_manager_v1 *toplevel_manager = NULL;
 static struct wl_seat *default_seat = NULL;
+static uint32_t default_seat_name = 0;
 static WlrStateChangedCallback state_changed_cb = NULL;
 
 static GList *toplevel_list = NULL;
@@ -221,7 +222,13 @@ manager_handle_toplevel (void *data, struct zwlr_foreign_toplevel_manager_v1 *ma
 static void
 manager_handle_finished (void *data, struct zwlr_foreign_toplevel_manager_v1 *manager)
 {
-    (void)data; (void)manager;
+    (void)data;
+    if (manager) {
+        zwlr_foreign_toplevel_manager_v1_destroy (manager);
+    }
+    if (toplevel_manager == manager) {
+        toplevel_manager = NULL;
+    }
 }
 
 static const struct zwlr_foreign_toplevel_manager_v1_listener manager_listener = {
@@ -235,20 +242,26 @@ registry_handle_global (void *data, struct wl_registry *registry, uint32_t name,
                         const char *interface, uint32_t version)
 {
     (void)data;
-    if (strcmp (interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0) {
+    if (strcmp (interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0 && !toplevel_manager) {
         uint32_t bind_ver = (version < 3) ? version : 3;
         toplevel_manager = wl_registry_bind (registry, name,
             &zwlr_foreign_toplevel_manager_v1_interface, bind_ver);
         zwlr_foreign_toplevel_manager_v1_add_listener (toplevel_manager, &manager_listener, NULL);
     } else if (strcmp (interface, wl_seat_interface.name) == 0 && !default_seat) {
         default_seat = wl_registry_bind (registry, name, &wl_seat_interface, 1);
+        default_seat_name = name;
     }
 }
 
 static void
 registry_handle_global_remove (void *data, struct wl_registry *registry, uint32_t name)
 {
-    (void)data; (void)registry; (void)name;
+    (void)data; (void)registry;
+    if (default_seat && name == default_seat_name) {
+        wl_seat_destroy (default_seat);
+        default_seat = NULL;
+        default_seat_name = 0;
+    }
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -283,13 +296,16 @@ wlr_toplevel_bridge_init (WlrStateChangedCallback callback)
 
     /* Roundtrip to bind globals and register listeners */
     wl_display_roundtrip (wl_display_conn);
-    /* Second roundtrip to receive initial toplevel list */
-    if (toplevel_manager) {
-        wl_display_roundtrip (wl_display_conn);
+    if (!toplevel_manager) {
+        wlr_toplevel_bridge_cleanup ();
+        bridge_initialized = TRUE;
+        return FALSE;
     }
 
+    /* Second roundtrip to receive initial toplevel list */
+    wl_display_roundtrip (wl_display_conn);
     bridge_initialized = TRUE;
-    return (toplevel_manager != NULL);
+    return TRUE;
 #else
     return FALSE;
 #endif
@@ -322,6 +338,7 @@ wlr_toplevel_bridge_cleanup (void)
         wl_seat_destroy (default_seat);
         default_seat = NULL;
     }
+    default_seat_name = 0;
     if (wl_registry_obj) {
         wl_registry_destroy (wl_registry_obj);
         wl_registry_obj = NULL;

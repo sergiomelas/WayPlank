@@ -91,7 +91,17 @@ namespace Plank
 			}
 		}
 
-		private unowned WeatherDockItem? weather_item = null;
+		public static void detach_item (WeatherDockItem item)
+		{
+			if (active_instance != null && active_instance.get_weather_item () == item) {
+				var inst = active_instance;
+				active_instance = null;
+				inst.weather_item_ref.set (null);
+				inst.destroy ();
+			}
+		}
+
+		private GLib.WeakRef weather_item_ref;
 		private Gtk.Label lbl_location;
 		private Gtk.Label lbl_temp;
 		private Gtk.Label lbl_desc;
@@ -99,10 +109,15 @@ namespace Plank
 		private Gtk.Image img_condition;
 		private Gtk.Box forecast_box;
 
+		private WeatherDockItem? get_weather_item ()
+		{
+			return (WeatherDockItem?) weather_item_ref.get ();
+		}
+
 		public WeatherWindow (WeatherDockItem item)
 		{
 			GLib.Object (type: Gtk.WindowType.TOPLEVEL);
-			this.weather_item = item;
+			this.weather_item_ref.set (item);
 			update_ui ();
 		}
 
@@ -133,8 +148,9 @@ namespace Plank
 			destroy.connect (() => {
 				if (active_instance == this)
 					active_instance = null;
-				if (weather_item != null)
-					weather_item.get_dock ()?.check_collapse_after_interaction (this);
+				var w_item = get_weather_item ();
+				if (w_item != null)
+					w_item.get_dock ()?.check_collapse_after_interaction (this);
 				else
 					AbstractMain.check_collapse_all_docks (this);
 			});
@@ -142,8 +158,9 @@ namespace Plank
 			hide.connect (() => {
 				if (active_instance == this)
 					active_instance = null;
-				if (weather_item != null)
-					weather_item.get_dock ()?.check_collapse_after_interaction (this);
+				var w_item = get_weather_item ();
+				if (w_item != null)
+					w_item.get_dock ()?.check_collapse_after_interaction (this);
 				else
 					AbstractMain.check_collapse_all_docks (this);
 			});
@@ -169,14 +186,16 @@ namespace Plank
 			img_event_box.set_visible_window (false);
 			img_event_box.add (img_condition);
 			img_event_box.button_press_event.connect ((e) => {
-				if (e.button == 1 && weather_item != null && weather_item.yr_location_id.length > 0) {
+				var w_item = get_weather_item ();
+				if (e.button == 1 && w_item != null && w_item.yr_location_id.length > 0) {
 					open_weather_details ();
 					return true;
 				}
 				return false;
 			});
 			img_event_box.enter_notify_event.connect ((e) => {
-				if (weather_item != null && weather_item.yr_location_id.length > 0) {
+				var w_item = get_weather_item ();
+				if (w_item != null && w_item.yr_location_id.length > 0) {
 					var win = img_event_box.get_window ();
 					if (win != null) {
 						var cursor = new Gdk.Cursor.for_display (img_event_box.get_display (), Gdk.CursorType.HAND2);
@@ -233,15 +252,17 @@ namespace Plank
 
 			var refresh_btn = new Gtk.Button.with_label (_("🔄 Refresh"));
 			refresh_btn.clicked.connect (() => {
-				if (weather_item != null)
-					weather_item.refresh_weather ();
+				var w_item = get_weather_item ();
+				if (w_item != null)
+					w_item.refresh_weather ();
 			});
 			btn_box.pack_start (refresh_btn, false, false, 0);
 
 			var location_btn = new Gtk.Button.with_label (_("⚙️ Location..."));
 			location_btn.clicked.connect (() => {
-				if (weather_item != null)
-					weather_item.open_location_dialog (this);
+				var w_item = get_weather_item ();
+				if (w_item != null)
+					w_item.open_location_dialog (this);
 			});
 			btn_box.pack_start (location_btn, false, false, 0);
 
@@ -266,6 +287,7 @@ namespace Plank
 
 		public void update_ui ()
 		{
+			var weather_item = get_weather_item ();
 			if (weather_item == null)
 				return;
 
@@ -313,7 +335,7 @@ namespace Plank
 			// Rebuild forecast cards
 			if (forecast_box != null) {
 				foreach (var child in forecast_box.get_children ()) {
-					forecast_box.remove (child);
+					child.destroy ();
 				}
 
 				if (weather_item.forecast_days != null && weather_item.forecast_days.length > 1) {
@@ -354,7 +376,8 @@ namespace Plank
 
 						int day_offset = i;
 						event_box.button_press_event.connect ((e) => {
-							if (e.button == 1 && weather_item != null && weather_item.yr_location_id.length > 0) {
+							var w_item = get_weather_item ();
+							if (e.button == 1 && w_item != null && w_item.yr_location_id.length > 0) {
 								open_weather_details (day_offset);
 								return true;
 							}
@@ -362,7 +385,8 @@ namespace Plank
 						});
 
 						event_box.enter_notify_event.connect ((e) => {
-							if (weather_item != null && weather_item.yr_location_id.length > 0) {
+							var w_item = get_weather_item ();
+							if (w_item != null && w_item.yr_location_id.length > 0) {
 								var win = event_box.get_window ();
 								if (win != null) {
 									var display = event_box.get_display ();
@@ -393,6 +417,7 @@ namespace Plank
 
 		private void open_weather_details (int day_offset = 0)
 		{
+			var weather_item = get_weather_item ();
 			if (weather_item == null || weather_item.yr_location_id.length == 0)
 				return;
 			string url = weather_item.get_details_url (day_offset);
@@ -416,10 +441,14 @@ namespace Plank
 
 		private string format_weekday (GLib.DateTime dt)
 		{
-			string formatted = dt.format ("%A");
+			string? formatted = dt.format ("%A");
 			if (formatted == null || formatted.length == 0)
 				return "";
-			return formatted.substring (0, 1).up () + formatted.substring (1);
+			int idx = 0;
+			unichar ch;
+			if (formatted.get_next_char (ref idx, out ch))
+				return ch.toupper ().to_string () + formatted.substring (idx);
+			return formatted;
 		}
 	}
 }

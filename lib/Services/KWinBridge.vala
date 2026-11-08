@@ -136,10 +136,10 @@ namespace Plank
 			+ "\n"
 			+ "        windows.push({\n"
 			+ "            uuid: uuid,\n"
-			+ "            caption: client.caption,\n"
-			+ "            resourceClass: client.resourceClass,\n"
-			+ "            resourceName: client.resourceName,\n"
-			+ "            desktopFileName: client.desktopFileName,\n"
+			+ "            caption: client.caption || \"\",\n"
+			+ "            resourceClass: client.resourceClass || \"\",\n"
+			+ "            resourceName: client.resourceName || \"\",\n"
+			+ "            desktopFileName: client.desktopFileName || \"\",\n"
 			+ "            pid: client.pid,\n"
 			+ "            x: client.frameGeometry.x,\n"
 			+ "            y: client.frameGeometry.y,\n"
@@ -219,6 +219,9 @@ namespace Plank
 			+ "        window.desktopChanged.connect(scheduleWindowState);\n"
 			+ "    if (window.demandsAttentionChanged) {\n"
 			+ "        window.demandsAttentionChanged.connect(scheduleWindowState);\n"
+			+ "    }\n"
+			+ "    if (window.captionChanged) {\n"
+			+ "        window.captionChanged.connect(scheduleWindowState);\n"
 			+ "    }\n"
 			+ "    return true;\n"
 			+ "}\n"
@@ -409,7 +412,10 @@ namespace Plank
 		static uint kwin_watch_id = 0U;
 		static string last_kwin_owner = "";
 		static uint showing_desktop_signal_id = 0U;
+		static uint plasma_edit_mode_signal_id = 0U;
 		static bool handling_show_desktop = false;
+		static bool plasma_edit_mode_active = false;
+		static bool desktop_show_desktop_active = false;
 		static bool has_panel_mon = false;
 		static int panel_mon_x = 0;
 		static int panel_mon_y = 0;
@@ -469,12 +475,18 @@ namespace Plank
 			try {
 				var parser = new Json.Parser ();
 				parser.load_from_data (state);
-				window_state_array = parser.get_root ().get_array ();
+				var root = parser.get_root ();
+				if (root == null || root.get_node_type () != Json.NodeType.ARRAY)
+					return result;
+				window_state_array = root.get_array ();
 				foreach (var node in window_state_array.get_elements ()) {
-					var json = node.get_object ();
-					if (!json.has_member ("uuid"))
+					if (node.get_node_type () != Json.NodeType.OBJECT)
 						continue;
-					if (json.get_string_member ("uuid") == "__wayplank_primary_panel__") {
+					var json = node.get_object ();
+					if (!json.has_member ("uuid") || json.get_null_member ("uuid"))
+						continue;
+					var uuid_str = json.get_string_member ("uuid") ?? "";
+					if (uuid_str == "__wayplank_primary_panel__") {
 						if (json.has_member ("x") && json.has_member ("y")) {
 							panel_mon_x = (int) json.get_double_member ("x");
 							panel_mon_y = (int) json.get_double_member ("y");
@@ -482,10 +494,14 @@ namespace Plank
 						}
 						continue;
 					}
-					var res_class_chk = json.has_member ("resourceClass") ? json.get_string_member ("resourceClass").down () : "";
-					var res_name_chk = json.has_member ("resourceName") ? json.get_string_member ("resourceName").down () : "";
-					var capt_chk = json.has_member ("caption") ? json.get_string_member ("caption").down () : "";
-					var dname_chk = json.has_member ("desktopFileName") ? json.get_string_member ("desktopFileName").down () : "";
+					var raw_rc = (json.has_member ("resourceClass") && !json.get_null_member ("resourceClass")) ? (json.get_string_member ("resourceClass") ?? "") : "";
+					var raw_rn = (json.has_member ("resourceName") && !json.get_null_member ("resourceName")) ? (json.get_string_member ("resourceName") ?? "") : "";
+					var raw_capt = (json.has_member ("caption") && !json.get_null_member ("caption")) ? (json.get_string_member ("caption") ?? "") : "";
+					var raw_dname = (json.has_member ("desktopFileName") && !json.get_null_member ("desktopFileName")) ? (json.get_string_member ("desktopFileName") ?? "") : "";
+					var res_class_chk = raw_rc.down ();
+					var res_name_chk = raw_rn.down ();
+					var capt_chk = raw_capt.down ();
+					var dname_chk = raw_dname.down ();
 					if (res_class_chk == "wayplank" || res_class_chk == "plank" ||
 					    res_name_chk == "wayplank" || res_name_chk == "plank" ||
 					    dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
@@ -493,26 +509,26 @@ namespace Plank
 					    capt_chk == "wayplank-folder-menu" || capt_chk == "wayplank-hover-cards" || capt_chk == "wayplank-poof")
 						continue;
 					var info = new WindowInfo ();
-					info.Id = json.get_string_member ("uuid");
-					info.DesktopFileName = json.has_member ("desktopFileName") ? json.get_string_member ("desktopFileName") : "";
-					info.ResourceClass = json.has_member ("resourceClass") ? json.get_string_member ("resourceClass") : "";
-					info.ResourceName = json.has_member ("resourceName") ? json.get_string_member ("resourceName") : "";
+					info.Id = uuid_str;
+					info.DesktopFileName = raw_dname;
+					info.ResourceClass = raw_rc;
+					info.ResourceName = raw_rn;
 					if (info.DesktopFileName != "")
-						info.ApplicationId = normalize_resource_id (json.get_string_member ("desktopFileName"));
+						info.ApplicationId = normalize_resource_id (info.DesktopFileName);
 					else if (info.ResourceClass != "")
 						info.ApplicationId = normalize_resource_id (info.ResourceClass);
 					else
 						info.ApplicationId = normalize_resource_id (info.ResourceName);
-					info.Minimized = json.has_member ("minimized") && json.get_boolean_member ("minimized");
-					info.Active = json.has_member ("active") && json.get_boolean_member ("active");
-					info.Maximized = json.has_member ("maximized") && json.get_boolean_member ("maximized");
-					info.Fullscreen = json.has_member ("fullscreen") && json.get_boolean_member ("fullscreen");
-					info.IsDialog = json.has_member ("normal") && !json.get_boolean_member ("normal");
-					info.DemandsAttention = json.has_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
-					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
-					info.MinimizedSequence = json.has_member ("minimizedSequence") ? json.get_int_member ("minimizedSequence") : 0;
-					info.Caption = json.has_member ("caption") ? json.get_string_member ("caption") : "";
-					info.Pid = json.has_member ("pid") ? (int) json.get_int_member ("pid") : 0;
+					info.Minimized = json.has_member ("minimized") && !json.get_null_member ("minimized") && json.get_boolean_member ("minimized");
+					info.Active = json.has_member ("active") && !json.get_null_member ("active") && json.get_boolean_member ("active");
+					info.Maximized = json.has_member ("maximized") && !json.get_null_member ("maximized") && json.get_boolean_member ("maximized");
+					info.Fullscreen = json.has_member ("fullscreen") && !json.get_null_member ("fullscreen") && json.get_boolean_member ("fullscreen");
+					info.IsDialog = json.has_member ("normal") && !json.get_null_member ("normal") && !json.get_boolean_member ("normal");
+					info.DemandsAttention = json.has_member ("demandsAttention") && !json.get_null_member ("demandsAttention") && json.get_boolean_member ("demandsAttention");
+					info.CurrentDesktop = !json.has_member ("currentDesktop") || json.get_null_member ("currentDesktop") || json.get_boolean_member ("currentDesktop");
+					info.MinimizedSequence = (json.has_member ("minimizedSequence") && !json.get_null_member ("minimizedSequence")) ? json.get_int_member ("minimizedSequence") : 0;
+					info.Caption = raw_capt;
+					info.Pid = (json.has_member ("pid") && !json.get_null_member ("pid")) ? (int) json.get_int_member ("pid") : 0;
 					if (info.Pid > 0) {
 						info.Cmdline = ApplicationDiscovery.get_process_cmdline (info.Pid);
 						info.Executable = ApplicationDiscovery.get_process_comm (info.Pid);
@@ -611,13 +627,19 @@ namespace Plank
 		{
 			window_state = null;
 			window_state_array = null;
-			if (showing_desktop_signal_id > 0U) {
+			if (showing_desktop_signal_id > 0U || plasma_edit_mode_signal_id > 0U) {
 				try {
 					var connection = Bus.get_sync (BusType.SESSION, null);
-					connection.signal_unsubscribe (showing_desktop_signal_id);
+					if (showing_desktop_signal_id > 0U)
+						connection.signal_unsubscribe (showing_desktop_signal_id);
+					if (plasma_edit_mode_signal_id > 0U)
+						connection.signal_unsubscribe (plasma_edit_mode_signal_id);
 				} catch (Error e) { }
 				showing_desktop_signal_id = 0U;
+				plasma_edit_mode_signal_id = 0U;
 			}
+			plasma_edit_mode_active = false;
+			desktop_show_desktop_active = false;
 
 			if (kwin_watch_id > 0U) {
 				Bus.unwatch_name (kwin_watch_id);
@@ -722,15 +744,20 @@ namespace Plank
 
 		public static bool fullscreen_window_intersects (Gdk.Rectangle dock_rect)
 		{
+			if (plasma_edit_mode_active || desktop_show_desktop_active)
+				return true;
+
 			if (window_state_array == null)
 				return false;
 
 			foreach (var node in window_state_array.get_elements ()) {
-				var window = node.get_object ();
-				if (window.has_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
+				if (node.get_node_type () != Json.NodeType.OBJECT)
 					continue;
-				if (window.has_member ("resourceClass")
-					&& window.get_string_member ("resourceClass").down () == "wayplank")
+				var window = node.get_object ();
+				if (window.has_member ("uuid") && !window.get_null_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
+					continue;
+				if (window.has_member ("resourceClass") && !window.get_null_member ("resourceClass")
+					&& (window.get_string_member ("resourceClass") ?? "").down () == "wayplank")
 					continue;
 				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
 					continue;
@@ -767,11 +794,13 @@ namespace Plank
 				return false;
 
 			foreach (var node in window_state_array.get_elements ()) {
-				var window = node.get_object ();
-				if (window.has_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
+				if (node.get_node_type () != Json.NodeType.OBJECT)
 					continue;
-				if (window.has_member ("resourceClass")
-					&& window.get_string_member ("resourceClass").down () == "wayplank")
+				var window = node.get_object ();
+				if (window.has_member ("uuid") && !window.get_null_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
+					continue;
+				if (window.has_member ("resourceClass") && !window.get_null_member ("resourceClass")
+					&& (window.get_string_member ("resourceClass") ?? "").down () == "wayplank")
 					continue;
 				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
 					continue;
@@ -808,11 +837,13 @@ namespace Plank
 				return false;
 
 			foreach (var node in window_state_array.get_elements ()) {
-				var window = node.get_object ();
-				if (window.has_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
+				if (node.get_node_type () != Json.NodeType.OBJECT)
 					continue;
-				if (window.has_member ("resourceClass")
-					&& window.get_string_member ("resourceClass").down () == "wayplank")
+				var window = node.get_object ();
+				if (window.has_member ("uuid") && !window.get_null_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
+					continue;
+				if (window.has_member ("resourceClass") && !window.get_null_member ("resourceClass")
+					&& (window.get_string_member ("resourceClass") ?? "").down () == "wayplank")
 					continue;
 				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
 					continue;
@@ -844,33 +875,66 @@ namespace Plank
 			return false;
 		}
 
+		static string get_kwin_script_dir ()
+		{
+			var runtime_dir = Environment.get_user_runtime_dir ();
+			if (runtime_dir != null && runtime_dir != "" && FileUtils.test (runtime_dir, FileTest.IS_DIR))
+				return runtime_dir;
+			return "/tmp";
+		}
+
+		static bool is_pid_alive (int pid)
+		{
+			if (pid <= 0)
+				return false;
+			if (pid == (int) Posix.getpid ())
+				return true;
+			if (Posix.kill ((Posix.pid_t) pid, 0) == 0)
+				return true;
+			return (Posix.errno == Posix.EPERM);
+		}
+
 		static void clean_old_script_files ()
 		{
+			DBusConnection? conn = null;
 			try {
-				DBusConnection? conn = null;
-				try {
-					conn = Bus.get_sync (BusType.SESSION, null);
-				} catch (Error e) {}
-
-				var tmp_dir = File.new_for_path ("/tmp");
-				var enumerator = tmp_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE);
-				FileInfo? info = null;
-				while ((info = enumerator.next_file ()) != null) {
-					var name = info.get_name ();
-					if (name.has_prefix ("wayplank-kwin-") && name.has_suffix (".js")) {
-						var full_path = "/tmp/" + name;
-						if (conn != null) {
-							try {
-								conn.call_sync ("org.kde.KWin", "/Scripting",
-									"org.kde.kwin.Scripting", "unloadScript",
-									new Variant ("(s)", full_path), null,
-									DBusCallFlags.NONE, 200, null);
-							} catch (Error e) {}
-						}
-						FileUtils.remove (full_path);
-					}
-				}
+				conn = Bus.get_sync (BusType.SESSION, null);
 			} catch (Error e) {}
+
+			string[] dirs = { get_kwin_script_dir (), "/tmp" };
+			string seen_dir = "";
+			foreach (unowned string dir_path in dirs) {
+				if (dir_path == seen_dir || !FileUtils.test (dir_path, FileTest.IS_DIR))
+					continue;
+				seen_dir = dir_path;
+				try {
+					var tmp_dir = File.new_for_path (dir_path);
+					var enumerator = tmp_dir.enumerate_children ("standard::name,unix::uid", FileQueryInfoFlags.NONE);
+					FileInfo? info = null;
+					while ((info = enumerator.next_file ()) != null) {
+						var name = info.get_name ();
+						if (name.has_prefix ("wayplank-kwin-") && name.has_suffix (".js")) {
+							if (info.has_attribute (FileAttribute.UNIX_UID)
+								&& info.get_attribute_uint32 (FileAttribute.UNIX_UID) != (uint32) Posix.getuid ())
+								continue;
+							var pid_str = name.substring ("wayplank-kwin-".length, name.length - "wayplank-kwin-".length - ".js".length);
+							int parsed_pid = int.parse (pid_str);
+							if (is_pid_alive (parsed_pid))
+								continue;
+							var full_path = Path.build_filename (dir_path, name);
+							if (conn != null) {
+								try {
+									conn.call_sync ("org.kde.KWin", "/Scripting",
+										"org.kde.kwin.Scripting", "unloadScript",
+										new Variant ("(s)", full_path), null,
+										DBusCallFlags.NONE, 200, null);
+								} catch (Error e) {}
+							}
+							FileUtils.remove (full_path);
+						}
+					}
+				} catch (Error e) {}
+			}
 		}
 
 		static void setup_kwin_watcher ()
@@ -889,23 +953,91 @@ namespace Plank
 
 		static void setup_showing_desktop_listener (DBusConnection? conn = null)
 		{
-			if (showing_desktop_signal_id > 0U)
-				return;
-
 			try {
 				var connection = conn != null ? conn : Bus.get_sync (BusType.SESSION, null);
-				showing_desktop_signal_id = connection.signal_subscribe (
-					"org.kde.KWin",
-					"org.kde.KWin",
-					"showingDesktopChanged",
-					"/KWin",
-					null,
-					DBusSignalFlags.NONE,
-					on_showing_desktop_changed
-				);
-				debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
+				if (showing_desktop_signal_id == 0U) {
+					showing_desktop_signal_id = connection.signal_subscribe (
+						"org.kde.KWin",
+						"org.kde.KWin",
+						"showingDesktopChanged",
+						"/KWin",
+						null,
+						DBusSignalFlags.NONE,
+						on_showing_desktop_changed
+					);
+					debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
+				}
+				if (plasma_edit_mode_signal_id == 0U) {
+					plasma_edit_mode_signal_id = connection.signal_subscribe (
+						"org.kde.plasmashell",
+						"org.freedesktop.DBus.Properties",
+						"PropertiesChanged",
+						"/PlasmaShell",
+						"org.kde.PlasmaShell",
+						DBusSignalFlags.NONE,
+						on_plasma_properties_changed
+					);
+					plasma_edit_mode_active = query_plasma_edit_mode (connection);
+					debug ("KWinBridge: subscribed to org.kde.PlasmaShell PropertiesChanged (id=%u, editMode=%s)",
+						plasma_edit_mode_signal_id, plasma_edit_mode_active ? "true" : "false");
+				}
 			} catch (Error e) {
 				warning ("KWinBridge: failed to subscribe to showingDesktopChanged: %s", e.message);
+			}
+		}
+
+		static bool query_plasma_edit_mode (DBusConnection connection)
+		{
+			try {
+				var res = connection.call_sync (
+					"org.kde.plasmashell",
+					"/PlasmaShell",
+					"org.freedesktop.DBus.Properties",
+					"Get",
+					new Variant ("(ss)", "org.kde.PlasmaShell", "editMode"),
+					new VariantType ("(v)"),
+					DBusCallFlags.NO_AUTO_START,
+					150,
+					null
+				);
+				Variant inner = res.get_child_value (0).get_variant ();
+				if (inner.is_of_type (VariantType.BOOLEAN))
+					return inner.get_boolean ();
+			} catch (Error e) {
+				// org.kde.plasmashell may not be running on non-Plasma KWin sessions (e.g. LXQt/XFCE on KWin)
+			}
+			return false;
+		}
+
+		static void on_plasma_properties_changed (DBusConnection connection,
+		                                          string? sender_name,
+		                                          string object_path,
+		                                          string interface_name,
+		                                          string signal_name,
+		                                          Variant parameters)
+		{
+			if (!parameters.is_of_type (new VariantType ("(sa{sv}as)")))
+				return;
+
+			string iface_name = "";
+			VariantIter changed_props;
+			parameters.get ("(sa{sv}as)", out iface_name, out changed_props, null);
+			if (iface_name != "org.kde.PlasmaShell")
+				return;
+
+			string key;
+			Variant val;
+			while (changed_props.next ("{sv}", out key, out val)) {
+				if (key == "editMode" && val.is_of_type (VariantType.BOOLEAN)) {
+					bool new_edit_mode = val.get_boolean ();
+					if (plasma_edit_mode_active != new_edit_mode) {
+						plasma_edit_mode_active = new_edit_mode;
+						if (!new_edit_mode)
+							desktop_show_desktop_active = false;
+						debug ("KWinBridge: KDE Plasma editMode changed to %s", new_edit_mode ? "true" : "false");
+						get_default ().state_changed ();
+					}
+				}
 			}
 		}
 
@@ -924,6 +1056,14 @@ namespace Plank
 			debug ("KWinBridge: showingDesktopChanged received showing=%s", showing ? "true" : "false");
 
 			if (showing) {
+				if (plasma_edit_mode_active || query_plasma_edit_mode (connection)) {
+					plasma_edit_mode_active = true;
+					desktop_show_desktop_active = true;
+					debug ("KWinBridge: desktop editMode initiated showingDesktop=true; letting it pass and hiding dock");
+					get_default ().state_changed ();
+					return;
+				}
+
 				handling_show_desktop = true;
 				try {
 					connection.call_sync ("org.kde.KWin", "/KWin",
@@ -936,6 +1076,10 @@ namespace Plank
 
 				queue_command ("desktop", "toggle_desktop");
 				handling_show_desktop = false;
+			} else if (desktop_show_desktop_active || plasma_edit_mode_active) {
+				desktop_show_desktop_active = false;
+				plasma_edit_mode_active = query_plasma_edit_mode (connection);
+				get_default ().state_changed ();
 			}
 		}
 
@@ -952,13 +1096,21 @@ namespace Plank
 			reload_script ();
 		}
 
-		static void on_kwin_vanished (DBusConnection connection, string name)
+		static void on_kwin_vanished (DBusConnection? connection, string name)
 		{
 			message ("KWinBridge: org.kde.KWin vanished from D-Bus, resetting bridge state");
 			if (showing_desktop_signal_id > 0U) {
-				connection.signal_unsubscribe (showing_desktop_signal_id);
+				if (connection != null)
+					connection.signal_unsubscribe (showing_desktop_signal_id);
 				showing_desktop_signal_id = 0U;
 			}
+			if (plasma_edit_mode_signal_id > 0U) {
+				if (connection != null)
+					connection.signal_unsubscribe (plasma_edit_mode_signal_id);
+				plasma_edit_mode_signal_id = 0U;
+			}
+			plasma_edit_mode_active = false;
+			desktop_show_desktop_active = false;
 			last_kwin_owner = "";
 			script_id = -1;
 			if (script_path != null) {
@@ -978,7 +1130,7 @@ namespace Plank
 			clean_old_script_files ();
 
 			try {
-				script_path = "/tmp/wayplank-kwin-%i.js".printf (Posix.getpid ());
+				script_path = Path.build_filename (get_kwin_script_dir (), "wayplank-kwin-%i.js".printf (Posix.getpid ()));
 				FileUtils.set_contents (script_path, KWIN_SCRIPT);
 				var connection = Bus.get_sync (BusType.SESSION, null);
 				var result = connection.call_sync ("org.kde.KWin", "/Scripting",

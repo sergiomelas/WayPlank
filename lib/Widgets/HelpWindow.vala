@@ -86,6 +86,7 @@ namespace Plank
 			add_shortcut_row (grid_mouse, r_m++, _("Shift + Left Click"), _("Focus the next open window of this application"));
 			add_shortcut_row (grid_mouse, r_m++, _("Left Click on Folder Drawer"), _("Open dark-themed categorized smart application menu"));
 			add_shortcut_row (grid_mouse, r_m++, _("Preferences Icon (Accordion)"), _("Hover or click to toggle docklet drawer; directional indicators (▸ / ◂ / ▾ / ▴) show state"));
+			add_shortcut_row (grid_mouse, r_m++, _("Pinned Expander (» / «)"), _("Hover or click to expand hidden pinned apps (Auto-Fit or Top Most Used); click « to collapse in Click-to-Expand mode"));
 			add_shortcut_row (grid_mouse, r_m++, _("Accordion Auto-Retention"), _("Drawer stays open during menus & dialogs; full countdown (0.5s–20s) restarts on close"));
 			add_shortcut_row (grid_mouse, r_m++, _("Mouse Scroll on Brightness"), _("Adjust display brightness with multi-monitor hardware sync"));
 			add_shortcut_row (grid_mouse, r_m++, _("Mouse Scroll on Volume"), _("Adjust master audio volume up or down"));

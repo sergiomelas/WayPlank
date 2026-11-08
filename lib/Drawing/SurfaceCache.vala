@@ -146,16 +146,18 @@ namespace Plank
 			});
 		}
 		
-		~SurfaceCache ()
+		public void stop ()
 		{
 			if (clean_up_timer_id > 0U) {
 				GLib.Source.remove (clean_up_timer_id);
 				clean_up_timer_id = 0U;
 			}
-			
-			cache_map.clear ();
-			infos.clear ();
-			last_info = null;
+			clear ();
+		}
+
+		~SurfaceCache ()
+		{
+			stop ();
 		}
 		
 		public Surface? get_surface<G> (int width, int height, Surface model, DrawFunc<G> draw_func, DrawDataFunc<G>? draw_data_func)
@@ -199,6 +201,10 @@ namespace Plank
 			}
 			
 			surface = draw_func (width, height, model, draw_data_func);
+			if (surface == null) {
+				cache_mutex.unlock ();
+				return null;
+			}
 			
 			var finish_time = GLib.get_monotonic_time ();
 			var time_elapsed = finish_time - access_time;

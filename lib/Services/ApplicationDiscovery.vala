@@ -40,7 +40,13 @@ namespace Plank
 		Gee.ArrayList<ApplicationIdentity> specialized_exec_identities;
 		Gee.HashSet<string> suppressed_nodisplay_tokens;
 		Gee.HashSet<string> pinned_launcher_uris;
+		Gee.HashSet<string> dock_drawer_file_uris;
 		Gee.HashSet<string> drawer_file_uris;
+		Gee.HashMap<string, string> launcher_profile_hints;
+		Gee.HashMap<string, string> disk_profile_hints;
+		Gee.HashMap<int, string> item_profile_uris;
+		Gee.HashMap<int, string> item_profile_values;
+		int next_profile_reg_id = 0;
 		Gee.HashSet<string> monitored_folder_uris;
 		Gee.ArrayList<FileMonitor> folder_monitors;
 		string last_window_signature = "";
@@ -67,13 +73,101 @@ namespace Plank
 			specialized_exec_identities = new Gee.ArrayList<ApplicationIdentity> ();
 			suppressed_nodisplay_tokens = new Gee.HashSet<string> ();
 			pinned_launcher_uris = new Gee.HashSet<string> ();
+			dock_drawer_file_uris = new Gee.HashSet<string> ();
 			drawer_file_uris = new Gee.HashSet<string> ();
+			launcher_profile_hints = new Gee.HashMap<string, string> ();
+			disk_profile_hints = new Gee.HashMap<string, string> ();
+			item_profile_uris = new Gee.HashMap<int, string> ();
+			item_profile_values = new Gee.HashMap<int, string> ();
 			monitored_folder_uris = new Gee.HashSet<string> ();
 			folder_monitors = new Gee.ArrayList<FileMonitor> ();
 			refresh_desktop_index ();
 			ensure_folder_monitors ();
 
 			WindowControl.get_default ().state_changed.connect (schedule_changed);
+		}
+
+		bool recompute_effective_profile_hints ()
+		{
+			var next_hints = new Gee.HashMap<string, string> ();
+			foreach (var e in disk_profile_hints.entries)
+				next_hints.set (e.key, e.value);
+			foreach (var e in item_profile_uris.entries) {
+				var prof = item_profile_values.get (e.key) ?? "";
+				if (e.value != "" && prof != "")
+					next_hints.set (e.value, prof);
+			}
+
+			bool diff = (next_hints.size != launcher_profile_hints.size);
+			if (!diff) {
+				foreach (var e in next_hints.entries) {
+					if ((launcher_profile_hints.get (e.key) ?? "") != e.value) {
+						diff = true;
+						break;
+					}
+				}
+			}
+			if (diff)
+				launcher_profile_hints = next_hints;
+			return diff;
+		}
+
+		public int update_item_browser_profile (int reg_id, string launcher_uri, string profile)
+		{
+			if (reg_id <= 0) {
+				if (launcher_uri == "" || profile.strip () == "")
+					return 0;
+				reg_id = ++next_profile_reg_id;
+			}
+
+			string prev_uri = item_profile_uris.get (reg_id) ?? "";
+			string canonical_uri = "";
+			if (launcher_uri != "") {
+				canonical_uri = launcher_uri.contains ("://")
+					? File.new_for_uri (launcher_uri).get_uri ()
+					: File.new_for_path (launcher_uri).get_uri ();
+			}
+			var clean = profile.strip ();
+
+			if (prev_uri != "" && prev_uri != canonical_uri)
+				disk_profile_hints.unset (prev_uri);
+
+			if (canonical_uri == "" || clean == "") {
+				if (prev_uri != "")
+					disk_profile_hints.unset (prev_uri);
+				item_profile_uris.unset (reg_id);
+				item_profile_values.unset (reg_id);
+			} else {
+				disk_profile_hints.unset (canonical_uri);
+				item_profile_uris.set (reg_id, canonical_uri);
+				item_profile_values.set (reg_id, clean);
+			}
+
+			if (recompute_effective_profile_hints ()) {
+				rebuild_fast_indexes ();
+				last_window_signature = "";
+				schedule_changed ();
+			}
+			return (canonical_uri != "" && clean != "") ? reg_id : 0;
+		}
+
+		public void set_launcher_browser_profile (string launcher_uri, string profile)
+		{
+			if (launcher_uri == "")
+				return;
+			var canonical_uri = launcher_uri.contains ("://")
+				? File.new_for_uri (launcher_uri).get_uri ()
+				: File.new_for_path (launcher_uri).get_uri ();
+			var clean = profile.strip ();
+			if (clean != "")
+				disk_profile_hints.set (canonical_uri, clean);
+			else
+				disk_profile_hints.unset (canonical_uri);
+			if (recompute_effective_profile_hints ()) {
+				rebuild_fast_indexes ();
+				last_window_signature = "";
+				schedule_changed ();
+			}
 		}
 
 		void rebuild_fast_indexes ()
@@ -90,9 +184,11 @@ namespace Plank
 			foreach (var identity in identities.values) {
 				if (identity.is_web_app ())
 					web_app_identities.add (identity);
-				if (identity.is_specialized () && identity.has_exec)
+				var prof_hint = identity.desktop_uri != "" ? launcher_profile_hints.get (identity.desktop_uri) : null;
+				if ((identity.is_specialized () || (prof_hint != null && prof_hint != "")) && identity.has_exec)
 					specialized_exec_identities.add (identity);
 			}
+			ApplicationIdentity.prune_locked_launcher_uris (uri_identities.keys);
 		}
 
 		void ensure_folder_monitors ()
@@ -226,7 +322,17 @@ namespace Plank
 						continue;
 
 					var synth_file = user_app_dir.get_child (bname);
+					var synth_uri = synth_file.get_uri ();
+					if (pinned_launcher_uris.contains (synth_uri)
+						|| dock_drawer_file_uris.contains (synth_uri)
+						|| drawer_file_uris.contains (synth_uri)
+						|| ApplicationIdentity.is_uri_locked_by_any_window (synth_uri))
+						continue;
+
 					var identity = identities.has_key (bname) ? identities.get (bname) : new ApplicationIdentity (synth_file);
+					if (identity.detected_browser_profile != "")
+						continue;
+
 					bool has_open_window = false;
 					foreach (var w in windows) {
 						if (!is_ignored_app (w.ApplicationId) && !is_ignored_app (w.ResourceClass) && identity.matches (w)) {
@@ -256,13 +362,24 @@ namespace Plank
 		
 		public int effective_match_score (ApplicationIdentity identity, WindowInfo window)
 		{
-			int score = identity.match_score (window);
+			string? profile_hint = identity.desktop_uri != "" ? launcher_profile_hints.get (identity.desktop_uri) : null;
+			int score = identity.match_score (window, profile_hint);
 			if (score <= 0 && !identity.is_web_app ())
 				return 0;
 
+			if (identity.is_terminal_emulator_launcher () && ApplicationIdentity.window_has_terminal_command (window)) {
+				foreach (var other in identities.values) {
+					if (other == identity || !other.has_exec || other.is_terminal_emulator_launcher ())
+						continue;
+					if (other.match_score (window) >= 115)
+						return 0;
+				}
+			}
+
 			if (identity.is_browser_launcher () && !ApplicationIdentity.is_plain_browser_window (window)) {
 				foreach (var other in web_app_identities) {
-					if (other.match_score (window) >= 118)
+					string? other_hint = other.desktop_uri != "" ? launcher_profile_hints.get (other.desktop_uri) : null;
+					if (other.match_score (window, other_hint) >= 118)
 						return 0;
 				}
 			}
@@ -271,26 +388,45 @@ namespace Plank
 				return score;
 			if (ApplicationIdentity.is_plain_browser_window (window))
 				return 0;
+			if (score <= 0 && identity.pwa_app_id != "")
+				return 0;
+
+			if (score == 119) {
+				foreach (var other in web_app_identities) {
+					if (other == identity)
+						continue;
+					string? other_hint = other.desktop_uri != "" ? launcher_profile_hints.get (other.desktop_uri) : null;
+					if (other.match_score (window, other_hint) >= 124)
+						return 0;
+				}
+				score = 120;
+			}
 
 			bool has_direct_owner = false;
 			bool matches_direct_owner = false;
+			int direct_owner_score = 120;
 			foreach (var other in web_app_identities) {
 				if (other == identity)
 					continue;
-				if (other.match_score (window) >= 120) {
+				string? other_hint = other.desktop_uri != "" ? launcher_profile_hints.get (other.desktop_uri) : null;
+				int other_score = other.match_score (window, other_hint);
+				if (other_score == 119)
+					other_score = 120;
+				if (other_score >= 120) {
 					has_direct_owner = true;
 					if (identity.matches_web_app_identity (other)) {
 						matches_direct_owner = true;
-						break;
+						if (other_score > direct_owner_score)
+							direct_owner_score = other_score;
 					}
 				}
 			}
 
-			if (score >= 120)
-				return 120;
-
 			if (has_direct_owner)
-				return matches_direct_owner ? 120 : 0;
+				return matches_direct_owner ? int.max (score, direct_owner_score) : 0;
+
+			if (score >= 120)
+				return score;
 
 			if (score >= 115)
 				return 120;
@@ -303,11 +439,34 @@ namespace Plank
 			unowned string u = id_obj.desktop_uri;
 			if (u != "") {
 				if (pinned_launcher_uris.contains (u))
+					return 4;
+				if (dock_drawer_file_uris.contains (u))
 					return 3;
 				if (drawer_file_uris.contains (u))
-					return 1;
+					return 2;
 			}
-			return 2;
+			if (id_obj.is_nodisplay_desktop)
+				return 0;
+			return 1;
+		}
+
+		private bool has_specialized_or_terminal_override (WindowInfo window, ApplicationIdentity? exclude = null)
+		{
+			foreach (var spec in specialized_exec_identities) {
+				if (spec == exclude)
+					continue;
+				if (effective_match_score (spec, window) >= 115)
+					return true;
+			}
+			if (ApplicationIdentity.window_has_terminal_command (window)) {
+				foreach (var cand in identities.values) {
+					if (cand == exclude || !cand.has_exec || cand.is_terminal_emulator_launcher ())
+						continue;
+					if (effective_match_score (cand, window) >= 115)
+						return true;
+				}
+			}
+			return false;
 		}
 
 		public Gee.ArrayList<WindowInfo> windows_for_launcher (string launcher_uri)
@@ -317,7 +476,7 @@ namespace Plank
 			if (identity == null)
 				return result;
 			foreach (var window in WindowControl.get_windows ())
-				if (effective_match_score (identity, window) > 0)
+				if (is_best_launcher_for_window (launcher_uri, window))
 					result.add (window);
 			return result;
 		}
@@ -398,7 +557,23 @@ namespace Plank
 								if (entry.has_prefix ("APPIMAGE=")) {
 									var appimage_path = entry.substring ("APPIMAGE=".length).strip ();
 									if (appimage_path != "" && FileUtils.test (appimage_path, FileTest.EXISTS)) {
-										return appimage_path.contains (" ") ? "\"%s\"".printf (appimage_path) : appimage_path;
+										string quoted_app = appimage_path.contains (" ") ? "\"%s\"".printf (appimage_path) : appimage_path;
+										try {
+											string[] parsed_argv;
+											if (Shell.parse_argv (cmdline, out parsed_argv) && parsed_argv.length > 1) {
+												var sb = new StringBuilder (quoted_app);
+												for (int a = 1; a < parsed_argv.length; a++) {
+													sb.append_c (' ');
+													string arg = parsed_argv[a];
+													if (arg == "" || arg.contains (" ") || arg.contains ("\"") || arg.contains ("'"))
+														sb.append (Shell.quote (arg));
+													else
+														sb.append (arg);
+												}
+												return sb.str;
+											}
+										} catch { }
+										return quoted_app;
 									}
 								}
 							}
@@ -479,6 +654,12 @@ namespace Plank
 			return "";
 		}
 
+		public static void invalidate_process_cmdline (int pid)
+		{
+			if (pid > 0 && pid_cmdline_cache != null)
+				pid_cmdline_cache.unset (pid);
+		}
+
 		public static string get_process_comm (int pid)
 		{
 			if (pid <= 0)
@@ -504,6 +685,16 @@ namespace Plank
 
 		public File? best_desktop_file_for_window (WindowInfo window)
 		{
+			if (window.Id != "") {
+				string locked_uri = ApplicationIdentity.get_locked_window_launcher_uri (window);
+				if (locked_uri != "")
+					return File.new_for_uri (locked_uri);
+			}
+			return compute_best_desktop_file_for_window (window);
+		}
+
+		public File? compute_best_desktop_file_for_window (WindowInfo window)
+		{
 			if (is_ignored_app (window.ApplicationId)
 				|| is_ignored_app (window.ResourceClass)
 				|| is_ignored_app (window.ResourceName)
@@ -511,13 +702,9 @@ namespace Plank
 				return null;
 
 			bool matched_exec_less_desktop = false;
-			bool has_specialized_override = false;
-			foreach (var spec in specialized_exec_identities) {
-				if (effective_match_score (spec, window) >= 115) {
-					has_specialized_override = true;
-					break;
-				}
-			}
+			bool is_plain_browser = ApplicationIdentity.is_plain_browser_window (window) && !ApplicationIdentity.has_explicit_webapp_window_id (window);
+			string win_browser_prof = is_plain_browser ? ApplicationIdentity.get_window_browser_profile (window) : "";
+			bool has_specialized_override = has_specialized_or_terminal_override (window) || (win_browser_prof != "");
 
 			// Fast path: Exact desktop file or application ID match with authoritative score
 			if (!has_specialized_override && window.DesktopFileName != "") {
@@ -580,8 +767,15 @@ namespace Plank
 					best_identity = entry.value;
 				}
 			}
+
+			if (win_browser_prof != "" && !ApplicationIdentity.is_window_profile_pending (window) && best_score < 118) {
+				var prof_file = synthesize_browser_profile_desktop_file (window, win_browser_prof);
+				if (prof_file != null)
+					return prof_file;
+			}
+
 			if (best_id != null && best_score >= 50) {
-				if (best_id.has_prefix ("wayplank-app-") && (window.Pid > 0 || window.Cmdline != ""))
+				if (best_id.has_prefix ("wayplank-app-") && !is_plain_browser && best_score < 124 && (window.Pid > 0 || window.Cmdline != ""))
 					return synthesize_fallback_desktop_file (window, matched_exec_less_desktop);
 				return best_identity != null ? best_identity.desktop_file : desktop_file_for_id (best_id);
 			}
@@ -602,8 +796,9 @@ namespace Plank
 				safe_name = fallback_id;
 
 			var sanitized = new StringBuilder ();
-			for (int i = 0; i < safe_name.length; i++) {
-				unichar c = safe_name.get_char (safe_name.index_of_nth_char (i));
+			int idx = 0;
+			unichar c;
+			while (safe_name.get_next_char (ref idx, out c)) {
 				if (c.isalnum () || c == '-' || c == '_') {
 					sanitized.append_unichar (c);
 				} else if (sanitized.len > 0 && !sanitized.str.has_suffix ("-")) {
@@ -616,6 +811,89 @@ namespace Plank
 			if (clean_safe_name == "")
 				clean_safe_name = fallback_id;
 			return clean_safe_name;
+		}
+
+		private File? synthesize_browser_profile_desktop_file (WindowInfo window, string profile_dir)
+		{
+			if (profile_dir == "")
+				return null;
+			var raw_id = window.ResourceClass != "" ? window.ResourceClass : (window.ApplicationId != "" ? window.ApplicationId : window.ResourceName);
+			if (raw_id == "" || is_ignored_app (raw_id))
+				raw_id = "google-chrome";
+			var norm_id = ApplicationIdentity.normalize (raw_id);
+			if (norm_id == "")
+				norm_id = "google-chrome";
+
+			string app_name = ApplicationIdentity.format_chrome_profile_identity_name (profile_dir);
+			if (app_name == "")
+				app_name = "Google Chrome (%s)".printf (profile_dir);
+
+			string exec_bin = "/usr/bin/google-chrome-stable";
+			if (!FileUtils.test (exec_bin, FileTest.IS_EXECUTABLE)) {
+				if (FileUtils.test ("/opt/google/chrome/google-chrome", FileTest.IS_EXECUTABLE))
+					exec_bin = "/opt/google/chrome/google-chrome";
+				else if (window.Executable != "" && FileUtils.test (window.Executable, FileTest.IS_EXECUTABLE))
+					exec_bin = window.Executable;
+				else
+					exec_bin = "google-chrome";
+			}
+
+			string prof_arg = profile_dir.contains (" ")
+				? "\"--profile-directory=%s\"".printf (profile_dir)
+				: "--profile-directory=%s".printf (profile_dir);
+			string exec_cmd = "%s %s".printf (exec_bin.contains (" ") ? "\"%s\"".printf (exec_bin) : exec_bin, prof_arg);
+
+			string prof_slug = sanitize_name_for_app (profile_dir, "profile");
+			string clean_safe_name = "%s-%s".printf (sanitize_name_for_app (norm_id, "google-chrome"), prof_slug);
+
+			var user_app_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
+			var dir = File.new_for_path (user_app_dir);
+			try {
+				if (!dir.query_exists ())
+					dir.make_directory_with_parents ();
+			} catch { }
+
+			var file_path = Path.build_filename (user_app_dir, "wayplank-app-%s.desktop".printf (clean_safe_name));
+			var synth_file = File.new_for_path (file_path);
+
+			string icon_name = norm_id.has_prefix ("google-chrome") ? "google-chrome" : resolve_fallback_icon (window, norm_id);
+			var wm_class = window.ResourceClass != "" ? window.ResourceClass : "Google-chrome";
+			string content = "[Desktop Entry]\nType=Application\nName=%s\nStartupWMClass=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
+				app_name, wm_class, exec_cmd, icon_name
+			);
+
+			string existing_content = "";
+			bool content_unchanged = false;
+			if (FileUtils.test (file_path, FileTest.EXISTS)) {
+				try {
+					if (FileUtils.get_contents (file_path, out existing_content) && existing_content == content)
+						content_unchanged = true;
+				} catch { }
+			}
+
+			try {
+				if (!content_unchanged) {
+					FileUtils.set_contents (file_path, content);
+					if (desktop_exec_cache != null)
+						desktop_exec_cache.unset (file_path);
+				}
+				var id = synth_file.get_basename ();
+				if (!content_unchanged || !identities.has_key (id)) {
+					var synth_identity = new ApplicationIdentity (synth_file);
+					bool exists_in_index = identities.has_key (id);
+					identities.set (id, synth_identity);
+					uri_identities.set (synth_identity.desktop_uri, synth_identity);
+					raw_uri_identities.set (synth_identity.desktop_uri, synth_identity);
+					if (!exists_in_index)
+						indexed_desktop_files.add (synth_file);
+					rebuild_fast_indexes ();
+					last_window_signature = "";
+				}
+				return synth_file;
+			} catch (Error e) {
+				debug ("Unable to create synthetic browser profile launcher: %s", e.message);
+			}
+			return null;
 		}
 
 		private File? synthesize_fallback_desktop_file (WindowInfo window, bool instance_isolated = false)
@@ -746,7 +1024,7 @@ namespace Plank
 			var windows = WindowControl.get_windows ();
 			var signature_builder = new StringBuilder ("");
 			foreach (var window in windows)
-				signature_builder.append ("%s|%s|%s|%s|%s;".printf (window.Id, window.ApplicationId, window.ResourceClass, window.ResourceName, window.Caption));
+				signature_builder.append ("%s|%s|%s|%s|%s|%s|%s;".printf (window.Id, window.ApplicationId, window.ResourceClass, window.ResourceName, window.Caption, ApplicationIdentity.get_window_browser_profile (window), ApplicationIdentity.get_locked_window_launcher_uri (window)));
 			var signature = signature_builder.str;
 			if (signature == last_window_signature)
 				return cached_active_ids;
@@ -760,13 +1038,18 @@ namespace Plank
 					|| is_ignored_app (window.DesktopFileName))
 					continue;
 
-				bool has_specialized_override = false;
-				foreach (var spec in specialized_exec_identities) {
-					if (effective_match_score (spec, window) >= 115) {
-						has_specialized_override = true;
-						break;
+				if (window.Id != "") {
+					string locked_uri = ApplicationIdentity.get_locked_window_launcher_uri (window);
+					if (locked_uri != "") {
+						var locked_file = File.new_for_uri (locked_uri);
+						var locked_bname = locked_file.get_basename () ?? locked_uri;
+						best_by_window.set (window.Id, identities.has_key (locked_bname) ? locked_bname : locked_uri);
+						score_by_window.set (window.Id, 120);
+						continue;
 					}
 				}
+
+				bool has_specialized_override = has_specialized_or_terminal_override (window);
 
 				// Fast path: Exact desktop file or application ID match with authoritative score
 				if (!has_specialized_override && window.DesktopFileName != "") {
@@ -897,27 +1180,51 @@ namespace Plank
 			var my_identity = identity_for_launcher (launcher_uri);
 			if (my_identity == null)
 				return false;
+
+			if (window.Id != "" && (ApplicationIdentity.is_plain_browser_window (window) || ApplicationIdentity.is_terminal_window (window))) {
+				string locked_uri = ApplicationIdentity.get_locked_window_launcher_uri (window);
+				if (locked_uri != "") {
+					if (my_identity.desktop_uri != "" && my_identity.desktop_uri == locked_uri)
+						return true;
+					var locked_id = identity_for_launcher (locked_uri);
+					if (locked_id != null) {
+						if (my_identity.normalized_id != "" && my_identity.normalized_id == locked_id.normalized_id)
+							return true;
+						string my_hint = my_identity.desktop_uri != "" ? (launcher_profile_hints.get (my_identity.desktop_uri) ?? "") : "";
+						string locked_hint = locked_id.desktop_uri != "" ? (launcher_profile_hints.get (locked_id.desktop_uri) ?? "") : "";
+						if (!my_identity.is_web_app () && !locked_id.is_web_app ()) {
+							string my_prof = my_identity.get_effective_browser_profile (my_hint);
+							string locked_prof = locked_id.get_effective_browser_profile (locked_hint);
+							if (my_prof != "" && locked_prof != "")
+								return ApplicationIdentity.profiles_match (my_prof, locked_prof);
+						}
+						if (!my_identity.is_specialized () && !locked_id.is_specialized () && my_hint == "" && locked_hint == "")
+							return my_identity.shares_application_with (locked_id);
+						return false;
+					}
+				}
+			}
+
 			var my_score = effective_match_score (my_identity, window);
 			if (my_score <= 0)
 				return false;
 
-			if (my_score >= 120)
+			if (my_score >= 124)
 				return true;
 
 			unowned string my_uri = my_identity.desktop_uri;
 			unowned string norm_target = my_identity.normalized_id;
+			string my_prof_hint = my_uri != "" ? (launcher_profile_hints.get (my_uri) ?? "") : "";
 
 			// Guard 2: Canonical Exact Match (only for non-specialized base application entries)
-			bool my_is_canonical = !my_identity.is_specialized () && norm_target != "" && (
+			bool my_is_canonical = !my_identity.is_specialized () && my_prof_hint == "" && norm_target != "" && (
 				(window.DesktopFileName != "" && ApplicationIdentity.normalize (window.DesktopFileName) == norm_target) ||
 				(window.ApplicationId != "" && ApplicationIdentity.normalize (window.ApplicationId) == norm_target)
 			);
 
 			if (my_is_canonical) {
-				foreach (var spec in specialized_exec_identities) {
-					if (effective_match_score (spec, window) >= 115)
-						return false;
-				}
+				if (has_specialized_or_terminal_override (window, my_identity))
+					return false;
 				return true;
 			}
 
@@ -934,7 +1241,8 @@ namespace Plank
 					if (norm_cand == "")
 						continue;
 					foreach (var entry in identities.entries) {
-						if (!entry.value.is_specialized () && entry.value.normalized_id == norm_cand) {
+						string cand_prof_hint = entry.value.desktop_uri != "" ? (launcher_profile_hints.get (entry.value.desktop_uri) ?? "") : "";
+						if (!entry.value.is_specialized () && cand_prof_hint == "" && entry.value.normalized_id == norm_cand) {
 							if (my_identity.shares_application_with (entry.value))
 								continue;
 							if (entry.value.has_exec && effective_match_score (entry.value, window) >= 80)
@@ -968,14 +1276,17 @@ namespace Plank
 			list.add (folder);
 		}
 
-		Gee.ArrayList<File> application_folders (Gee.HashSet<string>? drawer_uris_out = null, Gee.ArrayList<File>? pinned_files_out = null)
+		Gee.ArrayList<File> application_folders (Gee.HashSet<string>? drawer_uris_out = null, Gee.ArrayList<File>? pinned_files_out = null, Gee.HashSet<string>? dock_drawer_uris_out = null)
 		{
 			var folders = new Gee.ArrayList<File> ();
 			folders.add (Paths.DataHomeFolder.get_child ("applications"));
 			foreach (var folder in Paths.DataDirFolders)
 				folders.add (folder.get_child ("applications"));
 
-			// Also discover any drawer / folder launchers (and 1st-level subfolders) and pinned .desktop files configured on any dock
+			if (pinned_files_out != null)
+				disk_profile_hints.clear ();
+
+			// Discover any drawer / folder launchers (and 1st-level subfolders) and pinned .desktop files configured on any dock first
 			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
 			if (dock_config_dir.query_exists ()) {
 				try {
@@ -1002,6 +1313,8 @@ namespace Plank
 												add_unique_folder (folders, target);
 												if (drawer_uris_out != null)
 													drawer_uris_out.add (target.get_uri ());
+												if (dock_drawer_uris_out != null)
+													dock_drawer_uris_out.add (target.get_uri ());
 												try {
 													var sub_enum = target.enumerate_children (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_TYPE + "," + FileAttribute.STANDARD_IS_HIDDEN, FileQueryInfoFlags.NONE);
 													FileInfo? sub_info = null;
@@ -1011,11 +1324,18 @@ namespace Plank
 															add_unique_folder (folders, sub_dir);
 															if (drawer_uris_out != null)
 																drawer_uris_out.add (sub_dir.get_uri ());
+															if (dock_drawer_uris_out != null)
+																dock_drawer_uris_out.add (sub_dir.get_uri ());
 														}
 													}
 												} catch { }
 											} else if (ftype == FileType.REGULAR && uri.down ().has_suffix (".desktop") && pinned_files_out != null) {
 												add_unique_folder (pinned_files_out, target);
+												if (key_file.has_key ("PlankDockItemPreferences", "BrowserProfile")) {
+													var bp = key_file.get_string ("PlankDockItemPreferences", "BrowserProfile").strip ();
+													if (bp != "")
+														disk_profile_hints.set (target.get_uri (), bp);
+												}
 											}
 										}
 									}
@@ -1026,6 +1346,19 @@ namespace Plank
 				} catch (Error e) { }
 			}
 
+			var desktop_dir_path = Environment.get_user_special_dir (UserDirectory.DESKTOP);
+			if (desktop_dir_path != null && desktop_dir_path != "") {
+				var desktop_folder = File.new_for_path (desktop_dir_path);
+				if (desktop_folder.query_exists ()) {
+					add_unique_folder (folders, desktop_folder);
+					if (drawer_uris_out != null)
+						drawer_uris_out.add (desktop_folder.get_uri ());
+				}
+			}
+
+			if (pinned_files_out != null)
+				recompute_effective_profile_hints ();
+
 			return folders;
 		}
 		
@@ -1035,11 +1368,13 @@ namespace Plank
 			var seen_ids = new Gee.HashSet<string> ();
 			var seen_uris = new Gee.HashSet<string> ();
 			var drawer_uris = new Gee.HashSet<string> ();
+			var dock_drawer_uris = new Gee.HashSet<string> ();
 			var pinned_files = new Gee.ArrayList<File> ();
 			var next_suppressed = new Gee.HashSet<string> ();
 			var next_pinned_uris = new Gee.HashSet<string> ();
+			var next_dock_drawer_file_uris = new Gee.HashSet<string> ();
 			var next_drawer_file_uris = new Gee.HashSet<string> ();
-			var folders = application_folders (drawer_uris, pinned_files);
+			var folders = application_folders (drawer_uris, pinned_files, dock_drawer_uris);
 			var self_id = ApplicationIdentity.normalize (Paths.AppName + ".desktop");
 
 			// 1. Index pinned dock .desktop launchers first so pinned entries win tie-breaks even if NoDisplay=true
@@ -1063,7 +1398,9 @@ namespace Plank
 			foreach (var folder in folders) {
 				if (!folder.query_exists ())
 					continue;
-				bool is_drawer = drawer_uris.contains (folder.get_uri ());
+				var f_uri = folder.get_uri ();
+				bool is_drawer = drawer_uris.contains (f_uri);
+				bool is_dock_drawer = dock_drawer_uris.contains (f_uri);
 				try {
 					var enumerator = folder.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
 					FileInfo info;
@@ -1074,6 +1411,8 @@ namespace Plank
 						var file_uri = file.get_uri ();
 						if (is_drawer)
 							next_drawer_file_uris.add (file_uri);
+						if (is_dock_drawer)
+							next_dock_drawer_file_uris.add (file_uri);
 						if (seen_uris.contains (file_uri))
 							continue;
 						var id = ApplicationIdentity.normalize (info.get_name ());
@@ -1092,6 +1431,7 @@ namespace Plank
 				}
 			}
 			pinned_launcher_uris = next_pinned_uris;
+			dock_drawer_file_uris = next_dock_drawer_file_uris;
 			drawer_file_uris = next_drawer_file_uris;
 			suppressed_nodisplay_tokens = next_suppressed;
 			return result;
@@ -1218,6 +1558,10 @@ namespace Plank
 			}
 			for (int i = 0; i < identity_list.size; i++) {
 				var id_a = identity_list.get (i);
+				if (!id_a.is_nodisplay_desktop || pinned_launcher_uris.contains (id_a.desktop_uri) || drawer_file_uris.contains (id_a.desktop_uri)) {
+					foreach (var ptok in id_a.get_primary_tokens ())
+						suppressed_nodisplay_tokens.remove (ptok);
+				}
 				if (id_a.is_specialized ())
 					continue;
 				for (int j = i + 1; j < identity_list.size; j++) {

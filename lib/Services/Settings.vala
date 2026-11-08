@@ -75,7 +75,30 @@ namespace Plank
 				
 				Logger.verbose ("Bind '%s%s' to '%s.%s'", settings.path, nick, class_type_name, name);
 				if (type.is_fundamental () || type.is_enum () || type.is_flags () || type == typeof(string[])) {
-					settings.bind (nick, this, name, bind_flags);
+					var schema_key = settings.settings_schema.get_key (nick);
+					if (type == typeof (uint) && schema_key.get_value_type ().equal (VariantType.INT32)) {
+						int init_val = settings.get_int (nick);
+						@set (name, (uint) int.max (0, init_val));
+						string bound_nick = nick;
+						string bound_name = name;
+						settings.changed[bound_nick].connect (() => {
+							int v = settings.get_int (bound_nick);
+							uint u = (uint) int.max (0, v);
+							uint cur = 0U;
+							@get (bound_name, out cur);
+							if (cur != u)
+								@set (bound_name, u);
+						});
+						this.notify[bound_name].connect (() => {
+							uint cur = 0U;
+							@get (bound_name, out cur);
+							int v = (cur > (uint) int.MAX) ? int.MAX : (int) cur;
+							if (settings.get_int (bound_nick) != v)
+								settings.set_int (bound_nick, v);
+						});
+					} else {
+						settings.bind (nick, this, name, bind_flags);
+					}
 				} else {
 					warning ("Binding of '%s' from type '%s' not supported yet!", name, type.name ());
 				}
@@ -98,16 +121,28 @@ namespace Plank
 		/**
 		 * Resets all properties to their default values.
 		 */
-		protected void reset_all ()
+		public virtual void reset_all ()
 		{
-			foreach (unowned string key in settings.settings_schema.list_keys ())
+			(unowned ParamSpec)[] properties = get_class ().list_properties ();
+			foreach (unowned string key in settings.settings_schema.list_keys ()) {
 				settings.reset (key);
+				var schema_key = settings.settings_schema.get_key (key);
+				if (schema_key.get_value_type ().equal (VariantType.INT32)) {
+					foreach (unowned ParamSpec p in properties) {
+						if (p.get_nick () == key && p.value_type == typeof (uint)) {
+							int v = settings.get_int (key);
+							@set (p.get_name (), (uint) int.max (0, v));
+							break;
+						}
+					}
+				}
+			}
 		}
 		
 		/**
 		 * Delays saving changes until apply() is called.
 		 */
-		public void delay ()
+		public virtual void delay ()
 		{
 			if (settings.delay_apply)
 				return;
@@ -120,7 +155,7 @@ namespace Plank
 		/**
 		 * If any settings were changed, apply them now.
 		 */
-		public void apply ()
+		public virtual void apply ()
 		{
 			if (!settings.delay_apply)
 				return;

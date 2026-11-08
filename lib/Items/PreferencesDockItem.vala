@@ -48,7 +48,7 @@ namespace Plank
 
 		public override bool can_be_removed ()
 		{
-			return true;
+			return false;
 		}
 
 		public override void delete ()
@@ -118,10 +118,21 @@ namespace Plank
 								if (default_provider.item_for_uri (d_uri) == null)
 									default_provider.add_item_with_uri (d_uri);
 							} else {
-								unowned DockItem? di = default_provider.item_for_uri (d_uri);
-								if (di != null)
+								var to_remove = new Gee.ArrayList<DockItem> ();
+								foreach (var el in default_provider.Elements) {
+									unowned DockItem? item = el as DockItem;
+									if (item == null)
+										continue;
+									if (item.Launcher == d_uri || (d_uri == "docklet://trash" && item is TrashDockItem))
+										to_remove.add (item);
+								}
+								foreach (var di in to_remove) {
+									if (default_provider.Elements.contains (di))
+										default_provider.remove (di);
 									di.delete ();
+								}
 							}
+							default_provider.refresh_separators ();
 						});
 						docklets_menu.add (c_item);
 					}

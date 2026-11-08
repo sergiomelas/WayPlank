@@ -137,6 +137,7 @@ namespace Plank
 				pool.add (new Task ((owned) tfunc, priority));
 			} catch (ThreadError e) {
 				warning (e.message);
+				return null;
 			}
 			
 			yield;

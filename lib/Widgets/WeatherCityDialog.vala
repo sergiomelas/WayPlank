@@ -22,13 +22,54 @@ namespace Plank
 {
 	public class WeatherCityDialog : Gtk.Dialog
 	{
-		public static bool is_open { get; private set; default = false; }
+		private static int open_count = 0;
+		private static Gee.ArrayList<unowned WeatherCityDialog>? open_dialogs = null;
+
+		public static bool is_open {
+			get { return open_count > 0; }
+		}
+
+		public static WeatherCityDialog? find_for_item (WeatherDockItem item)
+		{
+			if (open_dialogs == null)
+				return null;
+			foreach (unowned WeatherCityDialog dlg in open_dialogs) {
+				if (!dlg.is_destroyed && dlg.get_weather_item () == item)
+					return dlg;
+			}
+			return null;
+		}
+
+		public static void detach_item (WeatherDockItem item)
+		{
+			if (open_dialogs == null)
+				return;
+			var to_close = new Gee.ArrayList<WeatherCityDialog> ();
+			foreach (unowned WeatherCityDialog dlg in open_dialogs) {
+				if (dlg.get_weather_item () == item) {
+					dlg.weather_item_ref.set (null);
+					to_close.add (dlg);
+				}
+			}
+			foreach (var dlg in to_close) {
+				dlg.destroy ();
+			}
+		}
 
 		private Gtk.Entry city_entry;
 		private Gtk.Label lbl_status;
 		private Gtk.RadioButton unit_c_radio;
 		private Gtk.RadioButton unit_f_radio;
-		private unowned WeatherDockItem weather_item;
+		private Gtk.Widget? save_btn_widget = null;
+		private GLib.WeakRef weather_item_ref;
+		private bool counted_open = false;
+		private bool is_destroyed = false;
+		private bool validating_location = false;
+
+		private WeatherDockItem? get_weather_item ()
+		{
+			return (WeatherDockItem?) weather_item_ref.get ();
+		}
 
 		private Gtk.EntryCompletion completion;
 		private Gtk.ListStore completion_store;
@@ -42,11 +83,7 @@ namespace Plank
 				title: _("Weather Location Settings"),
 				window_position: Gtk.WindowPosition.CENTER
 			);
-			this.weather_item = item;
-			if (parent != null) {
-				set_transient_for (parent);
-				set_destroy_with_parent (false);
-			}
+			this.weather_item_ref.set (item);
 		}
 
 		construct
@@ -124,6 +161,7 @@ namespace Plank
 			// Dialog action buttons
 			add_button (_("Cancel"), Gtk.ResponseType.CANCEL);
 			var save_btn = add_button (_("Save & Apply"), Gtk.ResponseType.OK);
+			save_btn_widget = save_btn;
 			set_default_response (Gtk.ResponseType.OK);
 			save_btn.get_style_context ().add_class ("suggested-action");
 
@@ -139,24 +177,56 @@ namespace Plank
 				return false;
 			});
 
-			show_all ();
-			is_open = true;
-			this.show.connect (() => { is_open = true; });
-			this.hide.connect (() => { is_open = false; });
+			if (open_dialogs == null)
+				open_dialogs = new Gee.ArrayList<unowned WeatherCityDialog> ();
+			if (!open_dialogs.contains (this))
+				open_dialogs.add (this);
+
+			this.show.connect (() => {
+				if (!is_destroyed && !counted_open) {
+					counted_open = true;
+					open_count++;
+				}
+			});
+			this.hide.connect (() => {
+				if (counted_open) {
+					counted_open = false;
+					if (open_count > 0)
+						open_count--;
+				}
+			});
 
 			destroy.connect (() => {
-				is_open = false;
+				is_destroyed = true;
+				if (open_dialogs != null)
+					open_dialogs.remove (this);
+				if (counted_open) {
+					counted_open = false;
+					if (open_count > 0)
+						open_count--;
+				}
 				if (search_timer_id != 0) {
 					GLib.Source.remove (search_timer_id);
 					search_timer_id = 0;
 				}
-				weather_item.get_dock ()?.check_collapse_after_interaction (this);
+				var w_item = get_weather_item ();
+				if (w_item != null)
+					w_item.get_dock ()?.check_collapse_after_interaction (this);
+				else
+					AbstractMain.check_collapse_all_docks (this);
 			});
 		}
 
 		~WeatherCityDialog ()
 		{
-			is_open = false;
+			is_destroyed = true;
+			if (open_dialogs != null)
+				open_dialogs.remove (this);
+			if (counted_open) {
+				counted_open = false;
+				if (open_count > 0)
+					open_count--;
+			}
 			if (search_timer_id != 0) {
 				GLib.Source.remove (search_timer_id);
 				search_timer_id = 0;
@@ -210,67 +280,81 @@ namespace Plank
 			});
 		}
 
-		private void query_geocoding_suggestions (string query)
+		private static Gee.ArrayList<string> fetch_geocoding_suggestions_sync (string query)
 		{
-			last_queried_text = query;
+			string geo_cmd = "curl -s --max-time 4 'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=6&language=en&format=json'".printf (GLib.Uri.escape_string (query));
+			string geo_out;
+			int status;
+			var suggestions = new Gee.ArrayList<string> ();
 
-			new GLib.Thread<void*> ("geo-autocomplete", () => {
-				string geo_cmd = "curl -s --max-time 4 'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=6&language=en&format=json'".printf (GLib.Uri.escape_string (query));
-				string geo_out;
-				int status;
-				var suggestions = new Gee.ArrayList<string> ();
+			try {
+				if (Process.spawn_command_line_sync (geo_cmd, out geo_out, null, out status) && status == 0) {
+					var parser = new Json.Parser ();
+					parser.load_from_data (geo_out);
+					var root = parser.get_root ();
+					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
+						var obj = root.get_object ();
+						if (obj.has_member ("results") && !obj.get_null_member ("results")) {
+							var results = obj.get_array_member ("results");
+							uint len = (results != null) ? results.get_length () : 0;
+							for (uint i = 0; i < len; i++) {
+								var item = results.get_object_element (i);
+								if (item == null || !item.has_member ("name") || item.get_null_member ("name"))
+									continue;
+								string name = item.get_string_member ("name") ?? "";
+								if (name.length == 0)
+									continue;
+								string country = (item.has_member ("country") && !item.get_null_member ("country")) ? (item.get_string_member ("country") ?? "") : "";
+								string admin1 = (item.has_member ("admin1") && !item.get_null_member ("admin1")) ? (item.get_string_member ("admin1") ?? "") : "";
 
-				try {
-					if (Process.spawn_command_line_sync (geo_cmd, out geo_out, null, out status) && status == 0) {
-						var parser = new Json.Parser ();
-						parser.load_from_data (geo_out);
-						var root = parser.get_root ();
-						if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
-							var obj = root.get_object ();
-							if (obj.has_member ("results")) {
-								var results = obj.get_array_member ("results");
-								uint len = results.get_length ();
-								for (uint i = 0; i < len; i++) {
-									var item = results.get_object_element (i);
-									string name = item.get_string_member ("name");
-									string country = item.has_member ("country") ? item.get_string_member ("country") : "";
-									string admin1 = item.has_member ("admin1") ? item.get_string_member ("admin1") : "";
-
-									string display_str;
-									if (admin1.length > 0 && admin1.down () != name.down ()) {
-										display_str = (country.length > 0) ? "%s, %s, %s".printf (name, admin1, country) : "%s, %s".printf (name, admin1);
-									} else if (country.length > 0) {
-										display_str = "%s, %s".printf (name, country);
-									} else {
-										display_str = name;
-									}
-
-									suggestions.add (display_str);
+								string display_str;
+								if (admin1.length > 0 && admin1.down () != name.down ()) {
+									display_str = (country.length > 0) ? "%s, %s, %s".printf (name, admin1, country) : "%s, %s".printf (name, admin1);
+								} else if (country.length > 0) {
+									display_str = "%s, %s".printf (name, country);
+								} else {
+									display_str = name;
 								}
+
+								suggestions.add (display_str);
 							}
 						}
 					}
-				} catch (GLib.Error e) { }
+				}
+			} catch (GLib.Error e) { }
+			return suggestions;
+		}
 
+		private static void run_autocomplete_worker (WeatherCityDialog target, string query)
+		{
+			GLib.WeakRef wref = GLib.WeakRef (target);
+			new GLib.Thread<void*> ("geo-autocomplete", () => {
+				var suggestions = fetch_geocoding_suggestions_sync (query);
 				GLib.Idle.add (() => {
-					if (!is_open)
+					var self = (WeatherCityDialog?) wref.get ();
+					if (self == null || self.is_destroyed || !self.counted_open)
 						return false;
-					if (city_entry.text.strip () == query) {
-						completion_store.clear ();
+					if (self.city_entry.text.strip () == query) {
+						self.completion_store.clear ();
 						Gtk.TreeIter iter;
 						foreach (var s in suggestions) {
-							completion_store.append (out iter);
-							completion_store.set (iter, 0, s, 1, s);
+							self.completion_store.append (out iter);
+							self.completion_store.set (iter, 0, s, 1, s);
 						}
 						if (suggestions.size > 0) {
-							completion.complete ();
+							self.completion.complete ();
 						}
 					}
 					return false;
 				});
-
 				return null;
 			});
+		}
+
+		private void query_geocoding_suggestions (string query)
+		{
+			last_queried_text = query;
+			run_autocomplete_worker (this, query);
 		}
 
 		public void init_values (string current_city, string current_units)
@@ -285,12 +369,14 @@ namespace Plank
 			} else {
 				unit_c_radio.active = true;
 			}
+			city_entry.changed.connect (on_city_entry_changed);
+			show_all ();
 			set_focus (null);
 			city_entry.select_region (0, 0);
-			city_entry.changed.connect (on_city_entry_changed);
+			present ();
 		}
 
-		private bool check_location_validity_sync (string query)
+		private static bool check_location_validity_sync (string query)
 		{
 			string geo_cmd = "curl -s --max-time 4 'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json'".printf (GLib.Uri.escape_string (query));
 			string geo_out;
@@ -302,9 +388,9 @@ namespace Plank
 					var root = parser.get_root ();
 					if (root != null && root.get_node_type () == Json.NodeType.OBJECT) {
 						var obj = root.get_object ();
-						if (obj.has_member ("results")) {
+						if (obj.has_member ("results") && !obj.get_null_member ("results")) {
 							var results = obj.get_array_member ("results");
-							return (results.get_length () > 0);
+							return (results != null && results.get_length () > 0);
 						}
 					}
 				}
@@ -312,33 +398,83 @@ namespace Plank
 			return false;
 		}
 
+		private void set_inputs_sensitive (bool sens)
+		{
+			if (city_entry != null)
+				city_entry.sensitive = sens;
+			if (unit_c_radio != null)
+				unit_c_radio.sensitive = sens;
+			if (unit_f_radio != null)
+				unit_f_radio.sensitive = sens;
+			if (save_btn_widget != null)
+				save_btn_widget.sensitive = sens;
+		}
+
+		private static void run_validate_worker (WeatherCityDialog target, string new_city, string new_units)
+		{
+			GLib.WeakRef wref = GLib.WeakRef (target);
+			new GLib.Thread<void*> ("geo-validate", () => {
+				bool ok = check_location_validity_sync (new_city);
+				GLib.Idle.add (() => {
+					var self = (WeatherCityDialog?) wref.get ();
+					if (self == null || self.is_destroyed)
+						return false;
+					self.validating_location = false;
+					self.set_inputs_sensitive (true);
+					if (!ok) {
+						self.lbl_status.set_markup ("<span color='#e05555' weight='bold'>⚠️ %s</span>".printf (
+							_("Location not found. Please choose from suggestions or leave blank.")
+						));
+						self.lbl_status.show ();
+						self.city_entry.grab_focus ();
+						return false;
+					}
+					var w_item = self.get_weather_item ();
+					if (w_item != null)
+						w_item.set_location_and_units (new_city, new_units);
+					self.destroy ();
+					return false;
+				});
+				return null;
+			});
+		}
+
 		public override void response (int response_id)
 		{
+			if (is_destroyed)
+				return;
+
 			if (response_id == Gtk.ResponseType.OK) {
+				if (validating_location)
+					return;
+
 				string new_city = city_entry.text.strip ();
+				string new_units = unit_f_radio.active ? "F" : "C";
 
 				// If blank, user explicitly wants automatic IP detection
 				if (new_city.length == 0) {
-					string new_units = unit_f_radio.active ? "F" : "C";
-					weather_item.set_location_and_units ("", new_units);
+					var w_item = get_weather_item ();
+					if (w_item != null)
+						w_item.set_location_and_units ("", new_units);
 					destroy ();
 					return;
 				}
 
-				// If custom text entered, validate that it resolves to a real place
-				if (!is_valid_selection) {
-					if (!check_location_validity_sync (new_city)) {
-						lbl_status.set_markup ("<span color='#e05555' weight='bold'>⚠️ %s</span>".printf (
-							_("Location not found. Please choose from suggestions or leave blank.")
-						));
-						lbl_status.show ();
-						city_entry.grab_focus ();
-						return; // Do NOT close the dialog!
-					}
+				if (is_valid_selection) {
+					var w_item = get_weather_item ();
+					if (w_item != null)
+						w_item.set_location_and_units (new_city, new_units);
+					destroy ();
+					return;
 				}
 
-				string new_units = unit_f_radio.active ? "F" : "C";
-				weather_item.set_location_and_units (new_city, new_units);
+				// Validate custom text asynchronously on a worker thread while keeping Cancel clickable
+				validating_location = true;
+				set_inputs_sensitive (false);
+				lbl_status.set_markup ("<span>⏳ %s…</span>".printf (GLib.Markup.escape_text (new_city)));
+				lbl_status.show ();
+				run_validate_worker (this, new_city, new_units);
+				return;
 			}
 
 			destroy ();

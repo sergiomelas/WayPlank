@@ -78,7 +78,7 @@ namespace Plank
 				unowned string custom_icon = info.get_attribute_string (FILE_ATTRIBUTE_CUSTOM_ICON);
 				if (custom_icon != null && custom_icon != "") {
 					string? path = null;
-					if (custom_icon.has_prefix ("file://"))
+					if (custom_icon.has_prefix ("file://") || custom_icon.has_prefix ("/"))
 						path = custom_icon;
 					else
 						path = file.get_child (custom_icon).get_path ();
@@ -610,48 +610,51 @@ namespace Plank
 			var rTotal2 = 0.0;
 			var aTotal2 = 0.0;
 			
-			uint8* dataPtr = source.get_pixels ();
+			uint8* pixels_base = source.get_pixels ();
 			int n_channels = source.n_channels;
+			bool has_alpha = source.has_alpha;
 			int width = source.width;
 			int height = source.height;
 			int rowstride = source.rowstride;
+			if (pixels_base == null || width <= 0 || height <= 0 || n_channels < 3)
+				return { 0.0, 0.0, 0.0, 0.0 };
 			int length = width * height;
-			int pixels = height * rowstride / n_channels;
 			double scoreTotal = 0.0;
 			
-			for (var i = 0; i < pixels; i++) {
-				r = dataPtr [0];
-				g = dataPtr [1];
-				b = dataPtr [2];
-				a = dataPtr [3];
-				
-				// skip (nearly) invisible pixels
-				if (a <= ALPHA_THRESHOLD) {
-					length--;
-					dataPtr += n_channels;
-					continue;
+			for (int y = 0; y < height; y++) {
+				uint8* row = pixels_base + (size_t) y * (size_t) rowstride;
+				for (int x = 0; x < width; x++) {
+					uint8* p = row + x * n_channels;
+					r = p[0];
+					g = p[1];
+					b = p[2];
+					a = (has_alpha && n_channels >= 4) ? p[3] : 255;
+					
+					// skip (nearly) invisible pixels
+					if (a <= ALPHA_THRESHOLD) {
+						length--;
+						continue;
+					}
+					
+					min = uint8.min (r, uint8.min (g, b));
+					max = uint8.max (r, uint8.max (g, b));
+					delta = max - min;
+					
+					// prefer colored pixels over shades of grey
+					var score = SATURATION_WEIGHT * (delta == 0 ? 0.0 : delta / max);
+					
+					// weighted sums, revert pre-multiplied alpha value
+					bTotal += score * b / a;
+					gTotal += score * g / a;
+					rTotal += score * r / a;
+					scoreTotal += score;
+					
+					// not weighted sums
+					bTotal2 += b;
+					gTotal2 += g;
+					rTotal2 += r;
+					aTotal2 += a;
 				}
-				
-				min = uint8.min (r, uint8.min (g, b));
-				max = uint8.max (r, uint8.max (g, b));
-				delta = max - min;
-				
-				// prefer colored pixels over shades of grey
-				var score = SATURATION_WEIGHT * (delta == 0 ? 0.0 : delta / max);
-				
-				// weighted sums, revert pre-multiplied alpha value
-				bTotal += score * b / a;
-				gTotal += score * g / a;
-				rTotal += score * r / a;
-				scoreTotal += score;
-				
-				// not weighted sums
-				bTotal2 += b;
-				gTotal2 += g;
-				rTotal2 += r;
-				aTotal2 += a;
-				
-				dataPtr += n_channels;
 			}
 			
 			// looks like a fully transparent image

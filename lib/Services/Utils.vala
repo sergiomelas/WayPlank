@@ -144,6 +144,10 @@ namespace Plank
 	 */
 	public inline bool file_is_dockitem (File file)
 	{
+		var bname = file.get_basename ();
+		if (bname == null || bname.has_prefix (".") || !bname.has_suffix (".dockitem"))
+			return false;
+
 		try {
 			var info = file.query_info (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN, 0);
 			return !info.get_is_hidden () && info.get_name ().has_suffix (".dockitem");

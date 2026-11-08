@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # --- Dolphin Auto-Spawn GUI Terminal ---
-if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ]; then
+if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}" ] && [ -z "${CI:-}" ] && [ -z "${NONINTERACTIVE:-}" ]; then
     if command -v konsole >/dev/null 2>&1; then
         exec konsole -e bash "$0" "$@"
     elif command -v x-terminal-emulator >/dev/null 2>&1; then
@@ -29,7 +29,17 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
 fi
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
+PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+[ -z "$PKG_DECO" ] && PKG_DECO="Public Beta"
 OUT_DIR="${BASE_DIR}/build"
+BUILD_GRESOURCE_XML="${BASE_DIR}/data/.plank.build.gresource.xml"
+
+cleanup_build_artifacts() {
+    rm -rf "${BASE_DIR}/data/locale" "${BASE_DIR}/lib/resources.c" "$BUILD_GRESOURCE_XML"
+}
+trap cleanup_build_artifacts EXIT
+
 mkdir -p "$OUT_DIR"
 rm -f "${OUT_DIR}/wayplank"
 
@@ -51,7 +61,6 @@ for po in "${BASE_DIR}"/po/*.po; do
 done
 echo "   📦 Encoded binary languages: ${EMBEDDED_LANGS}"
 
-BUILD_GRESOURCE_XML="${BASE_DIR}/data/.plank.build.gresource.xml"
 awk -v entries="$LOCALE_XML_ENTRIES" '
     /<\/gresource>/ { printf "%s", entries }
     { print }
@@ -98,6 +107,8 @@ if valac -g \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
+    -X -DPACKAGE_VERSION=\"${PKG_VER}\" \
+    -X "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
     -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -I"${BASE_DIR}/lib" \
     -X -I"${BASE_DIR}/lib/Protocols" \

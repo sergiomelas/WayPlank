@@ -22,18 +22,29 @@
 
 #define PACKAGE_NAME "WayPlank"
 #define PACKAGE_TARNAME "wayplank"
-#define PACKAGE_VERSION "0.7.0"
-#define PACKAGE_STRING "WayPlank 0.7.0"
+#ifndef PACKAGE_VERSION
+#error "PACKAGE_VERSION must be defined from root VERSION file (line 1)"
+#endif
+#ifndef PACKAGE_VERSION_DECO
+#error "PACKAGE_VERSION_DECO must be defined from root VERSION file (line 2)"
+#endif
+#ifndef PACKAGE_STRING
+#define PACKAGE_STRING "WayPlank " PACKAGE_VERSION
+#endif
 #define PACKAGE_BUGREPORT "https://github.com/sergiomelas/wayplank/issues"
 #define PACKAGE_URL "https://github.com/sergiomelas/wayplank"
-#define VERSION "0.7.0"
+#ifndef VERSION
+#define VERSION PACKAGE_VERSION
+#endif
 #define GETTEXT_PACKAGE "wayplank"
 
 #define PREFIX "/usr"
 #define DATADIR "/usr/share"
 #define PKGDATADIR "/usr/share/wayplank"
 #define RELEASE_NAME "WayPlank"
-#define VERSION_INFO "WayPlank 0.7.0 - Public Beta 1"
+#ifndef VERSION_INFO
+#define VERSION_INFO "WayPlank " PACKAGE_VERSION " - " PACKAGE_VERSION_DECO
+#endif
 #define TEST_DATA_DIR ""
 
 #include <glib/gi18n-lib.h>

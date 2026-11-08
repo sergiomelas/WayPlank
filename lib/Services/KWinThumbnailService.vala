@@ -33,48 +33,124 @@ namespace Plank
 			return instance;
 		}
 
+		const int64 CACHE_TTL_USEC = 2500000;
+
+		private class CallbackHolder
+		{
+			public ThumbnailReadyCallback cb;
+			public CallbackHolder (owned ThumbnailReadyCallback c)
+			{
+				cb = (owned) c;
+			}
+		}
+
 		Gee.HashMap<string, Gdk.Pixbuf> cache;
-		Gee.HashSet<string> pending;
+		Gee.HashMap<string, int64?> cache_time;
+		Gee.HashMap<string, Gee.ArrayList<CallbackHolder>> pending_callbacks;
 
 		construct
 		{
 			cache = new Gee.HashMap<string, Gdk.Pixbuf> ();
-			pending = new Gee.HashSet<string> ();
+			cache_time = new Gee.HashMap<string, int64?> ();
+			pending_callbacks = new Gee.HashMap<string, Gee.ArrayList<CallbackHolder>> ();
 		}
+
+		void prune_closed_windows ()
+		{
+			var windows = WindowControl.get_windows ();
+			if (windows.size == 0)
+				return;
+			var live = new Gee.HashSet<string> ();
+			foreach (var w in windows) {
+				if (w.Id != null && w.Id != "")
+					live.add (w.Id);
+			}
+			var stale = new Gee.ArrayList<string> ();
+			foreach (var k in cache.keys) {
+				if (k != "active" && !live.contains (k))
+					stale.add (k);
+			}
+			foreach (var k in stale) {
+				cache.unset (k);
+				cache_time.unset (k);
+			}
+		}
+
+		static int thumb_seq = 0;
 
 		public Gdk.Pixbuf? get_cached (string win_id)
 		{
 			return cache.has_key (win_id) ? cache.get (win_id) : null;
 		}
 
+		public bool is_stale (string win_id)
+		{
+			if (!cache.has_key (win_id) || !cache_time.has_key (win_id))
+				return true;
+			int64? ts = cache_time.get (win_id);
+			return ts == null || (GLib.get_monotonic_time () - ts) >= CACHE_TTL_USEC;
+		}
+
 		public void request_thumbnail (string win_id, int target_w, int target_h, owned ThumbnailReadyCallback cb)
 		{
-			stderr.printf ("[KWinThumbnailService] request_thumbnail for win_id='%s' (%dx%d)\n", win_id, target_w, target_h);
+			if (!WindowControl.is_kwin () && !WindowControl.is_mutter ()) {
+				cb (null);
+				return;
+			}
+
+			prune_closed_windows ();
+			debug ("[KWinThumbnailService] request_thumbnail for win_id='%s' (%dx%d)", win_id, target_w, target_h);
 			if (cache.has_key (win_id)) {
-				stderr.printf ("[KWinThumbnailService] Cache HIT for '%s'\n", win_id);
-				cb (cache.get (win_id));
+				int64? ts = cache_time.get (win_id);
+				if (ts != null && (GLib.get_monotonic_time () - ts) < CACHE_TTL_USEC) {
+					debug ("[KWinThumbnailService] Cache HIT for '%s'", win_id);
+					cb (cache.get (win_id));
+					return;
+				}
+			}
+
+			if (pending_callbacks.has_key (win_id)) {
+				debug ("[KWinThumbnailService] Coalescing callback onto in-flight request for '%s'", win_id);
+				pending_callbacks.get (win_id).add (new CallbackHolder ((owned) cb));
 				return;
 			}
 
-			if (pending.contains (win_id)) {
-				stderr.printf ("[KWinThumbnailService] Pending request for '%s' already in flight\n", win_id);
-				return;
-			}
+			var waiters = new Gee.ArrayList<CallbackHolder> ();
+			waiters.add (new CallbackHolder ((owned) cb));
+			pending_callbacks.set (win_id, waiters);
 
-			pending.add (win_id);
+			spawn_capture_worker (this, win_id, target_w, target_h);
+		}
+
+		private static void spawn_capture_worker (KWinThumbnailService svc, string win_id, int target_w, int target_h)
+		{
+			GLib.WeakRef svc_ref = GLib.WeakRef (svc);
+			bool use_mutter = WindowControl.is_mutter ();
+			bool use_kwin = WindowControl.is_kwin ();
 
 			new Thread<void*> ("wayplank-thumb-" + win_id, () => {
-				Gdk.Pixbuf? pix = capture_window_raw (win_id, target_w, target_h);
+				Gdk.Pixbuf? pix = null;
+				if (use_mutter)
+					pix = capture_window_mutter (win_id, target_w, target_h);
+				else if (use_kwin)
+					pix = capture_window_kwin (win_id, target_w, target_h);
 
 				Idle.add (() => {
-					pending.remove (win_id);
+					var self = (KWinThumbnailService?) svc_ref.get ();
+					if (self == null)
+						return false;
+					var list = self.pending_callbacks.get (win_id);
+					self.pending_callbacks.unset (win_id);
 					if (pix != null) {
-						stderr.printf ("[KWinThumbnailService] SUCCESS: Got thumbnail for '%s'\n", win_id);
-						cache.set (win_id, pix);
-						cb (pix);
+						debug ("[KWinThumbnailService] SUCCESS: Got thumbnail for '%s'", win_id);
+						self.cache.set (win_id, pix);
+						self.cache_time.set (win_id, GLib.get_monotonic_time ());
 					} else {
-						stderr.printf ("[KWinThumbnailService] FAILED: capture_window_raw returned null for '%s'\n", win_id);
-						cb (null);
+						debug ("[KWinThumbnailService] FAILED: capture returned null for '%s'", win_id);
+					}
+					if (list != null) {
+						foreach (var holder in list)
+							holder.cb (pix);
 					}
 					return false;
 				});
@@ -83,46 +159,59 @@ namespace Plank
 			});
 		}
 
-		static Gdk.Pixbuf? capture_window_raw (string win_id, int target_w, int target_h)
-		{
-			if (WindowControl.is_mutter ()) {
-				return capture_window_mutter (win_id, target_w, target_h);
-			} else {
-				return capture_window_kwin (win_id, target_w, target_h);
-			}
-		}
-
 		static Gdk.Pixbuf? capture_window_mutter (string win_id, int target_w, int target_h)
 		{
-			string tmp_path = "/dev/shm/wayplank_thumb_%s.png".printf (win_id);
+			int seq = GLib.AtomicInt.add (ref thumb_seq, 1);
+			string runtime_dir = Environment.get_user_runtime_dir ();
+			if (runtime_dir == null || runtime_dir == "" || !FileUtils.test (runtime_dir, FileTest.IS_DIR))
+				runtime_dir = "/tmp";
+			string safe_id = win_id.replace ("/", "_").replace ("..", "_");
+			string tmp_path = Path.build_filename (runtime_dir, "wayplank_thumb_%d_%d_%s.png".printf ((int) Posix.getpid (), seq, safe_id));
 			try {
-				bool ok = MutterBackend.get_default ().capture_window (win_id, tmp_path);
+				var conn = Bus.get_sync (BusType.SESSION, null);
+				var reply = conn.call_sync (
+					"org.wayplank.GnomeBridge",
+					"/org/wayplank/GnomeBridge",
+					"org.wayplank.GnomeBridge",
+					"CaptureWindow",
+					new Variant ("(ss)", win_id, tmp_path),
+					new VariantType ("(b)"),
+					DBusCallFlags.NO_AUTO_START,
+					2500,
+					null
+				);
+				bool ok = false;
+				reply.get ("(b)", out ok);
 				if (!ok || !FileUtils.test (tmp_path, FileTest.EXISTS))
 					return null;
 
-				var pix = new Gdk.Pixbuf.from_file_at_scale (tmp_path, target_w, target_h, false);
-				FileUtils.unlink (tmp_path);
-				return pix;
+				return new Gdk.Pixbuf.from_file_at_scale (tmp_path, target_w, target_h, false);
 			} catch (Error e) {
+				debug ("[KWinThumbnailService] Mutter capture error: %s", e.message);
+				return null;
+			} finally {
 				if (FileUtils.test (tmp_path, FileTest.EXISTS))
 					FileUtils.unlink (tmp_path);
-				stderr.printf ("[KWinThumbnailService] Mutter capture error: %s\n", e.message);
-				return null;
 			}
 		}
 
 		static Gdk.Pixbuf? capture_window_kwin (string win_id, int target_w, int target_h)
 		{
+			int read_fd = -1;
+			int write_fd = -1;
 			try {
 				int pipefd[2];
 				if (Posix.pipe (pipefd) != 0) {
-					stderr.printf ("[KWinThumbnailService] pipe() failed: %s\n", Posix.strerror (Posix.errno));
+					debug ("[KWinThumbnailService] pipe() failed: %s", Posix.strerror (Posix.errno));
 					return null;
 				}
+				read_fd = pipefd[0];
+				write_fd = pipefd[1];
 
 				var fd_list = new UnixFDList ();
-				int fd_idx = fd_list.append (pipefd[1]);
-				Posix.close (pipefd[1]);
+				int fd_idx = fd_list.append (write_fd);
+				Posix.close (write_fd);
+				write_fd = -1;
 
 				var conn = Bus.get_sync (BusType.SESSION);
 				var builder = new VariantBuilder (new VariantType ("a{sv}"));
@@ -147,14 +236,12 @@ namespace Plank
 
 				var reply = conn.send_message_with_reply_sync (msg, DBusSendMessageFlags.NONE, 2500, null);
 				if (reply == null) {
-					stderr.printf ("[KWinThumbnailService] D-Bus reply is NULL for win_id='%s'\n", win_id);
-					Posix.close (pipefd[0]);
+					debug ("[KWinThumbnailService] D-Bus reply is NULL for win_id='%s'", win_id);
 					return null;
 				}
 				if (reply.get_message_type () == DBusMessageType.ERROR) {
-					stderr.printf ("[KWinThumbnailService] D-Bus ERROR for win_id='%s': %s (%s)\n",
+					debug ("[KWinThumbnailService] D-Bus ERROR for win_id='%s': %s (%s)",
 						win_id, reply.get_error_name (), reply.get_arg0 ());
-					Posix.close (pipefd[0]);
 					return null;
 				}
 
@@ -166,32 +253,37 @@ namespace Plank
 				map.lookup ("height", "u", out height);
 				map.lookup ("stride", "u", out stride);
 
-				stderr.printf ("[KWinThumbnailService] D-Bus reply map: width=%u height=%u stride=%u\n",
+				debug ("[KWinThumbnailService] D-Bus reply map: width=%u height=%u stride=%u",
 					width, height, stride);
 
-				if (width == 0 || height == 0 || stride == 0) {
-					Posix.close (pipefd[0]);
+				if (width == 0 || height == 0 || width > 16384 || height > 16384 || stride < width * 4 || stride > 65536)
 					return null;
-				}
 
 				size_t total_bytes = (size_t) height * stride;
 				uint8[] buffer = new uint8[total_bytes];
 				size_t read_bytes = 0;
 				while (read_bytes < total_bytes) {
-					ssize_t n = Posix.read (pipefd[0], (uint8*) buffer + read_bytes, total_bytes - read_bytes);
-					if (n <= 0) break;
-					read_bytes += n;
+					ssize_t n = Posix.read (read_fd, (uint8*) buffer + read_bytes, total_bytes - read_bytes);
+					if (n < 0) {
+						if (Posix.errno == Posix.EINTR)
+							continue;
+						break;
+					}
+					if (n == 0)
+						break;
+					read_bytes += (size_t) n;
 				}
-				Posix.close (pipefd[0]);
+				Posix.close (read_fd);
+				read_fd = -1;
 
-				stderr.printf ("[KWinThumbnailService] Read %zu / %zu bytes\n", read_bytes, total_bytes);
+				debug ("[KWinThumbnailService] Read %zu / %zu bytes", read_bytes, total_bytes);
 
 				if (read_bytes < total_bytes)
 					return null;
 
 				// KWin format 6 is BGRA. Swap B and R for standard RGBA Pixbuf
 				// and guarantee full opacity (alpha = 255) for crisp rendering
-				for (size_t i = 0; i < total_bytes; i += 4) {
+				for (size_t i = 0; i + 3 < total_bytes; i += 4) {
 					uint8 b = buffer[i];
 					buffer[i] = buffer[i + 2];
 					buffer[i + 2] = b;
@@ -210,14 +302,19 @@ namespace Plank
 				);
 
 				if (raw_pixbuf == null) {
-					stderr.printf ("[KWinThumbnailService] Gdk.Pixbuf.from_data returned null\n");
+					debug ("[KWinThumbnailService] Gdk.Pixbuf.from_data returned null");
 					return null;
 				}
 
 				return raw_pixbuf.scale_simple (target_w, target_h, Gdk.InterpType.BILINEAR);
 			} catch (Error e) {
-				stderr.printf ("[KWinThumbnailService] Exception: %s\n", e.message);
+				debug ("[KWinThumbnailService] Exception: %s", e.message);
 				return null;
+			} finally {
+				if (write_fd >= 0)
+					Posix.close (write_fd);
+				if (read_fd >= 0)
+					Posix.close (read_fd);
 			}
 		}
 	}

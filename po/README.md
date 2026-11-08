@@ -13,26 +13,26 @@ WayPlank will **NEVER** be distributed as a multi-file bundle requiring external
 
 ---
 
-## 1. 🗣️ Supported Languages & Status (487 / 487 Strings Qualified — 100%)
+## 1. 🗣️ Supported Languages & Status (519 / 519 Strings Qualified — 100%)
 
 | # | Language | Locale | Contributor & Reviewer | Status |
 | :---: | :--- | :---: | :--- | :---: |
-| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (487/487) |
-| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (487/487) |
-| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (487/487) |
-| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (487/487) |
-| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (487/487) |
-| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (487/487) |
-| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (487/487) |
+| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (519/519) |
+| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
+| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
+| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
+| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
+| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (519/519) |
+| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (519/519) |
 | 8 | **English** | `en` | Native in-source fallback language | **100% Native** (Zero files needed) |
 
 ---
 
-## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 1 `v0.7.0`)
+## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 2 `v0.7.1`)
 
-In **WayPlank Public Beta 1 (`v0.7.0`)**, all 7 translation catalogs (`487/487` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration.
+In **WayPlank Public Beta 2 (`v0.7.1`)**, all 7 translation catalogs (`519/519` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration.
 
-The 100% monolithic embedded localization engine for Public Beta (`v0.7.0`) follows these exact technical steps:
+The 100% monolithic embedded localization engine for Public Beta (`v0.7.1`) follows these exact technical steps:
 
 ### Step 1: Single Entry Point & Automatic Build-Time Discovery (`po/generate_translations.py` $\rightarrow$ `BuildBin.sh`)
 `po/generate_translations.py` is the **sole and exclusive entry point** for defining or adding languages. When `BuildBin.sh` runs:
@@ -53,11 +53,12 @@ done
 This bakes all discovered language catalogs and the `WAYPLANK_EMBEDDED_LANGS` registry directly into `lib/resources.c` and the monolithic binary ELF (`build/wayplank`), followed immediately by `rm -rf data/locale` to keep the source tree 100% clean. **Adding a new language in the future requires modifying ONLY `po/generate_translations.py`** — zero C code, zero XML, and zero build script changes are ever required.
 
 ### Step 2: Zero-Hardcode In-Memory Translation Resolver (`lib/gtk-compat.c`)
-In `lib/gtk-compat.c`, implement the lightweight, language-agnostic in-memory lookup function:
+`lib/gtk-compat.c` implements the lightweight, language-agnostic in-memory lookup and GtkBuilder widget translation functions:
 
 ```c
 const char* wayplank_i18n_get (const char* msgid);
 void wayplank_i18n_init (void);
+void wayplank_i18n_translate_widget (GtkWidget* widget);
 ```
 
 How it works:
@@ -67,7 +68,7 @@ How it works:
 4. `wayplank_i18n_get(msgid)` performs a binary search lookup directly into the embedded `.mo` byte table in RAM. If found, returns the translated string; if missing or English, instantly returns `msgid`.
 
 ### Step 3: Hook the Vala Gettext Macro (`include/config.h`)
-In `include/config.h`, redirect Vala's gettext macro:
+`include/config.h` redirects Vala's gettext macro:
 
 ```c
 const char* wayplank_i18n_get (const char* msgid);
@@ -78,7 +79,7 @@ const char* wayplank_i18n_get (const char* msgid);
 Because Vala compiles every `_("text")` in source code to `_( "text" )`, this transparently intercepts all UI string lookups at compile time, completely eliminating any runtime dependency on external filesystem paths!
 
 ### Step 4: Initialize in Main (`src/Main.vala`)
-In `src/Main.vala`, call the initialization routine at startup:
+`src/Main.vala` initializes the in-memory localization table at startup:
 
 ```vala
 wayplank_i18n_init ();
@@ -100,7 +101,7 @@ python3 po/generate_translations.py
 ```
 
 This script guarantees:
-- **100% message coverage** (`487/487` messages across all 7 languages).
+- **100% message coverage** (`519/519` messages across all 7 languages).
 - **Validation** with GNU `msgfmt -c -v`.
 - **Consistent ordering and validation** across all catalogs.
 

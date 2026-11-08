@@ -40,7 +40,7 @@ namespace Plank
 		 */
 		public static bool is_user_theme (string name)
 		{
-			if (name == Theme.DEFAULT_NAME || name == "Transparent")
+			if (name == Theme.DEFAULT_NAME || name == Theme.GTK_THEME_NAME)
 				return false;
 
 			var folder = Theme.get_theme_folder (name);
@@ -48,7 +48,10 @@ namespace Plank
 				return false;
 
 			string? path = folder.get_path ();
-			return (path != null && path.has_prefix (Environment.get_home_dir ()));
+			string home_prefix = Environment.get_home_dir ();
+			if (!home_prefix.has_suffix ("/"))
+				home_prefix += "/";
+			return (path != null && path.has_prefix (home_prefix));
 		}
 
 		/**
@@ -66,14 +69,26 @@ namespace Plank
 			return remove_directory_recursive (folder);
 		}
 
+		private static bool is_safe_theme_name (string? name)
+		{
+			if (name == null)
+				return false;
+			string trimmed = name.strip ();
+			if (trimmed == "" || trimmed == "." || trimmed == "..")
+				return false;
+			if (trimmed.contains ("/") || trimmed.contains ("\\"))
+				return false;
+			return true;
+		}
+
 		/**
-		 * Recursively deletes a directory and its contents.
+		 * Recursively deletes a directory and its contents without following symlinks.
 		 */
 		public static bool remove_directory_recursive (File file)
 		{
 			try {
-				if (file.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
-					var enumerator = file.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+				if (file.query_file_type (FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null) == FileType.DIRECTORY) {
+					var enumerator = file.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
 					FileInfo? info;
 					while ((info = enumerator.next_file (null)) != null) {
 						var child = file.get_child (info.get_name ());
@@ -89,7 +104,7 @@ namespace Plank
 		}
 
 		/**
-		 * Recursively copies a directory to destination.
+		 * Recursively copies a directory to destination, skipping symlinks.
 		 */
 		public static bool copy_directory_recursive (File src, File dest)
 		{
@@ -97,14 +112,17 @@ namespace Plank
 				if (!dest.query_exists ()) {
 					dest.make_directory_with_parents (null);
 				}
-				var enumerator = src.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+				var enumerator = src.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
 				FileInfo? info;
 				while ((info = enumerator.next_file (null)) != null) {
 					var src_child = src.get_child (info.get_name ());
 					var dest_child = dest.get_child (info.get_name ());
-					if (src_child.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
+					var ftype = src_child.query_file_type (FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null);
+					if (ftype == FileType.SYMBOLIC_LINK) {
+						continue;
+					} else if (ftype == FileType.DIRECTORY) {
 						copy_directory_recursive (src_child, dest_child);
-					} else {
+					} else if (ftype == FileType.REGULAR) {
 						src_child.copy (dest_child, FileCopyFlags.OVERWRITE, null, null);
 					}
 				}
@@ -146,11 +164,14 @@ namespace Plank
 					var src_file = File.new_for_path (archive_path);
 					string theme_name = src_file.get_basename ().replace (".theme", "");
 					if (theme_name == "dock" || theme_name == "") {
-						theme_name = src_file.get_parent ().get_basename ();
+						var parent = src_file.get_parent ();
+						theme_name = parent != null ? (parent.get_basename () ?? "") : "";
 					}
-					var t_dir = File.new_for_path (Path.build_filename (tmp_dir, theme_name));
-					t_dir.make_directory_with_parents (null);
-					src_file.copy (t_dir.get_child ("dock.theme"), FileCopyFlags.OVERWRITE, null, null);
+					if (is_safe_theme_name (theme_name)) {
+						var t_dir = File.new_for_path (Path.build_filename (tmp_dir, theme_name));
+						t_dir.make_directory_with_parents (null);
+						src_file.copy (t_dir.get_child ("dock.theme"), FileCopyFlags.OVERWRITE, null, null);
+					}
 				}
 
 				find_themes_recursive (File.new_for_path (tmp_dir), tmp_dir, archive_path, list);
@@ -165,7 +186,7 @@ namespace Plank
 		{
 			try {
 				var dock_theme = dir.get_child ("dock.theme");
-				if (dock_theme.query_exists ()) {
+				if (dock_theme.query_file_type (FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null) == FileType.REGULAR) {
 					string dir_path = dir.get_path ();
 					string name;
 					if (dir_path == root_tmp) {
@@ -182,6 +203,9 @@ namespace Plank
 						name = dir.get_basename ();
 					}
 
+					if (!is_safe_theme_name (name))
+						return;
+
 					bool exists = false;
 					foreach (var info in list) {
 						if (info.name == name) {
@@ -195,11 +219,11 @@ namespace Plank
 					return;
 				}
 
-				var enumerator = dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+				var enumerator = dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
 				FileInfo? info;
 				while ((info = enumerator.next_file (null)) != null) {
 					var child = dir.get_child (info.get_name ());
-					if (child.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
+					if (child.query_file_type (FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null) == FileType.DIRECTORY) {
 						find_themes_recursive (child, root_tmp, archive_path, list);
 					}
 				}
@@ -213,6 +237,8 @@ namespace Plank
 		 */
 		public static bool install_theme (ThemePackageInfo info, bool overwrite = true)
 		{
+			if (!is_safe_theme_name (info.name))
+				return false;
 			Paths.ensure_directory_exists (Paths.AppThemeFolder);
 			var target_dir = Paths.AppThemeFolder.get_child (info.name);
 			if (target_dir.query_exists ()) {

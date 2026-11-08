@@ -118,10 +118,21 @@ namespace Plank
 								if (default_provider.item_for_uri (d_uri) == null)
 									default_provider.add_item_with_uri (d_uri);
 							} else {
-								unowned DockItem? di = default_provider.item_for_uri (d_uri);
-								if (di != null)
+								var to_remove = new Gee.ArrayList<DockItem> ();
+								foreach (var el in default_provider.Elements) {
+									unowned DockItem? dock_item = el as DockItem;
+									if (dock_item == null)
+										continue;
+									if (dock_item.Launcher == d_uri || (d_uri == "docklet://trash" && dock_item is TrashDockItem))
+										to_remove.add (dock_item);
+								}
+								foreach (var di in to_remove) {
+									if (default_provider.Elements.contains (di))
+										default_provider.remove (di);
 									di.delete ();
+								}
 							}
+							default_provider.refresh_separators ();
 						});
 						docklets_menu.add (c_item);
 					}

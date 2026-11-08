@@ -44,15 +44,16 @@ if ! command -v rpmbuild >/dev/null 2>&1; then
 fi
 
 PKG_NAME="wayplank"
-PKG_VER="0.7.0"
 PKG_REL="1"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
+PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 RPM_TOPDIR="${BASE_DIR}/build_rpm_workspace"
 OUT_DIR="${BASE_DIR}/build"
 ARCH="$(uname -m)"
 
 echo ""
-echo "🚀 Wayplank Standalone Builder — V${PKG_VER} (RPM Integration)"
+echo "🚀 Wayplank Standalone Builder — V${PKG_VER} (${PKG_DECO:-RPM} — RPM Integration)"
 echo "─────────────────────────────────────────────────────────────"
 echo ""
 
@@ -72,11 +73,47 @@ mkdir -p "$RPM_TOPDIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp}
 
 echo "📦 Preparing RPM source payloads..."
 cp "${OUT_DIR}/wayplank" "${RPM_TOPDIR}/SOURCES/wayplank"
-cp -r "${BASE_DIR}/data/themes" "${RPM_TOPDIR}/SOURCES/"
 cp -r "${BASE_DIR}/data/icons" "${RPM_TOPDIR}/SOURCES/"
 cp "${BASE_DIR}/data/wayplank.svg" "${RPM_TOPDIR}/SOURCES/wayplank.svg"
 cp "${BASE_DIR}/data/wayplank.desktop" "${RPM_TOPDIR}/SOURCES/wayplank.desktop"
 cp "${BASE_DIR}/data/glib-2.0/schemas/net.launchpad.plank.gschema.xml" "${RPM_TOPDIR}/SOURCES/net.launchpad.plank.gschema.xml"
+
+cat << 'EOF_COPYRIGHT' > "${RPM_TOPDIR}/SOURCES/copyright"
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: wayplank
+Upstream-Contact: Sergio Melas <sergiomelas@gmail.com>
+Source: https://github.com/sergiomelas/WayPlank
+
+Files: *
+Copyright: 2011-2015 Robert Dyer, Michal Hruby, Rico Tzschichholz
+           2026 Sergio Melas <sergiomelas@gmail.com>
+           2026 史有虎 (IFtiger-hu)
+License: GPL-3.0-or-later
+
+Files: data/docklets/*
+Copyright: 2014-2026 KDE Community / Breeze Icon Artists
+           2026 Sergio Melas <sergiomelas@gmail.com>
+License: LGPL-3.0-or-later or GPL-3.0-or-later
+Comment: Embedded fallback vector icons for Wayplank docklets (volume scale,
+ battery scale and charging states, analog/digital clocks, trash, mpris, system monitors).
+
+License: GPL-3.0-or-later
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+License: LGPL-3.0-or-later
+ This library/asset is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 3 of the License, or (at your option) any later version.
+EOF_COPYRIGHT
 
 cat << EOF > "${RPM_TOPDIR}/SPECS/${PKG_NAME}.spec"
 %define _binary_payload w19.zstdio
@@ -91,8 +128,10 @@ License:        GPL-3.0-or-later
 Group:          System/GUI/Other
 URL:            https://github.com/sergiomelas/WayPlank
 Provides:       plank = %{version}
+Obsoletes:      plank < %{version}
 Conflicts:      plank
 Requires:       grim, slurp, ddcutil, brightnessctl
+Recommends:     (spectacle or flameshot or xfce4-screenshooter)
 
 %description
 WayPlank is a monolithic, standalone dock for modern desktop environments.
@@ -102,7 +141,6 @@ Drop-in replacement for the original Plank dock with native Wayland enhancements
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_datadir}/applications
-mkdir -p %{buildroot}%{_datadir}/wayplank/themes
 mkdir -p %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
 mkdir -p %{buildroot}%{_datadir}/glib-2.0/schemas
 mkdir -p %{buildroot}%{_datadir}/doc/wayplank
@@ -110,17 +148,22 @@ mkdir -p %{buildroot}%{_datadir}/doc/wayplank
 cp %{_sourcedir}/wayplank %{buildroot}%{_bindir}/wayplank
 ln -sf wayplank %{buildroot}%{_bindir}/plank
 
-cp -r %{_sourcedir}/themes/* %{buildroot}%{_datadir}/wayplank/themes/
-ln -sf wayplank %{buildroot}%{_datadir}/plank
-
-cp -r %{_sourcedir}/icons/* %{buildroot}%{_datadir}/icons/hicolor/
+for sz_dir in %{_sourcedir}/icons/*; do
+    [ -d "\$sz_dir" ] || continue
+    sz="\$(basename "\$sz_dir")"
+    mkdir -p %{buildroot}%{_datadir}/icons/hicolor/\${sz}/apps
+    cp "\${sz_dir}/plank.svg" %{buildroot}%{_datadir}/icons/hicolor/\${sz}/apps/plank.svg
+    cp "\${sz_dir}/plank.svg" %{buildroot}%{_datadir}/icons/hicolor/\${sz}/apps/wayplank.svg
+done
 cp %{_sourcedir}/wayplank.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/wayplank.svg
 cp %{_sourcedir}/wayplank.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/plank.svg
 
 cp %{_sourcedir}/net.launchpad.plank.gschema.xml %{buildroot}%{_datadir}/glib-2.0/schemas/
 cp %{_sourcedir}/wayplank.desktop %{buildroot}%{_datadir}/applications/wayplank.desktop
+chmod 644 %{buildroot}%{_datadir}/applications/wayplank.desktop
 ln -sf wayplank.desktop %{buildroot}%{_datadir}/applications/plank.desktop
-ln -sf wayplank %{buildroot}%{_datadir}/doc/plank
+cp %{_sourcedir}/copyright %{buildroot}%{_datadir}/doc/wayplank/copyright
+chmod 644 %{buildroot}%{_datadir}/doc/wayplank/copyright
 
 %post
 if command -v glib-compile-schemas >/dev/null 2>&1; then
@@ -133,7 +176,20 @@ if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q %{_datadir}/applications/ || true
 fi
 if command -v pkill >/dev/null 2>&1; then
+    OLD_PIDS="\$(pgrep -f '(^|/)(wayplank|plank)( |\$)' 2>/dev/null || true)"
     pkill -WINCH -x wayplank >/dev/null 2>&1 || true
+    pkill -WINCH -x plank >/dev/null 2>&1 || true
+    pkill -WINCH -f '%{_bindir}/wayplank' >/dev/null 2>&1 || true
+    pkill -WINCH -f '%{_bindir}/plank' >/dev/null 2>&1 || true
+    if [ -n "\$OLD_PIDS" ]; then
+        sleep 0.2
+        for p in \$OLD_PIDS; do
+            if kill -0 "\$p" 2>/dev/null; then
+                echo "Note: Running pre-upgrade wayplank process detected (PID \$p). Run 'wayplank --replace &' once to load the new binary."
+                break
+            fi
+        done
+    fi
 fi
 
 %postun
@@ -152,12 +208,10 @@ fi
 %{_bindir}/plank
 %{_datadir}/applications/wayplank.desktop
 %{_datadir}/applications/plank.desktop
-%{_datadir}/wayplank
-%{_datadir}/plank
-%{_datadir}/icons/hicolor/*
+%{_datadir}/icons/hicolor/*/apps/wayplank.svg
+%{_datadir}/icons/hicolor/*/apps/plank.svg
 %{_datadir}/glib-2.0/schemas/net.launchpad.plank.gschema.xml
 %{_datadir}/doc/wayplank
-%{_datadir}/doc/plank
 
 %changelog
 * Thu Oct 15 2026 Youhu Shi (史有虎) <2212363803@qq.com> & Sergio Melas <sergiomelas@gmail.com> - ${PKG_VER}-${PKG_REL}

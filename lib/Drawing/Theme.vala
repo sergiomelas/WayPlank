@@ -248,14 +248,32 @@ namespace Plank
 		 */
 		public void load (string type)
 		{
-			// if there is no folder available or theme is Default, fallback to internal dynamic adaptive GTK theme
-			if (theme_folder == null || theme_name == DEFAULT_NAME || theme_name == GTK_THEME_NAME) {
+			if (theme_name == DEFAULT_NAME || theme_name == GTK_THEME_NAME) {
 				reset_properties ();
 				apply_dynamic_gtk_theme ();
 				return;
 			}
-			
-			init_from_file (theme_folder.get_child ("%s.theme".printf (type)));
+
+			// 1. User-installed or external filesystem theme overrides
+			if (theme_folder != null) {
+				var theme_file = theme_folder.get_child ("%s.theme".printf (type));
+				if (theme_file.query_exists ()) {
+					reset_properties ();
+					init_from_file (theme_file);
+					return;
+				}
+			}
+
+			// 2. Monolithic built-in theme embedded in GResource RAM
+			if (is_embedded_theme (theme_name, type)) {
+				reset_properties ();
+				if (init_from_resource ("/net/launchpad/plank/themes/%s/%s.theme".printf (theme_name, type)))
+					return;
+			}
+
+			// 3. Fallback to internal dynamic adaptive GTK theme
+			reset_properties ();
+			apply_dynamic_gtk_theme ();
 		}
 		
 		/**
@@ -616,6 +634,19 @@ namespace Plank
 				&& folder.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY;
 		}
 
+		public static bool is_embedded_theme (string name, string type = "dock")
+		{
+			if (name == "" || name == DEFAULT_NAME || name == GTK_THEME_NAME)
+				return false;
+			try {
+				resources_get_info ("/net/launchpad/plank/themes/%s/%s.theme".printf (name, type),
+					ResourceLookupFlags.NONE, null, null);
+				return true;
+			} catch (Error e) {
+				return false;
+			}
+		}
+
 		/**
 		 * Get a sorted array of all available theme-names (Wayplank and Plank legacy).
 		 *
@@ -626,6 +657,16 @@ namespace Plank
 			var list = new Gee.HashSet<string> ();
 			
 			list.add (DEFAULT_NAME);
+
+			// 0. Monolithic built-in themes embedded in GResource RAM
+			try {
+				var children = resources_enumerate_children ("/net/launchpad/plank/themes", ResourceLookupFlags.NONE);
+				foreach (unowned string child in children) {
+					var clean_name = child.has_suffix ("/") ? child.substring (0, child.length - 1) : child;
+					if (clean_name != "" && is_embedded_theme (clean_name))
+						list.add (clean_name);
+				}
+			} catch (Error e) {}
 			
 			// 1. User's wayplank themes folder (~/.local/share/wayplank/themes)
 			enumerate_theme_folder (Paths.AppThemeFolder, list);
@@ -669,6 +710,9 @@ namespace Plank
 		public static bool is_valid_name (string name)
 		{
 			if (name == DEFAULT_NAME || name == GTK_THEME_NAME)
+				return true;
+
+			if (is_embedded_theme (name))
 				return true;
 
 			if (is_valid_theme_dir (Paths.AppThemeFolder.get_child (name)))
@@ -720,7 +764,8 @@ namespace Plank
 					return folder;
 			}
 			
-			warning ("Theme '%s' not found, falling back to %s.", name, DEFAULT_NAME);
+			if (!is_embedded_theme (name))
+				warning ("Theme '%s' not found, falling back to %s.", name, DEFAULT_NAME);
 			
 			return null;
 		}

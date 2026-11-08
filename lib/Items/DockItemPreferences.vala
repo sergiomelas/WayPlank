@@ -27,6 +27,15 @@ namespace Plank
 	{
 		[Description(nick = "launcher", blurb = "The uri for this item.")]
 		public string Launcher { get; set; }
+
+		[Description(nick = "custom-icon", blurb = "Optional custom icon name, path, or file:// URI persisted for this item.")]
+		public string CustomIcon { get; set; default = ""; }
+
+		[Description(nick = "browser-profile", blurb = "Optional isolated browser profile token or directory associated with this item.")]
+		public string BrowserProfile { get; set; default = ""; }
+
+		[Description(nick = "keep-visible", blurb = "Whether this pinned item is always kept visible when adaptive accordion is active.")]
+		public bool KeepVisible { get; set; default = false; }
 		
 		/**
 		 * {@inheritDoc}
@@ -59,6 +68,9 @@ namespace Plank
 		public override void reset_properties ()
 		{
 			Launcher = "";
+			CustomIcon = "";
+			BrowserProfile = "";
+			KeepVisible = false;
 		}
 		
 		/**

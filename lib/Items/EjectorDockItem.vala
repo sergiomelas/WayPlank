@@ -66,13 +66,13 @@ namespace Plank
 		private void stop_monitoring ()
 		{
 			if (volume_monitor != null) {
-				if (sig_mount_added != 0) volume_monitor.disconnect (sig_mount_added);
-				if (sig_mount_removed != 0) volume_monitor.disconnect (sig_mount_removed);
-				if (sig_mount_changed != 0) volume_monitor.disconnect (sig_mount_changed);
-				if (sig_volume_added != 0) volume_monitor.disconnect (sig_volume_added);
-				if (sig_volume_removed != 0) volume_monitor.disconnect (sig_volume_removed);
-				if (sig_drive_connected != 0) volume_monitor.disconnect (sig_drive_connected);
-				if (sig_drive_disconnected != 0) volume_monitor.disconnect (sig_drive_disconnected);
+				if (sig_mount_added != 0) { volume_monitor.disconnect (sig_mount_added); sig_mount_added = 0; }
+				if (sig_mount_removed != 0) { volume_monitor.disconnect (sig_mount_removed); sig_mount_removed = 0; }
+				if (sig_mount_changed != 0) { volume_monitor.disconnect (sig_mount_changed); sig_mount_changed = 0; }
+				if (sig_volume_added != 0) { volume_monitor.disconnect (sig_volume_added); sig_volume_added = 0; }
+				if (sig_volume_removed != 0) { volume_monitor.disconnect (sig_volume_removed); sig_volume_removed = 0; }
+				if (sig_drive_connected != 0) { volume_monitor.disconnect (sig_drive_connected); sig_drive_connected = 0; }
+				if (sig_drive_disconnected != 0) { volume_monitor.disconnect (sig_drive_disconnected); sig_drive_disconnected = 0; }
 				volume_monitor = null;
 			}
 		}
@@ -80,6 +80,12 @@ namespace Plank
 		~EjectorDockItem ()
 		{
 			stop_monitoring ();
+		}
+
+		public override void cleanup ()
+		{
+			stop_monitoring ();
+			base.cleanup ();
 		}
 
 		public override void @delete ()
@@ -200,7 +206,10 @@ namespace Plank
 			} catch (GLib.Error e) {
 				// Fallback to notify-send
 				try {
-					Process.spawn_command_line_async ("notify-send -i media-eject '%s' '%s'".printf (_("Safe to Remove"), drive_name));
+					Process.spawn_command_line_async ("notify-send -i media-eject %s %s".printf (
+						Shell.quote (_("Safe to Remove")),
+						Shell.quote (drive_name)
+					));
 				} catch (Error e2) { }
 			}
 		}
@@ -240,7 +249,9 @@ namespace Plank
 		private void notify_no_devices ()
 		{
 			try {
-				Process.spawn_command_line_async ("notify-send -i drive-removable-media 'WayPlank' '%s'".printf (_("No removable devices connected")));
+				Process.spawn_command_line_async ("notify-send -i drive-removable-media 'WayPlank' %s".printf (
+					Shell.quote (_("No removable devices connected"))
+				));
 			} catch (Error e) { }
 		}
 
@@ -251,29 +262,31 @@ namespace Plank
 
 			if (mounts.length () > 0) {
 				foreach (var m in mounts) {
-					var eject_item = create_menu_item (_("Eject '%s'").printf (m.get_name ()), "media-eject", true);
+					var eject_item = create_literal_menu_item (_("Eject '%s'").printf (m.get_name ()), "media-eject", true);
 					eject_item.activate.connect (() => eject_mount (m));
 					items.add (eject_item);
 				}
 
 				if (mounts.length () > 1) {
-					var eject_all_item = create_menu_item (_("Eject All Devices"), "media-eject", true);
+					var eject_all_item = create_literal_menu_item (_("Eject All Devices"), "media-eject", true);
 					eject_all_item.activate.connect (() => eject_all ());
 					items.add (eject_all_item);
 				}
 			} else {
-				var empty_item = create_menu_item (_("No Removable Devices"), "drive-removable-media", false);
+				var empty_item = create_literal_menu_item (_("No Removable Devices"), "drive-removable-media", false);
 				empty_item.set_sensitive (false);
 				items.add (empty_item);
 			}
 
-			items.add (new Gtk.SeparatorMenuItem ());
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
 
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 
 			return items;
 		}

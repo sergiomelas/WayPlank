@@ -52,6 +52,12 @@ namespace Plank
 		{
 			stop_timer ();
 		}
+
+		public override void cleanup ()
+		{
+			stop_timer ();
+			base.cleanup ();
+		}
 		
 		void start_timer ()
 		{
@@ -188,17 +194,12 @@ namespace Plank
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				string[] commands = {
-					"kcmshell6 powerdevilprofilesconfig",
-					"kcmshell5 powerdevilprofilesconfig",
-					"gnome-control-center power",
-					"xfce4-power-manager-settings"
-				};
-				foreach (var cmd in commands) {
-					try {
-						Process.spawn_command_line_async (cmd);
-						return AnimationType.BOUNCE;
-					} catch (Error e) { }
+				if (System.launch_desktop_utility (
+					{ "kcmshell6 powerdevilprofilesconfig", "kcmshell5 powerdevilprofilesconfig" },
+					{ "gnome-control-center power" },
+					{ "xfce4-power-manager-settings" }
+				)) {
+					return AnimationType.BOUNCE;
 				}
 			}
 			
@@ -221,13 +222,15 @@ namespace Plank
 			});
 			items.add (settings_item);
 			
-			items.add (new Gtk.SeparatorMenuItem ());
-			
-			var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
-			remove_item.activate.connect (() => {
-				this.@delete ();
-			});
-			items.add (remove_item);
+			if (!is_dock_locked ()) {
+				items.add (new Gtk.SeparatorMenuItem ());
+				
+				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
+				remove_item.activate.connect (() => {
+					this.@delete ();
+				});
+				items.add (remove_item);
+			}
 			
 			return items;
 		}

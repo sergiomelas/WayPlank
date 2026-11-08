@@ -164,20 +164,23 @@ In earlier development iterations of Wayplank, attempts to dynamically adjust th
 ### The Golden Rule: Separation of Canvas Geometry (HAL) and Input Shape (Core)
 To ensure rock-solid positioning across all compositors (GNOME Mutter, KDE Plasma KWin, Labwc wlroots, and XFCE), Wayplank adheres to a strict architectural invariant:
 
-```
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                           IMMUTABLE GTK CANVAS                                 │
-│    (Full monitor width, e.g. 1920x80px — NEVER resized or moved dynamically)   │
-├────────────────────────────────────────────────────────────────────────────────┤
-│                     DYNAMIC CAIRO INPUT MASK                                   │
-│  (Updated via window.input_shape_combine_region / wl_surface.set_input_region) │
-│                                                                                │
-│     [Left Items]   ...   [Center / Docklets]   ...   [Trash / Right]           │
-│      |<-------------------- background_rect -------------------->|             │
-│                                                                                │
-│  Clicks INSIDE: Captured by WayPlank DockItem hit-testing                      │
-│  Clicks OUTSIDE: 100% passthrough to desktop apps underneath                   │
-└────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph HAL_BOX ["🏛️ HAL Box: Immutable GTK Canvas (HAL_ARCHITECTURE.md)"]
+        CANVAS["Full Monitor Width (e.g. 1920x80px) — NEVER resized or moved dynamically"]
+    end
+
+    subgraph CORE_MASK ["🎨 Dynamic Cairo Input Mask (100% Portable Core)"]
+        MASK["Updated via window.input_shape_combine_region / wl_surface.set_input_region"]
+        RECT["background_rect: [Left Items] ... [Center / Docklets] ... [Trash / Right]"]
+        IN["Clicks INSIDE: Captured by WayPlank DockItem hit-testing"]
+        OUT["Clicks OUTSIDE: 100% passthrough to desktop apps underneath (0ms latency)"]
+        MASK --> RECT
+        RECT --> IN
+        RECT --> OUT
+    end
+
+    HAL_BOX -->|"Frozen Surface Allocation"| CORE_MASK
 ```
 
 #### 1. Immutable Full-Monitor Canvas (HAL Protection)

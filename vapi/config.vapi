@@ -24,6 +24,7 @@ namespace Build {
     public const string PKGDATADIR;
     public const string RELEASE_NAME;
     public const string VERSION;
+    public const string PACKAGE_VERSION_DECO;
     public const string VERSION_INFO;
     public const string GETTEXT_PACKAGE;
 }

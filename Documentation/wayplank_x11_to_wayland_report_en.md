@@ -4,7 +4,7 @@
 > **Document Status:** **Archived Historical Engineering Reference** (Frozen at `v0.1.0` $\longrightarrow$ `v0.6.2.3` Pre-Beta Closure / `v0.7.0` Launch)
 
 > [!NOTE]
-> **Historical Archive Notice:** The architectural migration from legacy X11 (`libwnck-3.0`, `libbamf3`, XFixes/XI2, Autotools) to 100% native multi-compositor Wayland concluded permanently with **`v0.6.2.3`** on November 1, 2026 and the launch of **Public Beta 1 (`v0.7.0`)**. This report is preserved as a frozen engineering reference and is no longer updated on ongoing `v0.7.x+` release cycles. For live HAL architecture, features, and active ISA-88 FAT qualification status, see [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md), [USER_GUIDE.md](USER_GUIDE.md), [WAYPLANK_LIFETIME_BUG_REGISTER.md](../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md), and [FAT/](../FAT/).
+> **Historical Archive Notice:** The architectural migration from legacy X11 (`libwnck-3.0`, `libbamf3`, XFixes/XI2, Autotools) to 100% native multi-compositor Wayland concluded permanently with **`v0.6.2.3`** on November 1, 2026 and the launch of **Public Beta 1 (`v0.7.0`)**. This report is preserved as a frozen engineering reference and is no longer updated on ongoing `v0.7.x+` release cycles. For live HAL architecture, features, and active ISA-88 FAT qualification status, see [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [HAL_BUSES.md](HAL_BUSES.md), [USER_GUIDE.md](USER_GUIDE.md), [WAYPLANK_LIFETIME_BUG_REGISTER.md](../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md), and [FAT/](../FAT/).
 
 ---
 
@@ -68,7 +68,7 @@ flowchart TD
         WindowManager["WindowManager & ApplicationIdentity"]
     end
 
-    subgraph HAL_BOX ["🏛️ Encapsulated HAL Box (HAL_ARCHITECTURE.md)"]
+    subgraph HAL_BOX ["🏛️ Encapsulated HAL Box (HAL_COMPOSITORS.md)"]
         WindowControl["WindowControl & Polymorphic HAL Contracts (IDockShell • IWindowBackend • IThumbnailProvider)"]
         KWinBackend["KWinBackend + KWinBridge (ECMAScript & ScreenShot2)"]
         MutterBackend["MutterBackend + GnomeBridge Extension IPC"]
@@ -101,7 +101,7 @@ sequenceDiagram
     autonumber
     participant DW as DockWindow (Core)
     participant PM as PositionManager (Core)
-    participant LS as 🏛️ HAL Box: GtkLayerShell / IDockShell (HAL_ARCHITECTURE.md)
+    participant LS as 🏛️ HAL Box: GtkLayerShell / IDockShell (HAL_COMPOSITORS.md)
     participant Comp as Wayland Compositor
 
     Note over DW: Initialization Phase
@@ -153,7 +153,7 @@ flowchart TD
     RaiseAll --> Dispatch
     Cycle --> Dispatch
 
-    subgraph HAL_EXEC ["🏛️ HAL Box: IWindowBackend (HAL_ARCHITECTURE.md)"]
+    subgraph HAL_EXEC ["🏛️ HAL Box: IWindowBackend (HAL_COMPOSITORS.md)"]
         Exec["Active Compositor Driver Executes Action (KWin / Mutter / Labwc)"]
     end
 

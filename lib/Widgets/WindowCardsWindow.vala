@@ -431,11 +431,26 @@ namespace Plank
 			cards_box.show_all ();
 		}
 
+		static void apply_card_aspect_size (Gtk.EventBox eb, Gtk.DrawingArea da, Gdk.Pixbuf pix)
+		{
+			int pw = int.max (106, int.min (190, pix.get_width ()));
+			int ph = int.max (76, int.min (160, pix.get_height ()));
+			int cw = pw + 14;
+			int ch = ph + 44;
+			int cur_w = 0, cur_h = 0;
+			eb.get_size_request (out cur_w, out cur_h);
+			if (cur_w != cw || cur_h != ch) {
+				eb.set_size_request (cw, ch);
+				da.set_size_request (cw, ch);
+			}
+		}
+
 		Gtk.Widget create_card_widget (WindowInfo win)
 		{
 			var eb = new Gtk.EventBox ();
 			eb.set_visible_window (true);
 			eb.set_above_child (true);
+			eb.set_valign (Gtk.Align.CENTER);
 			eb.set_size_request (CARD_WIDTH, CARD_HEIGHT);
 			eb.get_style_context ().add_class ("wayplank-card-eb");
 			eb.add_events (
@@ -480,21 +495,29 @@ namespace Plank
 			string app_text = (TargetItem != null) ? TargetItem.Text : _("Application");
 			string cleaned_caption = clean_window_caption (win.Caption, app_text);
 
-			int prev_w = CARD_WIDTH - 10;
-			int prev_h = 104;
+			int max_prev_w = 190;
+			int max_prev_h = 160;
 
 			Gdk.Pixbuf? thumb_pixbuf = KWinThumbnailService.get_default ().get_cached (win.Id);
+			if (thumb_pixbuf != null)
+				apply_card_aspect_size (eb, da, thumb_pixbuf);
+
 			if (thumb_pixbuf == null || KWinThumbnailService.get_default ().is_stale (win.Id)) {
 				GLib.WeakRef self_ref = GLib.WeakRef (this);
+				GLib.WeakRef eb_ref = GLib.WeakRef (eb);
 				GLib.WeakRef da_ref = GLib.WeakRef (da);
-				KWinThumbnailService.get_default ().request_thumbnail (win.Id, prev_w, prev_h, (pix) => {
+				KWinThumbnailService.get_default ().request_thumbnail (win.Id, max_prev_w, max_prev_h, (pix) => {
 					if (pix != null) {
 						thumb_pixbuf = pix;
 						var self_win = (WindowCardsWindow?) self_ref.get ();
+						var eb_widget = (Gtk.EventBox?) eb_ref.get ();
 						var da_widget = (Gtk.DrawingArea?) da_ref.get ();
+						if (eb_widget != null && da_widget != null)
+							apply_card_aspect_size (eb_widget, da_widget, pix);
 						if (da_widget != null && da_widget.get_realized ())
 							da_widget.queue_draw ();
 						if (self_win != null && self_win.get_visible ()) {
+							self_win.update_position (true);
 							self_win.cards_box.queue_draw ();
 							self_win.queue_draw ();
 						}
@@ -561,7 +584,7 @@ namespace Plank
 				double prev_x = card_x + 5.0;
 				double prev_y = card_y + 5.0;
 				double prev_w_d = card_w - 10.0;
-				double prev_h_d = 104.0;
+				double prev_h_d = double.max (60.0, card_h - 40.0);
 				double prev_r = 5.0;
 
 				cr.save ();
@@ -570,7 +593,11 @@ namespace Plank
 
 				var current_thumb = (thumb_pixbuf != null) ? thumb_pixbuf : KWinThumbnailService.get_default ().get_cached (win.Id);
 				if (current_thumb != null) {
-					Gdk.cairo_set_source_pixbuf (cr, current_thumb, prev_x, prev_y);
+					cr.set_source_rgba (16.0 / 255.0, 20.0 / 255.0, 28.0 / 255.0, 0.92);
+					cr.fill ();
+					double tx = prev_x + (prev_w_d - current_thumb.get_width ()) / 2.0;
+					double ty = prev_y + (prev_h_d - current_thumb.get_height ()) / 2.0;
+					Gdk.cairo_set_source_pixbuf (cr, current_thumb, tx, ty);
 					cr.paint ();
 				} else {
 					// Graceful Fallback for minimized or non-captured windows
@@ -675,8 +702,12 @@ namespace Plank
 			eb.motion_notify_event.connect ((event) => {
 				pointer_inside = true;
 				cancel_dismiss_timer ();
-				double close_x = CARD_WIDTH - 15.0;
-				double close_y = 111.0 + (CARD_HEIGHT - 111.0) / 2.0;
+				int alloc_w = da.get_allocated_width ();
+				int alloc_h = da.get_allocated_height ();
+				if (alloc_w <= 0) alloc_w = CARD_WIDTH;
+				if (alloc_h <= 0) alloc_h = CARD_HEIGHT;
+				double close_x = alloc_w - 15.0;
+				double close_y = alloc_h - 18.0;
 				bool close_hover = (Math.hypot (event.x - close_x, event.y - close_y) <= 13.0);
 				if (close_hover != is_close_hovered) {
 					is_close_hovered = close_hover;
@@ -703,8 +734,12 @@ namespace Plank
 			eb.scroll_event.connect (on_scroll);
 
 			eb.button_press_event.connect ((event) => {
-				double close_x = CARD_WIDTH - 15.0;
-				double close_y = 111.0 + (CARD_HEIGHT - 111.0) / 2.0;
+				int alloc_w = da.get_allocated_width ();
+				int alloc_h = da.get_allocated_height ();
+				if (alloc_w <= 0) alloc_w = CARD_WIDTH;
+				if (alloc_h <= 0) alloc_h = CARD_HEIGHT;
+				double close_x = alloc_w - 15.0;
+				double close_y = alloc_h - 18.0;
 				bool is_close_click = (Math.hypot (event.x - close_x, event.y - close_y) <= 13.0);
 
 				if ((event.button == Gdk.BUTTON_PRIMARY && is_close_click) || event.button == Gdk.BUTTON_MIDDLE) {
@@ -739,18 +774,28 @@ namespace Plank
 			unowned PositionManager pm = controller.position_manager;
 			var val = pm.get_draw_value_for_item (TargetItem);
 
-			int n_cards = (int) cards_box.get_children ().length ();
-			if (n_cards <= 0)
-				n_cards = 1;
-			int expected_w = 12 + n_cards * CARD_WIDTH + (n_cards > 1 ? (n_cards - 1) * 6 : 0);
+			var children = cards_box.get_children ();
+			int n_cards = (int) children.length ();
+			int sum_w = 0;
+			int max_card_h = 0;
+			if (n_cards <= 0) {
+				sum_w = CARD_WIDTH;
+				max_card_h = CARD_HEIGHT;
+			} else {
+				foreach (var child in children) {
+					int cw = CARD_WIDTH, ch = CARD_HEIGHT;
+					child.get_size_request (out cw, out ch);
+					if (cw <= 0) cw = CARD_WIDTH;
+					if (ch <= 0) ch = CARD_HEIGHT;
+					sum_w += cw;
+					if (ch > max_card_h)
+						max_card_h = ch;
+				}
+			}
+			int expected_w = 12 + sum_w + (n_cards > 1 ? (n_cards - 1) * 6 : 0);
 			if (expected_w > 980)
 				expected_w = 980;
-			int expected_h = CARD_HEIGHT + 16;
-
-			Gtk.Requisition req;
-			get_preferred_size (null, out req);
-			int width = req.width >= expected_w ? req.width : expected_w;
-			int height = req.height >= expected_h ? req.height : expected_h;
+			int expected_h = max_card_h + 16;
 
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
@@ -765,17 +810,25 @@ namespace Plank
 			if (!force && has_last_pos
 				&& center_x == last_center_x
 				&& center_y == last_center_y
-				&& width == last_pos_w
-				&& height == last_pos_h
+				&& expected_w == last_pos_w
+				&& expected_h == last_pos_h
 				&& pm.Position == last_pos_edge
 				&& visual_thickness == last_thickness) {
 				return;
 			}
+
+			if (!has_last_pos || expected_w != last_pos_w || expected_h != last_pos_h)
+				resize (expected_w, expected_h);
+			Gtk.Requisition req;
+			get_preferred_size (null, out req);
+			int width = req.width >= expected_w ? req.width : expected_w;
+			int height = req.height >= expected_h ? req.height : expected_h;
+
 			has_last_pos = true;
 			last_center_x = center_x;
 			last_center_y = center_y;
-			last_pos_w = width;
-			last_pos_h = height;
+			last_pos_w = expected_w;
+			last_pos_h = expected_h;
 			last_pos_edge = pm.Position;
 			last_thickness = visual_thickness;
 

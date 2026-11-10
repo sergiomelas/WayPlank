@@ -175,22 +175,9 @@ fi
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q %{_datadir}/applications/ || true
 fi
-if command -v pkill >/dev/null 2>&1; then
-    OLD_PIDS="\$(pgrep -f '(^|/)(wayplank|plank)( |\$)' 2>/dev/null || true)"
-    pkill -WINCH -x wayplank >/dev/null 2>&1 || true
-    pkill -WINCH -x plank >/dev/null 2>&1 || true
-    pkill -WINCH -f '%{_bindir}/wayplank' >/dev/null 2>&1 || true
-    pkill -WINCH -f '%{_bindir}/plank' >/dev/null 2>&1 || true
-    if [ -n "\$OLD_PIDS" ]; then
-        sleep 0.2
-        for p in \$OLD_PIDS; do
-            if kill -0 "\$p" 2>/dev/null; then
-                echo "Note: Running pre-upgrade wayplank process detected (PID \$p). Run 'wayplank --replace &' once to load the new binary."
-                break
-            fi
-        done
-    fi
-fi
+killall -q plank wayplank >/dev/null 2>&1 || true
+pkill -x plank >/dev/null 2>&1 || true
+pkill -x wayplank >/dev/null 2>&1 || true
 
 %postun
 if command -v glib-compile-schemas >/dev/null 2>&1; then

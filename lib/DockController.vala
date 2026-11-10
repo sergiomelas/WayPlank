@@ -247,6 +247,66 @@ namespace Plank
 			schedule_serialize_item_positions ();
 		}
 		
+		static void ensure_default_autostart ()
+		{
+			var autostart_dir = Path.build_filename (Environment.get_user_config_dir (), "autostart");
+			var autostart_path = Path.build_filename (autostart_dir, "wayplank.desktop");
+			if (DirUtils.create_with_parents (autostart_dir, 0755) == 0) {
+				try {
+					FileUtils.set_contents (autostart_path,
+						"[Desktop Entry]\n" +
+						"Type=Application\n" +
+						"Name=WayPlank\n" +
+						"Comment=Stupidly simple dock for Wayland\n" +
+						"Exec=wayplank\n" +
+						"Icon=plank\n" +
+						"Terminal=false\n" +
+						"X-GNOME-Autostart-enabled=true\n" +
+						"X-GNOME-Autostart-Delay=2\n" +
+						"X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2\n");
+					WindowControl.sync_autostart (true);
+				} catch (FileError e) {
+					warning ("Unable to create default autostart entry '%s': %s", autostart_path, e.message);
+				}
+			}
+		}
+
+		void apply_common_first_run_defaults ()
+		{
+			prefs.Theme = "Arian Theme Light";
+			prefs.Position = Gtk.PositionType.BOTTOM;
+			prefs.Monitor = "";
+			prefs.Alignment = Gtk.Align.CENTER;
+			prefs.ItemsAlignment = Gtk.Align.CENTER;
+			prefs.Offset = 0;
+			prefs.IconSize = 48;
+			prefs.ScrollOverflow = false;
+			prefs.TooltipsEnabled = true;
+			prefs.HideMode = HideType.INTELLIGENT;
+			prefs.HideDelay = 0U;
+			prefs.UnhideDelay = 0U;
+			prefs.PressureReveal = false;
+			prefs.ReserveSpace = false;
+			prefs.ZoomEnabled = true;
+			prefs.ZoomPercent = 150U;
+			prefs.AnticipateZoom = true;
+			prefs.LockItems = false;
+			prefs.LaunchAnimation = 0;
+			prefs.ActiveHighlight = 0;
+			prefs.UnpinAnimation = 0;
+			prefs.EffectDuration = 600;
+			prefs.WindowClickBehavior = 0;
+			prefs.ShowWindowCards = true;
+			prefs.RestoreMinimizedWindows = true;
+			prefs.PinnedOnly = false;
+			prefs.CurrentWorkspaceOnly = false;
+			prefs.ShowRunningIndicators = true;
+			prefs.ShowAttentionIndicators = true;
+			prefs.DockletsOnRight = true;
+			prefs.AccordionClickToExpand = true;
+			prefs.PinnedAccordionCount = 6;
+		}
+
 		DockItemProvider create_default_provider ()
 		{
 			DockItemProvider provider;
@@ -263,18 +323,28 @@ namespace Plank
 			}
 			
 			if (is_first_run) {
+				if (Path.get_basename (Environment.get_prgname () ?? "wayplank") != "plank") {
+					try {
+						Process.spawn_command_line_sync ("killall -q plank");
+					} catch { }
+				}
 				var onboarding_marker = config_folder.get_child ("onboarding-done");
 				var legacy_launchers = Paths.ConfigHomeFolder.get_child ("plank").get_child (name).get_child ("launchers");
 				bool headless = (Environment.get_variable ("WAYPLANK_NO_PROMPT") == "1"
 					|| Environment.get_variable ("CI") == "1"
 					|| Environment.get_variable ("NONINTERACTIVE") == "1");
 
+				ensure_default_autostart ();
+
 				if (Factory.item_factory.migrate_legacy_plank_items (legacy_launchers, launchers_folder)) {
 					debug ("First run: migrated compatible launchers and folders from legacy ~/.config/plank/%s/launchers (read-only)...", name);
 					migrated_from_legacy_plank = true;
-					if ((prefs.FreeDockItems == null || prefs.FreeDockItems.length == 0)
-						&& prefs.DockItems != null && prefs.DockItems.length > 0) {
-						prefs.FreeDockItems = prefs.DockItems;
+					if (!prefs.has_profile_settings_on_disk ()) {
+						prefs.reset_all ();
+						prefs.DockItems = {};
+						prefs.FreeDockItems = {};
+						prefs.CategorizedDockItems = {};
+						apply_common_first_run_defaults ();
 					}
 					prefs.CategorizeItems = false;
 					prefs.AccordionDocklets = false;
@@ -290,10 +360,9 @@ namespace Plank
 						prefs.DockItems = {};
 						prefs.FreeDockItems = {};
 						prefs.CategorizedDockItems = {};
-						prefs.DockletsOnRight = true;
+						apply_common_first_run_defaults ();
 						prefs.AccordionDocklets = true;
-						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_AUTO_FIT;
-						prefs.ShowWindowCards = true;
+						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
 						prefs.SystemMenuAccess = 4;
 						prefs.AnchorAlwaysLeft = true;
 						prefs.ShowDockItem = false;
@@ -310,6 +379,7 @@ namespace Plank
 						prefs.DockItems = {};
 						prefs.FreeDockItems = {};
 						prefs.CategorizedDockItems = {};
+						apply_common_first_run_defaults ();
 						prefs.AccordionDocklets = false;
 						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 						prefs.SystemMenuAccess = 3;
@@ -338,6 +408,7 @@ namespace Plank
 		public void apply_onboarding_profile (bool explorer_mode)
 		{
 			is_first_run_launch = false;
+			ensure_default_autostart ();
 			var onboarding_marker = config_folder.get_child ("onboarding-done");
 			try {
 				FileUtils.set_contents (onboarding_marker.get_path (), explorer_mode ? "explorer\n" : "classic\n");
@@ -347,25 +418,14 @@ namespace Plank
 			Factory.item_factory.launchers_dir = launchers_folder;
 
 			if (!explorer_mode) {
-				// WayPlank Classic: preserve 100% of existing/migrated launchers and folders
-				if (def_prov != null)
-					def_prov.delay_items_monitor ();
-				if (default_provider != null && default_provider.item_for_uri ("docklet://trash") == null) {
-					var tf = Factory.item_factory.make_dock_item ("docklet://trash", launchers_folder);
-					if (tf != null) {
-						var el = Factory.item_factory.make_element (tf) as DockItem;
-						if (el != null && el.is_valid ())
-							default_provider.add (el);
-					}
-				}
-				if (def_prov != null)
-					def_prov.resume_items_monitor ();
+				// WayPlank Classic: preserve 100% of existing/migrated launchers and folders (no left WayPlank icon, no forced Trash)
 				prefs.delay ();
 				if (!migrated_from_legacy_plank) {
 					prefs.DockItems = {};
 					prefs.FreeDockItems = {};
 					prefs.CategorizedDockItems = {};
 				}
+				apply_common_first_run_defaults ();
 				prefs.AccordionDocklets = false;
 				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 				prefs.SystemMenuAccess = 3;
@@ -377,7 +437,10 @@ namespace Plank
 				// WayPlank Explorer: keep all existing/migrated items and add modern folders + docklets
 				if (def_prov != null)
 					def_prov.delay_items_monitor ();
-				Factory.item_factory.make_default_items ();
+				if (migrated_from_legacy_plank)
+					Factory.item_factory.make_default_docklets ();
+				else
+					Factory.item_factory.make_default_items ();
 				if (default_provider != null) {
 					var missing = Factory.item_factory.load_missing_items (launchers_folder, default_provider);
 					foreach (var item in missing)
@@ -391,9 +454,12 @@ namespace Plank
 					prefs.FreeDockItems = {};
 					prefs.CategorizedDockItems = {};
 				}
+				apply_common_first_run_defaults ();
 				prefs.DockletsOnRight = true;
 				prefs.AccordionDocklets = true;
-				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_AUTO_FIT;
+				prefs.AccordionClickToExpand = true;
+				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
+				prefs.PinnedAccordionCount = 6;
 				prefs.ShowWindowCards = true;
 				prefs.SystemMenuAccess = 4;
 				prefs.AnchorAlwaysLeft = true;
@@ -410,9 +476,13 @@ namespace Plank
 				def_prov.refresh_pinned_accordion ();
 			}
 
+			prefs.flush_to_disk ();
+			if (hide_manager != null)
+				hide_manager.refresh_visibility ();
 			update_items ();
 			position_manager.update (renderer.theme);
 			window.update_size_and_position ();
+			window.queue_draw ();
 			renderer.animated_draw ();
 			schedule_serialize_item_positions ();
 		}
@@ -524,10 +594,12 @@ namespace Plank
 			
 			unowned DockItem? item = null;
 			unowned DockContainer? container = null;
+			int struct_pos = 0;
 			
 			foreach (var element in internal_elements) {
 				item = (element as DockItem);
 				if (item != null) {
+					item.StructuralPosition = struct_pos++;
 					items.add (item);
 					continue;
 				}
@@ -540,6 +612,7 @@ namespace Plank
 					item = (element2 as DockItem);
 					if (item == null)
 						continue;
+					item.StructuralPosition = struct_pos++;
 					items.add (item);
 				}
 			}
@@ -547,15 +620,21 @@ namespace Plank
 		
 		void handle_elements_changed (DockContainer container, Gee.List<DockElement> added, Gee.List<DockElement> removed)
 		{
-			// Schedule added/removed items for special animations
+			update_visible_elements ();
+			update_items ();
+
+			if (window.HoveredItem != null && !visible_items.contains (window.HoveredItem))
+				window.update_hovered (-1, -1);
+
+			// Schedule added/removed items for special animations after visible_items is synchronized
 			renderer.animate_items (added);
 			renderer.animate_items (removed);
 			
-			update_visible_elements ();
-			update_items ();
-			
-			if (added.size > 0 || removed.size > 0)
+			if (added.size > 0 || removed.size > 0) {
+				foreach (unowned DockItem it in visible_items)
+					it.unset_move_state ();
 				position_manager.update (renderer.theme);
+			}
 			
 			window.update_icon_regions ();
 			
@@ -571,6 +650,7 @@ namespace Plank
 		void handle_positions_changed (DockContainer container, Gee.List<unowned DockElement> moved_items)
 		{
 			update_visible_elements ();
+			update_items ();
 			
 			foreach (unowned DockElement item in moved_items) {
 				unowned ApplicationDockItem? app_item = (item as ApplicationDockItem);
@@ -687,6 +767,8 @@ namespace Plank
 				return true;
 			if (SessionWindow.is_open () && (closing_win == null || !(closing_win is SessionWindow)))
 				return true;
+			if (AbstractMain.is_easter_egg_running)
+				return true;
 
 			return false;
 		}
@@ -694,7 +776,17 @@ namespace Plank
 		public void check_collapse_after_interaction (Gtk.Window? closing_win = null)
 		{
 			if (app_provider != null && app_provider.is_accordion_enabled ()) {
-				if (hide_manager.Hovered) {
+				if (app_provider.has_drag_expansion ()) {
+					if (!is_interaction_active (closing_win)) {
+						app_provider.cancel_collapse_timer ();
+						app_provider.schedule_collapse_docklets (uint.min (prefs.AccordionDelay, 800U));
+					}
+				} else if (prefs.AccordionClickToExpand) {
+					if (!is_interaction_active (closing_win)) {
+						app_provider.cancel_collapse_timer ();
+						app_provider.restore_click_to_expand_latches ();
+					}
+				} else if (hide_manager.Hovered) {
 					app_provider.cancel_collapse_timer ();
 				} else if (!is_interaction_active (closing_win)) {
 					app_provider.cancel_collapse_timer ();

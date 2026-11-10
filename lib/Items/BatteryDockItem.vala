@@ -27,6 +27,8 @@ namespace Plank
 		bool is_charging = false;
 		bool is_full = false;
 		string status_desc = "Unknown";
+		string? cached_bat_dir_path = null;
+		bool bat_probed = false;
 		
 		public BatteryDockItem ()
 		{
@@ -45,18 +47,28 @@ namespace Plank
 			Button = PopupButton.RIGHT;
 			
 			refresh_battery_status ();
-			start_timer ();
+			notify["IsAttached"].connect (on_attached_changed);
+			if (cached_bat_dir_path != null)
+				start_timer ();
 		}
 		
 		~BatteryDockItem ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 		}
 
 		public override void cleanup ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached && cached_bat_dir_path != null)
+				refresh_battery_status ();
 		}
 		
 		void start_timer ()
@@ -88,32 +100,36 @@ namespace Plank
 		
 		void refresh_battery_status ()
 		{
-			// 1. Inspect /sys/class/power_supply for any battery device
-			string? bat_dir_path = null;
-			var ps_dir = File.new_for_path ("/sys/class/power_supply");
-			try {
-				var enumerator = ps_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE, null);
-				FileInfo? info = null;
-				while ((info = enumerator.next_file (null)) != null) {
-					var candidate = Path.build_filename ("/sys/class/power_supply", info.get_name ());
-					var type_file = Path.build_filename (candidate, "type");
-					string type_str;
-					if (FileUtils.get_contents (type_file, out type_str) && type_str.strip () == "Battery") {
-						bat_dir_path = candidate;
-						break;
+			// 1. Inspect /sys/class/power_supply once and cache battery path
+			if (!bat_probed || (cached_bat_dir_path != null && !FileUtils.test (cached_bat_dir_path, FileTest.IS_DIR))) {
+				cached_bat_dir_path = null;
+				var ps_dir = File.new_for_path ("/sys/class/power_supply");
+				try {
+					var enumerator = ps_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE, null);
+					FileInfo? info = null;
+					while ((info = enumerator.next_file (null)) != null) {
+						var candidate = Path.build_filename ("/sys/class/power_supply", info.get_name ());
+						var type_file = Path.build_filename (candidate, "type");
+						string type_str;
+						if (FileUtils.get_contents (type_file, out type_str) && type_str.strip () == "Battery") {
+							cached_bat_dir_path = candidate;
+							break;
+						}
 					}
-				}
-			} catch (Error e) { }
+				} catch (Error e) { }
 
-			if (bat_dir_path == null) {
-				for (int i = 0; i <= 3; i++) {
-					string test_path = "/sys/class/power_supply/BAT%d".printf (i);
-					if (FileUtils.test (test_path, FileTest.IS_DIR)) {
-						bat_dir_path = test_path;
-						break;
+				if (cached_bat_dir_path == null) {
+					for (int i = 0; i <= 3; i++) {
+						string test_path = "/sys/class/power_supply/BAT%d".printf (i);
+						if (FileUtils.test (test_path, FileTest.IS_DIR)) {
+							cached_bat_dir_path = test_path;
+							break;
+						}
 					}
 				}
+				bat_probed = true;
 			}
+			string? bat_dir_path = cached_bat_dir_path;
 
 			if (bat_dir_path != null) {
 				string cap_str, stat_str;
@@ -180,13 +196,15 @@ namespace Plank
 					Icon = "battery-full";
 			}
 
-			Count = percentage;
+			Count = (bat_dir_path != null) ? 1 : 0;
 			BadgeText = (bat_dir_path != null) ? "%d%%".printf (percentage) : null;
 			CountVisible = (bat_dir_path != null);
 		}
 		
 		bool on_timer_tick ()
 		{
+			if (!IsAttached)
+				return true;
 			refresh_battery_status ();
 			return true;
 		}

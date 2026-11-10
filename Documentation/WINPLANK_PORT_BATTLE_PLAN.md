@@ -1,33 +1,34 @@
 # 🪟 WINPLANK: MONOLITHIC ZERO-DLL PORT BATTLE PLAN
-> **Architectural Specification & Linux Cross-Compilation Blueprint for Native Windows (10/11)**  
-> **Pedigree:** Plank (X11) ➔ WayPlank (Wayland) ➔ WinPlank (Windows)  
+> **Architectural Specification & Linux Cross-Compilation Blueprint for Native Windows (`Win 7 ⟷ 11+ & Future Windows`)**  
+> **Pedigree:** Plank (X11) ➔ WayPlank (Wayland) ➔ WinPlank (Windows `7 ⟷ 11+`)  
 > **Mandate:** Compiled 100% on Linux — Zero Compilers or Runtimes Needed on Windows  
 > **Target Asset:** Single Monolithic Standalone Executable (`build/winplank.exe`) with **ZERO External DLLs**  
-> **Author:** Sergio Melas (<sergiomelas@gmail.com>)  
-> **Status:** Public Beta Series (`v0.7.x` / `v0.7.3+` Public Beta 4) Multi-Platform Architectural Blueprint (Active Public Linux Baseline: `v0.7.1` Public Beta 2)  
+> **Author:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
+> **Companion Master Specifications:** [README.md](../README.md) • [CONTRIBUTING.md](../CONTRIBUTING.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Shell HAL)* • [HAL_BUSES.md](HAL_BUSES.md) *(IPC & System Bus HAL)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Abstraction & 6-Layer Identity Engine)* • [USER_GUIDE.md](USER_GUIDE.md)  
+> **Status:** Staged Two-Beta Execution Plan — **`v0.7.2` (Public Beta 3): Linux-Side HAL Implementation & Structural Freeze** $\longrightarrow$ **`v0.7.3` (Public Beta 4): Native `hal/Windows/` Driver Plug-In & `winplank.exe`** (Active Public Linux Baseline: `v0.7.1` Public Beta 2)  
 
 ---
 
 > [!CAUTION]
-> # 🛑 PUBLIC REPOSITORY NOTICE — `v0.7.x` PUBLIC BETA TRACK (FOLLOWING `v0.7.2` `hal/` EXTRACTION)
-> ## PUBLIC `winplank.exe` INTEGRATION IS SCHEDULED FOR `v0.7.3` (PUBLIC BETA 4, PRIOR TO THE `v0.8.x` RELEASE CANDIDATE FEATURE FREEZE), ONCE PHYSICAL `hal/` EXTRACTION (`v0.7.2` PUBLIC BETA 3 — [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md)) LANDS ON `main`.
-> ### ISSUE TRACKER POLICY: UNTIL `./BuildWin.sh` AND `winplank.exe` ARE PUBLISHED AS OFFICIAL `v0.7.x` GITHUB RELEASE ASSETS, DO NOT OPEN GITHUB ISSUES OR DISCUSSIONS ASKING FOR WINDOWS SUPPORT OR ETAS. ANY PREMATURE REQUESTS WILL BE CLOSED WITHOUT DISCUSSION.
+> # 🛑 PUBLIC REPOSITORY NOTICE — TWO-STAGE BETA GATE (`v0.7.2` LINUX FREEZE ➔ `v0.7.3` WINDOWS PLUG-IN)
+> ## IN `v0.7.2` (PUBLIC BETA 3), WAYPLANK IMPLEMENTS AND FREEZES THE `hal/Interfaces/` FRONTEND CONTRACTS ON LINUX ONLY ([HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) & [HAL_BUSES.md](HAL_BUSES.md)). PUBLIC `winplank.exe` INTEGRATION IS SCHEDULED FOR `v0.7.3` (PUBLIC BETA 4), PLUGGING `hal/Windows/` DIRECTLY INTO THE FROZEN `v0.7.2` HAL INTERFACES.
+> ### ISSUE TRACKER POLICY: UNTIL `./BuildWin.sh` AND `winplank.exe` ARE PUBLISHED AS OFFICIAL `v0.7.3+` GITHUB RELEASE ASSETS, DO NOT OPEN GITHUB ISSUES OR DISCUSSIONS ASKING FOR WINDOWS SUPPORT OR ETAS. ANY PREMATURE REQUESTS WILL BE CLOSED WITHOUT DISCUSSION.
 
 ---
 
 ## 🎯 Executive Summary & Architectural Objective
 
-WayPlank was engineered from day one around a strict **Hardware Abstraction Layer (HAL)** (defined in the canonical master specification [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md)):
-* **Core & Presentation Layer (90% of codebase — `src/` + `lib/`):** Cairo rendering engine, icon layout, item models, docklets UI, animations, drag-and-drop, theme manager, and folder menus are **100% agnostic** of the underlying operating system and windowing system.
-* **Physically Isolated OS & Windowing HAL (10% of codebase — `hal/`):** All window tracking, surface anchoring, thumbnail capture, launcher discovery, and hardware telemetry reside strictly behind the polymorphic contracts in `hal/Interfaces/`, with native Windows drivers isolated inside **`hal/Windows/`** (see [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md)).
+WayPlank was engineered from day one around a strict **Hardware, Compositor & Bus Abstraction Layer (HAL)** specified across three companion documents ([HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [HAL_BUSES.md](HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md)):
+* **Core & Presentation Layer (90% of codebase — `src/` + `lib/`):** Cairo rendering engine, icon layout, item models, docklets UI, animations, drag-and-drop, theme manager, and folder menus are **100% agnostic** of the underlying operating system, compositor, and IPC bus.
+* **Physically Isolated OS, Compositor & Bus HAL (10% of codebase — `hal/`):** All window tracking, surface anchoring, thumbnail capture, IPC bus events, launcher discovery, and hardware telemetry reside strictly behind the polymorphic contracts in **`hal/Interfaces/`** (frozen on Linux in `v0.7.2`), with native Windows drivers isolated inside **`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`** (plugged in `v0.7.3`).
 
-### The Objective — WinPlank:
-Create **WinPlank**: a lightweight, ultra-smooth, GPU-accelerated dock running natively on **Windows 10 and Windows 11**, compiled into a single, fully self-contained monolithic executable (`winplank.exe`):
+### The Objective — WinPlank (`Windows 7 ⟷ 11+ & Future Windows`):
+Create **WinPlank**: a lightweight, ultra-smooth, Cairo-rendered dock running natively across **Windows 7, Windows 8, Windows 8.1, Windows 10, Windows 11, and future Windows 12+ releases**, compiled into a single, fully self-contained monolithic executable (`winplank.exe`):
 1. **Compile Exclusively on Linux (`./BuildWin.sh`):** No compiler, build toolchain, or POSIX layer (Cygwin/MSYS2) is ever installed or run on the target Windows machine. Everything is cross-compiled directly on Linux using the standard MinGW-w64 cross-toolchain (`x86_64-w64-mingw32-gcc`), producing `build/winplank.exe`.
 2. **Official Repository Asset:** `build/winplank.exe` is generated alongside `wayplank` (Linux native), `.deb` (Debian/Ubuntu), and `.rpm` (Fedora/openSUSE), distributed directly via GitHub Releases.
-3. **Zero External DLL Dependencies:** Runs immediately on any stock, unconfigured Windows 10 or Windows 11 machine upon double-click. No GTK runtimes, no Visual C++ redistributables, no bundled DLL folder.
-4. **Native Win32 HAL Integration:** Replaces Wayland compositors (KWin/Mutter/Labwc) with an event-driven Win32 backend (`Win32Backend` + `win32-bridge.c`).
-5. **Hardware-Accelerated Cairo Rendering:** Preserves the crisp Plank/WayPlank visual aesthetics, real-time zoom, running dots, and live thumbnail preview cards.
+3. **Zero External DLL Dependencies (`Win 7 ⟷ 11+` Universal Binary):** Runs immediately on any stock, unconfigured **Windows 7, 8, 8.1, 10, 11, or 12+** machine upon double-click. No GTK runtimes, no Visual C++ redistributables, no bundled DLL folder.
+4. **Pure Baseline Win32 HAL + Dynamic `GetProcAddress`:** Replaces Wayland compositors (KWin/Mutter/Labwc) with an event-driven baseline Win32 backend (`Win32Backend` + `win32-bridge.c` using `user32.dll`, `gdi32.dll`, `kernel32.dll`, `shell32.dll` + dynamic `GetProcAddress` for `dwmapi.dll`/HiDPI enhancements) that never breaks across Windows generations. *(Note: only Windows XP `NT 5.1` fails at OS load time without recompiling libraries because modern 64-bit `libglib-2.0` statically imports `NT 6.1+` `AcquireSRWLockExclusive` / `GetTickCount64` from `KERNEL32.dll`).*
+5. **100% Internal Cairo Rendering & Animations:** All 26 icon animations, parabolic zoom, badges, tooltips, folder drawers, and preview cards are rendered by WayPlank's internal **Cairo** engine onto a 32-bit per-pixel ARGB layered surface (`WS_EX_LAYERED`), guaranteeing pixel-identical visuals across every Windows version.
 
 ---
 
@@ -54,7 +55,7 @@ flowchart TD
         STRIP --> OUT["build/winplank.exe (Monolithic PE32+)"]
     end
 
-    subgraph TARGET ["Windows 10 / 11 Clean Host (Zero Developer Tools Installed)"]
+    subgraph TARGET ["Windows 7 ⟷ 11+ Clean Host (Zero Developer Tools Installed)"]
         OUT ==>|"Direct Download / Copy"| EXE["winplank.exe (Double-Click & Run)"]
     end
 ```
@@ -85,7 +86,7 @@ flowchart TD
         USERLAND --> RUNTIME
     end
 
-    subgraph OS ["Stock Windows 10/11 OS Subsystems (Evergreen System DLLs)"]
+    subgraph OS ["Stock Windows 7 ⟷ 11+ OS Subsystems (Evergreen System DLLs)"]
         direction LR
         K["KERNEL32.DLL (Core Subsystem)"]
         U["USER32.DLL (Window Hooks & Input)"]
@@ -102,59 +103,53 @@ flowchart TD
 
 ---
 
-## 🏛️ 2. Plugging `hal/Windows/` into the Master HAL Architecture
+## 🏛️ 2. Hooking Up `hal/Windows/` to the Frozen `v0.7.2` Frontend HAL State
 
-Rather than duplicating HAL contracts, WinPlank implements the shared pure Vala interfaces defined in [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md) (`hal/Interfaces/`) inside the physically isolated **`hal/Windows/`** directory (`Win32Backend.vala` + `win32-bridge.c`), selected at compile time by `./BuildWin.sh`:
+Rather than modifying portable Core or UI classes, WinPlank (`v0.7.3`) hooks its four driver sub-packages (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`) directly into the **7 pure Vala frontend interfaces frozen on Linux in `v0.7.2`** ([HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [HAL_BUSES.md](HAL_BUSES.md), [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md)):
 
 ```mermaid
 flowchart TD
-    subgraph CORE ["🎨 Portable WayPlank Core (src/ + lib/)"]
-        UI["100% Unmodified GTK3 + Cairo Engine"]
+    subgraph FRONTEND ["🎨 Frozen Portable WayPlank Frontend & Core (src/ + lib/)"]
+        direction LR
+        UI_WIN["DockWindow, WindowCardsWindow, FolderMenuWindow, HoverWindow, HideManager, PositionManager"]
+        ID_CORE["ApplicationIdentity, ApplicationDiscovery & WindowManager (6-Layer Solver)"]
+        DOCKLETS["16 Monolithic Docklets UI & AbstractMain Lifecycle"]
     end
 
-    subgraph HAL_CONTRACTS ["🏛️ HAL Box: Unified HAL Contracts (hal/Interfaces/ — HAL_ARCHITECTURE.md)"]
-        IFACE["IDockShell • IWindowBackend • IThumbnailProvider • IAppSystem • ISystemTelemetry • IPlatformRuntime"]
+    subgraph HAL_CONTRACTS ["🔌 Frozen v0.7.2 Frontend HAL Interfaces (hal/Interfaces/)"]
+        direction LR
+        C_COMP["IDockShell • IWindowBackend • IThumbnailProvider • PlatformCapabilities"]
+        C_APP["IAppSystem (AppDescriptor & ProcessSnapshot)"]
+        C_BUS["IBusBackend • ISystemTelemetry • IPlatformRuntime"]
     end
 
-    subgraph DRIVER ["🪟 Windows Physical HAL Folder (hal/Windows/)"]
-        W32B["Win32Backend.vala • Win32Shell.vala • Win32AppSystem.vala • Win32Telemetry.vala"]
+    subgraph WIN_DRIVERS ["🪟 Native Windows Drivers (hal/Windows/ — Plugged in v0.7.3)"]
+        direction LR
+        W_COMP["hal/Windows/Compositor/\n• Win32Shell.vala (SHAppBarMessage / WS_EX_LAYERED)\n• Win32Backend.vala + win32-bridge.c (SetWinEventHook)\n• Win32ThumbnailProvider.vala (DWM / PrintWindow)"]
+        W_APP["hal/Windows/AppSystem/\n• Win32AppSystem.vala (.lnk IShellLinkW, UWP AUMID, SHIL_JUMBO)\n• Win32ProcessInspector (QueryFullProcessImageNameW / PEB)"]
+        W_BUS["hal/Windows/Bus/ & Telemetry/\n• Win32BusBroker.vala (Named Pipes, WinRT GSMTC, Focus Assist)\n• Win32Telemetry.vala (CoreAudio, DXVA2, PowrProf, RecycleBin)"]
     end
 
-    subgraph BRIDGE ["Native Win32 C Bridge (hal/Windows/win32-bridge.c)"]
-        direction TB
-        HOOK["SetWinEventHook Engine (OUTOFCONTEXT | SKIPOWNPROCESS)"]
-        API["Win32 Window Control API Pipeline"]
-    end
-
-    subgraph EVENTS ["Real-Time Windows Events (Push-Driven)"]
-        E1["EVENT_SYSTEM_FOREGROUND (Active Focus Switch)"]
-        E2["EVENT_OBJECT_CREATE / DESTROY (Window Lifecycle)"]
-        E3["EVENT_SYSTEM_MINIMIZESTART / END (Minimized State)"]
-        E4["EVENT_OBJECT_NAMECHANGE (Title & Tooltip Sync)"]
-    end
-
-    subgraph CONTROLS ["Direct Win32 Window Controls"]
-        C1["EnumWindows / GetWindowTextW / PID"]
-        C2["SetForegroundWindow + AttachThreadInput"]
-        C3["ShowWindowAsync(SW_RESTORE / SW_MINIMIZE)"]
-        C4["PostMessage(WM_CLOSE)"]
-    end
-
-    subgraph GLIB_LOOP ["GLib Main Loop Integration"]
-        GMAIN["g_idle_add / GMainContext (Thread-Safe Dispatch)"]
-    end
-
-    CORE -->|"Pure Interface Calls"| HAL_CONTRACTS
-    HAL_CONTRACTS -->|"./BuildWin.sh Compile-Time Target"| DRIVER
-    DRIVER <-->|"C ABI Calls"| BRIDGE
-    HOOK -->|"Intercepts"| EVENTS
-    EVENTS -->|"Dispatches to"| GMAIN
-    GMAIN -->|"Triggers Signals in"| W32B
-    BRIDGE -->|"Executes"| CONTROLS
+    UI_WIN ==> C_COMP
+    ID_CORE ==> C_COMP & C_APP & C_BUS
+    DOCKLETS ==> C_BUS
+    C_COMP ==>|"./BuildWin.sh Hook-Up"| W_COMP
+    C_APP ==>|"./BuildWin.sh Hook-Up"| W_APP
+    C_BUS ==>|"./BuildWin.sh Hook-Up"| W_BUS
 ```
 
-> [!IMPORTANT]
-> **Master HAL Reference:** For the complete 6-interface contract specification (`IDockShell`, `IWindowBackend`, `IThumbnailProvider`, `IAppSystem`, `ISystemTelemetry`, `IPlatformRuntime`) and multi-OS folder firewall (`Freedesktop` / `Linux` / `BSD` / `Windows`), see [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md).
+### 2.0 Frontend HAL State Hook-Up & Windows OS Limitation Guards
+
+Every Windows driver translates Win32/UWP/WinRT semantics into the **exact cross-level compatible message structs** expected by the frontend (`WindowInfo`, `AppDescriptor`, `ProcessSnapshot`, `PlatformCapabilities`):
+
+| Frozen Frontend State / Consumer (`lib/`) | `hal/Interfaces/` Contract (`v0.7.2`) | Windows Driver File (`hal/Windows/`) | Win32 / UWP Limitation & Cross-Level Message Compatibility Guard |
+| :--- | :--- | :--- | :--- |
+| **`DockWindow`, `HideManager`, `PositionManager`** | `IDockShell` & `PlatformCapabilities` | `Compositor/Win32Shell.vala` | Windows lacks `wlr-layer-shell`. Maps `ReserveSpace=true` to `SHAppBarMessage(ABM_SETPOS)` (guarded by 3-way idempotence check) and floating mode to `WS_EX_LAYERED \| WS_EX_TOOLWINDOW` with `WM_NCHITTEST -> HTTRANSPARENT` outside `Cairo.Region`. |
+| **`WindowManager` (Active / Minimized / Geometry)** | `IWindowBackend` (`WindowInfo`) | `Compositor/Win32Backend.vala` + `win32-bridge.c` | `HWND` is 64-bit; formatted as opaque string `Id = "hwnd:0x%016llx"`. Out-of-context `SetWinEventHook` callbacks are marshaled into the GTK thread via `g_idle_add`. Filters out cloaked UWP background windows (`DWMWA_CLOAKED != 0`). |
+| **`WindowCardsWindow` (Live Previews)** | `IThumbnailProvider` | `Compositor/Win32ThumbnailProvider.vala` | GDI `PrintWindow(PW_RENDERFULLCONTENT)` leaves `alpha = 0` on standard Win32 GDI controls; driver enforces `buffer[i + 3] = 255` (matching KWin `ScreenShot2` Pitfall #3) before returning `Gdk.Pixbuf`. |
+| **`ApplicationIdentity` & `ApplicationDiscovery`** | `IAppSystem` (`AppDescriptor` & `ProcessSnapshot`) | `AppSystem/Win32AppSystem.vala` | **1) UWP Host Limitation:** UWP apps run inside `ApplicationFrameHost.exe`; driver enumerates child `Windows.UI.Core.CoreWindow` to extract the real child `PID` and queries `SHGetPropertyStoreForWindow(PKEY_AppUserModel_ID)` into `ApplicationId`.<br>**2) Elevated Admin Process Limitation:** `OpenProcess(PROCESS_VM_READ)` fails with `ERROR_ACCESS_DENIED` on elevated processes; driver opens with `PROCESS_QUERY_LIMITED_INFORMATION` (`QueryFullProcessImageNameW` always succeeds!) and sets `full_cmdline = ""` gracefully. |
+| **`ApplicationIdentity` (Chrome Multi-Profile)** | `IAppMenuBus` (`IBusBackend`) | `Bus/Win32AppMenuBus.vala` | Windows has no `com.canonical.dbusmenu`. Inspects `UIAutomation` / Chrome `HWND` profile property and `%LOCALAPPDATA%\Google\Chrome\User Data\Local State` (`info_cache`), emitting the same `Chrome:<ProfileName>` lock. |
+| **16 Monolithic Docklets & `SystemTheme`** | `IBusBackend` & `ISystemTelemetry` | `Bus/Win32BusBroker.vala` & `Telemetry/Win32Telemetry.vala` | Marshals WinRT `GlobalSystemMediaTransportControls`, `IAudioEndpointVolumeCallback`, `WM_POWERBROADCAST`, and `WM_SETTINGCHANGE` (`AppsUseLightTheme`) onto the GLib main loop with zero polling. |
 
 ### 2.1 Real-Time Window Event Tracking (Zero Polling)
 Instead of inefficient polling loops, `win32-bridge.c` installs a native Win32 Event Hook via `SetWinEventHook`:
@@ -219,7 +214,7 @@ On Linux Wayland, WayPlank uses `gtk-layer-shell`. On Windows, WinPlank integrat
 flowchart TD
     DOCK["WinPlank DockWindow (Win32 HWND)"] --> HAL_SHELL
 
-    subgraph HAL_SHELL ["🏛️ HAL Box: IDockShell (hal/Windows/Win32Shell.vala — HAL_ARCHITECTURE.md)"]
+    subgraph HAL_SHELL ["🏛️ HAL Box: IDockShell (hal/Windows/Compositor/Win32Shell.vala — HAL_COMPOSITORS.md)"]
         MODE{"Configured Dock Mode"}
     end
 
@@ -278,7 +273,7 @@ On Linux, WayPlank features Cairo live thumbnail preview cards (via KWin ScreenS
 flowchart LR
     TARGET["Target Window (HWND)"] --> HAL_THUMB
 
-    subgraph HAL_THUMB ["🏛️ HAL Box: IThumbnailProvider (hal/Windows/Win32Backend.vala — HAL_ARCHITECTURE.md)"]
+    subgraph HAL_THUMB ["🏛️ HAL Box: IThumbnailProvider (hal/Windows/Compositor/Win32ThumbnailProvider.vala — HAL_COMPOSITORS.md)"]
         CHOOSE{"Rendering Engine"}
     end
 
@@ -326,7 +321,7 @@ On Linux, applications are defined by `.desktop` files. On Windows, WinPlank imp
 flowchart TD
     START["Application Discovery Trigger"] --> HAL_APP
 
-    subgraph HAL_APP ["🏛️ HAL Box: IAppSystem (hal/Windows/Win32AppSystem.vala — HAL_ARCHITECTURE.md)"]
+    subgraph HAL_APP ["🏛️ HAL Box: IAppSystem (hal/Windows/AppSystem/Win32AppSystem.vala — APPLICATION_IDENTITY_ENGINE.md)"]
         SCAN["Scan Start Menu Directories (ProgramData & AppData)"]
         SCAN --> PARSE[".lnk Shell Link Parsing (COM IShellLinkW)"]
         PARSE --> T1["Resolve Target Path & Arguments (GetPath / GetArguments)"]
@@ -370,7 +365,7 @@ Windows executables and DLLs contain embedded icons up to **256×256 pixels** (P
 
 WinPlank inherits all 16 built-in docklets. Here is how each docklet maps to native Win32 APIs:
 
-| Docklet | Linux (WayPlank) | Windows 10/11 (WinPlank) |
+| Docklet | Linux (WayPlank) | Windows `7 ⟷ 11+` (WinPlank) |
 |---|---|---|
 | **Trash** (`docklet://trash`) | GIO `trash://` + KDE/GNOME D-Bus | `SHQueryRecycleBinW` (item count & size) + `SHEmptyRecycleBinW` |
 | **Analog & Digital Clocks (2)** (`docklet://clock`, `docklet://digital-clock`) | GLib `DateTime` + Cairo vectors | 100% Portable (GLib / Cairo identical) |
@@ -394,7 +389,7 @@ WinPlank inherits all 16 built-in docklets. Here is how each docklet maps to nat
 
 > [!CAUTION]
 > **PUBLIC `main` BRANCH STATUS (`v0.7.1` BASELINE)**  
-> This cross-build pipeline plugs into the `v0.7.2+` physical `hal/Windows/` layout defined in [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md) within the `v0.7.x` Public Beta series (`v0.7.3` Public Beta 4). `./BuildWin.sh` and `hal/Windows/` are not yet merged into the public `v0.7.1` `main` branch.
+> This cross-build pipeline plugs into the `v0.7.2` frozen `hal/Interfaces/` contracts defined in [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [HAL_BUSES.md](HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) during **`v0.7.3` (Public Beta 4)**. `./BuildWin.sh` and `hal/Windows/` are not yet merged into the public `v0.7.1` `main` branch.
 
 ### 7.1 4-Tier Source-Code Static Cross-Compilation DAG (`./deps/win32/sysroot`)
 To guarantee a 100% self-contained `winplank.exe` without relying on pre-compiled binary blobs or incompatible MSVC `.lib` objects, `./BuildWin.sh` cross-compiles all **16 upstream cross-platform C/Vala libraries** from source tarballs on the Linux host using `x86_64-w64-mingw32-gcc` in strict topological order:
@@ -423,57 +418,64 @@ To guarantee a 100% self-contained `winplank.exe` without relying on pre-compile
 
 ---
 
-## 🗺️ 8. Step-by-Step Implementation Roadmap
+## 🗺️ 8. Step-by-Step Implementation Roadmap (`v0.7.2` Linux Freeze ➔ `v0.7.3` Windows Plug-In)
 
 ```mermaid
 flowchart TD
-    M1["Milestone W1: Linux Cross-Toolchain & Static Sysroot Setup"] --> M2
+    M0["Prerequisite Gate (v0.7.2 Public Beta 3)\nFreeze hal/Interfaces/ on Linux (HAL_COMPOSITORS + HAL_BUSES + IAppSystem)"] ==> M1
+    M1["Milestone W1: Linux Cross-Toolchain & 16-Library Static MinGW Sysroot"] ==> M2
 
-    subgraph HAL_W2 ["🏛️ HAL Box (hal/Windows/ — HAL_ARCHITECTURE.md)"]
-        M2["Milestone W2: Win32 HAL Backend & Event Bridge"]
+    subgraph WIN_HAL_PLUG ["🪟 v0.7.3 Native Windows Driver Hook-Up to Frozen hal/Interfaces/"]
+        M2["Milestone W2: Windows Compositor Driver (hal/Windows/Compositor/)\nHook up IWindowBackend + IThumbnailProvider + win32-bridge.c"]
+        M3["Milestone W3: Windows Dock Shell Driver (hal/Windows/Compositor/Win32Shell.vala)\nHook up IDockShell + PlatformCapabilities (AppBar & WS_EX_LAYERED)"]
+        M4["Milestone W4: Windows AppSystem Driver (hal/Windows/AppSystem/Win32AppSystem.vala)\nHook up IAppSystem (.lnk IShellLinkW, UWP AUMID, SHIL_JUMBO -> AppDescriptor & ProcessSnapshot)"]
+        M5["Milestone W5: Windows Bus & Telemetry Drivers (hal/Windows/Bus/ & Telemetry/)\nHook up IBusBackend + ISystemTelemetry + IPlatformRuntime (Named Pipes, WinRT GSMTC, CoreAudio, DXVA2)"]
+        M2 --> M3 --> M4 --> M5
     end
 
-    M2 --> M3["Milestone W3: Win32 Dock Window Shell (AppBar & Layered)"]
-    M3 --> M4["Milestone W4: Windows Start Menu Discovery & Jumbo Icon Engine"]
-    M4 --> M5["Milestone W5: Docklets Win32 Porting & Native Audio/Power"]
-    M5 --> M6["Milestone W6: Release Automation (./BuildWin.sh & GitHub Release Asset)"]
+    M5 ==> M6["Milestone W6: Release Automation (./BuildWin.sh -> Zero-DLL build/winplank.exe)"]
 ```
 
+### Prerequisite Gate (`v0.7.2` Public Beta 3 — Linux-Only Structural Freeze):
+- [ ] Complete and qualify the Linux-side extraction into `hal/{Interfaces,Freedesktop,Linux}/` ([HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) & [HAL_BUSES.md](HAL_BUSES.md)) so all 7 frontend HAL interfaces are 100% frozen before Milestone W1 begins.
+
 ### Milestone W1: Linux Cross-Toolchain & Static Sysroot Setup
-- [ ] Configure `x86_64-w64-mingw32-gcc` cross-compilation pipeline on Linux.
-- [ ] Assemble static MinGW sysroot: static `libgtk-3.a`, `libcairo.a`, `libpixman-1.a`, `libglib-2.0.a`.
-- [ ] Embed built-in static GdkPixbuf loaders (PNG, SVG).
-- [ ] Verify clean compilation of a minimal static GTK3 window on Linux into an `.exe`.
+- [ ] Configure `x86_64-w64-mingw32-gcc` cross-compilation pipeline on Linux (`./deps/win32/sysroot`).
+- [ ] Assemble 4-tier static MinGW sysroot (`libgtk-3.a`, `libcairo.a`, `libpixman-1.a`, `libglib-2.0.a`, `libgee-0.8.a`, `libjson-glib-1.0.a`).
+- [ ] Embed built-in static `GdkPixbuf` loaders (PNG, BMP, ICO, JPEG, SVG) and `gschemas.compiled` bootstrap.
+- [ ] Verify clean compilation of a minimal static GTK3 window on Linux into a zero-DLL `.exe`.
 
-### Milestone W2: Win32 HAL Backend & Event Bridge (`hal/Windows/`)
-- [ ] Create `hal/Windows/Win32Backend.vala` implementing the master contracts in [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md).
-- [ ] Implement `hal/Windows/win32-bridge.c` with `SetWinEventHook` for real-time window tracking.
-- [ ] Implement window focus, minimize, restore, and close actions.
-- [ ] Implement `PrintWindow` and `DwmRegisterThumbnail` Cairo card previews.
+### Milestone W2: Windows Compositor Driver (`hal/Windows/Compositor/` $\longrightarrow$ `IWindowBackend` & `IThumbnailProvider`)
+- [ ] Implement `hal/Windows/Compositor/Win32Backend.vala` and `win32-bridge.c` hooking into the frozen `IWindowBackend` interface ([HAL_COMPOSITORS.md](HAL_COMPOSITORS.md)).
+- [ ] Install out-of-context `SetWinEventHook` (`EVENT_SYSTEM_FOREGROUND` .. `EVENT_OBJECT_NAMECHANGE`) dispatching normalized `WindowInfo` messages (`Id = "hwnd:0x..."`) via `g_idle_add` and filtering `DWMWA_CLOAKED` background windows.
+- [ ] Implement `AttachThreadInput` + `SetForegroundWindow`, `ShowWindowAsync(SW_RESTORE/SW_MINIMIZE)`, `PostMessage(WM_CLOSE)`, and `IShellDispatch4::ToggleDesktop()`.
+- [ ] Implement `hal/Windows/Compositor/Win32ThumbnailProvider.vala` (`DwmRegisterThumbnail` & `PrintWindow(PW_RENDERFULLCONTENT)` with `alpha = 255` normalization) hooking into `WindowCardsWindow`.
 
-### Milestone W3: Win32 Dock Window Shell (`hal/Windows/Win32Shell.vala`)
-- [ ] Implement `IDockShell` for Win32 `HWND` surfaces without touching `lib/Widgets/DockWindow.vala`.
-- [ ] Implement AppBar registration (`SHAppBarMessage`) for screen-edge reservation.
-- [ ] Implement per-pixel alpha transparency and `HTTRANSPARENT` input pass-through.
-- [ ] Support multi-monitor positioning via `EnumDisplayMonitors` and `GetMonitorInfoW`.
+### Milestone W3: Windows Dock Shell Driver (`hal/Windows/Compositor/Win32Shell.vala` $\longrightarrow$ `IDockShell` & `PlatformCapabilities`)
+- [ ] Implement `IDockShell` and `PlatformCapabilities` for Win32 `HWND` surfaces without touching `lib/Widgets/DockWindow.vala`, `HoverWindow.vala`, `FolderMenuWindow.vala`, or `WindowCardsWindow.vala`.
+- [ ] Hook `update_exclusive_zone()` to `SHAppBarMessage(ABM_NEW / ABM_QUERYPOS / ABM_SETPOS)` with 3-way idempotence guard and `ABN_FULLSCREENAPP` game auto-hide.
+- [ ] Hook `apply_input_region(Cairo.Region)` to `WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST` and `WM_NCHITTEST` (`HTTRANSPARENT` click passthrough on transparent padding).
+- [ ] Hook multi-monitor geometry and `PrimaryDisplay` tracking to `EnumDisplayMonitors` and `GetMonitorInfoW`.
 
-### Milestone W4: Windows Start Menu Discovery & Icon Engine
-- [ ] Implement `.lnk` shortcut parsing via COM `IShellLinkW`.
-- [ ] Implement UWP/Store App detection via AUMID (`PKEY_AppUserModel_ID`).
-- [ ] Implement Jumbo (256×256) icon extraction directly to `GdkPixbuf`.
-- [ ] Wire discovery into `ApplicationDiscovery.vala` and `ApplicationIdentity.vala`.
+### Milestone W4: Windows AppSystem Driver (`hal/Windows/AppSystem/Win32AppSystem.vala` $\longrightarrow$ `IAppSystem`)
+- [ ] Implement `IAppSystem` ([APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md)) producing normalized `AppDescriptor` and `ProcessSnapshot` structs for `ApplicationDiscovery` and `ApplicationIdentity`.
+- [ ] Scan Start Menu (`%PROGRAMDATA%` & `%APPDATA%`) and Desktop `.lnk` files via COM `IShellLinkW` and `.url` shortcuts.
+- [ ] Unwrap `ApplicationFrameHost.exe` child `CoreWindow` processes and resolve UWP/Store App `PKEY_AppUserModel_ID` (`AUMID`).
+- [ ] Inspect live processes via `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` + `QueryFullProcessImageNameW` (with graceful `full_cmdline = ""` degradation on elevated Admin processes) and synthesize `winplank-app-*.lnk` fallback launchers for unmatched CLI tools.
+- [ ] Extract `256×256` `SHIL_JUMBO` icons directly to `GdkPixbuf`.
 
-### Milestone W5: Docklets Win32 Porting
-- [ ] Port Trash docklet to `SHQueryRecycleBinW` / `SHEmptyRecycleBinW`.
-- [ ] Port Battery docklet to `GetSystemPowerStatus`.
-- [ ] Port CPU/RAM docklet to `GetSystemTimes` and `GlobalMemoryStatusEx`.
-- [ ] Port Volume docklet to Windows Core Audio (`IAudioEndpointVolume`).
-- [ ] Port Brightness docklet to High-Level Monitor API (`dxva2.dll`).
+### Milestone W5: Windows Bus & Telemetry Drivers (`hal/Windows/Bus/` & `Telemetry/` $\longrightarrow$ `IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`)
+- [ ] Implement `hal/Windows/Bus/Win32BusBroker.vala` hooking into the frozen `IBusBackend` and `IPlatformRuntime` contracts ([HAL_BUSES.md](HAL_BUSES.md)).
+- [ ] Implement Named Pipe single-instance & CLI flag forwarding (`\\.\pipe\WinPlank_<SID>`).
+- [ ] Hook `IAppMenuBus` to `UIAutomation` / `HWND` Chrome profile properties + `%LOCALAPPDATA%\Google\Chrome\User Data\Local State` for `Chrome:<ProfileName>` isolation.
+- [ ] Hook `IMediaController` (`MprisDockItem`) to WinRT `GlobalSystemMediaTransportControlsSessionManager`.
+- [ ] Hook `INotificationBus` (`DoNotDisturbDockItem`) to Windows Focus Assist (`WpnNotifications`), `IPortalThemeBus` (`SystemTheme`) to `AppsUseLightTheme` / `WM_SETTINGCHANGE`, and `ILauncherBadgeBus` to `ITaskbarList3`.
+- [ ] Hook `ISystemTelemetry` providers in `hal/Windows/Telemetry/Win32Telemetry.vala` to `SHQueryRecycleBinW` (Trash), `GetSystemPowerStatus` / `PowrProf` (Battery & Session 3×3), `GetSystemTimes` / `GlobalMemoryStatusEx` (CPU/RAM), `iphlpapi` / `wlanapi` (Network), CoreAudio `IAudioEndpointVolume` (Volume), `dxva2.dll` / WMI (Brightness), and `CM_Request_Device_EjectW` (Ejector).
 
 ### Milestone W6: Release Automation (`./BuildWin.sh`)
 - [ ] Finalize `./BuildWin.sh` for single-command automated generation of `build/winplank.exe` on Linux.
-- [ ] Verify that `objdump -p build/winplank.exe` on Linux lists **zero third-party DLLs** (only Windows OS DLLs).
-- [ ] Package `winplank.exe` as a release asset in the repository and GitHub Releases.
+- [ ] Verify that `x86_64-w64-mingw32-objdump -p build/winplank.exe` lists **zero third-party DLLs** (only stock Windows OS DLLs).
+- [ ] Qualify `winplank.exe` across Windows `7 ⟷ 11+` and publish as an official `v0.7.3+` GitHub Release asset.
 
 ---
 

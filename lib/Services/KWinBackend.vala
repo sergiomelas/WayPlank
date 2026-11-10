@@ -139,7 +139,7 @@ namespace Plank
 			}
 
 			int now = (int) (GLib.get_monotonic_time () / 1000000);
-			if (has_cached_primary && last_primary_query_time > 0 && (now - last_primary_query_time) < 1) {
+			if (has_cached_primary && last_primary_query_time > 0 && (now - last_primary_query_time) < 10) {
 				x = cached_primary_x;
 				y = cached_primary_y;
 				return true;
@@ -201,7 +201,7 @@ namespace Plank
 		public bool is_top_panel_floating_configured (Gdk.Rectangle mon_geom = Gdk.Rectangle ())
 		{
 			int now = (int) (GLib.get_monotonic_time () / 1000000);
-			if (last_floating_query_time > 0 && (now - last_floating_query_time) < 1
+			if (last_floating_query_time > 0 && (now - last_floating_query_time) < 10
 				&& mon_geom.x == last_floating_mon_x
 				&& mon_geom.y == last_floating_mon_y
 				&& mon_geom.width == last_floating_mon_w)

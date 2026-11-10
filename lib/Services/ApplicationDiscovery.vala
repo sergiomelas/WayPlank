@@ -53,7 +53,9 @@ namespace Plank
 		string[] cached_active_ids = {};
 		uint debounce_timer_id = 0U;
 		uint change_timer_id = 0U;
+		uint gc_timer_id = 0U;
 		bool initial_gc_done = false;
+		int last_gc_window_count = -1;
 		
 		public static unowned ApplicationDiscovery get_default ()
 		{
@@ -84,7 +86,7 @@ namespace Plank
 			refresh_desktop_index ();
 			ensure_folder_monitors ();
 
-			WindowControl.get_default ().state_changed.connect (schedule_changed);
+			WindowControl.get_default ().state_changed.connect (on_window_control_state_changed);
 		}
 
 		bool recompute_effective_profile_hints ()
@@ -218,11 +220,13 @@ namespace Plank
 
 		~ApplicationDiscovery ()
 		{
-			WindowControl.get_default ().state_changed.disconnect (schedule_changed);
+			WindowControl.get_default ().state_changed.disconnect (on_window_control_state_changed);
 			if (debounce_timer_id > 0U)
 				Source.remove (debounce_timer_id);
 			if (change_timer_id > 0U)
 				Source.remove (change_timer_id);
+			if (gc_timer_id > 0U)
+				Source.remove (gc_timer_id);
 			foreach (var monitor in folder_monitors) {
 				monitor.changed.disconnect (on_folder_changed);
 				monitor.cancel ();
@@ -243,6 +247,25 @@ namespace Plank
 			});
 		}
 
+		void on_window_control_state_changed ()
+		{
+			if (!WindowControl.has_state ())
+				return;
+			int cur_count = WindowControl.get_windows ().size;
+			bool should_gc = (!initial_gc_done || (last_gc_window_count >= 0 && cur_count < last_gc_window_count));
+			last_gc_window_count = cur_count;
+			if (!should_gc)
+				return;
+			if (gc_timer_id > 0U)
+				return;
+			gc_timer_id = Timeout.add (50, () => {
+				gc_timer_id = 0U;
+				if (gc_synthetic_launchers ())
+					changed ();
+				return false;
+			});
+		}
+
 		void schedule_changed ()
 		{
 			if (change_timer_id > 0U)
@@ -255,10 +278,10 @@ namespace Plank
 			});
 		}
 
-		void gc_synthetic_launchers ()
+		bool gc_synthetic_launchers ()
 		{
 			if (!WindowControl.has_state ())
-				return;
+				return false;
 
 			if (initial_gc_done) {
 				bool has_synth_in_ram = false;
@@ -269,13 +292,13 @@ namespace Plank
 					}
 				}
 				if (!has_synth_in_ram)
-					return;
+					return false;
 			}
 			initial_gc_done = true;
 
 			var user_app_dir = Paths.DataHomeFolder.get_child ("applications");
 			if (!user_app_dir.query_exists ())
-				return;
+				return false;
 
 			var pinned_ids = new Gee.HashSet<string> ();
 			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
@@ -358,6 +381,7 @@ namespace Plank
 			} catch { }
 			if (removed_any)
 				rebuild_fast_indexes ();
+			return removed_any;
 		}
 		
 		public int effective_match_score (ApplicationIdentity identity, WindowInfo window)

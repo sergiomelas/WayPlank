@@ -35,6 +35,9 @@ namespace Plank
 
 		uint timer_id = 0;
 		uint dbus_sub_id = 0;
+		uint dbus_owner_sub_id = 0;
+		static Gee.HashMap<string, string>? cached_player_identities = null;
+		static Mutex identity_cache_mutex;
 		string? active_player_bus = null;
 		string playback_status = "Stopped";
 		string track_title = "";
@@ -62,6 +65,7 @@ namespace Plank
 			Icon = "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player";
 			Button = PopupButton.RIGHT;
 			
+			notify["IsAttached"].connect (on_attached_changed);
 			schedule_player_poll ();
 			start_timer ();
 			start_dbus_listener ();
@@ -70,6 +74,7 @@ namespace Plank
 		~MprisDockItem ()
 		{
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			stop_dbus_listener ();
 		}
@@ -77,14 +82,30 @@ namespace Plank
 		public override void cleanup ()
 		{
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			stop_dbus_listener ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached && current_players.size > 0)
+				schedule_player_poll ();
 		}
 		
 		void on_dbus_properties_changed (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
 		{
 			schedule_player_poll ();
+		}
+
+		void on_dbus_name_owner_changed (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
+		{
+			if (parameters.n_children () < 3)
+				return;
+			string name = parameters.get_child_value (0).get_string ();
+			if (name.has_prefix ("org.mpris.MediaPlayer2."))
+				schedule_player_poll ();
 		}
 
 		void start_dbus_listener ()
@@ -102,17 +123,30 @@ namespace Plank
 					DBusSignalFlags.NONE,
 					on_dbus_properties_changed
 				);
+				dbus_owner_sub_id = bus.signal_subscribe (
+					"org.freedesktop.DBus",
+					"org.freedesktop.DBus",
+					"NameOwnerChanged",
+					"/org/freedesktop/DBus",
+					null,
+					DBusSignalFlags.NONE,
+					on_dbus_name_owner_changed
+				);
 			} catch (Error e) { }
 		}
 		
 		void stop_dbus_listener ()
 		{
-			if (dbus_sub_id != 0) {
+			if (dbus_sub_id != 0 || dbus_owner_sub_id != 0) {
 				try {
 					var bus = Bus.get_sync (BusType.SESSION, null);
-					bus.signal_unsubscribe (dbus_sub_id);
+					if (dbus_sub_id != 0)
+						bus.signal_unsubscribe (dbus_sub_id);
+					if (dbus_owner_sub_id != 0)
+						bus.signal_unsubscribe (dbus_owner_sub_id);
 				} catch (Error e) { }
 				dbus_sub_id = 0;
+				dbus_owner_sub_id = 0;
 			}
 		}
 		
@@ -310,25 +344,42 @@ namespace Plank
 					if (!got_player)
 						continue;
 
-					try {
-						var id_prop = bus.call_sync (
-							name,
-							"/org/mpris/MediaPlayer2",
-							"org.freedesktop.DBus.Properties",
-							"Get",
-							new Variant ("(ss)", "org.mpris.MediaPlayer2", "Identity"),
-							null,
-							DBusCallFlags.NO_AUTO_START,
-							150,
-							null
-						);
-						var id_val = id_prop.get_child_value (0);
-						if (id_val != null) {
-							cur_identity = id_val.is_of_type (VariantType.VARIANT) ? id_val.get_variant ().get_string () : id_val.get_string ();
-						}
-					} catch { }
+					identity_cache_mutex.lock ();
+					if (cached_player_identities == null)
+						cached_player_identities = new Gee.HashMap<string, string> ();
+					string? cached_id = cached_player_identities.get (name);
+					identity_cache_mutex.unlock ();
 
-					cur_identity = ApplicationIdentity.get_identity_for_pid_or_bus (0, name, cur_identity);
+					if (cached_id != null) {
+						cur_identity = cached_id;
+					} else {
+						try {
+							var id_prop = bus.call_sync (
+								name,
+								"/org/mpris/MediaPlayer2",
+								"org.freedesktop.DBus.Properties",
+								"Get",
+								new Variant ("(ss)", "org.mpris.MediaPlayer2", "Identity"),
+								null,
+								DBusCallFlags.NO_AUTO_START,
+								150,
+								null
+							);
+							var id_val = id_prop.get_child_value (0);
+							if (id_val != null) {
+								cur_identity = id_val.is_of_type (VariantType.VARIANT) ? id_val.get_variant ().get_string () : id_val.get_string ();
+							}
+						} catch { }
+
+						cur_identity = ApplicationIdentity.get_identity_for_pid_or_bus (0, name, cur_identity);
+						if (cur_identity != "") {
+							identity_cache_mutex.lock ();
+							if (cached_player_identities.size > 64)
+								cached_player_identities.clear ();
+							cached_player_identities.set (name, cur_identity);
+							identity_cache_mutex.unlock ();
+						}
+					}
 
 					var info = new MprisPlayerInfo ();
 					info.bus_name = name;
@@ -603,6 +654,9 @@ namespace Plank
 		
 		bool on_timer_tick ()
 		{
+			// When NameOwnerChanged & PropertiesChanged are active, skip 2s polling when no players exist or collapsed
+			if (dbus_sub_id != 0 && dbus_owner_sub_id != 0 && (current_players.size == 0 || !IsAttached))
+				return true;
 			schedule_player_poll ();
 			return true;
 		}

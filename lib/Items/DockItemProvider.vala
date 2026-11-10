@@ -148,15 +148,11 @@ namespace Plank
 			if (item == null)
 				return;
 			
-			item.notify["Indicator"].connect (handle_item_state_changed);
-			item.notify["indicator"].connect (handle_item_state_changed);
-			item.notify["State"].connect (handle_item_state_changed);
-			item.notify["state"].connect (handle_item_state_changed);
-			item.notify["LastClicked"].connect (handle_item_state_changed);
-			item.notify["last-clicked"].connect (handle_item_state_changed);
-			item.notify["LastUrgent"].connect (handle_item_state_changed);
-			item.notify["last-urgent"].connect (handle_item_state_changed);
-			item.needs_redraw.connect (handle_item_state_changed);
+			item.notify["Indicator"].connect (handle_item_notify);
+			item.notify["State"].connect (handle_item_notify);
+			item.notify["LastClicked"].connect (handle_item_notify);
+			item.notify["LastUrgent"].connect (handle_item_notify);
+			item.needs_redraw.connect (handle_item_redraw);
 			item.deleted.connect (handle_item_deleted);
 		}
 		
@@ -166,20 +162,26 @@ namespace Plank
 			if (item == null)
 				return;
 			
-			item.notify["Indicator"].disconnect (handle_item_state_changed);
-			item.notify["indicator"].disconnect (handle_item_state_changed);
-			item.notify["State"].disconnect (handle_item_state_changed);
-			item.notify["state"].disconnect (handle_item_state_changed);
-			item.notify["LastClicked"].disconnect (handle_item_state_changed);
-			item.notify["last-clicked"].disconnect (handle_item_state_changed);
-			item.notify["LastUrgent"].disconnect (handle_item_state_changed);
-			item.notify["last-urgent"].disconnect (handle_item_state_changed);
-			item.needs_redraw.disconnect (handle_item_state_changed);
+			item.notify["Indicator"].disconnect (handle_item_notify);
+			item.notify["State"].disconnect (handle_item_notify);
+			item.notify["LastClicked"].disconnect (handle_item_notify);
+			item.notify["LastUrgent"].disconnect (handle_item_notify);
+			item.needs_redraw.disconnect (handle_item_redraw);
 			item.deleted.disconnect (handle_item_deleted);
 		}
 		
-		void handle_item_state_changed ()
+		void handle_item_notify (GLib.Object obj, GLib.ParamSpec pspec)
 		{
+			unowned DockElement? el = (obj as DockElement);
+			if (el != null && !el.IsAttached && el.RemoveTime == 0)
+				return;
+			states_changed ();
+		}
+
+		void handle_item_redraw (DockElement el)
+		{
+			if (!el.IsAttached && el.RemoveTime == 0)
+				return;
 			states_changed ();
 		}
 		

@@ -166,7 +166,7 @@ To ensure rock-solid positioning across all compositors (GNOME Mutter, KDE Plasm
 
 ```mermaid
 flowchart TD
-    subgraph HAL_BOX ["🏛️ HAL Box: Immutable GTK Canvas (HAL_ARCHITECTURE.md)"]
+    subgraph HAL_BOX ["🏛️ HAL Box: Immutable GTK Canvas (HAL_COMPOSITORS.md)"]
         CANVAS["Full Monitor Width (e.g. 1920x80px) — NEVER resized or moved dynamically"]
     end
 

@@ -184,22 +184,9 @@ fi
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database -q /usr/share/applications/ || true
 fi
-if command -v pkill >/dev/null 2>&1; then
-    OLD_PIDS="$(pgrep -f '(^|/)(wayplank|plank)( |$)' 2>/dev/null || true)"
-    pkill -WINCH -x wayplank >/dev/null 2>&1 || true
-    pkill -WINCH -x plank >/dev/null 2>&1 || true
-    pkill -WINCH -f '/usr/bin/wayplank' >/dev/null 2>&1 || true
-    pkill -WINCH -f '/usr/bin/plank' >/dev/null 2>&1 || true
-    if [ -n "$OLD_PIDS" ]; then
-        sleep 0.2
-        for p in $OLD_PIDS; do
-            if kill -0 "$p" 2>/dev/null; then
-                echo "Note: Running pre-upgrade wayplank process detected (PID $p). Run 'wayplank --replace &' once to load the new binary."
-                break
-            fi
-        done
-    fi
-fi
+killall -q plank wayplank >/dev/null 2>&1 || true
+pkill -x plank >/dev/null 2>&1 || true
+pkill -x wayplank >/dev/null 2>&1 || true
 echo "Wayplank installed and configured successfully."
 EOF
 chmod 755 "$BUILD_DIR/DEBIAN/postinst"

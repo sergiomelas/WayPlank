@@ -141,12 +141,48 @@ namespace Plank
 		}
 		
 		/**
+		 * Optional in-memory override for the Easter Egg dance animation (-1 = disabled, 0..7 = launch effect).
+		 */
+		public int DanceEffect { get; set; default = -1; }
+
+		/**
+		 * Optional in-memory override for the Easter Egg active glow (-1 = disabled, 0..6 = highlight effect).
+		 */
+		public int DanceHighlight { get; set; default = -1; }
+
+		/**
 		 * Triggers a bounce animation on this dock element.
 		 */
 		public void trigger_bounce ()
 		{
 			ClickedAnimation = AnimationType.BOUNCE;
 			LastClicked = GLib.get_monotonic_time ();
+			needs_redraw ();
+		}
+
+		/**
+		 * Triggers a random dance effect and glow on this dock element (Easter Egg).
+		 */
+		public void trigger_dance (int effect, int highlight)
+		{
+			DanceEffect = effect.clamp (0, 7);
+			DanceHighlight = highlight.clamp (0, 6);
+			ClickedAnimation = AnimationType.BOUNCE;
+			LastClicked = GLib.get_monotonic_time ();
+			needs_redraw ();
+		}
+
+		/**
+		 * Stops any active Easter Egg dance effect on this dock element.
+		 */
+		public void stop_dance ()
+		{
+			if (DanceEffect == -1 && DanceHighlight == -1 && ClickedAnimation == AnimationType.NONE)
+				return;
+			DanceEffect = -1;
+			DanceHighlight = -1;
+			ClickedAnimation = AnimationType.NONE;
+			LastClicked = 0LL;
 			needs_redraw ();
 		}
 		

@@ -154,7 +154,7 @@
 			<description>If true, show the Plank dock item.</description>
 		</key>
 		<key name="theme" type="s">
-			<default>'Default'</default>
+			<default>'Arian Theme Light'</default>
 			<summary>The name of the dock theme for WayPlank to use</summary>
 			<description>Built-in values include "Default", "Transparent", "Arian Theme Dark", "Arian Theme Light", "IFtiger Theme Dark", "IFtiger Theme Light", and "Gtk+".</description>
 		</key>
@@ -170,7 +170,7 @@
 			<description>Length of the delay before unhiding the dock, in milliseconds.</description>
 		</key>
 		<key name="zoom-enabled" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Zoom dock items when hovered</summary>
 			<description>If true, zoom dock items when hovered with the cursor.</description>
 		</key>
@@ -185,7 +185,7 @@
 			<description>If true, group items into folders, pinned apps, docklets, unpinned apps, and trash with dynamic separators.</description>
 		</key>
 		<key name="anchor-always-left" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Anchor WayPlank icon always at far left with separator</summary>
 			<description>If true, the WayPlank preferences icon is always placed at the far left of the dock with its own vertical separator.</description>
 		</key>
@@ -200,7 +200,7 @@
 			<description>When Categorize Items is enabled, collapse docklets so only the first one on the left is visible at rest, expanding in-line on hover.</description>
 		</key>
 		<key name="accordion-click-to-expand" type="b">
-			<default>false</default>
+			<default>true</default>
 			<summary>Click to expand docklets accordion</summary>
 			<description>When true, docklets accordion expands only when clicking the Master Preferences icon instead of on hover.</description>
 		</key>
@@ -212,7 +212,7 @@
 		</key>
 		<key name="pinned-accordion-mode" type="i">
 			<range min="0" max="2"/>
-			<default>0</default>
+			<default>2</default>
 			<summary>Smart pinned apps accordion mode</summary>
 			<description>0 Off, 1 Auto-Fit Capacity (keep as many of the most used pinned apps as fit on screen), 2 Top Most Used (keep the N most used pinned apps). Running, urgent and Keep Always Visible apps are never hidden. Requires Categorize Items.</description>
 		</key>

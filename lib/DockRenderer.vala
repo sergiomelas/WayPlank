@@ -53,6 +53,12 @@ namespace Plank
 		 */
 		public Gdk.Point local_cursor;
 
+		/**
+		 * Whether the About Easter Egg dock dance and Mexican Zoom Wave are active.
+		 */
+		public bool easter_egg_active { get; set; default = false; }
+		int64 easter_egg_start_time = 0LL;
+
 		Surface? main_buffer = null;
 		Surface? fade_buffer = null;
 		
@@ -483,6 +489,24 @@ namespace Plank
 					zoom_progress = (controller.hide_manager.Hovered ? 1.0 : 0.0);
 				}
 				zoom_in_progress = zoom_progress * (1.0 - hide_progress);
+				if (easter_egg_active) {
+					if (easter_egg_start_time == 0LL)
+						easter_egg_start_time = frame_time;
+					hide_progress = 0.0;
+					zoom_in_progress = 1.0;
+					var win_r = position_manager.get_dock_window_region ();
+					double wave_phase = ((frame_time - easter_egg_start_time) / 1000000.0) * 2.8;
+					double t_wave = 0.5 + 0.42 * Math.sin (wave_phase);
+					if (position_manager.is_horizontal_dock ()) {
+						local_cursor.x = (int) Math.round (win_r.width * t_wave);
+						local_cursor.y = win_r.height / 2;
+					} else {
+						local_cursor.x = win_r.width / 2;
+						local_cursor.y = (int) Math.round (win_r.height * t_wave);
+					}
+				} else {
+					easter_egg_start_time = 0LL;
+				}
 			} else {
 				hide_progress = 0.0;
 				zoom_in_progress = 0.0;
@@ -553,7 +577,9 @@ namespace Plank
 
 			if (controller.hide_manager.Hovered && !controller.hide_manager.Hidden
 				&& local_cursor.x >= 0 && local_cursor.y >= 0
-				&& controller.window != null && !controller.window.menu_is_visible ()) {
+				&& controller.window != null && !controller.window.menu_is_visible ()
+				&& !controller.drag_manager.InternalDragActive
+				&& !controller.drag_manager.ExternalDragActive) {
 				controller.window.update_hovered (local_cursor.x, local_cursor.y);
 			}
 		}
@@ -563,6 +589,14 @@ namespace Plank
 		 */
 		public override void draw (Cairo.Context cr, int64 frame_time)
 		{
+			if (controller.is_first_run_launch) {
+				cr.save ();
+				cr.set_operator (Cairo.Operator.CLEAR);
+				cr.paint ();
+				cr.restore ();
+				return;
+			}
+
 			// FIXME This should never happen
 			if (current_items.size <= 0) {
 				critical ("No items available to draw frame");
@@ -772,11 +806,19 @@ namespace Plank
 					sep.BarColor = color;
 				}
 				unowned PinnedExpanderDockItem? expander = (item as PinnedExpanderDockItem);
-				if (expander != null && (expander.ChevronColor.red != chevron_color.red
-					|| expander.ChevronColor.green != chevron_color.green
-					|| expander.ChevronColor.blue != chevron_color.blue
-					|| expander.ChevronColor.alpha != chevron_color.alpha)) {
-					expander.ChevronColor = chevron_color;
+				if (expander != null) {
+					if (expander.ChevronColor.red != chevron_color.red
+						|| expander.ChevronColor.green != chevron_color.green
+						|| expander.ChevronColor.blue != chevron_color.blue
+						|| expander.ChevronColor.alpha != chevron_color.alpha) {
+						expander.ChevronColor = chevron_color;
+					}
+					if (expander.BarColor.red != color.red
+						|| expander.BarColor.green != color.green
+						|| expander.BarColor.blue != color.blue
+						|| expander.BarColor.alpha != color.alpha) {
+						expander.BarColor = color;
+					}
 				}
 			}
 		}
@@ -831,7 +873,7 @@ namespace Plank
 				case AnimationType.NONE:
 					break;
 				case AnimationType.BOUNCE:
-					int launch_anim = get_effective_launch_animation ();
+					int launch_anim = item.DanceEffect >= 0 ? item.DanceEffect : get_effective_launch_animation ();
 					if (screen_is_composited && (launch_anim == 0 || launch_anim == 1))
 						y_offset += position_manager.LaunchBounceHeight * easing_bounce (click_time, max_click_time, 2);
 					break;
@@ -893,66 +935,74 @@ namespace Plank
 				&& !drag_manager.drop_is_accepted_by (item))
 				draw_value.darken += 0.6;
 			
-			// bounce icon on urgent state
+			// bounce icon on urgent state (bounded by GlowTime so background urgent windows don't spin FrameClock forever)
 			if (screen_is_composited && show_notifications && (item.State & ItemState.URGENT) != 0) {
-				var urgent_duration = theme.UrgentBounceTime * 1000;
 				var urgent_time = int64.max (0LL, frame_time - item.LastUrgent);
-				var urgent_cycle = urgent_time % (2000 * 1000);
-				if (urgent_cycle < urgent_duration)
-					y_offset += position_manager.UrgentBounceHeight * easing_bounce (urgent_cycle, urgent_duration, 1.0);
+				if (urgent_time <= theme.GlowTime * 1000) {
+					var urgent_duration = theme.UrgentBounceTime * 1000;
+					var urgent_cycle = urgent_time % (2000 * 1000);
+					if (urgent_cycle < urgent_duration)
+						y_offset += position_manager.UrgentBounceHeight * easing_bounce (urgent_cycle, urgent_duration, 1.0);
+				}
 			}
 			
-			// animate addition/removal
+			// animate addition/removal ("Make Space -> Appear from Below" / "Dip Below -> Close Space")
+			// Horizontal/vertical slot expansion/contraction is driven continuously by
+			// PositionManager.get_effective_item_slot (), so every neighbor glides by its exact
+			// multi-slot pixel delta with zero overlap.
 			unowned DockContainer? container = item.Container;
-			var allow_animation = (screen_is_composited && !(item is SeparatorDockItem) && (container == null || container.AddTime < item.AddTime));
+			var allow_animation = (screen_is_composited && !(item is SeparatorDockItem) && !(item is PinnedExpanderDockItem)
+				&& (container == null || container.AddTime < item.AddTime || item.RemoveTime > 0));
 			if (allow_animation && item.AddTime > item.RemoveTime) {
 				var move_duration = theme.ItemMoveTime * 1000;
 				var move_time = int64.max (0LL, frame_time - item.AddTime);
 				if (move_time < move_duration) {
-					var move_animation_progress = 1.0 - easing_for_mode (AnimationMode.LINEAR, move_time, move_duration);
-					draw_value.opacity = easing_for_mode (AnimationMode.EASE_IN_EXPO, move_time, move_duration);
-					y_offset -= move_animation_progress * (icon_size + position_manager.BottomPadding);
+					int64 wait_dur = (int64) (move_duration * 0.40);
 					draw_value.show_indicator = false;
-					
-					// calculate the resulting incremental dynamic-animation-offset used to animate the background-resize and icon-offset
-					move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_QUINT, move_time, move_duration);
-					dynamic_animation_offset -= move_animation_progress * (icon_size + position_manager.ItemPadding);
-					x_offset += dynamic_animation_offset;
+					if (move_time <= wait_dur) {
+						draw_value.opacity = 0.0;
+						y_offset -= (icon_size + position_manager.BottomPadding);
+					} else {
+						int64 rise_time = move_time - wait_dur;
+						int64 rise_dur = int64.max (1LL, move_duration - wait_dur);
+						var rise_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_CUBIC, rise_time, rise_dur);
+						draw_value.opacity = easing_for_mode (AnimationMode.EASE_OUT_CUBIC, rise_time, rise_dur);
+						y_offset -= rise_progress * (icon_size + position_manager.BottomPadding);
+					}
 				}
 			} else if (allow_animation && item.RemoveTime > 0) {
 				var move_duration = theme.ItemMoveTime * 1000;
 				var move_time = int64.max (0LL, frame_time - item.RemoveTime);
 				if (move_time < move_duration) {
-					var move_animation_progress = easing_for_mode (AnimationMode.LINEAR, move_time, move_duration);
-					draw_value.opacity = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_EXPO, move_time, move_duration);
-					y_offset -= move_animation_progress * (icon_size + position_manager.BottomPadding);
+					int64 dip_dur = (int64) (move_duration * 0.50);
 					draw_value.show_indicator = false;
-					
-					// calculate the resulting incremental dynamic-animation-offset used to animate the background-resize and icon-offset
-					move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_IN_QUINT, move_time, move_duration);
-					dynamic_animation_offset += move_animation_progress * (icon_size + position_manager.ItemPadding);
-					x_offset += dynamic_animation_offset - (icon_size + position_manager.ItemPadding);
+					if (move_time < dip_dur) {
+						var dip_progress = easing_for_mode (AnimationMode.EASE_IN_CUBIC, move_time, dip_dur);
+						draw_value.opacity = 1.0 - dip_progress;
+						y_offset -= dip_progress * (icon_size + position_manager.BottomPadding);
+					} else {
+						draw_value.opacity = 0.0;
+						y_offset -= (icon_size + position_manager.BottomPadding);
+					}
 				}
 			}
 			
-			// animate icon movement on move state
+			// animate icon movement on move state (only for pure drag-and-drop swaps;
+			// when transient_items are opening/closing slots, get_effective_item_slot ()
+			// already interpolates every item's exact coordinate)
 			if ((item.State & ItemState.MOVE) != 0) {
-				var move_duration = theme.ItemMoveTime * 1000;
-				var move_time = int64.max (0LL, frame_time - item.LastMove);
-				if (move_time < move_duration) {
-					var move_animation_progress = 0.0;
-					if (transient_items.size > 0) {
-						if (dynamic_animation_offset > 0)
-							move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_IN_QUINT, move_time, move_duration);
-						else
-							move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_QUINT, move_time, move_duration);
-					} else {
-						move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_CIRC, move_time, move_duration);
-					}
-					var change = move_animation_progress * (icon_size + position_manager.ItemPadding);
-					x_offset += (item.Position < item.LastPosition ? change : -change);
-				} else {
+				if (transient_items.size > 0) {
 					item.unset_move_state ();
+				} else {
+					var move_duration = theme.ItemMoveTime * 1000;
+					var move_time = int64.max (0LL, frame_time - item.LastMove);
+					if (move_time < move_duration) {
+						var move_animation_progress = 1.0 - easing_for_mode (AnimationMode.EASE_OUT_CIRC, move_time, move_duration);
+						var change = move_animation_progress * (icon_size + position_manager.ItemPadding);
+						x_offset += (item.Position < item.LastPosition ? change : -change);
+					} else {
+						item.unset_move_state ();
+					}
 				}
 			}
 			
@@ -1108,13 +1158,20 @@ namespace Plank
 			double base_scale_y = ((double) icon_size / icon_surface.Height) / window_scale_factor;
 			
 			// draw active highlight
-			int highlight_mode = get_effective_active_highlight ();
+			int highlight_mode = item.DanceHighlight >= 0 ? item.DanceHighlight : get_effective_active_highlight ();
 			double active_opacity = 0.0;
 			if (highlight_mode != 7) {
-				var active_time = int64.max (0LL, frame_time - item.LastActive);
-				active_opacity = double.min (1.0, active_time / (double) (get_effective_active_duration_ms () * 1000));
-				if ((item.State & ItemState.ACTIVE) == 0)
-					active_opacity = 1.0 - active_opacity;
+				if (item.DanceHighlight >= 0) {
+					var dance_dur = get_effective_launch_duration_ms () * 1000;
+					var dance_el = int64.max (0LL, frame_time - item.LastClicked);
+					if (dance_el < dance_dur)
+						active_opacity = Math.sin (Math.PI * (dance_el / (double) dance_dur));
+				} else {
+					var active_time = int64.max (0LL, frame_time - item.LastActive);
+					active_opacity = double.min (1.0, active_time / (double) (get_effective_active_duration_ms () * 1000));
+					if ((item.State & ItemState.ACTIVE) == 0)
+						active_opacity = 1.0 - active_opacity;
+				}
 				if (active_opacity > 0.0) {
 					var glow_color = get_item_accent_color (item);
 					switch (highlight_mode) {
@@ -1145,7 +1202,7 @@ namespace Plank
 			
 			// draw the icon (with optional launch / click animation)
 			var draw_region = draw_value.draw_region;
-			int launch_anim = get_effective_launch_animation ();
+			int launch_anim = item.DanceEffect >= 0 ? item.DanceEffect : get_effective_launch_animation ();
 			var max_anim_time = get_effective_launch_duration_ms () * 1000;
 			var anim_elapsed = int64.max (0LL, frame_time - item.LastClicked);
 			bool in_custom_launch = (screen_is_composited
@@ -1630,7 +1687,7 @@ namespace Plank
 			
 			foreach (var element in elements) {
 				DockItem? item = (element as DockItem);
-				if (item != null && !(item is SeparatorDockItem))
+				if (item != null && !(item is SeparatorDockItem) && !(item is PinnedExpanderDockItem))
 					transient_items.add (item);
 			}
 			
@@ -1643,6 +1700,9 @@ namespace Plank
 		 */
 		protected override bool animation_needed (int64 frame_time)
 		{
+			if (easter_egg_active)
+				return true;
+
 			if (controller.position_manager.is_scrolling ())
 				return true;
 
@@ -1675,6 +1735,15 @@ namespace Plank
 			return false;
 		}
 
+		protected override bool can_skip_draw (int64 frame_time)
+		{
+			return (!is_first_frame
+				&& controller.hide_manager.Hidden
+				&& hide_progress == 1.0
+				&& opacity == 1.0
+				&& !animation_needed (frame_time));
+		}
+
 		protected override void animation_finished ()
 		{
 			controller.window.set_input_mask ();
@@ -1694,7 +1763,8 @@ namespace Plank
 				return true;
 			if (item.LastActive > 0 && render_time - item.LastActive <= get_effective_active_duration_ms () * 1000)
 				return true;
-			if (show_notifications && (item.State & ItemState.URGENT) != 0)
+			if (show_notifications && (item.State & ItemState.URGENT) != 0
+				&& item.LastUrgent > 0 && render_time - item.LastUrgent <= theme.GlowTime * 1000)
 				return true;
 			if (item.LastMove > 0 && (item.State & ItemState.MOVE) != 0 && render_time - item.LastMove <= theme.ItemMoveTime * 1000)
 				return true;
@@ -1710,6 +1780,13 @@ namespace Plank
 		
 		static int compare_dock_item_position (DockItem i1, DockItem i2)
 		{
+			if ((i1.RemoveTime > 0 || i2.RemoveTime > 0)
+				&& i1.Container != null && i1.Container == i2.Container
+				&& i1.StructuralPosition >= 0 && i2.StructuralPosition >= 0
+				&& i1.StructuralPosition != i2.StructuralPosition) {
+				return (i1.StructuralPosition > i2.StructuralPosition) ? 1 : -1;
+			}
+
 			var p_i1 = i1.Position;
 			var p_i2 = i2.Position;
 			

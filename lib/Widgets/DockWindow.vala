@@ -260,17 +260,19 @@ namespace Plank
 			HoveredItemProvider = null;
 		}
 
+		bool anchors_initialized = false;
+		Gtk.PositionType last_anchor_pos = Gtk.PositionType.BOTTOM;
+		int last_top_margin = -1;
+		int last_bottom_margin = -1;
+		int last_left_margin = -1;
+		int last_right_margin = -1;
+
 		void update_layer_shell_anchors ()
 		{
 			if (!GtkLayerShell.is_supported ())
 				return;
 
 			var pos = controller.prefs.Position;
-
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.RIGHT);
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, pos == Gtk.PositionType.TOP || pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.RIGHT);
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP);
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, pos == Gtk.PositionType.RIGHT || pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP);
 
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
@@ -298,6 +300,27 @@ namespace Plank
 				Gdk.Rectangle mon_geom = (monitor != null) ? monitor.get_geometry () : Gdk.Rectangle ();
 				top_margin += WindowControl.get_top_panel_floating_offset (mon_geom);
 			}
+
+			if (anchors_initialized
+				&& pos == last_anchor_pos
+				&& top_margin == last_top_margin
+				&& bottom_margin == last_bottom_margin
+				&& left_margin == last_left_margin
+				&& right_margin == last_right_margin) {
+				return;
+			}
+			anchors_initialized = true;
+			last_anchor_pos = pos;
+			last_top_margin = top_margin;
+			last_bottom_margin = bottom_margin;
+			last_left_margin = left_margin;
+			last_right_margin = right_margin;
+
+			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.RIGHT);
+			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, pos == Gtk.PositionType.TOP || pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.RIGHT);
+			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP);
+			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, pos == Gtk.PositionType.RIGHT || pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP);
+
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, top_margin);
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, bottom_margin);
 			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, left_margin);
@@ -348,6 +371,9 @@ namespace Plank
 		 */
 		public override bool button_press_event (Gdk.EventButton event)
 		{
+			if (AbstractMain.stop_easter_egg_if_running ())
+				return Gdk.EVENT_STOP;
+
 			if (menu_is_visible ())
 				return Gdk.EVENT_PROPAGATE;
 
@@ -399,6 +425,12 @@ namespace Plank
 						show_menu (HoveredItem, PopupButton.RIGHT, ev_state, ex, ey, null);
 					return false;
 				});
+
+				// Prevent GTK's drag-source gesture from calling wl_data_device.start_drag on
+				// non-draggable items (e.g. PinnedExpanderDockItem, SeparatorDockItem, TrashDockItem,
+				// anchored PreferencesDockItem, or empty dock space) where Gdk.drag_abort is a no-op on Wayland
+				if (!controller.drag_manager.is_item_draggable (HoveredItem))
+					return Gdk.EVENT_STOP;
 			}
 
 			return Gdk.EVENT_PROPAGATE;
@@ -437,21 +469,20 @@ namespace Plank
 				controller.hover.hide ();
 				var button = PopupButton.from_event_button (event);
 
-				if (button == PopupButton.LEFT && controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-					if (!controller.app_provider.docklets_expanded && controller.app_provider.get_docklet_count () > 1 && controller.app_provider.is_accordion_docklet (ClickedItem)) {
-						controller.app_provider.expand_docklets ();
-						ClickedItem = null;
-						return Gdk.EVENT_STOP;
-					}
-				}
-
-				// Smart Pinned Accordion expander: click expands; with "Click to Expand" it also collapses.
-				// (In hover mode the accordion expands on hover and collapses through the shared timer.)
+				// Accordion expander (Docklets or Smart Pinned Apps): click toggles expand / collapse
 				if (button == PopupButton.LEFT && ClickedItem is PinnedExpanderDockItem && controller.app_provider != null) {
-					if (!controller.app_provider.pinned_expanded)
-						controller.app_provider.expand_pinned ();
-					else if (controller.prefs.AccordionClickToExpand)
-						controller.app_provider.collapse_pinned ();
+					var expander = (PinnedExpanderDockItem) ClickedItem;
+					if (expander.IsDockletExpander) {
+						if (!controller.app_provider.docklets_expanded)
+							controller.app_provider.expand_docklets (true);
+						else
+							controller.app_provider.collapse_docklets (true);
+					} else {
+						if (!controller.app_provider.pinned_expanded)
+							controller.app_provider.expand_pinned (true);
+						else
+							controller.app_provider.collapse_pinned (true);
+					}
 					ClickedItem = null;
 					return Gdk.EVENT_STOP;
 				}
@@ -525,7 +556,7 @@ namespace Plank
 					if (controller.app_provider != null)
 						controller.app_provider.cancel_collapse_timer ();
 				} else {
-					if (controller.app_provider != null && controller.app_provider.is_accordion_enabled ()) {
+					if (controller.app_provider != null && controller.app_provider.is_accordion_enabled () && !controller.prefs.AccordionClickToExpand) {
 						controller.app_provider.schedule_collapse_docklets (controller.prefs.AccordionDelay);
 					}
 				}
@@ -555,7 +586,8 @@ namespace Plank
 			bool found_docklet = false;
 
 			foreach (var item in controller.VisibleItems) {
-				if (controller.app_provider.is_accordion_docklet (item)) {
+				if (controller.app_provider.is_accordion_docklet (item)
+					|| (item is PinnedExpanderDockItem && ((PinnedExpanderDockItem) item).IsDockletExpander)) {
 					var rect = pm.get_hover_region_for_element (item);
 					if (pm.is_horizontal_dock ()) {
 						min_coord = int.min (min_coord, rect.x);
@@ -584,7 +616,9 @@ namespace Plank
 
 		public bool is_hovering_docklets (int x, int y)
 		{
-			if (HoveredItem != null && controller.app_provider != null && controller.app_provider.is_accordion_docklet (HoveredItem))
+			if (HoveredItem != null && controller.app_provider != null
+				&& (controller.app_provider.is_accordion_docklet (HoveredItem)
+					|| (HoveredItem is PinnedExpanderDockItem && ((PinnedExpanderDockItem) HoveredItem).IsDockletExpander)))
 				return true;
 			return is_in_docklet_zone (x, y);
 		}
@@ -606,7 +640,8 @@ namespace Plank
 
 			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
 				if (controller.app_provider.docklets_expanded) {
-					controller.app_provider.cancel_collapse_timer ();
+					if (!controller.app_provider.has_drag_expansion ())
+						controller.app_provider.cancel_collapse_timer ();
 				} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
 					controller.app_provider.expand_docklets ();
 				}
@@ -615,8 +650,11 @@ namespace Plank
 			// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
 			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
 				if (controller.app_provider.pinned_expanded) {
-					controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand && HoveredItem is PinnedExpanderDockItem) {
+					if (!controller.app_provider.has_drag_expansion ())
+						controller.app_provider.cancel_collapse_timer ();
+				} else if (!controller.prefs.AccordionClickToExpand
+					&& HoveredItem is PinnedExpanderDockItem
+					&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
 					controller.app_provider.expand_pinned ();
 				}
 			}
@@ -643,7 +681,8 @@ namespace Plank
 
 			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
 				if (controller.app_provider.docklets_expanded) {
-					controller.app_provider.cancel_collapse_timer ();
+					if (!controller.app_provider.has_drag_expansion ())
+						controller.app_provider.cancel_collapse_timer ();
 				} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
 					controller.app_provider.expand_docklets ();
 				}
@@ -652,8 +691,11 @@ namespace Plank
 			// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
 			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
 				if (controller.app_provider.pinned_expanded) {
-					controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand && HoveredItem is PinnedExpanderDockItem) {
+					if (!controller.app_provider.has_drag_expansion ())
+						controller.app_provider.cancel_collapse_timer ();
+				} else if (!controller.prefs.AccordionClickToExpand
+					&& HoveredItem is PinnedExpanderDockItem
+					&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
 					controller.app_provider.expand_pinned ();
 				}
 			}
@@ -824,7 +866,6 @@ namespace Plank
 		 */
 		public override bool map_event (Gdk.EventAny event)
 		{
-			input_rect = { -1, -1, -1, -1 };
 			set_input_mask ();
 			// Trigger an immediate frame draw upon mapping to prevent waiting for a click
 			controller.renderer.animated_draw ();
@@ -851,24 +892,6 @@ namespace Plank
 					tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Running"));
 				} else if ((HoveredItem is PlankDockItem || (HoveredItem.Prefs != null && HoveredItem.Prefs.Launcher.has_prefix ("docklet://"))) && !(HoveredItem is TrashDockItem)) {
 					tooltip_text = "%s • %s".printf (HoveredItem.Text, _("Docklet"));
-				}
-			} else if (controller.prefs.AccordionDocklets && controller.app_provider != null
-				&& controller.app_provider.get_docklet_count () > 1
-				&& HoveredItem == controller.app_provider.get_anchor_docklet ()) {
-				unowned DefaultApplicationDockItemProvider? app_prov = controller.app_provider;
-				bool is_horiz = controller.position_manager.is_horizontal_dock ();
-				bool on_right = controller.prefs.DockletsOnRight;
-				string arrow_expand = is_horiz ? (on_right ? "◂" : "▸") : (on_right ? "▴" : "▾");
-				string arrow_collapse = is_horiz ? (on_right ? "▸" : "◂") : (on_right ? "▾" : "▴");
-
-				if (app_prov != null && !app_prov.docklets_expanded) {
-					if (controller.prefs.AccordionClickToExpand) {
-						tooltip_text = "%s • %s %s (%s)".printf (HoveredItem.Text, _("Docklets"), arrow_expand, _("Click to expand"));
-					} else {
-						tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_expand);
-					}
-				} else {
-					tooltip_text = "%s • %s %s".printf (HoveredItem.Text, _("Docklets"), arrow_collapse);
 				}
 			}
 			return tooltip_text;

@@ -232,8 +232,8 @@ namespace Plank
 				update_needed = true;
 			}
 			
-			// disable hiding if menu is visible, folder menu is visible, drags are active, or destruction handshake is running
-			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive || drag_manager.RemovalActive);
+			// disable hiding if menu is visible, folder menu is visible, drags are active, destruction handshake is running, or About / Easter Egg is active
+			var disabled = (window.menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible () || drag_manager.InternalDragActive || drag_manager.ExternalDragActive || drag_manager.RemovalActive || AbstractMain.is_about_open || (controller.renderer != null && controller.renderer.easter_egg_active));
 			if (Disabled != disabled) {
 				Disabled = disabled;
 				update_needed = true;
@@ -337,7 +337,7 @@ namespace Plank
 
 		void update_hidden ()
 		{
-			if (Disabled) {
+			if (Disabled || AbstractMain.is_about_open || (controller.renderer != null && controller.renderer.easter_egg_active)) {
 				if (hide_timer_id > 0U) {
 					GLib.Source.remove (hide_timer_id);
 					hide_timer_id = 0U;
@@ -509,16 +509,28 @@ namespace Plank
 		void update_window_intersect ()
 		{
 			var dock_rect = controller.position_manager.get_static_dock_region ();
-			window_intersect = WindowControl.any_window_intersects (dock_rect);
-			active_application_intersect = WindowControl.active_window_intersects (dock_rect);
-			active_window_intersect = active_application_intersect;
-			active_maximized_window_intersect = WindowControl.maximized_window_intersects (dock_rect);
 			var new_fullscreen_inhibit = WindowControl.fullscreen_window_intersects (dock_rect);
 			bool fs_changed = (FullscreenInhibit != new_fullscreen_inhibit);
 			FullscreenInhibit = new_fullscreen_inhibit;
 			if (FullscreenInhibit) {
 				Hovered = false;
 				pressure_reveal_active = false;
+			} else {
+				switch (get_effective_hide_mode ()) {
+				case HideType.INTELLIGENT:
+				case HideType.DODGE_ACTIVE:
+					active_application_intersect = WindowControl.active_window_intersects (dock_rect);
+					active_window_intersect = active_application_intersect;
+					break;
+				case HideType.DODGE_MAXIMIZED:
+					active_maximized_window_intersect = WindowControl.maximized_window_intersects (dock_rect);
+					break;
+				case HideType.WINDOW_DODGE:
+					window_intersect = WindowControl.any_window_intersects (dock_rect);
+					break;
+				default:
+					break;
+				}
 			}
 			dialog_windows_intersect = false;
 			pointer_update = false;

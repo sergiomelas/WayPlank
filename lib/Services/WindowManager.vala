@@ -119,9 +119,42 @@ namespace Plank
 			}
 		}
 
+		static bool is_same_non_geometry_state (Gee.ArrayList<WindowInfo>? prev, Gee.ArrayList<WindowInfo> next)
+		{
+			if (prev == null || prev.size != next.size)
+				return false;
+			for (int i = 0; i < prev.size; i++) {
+				var a = prev[i];
+				var b = next[i];
+				if (a.Id != b.Id
+					|| a.Active != b.Active
+					|| a.Minimized != b.Minimized
+					|| a.Maximized != b.Maximized
+					|| a.Fullscreen != b.Fullscreen
+					|| a.DemandsAttention != b.DemandsAttention
+					|| a.CurrentDesktop != b.CurrentDesktop
+					|| a.IsDialog != b.IsDialog
+					|| a.MinimizedSequence != b.MinimizedSequence
+					|| a.Pid != b.Pid
+					|| a.ApplicationId != b.ApplicationId
+					|| a.DesktopFileName != b.DesktopFileName
+					|| a.ResourceClass != b.ResourceClass
+					|| a.ResourceName != b.ResourceName
+					|| a.Caption != b.Caption)
+					return false;
+			}
+			return true;
+		}
+
 		void refresh_windows ()
 		{
-			cached_windows = WindowControl.get_windows ();
+			var next_windows = WindowControl.get_windows ();
+			if (initial_browser_scan_done && is_same_non_geometry_state (cached_windows, next_windows)) {
+				for (int i = 0; i < cached_windows.size; i++)
+					cached_windows[i].Geometry = next_windows[i].Geometry;
+				return;
+			}
+			cached_windows = next_windows;
 			sync_window_profiles ();
 			matches_cache.clear ();
 			windows_refreshed ();

@@ -471,9 +471,11 @@ namespace Plank
 			}
 		}
 
-		void make_default_docklets ()
+		public void make_default_docklets ()
 		{
 			make_dock_item ("docklet://preferences");
+			make_dock_item ("docklet://clock");
+			make_dock_item ("docklet://brightness");
 			make_dock_item ("docklet://desktop");
 			make_dock_item ("docklet://volume");
 			make_dock_item ("docklet://trash");
@@ -613,10 +615,8 @@ namespace Plank
 		 */
 		public void make_classic_items ()
 		{
-			debug ("ItemFactory: creating classic default pinned applications and trash...");
-			make_dock_item ("docklet://preferences");
+			debug ("ItemFactory: creating classic default pinned applications...");
 			make_default_pinned_apps ();
-			make_dock_item ("docklet://trash");
 			debug ("ItemFactory: classic items successfully created.");
 		}
 

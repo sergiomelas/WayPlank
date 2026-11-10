@@ -4,7 +4,7 @@
 **Last Updated:** 2026-11-05 (Initiated 2026-10-15)  
 **Maintainer:** Sergio Melas (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
 **Primary Community Fork Collaborator:** IFtiger-hu (史有虎) (2212363803@qq.com, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) — maintaining 3 active WayPlank forks)  
-**Scope:** Permanent cross-fork scouting, architectural HAL adaptation (per [HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md)), attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
+**Scope:** Permanent cross-fork scouting, architectural HAL adaptation (per [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) and [HAL_BUSES.md](HAL_BUSES.md)), attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
 **Upstream Repository:** [https://github.com/sergiomelas/WayPlank](https://github.com/sergiomelas/WayPlank)  
 **Collaborator Profile & Forks:** [https://github.com/IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) (primary fork: [IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank) + 2 sibling experimental forks)  
 
@@ -76,7 +76,7 @@ flowchart TD
         F7["✅ [Round 3] Universal Multi-Window Cards (WindowCardsWindow)"]:::integrated
     end
 
-    subgraph HAL_Box["🏛️ Encapsulated Multi-Compositor HAL Box (HAL_ARCHITECTURE.md)"]
+    subgraph HAL_Box["🏛️ Encapsulated Multi-Compositor HAL Box (HAL_COMPOSITORS.md)"]
         HB["📦 Unified HAL (KWin • Mutter • Labwc) + Ghost Window Shield"]:::halbox
     end
 
@@ -212,7 +212,7 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
    - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (108 `[ok]` + 14 `[ko->ok]` + 6 `[ko]`) | 95.3% PASS $\rightarrow$ 129 tests in `v0.7.1` (`116 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` | `0 [ko]`)
    - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (106 `[ok]` + 14 `[ko->ok]` + 6 `[ko]`) | 95.2% PASS $\rightarrow$ 127 tests in `v0.7.1` (`114 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` | `0 [ko]`)
    - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (103 `[ok]` + 14 `[ko->ok]` + 2 `[NA]` + 6 `[ko]`) | 95.1% PASS $\rightarrow$ 126 tests in `v0.7.1` (`111 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` + `2 [NA]` | `0 [ko]`)
-   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt` $\rightarrow$ `FAT/2026-11-07 FAT 0.7.1.txt`)**: 379 Tests Defined in `v0.7.0` (`359/377` Applicable Passed = `95.2% PASS`, with 18 open `[ko]` transferred to `v0.7.1`) $\rightarrow$ 382 Tests Defined in `v0.7.1` (`341 [ok]` baseline + `3 [ko->ok]` in `FAT 7.17` + `18 [ko->test]` remediations + `18 [  ]` new `v0.7.1` features + `2 [NA]` + `0 [ko]` open defects).
+   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt` $\rightarrow$ `FAT/2026-11-10 FAT 0.7.1.txt`)**: 379 Tests Defined in `v0.7.0` (`359/377` Applicable Passed = `95.2% PASS`, with 18 open `[ko]` transferred to `v0.7.1`) $\rightarrow$ 377 Tests Defined in `v0.7.1` (`375/375` Applicable Passed = `100.0% PASS`: `344 [ok]` baseline + `31 [ko->ok]` squashed + `2 [NA]` + `0 [ko]` open defects).
 
 ---
 
@@ -234,7 +234,7 @@ Phase 1 (`v0.6.2.1` – `v0.6.2.3`) reached 100% completion across all three fou
 - **Round 2 (v0.6.2.2)**: Remote URL DND, hover window activation, interactive Theme Manager, portal sync, strict MIME. *(100% FAT passed)*.
 - **Round 3 (v0.6.2.3)**: Universal multi-window preview cards, live thumbnails, dynamic theme swapping, stock themes, recent files, folder running dots, drawer parity, native stacking, and community enhancements. *(100% FAT passed — Official Closure of the Alpha & Pre-Beta Era)*.
 - **Public Beta 1 (v0.7.0)**: Monolithic in-memory localization engine (`7` languages + native English, `487` strings), GNOME Shell extension `version: 4`, and `379`-point ISA-88 Phase B protocol (`359/377` applicable passed — `95.2% PASS`, with 18 remaining `[ko]` points transferred to `v0.7.1`). *(Concluded & Frozen)*.
-- **Public Beta 2 (v0.7.1)**: First-Run Onboarding (`Classic` vs `Explorer`) with 100% read-only `~/.config/plank` migration, Smart Usage-Adaptive Pinned Apps Accordion, `MONLMIP Rank 1` & full `~/.config/wayplank/latch-state.ini` profile persistence (`FAT 7.17` `[ko->ok]`), `519/519` in-RAM localized strings, browser auto-translated User Guide, Core Feature Freeze (open to community requests), and `382`-point ISA-88 protocol (`341 [ok]` + `3 [ko->ok]` + `18 [ko->test]` + `18 [  ]` + `0 [ko]`). *(Active Release)*.
+- **Public Beta 2 (v0.7.1)**: First-Run Onboarding (`Classic` vs `Explorer`) with 100% read-only `~/.config/plank` migration, Smart Usage-Adaptive Pinned Apps Accordion, `MONLMIP Rank 1` & full `~/.config/wayplank/latch-state.ini` profile persistence (`FAT 7.17` `[ko->ok]`), `522/522` in-RAM localized strings, browser auto-translated User Guide, Core Feature Freeze (open to community requests), and `377`-point ISA-88 protocol (`375/375` = `100.0% PASS`: `344 [ok]` + `31 [ko->ok]` + `2 [NA]` + `0 [ko]`). *(Active Release)*.
 - **Ongoing `v0.7.x` Multi-Fork Cherry-Picking (`v0.7.1+` & Beyond)**: Continuous scouting, architectural review, HAL isolation adaptation (`KWin`, `Mutter`, `Labwc`), `po/generate_translations.py` i18n integration, and ISA-88 FAT qualification of new features, docklets, matcher improvements, and UX ideas developed across IFtiger-hu's 3 forks and broader community forks.
 
 ### 📅 Master Release Trajectory & Continuous Cherry-Pick Log:

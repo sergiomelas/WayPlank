@@ -228,7 +228,8 @@ namespace Plank
 					if (res_class_chk == "wayplank" || res_class_chk == "plank" ||
 					    res_name_chk == "wayplank" || res_name_chk == "plank" ||
 					    dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
-					    capt_chk == "wayplank" || capt_chk == "wayplank-hover")
+					    capt_chk == "wayplank" || capt_chk == "wayplank-hover" ||
+					    capt_chk == "wayplank-folder-menu" || capt_chk == "wayplank-hover-cards" || capt_chk == "wayplank-poof")
 						continue;
 					var info = new WindowInfo ();
 					info.Id = json.get_string_member ("uuid");
@@ -269,12 +270,18 @@ namespace Plank
 				toplevel_pid_cache = new Gee.HashMap<string, int> ();
 
 			var cache_key = "%s|%s".printf (info.Id, target_cls);
+			int now_sec = (int) (GLib.get_monotonic_time () / 1000000);
+			if (now_sec <= 0)
+				now_sec = 1;
 			if (toplevel_pid_cache.has_key (cache_key)) {
 				int cached_pid = toplevel_pid_cache.get (cache_key);
 				if (cached_pid > 0 && FileUtils.test ("/proc/%d/cmdline".printf (cached_pid), FileTest.EXISTS)) {
 					info.Pid = cached_pid;
 					info.Cmdline = ApplicationDiscovery.get_process_cmdline (cached_pid);
 					info.Executable = ApplicationDiscovery.get_process_comm (cached_pid);
+					return;
+				}
+				if (cached_pid < 0 && (now_sec - (-cached_pid)) < 5) {
 					return;
 				}
 				toplevel_pid_cache.unset (cache_key);
@@ -334,13 +341,15 @@ namespace Plank
 				}
 			} catch { }
 
+			if (toplevel_pid_cache.size > 256)
+				toplevel_pid_cache.clear ();
 			if (best_pid > 0) {
-				if (toplevel_pid_cache.size > 256)
-					toplevel_pid_cache.clear ();
 				toplevel_pid_cache.set (cache_key, best_pid);
 				info.Pid = best_pid;
 				info.Cmdline = ApplicationDiscovery.get_process_cmdline (best_pid);
 				info.Executable = ApplicationDiscovery.get_process_comm (best_pid);
+			} else {
+				toplevel_pid_cache.set (cache_key, -now_sec);
 			}
 		}
 

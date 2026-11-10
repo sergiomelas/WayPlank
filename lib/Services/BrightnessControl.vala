@@ -242,8 +242,8 @@ namespace Plank
 			if (shutting_down)
 				return;
 
-			// Event-driven D-Bus signals handle KDE & GNOME; desktop PCs without backlight need zero timers.
-			bool has_dbus_events = (kde_available && kde_signal_id != 0) || (gnome_available && gnome_signal_id != 0);
+			// Event-driven D-Bus or sysfs inotify signals handle KDE, GNOME & Labwc; desktop PCs without backlight need zero timers.
+			bool has_dbus_events = (kde_available && kde_signal_id != 0) || (gnome_available && gnome_signal_id != 0) || (sysfs_monitor != null);
 			bool has_any_pollable_backend = (backlight_device != null || kde_available || gnome_available);
 			if (!has_dbus_events && has_any_pollable_backend) {
 				timer_id = GLib.Timeout.add_seconds (5, on_timer_tick);

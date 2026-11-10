@@ -1,23 +1,23 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-07
+Date: 2026-11-10
 Milestone: V0.7.1 (Public Beta 2: First-Run Onboarding Classic/Explorer, Pinned
            Apps Accordion, MONLMIP Rank 1, Auto-Translated User Guide & Zero-[ko]
            Qualification)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [IN PROGRESS] | 112 [ok] | 2 [ko->ok] | 6 [ko->test] | 6 [  ] | 0 [NA] | 0 [ko] (90.5% Qualified)
+      [PASSED - 100% QUALIFIED] | 115 [ok] | 11 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko] (100.0% Qualified)
   - GNOME (Mutter Backend):
-      [IN PROGRESS] | 113 [ok] | 1 [ko->ok] | 6 [ko->test] | 6 [  ] | 0 [NA] | 0 [ko] (90.5% Qualified)
+      [PASSED - 100% QUALIFIED] | 116 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko] (100.0% Qualified)
   - LABWC (wlroots Backend):
-      [IN PROGRESS] | 110 [ok] | 1 [ko->ok] | 6 [ko->test] | 6 [  ] | 2 [NA] | 0 [ko] (90.2% Qualified)
+      [PASSED - 100% QUALIFIED] | 113 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] | 0 [ko] (100.0% Qualified)
   - TOTAL SCOREBOARD:
-      377 Tests Defined | 335 [ok] Consolidated Baseline | 4 [ko->ok] Squashed (FAT 6.1 KDE #27, 7.17) |
-      18 [ko->test] Remediations (Transferred from v0.7.0) | 18 Pending [  ] (New v0.7.1 Features) |
+      377 Tests Defined | 344 [ok] Consolidated Baseline | 31 [ko->ok] Squashed |
+      0 [ko->test] Remediations | 0 Pending [  ] |
       2 [NA] Limitations | 0 Open Defects ([ko])
-      QUALIFICATION STATUS: IN LIVE BURN-IN FOR V0.7.1 (335 [ok] Baseline + 4 [ko->ok] + 18 [ko->test] + 18 [  ] + 0 [ko])
+      QUALIFICATION STATUS: PASSED - 100.0% QUALIFIED FOR V0.7.1 ACROSS ALL 3 COMPOSITORS (375/375 APPLICABLE = 100.0%)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified in v0.7.0 & graduated to v0.7.1 baseline per Phase B.1)
@@ -29,7 +29,7 @@ Test Status Legend (ISA-88 Qualification Standard):
   - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle)
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok] | 6 [ko->test] | 6 [  ] | 0 OPEN]
+SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN]
 ================================================================================
 ================================================================================
 
@@ -68,21 +68,35 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
         - Right-click opens dock management menu ('Keep in Dock', 'Open in
           File Browser', 'Preferences'); hovering other icons or leaving dock
           auto-dismisses popup.
-   [  ] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
+   [ko->ok] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
         - On first start without 'onboarding-done', verify 100% read-only
           migration of compatible .dockitem launchers/folders from
           ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
           for X11 sessions).
-        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
-          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
-          Window Cards) without ever deleting existing user items or folders.
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode, zero
+          docklets and Trash unpinned by default) and 'WayPlank Explorer'
+          (Categorized + 4 Smart Drawers + 4 Default Docklets + Trash +
+          Accordions + Window Cards) without ever deleting existing user items
+          or folders.
+        - Bug: (1) Legacy X11 'plank' process could remain alive on first run,
+          and package post-install sent SIGWINCH instead of cleanly terminating
+          'plank'/'wayplank'; (2) dock surface rendered visibly underneath
+          FirstRunWindow before preset selection; (3) Explorer mode lacked the 4
+          default docklets while Classic mode forced Trash onto the dock.
+        - Remediation: Added 'killall -q plank' on true first-run onboarding in
+          Main.vala and DockController.vala (plus 'killall -q plank wayplank' in
+          BuildDeb.sh/BuildRpm.sh), cleared dock surface in DockRenderer.vala
+          while controller.is_first_run_launch is active, added context-sensitive
+          bold header and X11 migration note in FirstRunWindow.vala, and wired
+          Explorer (4 docklets + Trash) vs Classic (0 docklets, 0 Trash) in
+          ItemFactory.vala.
    [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->test] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
         - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
@@ -97,10 +111,14 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
         REMEDIATED (Issue #24): Wired 'ShowRunningIndicators' checks into
           FileDockItem.update_indicator() and FolderMenuWindow row rendering
           with instant live redraw on preference toggle.
-        REMEDIATED (Issue #20 - Ready for Live Test in v0.7.1): Enforced strict
+        REMEDIATED (Issue #20 - Verified Live in v0.7.1): Enforced strict
           AND matching on all differentiating browser wrapper flags
-          (--user-agent, --incognito, --user-data-dir, --profile-directory) and
-          persisted BrowserProfile in .dockitem metadata.
+          (--user-agent, --incognito, --user-data-dir, --profile-directory),
+          added event-driven Chrome multi-profile D-Bus introspection
+          (/com/canonical/menu/<N> id=61 + Local State info_cache ->
+          Chrome:<Profile> tooltips, ~/Desktop launcher indexing, and B7.1
+          pid_to_dbus_sender teardown cleanup), and persisted BrowserProfile in
+          .dockitem metadata.
    [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
         - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
@@ -117,7 +135,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
    [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
+   [ok] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
         - Shows window list, quicklists, and "Close".
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
           in browser with working Table of Contents anchor jumps, automatic
@@ -127,10 +145,10 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           untranslated <pre>/<code>/.mermaid blocks.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
-   [ko->test] 2.7 Attention / Urgent State:
+   [ko->ok] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
-        REMEDIATED (Issue #22 - Ready for Live Test in v0.7.1): MutterBackend
+        REMEDIATED (Issue #22 - Verified Live in v0.7.1): MutterBackend
           emits WindowsChanged on window-demands-attention / window-marked-urgent
           and per-window notify::demands-attention / notify::urgent for normal
           application windows ('other'), and tracks MinimizedSequence.
@@ -190,7 +208,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
+   [ok] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
@@ -298,27 +316,47 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [ko->test] 6.12 Docklet Right-Click Context Menu Consistency:
+   [ko->ok] 6.12 Docklet Right-Click Context Menu Consistency:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
-        REMEDIATED (Issue #23 - Ready for Live Test in v0.7.1): Centralized
+        REMEDIATED (Issue #23 - Verified Live in v0.7.1): Centralized
           System.launch_desktop_utility() prioritizing native utilities matching
           the active XDG_CURRENT_DESKTOP session.
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
-        - Docklets Accordion expands on hover or click ('Click to Expand');
-          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
-          Most Used') collapses excess non-running pinned apps behind the
-          '»' / '«' expander item using GNOME shell-app-usage frecency
-          ranking while keeping running/urgent apps visible.
+   [ko->ok] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N), Unified '›|' / '«|' Toggle & Live Preferences Interaction:
+        - Docklets Accordion and Pinned Apps Accordion ('Off', 'Auto-Fit
+          Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
+          '«|' separator-expander (PinnedExpanderDockItem) with pure manual
+          'Click to Expand/Compress' mode (independent DockletsExpanded &
+          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini,
+          including B8.1 startup latch preservation when FreeDockItems is empty
+          and B8.2 runtime toggle sync), symmetric 2-phase slot/vertical
+          expand-collapse animation (0->50% make space / dip below, 50->100%
+          rise from below / close slot with StructuralPosition ordering and
+          rightmost anchor when 'Docklets on Right' is active), and GNOME
+          shell-app-usage frecency ranking while keeping running/urgent apps
+          visible.
         - Both accordions remain 100% live (expanding and collapsing after
           AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
           About windows are open, holding open only during active context
           menus, folder/preview popups, or modal sub-dialogs.
+        - Bug: When 'Top Most Used' or 'Auto-Fit Capacity' was active and a new
+          launcher was added via external drag-and-drop onto the dock,
+          accept_external_drop() invoked refresh_separators() before clearing
+          ExternalDragActive = false while leaving pinned_expanded = false,
+          causing all pinned apps to stay permanently unmasked after the drop
+          until Preferences was reopened.
+        - Remediation: Implemented deterministic 3-phase drag-and-drop accordion
+          handling in DragManager, DockController, and
+          DefaultApplicationDockItemProvider: (1) temporarily expand all pinned
+          apps on drag entry (for_drag = true, preserving user latch), (2) clear
+          ExternalDragActive before refresh_separators() so the dropped launcher
+          lands visibly in the chosen slot, and (3) schedule automatic post-drop
+          re-masking back to 'Top Most Used' / 'Auto-Fit Capacity' after 800ms.
    [ok] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
@@ -367,11 +405,11 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle in Appearance:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with 'Show Trash' centered beneath the grid and instant
-          live add/remove toggling.
-   [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
+          Docklets and 'Show Trash' sits centered in Preferences -> Appearance
+          with instant live add/remove toggling.
+   [ko->ok] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
           'WayPlank Always Left' at index 0), hiding empty-section separators.
@@ -379,10 +417,22 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           promotes 'Categorize Items' ON via MONLMIP Rank 1 while preserving
           its state across Categorize ON/OFF toggles; verify 'Align by Type'
           sorts Free Mode items cleanly.
+        - Bug: Dragging icons to reorder or cross-separator pin/unpin caused
+          icon oscillation/collision and failed to pin unpinned running apps
+          because StructuralPosition remained stale during handle_positions_changed(),
+          compare_dock_item_position() sorted non-removing items by
+          StructuralPosition instead of Position, and initialize_frame() called
+          update_hovered() during active drags.
+        - Remediation: Added update_items() inside handle_positions_changed() in
+          DockController.vala, restricted StructuralPosition sorting in
+          DockRenderer.compare_dock_item_position() to collapsing items
+          (RemoveTime > 0), guarded update_hovered() in initialize_frame()
+          against InternalDragActive / ExternalDragActive, and silenced
+          pinned/docklets-expanded-latch warnings in PreferencesWindow.vala.
    [ok] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
-   [ko->test] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+   [ko->ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
         - Interactive Shortcuts & Gestures window and terminal cheatsheet
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
@@ -392,7 +442,18 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           MPRIS scroll/middle-click parity in MprisDockItem.vala.
         REMEDIATED (Issue #21 - Ready for Live Test in v0.7.1): Gated
           WindowCardsWindow on !has_ctrl && !has_shift so Shift+Left Click
-          cycles open windows in reverse, and documented Pinned Expander (» / «).
+          cycles open windows in reverse, documented unified ›| / «| Expander
+          with 2-phase Accordion slot/vertical expand-collapse animation
+          (PositionManager.get_effective_item_slot + DockRenderer allow_animation
+          on RemoveTime > 0, StructuralPosition, rightmost anchor when Docklets
+          on Right is active, and 'Click to Expand/Compress:' label), added
+          2-Tab Credits (WayPlank 2026 vs Plank Historic with top homogeneous
+          card buttons, hidden logo/title in Credits/License mode,
+          vhomogeneous=false, and Cairo @theme_bg_color viewport fill eliminating
+          X11/Xfce black border) & Pango CJK Easter Egg marquee
+          (Ctrl+Alt+Shift+Left Click on About logo with B10.1 DELETE_EVENT close
+          fix), and classified all WayPlank dialogs as 'dialog' on GNOME Mutter
+          (B6.2/B15.1).
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Bug: set_titlebar() cleared window title to NULL ('wayplank'),
           causing Mutter bridge to misclassify dialog as dock.
@@ -422,9 +483,11 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
    [ko->ok] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
-          then close Preferences: verify all 43 DockPreferences keys + 5
-          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
-          restored 100% across restarts even after dconf reset.
+          then close Preferences: verify all 43 DockPreferences keys + 7
+          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
+          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
+          across restarts even after dconf reset (including B8.1 preservation
+          when FreeDockItems is empty).
         - Run '"FAT/Test Files/Environment/Test environments.sh"' across
           Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
@@ -483,7 +546,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           60 FPS interpolation
         - Clipped rendering prevents scrolled-out items/shadows from bleeding
           past background
-   [ko->test] 10.4 Docklet Scroll Conflict Isolation:
+   [ko->ok] 10.4 Docklet Scroll Conflict Isolation:
         - Scrolling over Volume docklet adjusts audio volume without scrolling
           dock
         - Scrolling over Brightness docklet adjusts screen brightness without
@@ -601,7 +664,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [ko->test] 12.4 Window Activation & Selection from Card:
+   [ko->ok] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
@@ -626,8 +689,8 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
    [ok] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - Verify Accordion collapses toward outer edge (leftmost when Docklets
           left, rightmost when Docklets on Right), expands on hover or click
-          ('Click to Expand') and during drag-over, and never collapses <= 1
-          docklet.
+          ('Click to Expand/Compress') and during drag-over, and never collapses
+          <= 1 docklet.
    [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
         - Open Preferences dialog: verify window default dimensions are compact
           (560x480) with zero horizontal label wrapping or forced stretching.
@@ -653,14 +716,14 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS | 113 BASELINE [ok] | 1 [ko->ok
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 ================================================================================
-SESSION 1 RESULT: IN LIVE BURN-IN FOR V0.7.1 (GNOME / Mutter Backend) - 1 [ko->ok] + 6 [ko->test] + 6 [  ] | 0 [ko]
+SESSION 1 RESULT: PASSED - 100.0% QUALIFIED FOR V0.7.1 (GNOME / Mutter Backend) - 116 [ok] + 10 [ko->ok] | 0 [ko]
 ================================================================================
-  * Tests: 126 | Consolidated Baseline: 113 [ok] | Squashed: 1 [ko->ok] (7.17) | Remediations: 6 [ko->test] | New Features: 6 [  ]
-  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Burn-In Baseline: 90.5% (114/126 Qualified)
+  * Tests: 126 | Consolidated Baseline: 116 [ok] | Squashed: 10 [ko->ok] (1.9, 1.11, 2.7, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4) | Remediations: 0 [ko->test] | New Features: 0 [  ]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100.0% (126/126 Qualified)
 ================================================================================
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko->ok] | 6 [ko->test] | 6 [  ] | 0 OPEN]
+SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 11 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN]
 ================================================================================
 ================================================================================
 
@@ -699,21 +762,35 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
         - Right-click opens dock management menu ('Keep in Dock', 'Open in
           File Browser', 'Preferences'); hovering other icons or leaving dock
           auto-dismisses popup.
-   [  ] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
+   [ko->ok] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
         - On first start without 'onboarding-done', verify 100% read-only
           migration of compatible .dockitem launchers/folders from
           ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
           for X11 sessions).
-        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
-          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
-          Window Cards) without ever deleting existing user items or folders.
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode, zero
+          docklets and Trash unpinned by default) and 'WayPlank Explorer'
+          (Categorized + 4 Smart Drawers + 4 Default Docklets + Trash +
+          Accordions + Window Cards) without ever deleting existing user items
+          or folders.
+        - Bug: (1) Legacy X11 'plank' process could remain alive on first run,
+          and package post-install sent SIGWINCH instead of cleanly terminating
+          'plank'/'wayplank'; (2) dock surface rendered visibly underneath
+          FirstRunWindow before preset selection; (3) Explorer mode lacked the 4
+          default docklets while Classic mode forced Trash onto the dock.
+        - Remediation: Added 'killall -q plank' on true first-run onboarding in
+          Main.vala and DockController.vala (plus 'killall -q plank wayplank' in
+          BuildDeb.sh/BuildRpm.sh), cleared dock surface in DockRenderer.vala
+          while controller.is_first_run_launch is active, added context-sensitive
+          bold header and X11 migration note in FirstRunWindow.vala, and wired
+          Explorer (4 docklets + Trash) vs Classic (0 docklets, 0 Trash) in
+          ItemFactory.vala.
    [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->test] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
         - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
@@ -728,10 +805,14 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
         REMEDIATED (Issue #24): Wired 'ShowRunningIndicators' checks into
           FileDockItem.update_indicator() and FolderMenuWindow row rendering
           with instant live redraw on preference toggle.
-        REMEDIATED (Issue #20 - Ready for Live Test in v0.7.1): Enforced strict
+        REMEDIATED (Issue #20 - Verified Live in v0.7.1): Enforced strict
           AND matching on all differentiating browser wrapper flags
-          (--user-agent, --incognito, --user-data-dir, --profile-directory) and
-          persisted BrowserProfile in .dockitem metadata.
+          (--user-agent, --incognito, --user-data-dir, --profile-directory),
+          added event-driven Chrome multi-profile D-Bus introspection
+          (/com/canonical/menu/<N> id=61 + Local State info_cache ->
+          Chrome:<Profile> tooltips, ~/Desktop launcher indexing, and B7.1
+          pid_to_dbus_sender teardown cleanup), and persisted BrowserProfile in
+          .dockitem metadata.
    [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
         - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
@@ -748,7 +829,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
    [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
+   [ok] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
         - Shows window list, quicklists, and "Close".
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
           in browser with working Table of Contents anchor jumps, automatic
@@ -764,10 +845,10 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
         prior to executing test).
    [ok] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
-   [ko->test] 2.9 Window List Selection:
+   [ko->ok] 2.9 Window List Selection:
         Right-click app with 2+ windows -> click window title in list brings
         that window to front
-        REMEDIATED (Issue #22 - Ready for Live Test in v0.7.1): Connected
+        REMEDIATED (Issue #22 - Verified Live in v0.7.1): Connected
           window.captionChanged to the 50ms debounced notifier in KWinBridge.
    [ok] 2.10 Scroll-Wheel Window Cycling:
         Scroll wheel over app icon with 2+ windows -> cycles focus through
@@ -824,7 +905,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
+   [ok] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
@@ -935,16 +1016,36 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
-        - Docklets Accordion expands on hover or click ('Click to Expand');
-          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
-          Most Used') collapses excess non-running pinned apps behind the
-          '»' / '«' expander item using GNOME shell-app-usage frecency
-          ranking while keeping running/urgent apps visible.
+   [ko->ok] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N), Unified '›|' / '«|' Toggle & Live Preferences Interaction:
+        - Docklets Accordion and Pinned Apps Accordion ('Off', 'Auto-Fit
+          Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
+          '«|' separator-expander (PinnedExpanderDockItem) with pure manual
+          'Click to Expand/Compress' mode (independent DockletsExpanded &
+          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini,
+          including B8.1 startup latch preservation when FreeDockItems is empty
+          and B8.2 runtime toggle sync), symmetric 2-phase slot/vertical
+          expand-collapse animation (0->50% make space / dip below, 50->100%
+          rise from below / close slot with StructuralPosition ordering and
+          rightmost anchor when 'Docklets on Right' is active), and GNOME
+          shell-app-usage frecency ranking while keeping running/urgent apps
+          visible.
         - Both accordions remain 100% live (expanding and collapsing after
           AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
           About windows are open, holding open only during active context
           menus, folder/preview popups, or modal sub-dialogs.
+        - Bug: When 'Top Most Used' or 'Auto-Fit Capacity' was active and a new
+          launcher was added via external drag-and-drop onto the dock,
+          accept_external_drop() invoked refresh_separators() before clearing
+          ExternalDragActive = false while leaving pinned_expanded = false,
+          causing all pinned apps to stay permanently unmasked after the drop
+          until Preferences was reopened.
+        - Remediation: Implemented deterministic 3-phase drag-and-drop accordion
+          handling in DragManager, DockController, and
+          DefaultApplicationDockItemProvider: (1) temporarily expand all pinned
+          apps on drag entry (for_drag = true, preserving user latch), (2) clear
+          ExternalDragActive before refresh_separators() so the dropped launcher
+          lands visibly in the chosen slot, and (3) schedule automatic post-drop
+          re-masking back to 'Top Most Used' / 'Auto-Fit Capacity' after 800ms.
    [ok] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
@@ -1004,11 +1105,11 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle in Appearance:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with 'Show Trash' centered beneath the grid and instant
-          live add/remove toggling.
-   [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
+          Docklets and 'Show Trash' sits centered in Preferences -> Appearance
+          with instant live add/remove toggling.
+   [ko->ok] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
           'WayPlank Always Left' at index 0), hiding empty-section separators.
@@ -1016,10 +1117,22 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
           promotes 'Categorize Items' ON via MONLMIP Rank 1 while preserving
           its state across Categorize ON/OFF toggles; verify 'Align by Type'
           sorts Free Mode items cleanly.
+        - Bug: Dragging icons to reorder or cross-separator pin/unpin caused
+          icon oscillation/collision and failed to pin unpinned running apps
+          because StructuralPosition remained stale during handle_positions_changed(),
+          compare_dock_item_position() sorted non-removing items by
+          StructuralPosition instead of Position, and initialize_frame() called
+          update_hovered() during active drags.
+        - Remediation: Added update_items() inside handle_positions_changed() in
+          DockController.vala, restricted StructuralPosition sorting in
+          DockRenderer.compare_dock_item_position() to collapsing items
+          (RemoveTime > 0), guarded update_hovered() in initialize_frame()
+          against InternalDragActive / ExternalDragActive, and silenced
+          pinned/docklets-expanded-latch warnings in PreferencesWindow.vala.
    [ok] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
-   [ko->test] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+   [ko->ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
         - Interactive Shortcuts & Gestures window and terminal cheatsheet
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
@@ -1029,7 +1142,18 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
           MPRIS scroll/middle-click parity in MprisDockItem.vala.
         REMEDIATED (Issue #21 - Ready for Live Test in v0.7.1): Gated
           WindowCardsWindow on !has_ctrl && !has_shift so Shift+Left Click
-          cycles open windows in reverse, and documented Pinned Expander (» / «).
+          cycles open windows in reverse, documented unified ›| / «| Expander
+          with 2-phase Accordion slot/vertical expand-collapse animation
+          (PositionManager.get_effective_item_slot + DockRenderer allow_animation
+          on RemoveTime > 0, StructuralPosition, rightmost anchor when Docklets
+          on Right is active, and 'Click to Expand/Compress:' label), added
+          2-Tab Credits (WayPlank 2026 vs Plank Historic with top homogeneous
+          card buttons, hidden logo/title in Credits/License mode,
+          vhomogeneous=false, and Cairo @theme_bg_color viewport fill eliminating
+          X11/Xfce black border) & Pango CJK Easter Egg marquee
+          (Ctrl+Alt+Shift+Left Click on About logo with B10.1 DELETE_EVENT close
+          fix), and classified all WayPlank dialogs as 'dialog' on GNOME Mutter
+          (B6.2/B15.1).
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Window opens properly centered on screen under KWin.
    [ok] 7.13 Workspace Only Wayland Dormancy:
@@ -1058,9 +1182,11 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
    [ko->ok] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
-          then close Preferences: verify all 43 DockPreferences keys + 5
-          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
-          restored 100% across restarts even after dconf reset.
+          then close Preferences: verify all 43 DockPreferences keys + 7
+          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
+          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
+          across restarts even after dconf reset (including B8.1 preservation
+          when FreeDockItems is empty).
         - Run '"FAT/Test Files/Environment/Test environments.sh"' across
           Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
@@ -1116,7 +1242,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
           60 FPS interpolation
         - Clipped rendering prevents scrolled-out items/shadows from bleeding
           past background
-   [ko->test] 10.4 Docklet Scroll Conflict Isolation:
+   [ko->ok] 10.4 Docklet Scroll Conflict Isolation:
         - Scrolling over Volume docklet adjusts audio volume without scrolling
           dock
         - Scrolling over Brightness docklet adjusts screen brightness without
@@ -1233,7 +1359,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [ko->test] 12.4 Window Activation & Selection from Card:
+   [ko->ok] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
@@ -1243,15 +1369,22 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
    [ok] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
-   [ko->test] 12.6 Live Window Thumbnail Capture on KWin (First Hover & Alpha Opacity):
+   [ko->ok] 12.6 Live Window Thumbnail Capture & Adaptive Aspect-Ratio Preview Cards on KWin (First Hover & Alpha Opacity):
         - Hover or click an application with 2+ open windows on KDE Plasma.
         - Verify preview cards show crisp, live window content on the very first
-          appearance, without blank/empty viewports or transparent rendering.
+          appearance, without blank/empty viewports or transparent rendering,
+          and dynamically adapt their geometry to the window's real aspect ratio
+          (horizontal 204px width for landscape windows and 90°-rotated vertical
+          cards up to 204px height for portrait/vertical windows, with zero
+          content distortion).
         - Verify autostart desktop entry incorporates restricted D-Bus permissions
           for org.kde.KWin.ScreenShot2.
-        REMEDIATED (Issue #22 - Ready for Live Test in v0.7.1): Added 2.5s
+        REMEDIATED (Issue #22 - Verified Live in v0.7.1): Added 2.5s
           thumbnail refresh TTL, closed-window cache eviction, debug logging,
-          and WindowControl.is_kwin() guard in KWinThumbnailService.
+          WindowControl.is_kwin() guard, and aspect-ratio preserving scaling
+          (190x160 bounding box) in KWinThumbnailService.vala paired with
+          adaptive horizontal/vertical card sizing (apply_card_aspect_size up to
+          204px height) in WindowCardsWindow.vala.
 13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
    [ok] 13.1 4-Position System Menu Access Hierarchy (Preferences -> Behaviour):
         - Verify 'System Menu Access' persists Modes 1..4: Docklets Only
@@ -1267,8 +1400,8 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
    [ok] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - Verify Accordion collapses toward outer edge (leftmost when Docklets
           left, rightmost when Docklets on Right), expands on hover or click
-          ('Click to Expand') and during drag-over, and never collapses <= 1
-          docklet.
+          ('Click to Expand/Compress') and during drag-over, and never collapses
+          <= 1 docklet.
    [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
         - Open Preferences dialog: verify window default dimensions are compact
           (560x480) with zero horizontal label wrapping or forced stretching.
@@ -1294,14 +1427,14 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS | 112 BASELINE [ok] | 2 [ko-
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 ================================================================================
-SESSION 2 RESULT: IN LIVE BURN-IN FOR V0.7.1 (KDE PLASMA / KWin Backend) - 2 [ko->ok] + 6 [ko->test] + 6 [  ] | 0 [ko]
+SESSION 2 RESULT: PASSED - 100.0% QUALIFIED FOR V0.7.1 (KDE PLASMA / KWin Backend) - 115 [ok] + 11 [ko->ok] | 0 [ko]
 ================================================================================
-  * Tests: 126 | Consolidated Baseline: 112 [ok] | Squashed: 2 [ko->ok] (6.1, 7.17) | Remediations: 6 [ko->test] | New Features: 6 [  ]
-  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Burn-In Baseline: 90.5% (114/126 Qualified)
+  * Tests: 126 | Consolidated Baseline: 115 [ok] | Squashed: 11 [ko->ok] (1.9, 1.11, 2.9, 6.1, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4, 12.6) | Remediations: 0 [ko->test] | New Features: 0 [  ]
+  * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100.0% (126/126 Qualified)
 ================================================================================
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->ok] | 6 [ko->test] | 6 [  ] | 0 OPEN | 2 NA]
+SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN | 2 NA]
 ================================================================================
 ================================================================================
 
@@ -1340,21 +1473,35 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
         - Right-click opens dock management menu ('Keep in Dock', 'Open in
           File Browser', 'Preferences'); hovering other icons or leaving dock
           auto-dismisses popup.
-   [  ] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
+   [ko->ok] 1.9 First-Run Onboarding Popup (Classic vs Explorer) & Read-Only Legacy Plank Migration:
         - On first start without 'onboarding-done', verify 100% read-only
           migration of compatible .dockitem launchers/folders from
           ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
           for X11 sessions).
-        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
-          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
-          Window Cards) without ever deleting existing user items or folders.
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode, zero
+          docklets and Trash unpinned by default) and 'WayPlank Explorer'
+          (Categorized + 4 Smart Drawers + 4 Default Docklets + Trash +
+          Accordions + Window Cards) without ever deleting existing user items
+          or folders.
+        - Bug: (1) Legacy X11 'plank' process could remain alive on first run,
+          and package post-install sent SIGWINCH instead of cleanly terminating
+          'plank'/'wayplank'; (2) dock surface rendered visibly underneath
+          FirstRunWindow before preset selection; (3) Explorer mode lacked the 4
+          default docklets while Classic mode forced Trash onto the dock.
+        - Remediation: Added 'killall -q plank' on true first-run onboarding in
+          Main.vala and DockController.vala (plus 'killall -q plank wayplank' in
+          BuildDeb.sh/BuildRpm.sh), cleared dock surface in DockRenderer.vala
+          while controller.is_first_run_launch is active, added context-sensitive
+          bold header and X11 migration note in FirstRunWindow.vala, and wired
+          Explorer (4 docklets + Trash) vs Classic (0 docklets, 0 Trash) in
+          ItemFactory.vala.
    [ok] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->test] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows, Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
         - Launch normal Chrome: verify ONLY Chrome shows a running dot (zero
@@ -1369,10 +1516,14 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
         REMEDIATED (Issue #24): Wired 'ShowRunningIndicators' checks into
           FileDockItem.update_indicator() and FolderMenuWindow row rendering
           with instant live redraw on preference toggle.
-        REMEDIATED (Issue #20 - Ready for Live Test in v0.7.1): Enforced strict
+        REMEDIATED (Issue #20 - Verified Live in v0.7.1): Enforced strict
           AND matching on all differentiating browser wrapper flags
-          (--user-agent, --incognito, --user-data-dir, --profile-directory) and
-          persisted BrowserProfile in .dockitem metadata.
+          (--user-agent, --incognito, --user-data-dir, --profile-directory),
+          added event-driven Chrome multi-profile D-Bus introspection
+          (/com/canonical/menu/<N> id=61 + Local State info_cache ->
+          Chrome:<Profile> tooltips, ~/Desktop launcher indexing, and B7.1
+          pid_to_dbus_sender teardown cleanup), and persisted BrowserProfile in
+          .dockitem metadata.
    [ok] 1.12 Folder Drawer Application Contract Parity & UX Trust:
         - Verify left-click honors Click Behavior (Smart/Focus/Cycle),
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
@@ -1389,7 +1540,7 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
    [ok] 2.5 Middle Click: Middle-click icon -> launches new instance
-   [  ] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
+   [ok] 2.6 Context Menu (Right Click) & Browser Auto-Translated User Guide:
         - Shows window list, quicklists, and "Close".
         - Right-click dock -> 'User Guide...': opens wayplank_user_guide.html
           in browser with working Table of Contents anchor jumps, automatic
@@ -1460,7 +1611,7 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
+   [ok] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
@@ -1562,27 +1713,47 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [ko->test] 6.12 Docklet Right-Click Context Menu Consistency:
+   [ko->ok] 6.12 Docklet Right-Click Context Menu Consistency:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
-        REMEDIATED (Issue #23 - Ready for Live Test in v0.7.1): Centralized
+        REMEDIATED (Issue #23 - Verified Live in v0.7.1): Centralized
           System.launch_desktop_utility() prioritizing native utilities matching
           the active XDG_CURRENT_DESKTOP session.
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
-        - Docklets Accordion expands on hover or click ('Click to Expand');
-          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
-          Most Used') collapses excess non-running pinned apps behind the
-          '»' / '«' expander item using GNOME shell-app-usage frecency
-          ranking while keeping running/urgent apps visible.
+   [ko->ok] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N), Unified '›|' / '«|' Toggle & Live Preferences Interaction:
+        - Docklets Accordion and Pinned Apps Accordion ('Off', 'Auto-Fit
+          Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
+          '«|' separator-expander (PinnedExpanderDockItem) with pure manual
+          'Click to Expand/Compress' mode (independent DockletsExpanded &
+          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini,
+          including B8.1 startup latch preservation when FreeDockItems is empty
+          and B8.2 runtime toggle sync), symmetric 2-phase slot/vertical
+          expand-collapse animation (0->50% make space / dip below, 50->100%
+          rise from below / close slot with StructuralPosition ordering and
+          rightmost anchor when 'Docklets on Right' is active), and GNOME
+          shell-app-usage frecency ranking while keeping running/urgent apps
+          visible.
         - Both accordions remain 100% live (expanding and collapsing after
           AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
           About windows are open, holding open only during active context
           menus, folder/preview popups, or modal sub-dialogs.
+        - Bug: When 'Top Most Used' or 'Auto-Fit Capacity' was active and a new
+          launcher was added via external drag-and-drop onto the dock,
+          accept_external_drop() invoked refresh_separators() before clearing
+          ExternalDragActive = false while leaving pinned_expanded = false,
+          causing all pinned apps to stay permanently unmasked after the drop
+          until Preferences was reopened.
+        - Remediation: Implemented deterministic 3-phase drag-and-drop accordion
+          handling in DragManager, DockController, and
+          DefaultApplicationDockItemProvider: (1) temporarily expand all pinned
+          apps on drag entry (for_drag = true, preserving user latch), (2) clear
+          ExternalDragActive before refresh_separators() so the dropped launcher
+          lands visibly in the chosen slot, and (3) schedule automatic post-drop
+          re-masking back to 'Top Most Used' / 'Auto-Fit Capacity' after 800ms.
    [ok] 6.15 Global System Pressure Engine (docklet://cpu):
         - Replaces custom dual-gauge card with standard theme icon
           (utilities-system-monitor;;cpu) and native numeric top badge.
@@ -1598,13 +1769,14 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
         - Verify compact top badges (~34% icon height) show crisp units (°C/°F
           on Weather, % on CPU/Battery/Volume/Network/Brightness, plain
           integers on Ejector/unread) across all icon sizes and zoom.
-   [ko->test] 6.18 Do Not Disturb Docklet (docklet://dnd):
+   [ko->ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
         - Verify left-click toggles notification mute (bell <-> muted icon),
           syncs bidirectionally with desktop DND state, and suppresses
           'FAT/Test Files/Testers/test_notification.py' banners when active.
-        REMEDIATED (Issue #23 - Ready for Live Test in v0.7.1): Guarded GNOME
+        REMEDIATED (Issue #23 - Verified Live in v0.7.1): Guarded GNOME
           gsettings branch by XdgSessionDesktop.GNOME | UBUNTU in
-          DoNotDisturbDockItem so Labwc reaches dunstctl / swaync-client.
+          DoNotDisturbDockItem so Labwc reaches dunstctl / swaync-client /
+          makoctl / xfce4-notifyd (xfconf-query).
 7. PREFERENCES & CONFIGURATION
    (Ctrl + Right-Click -> Preferences or via docklet://preferences)
    [ok] 7.1 Window Opening & Foreground Raising:
@@ -1634,11 +1806,11 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
+   [ok] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle in Appearance:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with 'Show Trash' centered beneath the grid and instant
-          live add/remove toggling.
-   [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
+          Docklets and 'Show Trash' sits centered in Preferences -> Appearance
+          with instant live add/remove toggling.
+   [ko->ok] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
           'WayPlank Always Left' at index 0), hiding empty-section separators.
@@ -1646,10 +1818,22 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           promotes 'Categorize Items' ON via MONLMIP Rank 1 while preserving
           its state across Categorize ON/OFF toggles; verify 'Align by Type'
           sorts Free Mode items cleanly.
+        - Bug: Dragging icons to reorder or cross-separator pin/unpin caused
+          icon oscillation/collision and failed to pin unpinned running apps
+          because StructuralPosition remained stale during handle_positions_changed(),
+          compare_dock_item_position() sorted non-removing items by
+          StructuralPosition instead of Position, and initialize_frame() called
+          update_hovered() during active drags.
+        - Remediation: Added update_items() inside handle_positions_changed() in
+          DockController.vala, restricted StructuralPosition sorting in
+          DockRenderer.compare_dock_item_position() to collapsing items
+          (RemoveTime > 0), guarded update_hovered() in initialize_frame()
+          against InternalDragActive / ExternalDragActive, and silenced
+          pinned/docklets-expanded-latch warnings in PreferencesWindow.vala.
    [ok] 7.10 Accordion Collapse Delay Slider:
         - Configurable Accordion Collapse Delay slider (0.5s to 20.0s) in
           Preferences -> Appearance (visible only when Accordion is active).
-   [ko->test] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
+   [ko->ok] 7.11 Shortcuts & Gestures Help Dialog & CLI Cheatsheet:
         - Interactive Shortcuts & Gestures window and terminal cheatsheet
           ('wayplank --help') document Accordion controls, directional
           indicators, retention, right-click shortcuts, and icon chooser.
@@ -1659,7 +1843,18 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           MPRIS scroll/middle-click parity in MprisDockItem.vala.
         REMEDIATED (Issue #21 - Ready for Live Test in v0.7.1): Gated
           WindowCardsWindow on !has_ctrl && !has_shift so Shift+Left Click
-          cycles open windows in reverse, and documented Pinned Expander (» / «).
+          cycles open windows in reverse, documented unified ›| / «| Expander
+          with 2-phase Accordion slot/vertical expand-collapse animation
+          (PositionManager.get_effective_item_slot + DockRenderer allow_animation
+          on RemoveTime > 0, StructuralPosition, rightmost anchor when Docklets
+          on Right is active, and 'Click to Expand/Compress:' label), added
+          2-Tab Credits (WayPlank 2026 vs Plank Historic with top homogeneous
+          card buttons, hidden logo/title in Credits/License mode,
+          vhomogeneous=false, and Cairo @theme_bg_color viewport fill eliminating
+          X11/Xfce black border) & Pango CJK Easter Egg marquee
+          (Ctrl+Alt+Shift+Left Click on About logo with B10.1 DELETE_EVENT close
+          fix), and classified all WayPlank dialogs as 'dialog' on GNOME Mutter
+          (B6.2/B15.1).
    [ok] 7.12 Shortcuts & Gestures Centering:
         - Does not apply (no window positioning possible in Labwc).
    [ok] 7.13 Workspace Only Wayland Dormancy:
@@ -1688,9 +1883,11 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
    [ko->ok] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
-          then close Preferences: verify all 43 DockPreferences keys + 5
-          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
-          restored 100% across restarts even after dconf reset.
+          then close Preferences: verify all 43 DockPreferences keys + 7
+          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
+          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
+          across restarts even after dconf reset (including B8.1 preservation
+          when FreeDockItems is empty).
         - Run '"FAT/Test Files/Environment/Test environments.sh"' across
           Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
@@ -1745,7 +1942,7 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           60 FPS interpolation
         - Clipped rendering prevents scrolled-out items/shadows from bleeding
           past background
-   [ko->test] 10.4 Docklet Scroll Conflict Isolation:
+   [ko->ok] 10.4 Docklet Scroll Conflict Isolation:
         - Scrolling over Volume docklet adjusts audio volume without scrolling
           dock
         - Scrolling over Brightness docklet adjusts screen brightness without
@@ -1866,7 +2063,7 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [ko->test] 12.4 Window Activation & Selection from Card:
+   [ko->ok] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
@@ -1891,8 +2088,8 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
    [ok] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - Verify Accordion collapses toward outer edge (leftmost when Docklets
           left, rightmost when Docklets on Right), expands on hover or click
-          ('Click to Expand') and during drag-over, and never collapses <= 1
-          docklet.
+          ('Click to Expand/Compress') and during drag-over, and never collapses
+          <= 1 docklet.
    [ok] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
         - Open Preferences dialog: verify window default dimensions are compact
           (560x480) with zero horizontal label wrapping or forced stretching.
@@ -1918,8 +2115,8 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS | 110 BASELINE [ok] | 1 [ko->o
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 ================================================================================
-SESSION 3 RESULT: IN LIVE BURN-IN FOR V0.7.1 (LABWC / wlroots Backend) - 1 [ko->ok] + 6 [ko->test] + 6 [  ] | 0 [ko]
+SESSION 3 RESULT: PASSED - 100.0% QUALIFIED FOR V0.7.1 (LABWC / wlroots Backend) - 113 [ok] + 10 [ko->ok] | 0 [ko]
 ================================================================================
-  * Tests: 125 | Consolidated Baseline: 110 [ok] | Squashed: 1 [ko->ok] (7.17) | Remediations: 6 [ko->test] | New Features: 6 [  ]
-  * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko] | Burn-In Baseline: 90.2% (111/123 Applicable)
+  * Tests: 125 | Consolidated Baseline: 113 [ok] | Squashed: 10 [ko->ok] (1.9, 1.11, 6.12, 6.14, 6.18, 7.9, 7.11, 7.17, 10.4, 12.4) | Remediations: 0 [ko->test] | New Features: 0 [  ]
+  * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko] | Final Compliance: 100.0% (123/123 Applicable)
 ================================================================================

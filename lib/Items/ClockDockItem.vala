@@ -23,6 +23,7 @@ namespace Plank
 	public class ClockDockItem : DockItem
 	{
 		uint timer_id = 0;
+		string last_rendered_minute = "";
 		
 		public ClockDockItem ()
 		{
@@ -41,18 +42,27 @@ namespace Plank
 			Button = PopupButton.RIGHT;
 			
 			update_clock_text ();
+			notify["IsAttached"].connect (on_attached_changed);
 			start_timer ();
 		}
 		
 		~ClockDockItem ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 		}
 
 		public override void cleanup ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached)
+				refresh_clock ();
 		}
 		
 		void start_timer ()
@@ -86,12 +96,25 @@ namespace Plank
 		{
 			var now = new DateTime.now_local ();
 			Text = now.format ("%A %e %B %Y\n%H:%M:%S");
+			last_rendered_minute = now.format ("%Y-%m-%d %H:%M");
 		}
 		
+		void refresh_clock ()
+		{
+			var now = new DateTime.now_local ();
+			Text = now.format ("%A %e %B %Y\n%H:%M:%S");
+			string minute_key = now.format ("%Y-%m-%d %H:%M");
+			if (minute_key != last_rendered_minute) {
+				last_rendered_minute = minute_key;
+				reset_icon_buffer ();
+			}
+		}
+
 		bool on_timer_tick ()
 		{
-			update_clock_text ();
-			reset_icon_buffer ();
+			if (!IsAttached)
+				return true;
+			refresh_clock ();
 			return true;
 		}
 		

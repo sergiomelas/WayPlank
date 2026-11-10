@@ -96,6 +96,75 @@ def run_kwin_konsole():
     print("👉 Look at the Konsole icon on your Wayplank dock: it is now bouncing!")
     print("👉 Click on the Konsole window/icon to give it focus: the bouncing stops immediately.")
 
+def run_gnome_urgency():
+    print("ℹ️  TESTER NOTE: A terminal window (Konsole / GNOME Terminal / Console) will be targeted for urgency.")
+    print("👉 Switch focus to another window (e.g. Browser or Editor) RIGHT NOW!")
+    print("   In 3 seconds, Mutter will trigger 'demands_attention' on the terminal window.")
+    print("")
+
+    for i in range(3, 0, -1):
+        print(f"Triggering in {i} seconds...")
+        time.sleep(1)
+
+    js_code = """(() => {
+        const winList = (global.display && global.display.list_all_windows)
+            ? global.display.list_all_windows()
+            : global.get_window_actors().map(a => a.meta_window).filter(Boolean);
+        const focusWin = global.display.get_focus_window ? global.display.get_focus_window() : global.display.focus_window;
+        let targetWin = null;
+        for (const w of winList) {
+            if (!w) continue;
+            const cls = ((w.get_wm_class ? w.get_wm_class() : '') || '').toLowerCase();
+            const appId = ((w.get_gtk_application_id ? w.get_gtk_application_id() : '') || '').toLowerCase();
+            if (cls.includes('konsole') || cls.includes('terminal') || cls.includes('console') || cls.includes('kgx') ||
+                appId.includes('konsole') || appId.includes('terminal') || appId.includes('console') || appId.includes('kgx')) {
+                targetWin = w;
+                break;
+            }
+        }
+        if (!targetWin) {
+            for (const w of winList) {
+                if (!w || w === focusWin) continue;
+                if (this._classifyWindow && this._classifyWindow(w) === 'other') {
+                    targetWin = w;
+                    break;
+                }
+            }
+        }
+        if (!targetWin || typeof targetWin.set_demands_attention !== 'function')
+            return 'none';
+        if (targetWin === focusWin) {
+            for (const w of winList) {
+                if (w && w !== targetWin && !w.minimized && (!this._classifyWindow || this._classifyWindow(w) === 'other')) {
+                    try { w.activate(global.get_current_time()); } catch (e) { }
+                    break;
+                }
+            }
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                try { targetWin.set_demands_attention(); } catch (e) { }
+                this._notifyWindowsChanged();
+                return GLib.SOURCE_REMOVE;
+            });
+            return 'triggered_after_unfocus';
+        }
+        targetWin.set_demands_attention();
+        this._notifyWindowsChanged();
+        return 'triggered';
+    })()"""
+
+    subprocess.run([
+        "gdbus", "call", "--session",
+        "--dest", "org.wayplank.GnomeBridge",
+        "--object-path", "/org/wayplank/GnomeBridge",
+        "--method", "org.wayplank.GnomeBridge.Eval",
+        js_code
+    ], capture_output=True, text=True)
+
+    print("")
+    print("🔔 URGENCY HINT TRIGGERED ON GNOME / MUTTER!")
+    print("👉 Look at the terminal icon on your Wayplank dock: it is now bouncing!")
+    print("👉 Click on the terminal window/icon to give it focus: the bouncing stops immediately.")
+
 def run_terminal_bell():
     print("👉 Switch focus to another window (e.g. Browser or Editor) RIGHT NOW!")
     print("   In 3 seconds, urgency will be triggered on this terminal.")
@@ -128,6 +197,8 @@ def main():
         sys.exit(0)
     elif comp == "kwin":
         run_kwin_konsole()
+    elif comp == "gnome":
+        run_gnome_urgency()
     else:
         run_terminal_bell()
 

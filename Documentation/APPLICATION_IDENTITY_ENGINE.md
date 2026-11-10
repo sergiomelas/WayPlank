@@ -1,29 +1,30 @@
 # 🏛️ WAYPLANK APPLICATION IDENTIFICATION & DISCOVERY ENGINE SPECIFICATION
 
-> **Formal Software Architecture Specification for Window-to-Launcher Resolution, Process Introspection, Scoring & Selection Criteria**  
+> **Formal Software Architecture Specification for Multi-OS Launcher & Process Data Abstraction (`IAppSystem`), Window-to-Launcher Resolution, Scoring & Selection Criteria**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
 > **Target Modules (`Tier 2 — 100% Portable Core HAL-Consumer`):** [`lib/Services/ApplicationIdentity.vala`](../lib/Services/ApplicationIdentity.vala), [`lib/Services/ApplicationDiscovery.vala`](../lib/Services/ApplicationDiscovery.vala), [`lib/Services/WindowManager.vala`](../lib/Services/WindowManager.vala)  
-> **Companion Architecture Specifications:** [Documentation/HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md) • [Documentation/DBUS_ARCHITECTURE.md](DBUS_ARCHITECTURE.md)  
+> **Companion Architecture Specifications:** [README.md](../README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) • [HAL_BUSES.md](HAL_BUSES.md) • [WINPLANK_PORT_BATTLE_PLAN.md](WINPLANK_PORT_BATTLE_PLAN.md) • [USER_GUIDE.md](USER_GUIDE.md)  
 > **Compliance & Verification Baseline:** [CONTRIBUTING.md](../CONTRIBUTING.md) • [FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md](../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md) • [Changelogs/CHANGELOG_v0.1.0.md](../Changelogs/CHANGELOG_v0.1.0.md) $\longrightarrow$ [Changelogs/CHANGELOG_v0.7.1.md](../Changelogs/CHANGELOG_v0.7.1.md) • Verified via 10-Iteration Top-Down / Bottom-Up / Tera Logical Simulator ($65,025$ pairwise cross-product evaluations, $0$ failures)
 
 ---
 
 ## 📌 Table of Contents
 
-- [1. Architectural Concept & Model (The Idea)](#1-architectural-concept--model-the-idea)
-  - [1.1 System Purpose & Scope](#11-system-purpose--scope)
-  - [1.2 The Dual-Entity Model: Static Identity ($I$) vs. Live Window Descriptor ($W$)](#12-the-dual-entity-model-static-identity-i-vs-live-window-descriptor-w)
-  - [1.3 3-Compositor Telemetry Contract & End-to-End Pipeline](#13-3-compositor-telemetry-contract--end-to-end-pipeline)
-- [2. The Standard Identification Engine (Normal `.desktop` ↔ `Exec` & Process Matching)](#2-the-standard-identification-engine-normal-desktop--exec--process-matching)
-  - [2.1 `.desktop` Discovery, Search Hierarchy & Visibility Dispositions](#21-desktop-discovery-search-hierarchy--visibility-dispositions)
-  - [2.2 `Exec=` Command Grammar, Wrapper Unwrapping & Binary Tokenization](#22-exec-command-grammar-wrapper-unwrapping--binary-tokenization)
-  - [2.3 Live Process Introspection (`/proc/<pid>` ↔ `WindowInfo`)](#23-live-process-introspection-procpid--windowinfo)
+- [1. Architectural Concept, Multi-OS Data Abstraction (`IAppSystem`) & Dual-Entity Model](#1-architectural-concept-multi-os-data-abstraction-iappsystem--dual-entity-model)
+  - [1.1 System Purpose, Scope & Single-Pass Immutable Identity Lock](#11-system-purpose-scope--single-pass-immutable-identity-lock)
+  - [1.2 The Multi-OS Launcher & Process Data Abstraction Layer (`IAppSystem`: `.desktop` & `/proc` ⟷ `.lnk`, `AUMID` & `Win32`)](#12-the-multi-os-launcher--process-data-abstraction-layer-iappsystem-desktop--proc--lnk-aumid--win32)
+  - [1.3 The Dual-Entity Model: Static Identity ($I$) vs. Live Window Descriptor ($W$)](#13-the-dual-entity-model-static-identity-i-vs-live-window-descriptor-w)
+  - [1.4 4-Compositor Telemetry Contract & End-to-End Pipeline](#14-4-compositor-telemetry-contract--end-to-end-pipeline)
+- [2. The Standard Identification Engine (Normal `.desktop` / `.lnk` ↔ `Exec` & Process Matching)](#2-the-standard-identification-engine-normal-desktop--lnk--exec--process-matching)
+  - [2.1 Launcher Discovery, Search Hierarchy (`~/Desktop` Included) & Visibility Dispositions](#21-launcher-discovery-search-hierarchy-desktop-included--visibility-dispositions)
+  - [2.2 `Exec=` / `.lnk` Command Grammar, Wrapper Unwrapping & Binary Tokenization](#22-exec--lnk-command-grammar-wrapper-unwrapping--binary-tokenization)
+  - [2.3 Live Process Introspection (`ProcessSnapshot` ↔ `WindowInfo`)](#23-live-process-introspection-processsnapshot--windowinfo)
   - [2.4 The 5-Stage Standard Matching Algorithm (`Exec` ↔ Process & Window)](#24-the-5-stage-standard-matching-algorithm-exec--process--window)
   - [2.5 Multi-Launcher Equivalence & Sibling Co-Illumination (`shares_application_with`)](#25-multi-launcher-equivalence--sibling-co-illumination-shares_application_with)
-  - [2.6 Unmatched Process Fallback Synthesis (`wayplank-app-*.desktop`) & Garbage Collection](#26-unmatched-process-fallback-synthesis-wayplank-app-desktop--garbage-collection)
+  - [2.6 Unmatched Process Fallback Synthesis (`.desktop` / `.lnk`) & Garbage Collection](#26-unmatched-process-fallback-synthesis-desktop--lnk--garbage-collection)
 - [3. The Specialized & Multiplexed Runtime Engine (Advanced Isolation, Scoring & Selection)](#3-the-specialized--multiplexed-runtime-engine-advanced-isolation-scoring--selection)
   - [3.1 Specialization Model (`is_specialized`) & The `>= 115` Canonical Override Rule](#31-specialization-model-is_specialized--the--115-canonical-override-rule)
-  - [3.2 Single-Process Browser & Web-Application Isolation Specification](#32-single-process-browser--web-application-isolation-specification)
+  - [3.2 Single-Process Browser, PWA & Event-Driven Multi-Profile Isolation (`Chrome:<Profile>`)](#32-single-process-browser-pwa--event-driven-multi-profile-isolation-chromeprofile)
   - [3.3 Terminal-Hosted Command Execution Specification (`-e`, `--`, `-x`, `Terminal=true`)](#33-terminal-hosted-command-execution-specification--e-----x-terminaltrue)
   - [3.4 Generic Runtime & Container Specification (Interpreters, VMs, Wine/Win32)](#34-generic-runtime--container-specification-interpreters-vms-winewin32)
   - [3.5 Master Scoring Function $S(I, W)$, Effective Score $S_{\text{eff}}(I, W)$ & Selection Criteria](#35-master-scoring-function-si-w-effective-score-s_texteffi-w--selection-criteria)
@@ -31,18 +32,85 @@
 
 ---
 
-## 1. Architectural Concept & Model (The Idea)
+## 1. Architectural Concept, Multi-OS Data Abstraction (`IAppSystem`) & Dual-Entity Model
 
-### 1.1 System Purpose & Scope
+### 1.1 System Purpose, Scope & Single-Pass Immutable Identity Lock
 
-In a Wayland desktop environment, there is no global X11 window property tree linking a surface back to the `.desktop` launcher file that started it. When a window appears on screen, the dock must deterministically answer three questions:
-1. **Window-to-Launcher Binding (`best_desktop_file_for_window`):** Which `.desktop` file owns this window so the dock can display the right icon, title, and running indicator?
+In modern Wayland and Windows desktop environments, there is no legacy X11 property tree linking a surface directly to the dock launcher file that started it. When a window appears on screen, the dock must deterministically answer three questions:
+1. **Window-to-Launcher Binding (`best_desktop_file_for_window`):** Which installed launcher (`.desktop` on Linux/BSD or `.lnk` / UWP `AUMID` on Windows) owns this window so the dock can display the right icon, title, and running indicator?
 2. **Dock Item Ownership & Co-Illumination (`is_best_launcher_for_window`):** For each pinned icon on the dock or inside a Folder Drawer, does this window belong to that icon?
-3. **Unmatched CLI Synthesis (`synthesize_fallback_desktop_file`):** If the window was launched directly from a command-line shell without any installed `.desktop` file, how does the dock construct a temporary launcher that can also be pinned (`Keep in Dock`) and cold-relaunched?
+3. **Unmatched CLI Synthesis (`synthesize_fallback_desktop_file`):** If the window was launched directly from a command-line shell without any installed launcher file, how does the dock construct a temporary launcher that can also be pinned (`Keep in Dock`) and cold-relaunched?
+
+> [!IMPORTANT]
+> **Single-Pass Window Identification & Immutable Lock (`v0.7.1+` Invariant):**  
+> Every window is identified **exactly once** upon creation (`on_window_opened` / `scan_initial_windows`) inside `ApplicationIdentity`, locked immutably for the entire lifetime of `window.Id` (`window_locked_launcher_uris[window.Id]`, `window_locked_display_names[window.Id]`, `window_browser_profiles[window.Id]`), and purged strictly upon window destruction (`on_window_closed`). All downstream consumers query the locked result in $O(1)$.
 
 ---
 
-### 1.2 The Dual-Entity Model: Static Identity ($I$) vs. Live Window Descriptor ($W$)
+### 1.2 The Multi-OS Launcher & Process Data Abstraction Layer (`IAppSystem`: `.desktop` & `/proc` ⟷ `.lnk`, `AUMID` & `Win32`)
+
+To keep the mathematical scoring engine (`ApplicationIdentity` and `ApplicationDiscovery` in `lib/Services/`) **100% OS-neutral across Linux, BSD, and Windows**, all OS-specific file parsing and process inspection are isolated behind **`hal/Interfaces/IAppSystem.vala`** (frozen on the Linux side in **`v0.7.2` Public Beta 3** and plugged into Windows in **`v0.7.3` Public Beta 4** per [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) and [WINPLANK_PORT_BATTLE_PLAN.md](WINPLANK_PORT_BATTLE_PLAN.md)):
+
+```mermaid
+flowchart TD
+    subgraph STATIC_DRIVERS ["💾 Static Launcher Drivers Below IAppSystem (hal/)"]
+        direction LR
+        FDO_DESK["Linux / BSD Driver (hal/Freedesktop/Xdg/XdgAppSystem.vala — Frozen in v0.7.2)\n• Parses XDG .desktop & ~/Desktop files\n• Extracts Exec=, StartupWMClass=, Path=, URL=, X-Flatpak="]
+        WIN_LNK["Windows Driver (hal/Windows/AppSystem/Win32AppSystem.vala — Plugged in v0.7.3)\n• Parses Start Menu & Desktop .lnk via COM IShellLinkW\n• Extracts UWP AppUserModelID (PKEY_AppUserModel_ID) & 256x256 SHIL_JUMBO Icons"]
+    end
+
+    subgraph LIVE_DRIVERS ["⚡ Live Window, Process & Bus Drivers Below HAL Contracts (hal/)"]
+        direction LR
+        LIN_LIVE["Linux / BSD Live Drivers (Frozen in v0.7.2)\n• Compositors: KWin / Mutter / Labwc (IWindowBackend)\n• Kernel: /proc/pid/{cmdline,comm,environ,fd} or BSD sysctl (IAppSystem)\n• Bus: D-Bus com.canonical.dbusmenu id=61 + Local State (IAppMenuBus)"]
+        WIN_LIVE["Windows Live Drivers (Plugged in v0.7.3)\n• Compositor: Windows Compositor HWND / Class / AUMID (IWindowBackend)\n• Kernel: QueryFullProcessImageNameW + PEB CommandLine & Env (IAppSystem)\n• Bus: Windows Bus UIAutomation Profile + Local State (IAppMenuBus)"]
+    end
+
+    subgraph HAL_DATA ["🔌 Normalized HAL Data Structs (hal/Interfaces/IAppSystem.vala)"]
+        direction LR
+        APP_DESC["struct AppDescriptor (OS-Neutral Static Launcher Record)\n• uri, base_id, display_name, icon_token\n• exec_command, working_dir, url_target\n• startup_wm_class_or_aumid, sandbox_ids\n• is_nodisplay, is_terminal, browser_profile"]
+        PROC_SNAP["struct ProcessSnapshot & WindowInfo (OS-Neutral Live Record)\n• window_id, app_id, res_class, res_name, caption, pid\n• executable_comm, full_cmdline, child_cmdlines\n• env_appimage, env_wineprefix, locked_browser_profile"]
+    end
+
+    subgraph ENGINE ["🎯 100% OS-Neutral Mathematical Identity Engine (lib/Services/)"]
+        ID_CORE["ApplicationIdentity (I) & ApplicationDiscovery\n• 6-Layer Unwrapping & Tokenization (T_primary, T_wmclass, T_exec, T_args, T_mod)\n• Pairwise Score S(I, W) in [0..124] & Global Optimal Assignment\n• Fallback CLI Synthesis via IAppSystem (.desktop on Linux/BSD • .lnk on Windows)"]
+    end
+
+    FDO_DESK ==>|"v0.7.2 Linux Freeze"| APP_DESC
+    WIN_LNK -.->|"v0.7.3 Windows Plug-In"| APP_DESC
+    LIN_LIVE ==>|"v0.7.2 Linux Freeze"| PROC_SNAP
+    WIN_LIVE -.->|"v0.7.3 Windows Plug-In"| PROC_SNAP
+    APP_DESC & PROC_SNAP ==> ID_CORE
+```
+
+#### Table 1.2.A — Static Launcher Normalization (`AppDescriptor`: `.desktop` ⟷ `.lnk` & UWP `AUMID`)
+
+| Normalized `AppDescriptor` Field (`IAppSystem`) | Linux / BSD Source (`hal/Freedesktop/Xdg/XdgAppSystem.vala`) | Windows `7 ⟷ 11+` Source (`hal/Windows/AppSystem/Win32AppSystem.vala`) | Role in `ApplicationIdentity` ($I$) |
+| :--- | :--- | :--- | :--- |
+| **`uri` & `base_id`** | `file:///.../org.kde.dolphin.desktop` $\rightarrow$ stem `org.kde.dolphin` | `file:///C:/.../Visual Studio Code.lnk` $\rightarrow$ stem `visual-studio-code` | Primary identity key & tie-break lookup |
+| **`display_name`** | Localized `Name[lang]=` / `Name=` key | Shortcut filename stem or `IShellFolder::GetDisplayNameOf` (`SHGDN_NORMAL`) | Populates $T_{\text{words}}$ & Stage 5 title matching |
+| **`exec_command`** | `Exec=` command string (with `%U`/`%f`/`@@` field codes) | `IShellLinkW::GetPath()` + `" "` + `IShellLinkW::GetArguments()` | Feeds the 6-Layer command/script/wrapper unwrapper ($T_{\text{exec}}, T_{\text{args}}, T_{\text{mod}}$) |
+| **`working_dir`** | `Path=` key in `.desktop` | `IShellLinkW::GetWorkingDirectory()` | Leaf folder name added to $T_{\text{args}}$ for Wine/runtime games |
+| **`startup_wm_class_or_aumid`** | `StartupWMClass=` key in `.desktop` | COM `IPropertyStore::GetValue(PKEY_AppUserModel_ID)` (`AUMID`) on `.lnk` / UWP package | Populates $T_{\text{wmclass}}$ and $T_{\text{primary}}$ (Stage 1 `100`-pt & Tier 1 `120`-pt match) |
+| **`sandbox_ids`** | `X-Flatpak=`, `X-Flatpak-RenamedFrom=`, `X-SnapInstanceName=` | UWP `PackageFamilyName` (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`) | Added directly to $T_{\text{primary}}$ for sandboxed/Store apps |
+| **`url_target`** | `Type=Link` / `URL=` / `URL[$e]=` | Internet shortcut `.url` (`[InternetShortcut] URL=`) | Classified as Class B1 (`is_browser_url_bookmark`) |
+| **`icon_token`** | `Icon=` theme name or image path | `IShellLinkW::GetIconLocation` or `SHGetImageList(SHIL_JUMBO)` `256×256` `GdkPixbuf` | High-DPI dock & folder drawer icon rendering |
+
+#### Table 1.2.B — Live Window & Process Normalization (`WindowInfo` + `ProcessSnapshot`)
+
+| Normalized Live Field | Linux (`KWin`/`Mutter`/`Labwc` + `/proc` + `D-Bus`) | BSD (`Wayland` + `sysctl` + `D-Bus`) | Windows (`Windows Compositor` + `Win32` + `Windows Bus`) |
+| :--- | :--- | :--- | :--- |
+| **`DesktopFileName` / `ApplicationId`** | Wayland `app_id` / KWin `desktopFileName` / Mutter `WindowTracker` | Same as Linux Wayland | Window `PKEY_AppUserModel_ID` (`SHGetPropertyStoreForWindow`) or executable stem |
+| **`ResourceClass` / `ResourceName`** | XWayland `WM_CLASS` or Wayland `app_id` | Same as Linux Wayland | `GetClassNameW(hwnd)` & module base name (`.exe` stripped by `strip_script_ext`) |
+| **`Caption` & `Pid`** | Compositor window title & `pid` | Compositor window title & `pid` | `GetWindowTextW(hwnd)` & `GetWindowThreadProcessId(hwnd, &pid)` |
+| **`Executable` (`comm`)** | `/proc/<pid>/comm` (15-byte kernel comm) | `sysctl KERN_PROC_PATHNAME` basename | `QueryFullProcessImageNameW(hProcess)` basename |
+| **`Cmdline` (`argv[0..k]`)** | `/proc/<pid>/cmdline` (NUL-separated vector) | `sysctl KERN_PROC_ARGS` | Process PEB `RTL_USER_PROCESS_PARAMETERS.CommandLine` / WMI `Win32_Process` |
+| **`Environ` (`APPIMAGE`, `WINEPREFIX`)** | `/proc/<pid>/environ` | `sysctl KERN_PROC_ENV` | Process environment block (`NtQueryInformationProcess`) |
+| **`Locked Browser Profile`** | `IAppMenuBus` (`com.canonical.dbusmenu` `id=61` + `/proc/<pid>/fd` + `~/.config/google-chrome/Local State`) | `IAppMenuBus` (`com.canonical.dbusmenu` `id=61` + `Local State`) | `IAppMenuBus` (`UIAutomation` / `HWND` property + `%LOCALAPPDATA%\Google\Chrome\User Data\Local State`) |
+| **`Synthesized CLI Launcher`** | `~/.local/share/applications/wayplank-app-<slug>.desktop` | `~/.local/share/applications/wayplank-app-<slug>.desktop` | `%APPDATA%\WinPlank\launchers\winplank-app-<slug>.lnk` (`IShellLinkW::Save`) |
+
+---
+
+### 1.3 The Dual-Entity Model: Static Identity ($I$) vs. Live Window Descriptor ($W$)
 
 The Identification Engine models application matching as a deterministic mathematical evaluation between two normalized structures:
 
@@ -89,38 +157,42 @@ flowchart LR
 
 ---
 
-### 1.3 3-Compositor Telemetry Contract & End-to-End Pipeline
+### 1.4 4-Compositor Telemetry Contract & End-to-End Pipeline
 
-#### 3-Compositor Signal Availability & Degradation Matrix:
-Per the HAL Prime Directive ([Documentation/HAL_ARCHITECTURE.md](HAL_ARCHITECTURE.md)), the engine never assumes that a field populated on KWin exists identically on Mutter or Labwc:
+#### 4-Compositor & 3-OS Signal Availability, Kernel Limitations & Universal Message Compatibility Matrix:
+Per the HAL Prime Directive ([Documentation/HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) & [Documentation/HAL_BUSES.md](HAL_BUSES.md)), the engine **never assumes** that a field populated on KWin or Linux `/proc` exists identically on Mutter, Labwc, BSD, or Windows. All messages crossing the HAL boundary (`WindowInfo`, `ProcessSnapshot`, `AppDescriptor`) use **opaque string IDs (`Id`)** and **nullable/empty-safe fields (`""` / `0`)** with deterministic multi-level fallback:
 
-| `WindowInfo` Field | KDE Plasma 6 (`KWinBridge`) | GNOME Shell (`MutterBackend`) | Labwc / wlroots (`LabwcBackend`) | Engine Graceful Degradation Rule |
-| :--- | :--- | :--- | :--- | :--- |
-| **`DesktopFileName`** | Populated (`client.desktopFileName`) | Populated via `Shell.WindowTracker` (may be `""` on custom scripts/Wine) | `""` (not in `wlr-foreign-toplevel`) | Treated as optional; falls back seamlessly to `ApplicationId` / `ResourceClass` / `/proc/<pid>`. |
-| **`ApplicationId`** | Populated (`client.resourceClass` / Wayland `app_id`) | Populated (`meta_window_get_gtk_application_id` / `wm_class`) | Populated (`zwlr_foreign_toplevel_handle_v1.app_id`) | Normalized with `.desktop` & `.exe` stripping and `_` $\leftrightarrow$ `-` canonicalization. |
-| **`ResourceClass` / `ResourceName`** | Populated (`resourceClass` / `resourceName`) | Populated (`get_wm_class` / `get_wm_class_instance`) | Mirrors `app_id` | Checked alongside `ApplicationId` in $W_{\text{ids}}$. |
-| **`Pid`, `Executable`, `Cmdline`** | Direct compositor `pid` $\rightarrow$ `/proc/<pid>` | Direct compositor `get_pid()` $\rightarrow$ `/proc/<pid>` | Heuristic `/proc` scan (`resolve_toplevel_process`); `0` if unmatched | If `Pid == 0` or `Cmdline == ""`, relies on compositor surface IDs ($W_{\text{ids}}$) and `Caption`. |
+| Message Field (`WindowInfo` / `ProcessSnapshot`) | KDE Plasma 6 (`KWinBridge`) | GNOME Shell (`MutterBackend`) | Labwc / wlroots (`LabwcBackend`) | `Windows Compositor` (`Win32 / UWP`) | Universal Compatibility & Degradation Rule |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`Id` (Opaque Surface Key)** | UUID string (`"{...}"`) | Mutter sequence string (`"mutter:123"`) | Pointer handle string (`"wlr:0x..."`) | Hex `HWND` string (`"hwnd:0x00010A20"`) | Always an **opaque `string`**—never cast to `uint32` or `ulong` in Core/UI! |
+| **`DesktopFileName`** | Populated (`client.desktopFileName`) | Populated via `Shell.WindowTracker` (may be `""` on scripts/Wine) | Always `""` (not in `wlr-foreign-toplevel`) | Populated with `AUMID` if UWP/Store app, else `""` | Strictly optional (`""` = unknown); falls back to `ApplicationId` / `ResourceClass` / `ProcessSnapshot`. |
+| **`ApplicationId`** | Wayland `app_id` / `resourceClass` | `gtk_application_id` / `wm_class` | `zwlr_foreign_toplevel_handle_v1.app_id` | `SHGetPropertyStoreForWindow(PKEY_AppUserModel_ID)` or exe stem | Normalized with `.desktop` & `.exe` stripping and `_` $\leftrightarrow$ `-` canonicalization. |
+| **`ResourceClass` / `ResourceName`** | `resourceClass` / `resourceName` | `get_wm_class` / `get_wm_class_instance` | Mirrors `app_id` | `GetClassNameW(hwnd)` (resolving child `CoreWindow` inside `ApplicationFrameHost.exe`) | Checked alongside `ApplicationId` in $W_{\text{ids}}$. |
+| **`Pid` & `Executable` (`comm`)** | Direct compositor `pid` $\rightarrow$ `/proc/<pid>/comm` (15-byte limit) | Direct `get_pid()` $\rightarrow$ `/proc/<pid>/comm` | Heuristic `/proc` scan (`resolve_toplevel_process`); **`0` if unmatched** | `GetWindowThreadProcessId` (unwrapping `ApplicationFrameHost.exe`) $\rightarrow$ `QueryFullProcessImageNameW` | `QueryFullProcessImageNameW` uses `PROCESS_QUERY_LIMITED_INFORMATION` (succeeds even on elevated Admin processes!). If `Pid == 0`, falls back to $W_{\text{ids}}$ + `Caption`. |
+| **`Cmdline` & `Environ`** | `/proc/<pid>/cmdline` & `environ` (same UID; **`""` if `hidepid=2` or root**) | Same as KWin | **`""` when `Pid == 0`** or different UID | PEB `CommandLine` & Env (**`""` on elevated Admin / protected processes where `PROCESS_VM_READ` is denied**) | **Never required for standard matching!** When `Cmdline == ""`, Stages 1, 2, 4 (`Executable`), and 5 (`Caption`) still identify the window cleanly. |
+| **`BrowserProfile` (`IAppMenuBus`)** | `com.canonical.dbusmenu` (`id=61`) + `/proc/<pid>/fd` + `Local State` | `/proc/<pid>/fd` + `Local State` (or `dbusmenu` if active) | `/proc/<pid>/fd` + `Local State` when `Pid > 0` | `UIAutomation` / `HWND` property + `%LOCALAPPDATA%\...\Local State` | If bus/FD introspection is unavailable, degrades gracefully to profile-neutral score (`100` / `120`). |
 
 #### The Four Sequential Pipeline Phases:
-1. **Phase 0 (Surface Gatekeeping):** Rejects internal dock surfaces (`is_ignored_app`: `wayplank`, `plank`, `xwaylandvideobridge`) and modal dialogs (`W.IsDialog`).
+1. **Phase 0 (Surface Gatekeeping):** Rejects internal dock surfaces (`is_ignored_app`: `wayplank`, `plank`, `winplank`, `xwaylandvideobridge`) and modal dialogs (`W.IsDialog`).
    - *Note:* `suppressed_nodisplay_tokens` is **never** evaluated in Phase 0, because system packages (such as Debian's `com.google.Chrome.desktop` or `org.kde.gwenview_importer.desktop`) often ship `NoDisplay=true` alias files carrying `StartupWMClass=google-chrome` or `StartupWMClass=gwenview` alongside the visible `google-chrome.desktop` / `org.kde.gwenview.desktop`.
 2. **Phase 1 (Pairwise Scoring $S(I, W)$):** Computes the intrinsic match score $S(I, W) \in [0, 124]$ between $W$ and candidate identities $I \in \mathcal{I}$, then applies cross-candidate normalization to obtain the effective score $S_{\text{eff}}(I, W)$.
 3. **Phase 2 (Selection & Co-Illumination):** Selects the winning launcher $I^*$ (via Canonical Fast-Path when no candidate achieves $\ge 115$, or via full maximization with priority tie-breaking) and illuminates running dots on all pinned/drawer launchers $I$ satisfying `is_best_launcher_for_window(I, W)`.
-4. **Phase 3 (Fallback Synthesis Gate & GC):** If $\max_{I \in \mathcal{I}_{\text{exec}}} S_{\text{eff}}(I, W) < 50$ **and** $\neg\text{is\_suppressed\_nodisplay\_window}(W)$, synthesizes a fallback `.desktop` file from $W$'s `/proc/<pid>/cmdline` and garbage-collects unpinned synthetic files when their windows close.
+4. **Phase 3 (Fallback Synthesis Gate & GC):** If $\max_{I \in \mathcal{I}_{\text{exec}}} S_{\text{eff}}(I, W) < 50$ **and** $\neg\text{is\_suppressed\_nodisplay\_window}(W)$, synthesizes a fallback launcher (`wayplank-app-*.desktop` on Linux/BSD or `winplank-app-*.lnk` on Windows) via `IAppSystem` and garbage-collects unpinned synthetic files when their windows close.
 
 ---
 
-## 2. The Standard Identification Engine (Normal `.desktop` ↔ `Exec` & Process Matching)
+## 2. The Standard Identification Engine (Normal `.desktop` / `.lnk` ↔ `Exec` & Process Matching)
 
-### 2.1 `.desktop` Discovery, Search Hierarchy & Visibility Dispositions
+### 2.1 Launcher Discovery, Search Hierarchy (`~/Desktop` Included) & Visibility Dispositions
 
-`ApplicationDiscovery` indexes `.desktop` files across the following ordered directory hierarchy (`application_folders()`), where earlier directories take precedence on duplicate desktop IDs:
-1. **Directly Pinned Dock Launchers:** Every `.desktop` file explicitly referenced by `~/.config/wayplank/dock*/launchers/*.dockitem` (indexed first so pinned launchers always win tie-breaks).
-2. `~/.local/share/applications` (User overrides, Chrome PWAs, and synthesized launchers)
-3. `~/.local/share/flatpak/exports/share/applications` and `/var/lib/flatpak/exports/share/applications` (Flatpak exports)
-4. `/usr/local/share/applications` and `/usr/share/applications` (System XDG directories)
-5. `/var/lib/snapd/desktop/applications` (Snap exports)
-6. **Pinned Folder Drawer Directories:** Every directory pointed to by a `FileDockItem` drawer in `~/.config/wayplank/dock*/launchers/*.dockitem` (and its 1st-level non-hidden subdirectories).
+`ApplicationDiscovery` indexes launchers across the following ordered directory hierarchy (`application_folders()` via `IAppSystem`), where earlier directories take precedence on duplicate IDs:
+1. **Directly Pinned Dock Launchers:** Every `.desktop` (or `.lnk`) file explicitly referenced by `~/.config/wayplank/dock*/launchers/*.dockitem` (indexed first so pinned launchers always win tie-breaks).
+2. **`~/Desktop` (`GLib.Environment.get_user_special_dir(UserDirectory.DESKTOP)` — Added in `v0.7.1`):** User desktop shortcuts (including Chrome/Chromium profile shortcuts and user-created `.desktop` / `.lnk` launchers placed on the Desktop).
+3. `~/.local/share/applications` (User overrides, Chrome PWAs, and synthesized launchers; on Windows: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\`)
+4. `~/.local/share/flatpak/exports/share/applications` and `/var/lib/flatpak/exports/share/applications` (Flatpak exports)
+5. `/usr/local/share/applications` and `/usr/share/applications` (System XDG directories; on Windows: `%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\` + UWP `PackageManager` AUMID registry)
+6. `/var/lib/snapd/desktop/applications` (Snap exports)
+7. **Pinned Folder Drawer Directories:** Every directory pointed to by a `FileDockItem` drawer in `~/.config/wayplank/dock*/launchers/*.dockitem` (and its 1st-level non-hidden subdirectories).
 
 #### Indexing & `NoDisplay` Partitioning Dispositions:
 Each discovered `.desktop` file is classified into one of four dispositions:
@@ -136,7 +208,7 @@ Each discovered `.desktop` file is classified into one of four dispositions:
 
 ---
 
-### 2.2 `Exec=` Command Grammar, Wrapper Unwrapping & Binary Tokenization
+### 2.2 `Exec=` / `.lnk` Command Grammar, Wrapper Unwrapping & Binary Tokenization
 
 #### Step 1: Lexical Tokenization, Metadata Extraction & Field Code Removal
 1. Reads `Name=`, `StartupWMClass=`, `Exec=`, `Path=`, `URL=`, `Terminal=`, and sandbox keys `X-Flatpak=`, `X-Flatpak-RenamedFrom=`, `X-SnapInstanceName=`.
@@ -179,11 +251,11 @@ flowchart LR
 
 ---
 
-### 2.3 Live Process Introspection (`/proc/<pid>` ↔ `WindowInfo`)
+### 2.3 Live Process Introspection (`ProcessSnapshot` ↔ `WindowInfo`)
 
-1. **Per-PID Cached `/proc/<pid>/cmdline` (`get_process_cmdline`):** Reads `/proc/<pid>/cmdline` once per PID (`pid_cmdline_cache`), converting NUL separators into spaces and quoting arguments containing whitespace.
-2. **Per-PID Cached `/proc/<pid>/comm` (`get_process_comm`):** Reads `/proc/<pid>/comm` once per PID (`pid_comm_cache`). Because the Linux kernel truncates `comm` to 15 bytes (`TASK_COMM_LEN - 1`), any `Executable` of length $\ge 15$ is compared as a 15-character prefix against $T_{\text{exec}}$.
-3. **Per-PID Cached `/proc/<pid>/environ` (`get_process_environ`):** Reads `/proc/<pid>/environ` at most once per PID (`pid_environ_cache`), caching `APPIMAGE=` and `WINEPREFIX=`.
+1. **Per-PID Cached `Cmdline` (`get_process_cmdline` via `IAppSystem`):** Reads `/proc/<pid>/cmdline` on Linux (`sysctl KERN_PROC_ARGS` on BSD, PEB `CommandLine` on Windows when accessible) once per PID (`pid_cmdline_cache`), converting NUL separators into spaces and quoting arguments containing whitespace.
+2. **Per-PID Cached `Executable` (`get_process_comm` via `IAppSystem`):** Reads `/proc/<pid>/comm` on Linux (`QueryFullProcessImageNameW` via `PROCESS_QUERY_LIMITED_INFORMATION` on Windows) once per PID (`pid_comm_cache`). Because the Linux kernel truncates `comm` to 15 bytes (`TASK_COMM_LEN - 1`), any `Executable` of length $\ge 15$ is compared as a 15-character prefix against $T_{\text{exec}}$.
+3. **Per-PID Cached `Environ` (`get_process_environ` via `IAppSystem`):** Reads `/proc/<pid>/environ` at most once per PID (`pid_environ_cache`), caching `APPIMAGE=` and `WINEPREFIX=`.
 
 ---
 
@@ -225,12 +297,12 @@ Two identities $I_1, I_2$ represent the same underlying application ($\text{shar
 
 ---
 
-### 2.6 Unmatched Process Fallback Synthesis (`wayplank-app-*.desktop`) & Garbage Collection
+### 2.6 Unmatched Process Fallback Synthesis (`.desktop` / `.lnk`) & Garbage Collection
 
 When $\max_{I \in \mathcal{I}_{\text{exec}}} S_{\text{eff}}(I, W) < 50$ and $\neg\text{is\_suppressed\_nodisplay\_window}(W)$:
 1. Resolves FUSE AppImage mounts (`/tmp/.mount_*`) to the permanent host path via cached `APPIMAGE=` in `pid_environ_cache[W.Pid]`.
-2. Synthesizes `~/.local/share/applications/wayplank-app-<slug>.desktop` (with `per_instance = true` when $W$ matched an Exec-less template like `qemu.desktop` or carries `-name <instance>`, and `per_instance = false` with `StartupWMClass=<W.ResourceClass>` otherwise).
-3. Automatically garbage-collects unpinned `wayplank-app-*.desktop` files when their window count drops to `0`.
+2. Synthesizes `~/.local/share/applications/wayplank-app-<slug>.desktop` on Linux/BSD (or `%APPDATA%\WinPlank\launchers\winplank-app-<slug>.lnk` via `IShellLinkW::Save` on Windows) through `IAppSystem.synthesize_fallback_launcher()`, with `per_instance = true` when $W$ matched an Exec-less template like `qemu.desktop` or carries `-name <instance>`, and `per_instance = false` with `StartupWMClass=<W.ResourceClass>` otherwise.
+3. Automatically garbage-collects unpinned synthetic launchers when their window count drops to `0`.
 
 ---
 
@@ -246,7 +318,14 @@ When a terminal emulator window is invoked with a command payload (e.g. `konsole
 
 ---
 
-### 3.2 Single-Process Browser & Web-Application Isolation Specification
+### 3.2 Single-Process Browser, PWA & Event-Driven Multi-Profile Isolation (`Chrome:<Profile>`)
+
+```mermaid
+flowchart LR
+    WIN["New Browser Window W\n(Shared Master PID on Wayland / Windows)"] --> BUS["IAppMenuBus Introspection (HAL_BUSES.md)\n• Linux: com.canonical.dbusmenu /com/canonical/menu/HEX (id=61)\n• Windows: UIAutomation / HWND Profile Property\n• Fallback: Open Profile FD Locks (/proc/pid/fd)"]
+    BUS --> STATE["Local State Info Cache\n• Linux: ~/.config/google-chrome/Local State\n• Windows: %LOCALAPPDATA%\\...\\Local State"]
+    STATE --> LOCK["Immutable Window-to-Profile Lock\n• window_browser_profiles[W.Id] = Profile\n• Dock Icon Isolation & Chrome:<ProfileName> Tooltip"]
+```
 
 1. **Five Disjoint Browser Launcher Classes:**
    - **Class B1 (URL Bookmark):** `Type=Link` / `URL=` or positional URL without `--app=`/`--app-id=`/profile flags $\rightarrow$ **$S(I, W) = 0$ always**.

@@ -2515,8 +2515,12 @@ namespace Plank
 			if (pid <= 0)
 				return "";
 			ensure_browser_tracking_maps ();
-			if (pid_to_dbus_sender.has_key (pid))
-				return pid_to_dbus_sender.get (pid);
+			if (pid_to_dbus_sender.has_key (pid)) {
+				string cached_dest = pid_to_dbus_sender.get (pid);
+				if (cached_dest != null && cached_dest != "" && !dead_dbus_senders.contains (cached_dest))
+					return cached_dest;
+				pid_to_dbus_sender.unset (pid);
+			}
 
 			try {
 				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION);
@@ -2651,7 +2655,10 @@ namespace Plank
 					if (na > nb) return 1;
 					return 0;
 				});
-			} catch (Error e) { }
+			} catch (Error e) {
+				if (pid_to_dbus_sender != null && pid_to_dbus_sender.has_key (pid) && pid_to_dbus_sender.get (pid) == dest)
+					pid_to_dbus_sender.unset (pid);
+			}
 			return result;
 		}
 
@@ -3238,12 +3245,10 @@ namespace Plank
 				if (!has_remaining_plain_browser) {
 					if (multi_window_browser_pids != null)
 						multi_window_browser_pids.remove (closed_pid);
-					if (!GLib.FileUtils.test ("/proc/%d".printf (closed_pid), GLib.FileTest.EXISTS)) {
-						if (ever_seen_browser_pids != null)
-							ever_seen_browser_pids.remove (closed_pid);
-						if (pid_to_dbus_sender != null)
-							pid_to_dbus_sender.unset (closed_pid);
-					}
+					if (ever_seen_browser_pids != null)
+						ever_seen_browser_pids.remove (closed_pid);
+					if (pid_to_dbus_sender != null)
+						pid_to_dbus_sender.unset (closed_pid);
 				}
 			}
 			if (terminal_cmdline_owner_wid != null) {

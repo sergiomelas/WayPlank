@@ -68,14 +68,6 @@ namespace Plank
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				unowned DockController? dock = get_dock ();
-				if (dock != null && dock.prefs.CategorizeItems && !dock.prefs.AnchorAlwaysLeft && dock.prefs.AccordionDocklets && dock.prefs.AccordionClickToExpand) {
-					unowned DefaultApplicationDockItemProvider? app_prov = dock.default_provider as DefaultApplicationDockItemProvider;
-					if (app_prov != null && !app_prov.docklets_expanded && app_prov.get_docklet_count () > 1) {
-						app_prov.expand_docklets ();
-						return AnimationType.BOUNCE;
-					}
-				}
 				open_preferences ();
 				return AnimationType.BOUNCE;
 			}

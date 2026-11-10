@@ -611,6 +611,7 @@ namespace Plank
 				break;
 			case "AccordionClickToExpand":
 				sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
+				update_accordion_visibility ();
 				break;
 			case "AccordionDelay":
 				double delay_sec = (prefs.AccordionDelay >= DockPreferences.MIN_ACCORDION_DELAY ? prefs.AccordionDelay : DockPreferences.DEFAULT_ACCORDION_DELAY) / 1000.0;
@@ -669,6 +670,8 @@ namespace Plank
 			case "CategorizedDockItems":
 			case "AutoPinning":
 			case "ShowDockItem":
+			case "pinned-expanded-latch":
+			case "docklets-expanded-latch":
 				break;
 			default:
 				warning ("%s not supported", prop.name);
@@ -1274,6 +1277,7 @@ namespace Plank
 		void accordion_click_to_expand_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.AccordionClickToExpand = ((Gtk.Switch) widget).get_active ();
+			update_accordion_visibility ();
 		}
 
 		void update_system_menu_access_options ()
@@ -1311,10 +1315,11 @@ namespace Plank
 			l_accordion_click_to_expand.sensitive = any_acc_active;
 			sw_accordion_click_to_expand.sensitive = any_acc_active;
 
-			l_accordion_delay.sensitive = any_acc_active;
-			box_accordion_delay.sensitive = any_acc_active;
-			sp_accordion_delay.sensitive = any_acc_active;
-			s_accordion_delay.sensitive = any_acc_active;
+			bool delay_active = any_acc_active && !prefs.AccordionClickToExpand;
+			l_accordion_delay.sensitive = delay_active;
+			box_accordion_delay.sensitive = delay_active;
+			sp_accordion_delay.sensitive = delay_active;
+			s_accordion_delay.sensitive = delay_active;
 		}
 
 		void pinned_accordion_changed (Gtk.ComboBox widget)

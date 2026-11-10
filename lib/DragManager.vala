@@ -29,6 +29,18 @@ namespace Plank
 		
 		public bool InternalDragActive { get; private set; default = false; }
 
+		/**
+		 * True once an internal drag has moved along the dock past another item
+		 * (reorder intent). Accordions only expand for internal drags after this,
+		 * so dragging a visible icon straight off the dock to remove it does not
+		 * expose every hidden pinned app / docklet.
+		 */
+		public bool InternalReorderIntent { get; private set; default = false; }
+
+		int drag_origin_x = 0;
+		int drag_origin_y = 0;
+		bool drag_origin_set = false;
+
 		public bool RemovalActive { get; private set; default = false; }
 
 		public string PendingRemovalLauncher { get; private set; default = ""; }
@@ -281,6 +293,21 @@ namespace Plank
 			Gtk.drag_set_icon_surface (context, surface);
 		}
 		
+		/**
+		 * Returns true only when the given dock item can be dragged by the user.
+		 */
+		public bool is_item_draggable (DockItem? item)
+		{
+			if (item == null || controller.prefs.LockItems || RepositionMode)
+				return false;
+			if (item is SeparatorDockItem || item is PinnedExpanderDockItem || item is TrashDockItem || item is PlankDockItem)
+				return false;
+			if ((controller.prefs.CategorizeItems || controller.prefs.AnchorAlwaysLeft)
+				&& (item is PreferencesDockItem || (item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")))
+				return false;
+			return true;
+		}
+
 		[CCode (instance_pos = -1)]
 		void drag_begin (Gtk.Widget w, Gdk.DragContext context)
 		{
@@ -291,8 +318,7 @@ namespace Plank
 			
 			DragItem = window.HoveredItem;
 			
-			if (RepositionMode || DragItem is SeparatorDockItem || DragItem is PinnedExpanderDockItem || DragItem is TrashDockItem || DragItem is PlankDockItem
-				|| ((controller.prefs.CategorizeItems || controller.prefs.AnchorAlwaysLeft) && (DragItem is PreferencesDockItem || (DragItem.Prefs != null && DragItem.Prefs.Launcher == "docklet://preferences"))))
+			if (!is_item_draggable (DragItem))
 				DragItem = null;
 			
 			if (DragItem == null) {
@@ -302,6 +328,8 @@ namespace Plank
 			
 			connect_hovered_item_handler ();
 			
+			InternalReorderIntent = false;
+			drag_origin_set = false;
 			InternalDragActive = true;
 			drag_canceled = false;
 			dropped_on_target = false;
@@ -309,20 +337,11 @@ namespace Plank
 			is_outside_dock = false;
 			last_hovered_trash = false;
 			
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+			// Accordions are NOT expanded at drag start: expansion is deferred to
+			// drag_motion () once a reorder intent is detected, so dragging a visible
+			// icon off the dock to remove it stays visually calm.
+			if (controller.app_provider != null)
 				controller.app_provider.cancel_collapse_timer ();
-				if (DefaultApplicationDockItemProvider.is_docklet_element (DragItem)) {
-					controller.app_provider.expand_docklets ();
-				}
-			}
-
-			// Smart Pinned Accordion: show every pinned app so the item can be dropped anywhere
-			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
-				controller.app_provider.cancel_collapse_timer ();
-				if (DragItem is ApplicationDockItem) {
-					controller.app_provider.expand_pinned ();
-				}
-			}
 
 			drag_origin_icon_size = controller.position_manager.IconSize;
 			
@@ -332,8 +351,10 @@ namespace Plank
 				set_drag_icon (context, DragItem, 0.8);
 			});
 			
-			context.get_device ().get_seat ().grab (window.get_window (), Gdk.SeatCapabilities.POINTER, true,
-				null, null, null);
+			if (!GtkLayerShell.is_supported ()) {
+				context.get_device ().get_seat ().grab (window.get_window (), Gdk.SeatCapabilities.POINTER, true,
+					null, null, null);
+			}
 		}
 
 		public static string? resolve_drop_uri (string raw_str)
@@ -692,6 +713,11 @@ namespace Plank
 				}
 			}
 			
+			ExternalDragActive = false;
+			drag_data = null;
+			dropped_on_target = false;
+			drop_was_directly_on_item = false;
+
 			if (handled) {
 				unowned DefaultApplicationDockItemProvider? def_prov = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (def_prov != null) {
@@ -710,10 +736,6 @@ namespace Plank
 			}
 
 			Gtk.drag_finish (context, handled, false, time_);
-			ExternalDragActive = false;
-			drag_data = null;
-			dropped_on_target = false;
-			drop_was_directly_on_item = false;
 			controller.check_collapse_after_interaction ();
 			if (controller.renderer != null)
 				controller.renderer.animated_draw ();
@@ -899,13 +921,16 @@ namespace Plank
 			
 			cancel_drag_timers ();
 			InternalDragActive = false;
+			InternalReorderIntent = false;
 			DragItem = null;
 			active_drag_context = null;
 			drop_target_item = null;
 			dropped_on_target = false;
 			left_dock_during_drag = false;
 			last_hovered_trash = false;
-			context.get_device ().get_seat ().ungrab ();
+			if (!GtkLayerShell.is_supported ()) {
+				context.get_device ().get_seat ().ungrab ();
+			}
 
 			if (!RemovalActive) {
 				unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
@@ -1209,6 +1234,7 @@ namespace Plank
 					ExternalDragActive = false;
 					controller.hover.hide ();
 					controller.window.update_hovered (-1, -1);
+					controller.check_collapse_after_interaction ();
 					controller.renderer.animated_draw ();
 					controller.hide_manager.update_hovered ();
 					return false;
@@ -1240,6 +1266,11 @@ namespace Plank
 			}
 			if (RepositionMode)
 				return true;
+
+			// Never treat an aborted self-drag (where Gdk.drag_abort is a no-op on Wayland)
+			// as an external drag from another application
+			if (Gtk.drag_get_source_widget (context) == controller.window && !InternalDragActive)
+				return false;
 
 			if (ExternalDragActive == InternalDragActive)
 				ExternalDragActive = !InternalDragActive;
@@ -1287,20 +1318,48 @@ namespace Plank
 				start_spring_loaded_timer (window.HoveredItem);
 			}
 			
+			// Reorder intent: the pointer is still over the dock (drag_motion only fires
+			// inside it) and the motion from the drag origin is predominantly ALONG the
+			// dock axis. Dragging straight / diagonally off the dock never sets this.
+			bool reorder_just_detected = false;
+			if (InternalDragActive && !InternalReorderIntent && DragItem != null) {
+				if (!drag_origin_set) {
+					drag_origin_x = x;
+					drag_origin_y = y;
+					drag_origin_set = true;
+				}
+				unowned PositionManager pm = controller.position_manager;
+				int dx = (x - drag_origin_x).abs ();
+				int dy = (y - drag_origin_y).abs ();
+				int along = pm.is_horizontal_dock () ? dx : dy;
+				int perp = pm.is_horizontal_dock () ? dy : dx;
+				// Direction-based intent: at least half an icon along the dock and
+				// the motion predominantly along the dock axis (along >= 2 x perp, ~27 deg)
+				if (2 * along >= pm.IconSize && along >= 2 * perp) {
+					InternalReorderIntent = true;
+					reorder_just_detected = true;
+				}
+			}
+			
 			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
 				if (controller.app_provider.docklets_expanded) {
 					controller.app_provider.cancel_collapse_timer ();
-				} else if (window.is_hovering_docklets (x, y)) {
-					controller.app_provider.expand_docklets ();
+				} else if (window.is_hovering_docklets (x, y)
+					|| (reorder_just_detected && DefaultApplicationDockItemProvider.is_docklet_element (DragItem))) {
+					controller.app_provider.expand_docklets (false, true);
 				}
 			}
 
-			// Smart Pinned Accordion: dragging over the expander opens it (spring-loaded like docklets)
+			// Smart Pinned Accordion: expand all pinned apps during external drag,
+			// during an internal reorder, or when hovering the expander
 			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
 				if (controller.app_provider.pinned_expanded) {
 					controller.app_provider.cancel_collapse_timer ();
-				} else if (window.HoveredItem is PinnedExpanderDockItem) {
-					controller.app_provider.expand_pinned ();
+				} else if (ExternalDragActive
+					|| (InternalReorderIntent && DragItem is ApplicationDockItem)
+					|| (window.HoveredItem is PinnedExpanderDockItem
+						&& !((PinnedExpanderDockItem) window.HoveredItem).IsDockletExpander)) {
+					controller.app_provider.expand_pinned (false, true);
 				}
 			}
 			
@@ -1366,6 +1425,18 @@ namespace Plank
 			if (InternalDragActive && DragItem != null && hovered_item != null
 				&& DragItem != hovered_item
 				&& DragItem.Container == hovered_item.Container) {
+				// No reorder until the reorder intent is decided while a collapsed
+				// accordion would still expand: avoids a reorder snap followed by an
+				// accordion jump (single visual transition).
+				unowned DefaultApplicationDockItemProvider? ap = controller.app_provider;
+				if (!InternalReorderIntent && ap != null) {
+					bool pinned_pending = ap.is_pinned_accordion_enabled () && !ap.pinned_expanded
+						&& DragItem is ApplicationDockItem;
+					bool docklets_pending = controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets
+						&& !ap.docklets_expanded && DefaultApplicationDockItemProvider.is_docklet_element (DragItem);
+					if (pinned_pending || docklets_pending)
+						return;
+				}
 				unowned Gee.ArrayList<DockElement> elements = DragItem.Container.Elements;
 				int drag_idx = elements.index_of (DragItem);
 				int hover_idx = elements.index_of (hovered_item);

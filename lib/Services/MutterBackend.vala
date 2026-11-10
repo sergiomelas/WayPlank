@@ -311,9 +311,6 @@ export default class WayplankBridgeImpl {
             }
             this._notifyWindowsChanged();
         };
-        try {
-            this._signals.push(display.connect('focus-window', (d, win) => handleFocus(win)));
-        } catch (e) { }
         this._signals.push(display.connect('notify::focus-window', () => handleFocus(null)));
         const initFw = display.get_focus_window ? display.get_focus_window() : display.focus_window;
         if (initFw && this._classifyWindow(initFw) === 'other') {
@@ -493,21 +490,13 @@ export default class WayplankBridgeImpl {
             role === 'tooltip' || role === 'popup-menu')
             return 'hover';
 
-        // 2. Dialog Windows (Preferences, Shortcuts/Help, Weather, Session, Icon Chooser, About)
-        if (lowerTitle.includes('prefer') || lowerTitle.includes('setting') ||
-            lowerTitle.includes('short') || lowerTitle.includes('help') ||
-            lowerTitle.includes('weather') || lowerTitle.includes('meteo') ||
-            lowerTitle.includes('scorciatoie') || lowerTitle.includes('aiuto') ||
-            lowerTitle.includes('session') || lowerTitle.includes('icon') ||
-            role === 'preferences' || role === 'help' || role.includes('dialog') ||
-            type === Meta.WindowType.DIALOG)
-            return 'dialog';
-
-        // 3. Dock Window: ONLY if title is exactly 'wayplank' or role is 'dock' or type is DOCK
+        // 2. Dock Window: ONLY if title is exactly 'wayplank' or role is 'dock' or type is DOCK
         if (lowerTitle === 'wayplank' || role === 'dock' || type === Meta.WindowType.DOCK)
             return 'dock';
 
-        return 'unknown';
+        // 3. Dialog Windows: Any remaining WayPlank-owned window (Preferences, FirstRunWindow,
+        //    About WayPlank, Shortcuts/Help, Weather, Calendar, Session, Icon Chooser, Confirmations)
+        return 'dialog';
     }
 
     _isWindowAlive(win) {

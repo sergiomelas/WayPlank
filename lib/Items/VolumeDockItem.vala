@@ -29,6 +29,9 @@ namespace Plank
 		bool is_muted = false;
 		bool is_disposed = false;
 		bool poll_in_flight = false;
+		static string? cached_wpctl_path = null;
+		static bool wpctl_probed = false;
+		static string[]? c_locale_env = null;
 		
 		public VolumeDockItem ()
 		{
@@ -47,6 +50,7 @@ namespace Plank
 			Button = PopupButton.RIGHT;
 			
 			refresh_volume_status (true);
+			notify["IsAttached"].connect (on_attached_changed);
 			init_timer_1 = Timeout.add (800, () => {
 				init_timer_1 = 0;
 				schedule_volume_poll ();
@@ -63,14 +67,22 @@ namespace Plank
 		~VolumeDockItem ()
 		{
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 		}
 
 		public override void cleanup ()
 		{
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached)
+				schedule_volume_poll ();
 		}
 		
 		void start_timer ()
@@ -116,9 +128,16 @@ namespace Plank
 			int exit_status;
 			string output;
 
-			if (Environment.find_program_in_path ("wpctl") != null) {
+			if (!wpctl_probed) {
+				cached_wpctl_path = Environment.find_program_in_path ("wpctl");
+				c_locale_env = Environ.set_variable (Environ.get (), "LC_ALL", "C", true);
+				wpctl_probed = true;
+			}
+
+			if (cached_wpctl_path != null) {
 				try {
-					if (Process.spawn_command_line_sync ("env LC_ALL=C wpctl get-volume @DEFAULT_AUDIO_SINK@", out output, null, out exit_status) && exit_status == 0) {
+					string[] argv = { cached_wpctl_path, "get-volume", "@DEFAULT_AUDIO_SINK@" };
+					if (Process.spawn_sync (null, argv, c_locale_env, SpawnFlags.STDERR_TO_DEV_NULL, null, out output, null, out exit_status) && exit_status == 0) {
 						var idx = output.index_of ("Volume: ");
 						if (idx >= 0) {
 							bool parsed_muted = output.contains ("[MUTED]");
@@ -220,7 +239,7 @@ namespace Plank
 				CountVisible = false;
 			} else {
 				Text = _("Volume: %d%%").printf (volume);
-				Count = volume;
+				Count = 1;
 				BadgeText = "%d%%".printf (volume);
 				CountVisible = true;
 				if (volume == 0)
@@ -238,6 +257,8 @@ namespace Plank
 		
 		bool on_timer_tick ()
 		{
+			if (!IsAttached)
+				return true;
 			schedule_volume_poll ();
 			return true;
 		}

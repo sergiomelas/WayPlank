@@ -83,6 +83,7 @@ namespace Plank
 		private uint absorber_owner_id = 0;
 		private bool standalone_absorber_active = false;
 		private FallbackNotificationAbsorber? absorber_obj = null;
+		private GLib.Settings? gnome_notif_settings = null;
 
 		public DoNotDisturbDockItem ()
 		{
@@ -118,8 +119,27 @@ namespace Plank
 				);
 			}
 
+			if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)) {
+				var schema_src = SettingsSchemaSource.get_default ();
+				if (schema_src != null && schema_src.lookup ("org.gnome.desktop.notifications", true) != null) {
+					gnome_notif_settings = new GLib.Settings ("org.gnome.desktop.notifications");
+					gnome_notif_settings.changed["show-banners"].connect (() => {
+						if (!is_disposed && gnome_notif_settings != null)
+							set_dnd_state (!gnome_notif_settings.get_boolean ("show-banners"));
+					});
+				}
+			}
+
+			notify["IsAttached"].connect (on_attached_changed);
 			schedule_dnd_poll ();
-			start_timer ();
+			if (gnome_notif_settings == null && !(dbus_signal_id > 0 && environment_is_session_desktop (XdgSessionDesktop.KDE)))
+				start_timer ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached && gnome_notif_settings == null)
+				schedule_dnd_poll ();
 		}
 
 		~DoNotDisturbDockItem ()
@@ -212,6 +232,8 @@ namespace Plank
 		{
 			if (poll_timer_id == 0) {
 				poll_timer_id = Timeout.add_seconds (5, () => {
+					if (!IsAttached)
+						return true;
 					schedule_dnd_poll ();
 					return true;
 				});
@@ -364,6 +386,16 @@ namespace Plank
 							return (stdout_out.strip () == "true");
 					} catch (Error e) { }
 				}
+
+				if (srv.contains ("xfce") && Environment.find_program_in_path ("xfconf-query") != null) {
+					try {
+						string stdout_out;
+						int exit_status = 0;
+						Process.spawn_command_line_sync ("xfconf-query -c xfce4-notifyd -p /do-not-disturb", out stdout_out, null, out exit_status);
+						if (exit_status == 0)
+							return (stdout_out.strip () == "true");
+					} catch (Error e) { }
+				}
 			}
 
 			return has_inhibited_prop ? false : (cookie_snapshot > 0);
@@ -391,7 +423,13 @@ namespace Plank
 
 		private void schedule_dnd_poll ()
 		{
-			if (is_disposed || poll_in_flight || session_bus == null)
+			if (is_disposed)
+				return;
+			if (gnome_notif_settings != null) {
+				set_dnd_state (!gnome_notif_settings.get_boolean ("show-banners"));
+				return;
+			}
+			if (poll_in_flight || session_bus == null)
 				return;
 			poll_in_flight = true;
 			DBusConnection? bus_ref = session_bus;
@@ -505,6 +543,17 @@ namespace Plank
 						}
 					} catch (Error e) { }
 				}
+
+				if (srv.contains ("xfce") && Environment.find_program_in_path ("xfconf-query") != null) {
+					try {
+						int exit_status = 0;
+						Process.spawn_command_line_sync ("xfconf-query -c xfce4-notifyd -p /do-not-disturb -n -t bool -s true", null, null, out exit_status);
+						if (exit_status == 0) {
+							set_dnd_state (true);
+							return;
+						}
+					} catch (Error e) { }
+				}
 			}
 
 			// Bare Wayland / wlroots / Labwc fallback when no notification daemon owns org.freedesktop.Notifications
@@ -604,6 +653,12 @@ namespace Plank
 				if ((srv.contains ("dunst") || srv == "") && Environment.find_program_in_path ("dunstctl") != null) {
 					try {
 						Process.spawn_command_line_async ("dunstctl set-paused false");
+					} catch (Error e) { }
+				}
+
+				if (srv.contains ("xfce") && Environment.find_program_in_path ("xfconf-query") != null) {
+					try {
+						Process.spawn_command_line_async ("xfconf-query -c xfce4-notifyd -p /do-not-disturb -n -t bool -s false");
 					} catch (Error e) { }
 				}
 			}

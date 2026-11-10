@@ -2,10 +2,10 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.1` Public Beta 2 Burn-In)  
-> **Period:** 2026-09-19 to 2026-11-07  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.1` Public Beta 2 — 100.0% Qualified)  
+> **Period:** 2026-09-19 to 2026-11-10  
 > **Standard:** ISA-88 Qualification Standard  
-> **Master HAL Specification:** [Documentation/HAL_ARCHITECTURE.md](../Documentation/HAL_ARCHITECTURE.md)
+> **Master HAL Specifications:** [Documentation/HAL_COMPOSITORS.md](../Documentation/HAL_COMPOSITORS.md) & [Documentation/HAL_BUSES.md](../Documentation/HAL_BUSES.md)
 
 ---
 
@@ -17,14 +17,14 @@
 * **ERA 2 (Multi-Compositor Qualification & Public Beta Series: `v0.4.3` – `v0.7.1`)**:
   - **Milestones**: 11 (`v0.4.3`, `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.6.0`, `v0.6.1`, `v0.6.2.1`, `v0.6.2.2`, `v0.6.2.3`, `v0.7.0`, `v0.7.1`)
   - **Formal Tests Executed**: **2,793** Total Test Definitions across Compositors
-  - **Tests Passed on First Run / Baseline**: **2,541** `[ok]`
-  - **Unique Functional Bugs Squashed**: **90** `[ko->ok]` (`+2` `FAT 6.1` Issue #27 & `FAT 7.17` `[ko->ok]` in `v0.7.1`, plus **4** Category 2/3 Defect Groups `#20`–`#23` / `18 [ko->test]` instances + **18 `[  ]`** new `v0.7.1` feature instances in live burn-in)
-  - **Total Compositor Test Verifications**: **157** `[ko->ok]` (`+4` `FAT 6.1 & 7.17` `[ko->ok]` + **18** `[ko->test]` in `v0.7.1`)
-  - **Open FAT Regressions Remaining (`2026-11-08` — `v0.7.0` Concluded & Frozen; `v0.7.1` in Live Burn-In)**: **0 Open `[ko]` Defects** (**`335 [ok]` Consolidated Baseline + `4 [ko->ok]` Squashed + `18 [ko->test]` Remediations + `18 [  ]` New `v0.7.1` Feature Points + `2 [NA]` + `0 [ko]`** across all 3 compositors in [`FAT/2026-11-07 FAT 0.7.1.txt`](2026-11-07%20FAT%200.7.1.txt))
+  - **Tests Passed on First Run / Baseline**: **2,550** `[ok]`
+  - **Unique Functional Bugs Squashed**: **97** `[ko->ok]` (`+9` unique `[ko->ok]` in `v0.7.1` across `31` compositor test verifications)
+  - **Total Compositor Test Verifications**: **184** `[ko->ok]` (`+31` `[ko->ok]` in `v0.7.1`)
+  - **Open FAT Regressions Remaining (`2026-11-10` — `v0.7.0` Concluded & Frozen; `v0.7.1` 100.0% Qualified)**: **0 Open `[ko]` Defects** (**`344 [ok]` Consolidated Baseline + `31 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-10 FAT 0.7.1.txt`](2026-11-10%20FAT%200.7.1.txt))
 * **GRAND TOTAL ACROSS LIFETIME**:
   - **Total Milestones**: **17 Releases**
-  - **Total Unique Functional & Architectural Bugs Squashed**: **124** `[ko->ok]` (+ **4** Defect Groups `#20`–`#23` in `[ko->test]` for `v0.7.1`)
-  - **Total Multi-Compositor Verification Instances**: **191** `[ko->ok]` (+ **18** `[ko->test]` for `v0.7.1`)
+  - **Total Unique Functional & Architectural Bugs Squashed**: **131** `[ko->ok]`
+  - **Total Multi-Compositor Verification Instances**: **218** `[ko->ok]`
 
 ---
 
@@ -49,33 +49,33 @@
 | **`v0.6.2.2`** | 2026-10-20 | Round 2 & DND Docklet | 306 | 5 | 0 |
 | **`v0.6.2.3`** | 2026-11-01 | Previews, Stacks, Comm. | 370 | 27 | 0 |
 | **`v0.7.0`** | 2026-11-06 | Public Beta 1 (Concluded) | 379 | 15 | 4 `ko`** |
-| **`v0.7.1`** | 2026-11-07 | Public Beta 2 (Burn-In) | 377 | `2 [ko->ok] (4 inst.) / 18 [ko->test] / 18 [  ]` | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **11 Multi-Comp. Releases** | **2,793** | **90 (+18 test)** | **0** |
-| **TOTAL** | **All Eras** | **17 Milestone Releases** | **2,793** | **124 (+18 test)** | **0** |
+| **`v0.7.1`** | 2026-11-10 | Public Beta 2 (100% Pass) | 377 | `9 [ko->ok] (31 inst.)` | 0 |
+| **ERA 2 SUB** | **Formal FAT** | **11 Multi-Comp. Releases** | **2,793** | **97** | **0** |
+| **TOTAL** | **All Eras** | **17 Milestone Releases** | **2,793** | **131** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects discovered were formally remediated and verified in `v0.5.1` under standard ISA-88 qualification protocol.*  
-*\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1` Inter-Milestone Transition (`2026-11-08`): `FAT/2026-11-05 FAT 0.7.0.txt` is formally concluded and frozen at `359/377` (`95.2% PASS`), with the 4 remaining Category 2/3 defect groups (`#20`–`#23`, `18` compositor instances) transferred to **`FAT/2026-11-07 FAT 0.7.1.txt`** as **`18 [ko->test]`** alongside **`4 [ko->ok]`** (`FAT 6.1` KDE Plasma Edit Mode & Show Desktop coexistence Issue #27, and `FAT 7.17` full profile persistence & startup validation in `~/.config/wayplank/latch-state.ini`), **`18 [  ]`** new `v0.7.1` feature test points (`1.9` First-Run Classic/Explorer & read-only `~/.config/plank` migration, `2.6` auto-translated User Guide, `3.10` `latch-state.ini` persistence, `6.14` Pinned Apps Accordion + live Preferences interaction, `7.8` centered `Show Trash` in Docklets, `7.9` MONLMIP Rank 1), and `0 [ko]` open defects for the 10-day Public Beta 2 burn-in.*
+*\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1` Inter-Milestone Transition (`2026-11-10`): `FAT/2026-11-05 FAT 0.7.0.txt` is formally concluded and frozen at `359/377` (`95.2% PASS`), and all 4 transferred Category 2/3 defect groups (`#20`–`#23`) plus `FAT 6.1` (KDE Plasma Edit Mode & Show Desktop coexistence Issue #27), `FAT 7.17` (full profile persistence & startup validation in `~/.config/wayplank/latch-state.ini`), and all new `v0.7.1` feature test points (`1.9` First-Run Classic/Explorer & read-only `~/.config/plank` migration, `2.6` auto-translated User Guide, `3.10` `latch-state.ini` persistence, `6.14` Pinned Apps Accordion + unified `›|`/`«|` expander + 3-phase DnD re-masking, `7.8` centered `Show Trash` in Docklets, `7.9` MONLMIP Rank 1) are 100.0% qualified (`344 [ok]` + `31 [ko->ok]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable) in **`FAT/2026-11-10 FAT 0.7.1.txt`**.*
 
 ---
 
 ## 🖥️ Compositor Resolution Breakdown (Era 2 Qualification)
 
-| Compositor Backend | Verifications Squashed `[ko->ok]` | Share | Active `v0.7.1` Burn-In Queue (`[ko->test]` / `[  ]`) |
+| Compositor Backend | Verifications Squashed `[ko->ok]` | Share | Final `v0.7.1` Qualification Status |
 | :--- | :---: | :---: | :---: |
-| **GNOME Shell (Mutter Backend)** | 66 | 42.0% | `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` / `0 [ko]` (`113 [ok]` Baseline) |
-| **KDE Plasma 6 (KWin Backend)** | 51 | 32.5% | `2 [ko->ok]` + `6 [ko->test]` + `6 [  ]` / `0 [ko]` (`112 [ok]` Baseline) |
-| **Labwc (wlroots Backend)** | 40 | 25.5% | `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` / `0 [ko]` (`110 [ok]` Baseline) |
-| **TOTAL COMPOSITOR VERIFICATIONS** | **157 Squashed** | **100%** | **`4 [ko->ok]` + `18 [ko->test]` + `18 [  ]` / `0 [ko]` (`335 [ok]` Baseline)** |
+| **GNOME Shell (Mutter Backend)** | 75 | 40.8% | `116 [ok]` + `10 [ko->ok]` / `0 [ko]` (`126/126 = 100.0% Qualified`) |
+| **KDE Plasma 6 (KWin Backend)** | 60 | 32.6% | `115 [ok]` + `11 [ko->ok]` / `0 [ko]` (`126/126 = 100.0% Qualified`) |
+| **Labwc (wlroots Backend)** | 49 | 26.6% | `113 [ok]` + `10 [ko->ok]` + `2 [NA]` / `0 [ko]` (`123/123 = 100.0% Qualified`) |
+| **TOTAL COMPOSITOR VERIFICATIONS** | **184 Squashed** | **100%** | **`344 [ok]` + `31 [ko->ok]` + `2 [NA]` / `0 [ko]` (`375/375 = 100.0% Qualified`)** |
 
 ---
 
 ## 🟡 Remediated Defects (`[ko->test]`) & New Features (`[  ]`) in `v0.7.1`
 
 1. **[Issue #20](https://github.com/sergiomelas/WayPlank/issues/20)** (`FAT 1.11` `[ko->test]` — All 3 Compositors): Enforced strict `AND` matching on all differentiating browser wrapper flags (`--user-agent`, `--incognito`, `--user-data-dir`, `--profile-directory`) and `.dockitem` `BrowserProfile` metadata persistence so normal Chrome windows never match specialized `.sh` wrappers.
-2. **[Issue #21](https://github.com/sergiomelas/WayPlank/issues/21)** (`FAT 7.11, 10.4, 12.4` `[ko->test]` — All 3 Compositors): Restored `Shift+Left Click` reverse window cycling, preview card `Middle-Click` close in `WindowCardsWindow`, and `item_captures_scroll()` overflow scroll exemption for multi-window apps (`window_count > 1`) and `MPRIS`.
+2. **[Issue #21](https://github.com/sergiomelas/WayPlank/issues/21)** (`FAT 7.11, 10.4, 12.4` `[ko->test]` — All 3 Compositors): Restored `Shift+Left Click` reverse window cycling, preview card `Middle-Click` close in `WindowCardsWindow`, `item_captures_scroll()` overflow scroll exemption for multi-window apps (`window_count > 1`) and `MPRIS`, 2-phase Accordion slot/vertical expand-collapse animation (`PositionManager.get_effective_item_slot()` + `DockRenderer` `allow_animation` on `RemoveTime > 0`, `StructuralPosition`, rightmost anchor when `DockletsOnRight` is active, unified `›|`/`«|` expander, and `'Click to Expand/Compress:'` label), and `About WayPlank` 2-Tab Credits with top homogeneous card buttons, hidden logo/title in Credits/License mode, `vhomogeneous=false`, and Cairo `@theme_bg_color` fill eliminating the X11/Xfce black border.
 3. **[Issue #22](https://github.com/sergiomelas/WayPlank/issues/22)** (`FAT 2.7` GNOME, `2.9 & 12.6` KDE `[ko->test]`): Wired Mutter background urgency `WindowsChanged` & `MinimizedSequence`, KWin `captionChanged` dynamic title sync, and `KWinThumbnailService` 2.5s refresh TTL, close eviction, debug logging, and `WindowControl.is_kwin()` guard.
 4. **[Issue #23](https://github.com/sergiomelas/WayPlank/issues/23)** (`FAT 6.12` GNOME/Labwc, `6.18` Labwc `[ko->test]`): Guarded GNOME `gsettings` branch in `DoNotDisturbDockItem` so Labwc reaches `dunstctl`/`swaync-client`, and centralized `XDG_CURRENT_DESKTOP`-aware utility priority in `System.launch_desktop_utility()`.
-5. **`v0.7.1` Feature Set & `FAT 7.17` Profile Validation (`FAT 7.17` `[ko->ok]`; `FAT 1.9, 2.6, 3.10, 6.14, 7.8, 7.9` `[  ]` — All 3 Compositors)**: Full 43-preference + 5 SR Flip-Flop disk persistence in `~/.config/wayplank/latch-state.ini` with subprocess syntax probe, `.dockitem` corruption quarantine, `"Load environment failed"` startup dialog, and 8-scenario `FAT/Test Files/Environment/` suite (`FAT 7.17` `[ko->ok]`), First-Run Onboarding Popup (`WayPlank Classic` vs `WayPlank Explorer`) with 100% read-only `~/.config/plank` migration (`FirstRunWindow.vala`, `ItemFactory.vala`), Pinned Apps Usage-Adaptive Accordion (`Off`, `Auto-Fit Capacity`, `Top 3/5/8/10/12 Most Used` + `»`/`«` `PinnedExpanderDockItem`, Issue [#26](https://github.com/sergiomelas/WayPlank/issues/26)), live accordions while `Preferences` is open, `MONLMIP Rank 1` on `WayPlank Always Left` + `~/.config/wayplank/latch-state.ini` persistence across reboots, centered `Show Trash` in `Preferences -> Docklets`, and browser auto-translated User Guide compatible with `switch_lang.sh`.
+5. **`v0.7.1` Feature Set & `FAT 7.17` Profile Validation (`FAT 7.17` `[ko->ok]`; `FAT 1.9, 2.6, 3.10, 6.14, 7.8, 7.9` `[  ]` — All 3 Compositors)**: Full 43-preference + 7-key (`5` SR Flip-Flops + `DockletsExpanded` & `PinnedExpanded`) disk persistence in `~/.config/wayplank/latch-state.ini` with subprocess syntax probe, `.dockitem` corruption quarantine, `"Load environment failed"` startup dialog, and 8-scenario `FAT/Test Files/Environment/` suite (`FAT 7.17` `[ko->ok]`), First-Run Onboarding Popup (`WayPlank Classic` vs `WayPlank Explorer`) with 100% read-only `~/.config/plank` migration (`FirstRunWindow.vala`, `ItemFactory.vala`), Pinned Apps Usage-Adaptive Accordion (`Off`, `Auto-Fit Capacity`, `Top 1..20 Most Used` + unified `›|`/`«|` `PinnedExpanderDockItem` with 2-phase slot/vertical animation & `'Click to Expand/Compress:'`, Issue [#26](https://github.com/sergiomelas/WayPlank/issues/26)), live accordions while `Preferences` is open, `MONLMIP Rank 1` on `WayPlank Always Left` + `~/.config/wayplank/latch-state.ini` persistence across reboots, centered `Show Trash` in `Preferences -> Docklets`, and browser auto-translated User Guide compatible with `switch_lang.sh`.
 
 ---
 
@@ -214,4 +214,4 @@
 9. [`FAT/2026-10-20 FAT 0.6.2.2.txt`](2026-10-20%20FAT%200.6.2.2.txt) — Covers `v0.6.2.2` (306 tests, Round 2 completed, 100% compliant, 0 pending, Gold Standard)
 10. [`FAT/2026-11-01 FAT 0.6.2.3.txt`](2026-11-01%20FAT%200.6.2.3.txt) — Covers `v0.6.2.3` (370 tests, Round 3: Window Cards, Dynamic System Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity, Native Peer Stacking, 4-Position System Menu Access, Do Not Disturb Docklet, 7×2 Balanced Preferences Grid, KDE Plasma 6 Multi-Monitor Floating Panel Tracking, Layer-Shell Input Passthrough, Fullscreen Auto-Hide & `0px` Edge Passthrough [Issue #10], Reserve Screen Space / Panel Mode [Issue #9], Show Desktop Persistence [Issue #13], Workspace Switch Visibility [Issue #11], Cold-Start Fractional Scaling [Issue #5], & Multi-VM Instance Tracking with Garbage Collection [Issue #14] on GNOME, KDE Plasma, Labwc)
 11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 — Concluded & Frozen: 379 tests defined, 359/377 applicable passed — `95.2% PASS`: 317 `[ok]` baseline + 42 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 18 `[ko]` open defect instances formally transferred to `v0.7.1`)
-12. [`FAT/2026-11-07 FAT 0.7.1.txt`](2026-11-07%20FAT%200.7.1.txt) — Covers `v0.7.1` (Public Beta 2 — In Live Burn-In: 382 tests defined, 340 `[ok]` consolidated baseline + 4 `[ko->ok]` squashed in `FAT 6.1` KDE #27 & `FAT 7.17` + 18 `[ko->test]` remediations transferred from `v0.7.0` + 18 `[  ]` new `v0.7.1` feature points, 2 `[NA]`, 0 `[ko]` open defects)
+12. [`FAT/2026-11-10 FAT 0.7.1.txt`](2026-11-10%20FAT%200.7.1.txt) — Covers `v0.7.1` (Public Beta 2 — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 344 `[ok]` consolidated baseline + 31 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)

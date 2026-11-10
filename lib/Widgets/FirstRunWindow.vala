@@ -122,6 +122,16 @@ namespace Plank
 			root.set_margin_top (18);
 			root.set_margin_bottom (20);
 
+			string status_heading = controller.migrated_from_legacy_plank
+				? _("Migrating your Plank configuration...")
+				: _("Creating your WayPlank experience...");
+
+			var status_lbl = new Gtk.Label (null);
+			status_lbl.set_use_markup (true);
+			status_lbl.set_markup ("<span size=\"large\"><b>%s</b></span>".printf (GLib.Markup.escape_text (status_heading)));
+			status_lbl.set_xalign (0.0f);
+			root.pack_start (status_lbl, false, false, 0);
+
 			string intro_text = controller.migrated_from_legacy_plank
 				? _("Your existing Plank launchers, folders and compatible settings have been imported safely without modifying ~/.config/plank. Choose how you want WayPlank to start:")
 				: _("Choose how you want to initialize your dock:");
@@ -156,6 +166,14 @@ namespace Plank
 			cards_box.pack_start (explorer_card, true, true, 0);
 
 			root.pack_start (cards_box, true, true, 0);
+
+			var x11_note_lbl = new Gtk.Label (_("Note: Please remove any custom launchers or autostart workarounds (such as GDK_BACKEND=x11) previously created to force legacy Plank to run in X11 mode on Wayland."));
+			x11_note_lbl.get_style_context ().add_class ("dim-label");
+			x11_note_lbl.set_xalign (0.5f);
+			x11_note_lbl.set_justify (Gtk.Justification.CENTER);
+			x11_note_lbl.set_line_wrap (true);
+			x11_note_lbl.set_max_width_chars (76);
+			root.pack_start (x11_note_lbl, false, false, 0);
 
 			var footer_lbl = new Gtk.Label (_("You can switch or customize any feature at any time in WayPlank Preferences."));
 			footer_lbl.get_style_context ().add_class ("dim-label");

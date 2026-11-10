@@ -152,9 +152,23 @@ namespace Plank
 		public int LastPosition { get; protected set; default = -1; }
 		
 		/**
+		 * The dock item's true structural position inside its container (including hidden accordion items),
+		 * ensuring removed/collapsing items stay in their exact left-to-right slot while animating out.
+		 */
+		public int StructuralPosition { get; set; default = -1; }
+		
+		/**
 		 * The item's current state.
 		 */
-		public ItemState State { get; protected set; default = ItemState.NORMAL; }
+		ItemState _state = ItemState.NORMAL;
+		public ItemState State {
+			get { return _state; }
+			protected set {
+				if (_state == value)
+					return;
+				_state = value;
+			}
+		}
 		
 		/**
 		 * The indicator shown for the item.

@@ -31,12 +31,21 @@ namespace Plank
 	 */
 	public class PinnedExpanderDockItem : DockItem
 	{
+		const int BAR_THICKNESS = 2;
+
 		public Color ChevronColor { get; set; default = Color () { red = 0.0, green = 0.0, blue = 0.0, alpha = 0.7 }; }
+		public Color BarColor { get; set; default = Color () { red = 0.0, green = 0.0, blue = 0.0, alpha = 0.42 }; }
 
 		/**
-		 * Whether the pinned apps accordion is currently expanded.
+		 * Whether the accordion is currently expanded.
 		 */
 		public bool Expanded { get; set; default = false; }
+
+		/**
+		 * True when this expander controls the Docklets Accordion, false when it controls
+		 * the Smart Pinned Apps Accordion.
+		 */
+		public bool IsDockletExpander { get; set; default = false; }
 
 		bool horizontal = true;
 
@@ -45,6 +54,7 @@ namespace Plank
 			Text = "";
 			Icon = "";
 			notify["ChevronColor"].connect (() => reset_icon_buffer ());
+			notify["BarColor"].connect (() => reset_icon_buffer ());
 			notify["Expanded"].connect (() => reset_icon_buffer ());
 		}
 
@@ -93,11 +103,27 @@ namespace Plank
 			cr.set_line_join (Cairo.LineJoin.ROUND);
 
 			if (Expanded) {
-				draw_chevron (cr, cx - size * 0.45, cy, size, false);
-				draw_chevron (cr, cx + size * 0.45, cy, size, false);
+				draw_chevron (cr, cx - size * 0.72, cy, size, false);
+				draw_chevron (cr, cx + size * 0.12, cy, size, false);
 			} else {
-				draw_chevron (cr, cx, cy, size, true);
+				draw_chevron (cr, cx - size * 0.18, cy, size, true);
 			}
+
+			// Thin separator bar on the right edge (›| / «|) matching SeparatorDockItem
+			var bar_height = double.max (10.0, Math.floor (h * 0.52));
+			var bar_x = cx + size * 1.05 - BAR_THICKNESS / 2.0;
+			var bar_y = (h - bar_height) / 2.0;
+			var radius = BAR_THICKNESS / 2.0;
+
+			cr.set_source_rgba (BarColor.red, BarColor.green, BarColor.blue, BarColor.alpha);
+			cr.new_sub_path ();
+			cr.arc (bar_x + BAR_THICKNESS - radius, bar_y + radius, radius, -Math.PI_2, 0);
+			cr.arc (bar_x + BAR_THICKNESS - radius, bar_y + bar_height - radius, radius, 0, Math.PI_2);
+			cr.arc (bar_x + radius, bar_y + bar_height - radius, radius, Math.PI_2, Math.PI);
+			cr.arc (bar_x + radius, bar_y + radius, radius, Math.PI, -Math.PI_2);
+			cr.close_path ();
+			cr.fill ();
+
 			cr.restore ();
 		}
 

@@ -1,7 +1,7 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-07
+Date: 2026-11-10
 Milestone: V0.7.1 (Public Beta 2: First-Run Onboarding Classic/Explorer, Pinned
            Apps Accordion, MONLMIP Rank 1, Full Profile Persistence & Core
            Feature Freeze)
@@ -71,9 +71,11 @@ SESSION 1: GNOME (Mutter Backend)
           migration of compatible .dockitem launchers/folders from
           ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
           for X11 sessions).
-        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
-          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
-          Window Cards) without ever deleting existing user items or folders.
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode, zero
+          docklets and Trash unpinned by default) and 'WayPlank Explorer'
+          (Categorized + 4 Smart Drawers + 4 Default Docklets + Trash +
+          Accordions + Window Cards) without ever deleting existing user items
+          or folders.
    [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
@@ -293,12 +295,16 @@ SESSION 1: GNOME (Mutter Backend)
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
-        - Docklets Accordion expands on hover or click ('Click to Expand');
-          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
-          Most Used') collapses excess non-running pinned apps behind the
-          '»' / '«' expander item using GNOME shell-app-usage frecency
-          ranking while keeping running/urgent apps visible.
+   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N), Unified '›|' / '«|' Toggle & Live Preferences Interaction:
+        - Docklets Accordion and Pinned Apps Accordion ('Off', 'Auto-Fit
+          Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
+          '«|' separator-expander (PinnedExpanderDockItem) with pure manual
+          'Click to Expand/Compress' mode (independent DockletsExpanded &
+          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini),
+          symmetric 2-phase slot/vertical expand-collapse animation, 3-phase
+          drag-and-drop temporary expansion and post-drop re-masking, and GNOME
+          shell-app-usage frecency ranking while keeping running/urgent apps
+          visible.
         - Both accordions remain 100% live (expanding and collapsing after
           AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
           About windows are open, holding open only during active context
@@ -351,10 +357,10 @@ SESSION 1: GNOME (Mutter Backend)
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle in Appearance:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with 'Show Trash' centered beneath the grid and instant
-          live add/remove toggling.
+          Docklets and 'Show Trash' sits centered in Preferences -> Appearance
+          with instant live add/remove toggling.
    [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
@@ -399,9 +405,10 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
-          then close Preferences: verify all 43 DockPreferences keys + 5
-          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
-          restored 100% across restarts even after dconf reset.
+          then close Preferences: verify all 43 DockPreferences keys + 7
+          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
+          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
+          across restarts even after dconf reset.
         - Run '"FAT/Test Files/Environment/Test environments.sh"' across
           Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
@@ -596,8 +603,8 @@ SESSION 1: GNOME (Mutter Backend)
    [  ] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - Verify Accordion collapses toward outer edge (leftmost when Docklets
           left, rightmost when Docklets on Right), expands on hover or click
-          ('Click to Expand') and during drag-over, and never collapses <= 1
-          docklet.
+          ('Click to Expand/Compress') and during drag-over, and never collapses
+          <= 1 docklet.
    [  ] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
         - Open Preferences dialog: verify window default dimensions are compact
           (560x480) with zero horizontal label wrapping or forced stretching.
@@ -674,9 +681,11 @@ SESSION 2: KDE PLASMA (KWin Backend)
           migration of compatible .dockitem launchers/folders from
           ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
           for X11 sessions).
-        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
-          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
-          Window Cards) without ever deleting existing user items or folders.
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode, zero
+          docklets and Trash unpinned by default) and 'WayPlank Explorer'
+          (Categorized + 4 Smart Drawers + 4 Default Docklets + Trash +
+          Accordions + Window Cards) without ever deleting existing user items
+          or folders.
    [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
@@ -896,12 +905,16 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
-        - Docklets Accordion expands on hover or click ('Click to Expand');
-          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
-          Most Used') collapses excess non-running pinned apps behind the
-          '»' / '«' expander item using GNOME shell-app-usage frecency
-          ranking while keeping running/urgent apps visible.
+   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N), Unified '›|' / '«|' Toggle & Live Preferences Interaction:
+        - Docklets Accordion and Pinned Apps Accordion ('Off', 'Auto-Fit
+          Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
+          '«|' separator-expander (PinnedExpanderDockItem) with pure manual
+          'Click to Expand/Compress' mode (independent DockletsExpanded &
+          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini),
+          symmetric 2-phase slot/vertical expand-collapse animation, 3-phase
+          drag-and-drop temporary expansion and post-drop re-masking, and GNOME
+          shell-app-usage frecency ranking while keeping running/urgent apps
+          visible.
         - Both accordions remain 100% live (expanding and collapsing after
           AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
           About windows are open, holding open only during active context
@@ -965,10 +978,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle in Appearance:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with 'Show Trash' centered beneath the grid and instant
-          live add/remove toggling.
+          Docklets and 'Show Trash' sits centered in Preferences -> Appearance
+          with instant live add/remove toggling.
    [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
@@ -1012,9 +1025,10 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
-          then close Preferences: verify all 43 DockPreferences keys + 5
-          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
-          restored 100% across restarts even after dconf reset.
+          then close Preferences: verify all 43 DockPreferences keys + 7
+          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
+          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
+          across restarts even after dconf reset.
         - Run '"FAT/Test Files/Environment/Test environments.sh"' across
           Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
@@ -1190,10 +1204,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 12.5 Preferences Toggle (Cyclic Switching vs Window Cards):
         - Preferences -> Behaviour includes toggle switch to select between
           classical cyclic window switching and multi-window preview cards
-   [  ] 12.6 Live Window Thumbnail Capture on KWin (First Hover & Alpha Opacity):
+   [  ] 12.6 Live Window Thumbnail Capture & Adaptive Aspect-Ratio Preview Cards on KWin (First Hover & Alpha Opacity):
         - Hover or click an application with 2+ open windows on KDE Plasma.
         - Verify preview cards show crisp, live window content on the very first
-          appearance, without blank/empty viewports or transparent rendering.
+          appearance, without blank/empty viewports or transparent rendering,
+          and dynamically adapt their geometry to the window's real aspect ratio
+          (horizontal 204px width for landscape windows and 90°-rotated vertical
+          cards up to 204px height for portrait/vertical windows, with zero
+          content distortion).
         - Verify autostart desktop entry incorporates restricted D-Bus permissions
           for org.kde.KWin.ScreenShot2.
 13. SYSTEM MENU ACCESS MODES, MINIMALIST DOCK & ACCORDION MASTER ANCHOR (v0.6.2.3 Update)
@@ -1211,8 +1229,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
    [  ] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - Verify Accordion collapses toward outer edge (leftmost when Docklets
           left, rightmost when Docklets on Right), expands on hover or click
-          ('Click to Expand') and during drag-over, and never collapses <= 1
-          docklet.
+          ('Click to Expand/Compress') and during drag-over, and never collapses
+          <= 1 docklet.
    [  ] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
         - Open Preferences dialog: verify window default dimensions are compact
           (560x480) with zero horizontal label wrapping or forced stretching.
@@ -1289,9 +1307,11 @@ SESSION 3: LABWC (wlroots Backend)
           migration of compatible .dockitem launchers/folders from
           ~/.config/plank/<dock>/launchers (leaving ~/.config/plank untouched
           for X11 sessions).
-        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode) and
-          'WayPlank Explorer' (Categorized + 4 Smart Drawers + Accordions +
-          Window Cards) without ever deleting existing user items or folders.
+        - Verify FirstRunWindow offers 'WayPlank Classic' (Free Mode, zero
+          docklets and Trash unpinned by default) and 'WayPlank Explorer'
+          (Categorized + 4 Smart Drawers + 4 Default Docklets + Trash +
+          Accordions + Window Cards) without ever deleting existing user items
+          or folders.
    [  ] 1.10 Universal 'Change Icon...' & Metadata Storage:
         - Right-click app or folder -> 'Change Icon...': verify instant
           search, custom GIO icon persistence, and 'Restore Default'
@@ -1507,12 +1527,16 @@ SESSION 3: LABWC (wlroots Backend)
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
           Copy IP, and context menu.
-   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N) & Live Preferences Interaction:
-        - Docklets Accordion expands on hover or click ('Click to Expand');
-          Pinned Apps Accordion ('Off', 'Auto-Fit Capacity', 'Top 3/5/8/10/12
-          Most Used') collapses excess non-running pinned apps behind the
-          '»' / '«' expander item using GNOME shell-app-usage frecency
-          ranking while keeping running/urgent apps visible.
+   [  ] 6.14 Docklets Accordion, Pinned Apps Accordion (Auto-Fit / Top-N), Unified '›|' / '«|' Toggle & Live Preferences Interaction:
+        - Docklets Accordion and Pinned Apps Accordion ('Off', 'Auto-Fit
+          Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
+          '«|' separator-expander (PinnedExpanderDockItem) with pure manual
+          'Click to Expand/Compress' mode (independent DockletsExpanded &
+          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini),
+          symmetric 2-phase slot/vertical expand-collapse animation, 3-phase
+          drag-and-drop temporary expansion and post-drop re-masking, and GNOME
+          shell-app-usage frecency ranking while keeping running/urgent apps
+          visible.
         - Both accordions remain 100% live (expanding and collapsing after
           AccordionCollapseDelay) while Preferences, Shortcuts & Gestures, or
           About windows are open, holding open only during active context
@@ -1565,10 +1589,10 @@ SESSION 3: LABWC (wlroots Backend)
           sudo apt install -y wlr-randr && wlr-randr --output eDP-1 --scale 1.25
           killall wayplank; wayplank &
           wlr-randr --output eDP-1 --scale 1
-   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle:
+   [  ] 7.8 Docklets Tab 7×2 Symmetric Grid + Centered 'Show Trash' Toggle in Appearance:
         - Verify all 14 docklets sit in a balanced 7×2 grid in Preferences ->
-          Docklets with 'Show Trash' centered beneath the grid and instant
-          live add/remove toggling.
+          Docklets and 'Show Trash' sits centered in Preferences -> Appearance
+          with instant live add/remove toggling.
    [  ] 7.9 Categorize Items Toggle, MONLMIP Rank 1 ('WayPlank Always Left') & Free Mode:
         - Verify Categorize Items orders [Folders] | [Docklets] | [Pinned] |
           [Unpinned] | [Trash] (or 'Docklets on Right' before Trash, plus
@@ -1612,9 +1636,10 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 7.17 Full Profile Disk Persistence in ~/.config/wayplank/latch-state.ini, Startup Validation & 'Load environment failed' Popup:
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
-          then close Preferences: verify all 43 DockPreferences keys + 5
-          SR-latch keys are flushed to ~/.config/wayplank/latch-state.ini and
-          restored 100% across restarts even after dconf reset.
+          then close Preferences: verify all 43 DockPreferences keys + 7
+          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
+          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
+          across restarts even after dconf reset.
         - Run '"FAT/Test Files/Environment/Test environments.sh"' across
           Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
@@ -1808,8 +1833,8 @@ SESSION 3: LABWC (wlroots Backend)
    [  ] 13.4 Accordion Master Anchor, Symmetric Collapse & Expansion Safety:
         - Verify Accordion collapses toward outer edge (leftmost when Docklets
           left, rightmost when Docklets on Right), expands on hover or click
-          ('Click to Expand') and during drag-over, and never collapses <= 1
-          docklet.
+          ('Click to Expand/Compress') and during drag-over, and never collapses
+          <= 1 docklet.
    [  ] 13.5 Preferences Dialog Geometry & Multi-Language Localization:
         - Open Preferences dialog: verify window default dimensions are compact
           (560x480) with zero horizontal label wrapping or forced stretching.

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.1\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-09 07:07+0100\n"
-"PO-Revision-Date: 2026-11-09 07:07+0100\n"
+"POT-Creation-Date: 2026-11-11 00:04+0100\n"
+"PO-Revision-Date: 2026-11-11 00:04+0100\n"
 "Last-Translator: 史有虎 (IFtiger-hu) <2212363803@qq.com>\n"
 "Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
 "Language: zh_CN\n"
@@ -17,50 +17,50 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: lib/DockPreferences.vala:396 lib/DockPreferences.vala:406
-#: lib/Factories/AbstractMain.vala:776
+#: lib/DockPreferences.vala:414 lib/DockPreferences.vala:424
+#: lib/Factories/AbstractMain.vala:1609
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "全部设置 (latch-state.ini 已损坏)"
 
-#: lib/Factories/AbstractMain.vala:548
+#: lib/Factories/AbstractMain.vala:563
 msgid "About WayPlank"
 msgstr "关于 WayPlank"
 
-#: lib/Factories/AbstractMain.vala:574
+#: lib/Factories/AbstractMain.vala:590
 msgid "Fully supported compositors: none"
 msgstr "完全支持的混成器: 无"
 
-#: lib/Factories/AbstractMain.vala:575
+#: lib/Factories/AbstractMain.vala:591
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "完全支持的混成器: %s"
 
-#: lib/Factories/AbstractMain.vala:578
+#: lib/Factories/AbstractMain.vala:594
 msgid "Partially supported compositors: none"
 msgstr "部分支持的混成器: 无"
 
-#: lib/Factories/AbstractMain.vala:579
+#: lib/Factories/AbstractMain.vala:595
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "部分支持的混成器: %s"
 
-#: lib/Factories/AbstractMain.vala:583
+#: lib/Factories/AbstractMain.vala:599
 msgid "Website"
 msgstr "官方网站"
 
-#: lib/Factories/AbstractMain.vala:594 src/Main.vala:206
+#: lib/Factories/AbstractMain.vala:610 src/Main.vala:210
 msgid "translator-credits"
 msgstr "史有虎 (IFtiger-hu) <2212363803@qq.com>"
 
-#: lib/Factories/AbstractMain.vala:767 lib/Factories/AbstractMain.vala:777
+#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1610
 msgid "Defaulting partially to default config for:"
 msgstr "以下配置项已部分恢复为默认配置："
 
-#: lib/Factories/AbstractMain.vala:769 lib/Factories/AbstractMain.vala:773
+#: lib/Factories/AbstractMain.vala:1602 lib/Factories/AbstractMain.vala:1606
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "已丢弃损坏或无效的启动器项 (.dockitem)："
 
-#: lib/Factories/AbstractMain.vala:796 lib/Factories/AbstractMain.vala:799
+#: lib/Factories/AbstractMain.vala:1629 lib/Factories/AbstractMain.vala:1632
 msgid "Load environment failed"
 msgstr "加载环境配置失败"
 
@@ -91,53 +91,53 @@ msgstr "更改图标(_I)..."
 msgid "Drop to open with %s"
 msgstr "松手使用 %s 打开"
 
-#: lib/Items/BatteryDockItem.vala:43
+#: lib/Items/BatteryDockItem.vala:45
 msgid "Battery"
 msgstr "电池"
 
-#: lib/Items/BatteryDockItem.vala:134
+#: lib/Items/BatteryDockItem.vala:150
 msgid "Discharging"
 msgstr "放电中"
 
-#: lib/Items/BatteryDockItem.vala:136
+#: lib/Items/BatteryDockItem.vala:152
 msgid "Not charging"
 msgstr "未充电"
 
-#: lib/Items/BatteryDockItem.vala:138 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:154 lib/Items/FileDockItem.vala:901
 msgid "Unknown"
 msgstr "未知"
 
-#: lib/Items/BatteryDockItem.vala:148
+#: lib/Items/BatteryDockItem.vala:164
 msgid "AC Power"
 msgstr "交流电源"
 
-#: lib/Items/BatteryDockItem.vala:152
+#: lib/Items/BatteryDockItem.vala:168
 #, c-format
 msgid "Battery: %d%% (Charging)"
 msgstr "电池: %d%% (充电中)"
 
-#: lib/Items/BatteryDockItem.vala:154
+#: lib/Items/BatteryDockItem.vala:170
 #, c-format
 msgid "Battery: %d%% (Full)"
 msgstr "电池: %d%% (充满)"
 
-#: lib/Items/BatteryDockItem.vala:156
+#: lib/Items/BatteryDockItem.vala:172
 #, c-format
 msgid "Battery: %d%% (%s)"
 msgstr "电池: %d%% (%s)"
 
-#: lib/Items/BatteryDockItem.vala:219
+#: lib/Items/BatteryDockItem.vala:237
 msgid "_Power Settings..."
 msgstr "电源设置(_P)..."
 
-#: lib/Items/BatteryDockItem.vala:228 lib/Items/BrightnessDockItem.vala:204
-#: lib/Items/ClockDockItem.vala:226 lib/Items/CpuDockItem.vala:258
-#: lib/Items/DigitalClockDockItem.vala:218
-#: lib/Items/DoNotDisturbDockItem.vala:659 lib/Items/EjectorDockItem.vala:284
-#: lib/Items/MprisDockItem.vala:730 lib/Items/NetworkDockItem.vala:474
+#: lib/Items/BatteryDockItem.vala:246 lib/Items/BrightnessDockItem.vala:204
+#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:269
+#: lib/Items/DigitalClockDockItem.vala:234
+#: lib/Items/DoNotDisturbDockItem.vala:714 lib/Items/EjectorDockItem.vala:284
+#: lib/Items/MprisDockItem.vala:784 lib/Items/NetworkDockItem.vala:497
 #: lib/Items/ScreenshotDockItem.vala:268 lib/Items/SessionDockItem.vala:122
 #: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:403
-#: lib/Items/VolumeDockItem.vala:367 lib/Items/WeatherDockItem.vala:592
+#: lib/Items/VolumeDockItem.vala:388 lib/Items/WeatherDockItem.vala:592
 msgid "_Remove from Dock"
 msgstr "从 Dock 移除(_R)"
 
@@ -167,11 +167,11 @@ msgstr "(最小)"
 msgid "_Display Settings..."
 msgstr "显示设置(_D)..."
 
-#: lib/Items/ClockDockItem.vala:39
+#: lib/Items/ClockDockItem.vala:40
 msgid "Clock"
 msgstr "时钟"
 
-#: lib/Items/ClockDockItem.vala:216 lib/Items/DigitalClockDockItem.vala:208
+#: lib/Items/ClockDockItem.vala:239 lib/Items/DigitalClockDockItem.vala:224
 msgid "_Copy Time"
 msgstr "复制时间(_C)"
 
@@ -179,55 +179,62 @@ msgstr "复制时间(_C)"
 msgid "System Monitor"
 msgstr "系统监控"
 
-#: lib/Items/CpuDockItem.vala:214
+#: lib/Items/CpuDockItem.vala:223
 #, c-format
 msgid "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%"
 msgstr "系统: %d%% | CPU: %d%% | 内存: %d%% (%.1f / %.1f GB) | 磁盘: %d%%"
 
-#: lib/Items/CpuDockItem.vala:249
+#: lib/Items/CpuDockItem.vala:260
 msgid "_System Monitor..."
 msgstr "系统监控(_S)..."
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:549
+#: lib/Items/DefaultApplicationDockItemProvider.vala:634
 msgid "Collapse pinned apps"
 msgstr "收起固定应用"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:551
+#: lib/Items/DefaultApplicationDockItemProvider.vala:636
 #, c-format
 msgid "Hidden pinned apps: %d"
 msgstr "已隐藏的固定应用: %d"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:553
-#: lib/Widgets/DockWindow.vala:866
+#: lib/Items/DefaultApplicationDockItemProvider.vala:638
+#: lib/Items/DefaultApplicationDockItemProvider.vala:650
 msgid "Click to expand"
 msgstr "点击展开"
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:647
+#: lib/Items/DefaultApplicationDockItemProvider.vala:650
+#: lib/Items/DefaultApplicationDockItemProvider.vala:651
+#: data/ui/preferences.ui:2594
+msgid "Docklets"
+msgstr "插件 / Docklets"
 
 #: lib/Items/DigitalClockDockItem.vala:40 data/ui/preferences.ui:2103
 msgid "Digital Clock"
 msgstr "数字时钟"
 
-#: lib/Items/DoNotDisturbDockItem.vala:99
-#: lib/Items/DoNotDisturbDockItem.vala:638 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:100
+#: lib/Items/DoNotDisturbDockItem.vala:693 data/ui/preferences.ui:1946
 msgid "Do Not Disturb"
 msgstr "请勿打扰"
 
-#: lib/Items/DoNotDisturbDockItem.vala:239
+#: lib/Items/DoNotDisturbDockItem.vala:261
 msgid "Notifications: Silenced (Do Not Disturb)"
 msgstr "通知: 已静音 (请勿打扰模式)"
 
-#: lib/Items/DoNotDisturbDockItem.vala:239
+#: lib/Items/DoNotDisturbDockItem.vala:261
 msgid "Notifications: Active"
 msgstr "通知: 正常接收"
 
-#: lib/Items/DoNotDisturbDockItem.vala:645
+#: lib/Items/DoNotDisturbDockItem.vala:700
 msgid "Resume Notifications"
 msgstr "恢复接收通知"
 
-#: lib/Items/DoNotDisturbDockItem.vala:645
+#: lib/Items/DoNotDisturbDockItem.vala:700
 msgid "Silence Notifications"
 msgstr "静音桌面通知"
 
-#: lib/Items/DoNotDisturbDockItem.vala:652
+#: lib/Items/DoNotDisturbDockItem.vala:707
 msgid "_Notification Settings..."
 msgstr "通知设置(_N)..."
 
@@ -289,7 +296,7 @@ msgid "Empty"
 msgstr "空"
 
 #: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1042
-#: lib/Widgets/PreferencesWindow.vala:729
+#: lib/Widgets/PreferencesWindow.vala:732
 msgid "_Open"
 msgstr "打开(_O)"
 
@@ -317,96 +324,96 @@ msgstr "游戏"
 msgid "Utilities"
 msgstr "实用工具"
 
-#: lib/Items/MprisDockItem.vala:61 lib/Items/MprisDockItem.vala:489
-#: lib/Services/ApplicationIdentity.vala:3399 data/ui/preferences.ui:2154
+#: lib/Items/MprisDockItem.vala:64 lib/Items/MprisDockItem.vala:540
+#: lib/Services/ApplicationIdentity.vala:3404 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "媒体播放器"
 
-#: lib/Items/MprisDockItem.vala:452 lib/Items/MprisDockItem.vala:680
+#: lib/Items/MprisDockItem.vala:503 lib/Items/MprisDockItem.vala:734
 msgid "Playing"
 msgstr "播放中"
 
-#: lib/Items/MprisDockItem.vala:453 lib/Items/MprisDockItem.vala:681
+#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
 msgid "Paused"
 msgstr "已暂停"
 
-#: lib/Items/MprisDockItem.vala:453 lib/Items/MprisDockItem.vala:681
+#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
 msgid "Stopped"
 msgstr "已停止"
 
-#: lib/Items/MprisDockItem.vala:462
+#: lib/Items/MprisDockItem.vala:513
 #, c-format
 msgid "Media Player (%s)"
 msgstr "媒体播放器 (%s)"
 
-#: lib/Items/MprisDockItem.vala:474
+#: lib/Items/MprisDockItem.vala:525
 msgid "Media Player (Inactive)"
 msgstr "媒体播放器 (未激活)"
 
-#: lib/Items/MprisDockItem.vala:715
+#: lib/Items/MprisDockItem.vala:769
 msgid "Play / _Pause"
 msgstr "播放 / 暂停(_P)"
 
-#: lib/Items/MprisDockItem.vala:719
+#: lib/Items/MprisDockItem.vala:773
 msgid "_Next Track"
 msgstr "下一曲(_N)"
 
-#: lib/Items/MprisDockItem.vala:723
+#: lib/Items/MprisDockItem.vala:777
 msgid "P_revious Track"
 msgstr "上一曲(_R)"
 
-#: lib/Items/NetworkDockItem.vala:50
+#: lib/Items/NetworkDockItem.vala:51
 msgid "Network"
 msgstr "网络"
 
-#: lib/Items/NetworkDockItem.vala:313
+#: lib/Items/NetworkDockItem.vala:336
 msgid "Wired Connection"
 msgstr "有线网络连接"
 
-#: lib/Items/NetworkDockItem.vala:328
+#: lib/Items/NetworkDockItem.vala:351
 #, c-format
 msgid "Wi-Fi: %s (%d%%) - %s"
 msgstr "Wi-Fi: %s (%d%%) - %s"
 
-#: lib/Items/NetworkDockItem.vala:330 lib/Items/NetworkDockItem.vala:436
+#: lib/Items/NetworkDockItem.vala:353 lib/Items/NetworkDockItem.vala:459
 #, c-format
 msgid "Wi-Fi: %s (%d%%)"
 msgstr "Wi-Fi: %s (%d%%)"
 
-#: lib/Items/NetworkDockItem.vala:348
+#: lib/Items/NetworkDockItem.vala:371
 #, c-format
 msgid "Ethernet: %s - %s"
 msgstr "有线网络: %s - %s"
 
-#: lib/Items/NetworkDockItem.vala:348 lib/Items/NetworkDockItem.vala:350
-#: lib/Items/NetworkDockItem.vala:438
+#: lib/Items/NetworkDockItem.vala:371 lib/Items/NetworkDockItem.vala:373
+#: lib/Items/NetworkDockItem.vala:461
 msgid "Connected"
 msgstr "已连接"
 
-#: lib/Items/NetworkDockItem.vala:350 lib/Items/NetworkDockItem.vala:438
+#: lib/Items/NetworkDockItem.vala:373 lib/Items/NetworkDockItem.vala:461
 #, c-format
 msgid "Ethernet: %s"
 msgstr "有线网络: %s"
 
-#: lib/Items/NetworkDockItem.vala:357 lib/Items/NetworkDockItem.vala:440
+#: lib/Items/NetworkDockItem.vala:380 lib/Items/NetworkDockItem.vala:463
 msgid "Network: Disconnected"
 msgstr "网络: 已断开"
 
-#: lib/Items/NetworkDockItem.vala:448
+#: lib/Items/NetworkDockItem.vala:471
 #, c-format
 msgid "IP: %s"
 msgstr "IP 地址: %s"
 
-#: lib/Items/NetworkDockItem.vala:454
+#: lib/Items/NetworkDockItem.vala:477
 #, c-format
 msgid "Gateway: %s"
 msgstr "网关: %s"
 
-#: lib/Items/NetworkDockItem.vala:462
+#: lib/Items/NetworkDockItem.vala:485
 msgid "Copy _IP Address"
 msgstr "复制 IP 地址(_I)"
 
-#: lib/Items/NetworkDockItem.vala:467
+#: lib/Items/NetworkDockItem.vala:490
 msgid "_Network Settings..."
 msgstr "网络设置(_N)..."
 
@@ -418,76 +425,76 @@ msgstr "拖放应用或文件至此"
 msgid "Drop to add to dock"
 msgstr "松手固定至 Dock"
 
-#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:175
+#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:167
 msgid "Report a _Bug Online..."
 msgstr "在线报告问题(_B)..."
 
-#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:167
-#: lib/Widgets/DockWindow.vala:1289
+#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:159
+#: lib/Widgets/DockWindow.vala:1312
 msgid "_Shortcuts & Gestures..."
 msgstr "快捷键与手势(_S)..."
 
-#: lib/Items/PlankDockItem.vala:93 lib/Items/PreferencesDockItem.vala:93
+#: lib/Items/PlankDockItem.vala:93 lib/Items/PreferencesDockItem.vala:85
 msgid "_Docklets"
 msgstr "插件(_D)"
 
-#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:96
+#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:88
 msgid "_Trash"
 msgstr "回收站(_T)"
 
-#: lib/Items/PlankDockItem.vala:97 lib/Items/PreferencesDockItem.vala:97
+#: lib/Items/PlankDockItem.vala:97 lib/Items/PreferencesDockItem.vala:89
 msgid "_Analog Clock"
 msgstr "模拟时钟(_A)"
 
-#: lib/Items/PlankDockItem.vala:98 lib/Items/PreferencesDockItem.vala:98
+#: lib/Items/PlankDockItem.vala:98 lib/Items/PreferencesDockItem.vala:90
 msgid "_Digital Clock"
 msgstr "数字时钟(_D)"
 
-#: lib/Items/PlankDockItem.vala:99 lib/Items/PreferencesDockItem.vala:99
+#: lib/Items/PlankDockItem.vala:99 lib/Items/PreferencesDockItem.vala:91
 msgid "_Battery"
 msgstr "电池(_B)"
 
-#: lib/Items/PlankDockItem.vala:100 lib/Items/PreferencesDockItem.vala:100
+#: lib/Items/PlankDockItem.vala:100 lib/Items/PreferencesDockItem.vala:92
 msgid "_CPU / RAM Monitor"
 msgstr "CPU / 内存监控(_C)"
 
-#: lib/Items/PlankDockItem.vala:101 lib/Items/PreferencesDockItem.vala:101
+#: lib/Items/PlankDockItem.vala:101 lib/Items/PreferencesDockItem.vala:93
 msgid "_Show Desktop"
 msgstr "显示桌面(_S)"
 
-#: lib/Items/PlankDockItem.vala:102 lib/Items/PreferencesDockItem.vala:102
+#: lib/Items/PlankDockItem.vala:102 lib/Items/PreferencesDockItem.vala:94
 msgid "_Media Player"
 msgstr "媒体播放器(_M)"
 
-#: lib/Items/PlankDockItem.vala:103 lib/Items/PreferencesDockItem.vala:103
+#: lib/Items/PlankDockItem.vala:103 lib/Items/PreferencesDockItem.vala:95
 msgid "_Volume Control"
 msgstr "音量控制(_V)"
 
-#: lib/Items/PlankDockItem.vala:104 lib/Items/PreferencesDockItem.vala:104
+#: lib/Items/PlankDockItem.vala:104 lib/Items/PreferencesDockItem.vala:96
 msgid "_Screenshot"
 msgstr "截屏(_S)"
 
-#: lib/Items/PlankDockItem.vala:105 lib/Items/PreferencesDockItem.vala:105
+#: lib/Items/PlankDockItem.vala:105 lib/Items/PreferencesDockItem.vala:97
 msgid "_Session / Power"
 msgstr "电源与会话(_S)"
 
-#: lib/Items/PlankDockItem.vala:106 lib/Items/PreferencesDockItem.vala:106
+#: lib/Items/PlankDockItem.vala:106 lib/Items/PreferencesDockItem.vala:98
 msgid "_Screen Brightness"
 msgstr "屏幕亮度(_S)"
 
-#: lib/Items/PlankDockItem.vala:107 lib/Items/PreferencesDockItem.vala:107
+#: lib/Items/PlankDockItem.vala:107 lib/Items/PreferencesDockItem.vala:99
 msgid "_Removable Drives"
 msgstr "可移动驱动器(_R)"
 
-#: lib/Items/PlankDockItem.vala:108 lib/Items/PreferencesDockItem.vala:108
+#: lib/Items/PlankDockItem.vala:108 lib/Items/PreferencesDockItem.vala:100
 msgid "_Weather Forecast"
 msgstr "天气预报(_W)"
 
-#: lib/Items/PlankDockItem.vala:109 lib/Items/PreferencesDockItem.vala:109
+#: lib/Items/PlankDockItem.vala:109 lib/Items/PreferencesDockItem.vala:101
 msgid "_Network / Wi-Fi"
 msgstr "网络 / Wi-Fi(_N)"
 
-#: lib/Items/PlankDockItem.vala:110 lib/Items/PreferencesDockItem.vala:110
+#: lib/Items/PlankDockItem.vala:110 lib/Items/PreferencesDockItem.vala:102
 msgid "_Do Not Disturb"
 msgstr "请勿打扰(_D)"
 
@@ -495,16 +502,16 @@ msgstr "请勿打扰(_D)"
 msgid "_Preferences"
 msgstr "首选项(_P)"
 
-#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:171
+#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:163
 msgid "User Guide..."
 msgstr "用户指南..."
 
-#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:179
+#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:171
 msgid "_About"
 msgstr "关于(_A)"
 
-#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:186
-#: lib/Widgets/DockWindow.vala:1301
+#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:178
+#: lib/Widgets/DockWindow.vala:1324
 msgid "_Quit"
 msgstr "退出(_Q)"
 
@@ -512,23 +519,23 @@ msgstr "退出(_Q)"
 msgid "Preferences"
 msgstr "首选项"
 
-#: lib/Items/PreferencesDockItem.vala:147 lib/Widgets/DockWindow.vala:1295
+#: lib/Items/PreferencesDockItem.vala:139 lib/Widgets/DockWindow.vala:1318
 msgid "_Preferences..."
 msgstr "首选项(_P)..."
 
-#: lib/Items/PreferencesDockItem.vala:151
+#: lib/Items/PreferencesDockItem.vala:143
 msgid "_Appearance..."
 msgstr "外观(_A)..."
 
-#: lib/Items/PreferencesDockItem.vala:155
+#: lib/Items/PreferencesDockItem.vala:147
 msgid "_Behaviour..."
 msgstr "行为(_B)..."
 
-#: lib/Items/PreferencesDockItem.vala:159
+#: lib/Items/PreferencesDockItem.vala:151
 msgid "A_pplications..."
 msgstr "窗口与应用(_P)..."
 
-#: lib/Items/PreferencesDockItem.vala:163
+#: lib/Items/PreferencesDockItem.vala:155
 msgid "_Docklets..."
 msgstr "插件(_D)..."
 
@@ -685,29 +692,29 @@ msgstr "打开回收站(_O)"
 msgid "_Empty Trash"
 msgstr "清空回收站(_E)"
 
-#: lib/Items/VolumeDockItem.vala:45
+#: lib/Items/VolumeDockItem.vala:48
 msgid "Volume"
 msgstr "音量"
 
-#: lib/Items/VolumeDockItem.vala:217
+#: lib/Items/VolumeDockItem.vala:236
 #, c-format
 msgid "Volume: %d%% (Muted)"
 msgstr "音量: %d%% (静音)"
 
-#: lib/Items/VolumeDockItem.vala:222
+#: lib/Items/VolumeDockItem.vala:241
 #, c-format
 msgid "Volume: %d%%"
 msgstr "音量: %d%%"
 
-#: lib/Items/VolumeDockItem.vala:350
+#: lib/Items/VolumeDockItem.vala:371
 msgid "Un_mute"
 msgstr "取消静音(_M)"
 
-#: lib/Items/VolumeDockItem.vala:350
+#: lib/Items/VolumeDockItem.vala:371
 msgid "_Mute"
 msgstr "静音(_M)"
 
-#: lib/Items/VolumeDockItem.vala:354
+#: lib/Items/VolumeDockItem.vala:375
 msgid "_Audio Settings..."
 msgstr "声音设置(_A)..."
 
@@ -839,52 +846,47 @@ msgstr "最近打开的文件"
 msgid "Calendar"
 msgstr "日历"
 
-#: lib/Widgets/DockWindow.vala:849
+#: lib/Widgets/DockWindow.vala:890
 msgid "Folder"
 msgstr "文件夹"
 
-#: lib/Widgets/DockWindow.vala:851
+#: lib/Widgets/DockWindow.vala:892
 msgid "Running"
 msgstr "运行中"
 
-#: lib/Widgets/DockWindow.vala:853
+#: lib/Widgets/DockWindow.vala:894
 msgid "Docklet"
 msgstr "Docklet 插件"
 
-#: lib/Widgets/DockWindow.vala:866 lib/Widgets/DockWindow.vala:868
-#: lib/Widgets/DockWindow.vala:871 data/ui/preferences.ui:2594
-msgid "Docklets"
-msgstr "插件 / Docklets"
-
-#: lib/Widgets/DockWindow.vala:1339 lib/Widgets/DockWindow.vala:1381
+#: lib/Widgets/DockWindow.vala:1362 lib/Widgets/DockWindow.vala:1404
 msgid "Developer _Tools"
 msgstr "开发者工具(_T)"
 
-#: lib/Widgets/DockWindow.vala:1346
+#: lib/Widgets/DockWindow.vala:1369
 msgid "Open config folder"
 msgstr "打开配置目录"
 
-#: lib/Widgets/DockWindow.vala:1355
+#: lib/Widgets/DockWindow.vala:1378
 msgid "Open current theme file"
 msgstr "打开当前主题文件"
 
-#: lib/Widgets/DockWindow.vala:1362
+#: lib/Widgets/DockWindow.vala:1385
 msgid "Print app usage ranking"
 msgstr "打印应用使用排名"
 
-#: lib/Widgets/DockWindow.vala:1388
+#: lib/Widgets/DockWindow.vala:1411
 msgid "Print info to stdout"
 msgstr "打印信息至控制台"
 
-#: lib/Widgets/DockWindow.vala:1398
+#: lib/Widgets/DockWindow.vala:1421
 msgid "Open dockitem file"
 msgstr "打开 dockitem 文件"
 
-#: lib/Widgets/DockWindow.vala:1407
+#: lib/Widgets/DockWindow.vala:1430
 msgid "Open launcher file"
 msgstr "打开启动器 .desktop 文件"
 
-#: lib/Widgets/DockWindow.vala:1414
+#: lib/Widgets/DockWindow.vala:1437
 msgid "Print usage score"
 msgstr "打印使用得分"
 
@@ -893,55 +895,70 @@ msgid "Welcome to WayPlank"
 msgstr "欢迎使用 WayPlank"
 
 #: lib/Widgets/FirstRunWindow.vala:126
+msgid "Migrating your Plank configuration..."
+msgstr "正在迁移您的 Plank 配置..."
+
+#: lib/Widgets/FirstRunWindow.vala:127
+msgid "Creating your WayPlank experience..."
+msgstr "正在创建您的 WayPlank 体验..."
+
+#: lib/Widgets/FirstRunWindow.vala:136
 msgid ""
 "Your existing Plank launchers, folders and compatible settings have been "
 "imported safely without modifying ~/.config/plank. Choose how you want "
 "WayPlank to start:"
 msgstr "您现有的 Plank 启动器、文件夹和兼容设置已安全导入，且未修改 ~/.config/plank。请选择 WayPlank 的启动方式："
 
-#: lib/Widgets/FirstRunWindow.vala:127
+#: lib/Widgets/FirstRunWindow.vala:137
 msgid "Choose how you want to initialize your dock:"
 msgstr "请选择您的程序坞初始化方式："
 
-#: lib/Widgets/FirstRunWindow.vala:140
+#: lib/Widgets/FirstRunWindow.vala:150
 msgid "WayPlank Classic"
 msgstr "WayPlank 经典模式"
 
-#: lib/Widgets/FirstRunWindow.vala:141
+#: lib/Widgets/FirstRunWindow.vala:151
 msgid "Start classical near old Plank and discover at your pace"
 msgstr "以贴近传统 Plank 的经典方式启动，按您的节奏逐步探索"
 
-#: lib/Widgets/FirstRunWindow.vala:142
+#: lib/Widgets/FirstRunWindow.vala:152
 msgid ""
 "Keeps your dock minimal in Free Mode with your existing items, core pinned "
 "applications and Trash, without auto-adding category folders or accordion "
 "drawers."
 msgstr "在自由模式下保持极简程序坞，仅保留您现有的项目、核心固定应用和回收站，不自动添加分类文件夹或折叠抽屉。"
 
-#: lib/Widgets/FirstRunWindow.vala:143
+#: lib/Widgets/FirstRunWindow.vala:153
 msgid "Start Classic"
 msgstr "启用经典模式"
 
-#: lib/Widgets/FirstRunWindow.vala:150
+#: lib/Widgets/FirstRunWindow.vala:160
 msgid "WayPlank Explorer"
 msgstr "WayPlank 探索模式"
 
-#: lib/Widgets/FirstRunWindow.vala:151
+#: lib/Widgets/FirstRunWindow.vala:161
 msgid "Start modern with all new features in the best experience spot"
 msgstr "以最佳体验配置启用全部现代新功能"
 
-#: lib/Widgets/FirstRunWindow.vala:152
+#: lib/Widgets/FirstRunWindow.vala:162
 msgid ""
 "Enables Smart Categorized Layout, 4 Application Folder Drawers, System Tray "
 "Docklets with Accordion, Smart Pinned Apps Accordion, and Window Preview "
 "Cards."
 msgstr "启用智能分类布局、4 个应用分类文件夹抽屉、带折叠功能的系统托盘插件、智能固定应用折叠以及多窗口预览卡片。"
 
-#: lib/Widgets/FirstRunWindow.vala:153
+#: lib/Widgets/FirstRunWindow.vala:163
 msgid "Start Explorer"
 msgstr "启用探索模式"
 
-#: lib/Widgets/FirstRunWindow.vala:160
+#: lib/Widgets/FirstRunWindow.vala:170
+msgid ""
+"Note: Please remove any custom launchers or autostart workarounds (such as "
+"GDK_BACKEND=x11) previously created to force legacy Plank to run in X11 mode "
+"on Wayland."
+msgstr "注意：如果您之前为了在 Wayland 下强制以 X11 模式运行旧版 Plank 而创建过自定义启动器或开机自启变通方案（例如 GDK_BACKEND=x11），请将其移除。"
+
+#: lib/Widgets/FirstRunWindow.vala:178
 msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "您可以随时在 WayPlank 首选项中切换或自定义任何功能。"
@@ -1304,7 +1321,7 @@ msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "图像文件 (*.png, *.svg, *.ico, *.jpg)"
 
 #: lib/Widgets/IconChooserDialog.vala:358
-#: lib/Widgets/PreferencesWindow.vala:747
+#: lib/Widgets/PreferencesWindow.vala:750
 msgid "All Files"
 msgstr "所有文件"
 
@@ -1316,82 +1333,82 @@ msgstr "WayPlank 首选项"
 msgid " (Requires KWin)"
 msgstr " (需要 KWin)"
 
-#: lib/Widgets/PreferencesWindow.vala:712
+#: lib/Widgets/PreferencesWindow.vala:715
 #, c-format
 msgid "Delete user theme '%s'"
 msgstr "删除用户主题 '%s'"
 
-#: lib/Widgets/PreferencesWindow.vala:714
+#: lib/Widgets/PreferencesWindow.vala:717
 msgid "System themes cannot be deleted"
 msgstr "系统预置核心主题无法删除"
 
-#: lib/Widgets/PreferencesWindow.vala:726
+#: lib/Widgets/PreferencesWindow.vala:729
 msgid "Install WayPlank Theme"
 msgstr "安装 WayPlank 主题"
 
-#: lib/Widgets/PreferencesWindow.vala:730
-#: lib/Widgets/PreferencesWindow.vala:826
+#: lib/Widgets/PreferencesWindow.vala:733
+#: lib/Widgets/PreferencesWindow.vala:829
 msgid "_Cancel"
 msgstr "取消(_C)"
 
-#: lib/Widgets/PreferencesWindow.vala:734
+#: lib/Widgets/PreferencesWindow.vala:737
 msgid "Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 msgstr "主题压缩包 (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 
-#: lib/Widgets/PreferencesWindow.vala:776
+#: lib/Widgets/PreferencesWindow.vala:779
 msgid ""
 "No valid WayPlank/Plank theme found in the selected file.\n"
 "A valid theme must contain a 'dock.theme' configuration file."
 msgstr "选定的文件中未找到有效的 WayPlank/Plank 主题。\n有效主题必须包含 'dock.theme' 配置文件。"
 
-#: lib/Widgets/PreferencesWindow.vala:801
+#: lib/Widgets/PreferencesWindow.vala:804
 #, c-format
 msgid ""
 "A theme named '%s' already exists.\n"
 "Do you want to replace it?"
 msgstr "已存在名为 '%s' 的主题。\n是否替换？"
 
-#: lib/Widgets/PreferencesWindow.vala:823
+#: lib/Widgets/PreferencesWindow.vala:826
 msgid "Install Themes"
 msgstr "安装主题"
 
-#: lib/Widgets/PreferencesWindow.vala:827
+#: lib/Widgets/PreferencesWindow.vala:830
 msgid "_Install"
 msgstr "安装(_I)"
 
-#: lib/Widgets/PreferencesWindow.vala:835
+#: lib/Widgets/PreferencesWindow.vala:838
 msgid "The archive contains multiple themes. Select which ones to install:"
 msgstr "该压缩包包含多个主题。请选择要安装的主题:"
 
-#: lib/Widgets/PreferencesWindow.vala:901
+#: lib/Widgets/PreferencesWindow.vala:904
 #, c-format
 msgid ""
 "Are you sure you want to delete the theme '%s'?\n"
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "确定要删除主题 '%s' 吗？\n此操作将从 ~/.local/share/wayplank/themes/ 中移除该主题。"
 
-#: lib/Widgets/PreferencesWindow.vala:1284 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1288 data/ui/preferences.ui:554
 msgid "Docklets Only"
 msgstr "仅小部件"
 
-#: lib/Widgets/PreferencesWindow.vala:1285 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1289 data/ui/preferences.ui:555
 msgid "Docklets Only (with fallback)"
 msgstr "仅小部件 (带回退)"
 
-#: lib/Widgets/PreferencesWindow.vala:1286 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1290 data/ui/preferences.ui:556
 msgid "All Icons (integrated)"
 msgstr "所有图标 (全局集成)"
 
-#: lib/Widgets/PreferencesWindow.vala:1287 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1291 data/ui/preferences.ui:557
 msgid "Dedicated Icon (on dock)"
 msgstr "专属图标 (停靠栏常驻)"
 
-#: lib/Widgets/PreferencesWindow.vala:1464
+#: lib/Widgets/PreferencesWindow.vala:1469
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "超限平滑翻页已激活: 保留图标大小 %dpx"
 
-#: lib/Widgets/PreferencesWindow.vala:1467
+#: lib/Widgets/PreferencesWindow.vala:1472
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1399,12 +1416,12 @@ msgid ""
 "the dock smoothly scrolls with mouse wheel when items exceed screen space."
 msgstr "目标图标大小: %dpx。\n行为设置中已启用 '超限平滑翻页'：图标绝不会被动缩小，当项目超出屏幕空间时可通过滚轮平滑浏览。"
 
-#: lib/Widgets/PreferencesWindow.vala:1478
+#: lib/Widgets/PreferencesWindow.vala:1483
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ 受限于屏幕物理空间强制限制为 %dpx (自动缩小)"
 
-#: lib/Widgets/PreferencesWindow.vala:1480
+#: lib/Widgets/PreferencesWindow.vala:1485
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1413,12 +1430,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ 图标大小设定为 %dpx，但因屏幕空间不足被强制约束在 %dpx。\n图标会自动缩小以容纳在屏幕内。\n若要无视屏幕限制解锁更大图标尺寸，请在 '行为' 中启用 '超限平滑翻页'。"
 
-#: lib/Widgets/PreferencesWindow.vala:1488
+#: lib/Widgets/PreferencesWindow.vala:1493
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "在不缩小的情况下完全适应屏幕 (容纳上限: %dpx)"
 
-#: lib/Widgets/PreferencesWindow.vala:1490
+#: lib/Widgets/PreferencesWindow.vala:1495
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1426,23 +1443,23 @@ msgid ""
 "shrinking activates)."
 msgstr "目标图标大小: %dpx。\n完全舒适适应屏幕 (触发自动缩小的临界上限为 %dpx)。"
 
-#: lib/Widgets/PreferencesWindow.vala:1719 data/ui/preferences.ui:232
+#: lib/Widgets/PreferencesWindow.vala:1724 data/ui/preferences.ui:232
 #: data/ui/preferences.ui:245
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "自动在主显示器上显示停靠栏；关闭后可手动指定目标显示器"
 
-#: lib/Widgets/PreferencesWindow.vala:1720
+#: lib/Widgets/PreferencesWindow.vala:1725
 msgid "Not supported by this compositor"
 msgstr "当前合成器不支持"
 
-#: lib/Widgets/PreferencesWindow.vala:1795 data/ui/preferences.ui:1448
+#: lib/Widgets/PreferencesWindow.vala:1800 data/ui/preferences.ui:1448
 #: data/ui/preferences.ui:1462
 msgid "Workspace filtering is not yet supported under Wayland"
 msgstr "工作区独立过滤功能在当前 Wayland 规范下暂未开放"
 
-#: lib/Widgets/PreferencesWindow.vala:1804 data/ui/preferences.ui:849
+#: lib/Widgets/PreferencesWindow.vala:1809 data/ui/preferences.ui:849
 #: data/ui/preferences.ui:862
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
@@ -1450,7 +1467,7 @@ msgid ""
 "for fluid unhiding"
 msgstr "需触及屏幕物理最边缘 (1px) 方可呼出停靠栏以防误触；关闭后则在边缘 10px 范围内平滑灵敏呼出"
 
-#: lib/Widgets/PreferencesWindow.vala:1808 data/ui/preferences.ui:876
+#: lib/Widgets/PreferencesWindow.vala:1813 data/ui/preferences.ui:876
 #: data/ui/preferences.ui:889
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
@@ -1459,7 +1476,7 @@ msgid ""
 "Reserve Screen Space"
 msgstr "按停靠栏厚度预留屏幕边缘空间（面板模式），使最大化窗口自动平铺而不重叠；开启此项将自动关闭“隐藏停靠栏”与“图标缩放”，而开启这两项中的任意一项将自动关闭“预留屏幕空间”"
 
-#: lib/Widgets/PreferencesWindow.vala:1811 data/ui/preferences.ui:1008
+#: lib/Widgets/PreferencesWindow.vala:1816 data/ui/preferences.ui:1008
 #: data/ui/preferences.ui:1022
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
@@ -1673,19 +1690,19 @@ msgstr "体感温度 %d%s"
 msgid "No forecast data available"
 msgstr "暂无天气预报数据"
 
-#: lib/Widgets/WindowCardsWindow.vala:480
+#: lib/Widgets/WindowCardsWindow.vala:495
 msgid "Application"
 msgstr "应用程序"
 
-#: lib/Widgets/WindowCardsWindow.vala:601
+#: lib/Widgets/WindowCardsWindow.vala:628
 msgid "Minimized"
 msgstr "已最小化"
 
-#: src/Main.vala:148
+#: src/Main.vala:152
 msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank 专为 Wayland 桌面会话设计。"
 
-#: src/Main.vala:150
+#: src/Main.vala:154
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - 不支持的会话"
 
@@ -2183,8 +2200,8 @@ msgid "Collapse docklets in-line showing only the first item; expand on hover"
 msgstr "将插件栏内联折叠为仅显示主图标；鼠标悬停时平滑展开"
 
 #: data/ui/preferences.ui:1685
-msgid "Click to Expand:"
-msgstr "点击展开:"
+msgid "Click to Expand/Compress:"
+msgstr "点击展开/收起:"
 
 #: data/ui/preferences.ui:1686 data/ui/preferences.ui:1699
 msgid ""

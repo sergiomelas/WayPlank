@@ -92,6 +92,11 @@ namespace Plank
 			frame_time = GLib.get_monotonic_time ();
 		}
 		
+		protected virtual bool can_skip_draw (int64 frame_time)
+		{
+			return false;
+		}
+
 		/**
 		 * Request re-drawing.
 		 */
@@ -103,8 +108,16 @@ namespace Plank
 			force_frame_time_update ();
 			initialize_frame (frame_time);
 			
+			if (can_skip_draw (frame_time))
+				return;
+
 			widget.queue_draw ();
 			
+			if (!animation_needed (frame_time)) {
+				animation_finished ();
+				return;
+			}
+
 			unowned Gdk.FrameClock? frame_clock = widget.get_frame_clock ();
 			if (frame_clock != null) {
 				frame_clock.begin_updating ();

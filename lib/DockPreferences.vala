@@ -126,31 +126,31 @@ namespace Plank
 		public bool ShowDockItem { get; set; }
 		
 		[Description(nick = "zoom-enabled", blurb = "Whether the dock will zoom when hovered.")]
-		public bool ZoomEnabled { get; set; }
+		public bool ZoomEnabled { get; set; default = true; }
 		
 		[Description(nick = "anticipate-zoom", blurb = "Whether to begin icon magnification as the cursor approaches the dock.")]
 		public bool AnticipateZoom { get; set; default = true; }
 		
 		[Description(nick = "zoom-percent", blurb = "The dock's icon-zoom (in percent).")]
-		public uint ZoomPercent { get; set; }
+		public uint ZoomPercent { get; set; default = 150U; }
 		
 		[Description(nick = "tooltips-enabled", blurb = "Whether to show tooltips when items are hovered.")]
-		public bool TooltipsEnabled { get; set; }
+		public bool TooltipsEnabled { get; set; default = true; }
 		
 		[Description(nick = "categorize-items", blurb = "Whether to categorize dock items by type (Folders, Apps, Docklets, Running, Trash).")]
-		public bool CategorizeItems { get; set; }
+		public bool CategorizeItems { get; set; default = true; }
 		
 		[Description(nick = "anchor-always-left", blurb = "Whether to always anchor the WayPlank icon at the far left with its own separator.")]
-		public bool AnchorAlwaysLeft { get; set; default = false; }
+		public bool AnchorAlwaysLeft { get; set; default = true; }
 		
 		[Description(nick = "docklets-on-right", blurb = "Whether to place the docklets category on the right after unpinned apps and before Trash.")]
 		public bool DockletsOnRight { get; set; default = true; }
 		
 		[Description(nick = "accordion-docklets", blurb = "Whether to collapse docklets in-line showing only the first one at rest.")]
-		public bool AccordionDocklets { get; set; }
+		public bool AccordionDocklets { get; set; default = true; }
 		
 		[Description(nick = "accordion-click-to-expand", blurb = "Whether to expand docklets accordion only on click instead of hover.")]
-		public bool AccordionClickToExpand { get; set; }
+		public bool AccordionClickToExpand { get; set; default = true; }
 		
 		uint _accordion_delay = DEFAULT_ACCORDION_DELAY;
 		[Description(nick = "accordion-delay", blurb = "Time (in ms) to wait before auto-collapsing docklets.")]
@@ -164,7 +164,7 @@ namespace Plank
 		}
 
 		[Description(nick = "pinned-accordion-mode", blurb = "Smart pinned apps accordion: 0 off, 1 auto-fit capacity, 2 top most used. Running, urgent and always-visible apps are never hidden.")]
-		public int PinnedAccordionMode { get; set; default = PINNED_ACCORDION_OFF; }
+		public int PinnedAccordionMode { get; set; default = PINNED_ACCORDION_TOP_N; }
 
 		[Description(nick = "pinned-accordion-count", blurb = "Number of most used pinned apps kept visible in top most used mode.")]
 		public int PinnedAccordionCount { get; set; default = DEFAULT_PINNED_ACCORDION_COUNT; }
@@ -209,6 +209,24 @@ namespace Plank
 		int last_system_menu_access = 4;
 		bool saved_anchor_always_left = false;
 		bool has_saved_anchor_always_left = false;
+		public bool docklets_expanded_latch { get; private set; default = false; }
+		public bool pinned_expanded_latch { get; private set; default = false; }
+
+		public void update_docklets_expanded_latch (bool expanded)
+		{
+			if (docklets_expanded_latch == expanded)
+				return;
+			docklets_expanded_latch = expanded;
+			save_latch_state ();
+		}
+
+		public void update_pinned_expanded_latch (bool expanded)
+		{
+			if (pinned_expanded_latch == expanded)
+				return;
+			pinned_expanded_latch = expanded;
+			save_latch_state ();
+		}
 
 		public string get_latch_state_path ()
 		{
@@ -419,7 +437,9 @@ namespace Plank
 				"SavedHideModeBeforeReserve",
 				"SavedZoomBeforeReserve",
 				"HasSavedAnchorAlwaysLeft",
-				"SavedAnchorAlwaysLeft"
+				"SavedAnchorAlwaysLeft",
+				"DockletsExpanded",
+				"PinnedExpanded"
 			};
 			if (kf.has_group ("LatchState")) {
 				try {
@@ -479,6 +499,24 @@ namespace Plank
 				} catch (Error e) {
 					saved_anchor_always_left = false;
 					failed_keys.add ("SavedAnchorAlwaysLeft");
+				}
+				try {
+					if (kf.has_key ("LatchState", "DockletsExpanded"))
+						docklets_expanded_latch = kf.get_boolean ("LatchState", "DockletsExpanded");
+					else
+						docklets_expanded_latch = false;
+				} catch (Error e) {
+					docklets_expanded_latch = false;
+					failed_keys.add ("DockletsExpanded");
+				}
+				try {
+					if (kf.has_key ("LatchState", "PinnedExpanded"))
+						pinned_expanded_latch = kf.get_boolean ("LatchState", "PinnedExpanded");
+					else
+						pinned_expanded_latch = false;
+				} catch (Error e) {
+					pinned_expanded_latch = false;
+					failed_keys.add ("PinnedExpanded");
 				}
 			}
 
@@ -645,6 +683,8 @@ namespace Plank
 			kf.set_boolean ("LatchState", "SavedZoomBeforeReserve", saved_zoom_before_reserve);
 			kf.set_boolean ("LatchState", "HasSavedAnchorAlwaysLeft", has_saved_anchor_always_left);
 			kf.set_boolean ("LatchState", "SavedAnchorAlwaysLeft", saved_anchor_always_left);
+			kf.set_boolean ("LatchState", "DockletsExpanded", docklets_expanded_latch);
+			kf.set_boolean ("LatchState", "PinnedExpanded", pinned_expanded_latch);
 
 			(unowned ParamSpec)[] properties = get_class ().list_properties ();
 			foreach (unowned string key in settings.settings_schema.list_keys ()) {
@@ -834,6 +874,8 @@ namespace Plank
 			saved_zoom_before_reserve = false;
 			has_saved_anchor_always_left = false;
 			saved_anchor_always_left = false;
+			docklets_expanded_latch = false;
+			pinned_expanded_latch = false;
 			var path = get_latch_state_path ();
 			if (FileUtils.test (path, FileTest.EXISTS))
 				FileUtils.unlink (path);

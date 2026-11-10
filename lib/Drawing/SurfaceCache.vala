@@ -110,17 +110,13 @@ namespace Plank
 				
 				return (2 * (s1.width - s2.width) + s1.height - s2.height);
 			}
-			
-			public int compare_with (uint16 width, uint16 height)
-			{
-				return (2 * (this.width - width) + this.height - height);
-			}
 		}
 		
 		public SurfaceCacheFlags flags { get; construct set; }
 		
 		Gee.TreeSet<unowned SurfaceInfo> infos;
 		Gee.HashMap<SurfaceInfo, Surface> cache_map;
+		Gee.HashMap<uint, Surface> scaled_cache;
 		unowned SurfaceInfo? last_info;
 		Mutex cache_mutex;
 		double cached_scale_x = 1.0;
@@ -137,6 +133,7 @@ namespace Plank
 		{
 			infos = new Gee.TreeSet<unowned SurfaceInfo> ((CompareDataFunc) SurfaceInfo.compare);
 			cache_map = new Gee.HashMap<SurfaceInfo, Surface> ((Gee.HashDataFunc<SurfaceInfo>) SurfaceInfo.hash);
+			scaled_cache = new Gee.HashMap<uint, Surface> ();
 			last_info = null;
 			
 			//TODO Adaptive delay depending on the access rate
@@ -171,6 +168,7 @@ namespace Plank
 			if (sx != cached_scale_x || sy != cached_scale_y) {
 				cache_map.clear ();
 				infos.clear ();
+				scaled_cache.clear ();
 				last_info = null;
 				cached_scale_x = sx;
 				cached_scale_y = sy;
@@ -192,12 +190,30 @@ namespace Plank
 				current_info.access_count++;
 				surface = cache_map.get (current_info);
 				
-				cache_mutex.unlock ();
-				
-				if (needs_scaling)
-					return surface.scaled_copy (width, height);
-				else
+				if (!needs_scaling) {
+					cache_mutex.unlock ();
 					return surface;
+				}
+				
+				uint scale_key = ((uint) width << 16) | (uint) (height & 0xFFFF);
+				var cached_scaled = scaled_cache.get (scale_key);
+				if (cached_scaled != null) {
+					cache_mutex.unlock ();
+					return cached_scaled;
+				}
+				
+				cache_mutex.unlock ();
+				var scaled = surface.scaled_copy (width, height);
+				if (scaled != null) {
+					cache_mutex.lock ();
+					if (sx == cached_scale_x && sy == cached_scale_y) {
+						if (scaled_cache.size > 96)
+							scaled_cache.clear ();
+						scaled_cache.set (scale_key, scaled);
+					}
+					cache_mutex.unlock ();
+				}
+				return scaled;
 			}
 			
 			surface = draw_func (width, height, model, draw_data_func);
@@ -223,6 +239,8 @@ namespace Plank
 			
 			cache_map.set (current_info, surface);
 			infos.add (current_info);
+			if ((flags & SurfaceCacheFlags.ALLOW_DOWNSCALE) != 0)
+				scaled_cache.clear ();
 			
 			cache_mutex.unlock ();
 			
@@ -236,70 +254,26 @@ namespace Plank
 			if (infos.is_empty)
 				return null;
 			
-			unowned SurfaceInfo? info;
-			// Check if the last requested entry matches already
-			if (last_info != null) {
-				info = last_info;
+			if (last_info != null && last_info.width == width && last_info.height == height)
+				return last_info;
+			
+			unowned SurfaceInfo? scalable = null;
+			foreach (unowned SurfaceInfo info in infos) {
 				if (info.width == width && info.height == height)
 					return info;
 				
 				if ((flags & SurfaceCacheFlags.ALLOW_DOWNSCALE) != 0
 					&& info.width > width && info.height > height) {
-					needs_scaling = true;
-					return info;
-				}
-				
-				if ((flags & SurfaceCacheFlags.ALLOW_UPSCALE) != 0
+					scalable = info;
+				} else if (scalable == null && (flags & SurfaceCacheFlags.ALLOW_UPSCALE) != 0
 					&& info.width < width && info.height < height) {
-					needs_scaling = true;
-					return info;
+					scalable = info;
 				}
 			}
 			
-			Gee.BidirIterator<unowned SurfaceInfo> infos_it;
-			if (last_info != null)
-				infos_it = (Gee.BidirIterator<unowned SurfaceInfo>) infos.iterator_at (last_info);
-			else
-				infos_it = infos.bidir_iterator ();
-			
-			if (last_info != null && last_info.compare_with (width, height) > 0) {
-				while (infos_it.previous ()) {
-					info = infos_it.get ();
-					
-					if (info.width == width && info.height == height)
-						return info;
-					
-					if ((flags & SurfaceCacheFlags.ALLOW_DOWNSCALE) != 0
-						&& info.width > width && info.height > height) {
-						needs_scaling = true;
-						return info;
-					}
-					
-					if ((flags & SurfaceCacheFlags.ALLOW_UPSCALE) != 0
-						&& info.width < width && info.height < height) {
-						needs_scaling = true;
-						return info;
-					}
-				}
-			} else {
-				while (infos_it.next ()) {
-					info = infos_it.get ();
-					
-					if (info.width == width && info.height == height)
-						return info;
-					
-					if ((flags & SurfaceCacheFlags.ALLOW_DOWNSCALE) != 0
-						&& info.width > width && info.height > height) {
-						needs_scaling = true;
-						return info;
-					}
-					
-					if ((flags & SurfaceCacheFlags.ALLOW_UPSCALE) != 0
-						&& info.width < width && info.height < height) {
-						needs_scaling = true;
-						return info;
-					}
-				}
+			if (scalable != null) {
+				needs_scaling = true;
+				return scalable;
 			}
 			
 			return null;
@@ -311,6 +285,8 @@ namespace Plank
 			
 			infos.clear ();
 			cache_map.clear ();
+			scaled_cache.clear ();
+			scaled_cache.clear ();
 			last_info = null;
 			
 			cache_mutex.unlock ();
@@ -347,6 +323,7 @@ namespace Plank
 				size_current--;
 			}
 			
+			scaled_cache.clear ();
 			last_info = null;
 			
 			Logger.verbose ("SurfaceCache.clean_up (%i -> %i) ", size_before, cache_map.size);

@@ -76,6 +76,11 @@ namespace Plank
 					app_instance.env_error_dlg.destroy ();
 					app_instance.env_error_dlg = null;
 				}
+				if (app_instance.about_dlg != null) {
+					app_instance.stop_about_easter_egg (true);
+					app_instance.about_dlg.destroy ();
+					app_instance.about_dlg = null;
+				}
 				foreach (var dock in app_instance.docks) {
 					dock.flush_pending_serialization ();
 					if (dock.prefs != null)
@@ -211,7 +216,17 @@ namespace Plank
 		string dock_name = "";
 		
 		public static bool is_about_open { get; private set; default = false; }
+		public static bool is_easter_egg_running { get; private set; default = false; }
 		public static unowned AbstractMain? app_instance = null;
+
+		public static bool stop_easter_egg_if_running ()
+		{
+			if (is_easter_egg_running && app_instance != null) {
+				app_instance.stop_about_easter_egg ();
+				return true;
+			}
+			return false;
+		}
 
 		public static void check_collapse_all_docks (Gtk.Window? closing_win = null)
 		{
@@ -559,8 +574,9 @@ namespace Plank
 			
 			about_dlg.set_program_name (program_name);
 			about_dlg.set_version ("%s\n%s".printf (build_version, build_version_info));
+			Gdk.Pixbuf? logo_buf = null;
 			try {
-				var logo_buf = new Gdk.Pixbuf.from_resource_at_scale (
+				logo_buf = new Gdk.Pixbuf.from_resource_at_scale (
 					"%s/img/wayplank.svg".printf (G_RESOURCE_PATH),
 					128, 128, true
 				);
@@ -593,12 +609,43 @@ namespace Plank
 			else
 				about_dlg.set_translator_credits (_("translator-credits"));
 			about_dlg.set_license_type (about_license_type);
+			about_dlg.set_wrap_license (true);
+			about_dlg.set_license (
+				"WayPlank is free software: you can redistribute it and/or modify " +
+				"it under the terms of the GNU General Public License as published by " +
+				"the Free Software Foundation, either version 3 of the License, or " +
+				"(at your option) any later version.\n\n" +
+				"WayPlank is distributed in the hope that it will be useful, " +
+				"but WITHOUT ANY WARRANTY; without even the implied warranty of " +
+				"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the " +
+				"GNU General Public License for more details.\n\n" +
+				"You should have received a copy of the GNU General Public License " +
+				"along with this program.  If not, see <https://www.gnu.org/licenses/>."
+			);
+
+			foreach (var dock in docks) {
+				if (dock.hide_manager != null)
+					dock.hide_manager.refresh_visibility ();
+			}
+
+			setup_about_two_tab_credits (about_dlg);
+			setup_about_easter_egg (about_dlg, logo_buf);
 			
-			about_dlg.response.connect (() => {
+			about_dlg.response.connect ((response_id) => {
+				if (response_id == Gtk.ResponseType.DELETE_EVENT) {
+					stop_about_easter_egg (true);
+					about_dlg.destroy ();
+					return;
+				}
+				if (is_easter_egg_running) {
+					stop_about_easter_egg ();
+					return;
+				}
 				about_dlg.destroy ();
 			});
 			
 			about_dlg.hide.connect (() => {
+				stop_about_easter_egg (true);
 				is_about_open = false;
 				if (about_dlg == null)
 					return;
@@ -606,18 +653,804 @@ namespace Plank
 				about_dlg = null;
 				old.destroy ();
 				check_collapse_all_docks (old);
+				foreach (var dock in docks) {
+					if (dock.hide_manager != null)
+						dock.hide_manager.refresh_visibility ();
+				}
 			});
 
 			about_dlg.destroy.connect (() => {
+				stop_about_easter_egg (true);
 				is_about_open = false;
 				if (about_dlg != null) {
 					Gtk.Window? old = about_dlg;
 					about_dlg = null;
 					check_collapse_all_docks (old);
+					foreach (var dock in docks) {
+						if (dock.hide_manager != null)
+							dock.hide_manager.refresh_visibility ();
+					}
 				}
 			});
 			
 			raise_and_focus_window (about_dlg, click_time);
+		}
+
+		static Gtk.Stack? find_about_internal_stack (Gtk.Widget root)
+		{
+			if (root is Gtk.Stack) {
+				var st = (Gtk.Stack) root;
+				if (st.get_child_by_name ("credits") != null)
+					return st;
+			}
+			if (root is Gtk.Container) {
+				foreach (var child in ((Gtk.Container) root).get_children ()) {
+					var found = find_about_internal_stack (child);
+					if (found != null)
+						return found;
+				}
+			}
+			return null;
+		}
+
+		static Gtk.Box? find_first_vbox_in_credits (Gtk.Widget root)
+		{
+			if (root is Gtk.Box)
+				return (Gtk.Box) root;
+			if (root is Gtk.Container) {
+				foreach (var child in ((Gtk.Container) root).get_children ()) {
+					var found = find_first_vbox_in_credits (child);
+					if (found != null)
+						return found;
+				}
+			}
+			return null;
+		}
+
+		static void add_credit_group_to_grid (Gtk.Grid grid, ref int row, string heading, string[] lines)
+		{
+			if (row > 0) {
+				var spacer = new Gtk.Label ("");
+				spacer.set_size_request (-1, 4);
+				grid.attach (spacer, 0, row, 2, 1);
+				row++;
+			}
+
+			var hdr = new Gtk.Label (null);
+			hdr.set_use_markup (true);
+			hdr.set_markup ("<span size=\"small\"><b>%s</b></span>".printf (GLib.Markup.escape_text (heading)));
+			hdr.set_halign (Gtk.Align.END);
+			hdr.set_valign (Gtk.Align.START);
+			hdr.set_hexpand (true);
+			hdr.set_justify (Gtk.Justification.RIGHT);
+			hdr.xalign = 1.0f;
+			hdr.opacity = 0.78;
+			grid.attach (hdr, 0, row, 1, 1);
+
+			for (int i = 0; i < lines.length; i++) {
+				var lbl = new Gtk.Label (null);
+				lbl.set_use_markup (true);
+				lbl.set_markup ("<span size=\"small\">%s</span>".printf (lines[i]));
+				lbl.set_track_visited_links (false);
+				lbl.set_selectable (false);
+				lbl.set_can_focus (false);
+				lbl.set_halign (Gtk.Align.START);
+				lbl.set_valign (Gtk.Align.START);
+				lbl.set_hexpand (true);
+				lbl.set_justify (Gtk.Justification.LEFT);
+				lbl.xalign = 0.0f;
+				lbl.set_line_wrap (false);
+				grid.attach (lbl, 1, row + i, 1, 1);
+			}
+			row += int.max (1, lines.length);
+		}
+
+		static void apply_credits_bg_css (Gtk.Widget w, Gtk.CssProvider css)
+		{
+			w.get_style_context ().add_provider (css, Gtk.STYLE_PROVIDER_PRIORITY_USER);
+			if (w is Gtk.Container) {
+				foreach (var ch in ((Gtk.Container) w).get_children ())
+					apply_credits_bg_css (ch, css);
+			}
+		}
+
+		static void attach_solid_bg_painter (Gtk.Widget w, Gtk.Widget ref_dlg)
+		{
+			w.app_paintable = true;
+			w.draw.connect ((cr) => {
+				Gdk.RGBA bg = { 0.95, 0.95, 0.95, 1.0 };
+				var ctx = ref_dlg.get_style_context ();
+				if (!ctx.lookup_color ("theme_bg_color", out bg))
+					ctx.get (ctx.get_state (), "background-color", out bg, null);
+				if (bg.alpha < 0.1)
+					bg = { 0.95, 0.95, 0.95, 1.0 };
+				cr.save ();
+				cr.set_source_rgb (bg.red, bg.green, bg.blue);
+				cr.paint ();
+				cr.restore ();
+				return false;
+			});
+		}
+
+		void setup_about_two_tab_credits (Gtk.AboutDialog dlg)
+		{
+			var st = find_about_internal_stack (dlg);
+			if (st == null)
+				return;
+
+			var credits_css = new Gtk.CssProvider ();
+			try {
+				credits_css.load_from_data (
+					"viewport, scrolledwindow, stack, grid, box, .view { " +
+					"  background-color: @theme_bg_color; " +
+					"  background-image: none; " +
+					"  border: none; " +
+					"  box-shadow: none; " +
+					"} " +
+					"grid { padding: 8px 12px; }"
+				);
+			} catch (Error e) {
+			}
+
+			// Instant opaque page switch without transparent overlay transitions
+			st.set_transition_type (Gtk.StackTransitionType.NONE);
+			st.set_transition_duration (0);
+			st.set_vhomogeneous (false);
+			apply_credits_bg_css (st, credits_css);
+			var main_page = st.get_child_by_name ("main");
+			if (main_page != null)
+				apply_credits_bg_css (main_page, credits_css);
+			var license_page = st.get_child_by_name ("license");
+			if (license_page != null) {
+				if (license_page is Gtk.ScrolledWindow) {
+					((Gtk.ScrolledWindow) license_page).set_shadow_type (Gtk.ShadowType.NONE);
+					((Gtk.ScrolledWindow) license_page).set_min_content_height (260);
+				}
+				apply_credits_bg_css (license_page, credits_css);
+				attach_solid_bg_painter (license_page, dlg);
+			}
+
+			var credits_page = st.get_child_by_name ("credits");
+			if (credits_page == null)
+				return;
+			Gtk.ScrolledWindow? outer_sw = credits_page as Gtk.ScrolledWindow;
+			if (outer_sw != null) {
+				outer_sw.set_policy (Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
+				outer_sw.set_shadow_type (Gtk.ShadowType.NONE);
+				outer_sw.set_min_content_height (240);
+				outer_sw.set_min_content_width (460);
+				var outer_vp = outer_sw.get_child ();
+				if (outer_vp != null) {
+					if (outer_vp is Gtk.Viewport)
+						((Gtk.Viewport) outer_vp).set_shadow_type (Gtk.ShadowType.NONE);
+					attach_solid_bg_painter (outer_vp, dlg);
+				}
+			}
+			attach_solid_bg_painter (credits_page, dlg);
+			var target_box = find_first_vbox_in_credits (credits_page);
+			if (target_box == null)
+				return;
+			target_box.border_width = 0;
+			target_box.margin = 0;
+			target_box.set_halign (Gtk.Align.FILL);
+			target_box.set_valign (Gtk.Align.FILL);
+			attach_solid_bg_painter (target_box, dlg);
+
+			var orig_children = target_box.get_children ();
+			foreach (var ch in orig_children) {
+				ch.set_no_show_all (true);
+				ch.hide ();
+			}
+
+			var credits_stack = new Gtk.Stack ();
+			credits_stack.set_transition_type (Gtk.StackTransitionType.NONE);
+			credits_stack.set_transition_duration (0);
+			credits_stack.set_vhomogeneous (false);
+			credits_stack.set_hexpand (true);
+			credits_stack.set_vexpand (true);
+			attach_solid_bg_painter (credits_stack, dlg);
+
+			var switcher = new Gtk.StackSwitcher ();
+			switcher.set_stack (credits_stack);
+			switcher.set_halign (Gtk.Align.FILL);
+			switcher.set_hexpand (true);
+			switcher.set_homogeneous (true);
+			switcher.margin_bottom = 6;
+			switcher.set_no_show_all (true);
+			switcher.hide ();
+
+			// Tab 1: WayPlank (2026) — 2-Column Native GTK Grid Layout
+			var wp_grid = new Gtk.Grid ();
+			wp_grid.set_row_spacing (3);
+			wp_grid.set_column_spacing (12);
+			wp_grid.set_halign (Gtk.Align.FILL);
+			wp_grid.set_valign (Gtk.Align.FILL);
+			wp_grid.set_hexpand (true);
+			wp_grid.set_vexpand (true);
+			wp_grid.border_width = 0;
+			attach_solid_bg_painter (wp_grid, dlg);
+
+			int wp_row = 0;
+			add_credit_group_to_grid (wp_grid, ref wp_row, "Lead Architect/Programmer", {
+				"<a href=\"https://github.com/sergiomelas\">Sergio Melas</a> &lt;<a href=\"mailto:sergiomelas@gmail.com\">sergiomelas@gmail.com</a>&gt;",
+				"Wayland HAL, Core Engine, Identity &amp; Multi-OS Architecture"
+			});
+			add_credit_group_to_grid (wp_grid, ref wp_row, "Code & Packaging", {
+				"<a href=\"https://github.com/IFtiger-hu-hub\">史有虎 (IFtiger-hu)</a> &lt;<a href=\"mailto:2212363803@qq.com\">2212363803@qq.com</a>&gt;",
+				"Community Fork, RPM Builder, Smooth Scroll &amp; Matcher"
+			});
+			add_credit_group_to_grid (wp_grid, ref wp_row, "Translated by", {
+				"<a href=\"https://github.com/sergiomelas\">Sergio Melas</a> — English, Italiano, Español, Français, Català",
+				"<a href=\"https://github.com/IFtiger-hu-hub\">史有虎 (IFtiger-hu)</a> — 简体中文 (zh_CN)",
+				"<a href=\"https://github.com/reni001\">Renate Schwiedernoch (@reni001)</a> — Deutsch (de)",
+				"<a href=\"https://github.com/Gabenoh\">Michailo Buchko (@Gabenoh)</a> — Українська (uk)"
+			});
+			add_credit_group_to_grid (wp_grid, ref wp_row, "Themes & Artwork", {
+				"<a href=\"https://github.com/sergiomelas\">Sergio Melas</a> — WayPlank Vector Icons &amp; Adaptive Themes",
+				"<a href=\"https://github.com/sergiomelas/WayPlank\">Arian</a> — Arian Dark &amp; Light Themes",
+				"<a href=\"https://github.com/IFtiger-hu-hub\">史有虎 (IFtiger-hu)</a> — IFtiger Dark &amp; Light Themes",
+				"<a href=\"https://kde.org\">KDE Breeze Icon Artists</a> — Monolithic Docklet SVG Fallbacks"
+			});
+			add_credit_group_to_grid (wp_grid, ref wp_row, "Testing & QA", {
+				"<a href=\"https://github.com/Gabenoh\">@Gabenoh (Michailo Buchko)</a> — System Menu &amp; Input Mask UX",
+				"<a href=\"https://github.com/tcliuqiang\">@tcliuqiang</a> — Multi-Compositor Qualification &amp; Testing",
+				"<a href=\"https://github.com/winteriscariot\">@winteriscariot</a> — Multi-Monitor &amp; Compositor Verification",
+				"<a href=\"https://github.com/Jolmas\">@Jolmas</a> — Desktop Integration &amp; Feedback",
+				"<a href=\"https://github.com/polpodan\">@polpodan</a> — KDE Plasma 6 Edit Mode Coexistence (#27)"
+			});
+
+			// Tab 2: Plank (Historic 2011–2015) — 2-Column Native GTK Grid Layout
+			var plank_grid = new Gtk.Grid ();
+			plank_grid.set_row_spacing (3);
+			plank_grid.set_column_spacing (12);
+			plank_grid.set_halign (Gtk.Align.FILL);
+			plank_grid.set_valign (Gtk.Align.FILL);
+			plank_grid.set_hexpand (true);
+			plank_grid.set_vexpand (true);
+			plank_grid.border_width = 0;
+			attach_solid_bg_painter (plank_grid, dlg);
+
+			int plank_row = 0;
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Created by", {
+				"<a href=\"mailto:psybers@gmail.com\">Robert Dyer &lt;psybers@gmail.com&gt;</a>",
+				"<a href=\"mailto:michal.mhr@gmail.com\">Michal Hruby &lt;michal.mhr@gmail.com&gt;</a>",
+				"<a href=\"https://launchpad.net/~ricotz\">Rico Tzschichholz</a> &lt;<a href=\"mailto:ricotz@ubuntu.com\">ricotz@ubuntu.com</a>&gt;"
+			});
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Artwork by", {
+				"<a href=\"https://github.com/danrabbit\">Daniel Foré</a> &lt;<a href=\"mailto:daniel@elementaryos.org\">daniel@elementaryos.org</a>&gt;"
+			});
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Documented by", {
+				"<a href=\"mailto:psybers@gmail.com\">Robert Dyer &lt;psybers@gmail.com&gt;</a>",
+				"<a href=\"https://launchpad.net/~ricotz\">Rico Tzschichholz</a> &lt;<a href=\"mailto:ricotz@ubuntu.com\">ricotz@ubuntu.com</a>&gt;"
+			});
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Upstream Tribute", {
+				"Modernized for native Wayland from the original X11 Plank",
+				"project (<a href=\"https://launchpad.net/plank\">https://launchpad.net/plank</a> — GPL-3.0+)."
+			});
+
+			credits_stack.add_titled (wp_grid, "wayplank", "🚀 WayPlank (2026)");
+			credits_stack.add_titled (plank_grid, "plank_historic", "🏛️ Plank (Historic)");
+
+			if (outer_sw != null) {
+				credits_stack.notify["visible-child-name"].connect (() => {
+					var vadj = outer_sw.get_vadjustment ();
+					if (vadj != null)
+						vadj.set_value (0.0);
+				});
+			}
+
+			var st_parent = st.get_parent () as Gtk.Box;
+			var header_widgets = new Gee.ArrayList<Gtk.Widget> ();
+			if (st_parent != null) {
+				foreach (var w in st_parent.get_children ()) {
+					if (w != st)
+						header_widgets.add (w);
+				}
+				st_parent.pack_start (switcher, false, true, 0);
+				st_parent.reorder_child (switcher, 0);
+			} else {
+				target_box.pack_start (switcher, false, true, 0);
+			}
+
+			target_box.pack_start (credits_stack, true, true, 0);
+			apply_credits_bg_css (credits_page, credits_css);
+			credits_stack.show_all ();
+			target_box.show ();
+
+			st.notify["visible-child-name"].connect (() => {
+				var cur_page = st.get_visible_child_name ();
+				if (cur_page == "credits") {
+					foreach (var hw in header_widgets) {
+						hw.set_no_show_all (true);
+						hw.hide ();
+					}
+					switcher.set_no_show_all (false);
+					switcher.show_all ();
+					switcher.set_no_show_all (true);
+				} else if (cur_page == "license") {
+					foreach (var hw in header_widgets) {
+						hw.set_no_show_all (true);
+						hw.hide ();
+					}
+					switcher.hide ();
+				} else {
+					switcher.hide ();
+					foreach (var hw in header_widgets) {
+						hw.set_no_show_all (false);
+						hw.show ();
+					}
+				}
+				if (cur_page != "credits")
+					return;
+				foreach (var ch in orig_children)
+					ch.hide ();
+				credits_stack.show_all ();
+				target_box.show ();
+			});
+		}
+
+		// =====================================================================
+		// About Dialog Easter Egg ("Ahoy Captain — Disco Dock & Ocean Anchor")
+		// Trigger: Ctrl + Alt + Shift + Left Click on the WayPlank icon in About
+		// Exit:    Any key press or any mouse click anywhere
+		// =====================================================================
+		Gtk.DrawingArea? easter_canvas = null;
+		Gee.ArrayList<Gtk.Widget>? easter_hidden_widgets = null;
+		uint easter_tick_id = 0U;
+		int64 easter_start_us = 0LL;
+		int64 easter_last_beat_us = 0LL;
+		int64 easter_last_wave_cascade_us = 0LL;
+		int64 easter_last_ticker_us = 0LL;
+		int easter_cascade_idx = -1;
+		string easter_ticker_line = "⚓ All 8 Launch Engines & 7 Glow Halos Armed!";
+		Gdk.Pixbuf? easter_logo_pixbuf = null;
+
+		const string[] EASTER_EFFECT_NAMES = {
+			"BOUNCE", "ELASTIC", "PULSE", "SPRING", "RIPPLE", "FLIP 360°", "SWING", "FLASH"
+		};
+		const string[] EASTER_GLOW_NAMES = {
+			"CLASSIC BOX", "ICON GLOW", "SPOTLIGHT", "ROUNDED CARD", "ACCENT BAR", "RIM HALO", "REFLECTION"
+		};
+
+		static Gtk.Image? find_first_image_widget (Gtk.Widget root)
+		{
+			if (root is Gtk.Image)
+				return (Gtk.Image) root;
+			if (root is Gtk.Container) {
+				foreach (var child in ((Gtk.Container) root).get_children ()) {
+					var found = find_first_image_widget (child);
+					if (found != null)
+						return found;
+				}
+			}
+			return null;
+		}
+
+		void setup_about_easter_egg (Gtk.AboutDialog dlg, Gdk.Pixbuf? logo_buf)
+		{
+			easter_logo_pixbuf = logo_buf;
+			dlg.add_events (Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.KEY_PRESS_MASK);
+
+			dlg.key_press_event.connect ((ev) => {
+				if (is_easter_egg_running) {
+					stop_about_easter_egg ();
+					return Gdk.EVENT_STOP;
+				}
+				return Gdk.EVENT_PROPAGATE;
+			});
+
+			dlg.button_press_event.connect ((ev) => {
+				if (is_easter_egg_running) {
+					stop_about_easter_egg ();
+					return Gdk.EVENT_STOP;
+				}
+				var req = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK | Gdk.ModifierType.SHIFT_MASK;
+				if (ev.button == Gdk.BUTTON_PRIMARY && (ev.state & req) == req) {
+					var img = find_first_image_widget (dlg);
+					bool hit_logo = true;
+					if (img != null && img.get_mapped ()) {
+						int ix = 0, iy = 0;
+						Gtk.Allocation alloc;
+						img.get_allocation (out alloc);
+						if (img.translate_coordinates (dlg, 0, 0, out ix, out iy)) {
+							hit_logo = (ev.x >= ix - 24 && ev.x <= ix + alloc.width + 24
+								&& ev.y >= iy - 24 && ev.y <= iy + alloc.height + 24);
+						}
+					}
+					if (hit_logo) {
+						start_about_easter_egg ();
+						return Gdk.EVENT_STOP;
+					}
+				}
+				return Gdk.EVENT_PROPAGATE;
+			});
+		}
+
+		void start_about_easter_egg ()
+		{
+			if (is_easter_egg_running || about_dlg == null)
+				return;
+
+			is_easter_egg_running = true;
+			easter_start_us = GLib.get_monotonic_time ();
+			easter_last_beat_us = 0LL;
+			easter_last_wave_cascade_us = easter_start_us;
+			easter_last_ticker_us = easter_start_us;
+			easter_cascade_idx = 0;
+			easter_ticker_line = "⚓ AHOY! Full Dock Choreography Engaged!";
+
+			var content = about_dlg.get_content_area ();
+			easter_hidden_widgets = new Gee.ArrayList<Gtk.Widget> ();
+			foreach (var child in content.get_children ()) {
+				if (child != easter_canvas && child.get_visible ()) {
+					easter_hidden_widgets.add (child);
+					child.hide ();
+				}
+			}
+
+			if (easter_canvas == null) {
+				easter_canvas = new Gtk.DrawingArea ();
+				easter_canvas.set_size_request (520, 360);
+				easter_canvas.set_hexpand (true);
+				easter_canvas.set_vexpand (true);
+				easter_canvas.set_can_focus (true);
+				easter_canvas.add_events (Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.KEY_PRESS_MASK);
+				easter_canvas.button_press_event.connect (() => {
+					stop_about_easter_egg ();
+					return Gdk.EVENT_STOP;
+				});
+				easter_canvas.key_press_event.connect (() => {
+					stop_about_easter_egg ();
+					return Gdk.EVENT_STOP;
+				});
+				easter_canvas.draw.connect (draw_easter_egg_canvas);
+				content.pack_start (easter_canvas, true, true, 0);
+			}
+			easter_canvas.show ();
+			easter_canvas.grab_focus ();
+
+			foreach (var dock in docks) {
+				if (dock.app_provider != null) {
+					if (dock.prefs.CategorizeItems && dock.prefs.AccordionDocklets && !dock.app_provider.docklets_expanded)
+						dock.app_provider.expand_docklets ();
+					if (dock.prefs.CategorizeItems && dock.prefs.PinnedAccordionMode != DockPreferences.PINNED_ACCORDION_OFF && !dock.app_provider.pinned_expanded)
+						dock.app_provider.expand_pinned ();
+				}
+				if (dock.renderer != null) {
+					dock.renderer.easter_egg_active = true;
+					dock.renderer.animated_draw ();
+				}
+				if (dock.hide_manager != null)
+					dock.hide_manager.refresh_visibility ();
+			}
+
+			easter_tick_id = easter_canvas.add_tick_callback ((widget, frame_clock) => {
+				if (!is_easter_egg_running)
+					return Source.REMOVE;
+
+				int64 now = GLib.get_monotonic_time ();
+				tick_easter_egg_dock_dance (now);
+				widget.queue_draw ();
+				return Source.CONTINUE;
+			});
+		}
+
+		public void stop_about_easter_egg (bool destroying = false)
+		{
+			if (!is_easter_egg_running)
+				return;
+
+			is_easter_egg_running = false;
+			if (easter_tick_id != 0U && easter_canvas != null) {
+				easter_canvas.remove_tick_callback (easter_tick_id);
+			}
+			easter_tick_id = 0U;
+
+			if (easter_canvas != null) {
+				if (!destroying)
+					easter_canvas.destroy ();
+				easter_canvas = null;
+			}
+
+			if (easter_hidden_widgets != null) {
+				if (!destroying) {
+					foreach (var w in easter_hidden_widgets) {
+						if (w != null)
+							w.show ();
+					}
+				}
+				easter_hidden_widgets = null;
+			}
+
+			foreach (var dock in docks) {
+				foreach (var item in dock.VisibleItems)
+					item.stop_dance ();
+				if (dock.renderer != null) {
+					dock.renderer.easter_egg_active = false;
+					dock.renderer.local_cursor.x = -1;
+					dock.renderer.local_cursor.y = -1;
+					dock.renderer.animated_draw ();
+				}
+				dock.check_collapse_after_interaction ();
+				if (dock.hide_manager != null)
+					dock.hide_manager.refresh_visibility ();
+			}
+		}
+
+		void tick_easter_egg_dock_dance (int64 now_us)
+		{
+			foreach (var dock in docks) {
+				var items = dock.VisibleItems;
+				if (items.size == 0)
+					continue;
+
+				// 1. Periodic sequential cascade wave across all icons every 2.8s
+				if (now_us - easter_last_wave_cascade_us >= 75000LL) {
+					easter_last_wave_cascade_us = now_us;
+					if (easter_cascade_idx >= 0 && easter_cascade_idx < items.size) {
+						var c_item = items.get (easter_cascade_idx);
+						if (!(c_item is SeparatorDockItem)) {
+							int eff = (easter_cascade_idx + (int) ((now_us / 500000LL) % 8)) % 8;
+							int hl = (easter_cascade_idx % 7);
+							c_item.trigger_dance (eff, hl);
+							if (now_us - easter_last_ticker_us >= 2000000LL) {
+								easter_last_ticker_us = now_us;
+								string label = (c_item.Text != null && c_item.Text != "") ? c_item.Text : "WayPlank";
+								easter_ticker_line = "⚡ %s  ➔  [%s  +  %s]".printf (
+									label, EASTER_EFFECT_NAMES[eff], EASTER_GLOW_NAMES[hl]
+								);
+							}
+						}
+						easter_cascade_idx++;
+						if (easter_cascade_idx >= items.size)
+							easter_cascade_idx = -1;
+					} else if (now_us - easter_start_us > 1500000LL && ((now_us / 100000LL) % 28 == 0)) {
+						easter_cascade_idx = 0;
+					}
+				}
+
+				// 2. Random multi-icon bursts every 130 ms so all icons dance with random effects
+				if (now_us - easter_last_beat_us >= 130000LL) {
+					easter_last_beat_us = now_us;
+					int bursts = int.min (2, items.size);
+					for (int b = 0; b < bursts; b++) {
+						int idx = GLib.Random.int_range (0, items.size);
+						var item = items.get (idx);
+						if (item is SeparatorDockItem)
+							continue;
+						int eff = GLib.Random.int_range (0, 8);
+						int hl = GLib.Random.int_range (0, 7);
+						item.trigger_dance (eff, hl);
+						if (b == 0 && now_us - easter_last_ticker_us >= 2000000LL) {
+							easter_last_ticker_us = now_us;
+							string label = (item.Text != null && item.Text != "") ? item.Text : "WayPlank";
+							easter_ticker_line = "🎵 %s  ➔  [%s  +  %s]".printf (
+								label, EASTER_EFFECT_NAMES[eff], EASTER_GLOW_NAMES[hl]
+							);
+						}
+					}
+				}
+
+				if (dock.renderer != null)
+					dock.renderer.animated_draw ();
+			}
+		}
+
+		bool draw_easter_egg_canvas (Cairo.Context cr)
+		{
+			if (easter_canvas == null)
+				return false;
+
+			double w = easter_canvas.get_allocated_width ();
+			double h = easter_canvas.get_allocated_height ();
+			double t = (GLib.get_monotonic_time () - easter_start_us) / 1000000.0;
+
+			// 1. Deep night sky & ocean backdrop gradient
+			var sky = new Cairo.Pattern.linear (0, 0, 0, h);
+			sky.add_color_stop_rgb (0.00, 0.03, 0.05, 0.12);
+			sky.add_color_stop_rgb (0.55, 0.06, 0.14, 0.28);
+			sky.add_color_stop_rgb (1.00, 0.04, 0.22, 0.38);
+			cr.set_source (sky);
+			cr.rectangle (0, 0, w, h);
+			cr.fill ();
+
+			// 2. Twinkling starfield
+			for (int i = 0; i < 36; i++) {
+				double sx = ((i * 97 + 31) % 100) / 100.0 * w;
+				double sy = ((i * 53 + 17) % 100) / 100.0 * (h * 0.58);
+				double twinkle = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin (t * (2.2 + (i % 5) * 0.7) + i));
+				double sr = (i % 4 == 0) ? 2.1 : 1.3;
+				cr.set_source_rgba (1.0, 0.98, 0.90, twinkle * 0.85);
+				cr.arc (sx, sy, sr, 0, 2.0 * Math.PI);
+				cr.fill ();
+			}
+
+			// 3. Multi-burst fireworks in the sky
+			double[,] fw_colors = {
+				{ 1.00, 0.82, 0.22 }, // Gold
+				{ 0.20, 0.92, 1.00 }, // Cyan
+				{ 1.00, 0.32, 0.78 }, // Magenta
+				{ 0.30, 1.00, 0.58 }, // Emerald
+				{ 1.00, 0.48, 0.24 }  // Coral
+			};
+			for (int f = 0; f < 5; f++) {
+				double cycle = (t * 0.85 + f * 0.37);
+				double phase = cycle - Math.floor (cycle);
+				int burst_seed = (int) Math.floor (cycle) * 7 + f * 13;
+				double fx = w * (0.15 + 0.70 * (((burst_seed * 43 + 19) % 100) / 100.0));
+				double fy = h * (0.16 + 0.28 * (((burst_seed * 29 + 7) % 100) / 100.0));
+				double max_r = 52.0 + (f % 3) * 16.0;
+				double r = max_r * (1.0 - Math.pow (1.0 - phase, 2.2));
+				double alpha = (1.0 - phase) * (1.0 - phase);
+				double cr_col = fw_colors[f, 0];
+				double cg_col = fw_colors[f, 1];
+				double cb_col = fw_colors[f, 2];
+
+				for (int p = 0; p < 18; p++) {
+					double ang = (2.0 * Math.PI * p) / 18.0 + f * 0.2;
+					double px = fx + Math.cos (ang) * r;
+					double py = fy + Math.sin (ang) * r + 14.0 * phase * phase;
+					cr.set_source_rgba (cr_col, cg_col, cb_col, alpha * 0.9);
+					cr.arc (px, py, 2.6 * (1.0 - 0.5 * phase), 0, 2.0 * Math.PI);
+					cr.fill ();
+				}
+			}
+
+			// 4. Rotating compass rose / sunburst halo behind the anchor
+			double cx = w * 0.5;
+			double ship_bob = Math.sin (t * 3.2) * 9.0;
+			double cy = h * 0.47 + ship_bob;
+
+			cr.save ();
+			cr.translate (cx, cy);
+			cr.rotate (t * 0.65);
+			for (int ray = 0; ray < 12; ray++) {
+				cr.rotate (2.0 * Math.PI / 12.0);
+				var ray_pat = new Cairo.Pattern.linear (0, 0, 0, -92);
+				ray_pat.add_color_stop_rgba (0.0, 0.25, 0.85, 1.0, 0.32);
+				ray_pat.add_color_stop_rgba (1.0, 0.25, 0.85, 1.0, 0.0);
+				cr.set_source (ray_pat);
+				cr.move_to (-8, 0);
+				cr.line_to (0, -92);
+				cr.line_to (8, 0);
+				cr.close_path ();
+				cr.fill ();
+			}
+			cr.restore ();
+
+			// 5. Back ocean wave
+			draw_ocean_wave_layer (cr, w, h, h * 0.60, 11.0, 0.022, t * 2.4, 0.08, 0.42, 0.68, 0.55);
+
+			// 6. Surfing WayPlank Anchor (rocking + periodic 360° coin flip)
+			if (easter_logo_pixbuf != null) {
+				cr.save ();
+				cr.translate (cx, cy);
+				double rock_angle = Math.sin (t * 2.8) * 0.24;
+				cr.rotate (rock_angle);
+
+				double flip_mod = Math.fmod (t, 4.0);
+				double sx = 1.0;
+				if (flip_mod > 3.0) {
+					double fp = (flip_mod - 3.0);
+					sx = Math.cos (2.0 * Math.PI * fp);
+					if (Math.fabs (sx) < 0.05)
+						sx = (sx >= 0.0 ? 0.05 : -0.05);
+				}
+				double pulse_s = 1.0 + 0.08 * Math.sin (t * 5.6);
+				cr.scale (sx * pulse_s, pulse_s);
+				Gdk.cairo_set_source_pixbuf (cr, easter_logo_pixbuf, -easter_logo_pixbuf.width / 2.0, -easter_logo_pixbuf.height / 2.0);
+				cr.paint ();
+				cr.restore ();
+			}
+
+			// 7. Mid & front ocean waves
+			draw_ocean_wave_layer (cr, w, h, h * 0.65, 14.0, 0.026, -t * 3.1 + 1.2, 0.12, 0.58, 0.84, 0.68);
+			draw_ocean_wave_layer (cr, w, h, h * 0.71, 12.0, 0.032, t * 3.9 + 2.5, 0.18, 0.74, 0.96, 0.80);
+
+			// 8. 20-Band Rainbow Spectrum Equalizer at the bottom
+			int bars = 20;
+			double bar_w = (w - 80.0) / bars;
+			double base_y = h - 42.0;
+			for (int b = 0; b < bars; b++) {
+				double bh = 8.0 + 28.0 * Math.fabs (Math.sin (t * 6.5 + b * 0.55) * Math.cos (t * 3.2 - b * 0.3));
+				double bx = 40.0 + b * bar_w;
+				double hue_deg = Math.fmod (((b / (double) bars) + t * 0.25) * 360.0, 360.0);
+				var bar_col = Color.from_hsv (hue_deg, 0.85, 1.0);
+				cr.set_source_rgba (bar_col.red, bar_col.green, bar_col.blue, 0.88);
+				cr.rectangle (bx + 2.0, base_y - bh, bar_w - 4.0, bh);
+				cr.fill ();
+			}
+
+			// 9. Title Banner & Smooth Right-to-Left Scrolling Hall of Fame Marquee (Pango Full CJK / Unicode Layout)
+			var title_layout = Pango.cairo_create_layout (cr);
+			title_layout.set_font_description (Pango.FontDescription.from_string ("Sans Bold 11"));
+			string title = "⚓  AHOY CAPTAIN! FULL STEAM AHEAD ON WAYLAND!  ⚓";
+			title_layout.set_text (title, -1);
+			int title_w = 0, title_h = 0;
+			title_layout.get_pixel_size (out title_w, out title_h);
+			double title_x = (w - title_w) / 2.0;
+			double title_y = 10.0;
+			cr.set_source_rgba (0.0, 0.0, 0.0, 0.65);
+			cr.move_to (title_x + 1.5, title_y + 1.5);
+			Pango.cairo_show_layout (cr, title_layout);
+			cr.set_source_rgba (1.0, 0.90, 0.35, 1.0);
+			cr.move_to (title_x, title_y);
+			Pango.cairo_show_layout (cr, title_layout);
+
+			// Continuous right-to-left scrolling Hall of Fame banner (Pango layout renders CJK 史有虎 + all scripts)
+			string hall_of_fame = "🌟 WAYPLANK HALL OF FAME   •   Lead Architect/Programmer & Maintainer: Sergio Melas (@sergiomelas — Wayland HAL, Core Engine, IT / ES / FR / CA)   •   Community Fork, RPM Packaging, Matcher & Simplified Chinese (zh_CN): 史有虎 (IFtiger-hu / @IFtiger-hu-hub)   •   German (de) Localization: Renate Schwiedernoch (@reni001)   •   Ukrainian (uk) Localization & Ergonomics: Michailo Buchko (@Gabenoh)   •   Themes & Artwork: Arian (Arian Themes), 史有虎 (IFtiger Themes), Daniel Foré, KDE Breeze Artists   •   Multi-Compositor Qualification & Bug Hunting: @tcliuqiang, @winteriscariot, @Jolmas, @polpodan   •   Original Plank Creators (Tribute): Robert Dyer, Michal Hruby, Rico Tzschichholz     •     ";
+			double pill_x = 16.0;
+			double pill_y = 40.0;
+			double pill_w = w - 32.0;
+			double pill_h = 26.0;
+
+			cr.save ();
+			cr.set_source_rgba (0.02, 0.08, 0.18, 0.82);
+			cr.rectangle (pill_x, pill_y, pill_w, pill_h);
+			cr.fill_preserve ();
+			cr.set_source_rgba (0.35, 0.82, 1.0, 0.45);
+			cr.set_line_width (1.0);
+			cr.stroke ();
+
+			cr.rectangle (pill_x + 4.0, pill_y, pill_w - 8.0, pill_h);
+			cr.clip ();
+
+			var marquee_layout = Pango.cairo_create_layout (cr);
+			marquee_layout.set_font_description (Pango.FontDescription.from_string ("Sans Bold 10"));
+			marquee_layout.set_text (hall_of_fame, -1);
+			int mq_w = 0, mq_h = 0;
+			marquee_layout.get_pixel_size (out mq_w, out mq_h);
+			double text_w = double.max ((double) mq_w, 400.0);
+			double scroll_px = Math.fmod (t * 78.0, text_w);
+			double start_x = pill_x + pill_w - scroll_px;
+			double mq_y = pill_y + (pill_h - mq_h) / 2.0;
+
+			cr.set_source_rgba (0.55, 0.95, 1.0, 0.98);
+			cr.move_to (start_x, mq_y);
+			Pango.cairo_show_layout (cr, marquee_layout);
+			cr.move_to (start_x + text_w, mq_y);
+			Pango.cairo_show_layout (cr, marquee_layout);
+			if (start_x - text_w < pill_x + pill_w) {
+				cr.move_to (start_x - text_w, mq_y);
+				Pango.cairo_show_layout (cr, marquee_layout);
+			}
+			cr.restore ();
+
+			// Footer hint (Pango layout)
+			var hint_layout = Pango.cairo_create_layout (cr);
+			hint_layout.set_font_description (Pango.FontDescription.from_string ("Sans Italic 9"));
+			string hint = "Press any key or click anywhere to drop anchor";
+			hint_layout.set_text (hint, -1);
+			int hint_w = 0, hint_h = 0;
+			hint_layout.get_pixel_size (out hint_w, out hint_h);
+			cr.set_source_rgba (0.85, 0.94, 1.0, 0.90);
+			cr.move_to ((w - hint_w) / 2.0, h - hint_h - 10.0);
+			Pango.cairo_show_layout (cr, hint_layout);
+
+			return true;
+		}
+
+		static void draw_ocean_wave_layer (Cairo.Context cr, double w, double h, double y_base, double amp, double freq, double phase, double r, double g, double b, double alpha)
+		{
+			cr.save ();
+			cr.move_to (0, h);
+			for (double x = 0; x <= w; x += 6.0) {
+				double y = y_base + Math.sin (x * freq + phase) * amp + Math.cos (x * freq * 0.5 - phase * 0.7) * (amp * 0.4);
+				cr.line_to (x, y);
+			}
+			cr.line_to (w, h);
+			cr.close_path ();
+
+			var wpat = new Cairo.Pattern.linear (0, y_base - amp, 0, h);
+			wpat.add_color_stop_rgba (0.0, r, g, b, alpha);
+			wpat.add_color_stop_rgba (1.0, r * 0.25, g * 0.35, b * 0.55, alpha);
+			cr.set_source (wpat);
+			cr.fill_preserve ();
+
+			cr.set_source_rgba (1.0, 1.0, 1.0, alpha * 0.45);
+			cr.set_line_width (2.0);
+			cr.stroke ();
+			cr.restore ();
 		}
 		
 		void raise_and_focus_window (Gtk.Window window, uint32 event_time = 0)

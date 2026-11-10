@@ -97,9 +97,9 @@ When running in **WayPlank Explorer** (or Categorized Mode), the dock is arrange
 
 ```mermaid
 flowchart LR
-    F["📁 Folders (Internet, Office, Media, Games)"] --- P["🌐 Pinned Apps (Browser, Files, Terminal, Editor + » / «)"]
+    F["📁 Folders (Internet, Office, Media, Games)"] --- P["🌐 Pinned Apps (Browser, Files, Terminal, Editor + ›| / «|)"]
     P --- O["📝 Open Apps (Running Windows)"]
-    O --- D["🎛️ Docklets (Desktop, Volume, Preferences...)"]
+    O --- D["🎛️ Docklets (Desktop, Volume, Preferences... + ›| / «|)"]
     D --- T["🗑️ Trash"]
 ```
 
@@ -108,16 +108,16 @@ In **Preferences $\rightarrow$ Apps & Layout**, you can also place the **Docklet
 ```mermaid
 flowchart LR
     W["⚙️ WayPlank"] --- F["📁 Folders (Internet, Office, Media)"]
-    F --- D["🎛️ Docklets (Clock, Volume, Battery, DND...)"]
-    D --- P["🌐 Pinned Apps (Browser, Files, Terminal + » / «)"]
+    F --- D["🎛️ Docklets (Clock, Volume, Battery, DND... + ›| / «|)"]
+    D --- P["🌐 Pinned Apps (Browser, Files, Terminal + ›| / «|)"]
     P --- O["📝 Open Apps (Running Windows)"]
     O --- T["🗑️ Trash"]
 ```
 
 - **WayPlank Far-Left Anchor (Optional — `WayPlank Always Left`):** Keeps the WayPlank icon fixed at position `0` on the far left with its own vertical separator (paired via `MONLMIP Rank 1` and a persistent SR latch in `~/.config/wayplank/latch-state.ini` with `System Menu Access = Dedicated Icon`).
 - **Folders (Left):** Categorized application menus for fast access to your software library.
-- **Pinned Applications & Smart Pinned Accordion (`›` / `«`):** Direct single-click access to your pinned daily tools (with optional **Auto-Fit Capacity** or **Top Most Used** (`1..20`, default `6`) frecency collapsing onto a half-slot chevron expander `›` / `«`) followed immediately by temporary running windows (`[Pinned Apps] | [Open Apps]`), keeping drag-to-pin and drag-to-unpin across their separator 100% seamless in both layouts.
-- **Docklets (Default on Right — Configurable Left or Right):** Interactive system widgets (collapsible into a symmetric expandable accordion that collapses onto the rightmost icon when on the right, and onto the leftmost icon when on the left) placed by default on the right immediately before the Trash (`Docklets on Right = ON`, System Tray style) or on the left after Folders (`Docklets on Right = OFF`).
+- **Pinned Applications & Smart Pinned Accordion (`›|` / `«|`):** Direct single-click access to your pinned daily tools (with optional **Auto-Fit Capacity** or **Top Most Used** (`1..20`, default `6`) frecency collapsing onto a half-slot separator-chevron expander `›|` / `«|`) followed immediately by temporary running windows (`[Pinned Apps] ›| [Open Apps]`), keeping drag-to-pin and drag-to-unpin across their separator 100% seamless in both layouts.
+- **Docklets (Default on Right — Configurable Left or Right with `›|` / `«|`):** Interactive system widgets (collapsible into a symmetric expandable accordion with its own `›|` / `«|` toggle that collapses onto the rightmost icon when on the right, and onto the leftmost icon when on the left) placed by default on the right immediately before the Trash (`Docklets on Right = ON`, System Tray style) or on the left after Folders (`Docklets on Right = OFF`).
 - **Trash (Far-Right Anchor — `Show Trash`):** Anchored permanently at the far end of the dock (toggled via **Show Trash** at the bottom-center of **Preferences $\rightarrow$ Docklets**).
 
 ### Multi-Window Navigation & Cairo Preview Cards
@@ -219,18 +219,19 @@ WayPlank lets you choose where the **Docklets** category block is positioned on 
 - **Symmetric Left & Right Edge Anchors (`WayPlank Always Left` & `Show Trash`)**: In **Preferences $\rightarrow$ Apps & Layout**, you can toggle **WayPlank Always Left** (pinning the WayPlank icon at position `0` on the far left with its own separator, backed by `MONLMIP Rank 1` and a persistent SR latch in `~/.config/wayplank/latch-state.ini`), and at the bottom-center of **Preferences $\rightarrow$ Docklets** you can toggle **Show Trash** (anchoring the Trash bin at the far right). Even when `Docklets on Right` is enabled alongside `WayPlank Always Left`, the accordion hover/collapse zone strictly bounds only the right-hand Docklets group.
 
 ### Accordion Mode (Space-Saving Collapsible Docklets & Smart Pinned Apps Accordion)
-In **Preferences $\rightarrow$ Apps & Layout**, WayPlank provides two independent, cooperative accordions that share the **Click to Expand** switch and **Collapse Delay** slider (`0.5s` to `20.0s`, plus the **Reset App Usage Counter** button), alongside the **Icon Tooltips** switch (`tooltips-enabled` in **Preferences $\rightarrow$ Appearance**):
+In **Preferences $\rightarrow$ Apps & Layout**, WayPlank provides two independent, cooperative accordions that share the unified **`›|` / `«|`** half-slot separator-chevron expander, the **Click to Expand** switch, and the **Collapse Delay** slider (`0.5s` to `20.0s`, plus the **Reset App Usage Counter** button), alongside the **Icon Tooltips** switch (`tooltips-enabled` in **Preferences $\rightarrow$ Behaviour**):
 
 1. **Docklet Accordion (`accordion-docklets = true`)**:
-   - **Hover or Click Expansion**: Collapses multiple active docklets into a single master anchor slot (expanding on hover by default, or on click when **Click to Expand** is enabled).
+   - **Unified `›|` / `«|` Toggle & Hover/Click Expansion**: Collapses multiple active docklets down to the anchor docklet plus a dedicated **`›|`** (collapsed) / **`«|`** (expanded) toggle item (expanding on hover by default, or on click when **Click to Expand** is enabled).
    - **Symmetric Outer-Edge Master Anchor & Fallback**: Collapses onto the leftmost docklet when `Docklets on Right = OFF`, and onto the rightmost docklet when `Docklets on Right = ON`.
    - **Single Docklet Safety Guard**: Automatically suppressed if `<= 1` docklet is active.
 2. **Smart Pinned Apps Accordion (`pinned-accordion-mode`: `Off`, `Auto-Fit Capacity`, `Top Most Used` + SpinButton `1..20`)**:
-   - **Auto-Fit Capacity (`1`)**: Automatically calculates how many pinned applications fit cleanly on your monitor without overflowing or shrinking icons, collapsing the least-used overflow pinned apps behind a compact half-slot chevron expander (`›`).
-   - **Top Most Used (`2`)**: Keeps your top $N$ (`pinned-accordion-count`, configurable via the inline numeric SpinButton from `1` to `20`, default `6`) most frequently and recently used pinned applications visible on the dock and collapses the rest behind `›`.
+   - **Auto-Fit Capacity (`1`)**: Automatically calculates how many pinned applications fit cleanly on your monitor without overflowing or shrinking icons, collapsing the least-used overflow pinned apps behind the compact half-slot **`›|`** expander.
+   - **Top Most Used (`2`)**: Keeps your top $N$ (`pinned-accordion-count`, configurable via the inline numeric SpinButton from `1` to `20`, default `6`) most frequently and recently used pinned applications visible on the dock and collapses the rest behind **`›|`**.
    - **Event-Driven Frecency Usage Engine (`AppUsageService`)**: Modelled on GNOME Shell's `shell-app-usage.c` (with read-only import of `~/.local/share/gnome-shell/application_state` on GNOME), tracking application launches ($+1.0$) and active focus sessions ($\ge 5\text{s}$ threshold ignoring `Alt+Tab` sweeps, up to $+3.0/\text{session}$, rescaled to `SCORE_MAX = 100.0`) with a 14-day lazy exponential half-life ($\tau = 14\text{ days}$) persisted in `~/.local/share/wayplank/app_usage.json` and zero background timers.
    - **Smart Visibility Exemptions**: Running applications, applications requesting urgent attention, and launchers with **Keep Always Visible** (`KeepVisible=true`) checked in their right-click context menu are **never** hidden.
-   - **Half-Slot Interactive Expander (`›` / `«`) & Separator Suppression**: The `›` / `«` expander occupies **half an icon slot (`0.5` width, matching the width of a separator)** and **automatically suppresses any immediately following vertical separator (`|`)** so there is never double spacing at the end of the Pinned Apps section. Hovering (or clicking when **Click to Expand** is ON) the `›` expander reveals all hidden pinned apps in-line; while expanded, the chevron flips to `«` (also `0.5` slot wide without a trailing separator) so you can collapse the shelf on click or let it auto-collapse after the configured **Collapse Delay** once the pointer leaves the dock.
+   - **Half-Slot Interactive Separator-Expander (`›|` / `«|`), Fixed `1.0` Zoom & Adjacent Separator Suppression**: Both the Docklets Accordion and Pinned Apps Accordion use `PinnedExpanderDockItem` (`›|` when collapsed, `«|` when expanded) with a crisp vertical separator bar on its right edge matching standard dock separators. It occupies **half an icon slot (`0.5` width)**, maintains a **fixed `1.0` scale during icon zoom** (just like standard separators), and **automatically removes any immediately preceding or following `SeparatorDockItem` (`|`)** so there is never double spacing.
+   - **Pure Manual Toggle Mode (`Click to Expand = ON`) & Independent `latch-state.ini` Memory**: When **Click to Expand** is enabled, auto-collapse timeouts are completely disabled (and the **Collapse Delay** row with its slider accessories is greyed out in `Preferences`), turning both `›|` / `«|` items into pure manual click toggles. Each accordion independently remembers whether you left it open or closed across dock restarts and PC reboots via `DockletsExpanded` and `PinnedExpanded` in `~/.config/wayplank/latch-state.ini`.
    - **Live Responsiveness During Preferences**: Both the Docklets Accordion and Pinned Apps Accordion remain 100% live and responsive while the **Preferences** window is open, updating immediately whenever you toggle settings.
    - **Popup & Drag-and-Drop Retention**: Accordion auto-collapse is held open while context menus, Folder Drawers, Window Preview Cards, Icon Chooser, Weather, Calendar, or Session popups are open, and dragging any item over an accordion anchor expands it automatically.
 
@@ -289,7 +290,7 @@ When **Categorize Items** is enabled (`categorize-items = true` in **Preferences
 WayPlank's 4-tab Preferences dialog (**Appearance**, **Behaviour**, **Apps & Layout**, **Docklets**) is engineered via Multi-Objective Mixed-Integer Nonlinear Programming (**MONLMIP Rank 1**) for **zero cross-tab side effects ($J_{\text{cross}} = 0.0$)** and **full fault-tolerant profile & SR Flip-Flop disk persistence across reboots (`~/.config/wayplank/latch-state.ini`)**:
 - **WayPlank Always Left (`anchor-always-left = true`, in `Preferences -> Apps & Layout`)**: Permanently pins the dedicated WayPlank icon at position `0` (far left of the dock) with its own dedicated vertical separator (`[WayPlank] | [Folders] | ...`). Powered by **`MONLMIP Rank 1`**, `WayPlank Always Left` remains clickable at all times: toggling it ON while in Free Mode (`Categorize Items = OFF`) automatically promotes `Categorize Items = ON` and sets `System Menu Access` to **Mode 4 (`Dedicated Icon`)**; switching `System Menu Access` away from Mode 4 saves the `WayPlank Always Left` state into `~/.config/wayplank/latch-state.ini` and automatically restores it when you return to Mode 4—even after rebooting your PC.
 - **Reserve Screen Space SR Latch (`reserve-space = true`, in `Preferences -> Appearance`)**: Co-located in the **Appearance** tab alongside **Hide Dock** and **Icon Zoom**. Enabling **Reserve Screen Space** saves your current **Hide Dock** mode and **Icon Zoom** state into `~/.config/wayplank/latch-state.ini` and turns both off for Panel Mode; unchecking **Reserve Screen Space** automatically restores your previous **Hide Dock** and **Icon Zoom** settings across reboots.
-- **Full Profile Persistence & SIL-4 Startup Validation (`~/.config/wayplank/latch-state.ini`, `FAT 7.17`)**: All **43 dock preferences (`[DockPreferences]`)** and **5 SR Flip-Flop states (`[LatchState]`)** are persisted in `~/.config/wayplank/latch-state.ini`. On startup, WayPlank probes `latch-state.ini` in an isolated child process, validates every setting against schema ranges and path/theme/monitor invariants, quarantines corrupted or path-traversal `.dockitem` files, and presents a localized `"Load environment failed"` dialog listing any settings defaulted or `.dockitem` files discarded (testable with [`FAT/Test Files/Environment/Test environments.sh`](../FAT/Test%20Files/Environment/Test%20environments.sh)).
+- **Full Profile Persistence & Startup Validation (`~/.config/wayplank/latch-state.ini`, `FAT 7.17`)**: All **43 dock preferences (`[DockPreferences]`)** and **7 latch/accordion states (`[LatchState]`, including `DockletsExpanded` and `PinnedExpanded`)** are persisted in `~/.config/wayplank/latch-state.ini`. On startup, WayPlank probes `latch-state.ini` in an isolated child process, validates every setting against schema ranges and path/theme/monitor invariants, quarantines corrupted or path-traversal `.dockitem` files, and presents a localized `"Load environment failed"` dialog listing any settings defaulted or `.dockitem` files discarded (testable with `FAT/Test Files/Environment/Test environments.sh`).
 - **Trash at Far Right (`Show Trash`, at the bottom-center of `Preferences -> Docklets`)**: The Trash docklet (`docklet://trash`) is permanently anchored to the far end of the dock and can be toggled on or off live from the bottom-center of the **Docklets** tab.
 
 ### Dynamic Separators
@@ -407,7 +408,8 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 - **Shortcuts & Gestures Dialog**: Visual reference dialog (`HelpWindow`) with categorized tabs explaining dock operations, gestures, and keyboard combinations.
 - **Terminal CLI Cheatsheet**: Run `wayplank --help` in the terminal for a full, colorized quick-reference guide.
 - **Right Click on empty dock space**: Opens the dock context menu.
-- **Ctrl + Alt + Shift + Right Click**: Opens Developer Inspection Tools (launcher URI inspector, reload theme, inspect configuration).
+- **Ctrl + Alt + Shift + Right Click (Developer Tools)**: Opens the **Developer Tools** submenu on any dock item (`Print info to stdout`, `Open dockitem file`, `Open launcher file` in your system text editor, and `Print usage score`, plus global theme/config debug actions).
+- **🥚 Hidden Easter Egg Treasure Hunt**: Try combining that same 3-modifier developer chord (`Ctrl + Alt + Shift`) with a **Left Click** on a very special WayPlank emblem inside one of the dialogs... *(For the exact treasure-hunt procedure, inspect the `V0.7.1: Added Fun and Structure` commit message in the [GitHub Commit History](https://github.com/sergiomelas/WayPlank/commits/main))!*
 
 ---
 
@@ -466,32 +468,44 @@ WayPlank's integrated Screen Brightness docklet features per-monitor hardware ba
 
 ## 9. Hardware Abstraction Layer (HAL) & Compositor Architecture
 
-Unlike legacy X11—where any client could inspect global window lists and coordinates—the **Wayland security model** isolates applications from one another. To deliver running indicators, window activation, live preview cards, Dodge/Intellihide overlap tracking, and multi-monitor brightness sync with **zero user configuration**, WayPlank routes all OS and compositor communication through a dedicated **Hardware Abstraction Layer (HAL)** *(for developer source specifications, see `Documentation/HAL_ARCHITECTURE.md` in the project repository)*.
+Unlike legacy X11—where any client could inspect global window lists and coordinates—the **Wayland security model** isolates applications from one another. To deliver running indicators, window activation, live preview cards, Dodge/Intellihide overlap tracking, and multi-monitor brightness sync with **zero user configuration**, WayPlank routes all OS, compositor, and system bus communication through a unified **Hardware & Bus Abstraction Layer (`hal/Interfaces/`)**.
+
+For complete developer specifications, see the official architectural blueprints in the repository `Documentation/` folder:
+- 🏛️ **Master Compositor & Shell HAL Specification:** `Documentation/HAL_COMPOSITORS.md`
+- 🚌 **Master IPC & System Bus HAL Specification:** `Documentation/HAL_BUSES.md`
+- 🎯 **Application Identity Engine & `IAppSystem` Data Abstraction:** `Documentation/APPLICATION_IDENTITY_ENGINE.md`
+- 🪟 **WinPlank Zero-DLL Native Windows (`7 ⟷ 11+`) Port Blueprint:** `Documentation/WINPLANK_PORT_BATTLE_PLAN.md`
 
 ```mermaid
 flowchart TD
     subgraph CORE ["🎨 WayPlank Portable Frontend & Dock Engine (src/ + lib/)"]
         UI["Cairo Dock Renderer, Zoom Physics, Preview Cards & Folder Drawers"]
-        DOCKLETS["16 Monolithic Docklets & Preferences UI"]
+        DOCKLETS["16 Monolithic Docklets, Accordions & Preferences UI"]
+        ID["6-Layer Application Identity & Discovery Engine"]
     end
 
-    subgraph HAL_ENCAPSULATED ["🏛️ Encapsulated Hardware & OS Abstraction Layer"]
-        HAL_BOX["📦 Unified HAL Box (Runtime Auto-Detection & OS Isolation)"]
+    subgraph HAL_IFACE ["🔌 Unified HAL & Bus Abstraction Interface (hal/Interfaces/ — Frozen in v0.7.2)"]
+        C_IFACE["Compositor & Surface Contracts (IDockShell • IWindowBackend • IThumbnailProvider)"]
+        B_IFACE["System Bus, App & Telemetry Contracts (IBusBackend • IAppSystem • ISystemTelemetry)"]
     end
 
-    subgraph TARGETS ["🖥️ Supported Desktop Environments & Target Platforms"]
-        KWIN["KDE Plasma 6 (KWin)"]
-        MUTTER["GNOME Shell (Mutter)"]
-        WLR["Labwc / Wayfire / wlroots"]
-        HORIZON["Multi-OS Horizon (Linux • BSD • Windows)"]
+    subgraph COMP_TARGETS ["🪟 Compositor Drivers Below the Interface (HAL_COMPOSITORS.md)"]
+        KWIN["KWin (KDE Plasma 6)"]
+        MUTTER["Mutter (GNOME Shell)"]
+        LABWC["Labwc / wlroots"]
+        WINCOMP["Windows Compositor (Win 7 ⟷ 11+ Pure Win32 + Dynamic DWM)"]
     end
 
-    UI --> HAL_BOX
-    DOCKLETS --> HAL_BOX
-    HAL_BOX ==>|"Zero-Config Auto-Bind"| KWIN
-    HAL_BOX ==>|"Zero-Config Auto-Bind"| MUTTER
-    HAL_BOX ==>|"Zero-Config Auto-Bind"| WLR
-    HAL_BOX -.->|"Compile-Time Target"| HORIZON
+    subgraph BUS_TARGETS ["🚌 System & IPC Bus Drivers Below the Interface (HAL_BUSES.md)"]
+        DBUS["D-Bus (Freedesktop Session & System Bus)"]
+        WINBUS["Windows Bus (Named Pipes / SetWinEventHook / CoreAudio / DXVA2)"]
+    end
+
+    UI & DOCKLETS & ID ==> HAL_IFACE
+    C_IFACE ==>|"Zero-Config Auto-Bind (v0.7.2 Freeze)"| KWIN & MUTTER & LABWC
+    C_IFACE -.->|"Compile-Time Target (v0.7.3)"| WINCOMP
+    B_IFACE ==>|"Event-Driven Broker (v0.7.2 Freeze)"| DBUS
+    B_IFACE -.->|"Compile-Time Target (v0.7.3)"| WINBUS
 ```
 
 ### What Users Get Out of the Box (Zero Configuration)
@@ -579,7 +593,7 @@ wayplank -v
 
 ### Multi-Language Translation Catalogs (Public Beta v0.7.0 / v0.7.1)
 WayPlank ships with complete multi-language translation catalogs and an automated translation framework via `po/generate_translations.py`:
-- **Complete String Catalogs Ready**: All **519** user-facing strings, tooltips, onboarding cards, settings labels, and docklet strings have been fully translated across **7 community languages** (plus native English `en`):
+- **Complete String Catalogs Ready**: All **522** user-facing strings, tooltips, onboarding cards, settings labels, and docklet strings have been fully translated across **7 community languages** (plus native English `en`):
   1. **Simplified Chinese (`zh_CN`)** — Community contribution by 史有虎 (IFtiger-hu).
   2. **Italian (`it`)**
   3. **Spanish (`es`)**
@@ -587,7 +601,7 @@ WayPlank ships with complete multi-language translation catalogs and an automate
   5. **Catalan (`ca`)**
   6. **German (`de`)** — Community contribution by Renate Schwiedernoch.
   7. **Ukrainian (`uk`)** — Community contribution by Michailo Buchko.
-- **Monolithic Embedded Localization Architecture**: All 7 language catalogs (`519/519` strings — 100%) are designed for monolithic in-memory `GResource` resolution with **Zero Host Pollution** (`0` external files installed in `/usr/share/locale/`), dynamically rendering the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES`.
+- **Monolithic Embedded Localization Architecture**: All 7 language catalogs (`522/522` strings — 100%) are designed for monolithic in-memory `GResource` resolution with **Zero Host Pollution** (`0` external files installed in `/usr/share/locale/`), dynamically rendering the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES`.
 - **Automatic Browser Translation of the User Guide (`wayplank_user_guide.html`, `FAT 2.6`)**: Opening the User Guide from **Shortcuts & Gestures $\rightarrow$ Open Complete User Guide (Browser)** extracts `wayplank_user_guide.html` and automatically translates the manual into your active WayPlank locale (`LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG`, 100% compatible with `"FAT/Test Files/Localization/switch_lang.sh"` without changing the OS language), complete with a floating top-right language selector (`#wp-lang-select`), mainland China fallback (`res.zvo.cn/translate/translate.js`), and `notranslate` protection for code blocks and Mermaid diagrams.
 - **Balanced 600×520 Preferences Geometry**: The Preferences window layout is engineered with compact 600×520 constraints to guarantee that all localized strings fit cleanly with zero horizontal label truncation.
 - **Call for Translators**: Contributors can easily add new languages or refine existing strings directly in `po/generate_translations.py`.

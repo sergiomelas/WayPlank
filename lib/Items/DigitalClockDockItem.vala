@@ -42,18 +42,27 @@ namespace Plank
 			Button = PopupButton.RIGHT;
 			
 			update_clock_text ();
+			notify["IsAttached"].connect (on_attached_changed);
 			start_timer ();
 		}
 		
 		~DigitalClockDockItem ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 		}
 
 		public override void cleanup ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached)
+				refresh_clock ();
 		}
 		
 		void start_timer ()
@@ -89,7 +98,7 @@ namespace Plank
 			Text = now.format ("%A %e %B %Y\n%H:%M:%S");
 		}
 		
-		bool on_timer_tick ()
+		void refresh_clock ()
 		{
 			var now = new DateTime.now_local ();
 			Text = now.format ("%A %e %B %Y\n%H:%M:%S");
@@ -98,6 +107,13 @@ namespace Plank
 				last_rendered_minute = minute_key;
 				reset_icon_buffer ();
 			}
+		}
+
+		bool on_timer_tick ()
+		{
+			if (!IsAttached)
+				return true;
+			refresh_clock ();
 			return true;
 		}
 		

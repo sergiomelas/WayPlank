@@ -24,6 +24,7 @@ namespace Plank
 	{
 		uint timer_id = 0;
 		uint dbus_sub_id = 0;
+		uint signal_debounce_id = 0;
 		ulong netmon_handler_id = 0UL;
 		bool is_disposed = false;
 		bool poll_in_flight = false;
@@ -51,6 +52,7 @@ namespace Plank
 			Icon = "network-wireless-signal-good;;network-wired;;network-idle";
 			Button = PopupButton.RIGHT;
 
+			notify["IsAttached"].connect (on_attached_changed);
 			schedule_network_poll ();
 			start_timer ();
 			start_listeners ();
@@ -59,6 +61,7 @@ namespace Plank
 		~NetworkDockItem ()
 		{
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			stop_listeners ();
 		}
@@ -66,9 +69,16 @@ namespace Plank
 		public override void cleanup ()
 		{
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			stop_listeners ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached)
+				schedule_network_poll ();
 		}
 
 		public override void @delete ()
@@ -83,7 +93,7 @@ namespace Plank
 		{
 			if (timer_id != 0)
 				return;
-			timer_id = Timeout.add_seconds (4, on_timer_tick);
+			timer_id = Timeout.add_seconds (15, on_timer_tick);
 		}
 
 		void stop_timer ()
@@ -91,6 +101,10 @@ namespace Plank
 			if (timer_id != 0) {
 				Source.remove (timer_id);
 				timer_id = 0;
+			}
+			if (signal_debounce_id != 0) {
+				Source.remove (signal_debounce_id);
+				signal_debounce_id = 0;
 			}
 		}
 
@@ -137,11 +151,20 @@ namespace Plank
 
 		void on_dbus_signal (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
 		{
-			schedule_network_poll ();
+			if (is_disposed || !IsAttached || signal_debounce_id != 0)
+				return;
+			signal_debounce_id = Timeout.add (300, () => {
+				signal_debounce_id = 0;
+				if (!is_disposed && IsAttached)
+					schedule_network_poll ();
+				return false;
+			});
 		}
 
 		bool on_timer_tick ()
 		{
+			if (!IsAttached)
+				return true;
 			schedule_network_poll ();
 			return true;
 		}
@@ -226,7 +249,7 @@ namespace Plank
 					}
 
 					int strength = 0;
-					if (spec_path != "" && spec_path != "/") {
+					if (raw_type.contains ("wireless") && spec_path != "" && spec_path != "/") {
 						try {
 							var ap_props_var = bus.call_sync (
 								"org.freedesktop.NetworkManager",
@@ -340,7 +363,7 @@ namespace Plank
 					else
 						Icon = "network-wireless-signal-none;;network-wireless-signal-none-symbolic;;network-wireless-disconnected";
 
-					Count = wifi_strength;
+					Count = 1;
 					BadgeText = "%d%%".printf (wifi_strength);
 					CountVisible = true;
 				} else {

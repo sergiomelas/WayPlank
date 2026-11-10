@@ -51,18 +51,27 @@ namespace Plank
 			Button = PopupButton.RIGHT;
 			
 			update_stats ();
+			notify["IsAttached"].connect (on_attached_changed);
 			start_timer ();
 		}
 		
 		~CpuDockItem ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 		}
 
 		public override void cleanup ()
 		{
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			base.cleanup ();
+		}
+
+		void on_attached_changed ()
+		{
+			if (IsAttached)
+				update_stats ();
 		}
 		
 		void start_timer ()
@@ -207,7 +216,7 @@ namespace Plank
 			if (system_pressure < 0) system_pressure = 0;
 			if (system_pressure > 100) system_pressure = 100;
 
-			Count = system_pressure;
+			Count = 1;
 			BadgeText = "%d%%".printf (system_pressure);
 			CountVisible = true;
 
@@ -217,6 +226,8 @@ namespace Plank
 		
 		bool on_timer_tick ()
 		{
+			if (!IsAttached)
+				return true;
 			update_stats ();
 			return true;
 		}

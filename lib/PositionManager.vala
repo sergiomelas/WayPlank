@@ -29,6 +29,7 @@ namespace Plank
 		
 		Gdk.Rectangle static_dock_region;
 		Gee.HashMap<DockElement, DockItemDrawValue> draw_values;
+		Gee.HashMap<DockElement, DockItemDrawValue> draw_value_pool;
 		
 		Gdk.Rectangle monitor_geo;
 		
@@ -43,6 +44,7 @@ namespace Plank
 		{
 			static_dock_region = {};
 			draw_values = new Gee.HashMap<DockElement, DockItemDrawValue> ();
+			draw_value_pool = new Gee.HashMap<DockElement, DockItemDrawValue> ();
 		}
 		
 		public void initialize ()
@@ -88,6 +90,7 @@ namespace Plank
 			}
 			
 			draw_values.clear ();
+			draw_value_pool.clear ();
 		}
 		
 		void prefs_changed (Object prefs, ParamSpec prop)
@@ -637,6 +640,49 @@ namespace Plank
 			return (double) (ItemPadding + IconSize);
 		}
 
+		double get_effective_item_slot (DockItem item, int64 frame_time, int64 move_duration)
+		{
+			double base_slot = get_item_slot (item);
+			if (!screen_is_composited || move_duration <= 0
+				|| item is SeparatorDockItem || item is PinnedExpanderDockItem)
+				return (item.RemoveTime > 0) ? 0.0 : base_slot;
+
+			unowned DockContainer? container = item.Container;
+			if (container != null && container.AddTime >= item.AddTime && item.RemoveTime == 0)
+				return base_slot;
+
+			if (item.AddTime > item.RemoveTime && item.AddTime > 0) {
+				int64 elapsed = int64.max (0LL, frame_time - item.AddTime);
+				if (elapsed < move_duration) {
+					// Phase 1 (0% -> 50%): Smoothly open the slot space ("Make Space")
+					int64 space_dur = (int64) (move_duration * 0.50);
+					if (elapsed >= space_dur)
+						return base_slot;
+					double progress = easing_for_mode (AnimationMode.EASE_OUT_CUBIC, elapsed, space_dur);
+					return base_slot * progress;
+				}
+				return base_slot;
+			}
+
+			if (item.RemoveTime > 0) {
+				int64 elapsed = int64.max (0LL, frame_time - item.RemoveTime);
+				if (elapsed < move_duration) {
+					// Phase 1 (0% -> 50%): Hold slot 100% open while icon dips down below the dock
+					// Phase 2 (50% -> 100%): Smoothly close the slot space once icon has dipped below
+					int64 hold_dur = (int64) (move_duration * 0.50);
+					if (elapsed <= hold_dur)
+						return base_slot;
+					int64 close_elapsed = elapsed - hold_dur;
+					int64 close_dur = int64.max (1LL, move_duration - hold_dur);
+					double progress = easing_for_mode (AnimationMode.EASE_IN_OUT_CUBIC, close_elapsed, close_dur);
+					return base_slot * (1.0 - progress);
+				}
+				return 0.0;
+			}
+
+			return base_slot;
+		}
+
 		public int get_max_screen_fit_icon_size ()
 		{
 			var max_width = (is_horizontal_dock () ? monitor_geo.width : monitor_geo.height);
@@ -779,7 +825,7 @@ namespace Plank
 			
 			if (controller.prefs.ZoomEnabled) {
 				unowned DockItem? hovered_item = controller.window.HoveredItem;
-				if (hovered_item != null) {
+				if (hovered_item != null && controller.VisibleItems.contains (hovered_item)) {
 					var hover_region = get_hover_region_for_element (hovered_item);
 					cursor_region.union (hover_region, out cursor_region);
 				}
@@ -994,10 +1040,20 @@ namespace Plank
 			
 			double center_y = (is_horizontal_dock () ? static_dock_region.height / 2.0 : static_dock_region.width / 2.0);
 			
+			int64 anim_frame_time = renderer.frame_time;
+			int64 move_duration = (renderer.theme != null ? renderer.theme.ItemMoveTime * 1000 : 0);
+
+			int n_items = items.size;
+			double[] item_slots = new double[n_items];
 			double current_items_span = 0.0;
-			for (int j = 0; j < items.size; j++) {
-				current_items_span += get_item_slot (items[j]);
+			for (int j = 0; j < n_items; j++) {
+				double s = get_effective_item_slot (items[j], anim_frame_time, move_duration);
+				item_slots[j] = s;
+				current_items_span += s;
 			}
+
+			if (draw_value_pool.size > n_items + 32)
+				draw_value_pool.clear ();
 
 			double current_dock_width = current_items_span + 2 * items_offset;
 			double available_content_span = (double) width - 2.0 * items_offset;
@@ -1044,7 +1100,10 @@ namespace Plank
 				dock_start_coord = is_horizontal_dock () ? static_dock_region.x : static_dock_region.y;
 			}
 
-			double first_slot = (items.size > 0) ? get_item_slot (items.first ()) : (icon_size + ItemPadding);
+			double first_slot = (n_items > 0)
+				? item_slots[0]
+				: (icon_size + ItemPadding);
+			int eff_items_width = (int) Math.round (current_items_span);
 			double center_x;
 			if (Alignment == Gtk.Align.FILL && max_scroll_offset <= 0.0) {
 				center_x = first_slot / 2.0 + items_offset;
@@ -1053,21 +1112,21 @@ namespace Plank
 				case Gtk.Align.FILL:
 				case Gtk.Align.CENTER:
 					if (is_horizontal_dock ())
-						center_x += static_dock_region.x + (static_dock_region.width - 2 * items_offset - items_width) / 2;
+						center_x += static_dock_region.x + (static_dock_region.width - 2 * items_offset - eff_items_width) / 2;
 					else
-						center_x += static_dock_region.y + (static_dock_region.height - 2 * items_offset - items_width) / 2;
+						center_x += static_dock_region.y + (static_dock_region.height - 2 * items_offset - eff_items_width) / 2;
 					break;
 				case Gtk.Align.START:
 					break;
 				case Gtk.Align.END:
 					if (is_horizontal_dock ())
-						center_x += static_dock_region.x + (static_dock_region.width - 2 * items_offset - items_width);
+						center_x += static_dock_region.x + (static_dock_region.width - 2 * items_offset - eff_items_width);
 					else
-						center_x += static_dock_region.y + (static_dock_region.height - 2 * items_offset - items_width);
+						center_x += static_dock_region.y + (static_dock_region.height - 2 * items_offset - eff_items_width);
 					break;
 				}
 			} else if (max_scroll_offset <= 0.0) {
-				center_x = first_slot / 2.0 + items_offset + (is_horizontal_dock () ? static_dock_region.x : static_dock_region.y);
+				center_x = dock_start_coord + items_offset + first_slot / 2.0;
 			} else {
 				center_x = dock_start_coord + items_offset + first_slot / 2.0 - scroll_offset;
 			}
@@ -1080,9 +1139,13 @@ namespace Plank
 			double zoom_in_percent = (zoom_enabled ? 1.0 + (ZoomPercent - 1.0) * zoom_in_progress : 1.0);
 			double zoom_icon_size = ZoomIconSize;
 			
-			for (int i = 0; i < items.size; i++) {
+			for (int i = 0; i < n_items; i++) {
 				unowned DockItem item = items[i];
-				DockItemDrawValue val = new DockItemDrawValue ();
+				DockItemDrawValue? val = draw_value_pool.get (item);
+				if (val == null) {
+					val = new DockItemDrawValue ();
+					draw_value_pool.set (item, val);
+				}
 				val.opacity = 1.0;
 				val.darken = 0.0;
 				val.lighten = 0.0;
@@ -1130,9 +1193,9 @@ namespace Plank
 				val.zoom = zoom;
 				val.icon_size = Math.round (zoom * icon_size);
 				
-				// The separator is a real item for layout/animation purposes, but its
-				// own rendered size must stay fixed regardless of hover-zoom.
-				if (item is SeparatorDockItem) {
+				// The separator and accordion expander are real items for layout/animation purposes,
+				// but their own rendered size must stay fixed regardless of hover-zoom.
+				if (item is SeparatorDockItem || item is PinnedExpanderDockItem) {
 					val.center.y = icon_size / 2.0;
 					val.zoom = 1.0;
 					val.icon_size = icon_size;
@@ -1168,9 +1231,8 @@ namespace Plank
 				
 				draw_values[item] = val;
 				
-				if (item.RemoveTime == 0 && i + 1 < items.size) {
-					unowned DockItem next_item = items[i + 1];
-					center.x += (get_item_slot (item) + get_item_slot (next_item)) / 2.0;
+				if (i + 1 < n_items) {
+					center.x += (item_slots[i] + item_slots[i + 1]) / 2.0;
 				}
 			}
 			
@@ -1283,7 +1345,7 @@ namespace Plank
 			Gdk.Rectangle background_region;
 			
 			if (rect.intersect (get_background_region (), out background_region))
-				background_region.union (get_item_draw_region (val), out rect);
+				background_region.union (val.draw_region, out rect);
 			
 			return rect;
 		}

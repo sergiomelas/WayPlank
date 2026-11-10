@@ -13,24 +13,24 @@ WayPlank will **NEVER** be distributed as a multi-file bundle requiring external
 
 ---
 
-## 1. 🗣️ Supported Languages & Status (519 / 519 Strings Qualified — 100%)
+## 1. 🗣️ Supported Languages & Status (522 / 522 Strings Qualified — 100%)
 
 | # | Language | Locale | Contributor & Reviewer | Status |
 | :---: | :--- | :---: | :--- | :---: |
-| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (519/519) |
-| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
-| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
-| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
-| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (519/519) |
-| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (519/519) |
-| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (519/519) |
+| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (522/522) |
+| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (522/522) |
+| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (522/522) |
+| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (522/522) |
+| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (522/522) |
+| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (522/522) |
+| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (522/522) |
 | 8 | **English** | `en` | Native in-source fallback language | **100% Native** (Zero files needed) |
 
 ---
 
 ## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 2 `v0.7.1`)
 
-In **WayPlank Public Beta 2 (`v0.7.1`)**, all 7 translation catalogs (`519/519` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration.
+In **WayPlank Public Beta 2 (`v0.7.1`)**, all 7 translation catalogs (`522/522` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration.
 
 The 100% monolithic embedded localization engine for Public Beta (`v0.7.1`) follows these exact technical steps:
 
@@ -101,7 +101,7 @@ python3 po/generate_translations.py
 ```
 
 This script guarantees:
-- **100% message coverage** (`519/519` messages across all 7 languages).
+- **100% message coverage** (`522/522` messages across all 7 languages).
 - **Validation** with GNU `msgfmt -c -v`.
 - **Consistent ordering and validation** across all catalogs.
 

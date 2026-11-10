@@ -1682,7 +1682,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Click to Expand:</property>
+                <property name="label" translatable="yes">Click to Expand/Compress:</property>
                 <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
               </object>
               <packing>

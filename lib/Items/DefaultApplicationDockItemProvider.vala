@@ -24,6 +24,7 @@ namespace Plank
 	{
 		public DockPreferences Prefs { get; construct; }
 		public bool docklets_expanded { get; protected set; default = false; }
+		public bool docklets_drag_expanded { get; private set; default = false; }
 		uint docklets_collapse_timer_id = 0U;
 
 		/**
@@ -31,6 +32,12 @@ namespace Plank
 		 * Independent from docklets_expanded, but both share the collapse timer and delay.
 		 */
 		public bool pinned_expanded { get; protected set; default = false; }
+		public bool pinned_drag_expanded { get; private set; default = false; }
+
+		public bool has_drag_expansion ()
+		{
+			return docklets_drag_expanded || pinned_drag_expanded;
+		}
 
 		/**
 		 * How many pinned apps the Smart Pinned Accordion is currently hiding.
@@ -103,6 +110,10 @@ namespace Plank
 
 		construct
 		{
+			if (Prefs != null && Prefs.CategorizeItems && Prefs.AccordionClickToExpand) {
+				docklets_expanded = Prefs.AccordionDocklets && Prefs.docklets_expanded_latch;
+				pinned_expanded = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
+			}
 			Prefs.notify["CurrentWorkspaceOnly"].connect (handle_setting_changed);
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
@@ -207,6 +218,13 @@ namespace Plank
 				pinned_expander.cleanup ();
 				pinned_expander = null;
 			}
+			if (docklets_expander != null) {
+				disconnect_element (docklets_expander);
+				internal_elements.remove (docklets_expander);
+				docklets_expander.Container = null;
+				docklets_expander.cleanup ();
+				docklets_expander = null;
+			}
 		}
 
 		void handle_running_indicators_changed ()
@@ -234,8 +252,15 @@ namespace Plank
 		void handle_category_layout_changed ()
 		{
 			cancel_collapse_timer ();
-			docklets_expanded = false;
-			pinned_expanded = false;
+			docklets_drag_expanded = false;
+			pinned_drag_expanded = false;
+			if (Prefs.CategorizeItems && Prefs.AccordionClickToExpand) {
+				docklets_expanded = Prefs.AccordionDocklets && Prefs.docklets_expanded_latch;
+				pinned_expanded = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
+			} else {
+				docklets_expanded = false;
+				pinned_expanded = false;
+			}
 			foreach (var element in internal_elements) {
 				element.IsAttached = true;
 				element.AddTime = 0;
@@ -259,8 +284,10 @@ namespace Plank
 		void handle_accordion_docklets_changed ()
 		{
 			cancel_collapse_timer ();
-			docklets_expanded = false;
-			pinned_expanded = false;
+			docklets_drag_expanded = false;
+			docklets_expanded = (Prefs.CategorizeItems && Prefs.AccordionDocklets && Prefs.AccordionClickToExpand)
+				? Prefs.docklets_expanded_latch
+				: false;
 			foreach (var element in internal_elements) {
 				element.IsAttached = true;
 				element.AddTime = 0;
@@ -281,31 +308,51 @@ namespace Plank
 			}
 		}
 
-		public void expand_docklets ()
+		public void expand_docklets (bool save_latch = false, bool for_drag = false)
 		{
 			cancel_collapse_timer ();
-			if (docklets_expanded)
-				return;
 			if (!Prefs.CategorizeItems || !Prefs.AccordionDocklets)
 				return;
+			if (!for_drag)
+				docklets_drag_expanded = false;
+			if (save_latch && Prefs.AccordionClickToExpand)
+				Prefs.update_docklets_expanded_latch (true);
+			if (docklets_expanded)
+				return;
+			if (for_drag)
+				docklets_drag_expanded = true;
 			docklets_expanded = true;
-			foreach (var item in internal_elements) {
-				if (is_docklet_element (item)) {
-					item.AddTime = 0;
-					item.RemoveTime = 0;
-				}
-			}
 			refresh_separators ();
+			refresh_dock_layout ();
+		}
 
-			unowned DockController? dock = get_dock ();
-			if (dock != null && dock.renderer != null && dock.renderer.theme != null) {
-				dock.update_items ();
-				dock.position_manager.update (dock.renderer.theme);
-				dock.renderer.animated_draw ();
-				if (dock.window != null) {
-					dock.window.set_input_mask ();
-				}
-			}
+		public void collapse_docklets (bool save_latch = false)
+		{
+			cancel_collapse_timer ();
+			docklets_drag_expanded = false;
+			if (save_latch && Prefs.AccordionClickToExpand)
+				Prefs.update_docklets_expanded_latch (false);
+			if (!docklets_expanded)
+				return;
+			docklets_expanded = false;
+			refresh_separators ();
+			refresh_dock_layout ();
+		}
+
+		public void restore_click_to_expand_latches ()
+		{
+			docklets_drag_expanded = false;
+			pinned_drag_expanded = false;
+			if (Prefs == null || !Prefs.CategorizeItems || !Prefs.AccordionClickToExpand)
+				return;
+			bool target_docklets = Prefs.AccordionDocklets && Prefs.docklets_expanded_latch;
+			bool target_pinned = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
+			if (docklets_expanded == target_docklets && pinned_expanded == target_pinned)
+				return;
+			docklets_expanded = target_docklets;
+			pinned_expanded = target_pinned;
+			refresh_separators ();
+			refresh_dock_layout ();
 		}
 
 		public void cancel_collapse_timer ()
@@ -318,7 +365,7 @@ namespace Plank
 
 		public void schedule_collapse_docklets (uint delay_ms = 0U)
 		{
-			if (!is_accordion_enabled ()) {
+			if (!is_accordion_enabled () || (Prefs != null && Prefs.AccordionClickToExpand && !has_drag_expansion ())) {
 				cancel_collapse_timer ();
 				return;
 			}
@@ -338,6 +385,8 @@ namespace Plank
 			docklets_collapse_timer_id = Timeout.add (timeout_ms, () => {
 				docklets_collapse_timer_id = 0U;
 				if (!is_accordion_enabled ()) {
+					docklets_drag_expanded = false;
+					pinned_drag_expanded = false;
 					foreach (var element in internal_elements) {
 						element.IsAttached = true;
 						element.AddTime = 0;
@@ -350,20 +399,49 @@ namespace Plank
 					return Source.REMOVE;
 				if (d != null && d.is_interaction_active ())
 					return Source.REMOVE;
+
+				if (has_drag_expansion ()) {
+					bool click_mode = (Prefs != null && Prefs.AccordionClickToExpand);
+					bool changed = false;
+					if (docklets_drag_expanded) {
+						docklets_drag_expanded = false;
+						bool target_d = click_mode ? (Prefs.AccordionDocklets && Prefs.docklets_expanded_latch) : false;
+						if (docklets_expanded != target_d) {
+							docklets_expanded = target_d;
+							changed = true;
+						}
+					}
+					if (pinned_drag_expanded) {
+						pinned_drag_expanded = false;
+						bool target_p = click_mode ? (is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch) : false;
+						if (pinned_expanded != target_p) {
+							pinned_expanded = target_p;
+							changed = true;
+						}
+					}
+					if (!click_mode && (d == null || !d.hide_manager.Hovered)) {
+						if (docklets_expanded || pinned_expanded) {
+							docklets_expanded = false;
+							pinned_expanded = false;
+							changed = true;
+						}
+					}
+					if (changed) {
+						refresh_separators ();
+						refresh_dock_layout ();
+					}
+					return Source.REMOVE;
+				}
+
+				if (Prefs != null && Prefs.AccordionClickToExpand)
+					return Source.REMOVE;
 				if (d != null && d.hide_manager.Hovered)
 					return Source.REMOVE;
 				if (docklets_expanded || pinned_expanded) {
 					docklets_expanded = false;
 					pinned_expanded = false;
 					refresh_separators ();
-					if (d != null && d.renderer != null && d.renderer.theme != null) {
-						d.update_items ();
-						d.position_manager.update (d.renderer.theme);
-						d.renderer.animated_draw ();
-						if (d.window != null) {
-							d.window.set_input_mask ();
-						}
-					}
+					refresh_dock_layout ();
 				}
 				return Source.REMOVE;
 			});
@@ -386,11 +464,19 @@ namespace Plank
 		 * Expands the Smart Pinned Accordion: all pinned apps become visible until the
 		 * shared collapse timer (or an explicit collapse) hides the unused ones again.
 		 */
-		public void expand_pinned ()
+		public void expand_pinned (bool save_latch = false, bool for_drag = false)
 		{
 			cancel_collapse_timer ();
-			if (pinned_expanded || !is_pinned_accordion_enabled ())
+			if (!is_pinned_accordion_enabled ())
 				return;
+			if (!for_drag)
+				pinned_drag_expanded = false;
+			if (save_latch && Prefs.AccordionClickToExpand)
+				Prefs.update_pinned_expanded_latch (true);
+			if (pinned_expanded)
+				return;
+			if (for_drag)
+				pinned_drag_expanded = true;
 			pinned_expanded = true;
 			refresh_separators ();
 			refresh_dock_layout ();
@@ -437,7 +523,8 @@ namespace Plank
 
 			unowned DockController? dock = get_dock ();
 			if (!as_collapsed && dock != null
-				&& (dock.drag_manager.InternalDragActive || dock.drag_manager.ExternalDragActive))
+				&& (dock.drag_manager.ExternalDragActive
+					|| (dock.drag_manager.InternalDragActive && dock.drag_manager.InternalReorderIntent)))
 				return hidden;
 
 			var pinned = new Gee.ArrayList<ApplicationDockItem> ();
@@ -509,8 +596,8 @@ namespace Plank
 		void apply_pinned_accordion ()
 		{
 			var hidden = compute_hidden_pinned_apps ();
-			// How many apps a collapse hides: drives the expander (also while expanded)
-			var collapsed_hidden = pinned_expanded ? compute_hidden_pinned_apps (true) : hidden;
+			// How many apps a collapse hides: drives the expander (also while expanded or during drag)
+			var collapsed_hidden = compute_hidden_pinned_apps (true);
 
 			if (collapsed_hidden.size != pinned_hidden_count) {
 				var names = new StringBuilder ();
@@ -524,52 +611,105 @@ namespace Plank
 				pinned_hidden_count = collapsed_hidden.size;
 			}
 
-			if (pinned_hidden_count == 0 && pinned_expanded)
+			if (pinned_hidden_count == 0 && pinned_expanded && !Prefs.AccordionClickToExpand)
 				pinned_expanded = false;
 
 			foreach (var element in internal_elements) {
 				if (!is_pinned_app_element (element) || !hidden.contains (element))
 					continue;
 				element.IsAttached = false;
-				element.AddTime = 0;
-				element.RemoveTime = 0;
 			}
 
 			sync_pinned_expander ();
 		}
 
 		PinnedExpanderDockItem? pinned_expander = null;
+		PinnedExpanderDockItem? docklets_expander = null;
 
 		void update_expander_text ()
 		{
-			if (pinned_expander == null)
-				return;
-
-			if (pinned_expanded) {
-				pinned_expander.Text = _("Collapse pinned apps");
-			} else {
-				var hidden_text = _("Hidden pinned apps: %d").printf (pinned_hidden_count);
-				pinned_expander.Text = Prefs.AccordionClickToExpand
-					? "%s (%s)".printf (hidden_text, _("Click to expand"))
-					: hidden_text;
+			if (pinned_expander != null) {
+				string new_pinned_text;
+				if (pinned_expanded) {
+					new_pinned_text = _("Collapse pinned apps");
+				} else {
+					var hidden_text = _("Hidden pinned apps: %d").printf (pinned_hidden_count);
+					new_pinned_text = Prefs.AccordionClickToExpand
+						? "%s (%s)".printf (hidden_text, _("Click to expand"))
+						: hidden_text;
+				}
+				if (pinned_expander.Text != new_pinned_text)
+					pinned_expander.Text = new_pinned_text;
+			}
+			if (docklets_expander != null) {
+				string new_docklets_text;
+				if (docklets_expanded) {
+					new_docklets_text = _("Docklets");
+				} else {
+					new_docklets_text = Prefs.AccordionClickToExpand
+						? "%s (%s)".printf (_("Docklets"), _("Click to expand"))
+						: _("Docklets");
+				}
+				if (docklets_expander.Text != new_docklets_text)
+					docklets_expander.Text = new_docklets_text;
 			}
 		}
 
 		void handle_click_to_expand_changed ()
 		{
-			update_expander_text ();
+			cancel_collapse_timer ();
 			if (!Prefs.AccordionClickToExpand) {
-				if (docklets_expanded || pinned_expanded) {
-					cancel_collapse_timer ();
+				unowned DockController? dock = get_dock ();
+				if (dock != null && dock.hide_manager != null && dock.hide_manager.Hovered) {
+					// Pointer is on the dock: keep current state until pointer leaves
+				} else {
 					docklets_expanded = false;
 					pinned_expanded = false;
-					refresh_separators ();
-					refresh_dock_layout ();
 				}
-			} else if (pinned_expanded) {
-				refresh_separators ();
-				refresh_dock_layout ();
+			} else if (Prefs.CategorizeItems) {
+				docklets_expanded = Prefs.AccordionDocklets && Prefs.docklets_expanded_latch;
+				pinned_expanded = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
 			}
+			update_expander_text ();
+			refresh_separators ();
+			refresh_dock_layout ();
+		}
+
+		void sync_docklets_expander ()
+		{
+			if (docklets_expander != null) {
+				var old_index = internal_elements.index_of (docklets_expander);
+				if (old_index >= 0)
+					internal_elements.remove_at (old_index);
+				docklets_expander.IsAttached = false;
+			}
+
+			if (!Prefs.CategorizeItems || !Prefs.AccordionDocklets || get_docklet_count () <= 1)
+				return;
+
+			int last_docklet = -1;
+			for (int i = 0; i < internal_elements.size; i++) {
+				if (is_accordion_docklet (internal_elements.get (i)))
+					last_docklet = i;
+			}
+			if (last_docklet < 0)
+				return;
+
+			if (docklets_expander == null) {
+				docklets_expander = new PinnedExpanderDockItem ();
+				docklets_expander.IsDockletExpander = true;
+				docklets_expander.Container = this;
+				connect_element (docklets_expander);
+			}
+
+			docklets_expander.IsAttached = true;
+			docklets_expander.AddTime = 0;
+			docklets_expander.RemoveTime = 0;
+			internal_elements.insert (last_docklet + 1, docklets_expander);
+
+			if (docklets_expander.Expanded != docklets_expanded)
+				docklets_expander.Expanded = docklets_expanded;
+			update_expander_text ();
 		}
 
 		/**
@@ -586,7 +726,7 @@ namespace Plank
 				pinned_expander.IsAttached = false;
 			}
 
-			if (!is_pinned_accordion_enabled () || pinned_hidden_count <= 0 || (pinned_expanded && !Prefs.AccordionClickToExpand))
+			if (!is_pinned_accordion_enabled () || pinned_hidden_count <= 0)
 				return;
 
 			int last_pinned = -1;
@@ -603,21 +743,25 @@ namespace Plank
 				connect_element (pinned_expander);
 			}
 
-			pinned_expander.Expanded = pinned_expanded;
 			pinned_expander.IsAttached = true;
 			pinned_expander.AddTime = 0;
 			pinned_expander.RemoveTime = 0;
-			update_expander_text ();
-
 			internal_elements.insert (last_pinned + 1, pinned_expander);
+
+			if (pinned_expander.Expanded != pinned_expanded)
+				pinned_expander.Expanded = pinned_expanded;
+			update_expander_text ();
 		}
 
 		/**
 		 * Collapses the Smart Pinned Accordion right away (click on the expander).
 		 */
-		public void collapse_pinned ()
+		public void collapse_pinned (bool save_latch = false)
 		{
 			cancel_collapse_timer ();
+			pinned_drag_expanded = false;
+			if (save_latch && Prefs.AccordionClickToExpand)
+				Prefs.update_pinned_expanded_latch (false);
 			if (!pinned_expanded)
 				return;
 			pinned_expanded = false;
@@ -665,7 +809,10 @@ namespace Plank
 		void handle_pinned_accordion_changed ()
 		{
 			cancel_collapse_timer ();
-			pinned_expanded = false;
+			pinned_drag_expanded = false;
+			pinned_expanded = (is_pinned_accordion_enabled () && Prefs.AccordionClickToExpand)
+				? Prefs.pinned_expanded_latch
+				: false;
 			refreshing_pinned = true;
 			refresh_separators ();
 			refresh_dock_layout ();
@@ -705,8 +852,13 @@ namespace Plank
 		void handle_categorize_items_changed ()
 		{
 			cancel_collapse_timer ();
-			docklets_expanded = false;
-			pinned_expanded = false;
+			if (Prefs.CategorizeItems && Prefs.AccordionClickToExpand) {
+				docklets_expanded = Prefs.AccordionDocklets && Prefs.docklets_expanded_latch;
+				pinned_expanded = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
+			} else {
+				docklets_expanded = false;
+				pinned_expanded = false;
+			}
 			deduplicate_items ();
 			foreach (var element in internal_elements) {
 				element.IsAttached = true;
@@ -859,8 +1011,13 @@ namespace Plank
 		public void reorder_free_items_by_category ()
 		{
 			cancel_collapse_timer ();
-			docklets_expanded = false;
-			pinned_expanded = false;
+			if (Prefs != null && Prefs.CategorizeItems && Prefs.AccordionClickToExpand) {
+				docklets_expanded = Prefs.AccordionDocklets && Prefs.docklets_expanded_latch;
+				pinned_expanded = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
+			} else {
+				docklets_expanded = false;
+				pinned_expanded = false;
+			}
 			deduplicate_items ();
 
 			var folders = new Gee.ArrayList<DockElement> ();
@@ -954,16 +1111,9 @@ namespace Plank
 
 		public DockElement? get_anchor_docklet ()
 		{
-			// 1. If preferences docklet is in the accordion group, it is the master anchor
-			foreach (var element in internal_elements) {
-				if (is_accordion_docklet (element)) {
-					unowned DockItem? item = element as DockItem;
-					if (element is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
-						return element;
-					}
-				}
-			}
-			// 2. Otherwise the outer edge docklet (leftmost when on left, rightmost when on right) acts as the anchor
+			// Always anchor to the outer edge of the docklets group:
+			// - Rightmost docklet when DockletsOnRight is true (so docklets expand Right -> Left)
+			// - Leftmost docklet when DockletsOnRight is false (so docklets expand Left -> Right)
 			if (Prefs != null && Prefs.DockletsOnRight) {
 				for (int i = internal_elements.size - 1; i >= 0; i--) {
 					var element = internal_elements.get (i);
@@ -985,10 +1135,16 @@ namespace Plank
 
 		protected override void update_visible_elements ()
 		{
+			unowned DockController? dock = get_dock ();
+			bool can_animate_accordion = (dock != null && dock.renderer != null && dock.renderer.theme != null && visible_elements.size > 0);
+			var prev_attached = new Gee.HashSet<DockElement> ();
+			if (can_animate_accordion) {
+				foreach (var item in visible_elements)
+					prev_attached.add (item);
+			}
+
 			foreach (var item in internal_elements) {
 				item.IsAttached = !(Prefs.PinnedOnly && item is TransientDockItem);
-				if (item.IsAttached)
-					item.RemoveTime = 0;
 			}
 			
 			if (!updating_visible_elements) {
@@ -997,9 +1153,9 @@ namespace Plank
 				updating_visible_elements = false;
 			}
 
-			unowned DockController? dock = get_dock ();
-			bool drag_active = (dock != null && (dock.drag_manager.InternalDragActive || dock.drag_manager.ExternalDragActive));
-			if (drag_active) {
+			bool drag_active = (dock != null && (dock.drag_manager.ExternalDragActive
+				|| (dock.drag_manager.InternalDragActive && dock.drag_manager.InternalReorderIntent)));
+			if (drag_active && !Prefs.AccordionClickToExpand) {
 				docklets_expanded = true;
 				if (is_pinned_accordion_enabled ())
 					pinned_expanded = true;
@@ -1012,12 +1168,11 @@ namespace Plank
 					foreach (var element in internal_elements) {
 						if (is_accordion_docklet (element)) {
 							element.IsAttached = (element == anchor);
-							element.AddTime = 0;
-							element.RemoveTime = 0;
 						}
 					}
 				}
 			}
+			sync_docklets_expander ();
 
 			// Smart Pinned Accordion: hide the least used pinned apps (before separator clean-up,
 			// so that separators next to hidden apps are collapsed correctly)
@@ -1038,6 +1193,12 @@ namespace Plank
 						last_sep = sep;
 					}
 				} else if (element is PinnedExpanderDockItem) {
+					// PinnedExpanderDockItem draws its own trailing bar (›| / «|), so it acts as
+					// the separator after the group: drop any separator right before or right
+					// after it.
+					if (prev_was_sep && last_sep != null) {
+						last_sep.IsAttached = false;
+					}
 					prev_was_sep = true;
 					last_sep = null;
 				} else {
@@ -1046,6 +1207,27 @@ namespace Plank
 			}
 			if (prev_was_sep && last_sep != null) {
 				last_sep.IsAttached = false;
+			}
+
+			if (can_animate_accordion) {
+				var now = GLib.get_monotonic_time ();
+				foreach (var item in internal_elements) {
+					if (item is SeparatorDockItem || item is PinnedExpanderDockItem)
+						continue;
+					bool was_att = prev_attached.contains (item);
+					if (item.IsAttached && !was_att) {
+						item.AddTime = now;
+						item.RemoveTime = 0;
+					} else if (!item.IsAttached && was_att) {
+						item.RemoveTime = now;
+						item.AddTime = 0;
+					}
+				}
+			} else {
+				foreach (var item in internal_elements) {
+					if (item.IsAttached)
+						item.RemoveTime = 0;
+				}
 			}
 
 			base.update_visible_elements ();

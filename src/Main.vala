@@ -102,7 +102,11 @@ namespace Plank
             }
         }
 
-        if (replace_requested) {
+        string effective_dock_name = target_dock_name != "" ? target_dock_name : "dock1";
+        string first_run_launchers_dir = Path.build_filename (Environment.get_user_config_dir (), "wayplank", effective_dock_name, "launchers");
+        bool onboarding_first_run = !FileUtils.test (first_run_launchers_dir, FileTest.IS_DIR);
+
+        if (replace_requested || onboarding_first_run) {
             int self_pid = (int) Posix.getpid ();
             Posix.uid_t self_uid = Posix.getuid ();
             bool sent_term = false;
@@ -235,8 +239,8 @@ namespace Plank
         print ("  Right Click                   Open context menu (Recent Documents, Quicklists, Keep in\n");
         print ("                                Dock, Change Icon, Shortcuts & Gestures, Preferences)\n");
         print ("  Mouse Scroll on App           Cycle between all open windows of this application\n");
-        print ("  Hover / Click on Preferences  Expand docklet accordion drawer; Directional indicators (▸ / ◂ / ▾ / ▴)\n");
-        print ("  Pinned Expander (» / «)       Expand hidden pinned apps (Auto-Fit or Top Most Used); click « in Click-to-Expand mode\n");
+        print ("  Docklet Expander (›| / «|)    Expand or collapse docklet accordion drawer (hover or Click-to-Expand)\n");
+        print ("  Pinned Expander (›| / «|)     Expand or collapse hidden pinned apps (Auto-Fit or Top Most Used)\n");
         print ("  Accordion Auto-Retention      Drawer stays open during menus/dialogs; resets delay (0.5s–20s) on close\n\n");
         print ("MULTI-WINDOW PREVIEW CARDS:\n");
         print ("  Left Click (2+ windows)       Displays floating Cairo preview cards with live window thumbnails\n");

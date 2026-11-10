@@ -185,7 +185,7 @@ namespace Plank
 				if (!ok || !FileUtils.test (tmp_path, FileTest.EXISTS))
 					return null;
 
-				return new Gdk.Pixbuf.from_file_at_scale (tmp_path, target_w, target_h, false);
+				return new Gdk.Pixbuf.from_file_at_scale (tmp_path, target_w, target_h, true);
 			} catch (Error e) {
 				debug ("[KWinThumbnailService] Mutter capture error: %s", e.message);
 				return null;
@@ -306,7 +306,10 @@ namespace Plank
 					return null;
 				}
 
-				return raw_pixbuf.scale_simple (target_w, target_h, Gdk.InterpType.BILINEAR);
+				double scale = double.min ((double) target_w / width, (double) target_h / height);
+				int scaled_w = int.max (1, (int) Math.round (width * scale));
+				int scaled_h = int.max (1, (int) Math.round (height * scale));
+				return raw_pixbuf.scale_simple (scaled_w, scaled_h, Gdk.InterpType.BILINEAR);
 			} catch (Error e) {
 				debug ("[KWinThumbnailService] Exception: %s", e.message);
 				return null;

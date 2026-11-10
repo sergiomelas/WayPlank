@@ -4775,6 +4775,42 @@ translations = {
         "ca": "S'ha descartat l'element dockitem malmès o no vàlid:",
         "de": "Beschädigtes oder ungültiges Dockitem verworfen:",
         "uk": "Відхилено пошкоджений або недійсний елемент dockitem:"
+    },
+    "Click to Expand/Compress:": {
+        "zh_CN": "点击展开/收起:",
+        "it": "Clic per espandere/comprimere:",
+        "es": "Clic para expandir/contraer:",
+        "fr": "Cliquer pour développer/réduire :",
+        "ca": "Clic per desplegar/replegar:",
+        "de": "Klicken zum Aus-/Einklappen:",
+        "uk": "Клацніть для розгортання/згортання:"
+    },
+    "Migrating your Plank configuration...": {
+        "zh_CN": "正在迁移您的 Plank 配置...",
+        "it": "Migrazione della tua configurazione Plank in corso...",
+        "es": "Migrando su configuración de Plank...",
+        "fr": "Migration de votre configuration Plank...",
+        "ca": "S'està migrant la vostra configuració de Plank...",
+        "de": "Ihre Plank-Konfiguration wird migriert...",
+        "uk": "Міграція вашої конфігурації Plank..."
+    },
+    "Creating your WayPlank experience...": {
+        "zh_CN": "正在创建您的 WayPlank 体验...",
+        "it": "Creazione della tua esperienza WayPlank...",
+        "es": "Creando su experiencia WayPlank...",
+        "fr": "Création de votre expérience WayPlank...",
+        "ca": "S'està creant la vostra experiència WayPlank...",
+        "de": "Ihre WayPlank-Umgebung wird erstellt...",
+        "uk": "Створення вашого середовища WayPlank..."
+    },
+    "Note: Please remove any custom launchers or autostart workarounds (such as GDK_BACKEND=x11) previously created to force legacy Plank to run in X11 mode on Wayland.": {
+        "zh_CN": "注意：如果您之前为了在 Wayland 下强制以 X11 模式运行旧版 Plank 而创建过自定义启动器或开机自启变通方案（例如 GDK_BACKEND=x11），请将其移除。",
+        "it": "Nota: rimuovi eventuali launcher personalizzati o workaround di avvio automatico (come GDK_BACKEND=x11) creati in precedenza per forzare il vecchio Plank a partire in modalità X11 su Wayland.",
+        "es": "Nota: elimine cualquier lanzador personalizado o solución de inicio automático (como GDK_BACKEND=x11) creado anteriormente para forzar la ejecución del antiguo Plank en modo X11 sobre Wayland.",
+        "fr": "Remarque : veuillez supprimer tout lanceur personnalisé ou contournement de démarrage automatique (tel que GDK_BACKEND=x11) créé précédemment pour forcer l'ancien Plank à s'exécuter en mode X11 sous Wayland.",
+        "ca": "Nota: suprimiu qualsevol llançador personalitzat o solució d'inici automàtic (com ara GDK_BACKEND=x11) creat anteriorment per forçar l'antic Plank a executar-se en mode X11 sobre Wayland.",
+        "de": "Hinweis: Bitte entfernen Sie alle benutzerdefinierten Starter oder Autostart-Workarounds (wie GDK_BACKEND=x11), die zuvor erstellt wurden, um das alte Plank im X11-Modus unter Wayland zu erzwingen.",
+        "uk": "Примітка: будь ласка, видаліть будь-які власні ярлики запуску або обхідні рішення автозапуску (наприклад, GDK_BACKEND=x11), створені раніше для примусового запуску старого Plank у режимі X11 на Wayland."
     }
 }
 

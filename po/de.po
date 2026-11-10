@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.1\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-09 07:07+0100\n"
-"PO-Revision-Date: 2026-11-09 07:07+0100\n"
+"POT-Creation-Date: 2026-11-11 00:04+0100\n"
+"PO-Revision-Date: 2026-11-11 00:04+0100\n"
 "Last-Translator: Renate Schwiedernoch <renate.schwiedernoch@gmail.com>\n"
 "Language-Team: German <de@li.org>\n"
 "Language: de\n"
@@ -18,50 +18,50 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/DockPreferences.vala:396 lib/DockPreferences.vala:406
-#: lib/Factories/AbstractMain.vala:776
+#: lib/DockPreferences.vala:414 lib/DockPreferences.vala:424
+#: lib/Factories/AbstractMain.vala:1609
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Alle Einstellungen (latch-state.ini beschädigt)"
 
-#: lib/Factories/AbstractMain.vala:548
+#: lib/Factories/AbstractMain.vala:563
 msgid "About WayPlank"
 msgstr "Über WayPlank"
 
-#: lib/Factories/AbstractMain.vala:574
+#: lib/Factories/AbstractMain.vala:590
 msgid "Fully supported compositors: none"
 msgstr "Vollständig unterstützte Compositoren: keine"
 
-#: lib/Factories/AbstractMain.vala:575
+#: lib/Factories/AbstractMain.vala:591
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "Vollständig unterstützte Compositoren: %s"
 
-#: lib/Factories/AbstractMain.vala:578
+#: lib/Factories/AbstractMain.vala:594
 msgid "Partially supported compositors: none"
 msgstr "Teilweise unterstützte Compositoren: keine"
 
-#: lib/Factories/AbstractMain.vala:579
+#: lib/Factories/AbstractMain.vala:595
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "Teilweise unterstützte Compositoren: %s"
 
-#: lib/Factories/AbstractMain.vala:583
+#: lib/Factories/AbstractMain.vala:599
 msgid "Website"
 msgstr "Webseite"
 
-#: lib/Factories/AbstractMain.vala:594 src/Main.vala:206
+#: lib/Factories/AbstractMain.vala:610 src/Main.vala:210
 msgid "translator-credits"
 msgstr "Renate Schwiedernoch <renate.schwiedernoch@gmail.com>"
 
-#: lib/Factories/AbstractMain.vala:767 lib/Factories/AbstractMain.vala:777
+#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1610
 msgid "Defaulting partially to default config for:"
 msgstr "Teilweises Zurücksetzen auf die Standardkonfiguration für:"
 
-#: lib/Factories/AbstractMain.vala:769 lib/Factories/AbstractMain.vala:773
+#: lib/Factories/AbstractMain.vala:1602 lib/Factories/AbstractMain.vala:1606
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "Beschädigtes oder ungültiges Dockitem verworfen:"
 
-#: lib/Factories/AbstractMain.vala:796 lib/Factories/AbstractMain.vala:799
+#: lib/Factories/AbstractMain.vala:1629 lib/Factories/AbstractMain.vala:1632
 msgid "Load environment failed"
 msgstr "Laden der Umgebung fehlgeschlagen"
 
@@ -92,53 +92,53 @@ msgstr "_Symbol ändern..."
 msgid "Drop to open with %s"
 msgstr "Ablegen, um mit %s zu öffnen"
 
-#: lib/Items/BatteryDockItem.vala:43
+#: lib/Items/BatteryDockItem.vala:45
 msgid "Battery"
 msgstr "Akku"
 
-#: lib/Items/BatteryDockItem.vala:134
+#: lib/Items/BatteryDockItem.vala:150
 msgid "Discharging"
 msgstr "Wird entladen"
 
-#: lib/Items/BatteryDockItem.vala:136
+#: lib/Items/BatteryDockItem.vala:152
 msgid "Not charging"
 msgstr "Lädt nicht"
 
-#: lib/Items/BatteryDockItem.vala:138 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:154 lib/Items/FileDockItem.vala:901
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: lib/Items/BatteryDockItem.vala:148
+#: lib/Items/BatteryDockItem.vala:164
 msgid "AC Power"
 msgstr "Netzbetrieb"
 
-#: lib/Items/BatteryDockItem.vala:152
+#: lib/Items/BatteryDockItem.vala:168
 #, c-format
 msgid "Battery: %d%% (Charging)"
 msgstr "Akku: %d%% (Lädt)"
 
-#: lib/Items/BatteryDockItem.vala:154
+#: lib/Items/BatteryDockItem.vala:170
 #, c-format
 msgid "Battery: %d%% (Full)"
 msgstr "Akku: %d%% (Voll)"
 
-#: lib/Items/BatteryDockItem.vala:156
+#: lib/Items/BatteryDockItem.vala:172
 #, c-format
 msgid "Battery: %d%% (%s)"
 msgstr "Akku: %d%% (%s)"
 
-#: lib/Items/BatteryDockItem.vala:219
+#: lib/Items/BatteryDockItem.vala:237
 msgid "_Power Settings..."
 msgstr "_Energieeinstellungen..."
 
-#: lib/Items/BatteryDockItem.vala:228 lib/Items/BrightnessDockItem.vala:204
-#: lib/Items/ClockDockItem.vala:226 lib/Items/CpuDockItem.vala:258
-#: lib/Items/DigitalClockDockItem.vala:218
-#: lib/Items/DoNotDisturbDockItem.vala:659 lib/Items/EjectorDockItem.vala:284
-#: lib/Items/MprisDockItem.vala:730 lib/Items/NetworkDockItem.vala:474
+#: lib/Items/BatteryDockItem.vala:246 lib/Items/BrightnessDockItem.vala:204
+#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:269
+#: lib/Items/DigitalClockDockItem.vala:234
+#: lib/Items/DoNotDisturbDockItem.vala:714 lib/Items/EjectorDockItem.vala:284
+#: lib/Items/MprisDockItem.vala:784 lib/Items/NetworkDockItem.vala:497
 #: lib/Items/ScreenshotDockItem.vala:268 lib/Items/SessionDockItem.vala:122
 #: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:403
-#: lib/Items/VolumeDockItem.vala:367 lib/Items/WeatherDockItem.vala:592
+#: lib/Items/VolumeDockItem.vala:388 lib/Items/WeatherDockItem.vala:592
 msgid "_Remove from Dock"
 msgstr "Aus dem Dock _entfernen"
 
@@ -168,11 +168,11 @@ msgstr "(Minimum)"
 msgid "_Display Settings..."
 msgstr "_Anzeigeeinstellungen..."
 
-#: lib/Items/ClockDockItem.vala:39
+#: lib/Items/ClockDockItem.vala:40
 msgid "Clock"
 msgstr "Uhr"
 
-#: lib/Items/ClockDockItem.vala:216 lib/Items/DigitalClockDockItem.vala:208
+#: lib/Items/ClockDockItem.vala:239 lib/Items/DigitalClockDockItem.vala:224
 msgid "_Copy Time"
 msgstr "_Zeit kopieren"
 
@@ -180,55 +180,62 @@ msgstr "_Zeit kopieren"
 msgid "System Monitor"
 msgstr "Systemmonitor"
 
-#: lib/Items/CpuDockItem.vala:214
+#: lib/Items/CpuDockItem.vala:223
 #, c-format
 msgid "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%"
 msgstr "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Datenträger: %d%%"
 
-#: lib/Items/CpuDockItem.vala:249
+#: lib/Items/CpuDockItem.vala:260
 msgid "_System Monitor..."
 msgstr "_Systemmonitor..."
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:549
+#: lib/Items/DefaultApplicationDockItemProvider.vala:634
 msgid "Collapse pinned apps"
 msgstr "Angeheftete Apps einklappen"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:551
+#: lib/Items/DefaultApplicationDockItemProvider.vala:636
 #, c-format
 msgid "Hidden pinned apps: %d"
 msgstr "Ausgeblendete angeheftete Apps: %d"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:553
-#: lib/Widgets/DockWindow.vala:866
+#: lib/Items/DefaultApplicationDockItemProvider.vala:638
+#: lib/Items/DefaultApplicationDockItemProvider.vala:650
 msgid "Click to expand"
 msgstr "Klicken zum Erweitern"
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:647
+#: lib/Items/DefaultApplicationDockItemProvider.vala:650
+#: lib/Items/DefaultApplicationDockItemProvider.vala:651
+#: data/ui/preferences.ui:2594
+msgid "Docklets"
+msgstr "Docklets"
 
 #: lib/Items/DigitalClockDockItem.vala:40 data/ui/preferences.ui:2103
 msgid "Digital Clock"
 msgstr "Digitale Uhr"
 
-#: lib/Items/DoNotDisturbDockItem.vala:99
-#: lib/Items/DoNotDisturbDockItem.vala:638 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:100
+#: lib/Items/DoNotDisturbDockItem.vala:693 data/ui/preferences.ui:1946
 msgid "Do Not Disturb"
 msgstr "Nicht stören"
 
-#: lib/Items/DoNotDisturbDockItem.vala:239
+#: lib/Items/DoNotDisturbDockItem.vala:261
 msgid "Notifications: Silenced (Do Not Disturb)"
 msgstr "Benachrichtigungen: Stummgeschaltet (Nicht stören)"
 
-#: lib/Items/DoNotDisturbDockItem.vala:239
+#: lib/Items/DoNotDisturbDockItem.vala:261
 msgid "Notifications: Active"
 msgstr "Benachrichtigungen: Aktiv"
 
-#: lib/Items/DoNotDisturbDockItem.vala:645
+#: lib/Items/DoNotDisturbDockItem.vala:700
 msgid "Resume Notifications"
 msgstr "Benachrichtigungen fortsetzen"
 
-#: lib/Items/DoNotDisturbDockItem.vala:645
+#: lib/Items/DoNotDisturbDockItem.vala:700
 msgid "Silence Notifications"
 msgstr "Benachrichtigungen stummschalten"
 
-#: lib/Items/DoNotDisturbDockItem.vala:652
+#: lib/Items/DoNotDisturbDockItem.vala:707
 msgid "_Notification Settings..."
 msgstr "_Benachrichtigungseinstellungen..."
 
@@ -290,7 +297,7 @@ msgid "Empty"
 msgstr "Leer"
 
 #: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1042
-#: lib/Widgets/PreferencesWindow.vala:729
+#: lib/Widgets/PreferencesWindow.vala:732
 msgid "_Open"
 msgstr "_Öffnen"
 
@@ -318,96 +325,96 @@ msgstr "Spiele"
 msgid "Utilities"
 msgstr "Dienstprogramme"
 
-#: lib/Items/MprisDockItem.vala:61 lib/Items/MprisDockItem.vala:489
-#: lib/Services/ApplicationIdentity.vala:3399 data/ui/preferences.ui:2154
+#: lib/Items/MprisDockItem.vala:64 lib/Items/MprisDockItem.vala:540
+#: lib/Services/ApplicationIdentity.vala:3404 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "Medienplayer"
 
-#: lib/Items/MprisDockItem.vala:452 lib/Items/MprisDockItem.vala:680
+#: lib/Items/MprisDockItem.vala:503 lib/Items/MprisDockItem.vala:734
 msgid "Playing"
 msgstr "Wiedergabe"
 
-#: lib/Items/MprisDockItem.vala:453 lib/Items/MprisDockItem.vala:681
+#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
 msgid "Paused"
 msgstr "Pausiert"
 
-#: lib/Items/MprisDockItem.vala:453 lib/Items/MprisDockItem.vala:681
+#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
 msgid "Stopped"
 msgstr "Gestoppt"
 
-#: lib/Items/MprisDockItem.vala:462
+#: lib/Items/MprisDockItem.vala:513
 #, c-format
 msgid "Media Player (%s)"
 msgstr "Medienplayer (%s)"
 
-#: lib/Items/MprisDockItem.vala:474
+#: lib/Items/MprisDockItem.vala:525
 msgid "Media Player (Inactive)"
 msgstr "Medienplayer (Inaktiv)"
 
-#: lib/Items/MprisDockItem.vala:715
+#: lib/Items/MprisDockItem.vala:769
 msgid "Play / _Pause"
 msgstr "Wiedergabe / _Pause"
 
-#: lib/Items/MprisDockItem.vala:719
+#: lib/Items/MprisDockItem.vala:773
 msgid "_Next Track"
 msgstr "_Nächster Titel"
 
-#: lib/Items/MprisDockItem.vala:723
+#: lib/Items/MprisDockItem.vala:777
 msgid "P_revious Track"
 msgstr "_Vorheriger Titel"
 
-#: lib/Items/NetworkDockItem.vala:50
+#: lib/Items/NetworkDockItem.vala:51
 msgid "Network"
 msgstr "Netzwerk"
 
-#: lib/Items/NetworkDockItem.vala:313
+#: lib/Items/NetworkDockItem.vala:336
 msgid "Wired Connection"
 msgstr "LAN-Verbindung"
 
-#: lib/Items/NetworkDockItem.vala:328
+#: lib/Items/NetworkDockItem.vala:351
 #, c-format
 msgid "Wi-Fi: %s (%d%%) - %s"
 msgstr "Wi-Fi: %s (%d%%) - %s"
 
-#: lib/Items/NetworkDockItem.vala:330 lib/Items/NetworkDockItem.vala:436
+#: lib/Items/NetworkDockItem.vala:353 lib/Items/NetworkDockItem.vala:459
 #, c-format
 msgid "Wi-Fi: %s (%d%%)"
 msgstr "Wi-Fi: %s (%d%%)"
 
-#: lib/Items/NetworkDockItem.vala:348
+#: lib/Items/NetworkDockItem.vala:371
 #, c-format
 msgid "Ethernet: %s - %s"
 msgstr "Ethernet: %s - %s"
 
-#: lib/Items/NetworkDockItem.vala:348 lib/Items/NetworkDockItem.vala:350
-#: lib/Items/NetworkDockItem.vala:438
+#: lib/Items/NetworkDockItem.vala:371 lib/Items/NetworkDockItem.vala:373
+#: lib/Items/NetworkDockItem.vala:461
 msgid "Connected"
 msgstr "Verbunden"
 
-#: lib/Items/NetworkDockItem.vala:350 lib/Items/NetworkDockItem.vala:438
+#: lib/Items/NetworkDockItem.vala:373 lib/Items/NetworkDockItem.vala:461
 #, c-format
 msgid "Ethernet: %s"
 msgstr "Ethernet: %s"
 
-#: lib/Items/NetworkDockItem.vala:357 lib/Items/NetworkDockItem.vala:440
+#: lib/Items/NetworkDockItem.vala:380 lib/Items/NetworkDockItem.vala:463
 msgid "Network: Disconnected"
 msgstr "Netzwerk: Getrennt"
 
-#: lib/Items/NetworkDockItem.vala:448
+#: lib/Items/NetworkDockItem.vala:471
 #, c-format
 msgid "IP: %s"
 msgstr "IP: %s"
 
-#: lib/Items/NetworkDockItem.vala:454
+#: lib/Items/NetworkDockItem.vala:477
 #, c-format
 msgid "Gateway: %s"
 msgstr "Gateway: %s"
 
-#: lib/Items/NetworkDockItem.vala:462
+#: lib/Items/NetworkDockItem.vala:485
 msgid "Copy _IP Address"
 msgstr "_IP-Adresse kopieren"
 
-#: lib/Items/NetworkDockItem.vala:467
+#: lib/Items/NetworkDockItem.vala:490
 msgid "_Network Settings..."
 msgstr "_Netzwerkeinstellungen..."
 
@@ -419,76 +426,76 @@ msgstr "Anwendungen oder Dateien hier ablegen"
 msgid "Drop to add to dock"
 msgstr "Ablegen, um zum Dock hinzuzufügen"
 
-#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:175
+#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:167
 msgid "Report a _Bug Online..."
 msgstr "_Fehler online melden..."
 
-#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:167
-#: lib/Widgets/DockWindow.vala:1289
+#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:159
+#: lib/Widgets/DockWindow.vala:1312
 msgid "_Shortcuts & Gestures..."
 msgstr "_Tastenkürzel & Gesten..."
 
-#: lib/Items/PlankDockItem.vala:93 lib/Items/PreferencesDockItem.vala:93
+#: lib/Items/PlankDockItem.vala:93 lib/Items/PreferencesDockItem.vala:85
 msgid "_Docklets"
 msgstr "_Docklets"
 
-#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:96
+#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:88
 msgid "_Trash"
 msgstr "_Papierkorb"
 
-#: lib/Items/PlankDockItem.vala:97 lib/Items/PreferencesDockItem.vala:97
+#: lib/Items/PlankDockItem.vala:97 lib/Items/PreferencesDockItem.vala:89
 msgid "_Analog Clock"
 msgstr "_Analoge Uhr"
 
-#: lib/Items/PlankDockItem.vala:98 lib/Items/PreferencesDockItem.vala:98
+#: lib/Items/PlankDockItem.vala:98 lib/Items/PreferencesDockItem.vala:90
 msgid "_Digital Clock"
 msgstr "_Digitale Uhr"
 
-#: lib/Items/PlankDockItem.vala:99 lib/Items/PreferencesDockItem.vala:99
+#: lib/Items/PlankDockItem.vala:99 lib/Items/PreferencesDockItem.vala:91
 msgid "_Battery"
 msgstr "_Akku"
 
-#: lib/Items/PlankDockItem.vala:100 lib/Items/PreferencesDockItem.vala:100
+#: lib/Items/PlankDockItem.vala:100 lib/Items/PreferencesDockItem.vala:92
 msgid "_CPU / RAM Monitor"
 msgstr "_CPU-/RAM-Monitor"
 
-#: lib/Items/PlankDockItem.vala:101 lib/Items/PreferencesDockItem.vala:101
+#: lib/Items/PlankDockItem.vala:101 lib/Items/PreferencesDockItem.vala:93
 msgid "_Show Desktop"
 msgstr "_Desktop anzeigen"
 
-#: lib/Items/PlankDockItem.vala:102 lib/Items/PreferencesDockItem.vala:102
+#: lib/Items/PlankDockItem.vala:102 lib/Items/PreferencesDockItem.vala:94
 msgid "_Media Player"
 msgstr "_Medienplayer"
 
-#: lib/Items/PlankDockItem.vala:103 lib/Items/PreferencesDockItem.vala:103
+#: lib/Items/PlankDockItem.vala:103 lib/Items/PreferencesDockItem.vala:95
 msgid "_Volume Control"
 msgstr "_Lautstärkeregelung"
 
-#: lib/Items/PlankDockItem.vala:104 lib/Items/PreferencesDockItem.vala:104
+#: lib/Items/PlankDockItem.vala:104 lib/Items/PreferencesDockItem.vala:96
 msgid "_Screenshot"
 msgstr "_Bildschirmfoto"
 
-#: lib/Items/PlankDockItem.vala:105 lib/Items/PreferencesDockItem.vala:105
+#: lib/Items/PlankDockItem.vala:105 lib/Items/PreferencesDockItem.vala:97
 msgid "_Session / Power"
 msgstr "_Sitzung / Energie"
 
-#: lib/Items/PlankDockItem.vala:106 lib/Items/PreferencesDockItem.vala:106
+#: lib/Items/PlankDockItem.vala:106 lib/Items/PreferencesDockItem.vala:98
 msgid "_Screen Brightness"
 msgstr "_Bildschirmhelligkeit"
 
-#: lib/Items/PlankDockItem.vala:107 lib/Items/PreferencesDockItem.vala:107
+#: lib/Items/PlankDockItem.vala:107 lib/Items/PreferencesDockItem.vala:99
 msgid "_Removable Drives"
 msgstr "_Wechseldatenträger"
 
-#: lib/Items/PlankDockItem.vala:108 lib/Items/PreferencesDockItem.vala:108
+#: lib/Items/PlankDockItem.vala:108 lib/Items/PreferencesDockItem.vala:100
 msgid "_Weather Forecast"
 msgstr "_Wettervorhersage"
 
-#: lib/Items/PlankDockItem.vala:109 lib/Items/PreferencesDockItem.vala:109
+#: lib/Items/PlankDockItem.vala:109 lib/Items/PreferencesDockItem.vala:101
 msgid "_Network / Wi-Fi"
 msgstr "_Netzwerk / WLAN"
 
-#: lib/Items/PlankDockItem.vala:110 lib/Items/PreferencesDockItem.vala:110
+#: lib/Items/PlankDockItem.vala:110 lib/Items/PreferencesDockItem.vala:102
 msgid "_Do Not Disturb"
 msgstr "_Nicht stören"
 
@@ -496,16 +503,16 @@ msgstr "_Nicht stören"
 msgid "_Preferences"
 msgstr "_Einstellungen"
 
-#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:171
+#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:163
 msgid "User Guide..."
 msgstr "Benutzerhandbuch..."
 
-#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:179
+#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:171
 msgid "_About"
 msgstr "_Über"
 
-#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:186
-#: lib/Widgets/DockWindow.vala:1301
+#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:178
+#: lib/Widgets/DockWindow.vala:1324
 msgid "_Quit"
 msgstr "_Beenden"
 
@@ -513,23 +520,23 @@ msgstr "_Beenden"
 msgid "Preferences"
 msgstr "Einstellungen"
 
-#: lib/Items/PreferencesDockItem.vala:147 lib/Widgets/DockWindow.vala:1295
+#: lib/Items/PreferencesDockItem.vala:139 lib/Widgets/DockWindow.vala:1318
 msgid "_Preferences..."
 msgstr "_Einstellungen..."
 
-#: lib/Items/PreferencesDockItem.vala:151
+#: lib/Items/PreferencesDockItem.vala:143
 msgid "_Appearance..."
 msgstr "_Darstellung..."
 
-#: lib/Items/PreferencesDockItem.vala:155
+#: lib/Items/PreferencesDockItem.vala:147
 msgid "_Behaviour..."
 msgstr "_Verhalten..."
 
-#: lib/Items/PreferencesDockItem.vala:159
+#: lib/Items/PreferencesDockItem.vala:151
 msgid "A_pplications..."
 msgstr "_Anwendungen..."
 
-#: lib/Items/PreferencesDockItem.vala:163
+#: lib/Items/PreferencesDockItem.vala:155
 msgid "_Docklets..."
 msgstr "_Docklets..."
 
@@ -686,29 +693,29 @@ msgstr "_Papierkorb öffnen"
 msgid "_Empty Trash"
 msgstr "_Papierkorb leeren"
 
-#: lib/Items/VolumeDockItem.vala:45
+#: lib/Items/VolumeDockItem.vala:48
 msgid "Volume"
 msgstr "Lautstärke"
 
-#: lib/Items/VolumeDockItem.vala:217
+#: lib/Items/VolumeDockItem.vala:236
 #, c-format
 msgid "Volume: %d%% (Muted)"
 msgstr "Lautstärke: %d%% (Stumm)"
 
-#: lib/Items/VolumeDockItem.vala:222
+#: lib/Items/VolumeDockItem.vala:241
 #, c-format
 msgid "Volume: %d%%"
 msgstr "Lautstärke: %d%%"
 
-#: lib/Items/VolumeDockItem.vala:350
+#: lib/Items/VolumeDockItem.vala:371
 msgid "Un_mute"
 msgstr "Ton _einschalten"
 
-#: lib/Items/VolumeDockItem.vala:350
+#: lib/Items/VolumeDockItem.vala:371
 msgid "_Mute"
 msgstr "_Stumm schalten"
 
-#: lib/Items/VolumeDockItem.vala:354
+#: lib/Items/VolumeDockItem.vala:375
 msgid "_Audio Settings..."
 msgstr "_Audioeinstellungen..."
 
@@ -840,52 +847,47 @@ msgstr "Zuletzt verwendete Dateien"
 msgid "Calendar"
 msgstr "Kalender"
 
-#: lib/Widgets/DockWindow.vala:849
+#: lib/Widgets/DockWindow.vala:890
 msgid "Folder"
 msgstr "Ordner"
 
-#: lib/Widgets/DockWindow.vala:851
+#: lib/Widgets/DockWindow.vala:892
 msgid "Running"
 msgstr "Aktiv"
 
-#: lib/Widgets/DockWindow.vala:853
+#: lib/Widgets/DockWindow.vala:894
 msgid "Docklet"
 msgstr "Docklet"
 
-#: lib/Widgets/DockWindow.vala:866 lib/Widgets/DockWindow.vala:868
-#: lib/Widgets/DockWindow.vala:871 data/ui/preferences.ui:2594
-msgid "Docklets"
-msgstr "Docklets"
-
-#: lib/Widgets/DockWindow.vala:1339 lib/Widgets/DockWindow.vala:1381
+#: lib/Widgets/DockWindow.vala:1362 lib/Widgets/DockWindow.vala:1404
 msgid "Developer _Tools"
 msgstr "Entwickler_werkzeuge"
 
-#: lib/Widgets/DockWindow.vala:1346
+#: lib/Widgets/DockWindow.vala:1369
 msgid "Open config folder"
 msgstr "Konfigurationsordner öffnen"
 
-#: lib/Widgets/DockWindow.vala:1355
+#: lib/Widgets/DockWindow.vala:1378
 msgid "Open current theme file"
 msgstr "Aktuelle Theme-Datei öffnen"
 
-#: lib/Widgets/DockWindow.vala:1362
+#: lib/Widgets/DockWindow.vala:1385
 msgid "Print app usage ranking"
 msgstr "App-Nutzungsranking ausgeben"
 
-#: lib/Widgets/DockWindow.vala:1388
+#: lib/Widgets/DockWindow.vala:1411
 msgid "Print info to stdout"
 msgstr "Informationen auf stdout ausgeben"
 
-#: lib/Widgets/DockWindow.vala:1398
+#: lib/Widgets/DockWindow.vala:1421
 msgid "Open dockitem file"
 msgstr "Dockitem-Datei öffnen"
 
-#: lib/Widgets/DockWindow.vala:1407
+#: lib/Widgets/DockWindow.vala:1430
 msgid "Open launcher file"
 msgstr "Starterdatei öffnen"
 
-#: lib/Widgets/DockWindow.vala:1414
+#: lib/Widgets/DockWindow.vala:1437
 msgid "Print usage score"
 msgstr "Nutzungswert ausgeben"
 
@@ -894,55 +896,70 @@ msgid "Welcome to WayPlank"
 msgstr "Willkommen bei WayPlank"
 
 #: lib/Widgets/FirstRunWindow.vala:126
+msgid "Migrating your Plank configuration..."
+msgstr "Ihre Plank-Konfiguration wird migriert..."
+
+#: lib/Widgets/FirstRunWindow.vala:127
+msgid "Creating your WayPlank experience..."
+msgstr "Ihre WayPlank-Umgebung wird erstellt..."
+
+#: lib/Widgets/FirstRunWindow.vala:136
 msgid ""
 "Your existing Plank launchers, folders and compatible settings have been "
 "imported safely without modifying ~/.config/plank. Choose how you want "
 "WayPlank to start:"
 msgstr "Ihre vorhandenen Plank-Starter, Ordner und kompatiblen Einstellungen wurden sicher importiert, ohne ~/.config/plank zu verändern. Wählen Sie, wie WayPlank starten soll:"
 
-#: lib/Widgets/FirstRunWindow.vala:127
+#: lib/Widgets/FirstRunWindow.vala:137
 msgid "Choose how you want to initialize your dock:"
 msgstr "Wählen Sie, wie Ihr Dock initialisiert werden soll:"
 
-#: lib/Widgets/FirstRunWindow.vala:140
+#: lib/Widgets/FirstRunWindow.vala:150
 msgid "WayPlank Classic"
 msgstr "WayPlank Klassisch"
 
-#: lib/Widgets/FirstRunWindow.vala:141
+#: lib/Widgets/FirstRunWindow.vala:151
 msgid "Start classical near old Plank and discover at your pace"
 msgstr "Starten Sie klassisch wie beim alten Plank und entdecken Sie Neues in Ihrem Tempo"
 
-#: lib/Widgets/FirstRunWindow.vala:142
+#: lib/Widgets/FirstRunWindow.vala:152
 msgid ""
 "Keeps your dock minimal in Free Mode with your existing items, core pinned "
 "applications and Trash, without auto-adding category folders or accordion "
 "drawers."
 msgstr "Hält Ihr Dock im freien Modus minimalistisch mit Ihren vorhandenen Elementen, angehefteten Kernanwendungen und dem Papierkorb, ohne automatisch Kategorieordner oder Akkordeon-Schubladen hinzuzufügen."
 
-#: lib/Widgets/FirstRunWindow.vala:143
+#: lib/Widgets/FirstRunWindow.vala:153
 msgid "Start Classic"
 msgstr "Klassisch starten"
 
-#: lib/Widgets/FirstRunWindow.vala:150
+#: lib/Widgets/FirstRunWindow.vala:160
 msgid "WayPlank Explorer"
 msgstr "WayPlank Explorer"
 
-#: lib/Widgets/FirstRunWindow.vala:151
+#: lib/Widgets/FirstRunWindow.vala:161
 msgid "Start modern with all new features in the best experience spot"
 msgstr "Starten Sie modern mit allen neuen Funktionen in der optimalen Einstellung"
 
-#: lib/Widgets/FirstRunWindow.vala:152
+#: lib/Widgets/FirstRunWindow.vala:162
 msgid ""
 "Enables Smart Categorized Layout, 4 Application Folder Drawers, System Tray "
 "Docklets with Accordion, Smart Pinned Apps Accordion, and Window Preview "
 "Cards."
 msgstr "Aktiviert intelligentes kategorisiertes Layout, 4 Anwendungsordner-Schubladen, System-Tray-Docklets mit Akkordeon, intelligentes Akkordeon für angeheftete Apps und Fenster-Vorschaukarten."
 
-#: lib/Widgets/FirstRunWindow.vala:153
+#: lib/Widgets/FirstRunWindow.vala:163
 msgid "Start Explorer"
 msgstr "Explorer starten"
 
-#: lib/Widgets/FirstRunWindow.vala:160
+#: lib/Widgets/FirstRunWindow.vala:170
+msgid ""
+"Note: Please remove any custom launchers or autostart workarounds (such as "
+"GDK_BACKEND=x11) previously created to force legacy Plank to run in X11 mode "
+"on Wayland."
+msgstr "Hinweis: Bitte entfernen Sie alle benutzerdefinierten Starter oder Autostart-Workarounds (wie GDK_BACKEND=x11), die zuvor erstellt wurden, um das alte Plank im X11-Modus unter Wayland zu erzwingen."
+
+#: lib/Widgets/FirstRunWindow.vala:178
 msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "Sie können jede Funktion jederzeit in den WayPlank-Einstellungen wechseln oder anpassen."
@@ -1305,7 +1322,7 @@ msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "Bilddateien (*.png, *.svg, *.ico, *.jpg)"
 
 #: lib/Widgets/IconChooserDialog.vala:358
-#: lib/Widgets/PreferencesWindow.vala:747
+#: lib/Widgets/PreferencesWindow.vala:750
 msgid "All Files"
 msgstr "Alle Dateien"
 
@@ -1317,82 +1334,82 @@ msgstr "WayPlank-Einstellungen"
 msgid " (Requires KWin)"
 msgstr " (Erfordert KWin)"
 
-#: lib/Widgets/PreferencesWindow.vala:712
+#: lib/Widgets/PreferencesWindow.vala:715
 #, c-format
 msgid "Delete user theme '%s'"
 msgstr "Benutzer-Theme '%s' löschen"
 
-#: lib/Widgets/PreferencesWindow.vala:714
+#: lib/Widgets/PreferencesWindow.vala:717
 msgid "System themes cannot be deleted"
 msgstr "System-Themes können nicht gelöscht werden"
 
-#: lib/Widgets/PreferencesWindow.vala:726
+#: lib/Widgets/PreferencesWindow.vala:729
 msgid "Install WayPlank Theme"
 msgstr "WayPlank-Theme installieren"
 
-#: lib/Widgets/PreferencesWindow.vala:730
-#: lib/Widgets/PreferencesWindow.vala:826
+#: lib/Widgets/PreferencesWindow.vala:733
+#: lib/Widgets/PreferencesWindow.vala:829
 msgid "_Cancel"
 msgstr "_Abbrechen"
 
-#: lib/Widgets/PreferencesWindow.vala:734
+#: lib/Widgets/PreferencesWindow.vala:737
 msgid "Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 msgstr "Theme-Archive (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 
-#: lib/Widgets/PreferencesWindow.vala:776
+#: lib/Widgets/PreferencesWindow.vala:779
 msgid ""
 "No valid WayPlank/Plank theme found in the selected file.\n"
 "A valid theme must contain a 'dock.theme' configuration file."
 msgstr "Kein gültiges WayPlank-/Plank-Theme in der ausgewählten Datei gefunden.\nEin gültiges Theme muss eine Konfigurationsdatei 'dock.theme' enthalten."
 
-#: lib/Widgets/PreferencesWindow.vala:801
+#: lib/Widgets/PreferencesWindow.vala:804
 #, c-format
 msgid ""
 "A theme named '%s' already exists.\n"
 "Do you want to replace it?"
 msgstr "Ein Theme mit dem Namen '%s' existiert bereits.\nMöchten Sie es ersetzen?"
 
-#: lib/Widgets/PreferencesWindow.vala:823
+#: lib/Widgets/PreferencesWindow.vala:826
 msgid "Install Themes"
 msgstr "Themes installieren"
 
-#: lib/Widgets/PreferencesWindow.vala:827
+#: lib/Widgets/PreferencesWindow.vala:830
 msgid "_Install"
 msgstr "_Installieren"
 
-#: lib/Widgets/PreferencesWindow.vala:835
+#: lib/Widgets/PreferencesWindow.vala:838
 msgid "The archive contains multiple themes. Select which ones to install:"
 msgstr "Das Archiv enthält mehrere Themes. Wählen Sie aus, welche installiert werden sollen:"
 
-#: lib/Widgets/PreferencesWindow.vala:901
+#: lib/Widgets/PreferencesWindow.vala:904
 #, c-format
 msgid ""
 "Are you sure you want to delete the theme '%s'?\n"
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "Möchten Sie das Theme '%s' wirklich löschen?\nEs wird aus ~/.local/share/wayplank/themes/ entfernt."
 
-#: lib/Widgets/PreferencesWindow.vala:1284 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1288 data/ui/preferences.ui:554
 msgid "Docklets Only"
 msgstr "Nur Docklets"
 
-#: lib/Widgets/PreferencesWindow.vala:1285 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1289 data/ui/preferences.ui:555
 msgid "Docklets Only (with fallback)"
 msgstr "Nur Docklets (mit Ausweichoption)"
 
-#: lib/Widgets/PreferencesWindow.vala:1286 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1290 data/ui/preferences.ui:556
 msgid "All Icons (integrated)"
 msgstr "Alle Symbole (integriert)"
 
-#: lib/Widgets/PreferencesWindow.vala:1287 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1291 data/ui/preferences.ui:557
 msgid "Dedicated Icon (on dock)"
 msgstr "Eigenes Symbol (im Dock)"
 
-#: lib/Widgets/PreferencesWindow.vala:1464
+#: lib/Widgets/PreferencesWindow.vala:1469
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "Überlauf-Scrollen aktiv: %dpx beibehalten"
 
-#: lib/Widgets/PreferencesWindow.vala:1467
+#: lib/Widgets/PreferencesWindow.vala:1472
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1402,12 +1419,12 @@ msgstr ""
 "Zielgröße der Symbole: %d Pixel.\n"
 "'Überlauf-Scrollen' ist unter Verhalten aktiviert: Symbole werden niemals verkleinert und das Dock scrollt flüssig mit dem Mausrad, wenn die Bildschirmfläche nicht ausreicht."
 
-#: lib/Widgets/PreferencesWindow.vala:1478
+#: lib/Widgets/PreferencesWindow.vala:1483
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ Durch Bildschirmgröße auf %dpx begrenzt (automatisch verkleinert)"
 
-#: lib/Widgets/PreferencesWindow.vala:1480
+#: lib/Widgets/PreferencesWindow.vala:1485
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1416,12 +1433,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ Symbolgröße auf %dpx eingestellt, aber durch den verfügbaren Bildschirmplatz auf %dpx begrenzt.\nDie Symbole werden automatisch verkleinert, damit sie auf den Bildschirm passen.\nUm größere Größen ohne Verkleinerung zu verwenden, aktivieren Sie 'Überlauf-Scrollen' im Bereich Verhalten."
 
-#: lib/Widgets/PreferencesWindow.vala:1488
+#: lib/Widgets/PreferencesWindow.vala:1493
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "Passt ohne Verkleinerung auf den Bildschirm (Grenze: %d Pixel)"
 
-#: lib/Widgets/PreferencesWindow.vala:1490
+#: lib/Widgets/PreferencesWindow.vala:1495
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1431,23 +1448,23 @@ msgstr ""
 "Zielgröße der Symbole: %d Pixel.\n"
 "Passt problemlos auf den Bildschirm (Kapazitätsgrenze: %d Pixel, bevor die automatische Verkleinerung aktiviert wird)."
 
-#: lib/Widgets/PreferencesWindow.vala:1719 data/ui/preferences.ui:232
+#: lib/Widgets/PreferencesWindow.vala:1724 data/ui/preferences.ui:232
 #: data/ui/preferences.ui:245
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "Dock automatisch auf dem Hauptbildschirm anzeigen; deaktivieren, um einen bestimmten Bildschirm auszuwählen"
 
-#: lib/Widgets/PreferencesWindow.vala:1720
+#: lib/Widgets/PreferencesWindow.vala:1725
 msgid "Not supported by this compositor"
 msgstr "Von diesem Compositor nicht unterstützt"
 
-#: lib/Widgets/PreferencesWindow.vala:1795 data/ui/preferences.ui:1448
+#: lib/Widgets/PreferencesWindow.vala:1800 data/ui/preferences.ui:1448
 #: data/ui/preferences.ui:1462
 msgid "Workspace filtering is not yet supported under Wayland"
 msgstr "Arbeitsbereichsfilterung wird unter Wayland noch nicht unterstützt"
 
-#: lib/Widgets/PreferencesWindow.vala:1804 data/ui/preferences.ui:849
+#: lib/Widgets/PreferencesWindow.vala:1809 data/ui/preferences.ui:849
 #: data/ui/preferences.ui:862
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
@@ -1455,7 +1472,7 @@ msgid ""
 "for fluid unhiding"
 msgstr "Erfordert das Berühren des Bildschirmrands (1 px), um das Dock anzuzeigen und versehentliche Auslöser zu vermeiden; deaktiviert erscheint das Dock bereits 10 px vor dem Rand"
 
-#: lib/Widgets/PreferencesWindow.vala:1808 data/ui/preferences.ui:876
+#: lib/Widgets/PreferencesWindow.vala:1813 data/ui/preferences.ui:876
 #: data/ui/preferences.ui:889
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
@@ -1464,7 +1481,7 @@ msgid ""
 "Reserve Screen Space"
 msgstr "Reserviert Bildschirmplatz entsprechend der Dock-Dicke (Leistenmodus), sodass maximierte Fenster das Dock nicht überlappen; beim Aktivieren werden Dock ausblenden und Symbol-Vergrößerung automatisch deaktiviert, und beim Aktivieren einer dieser Optionen wird Bildschirmplatz reservieren automatisch deaktiviert"
 
-#: lib/Widgets/PreferencesWindow.vala:1811 data/ui/preferences.ui:1008
+#: lib/Widgets/PreferencesWindow.vala:1816 data/ui/preferences.ui:1008
 #: data/ui/preferences.ui:1022
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
@@ -1678,19 +1695,19 @@ msgstr "Gefühlt %d%s"
 msgid "No forecast data available"
 msgstr "Keine Vorhersagedaten verfügbar"
 
-#: lib/Widgets/WindowCardsWindow.vala:480
+#: lib/Widgets/WindowCardsWindow.vala:495
 msgid "Application"
 msgstr "Anwendung"
 
-#: lib/Widgets/WindowCardsWindow.vala:601
+#: lib/Widgets/WindowCardsWindow.vala:628
 msgid "Minimized"
 msgstr "Minimiert"
 
-#: src/Main.vala:148
+#: src/Main.vala:152
 msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank wurde ausschließlich für Wayland-Sitzungen entwickelt."
 
-#: src/Main.vala:150
+#: src/Main.vala:154
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - Nicht unterstützte Sitzung"
 
@@ -2188,8 +2205,8 @@ msgid "Collapse docklets in-line showing only the first item; expand on hover"
 msgstr "Docklets in einer Reihe einklappen und nur das erste Element anzeigen; beim Überfahren mit der Maus ausklappen"
 
 #: data/ui/preferences.ui:1685
-msgid "Click to Expand:"
-msgstr "Klicken zum Ausklappen:"
+msgid "Click to Expand/Compress:"
+msgstr "Klicken zum Aus-/Einklappen:"
 
 #: data/ui/preferences.ui:1686 data/ui/preferences.ui:1699
 msgid ""

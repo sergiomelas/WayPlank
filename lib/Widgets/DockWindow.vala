@@ -1232,6 +1232,15 @@ namespace Plank
 							PreferencesDockItem.append_full_system_menu (controller, menu_items);
 						}
 					} else {
+						bool is_docklet = DefaultApplicationDockItemProvider.is_docklet_element (item) || (item is TrashDockItem);
+						if (is_docklet) {
+							var docklets_item = PreferencesDockItem.create_docklets_submenu_item (controller);
+							if (docklets_item != null) {
+								if (menu_items.size > 0)
+									menu_items.add (new Gtk.SeparatorMenuItem ());
+								menu_items.add (docklets_item);
+							}
+						}
 						append_global_preferences_and_quit (menu_items);
 					}
 				}

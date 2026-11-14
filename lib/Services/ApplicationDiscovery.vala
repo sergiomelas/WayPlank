@@ -353,7 +353,7 @@ namespace Plank
 						continue;
 
 					var identity = identities.has_key (bname) ? identities.get (bname) : new ApplicationIdentity (synth_file);
-					if (identity.detected_browser_profile != "")
+					if (identity.detected_browser_profile != "" && bname.has_prefix ("wayplank-app-google-chrome-"))
 						continue;
 
 					bool has_open_window = false;
@@ -727,7 +727,9 @@ namespace Plank
 
 			bool matched_exec_less_desktop = false;
 			bool is_plain_browser = ApplicationIdentity.is_plain_browser_window (window) && !ApplicationIdentity.has_explicit_webapp_window_id (window);
-			string win_browser_prof = is_plain_browser ? ApplicationIdentity.get_window_browser_profile (window) : "";
+			string win_browser_prof = (is_plain_browser && ApplicationIdentity.is_google_chrome_window (window))
+				? ApplicationIdentity.get_window_browser_profile (window)
+				: "";
 			bool has_specialized_override = has_specialized_or_terminal_override (window) || (win_browser_prof != "");
 
 			// Fast path: Exact desktop file or application ID match with authoritative score
@@ -792,7 +794,7 @@ namespace Plank
 				}
 			}
 
-			if (win_browser_prof != "" && !ApplicationIdentity.is_window_profile_pending (window) && best_score < 118) {
+			if (win_browser_prof != "" && ApplicationIdentity.is_google_chrome_window (window) && !ApplicationIdentity.is_window_profile_pending (window) && best_score < 118) {
 				var prof_file = synthesize_browser_profile_desktop_file (window, win_browser_prof);
 				if (prof_file != null)
 					return prof_file;
@@ -1216,7 +1218,7 @@ namespace Plank
 							return true;
 						string my_hint = my_identity.desktop_uri != "" ? (launcher_profile_hints.get (my_identity.desktop_uri) ?? "") : "";
 						string locked_hint = locked_id.desktop_uri != "" ? (launcher_profile_hints.get (locked_id.desktop_uri) ?? "") : "";
-						if (!my_identity.is_web_app () && !locked_id.is_web_app ()) {
+						if (!my_identity.is_web_app () && !locked_id.is_web_app () && my_identity.shares_browser_family_with (locked_id)) {
 							string my_prof = my_identity.get_effective_browser_profile (my_hint);
 							string locked_prof = locked_id.get_effective_browser_profile (locked_hint);
 							if (my_prof != "" && locked_prof != "")
@@ -1485,7 +1487,9 @@ namespace Plank
 					bool is_webapp_entry = false;
 					if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
 						var swmc_raw = key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass").down ().strip ();
-						if (swmc_raw.has_prefix ("crx_") || swmc_raw.has_prefix ("chrome-") || swmc_raw.has_prefix ("brave-") || swmc_raw.has_prefix ("msedge-"))
+						if (swmc_raw.has_prefix ("crx_") ||
+						    ((swmc_raw.has_prefix ("chrome-") || swmc_raw.has_prefix ("brave-") || swmc_raw.has_prefix ("msedge-")) &&
+						     !ApplicationIdentity.is_browser_binary (swmc_raw)))
 							is_webapp_entry = true;
 					}
 					if (!is_webapp_entry && key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {

@@ -1,7 +1,7 @@
 # WayPlank User Guide & Reference Manual
 
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Release Version:** `v0.7.1` (**Public Beta 2**)
+> **Release Version:** `v0.7.1.2` (**Public Beta 2 Hotfix**)
 
 Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond).
 
@@ -470,11 +470,12 @@ WayPlank's integrated Screen Brightness docklet features per-monitor hardware ba
 
 Unlike legacy X11—where any client could inspect global window lists and coordinates—the **Wayland security model** isolates applications from one another. To deliver running indicators, window activation, live preview cards, Dodge/Intellihide overlap tracking, and multi-monitor brightness sync with **zero user configuration**, WayPlank routes all OS, compositor, and system bus communication through a unified **Hardware & Bus Abstraction Layer (`hal/Interfaces/`)**.
 
-For complete developer specifications, see the official architectural blueprints in the repository `Documentation/` folder:
-- 🏛️ **Master Compositor & Shell HAL Specification:** `Documentation/HAL_COMPOSITORS.md`
-- 🚌 **Master IPC & System Bus HAL Specification:** `Documentation/HAL_BUSES.md`
-- 🎯 **Application Identity Engine & `IAppSystem` Data Abstraction:** `Documentation/APPLICATION_IDENTITY_ENGINE.md`
-- 🪟 **WinPlank Zero-DLL Native Windows (`7 ⟷ 11+`) Port Blueprint:** `Documentation/WINPLANK_PORT_BATTLE_PLAN.md`
+For complete developer specifications, see the official architectural blueprints in the repository `Documentation/Architecture/` folder:
+- 🏗️ **Master System Architecture Overview:** [`Documentation/Architecture/README.md`](Architecture/README.md)
+- 🏛️ **Master Compositor & Shell HAL Specification:** [`Documentation/Architecture/HAL_COMPOSITORS.md`](Architecture/HAL_COMPOSITORS.md)
+- 🚌 **Master IPC & System Bus HAL Specification:** [`Documentation/Architecture/HAL_BUSES.md`](Architecture/HAL_BUSES.md)
+- 🎯 **Application Identity Engine & `IAppSystem` Data Abstraction:** [`Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md`](Architecture/APPLICATION_IDENTITY_ENGINE.md)
+- 🪟 **Windows Compositor/Bus Backend (`wayplank.exe`, `7 ⟷ 11+`):** [`Documentation/Architecture/HAL_WINDOWS_BACKEND.md`](Architecture/HAL_WINDOWS_BACKEND.md)
 
 ```mermaid
 flowchart TD
@@ -613,7 +614,7 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   ```bash
   chmod +x BuildDeb.sh
   ./BuildDeb.sh
-  sudo apt install ./build/wayplank_0.7.1_amd64.deb
+  sudo apt install ./build/wayplank_0.7.1.2_amd64.deb
   ```
   *(Installing or upgrading the `.deb` package automatically signals any running WayPlank process via `SIGWINCH` to re-exec cleanly into the newly installed binary with zero downtime.)*
 
@@ -622,9 +623,9 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   chmod +x BuildRpm.sh
   ./BuildRpm.sh
   # On openSUSE:
-  sudo zypper install ./build/wayplank-0.7.1-1.x86_64.rpm
+  sudo zypper install ./build/wayplank-0.7.1.2-1.x86_64.rpm
   # On Fedora / RHEL:
-  sudo dnf install ./build/wayplank-0.7.1-1.x86_64.rpm
+  sudo dnf install ./build/wayplank-0.7.1.2-1.x86_64.rpm
   ```
 
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).
@@ -752,7 +753,7 @@ gsettings set net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1
 **A:** WayPlank features an advanced hypervisor instance isolation engine (Issue #14). When running multiple VMs (e.g. `VM-Alpha` and `VM-Beta`), WayPlank analyzes `/proc/<pid>/cmdline`, ignores generic flags (`-accel kvm`, `-m 512M`), and synthesizes dedicated launchers for each VM. You can pin each VM separately, and clicking a pinned VM icon cold-relaunches that specific machine with its original disk image and flags.
 
 #### Q: Do I need to reboot or log out of GNOME Shell after an update or extension crash?
-**A:** **No.** WayPlank's MutterBackend incorporates self-healing logic that executes `gnome-extensions reset` prior to reloading the bridge. This automatically clears GNOME Shell's internal `ExtensionState.ERROR` flag from memory, reloading the extension dynamically without needing a session restart or reboot.
+**A:** **Normally no.** WayPlank's `MutterBackend` deploys its GNOME Shell companion bridge through a content-hashed ES module loader (`impl-<hash>.js`) and runs `gnome-extensions reset` before cycling the extension, clearing `ExtensionState.ERROR` and hot-reloading updated bridge implementations live without ending your session. A one-time GNOME Wayland **log-out / log-in** is only required when upgrading across a release that updates the top-level `extension.js` loader or `metadata.json` version, because GNOME Shell 45+ caches top-level ES module URIs per login session.
 
 #### Q: How do I add an application that is not in the default folders?
 **A:** Open your Application Menu (KDE Kickoff, GNOME Dash, Labwc menu) or your file manager (Dolphin, Nautilus, Thunar) at `/usr/share/applications/`, and simply drag the `.desktop` file onto WayPlank.

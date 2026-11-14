@@ -4,7 +4,7 @@
 **Last Updated:** 2026-11-05 (Initiated 2026-10-15)  
 **Maintainer:** Sergio Melas (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
 **Primary Community Fork Collaborator:** IFtiger-hu (史有虎) (2212363803@qq.com, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) — maintaining 3 active WayPlank forks)  
-**Scope:** Permanent cross-fork scouting, architectural HAL adaptation (per [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) and [HAL_BUSES.md](HAL_BUSES.md)), attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
+**Scope:** Permanent cross-fork scouting, architectural HAL adaptation (per [Architecture/README.md](../Architecture/README.md), [HAL_COMPOSITORS.md](../Architecture/HAL_COMPOSITORS.md), and [HAL_BUSES.md](../Architecture/HAL_BUSES.md)), attribution governance, and continuous upstream cherry-picking whenever valuable features, docklets, or fixes emerge across IFtiger-hu's Chinese forks and any community fork  
 **Upstream Repository:** [https://github.com/sergiomelas/WayPlank](https://github.com/sergiomelas/WayPlank)  
 **Collaborator Profile & Forks:** [https://github.com/IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) (primary fork: [IFtiger-hu-hub/WayPlank](https://github.com/IFtiger-hu-hub/WayPlank) + 2 sibling experimental forks)  
 

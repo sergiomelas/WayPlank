@@ -42,21 +42,28 @@ namespace Plank
 			string[] candidate_dirs = {
 				Environment.get_current_dir () + "/data/glib-2.0/schemas",
 				Build.DATADIR + "/glib-2.0/schemas",
+				"/usr/local/share/glib-2.0/schemas",
 				"/usr/share/glib-2.0/schemas"
 			};
 
+			GLib.SettingsSchemaSource? legacy_fallback = null;
 			foreach (var dir in candidate_dirs) {
 				if (FileUtils.test (dir + "/gschemas.compiled", FileTest.EXISTS)) {
 					try {
 						var source = new GLib.SettingsSchemaSource.from_directory (dir, default_source, false);
-						if (source.lookup ("net.launchpad.plank.dock.settings", true) != null) {
+						var schema = source.lookup ("net.launchpad.plank.dock.settings", true);
+						if (schema != null && schema.has_key ("effect-duration")) {
 							custom_schema_source = source;
 							break;
 						}
+						if (legacy_fallback == null && schema != null)
+							legacy_fallback = source;
 					} catch (Error e) {
 					}
 				}
 			}
+			if (custom_schema_source == null && legacy_fallback != null)
+				custom_schema_source = legacy_fallback;
 			if (custom_schema_source == null)
 				custom_schema_source = default_source;
 		}

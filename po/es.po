@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.1\n"
+"Project-Id-Version: wayplank 0.7.1.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-11 00:04+0100\n"
-"PO-Revision-Date: 2026-11-11 00:04+0100\n"
+"POT-Creation-Date: 2026-11-14 09:17+0100\n"
+"PO-Revision-Date: 2026-11-14 09:17+0100\n"
 "Last-Translator: Sergio Melas <sergiomelas@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "Language: es\n"
@@ -326,7 +326,7 @@ msgid "Utilities"
 msgstr "Utilidades"
 
 #: lib/Items/MprisDockItem.vala:64 lib/Items/MprisDockItem.vala:540
-#: lib/Services/ApplicationIdentity.vala:3404 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3518 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "Reproductor multimedia"
 
@@ -426,76 +426,76 @@ msgstr "Suelte aplicaciones o archivos aquí"
 msgid "Drop to add to dock"
 msgstr "Soltar para añadir al dock"
 
-#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:167
+#: lib/Items/PlankDockItem.vala:79 lib/Items/PreferencesDockItem.vala:176
 msgid "Report a _Bug Online..."
 msgstr "Informar de un _error en línea..."
 
-#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:159
-#: lib/Widgets/DockWindow.vala:1312
+#: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:168
+#: lib/Widgets/DockWindow.vala:1321
 msgid "_Shortcuts & Gestures..."
 msgstr "_Atajos y gestos..."
 
-#: lib/Items/PlankDockItem.vala:93 lib/Items/PreferencesDockItem.vala:85
+#: lib/Items/PlankDockItem.vala:93 lib/Items/PreferencesDockItem.vala:86
 msgid "_Docklets"
 msgstr "_Docklets"
 
-#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:88
+#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:89
 msgid "_Trash"
 msgstr "_Papelera"
 
-#: lib/Items/PlankDockItem.vala:97 lib/Items/PreferencesDockItem.vala:89
+#: lib/Items/PlankDockItem.vala:97 lib/Items/PreferencesDockItem.vala:90
 msgid "_Analog Clock"
 msgstr "Reloj _analógico"
 
-#: lib/Items/PlankDockItem.vala:98 lib/Items/PreferencesDockItem.vala:90
+#: lib/Items/PlankDockItem.vala:98 lib/Items/PreferencesDockItem.vala:91
 msgid "_Digital Clock"
 msgstr "Reloj _digital"
 
-#: lib/Items/PlankDockItem.vala:99 lib/Items/PreferencesDockItem.vala:91
+#: lib/Items/PlankDockItem.vala:99 lib/Items/PreferencesDockItem.vala:92
 msgid "_Battery"
 msgstr "_Batería"
 
-#: lib/Items/PlankDockItem.vala:100 lib/Items/PreferencesDockItem.vala:92
+#: lib/Items/PlankDockItem.vala:100 lib/Items/PreferencesDockItem.vala:93
 msgid "_CPU / RAM Monitor"
 msgstr "Monitor _CPU / RAM"
 
-#: lib/Items/PlankDockItem.vala:101 lib/Items/PreferencesDockItem.vala:93
+#: lib/Items/PlankDockItem.vala:101 lib/Items/PreferencesDockItem.vala:94
 msgid "_Show Desktop"
 msgstr "_Mostrar escritorio"
 
-#: lib/Items/PlankDockItem.vala:102 lib/Items/PreferencesDockItem.vala:94
+#: lib/Items/PlankDockItem.vala:102 lib/Items/PreferencesDockItem.vala:95
 msgid "_Media Player"
 msgstr "Reproductor _multimedia"
 
-#: lib/Items/PlankDockItem.vala:103 lib/Items/PreferencesDockItem.vala:95
+#: lib/Items/PlankDockItem.vala:103 lib/Items/PreferencesDockItem.vala:96
 msgid "_Volume Control"
 msgstr "Control de _volumen"
 
-#: lib/Items/PlankDockItem.vala:104 lib/Items/PreferencesDockItem.vala:96
+#: lib/Items/PlankDockItem.vala:104 lib/Items/PreferencesDockItem.vala:97
 msgid "_Screenshot"
 msgstr "_Captura de pantalla"
 
-#: lib/Items/PlankDockItem.vala:105 lib/Items/PreferencesDockItem.vala:97
+#: lib/Items/PlankDockItem.vala:105 lib/Items/PreferencesDockItem.vala:98
 msgid "_Session / Power"
 msgstr "_Sesión / Energía"
 
-#: lib/Items/PlankDockItem.vala:106 lib/Items/PreferencesDockItem.vala:98
+#: lib/Items/PlankDockItem.vala:106 lib/Items/PreferencesDockItem.vala:99
 msgid "_Screen Brightness"
 msgstr "Brillo de _pantalla"
 
-#: lib/Items/PlankDockItem.vala:107 lib/Items/PreferencesDockItem.vala:99
+#: lib/Items/PlankDockItem.vala:107 lib/Items/PreferencesDockItem.vala:100
 msgid "_Removable Drives"
 msgstr "Unidades _extraíbles"
 
-#: lib/Items/PlankDockItem.vala:108 lib/Items/PreferencesDockItem.vala:100
+#: lib/Items/PlankDockItem.vala:108 lib/Items/PreferencesDockItem.vala:101
 msgid "_Weather Forecast"
 msgstr "Pronóstico del _tiempo"
 
-#: lib/Items/PlankDockItem.vala:109 lib/Items/PreferencesDockItem.vala:101
+#: lib/Items/PlankDockItem.vala:109 lib/Items/PreferencesDockItem.vala:102
 msgid "_Network / Wi-Fi"
 msgstr "_Red / Wi-Fi"
 
-#: lib/Items/PlankDockItem.vala:110 lib/Items/PreferencesDockItem.vala:102
+#: lib/Items/PlankDockItem.vala:110 lib/Items/PreferencesDockItem.vala:103
 msgid "_Do Not Disturb"
 msgstr "No _molestar"
 
@@ -503,16 +503,16 @@ msgstr "No _molestar"
 msgid "_Preferences"
 msgstr "_Preferencias"
 
-#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:163
+#: lib/Items/PlankDockItem.vala:151 lib/Items/PreferencesDockItem.vala:172
 msgid "User Guide..."
 msgstr "Guía de usuario..."
 
-#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:171
+#: lib/Items/PlankDockItem.vala:155 lib/Items/PreferencesDockItem.vala:180
 msgid "_About"
 msgstr "_Acerca de"
 
-#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:178
-#: lib/Widgets/DockWindow.vala:1324
+#: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:187
+#: lib/Widgets/DockWindow.vala:1333
 msgid "_Quit"
 msgstr "_Salir"
 
@@ -520,23 +520,23 @@ msgstr "_Salir"
 msgid "Preferences"
 msgstr "Preferencias"
 
-#: lib/Items/PreferencesDockItem.vala:139 lib/Widgets/DockWindow.vala:1318
+#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1327
 msgid "_Preferences..."
 msgstr "_Preferencias..."
 
-#: lib/Items/PreferencesDockItem.vala:143
+#: lib/Items/PreferencesDockItem.vala:152
 msgid "_Appearance..."
 msgstr "_Apariencia..."
 
-#: lib/Items/PreferencesDockItem.vala:147
+#: lib/Items/PreferencesDockItem.vala:156
 msgid "_Behaviour..."
 msgstr "_Comportamiento..."
 
-#: lib/Items/PreferencesDockItem.vala:151
+#: lib/Items/PreferencesDockItem.vala:160
 msgid "A_pplications..."
 msgstr "A_plicaciones..."
 
-#: lib/Items/PreferencesDockItem.vala:155
+#: lib/Items/PreferencesDockItem.vala:164
 msgid "_Docklets..."
 msgstr "_Docklets..."
 
@@ -859,35 +859,35 @@ msgstr "En ejecución"
 msgid "Docklet"
 msgstr "Docklet"
 
-#: lib/Widgets/DockWindow.vala:1362 lib/Widgets/DockWindow.vala:1404
+#: lib/Widgets/DockWindow.vala:1371 lib/Widgets/DockWindow.vala:1413
 msgid "Developer _Tools"
 msgstr "Herramientas de _desarrollo"
 
-#: lib/Widgets/DockWindow.vala:1369
+#: lib/Widgets/DockWindow.vala:1378
 msgid "Open config folder"
 msgstr "Abrir carpeta de configuración"
 
-#: lib/Widgets/DockWindow.vala:1378
+#: lib/Widgets/DockWindow.vala:1387
 msgid "Open current theme file"
 msgstr "Abrir archivo del tema actual"
 
-#: lib/Widgets/DockWindow.vala:1385
+#: lib/Widgets/DockWindow.vala:1394
 msgid "Print app usage ranking"
 msgstr "Imprimir ranking de uso de apps"
 
-#: lib/Widgets/DockWindow.vala:1411
+#: lib/Widgets/DockWindow.vala:1420
 msgid "Print info to stdout"
 msgstr "Imprimir información en stdout"
 
-#: lib/Widgets/DockWindow.vala:1421
+#: lib/Widgets/DockWindow.vala:1430
 msgid "Open dockitem file"
 msgstr "Abrir archivo dockitem"
 
-#: lib/Widgets/DockWindow.vala:1430
+#: lib/Widgets/DockWindow.vala:1439
 msgid "Open launcher file"
 msgstr "Abrir archivo del lanzador"
 
-#: lib/Widgets/DockWindow.vala:1437
+#: lib/Widgets/DockWindow.vala:1446
 msgid "Print usage score"
 msgstr "Imprimir puntuación de uso"
 

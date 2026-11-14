@@ -78,23 +78,24 @@ glib-compile-resources \
 rm -rf "${BASE_DIR}/data/locale"
 
 echo "🏗️ Compiling Vala & C sources to native binary..."
-mapfile -t VALA_FILES < <(find "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala")
+mapfile -t VALA_FILES < <(find "${BASE_DIR}/hal" "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala" | sort)
 
 C_SOURCES=("${BASE_DIR}/lib/resources.c")
 if [ -f "${BASE_DIR}/lib/gtk-compat.c" ]; then
     C_SOURCES+=("${BASE_DIR}/lib/gtk-compat.c")
 fi
-if [ -f "${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c" ]; then
-    C_SOURCES+=("${BASE_DIR}/lib/Protocols/wlr-foreign-toplevel-management-protocol.c")
+if [ -f "${BASE_DIR}/hal/Freedesktop/Wlroots/wlr-foreign-toplevel-management-protocol.c" ]; then
+    C_SOURCES+=("${BASE_DIR}/hal/Freedesktop/Wlroots/wlr-foreign-toplevel-management-protocol.c")
 fi
-if [ -f "${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c" ]; then
-    C_SOURCES+=("${BASE_DIR}/lib/Services/wlr-toplevel-bridge.c")
+if [ -f "${BASE_DIR}/hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c" ]; then
+    C_SOURCES+=("${BASE_DIR}/hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c")
 fi
 
 if valac -g \
     --gresources="$BUILD_GRESOURCE_XML" \
     --gresourcesdir="${BASE_DIR}/data" \
-    --vapidir="${BASE_DIR}/vapi" \
+    --vapidir="${BASE_DIR}/vapi/core" \
+    --vapidir="${BASE_DIR}/vapi/freedesktop" \
     --pkg posix \
     --pkg gio-unix-2.0 \
     --pkg gtk+-3.0 \
@@ -111,8 +112,7 @@ if valac -g \
     -X "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
     -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -I"${BASE_DIR}/lib" \
-    -X -I"${BASE_DIR}/lib/Protocols" \
-    -X -I"${BASE_DIR}/lib/Services" \
+    -X -I"${BASE_DIR}/hal/Freedesktop/Wlroots" \
     -X -I"${BASE_DIR}/include" \
     -X -include -X "${BASE_DIR}/include/config.h" \
     -X -w \

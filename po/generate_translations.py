@@ -4909,7 +4909,7 @@ os.makedirs("po", exist_ok=True)
 version_file = os.path.join(repo_root, "VERSION")
 pkg_version = open(version_file, "r", encoding="utf-8").read().splitlines()[0].strip() if os.path.exists(version_file) else "0.7.1"
 
-vala_files = sorted(glob.glob("lib/**/*.vala", recursive=True) + glob.glob("src/**/*.vala", recursive=True))
+vala_files = sorted(glob.glob("hal/**/*.vala", recursive=True) + glob.glob("lib/**/*.vala", recursive=True) + glob.glob("src/**/*.vala", recursive=True))
 ui_files = ["data/ui/preferences.ui"] if os.path.exists("data/ui/preferences.ui") else []
 if vala_files and ui_files:
     subprocess.run([

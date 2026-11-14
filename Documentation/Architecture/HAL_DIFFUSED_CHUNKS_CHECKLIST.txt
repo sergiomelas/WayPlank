@@ -1,0 +1,711 @@
+================================================================================
+WAYPLANK v0.7.2 — TEMPORARY EXHAUSTIVE HAL EXTRACTION & TRANSLATOR CHECKLIST
+================================================================================
+Maintainer / Author : Sergio Melas <sergiomelas@gmail.com>
+ISA-88 MOC Control  : MOC-0.7.2-HAL-001 (Rev 2.0 — Design-Before-Build Gate)
+Branch              : hal-v0.7.2 (Temporary local working audit file — delete
+                      before final v0.7.2 squash/merge once 100% [x] & Firewall GREEN)
+Prime Rule          : ZERO Linux, BSD, Wayland, D-Bus, XDG, POSIX, or Windows
+                      direct calls, types, paths, or names are allowed ABOVE the
+                      Agnostic Boundary Translator Layer (`hal/Interfaces/`).
+                      ALWAYS define the Northbound Agnostic Translator FIRST,
+                      implement the Southbound Driver SECOND, and switch Core THIRD.
+
+================================================================================
+COMPLETE REPOSITORY ACCOUNTING (112 Code / Protocol / VAPI Files = 100.0%):
+================================================================================
+  1. Relocated in Move 1 (`hal/` + `vapi/`)           :  21 files
+     - Pure / Southbound Drivers Ready                :  17 files
+     - Move-1 Boundary Files Needing Translator Purge :   4 files
+       (`hal/Interfaces/{WindowBackend,WindowCapabilities,WindowControl}.vala`
+        & `vapi/core/compat.vapi` — caught in Pass 2/3 rescan!)
+  2. Remaining in `src/` + `lib/` + `include/`        :  91 files
+     - BUCKET A (100.0% OS-Agnostic Pure Core Today)  :  28 files (Zero edits!)
+     - BUCKET B (Diffused OS/Bus/Path/Class Chunks)   :  63 files
+     - CHECK: 28 + 63 = 91 files; 91 + 21 = 112 files (0 unaccounted files!)
+  3. Total Discrete `[ ]` Translator Chunks (Moves 2–4): 74 chunks
+
+ALL SUBTLE & INDIRECT CROSS-OS TRAPS CAUGHT BY FULL ITERATIVE RESCAN:
+  01. `hal/Interfaces/WindowBackend.vala` (L34): leaks `DBusConnection` inside
+      `hal/Interfaces/` (which is compiled on Windows too!).
+  02. `hal/Interfaces/WindowControl.vala` & `WindowCapabilities.vala`: instantiate
+      `KWinBackend`/`MutterBackend`/`LabwcBackend` + `GtkLayerShell` + `XdgSession*`
+      inside `hal/Interfaces/`! Wayland router must move to `hal/Freedesktop/`.
+  03. `vapi/core/compat.vapi` (L27-36) + `HideManager.vala` (L71) + `AbstractMain`
+      (L255-257): binds `<sys/prctl.h>` (`prctl`) & `<unistd.h>` (`setproctitle`,
+      `getpid`) in `vapi/core/` -> fails on Windows! Move Unix bindings to
+      `vapi/freedesktop/` behind `IPlatformRuntime`.
+  04. `DockWindow.vala` (L1511, L1521): `window.input_shape_combine_region(...)`
+      must route through `IDockShell.apply_input_region()` so Windows
+      `WS_EX_LAYERED` (`SetWindowRgn` / `HTTRANSPARENT`) works identically!
+  05. `PoofWindow.vala` (L73, L189): calls `SurfaceCoordinateService` directly!
+  06. `WindowCardsWindow.vala` (L501-594): calls `KWinThumbnailService` directly!
+  07. `TrashDockItem.vala` (L25-437): uses GVFS `trash:///`, `~/.local/share/Trash`,
+      `file.trash()`, `KWinTrashBridge`, and `kioclient` — none exist on Windows!
+      Must route 100% through `ITrashProvider`.
+  08. `EjectorDockItem.vala` (L52-253): uses `GLib.VolumeMonitor` (requires GVFS/
+      UDisks2 on Linux) + hardcoded `/media`, `/run/media`, `/mnt` + `notify-send`!
+      Must route 100% through `IEjectorProvider` + `INotificationBus`.
+  09. `RecentFilesService.vala` (L184): uses `Gtk.RecentManager` (`recently-used.xbel`)
+      directly -> route through `IAppSystem.get_recent_documents()` so Windows
+      `%APPDATA%\Microsoft\Windows\Recent\*.lnk` works seamlessly!
+  10. `GLib.Shell.parse_argv` in `ApplicationIdentity` (L1120, L3543),
+      `ApplicationDiscovery` (L587), `Matcher` (L251), `RecentFilesService` (L126):
+      POSIX `/bin/sh` quoting strips Windows `\` path separators (`C:\Program Files`
+      -> `C:Program Files`)! Must use cross-OS `CommandLineTokenizer` /
+      `IPlatformRuntime.parse_command_argv()`.
+  11. Unix `has_prefix("/")` / `has_prefix("~/")` across 11 Core files
+      (`DrawingService`, `DockItemPreferences`, `AppUsageService`, `IconChooserDialog`,
+      `DragManager`, `ItemFactory`, `ApplicationDockItem`, `DockItemProvider`,
+      `FileDockItem`, `RecentFilesService`, `ApplicationIdentity`): fails on
+      Windows `C:\...` paths! Must use `Path.is_absolute()` + cross-OS URI helper.
+  12. `DockItem.vala` (L508): `File.new_for_uri(launcher)` assumes filesystem
+      `file://` launcher -> delegate non-file scheme (`aumid://`) check via
+      `IAppSystem.launcher_exists()` / `monitor_launcher()`.
+  13. `DockRenderer.vala` (L124,152,463) & `Theme.vala` (L193) & `DockController`
+      (L53,110,516,532) & `ApplicationDockItemProvider` (L23): coupled to
+      `DBusManager`, `Unity`/`UnityClient` (`Variant`), `SystemTheme` (`Portal`),
+      and `EnvironmentSettings` -> must bind strictly to agnostic `IDockIpcServer`,
+      `ILauncherBadgeBus`, `IDesktopThemeBus`, and `INotificationBus`!
+  14. `include/config.h` (L41-43): `#define PREFIX "/usr"`, `DATADIR "/usr/share"`
+      -> guard `#ifndef _WIN32` and resolve runtime data/schema paths via
+      `IPlatformRuntime`.
+  15. 8 Docklets/Widgets (`DoNotDisturb`, `Battery`, `Brightness`, `Cpu`, `Network`,
+      `Volume`, `CalendarWindow`, `Trash`) passing Linux CLI strings (`kcmshell6`,
+      `gnome-control-center`, `xfce4-*`) -> translate via `DesktopUtilityKind` enum!
+
+================================================================================
+SECTION 1 — MOVE 1: SKELETON & ZERO-LOGIC DRIVER RELOCATION (COMPLETED)
+================================================================================
+[x] [M1-01] VERSION -> bumped to `0.7.2` (`Public Beta 3`) on branch `hal-v0.7.2`
+[x] [M1-02] hal/Interfaces/ <- WindowBackend.vala, WindowCapabilities.vala,
+            WindowControl.vala, WindowInfo.vala (4 files, 100% git rename;
+            purity cleanup of the first 3 tracked in [M2-01]/[M2-02] below!)
+[x] [M1-03] hal/Freedesktop/KWin/ <- KWinBackend.vala, KWinBridge.vala,
+            KWinDbus.vala, KWinThumbnailService.vala, KWinTrashBridge.vala (5 files)
+[x] [M1-04] hal/Freedesktop/Mutter/ <- MutterBackend.vala (1 file)
+[x] [M1-05] hal/Freedesktop/Wlroots/ <- LabwcBackend.vala, wlr-toplevel-bridge.c,
+            wlr-toplevel-bridge.h, wlr-foreign-toplevel-management-* (6 files)
+[x] [M1-06] hal/Freedesktop/Shell/ <- SurfaceCoordinateService.vala (1 file)
+[x] [M1-07] hal/Linux/SysFs/ <- BrightnessControl.vala (1 file)
+[x] [M1-08] vapi/{core,freedesktop}/ <- compat.vapi, config.vapi, wlr-bridge.vapi
+            (3 files; Unix `unistd.h`/`prctl.h` purge from `compat.vapi` in [M3-25])
+[x] [M1-09] BuildBin.sh & po/generate_translations.py wired to `hal/` & `vapi/*`;
+            verified `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings)
+
+================================================================================
+SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
+            Northbound Translators (`hal/Interfaces/`):
+              Hal.vala, PlatformCapabilities.vala, IDockShell.vala,
+              IWindowBackend.vala, IThumbnailProvider.vala, WindowInfo.vala
+            Southbound Drivers (`hal/Freedesktop/`):
+              FreedesktopHalBootstrap.vala, Shell/LayerShellDockShell.vala,
+              KWin/*, Mutter/*, Wlroots/*
+================================================================================
+
+--- 2A. Create Agnostic Boundary Translators & Purge Move-1 `hal/Interfaces/` Leaks ---
+[ ] [M2-01] `hal/Interfaces/{Hal,PlatformCapabilities,IDockShell,IWindowBackend,IThumbnailProvider}.vala`:
+            Purge `DBusConnection`, `GtkLayerShell`, `XdgSession*`, and `KWin`/`Mutter`/
+            `Labwc` references from `hal/Interfaces/`.
+            TRANSLATOR:
+              - Northbound: `Hal.Capabilities` (`PlatformCapabilities` struct/object:
+                `supports_live_thumbnails`, `supports_panel_struts`,
+                `supports_primary_display`, `supports_hide_mode(HideType)`,
+                `fallback_hide_mode`, `supports_poof_overlay`, `supports_quit_action`,
+                `compositor_support_summary`), `Hal.Shell` (`IDockShell`:
+                `init_dock_surface`, `init_popup_surface(PopupSurfaceKind)`,
+                `set_surface_monitor`, `configure_dock_geometry`,
+                `update_exclusive_zone`, `apply_input_region`, `position_popup_surface`,
+                `get_primary_monitor_geometry`, `get_workarea_for_monitor`,
+                `get_top_panel_floating_offset`, `invalidate_panel_cache`),
+                `Hal.Windows` (`IWindowBackend`: `state_changed`, `bridge_reconnected`,
+                `get_windows()`, `perform_window_action(id, WindowAction)`,
+                `toggle_show_desktop()`, `*_window_intersects(rect)`, `handle_system_resume()`),
+                `Hal.Thumbnails` (`IThumbnailProvider`: `get_cached`, `is_stale`,
+                `request_thumbnail`, `evict`).
+              - Translation: Converts abstract dock surface roles, `Cairo.Region`
+                hit-masks, and window action enums into compositor-specific calls
+                without exposing `DBusConnection` or display-protocol types.
+              - Southbound: `v0.7.2` Freedesktop drivers (`KWin`, `Mutter`, `Wlroots`,
+                `LayerShellDockShell`); `v0.7.3` `Win32Shell`, `Win32Backend`,
+                `Win32ThumbnailProvider`.
+[ ] [M2-02] `hal/Freedesktop/FreedesktopHalBootstrap.vala` +
+            `hal/Freedesktop/Shell/LayerShellDockShell.vala`:
+            Relocate the runtime Wayland compositor probe/router out of
+            `hal/Interfaces/WindowControl.vala` & `WindowCapabilities.vala` into
+            `hal/Freedesktop/`.
+            TRANSLATOR:
+              - Northbound: `Hal.initialize()` invoked once at startup.
+              - Translation: Probes `WAYPLANK_BACKEND`, `zwlr_foreign_toplevel`,
+                `GtkLayerShell.is_supported()`, and `XdgSessionDesktop` inside
+                `hal/Freedesktop/` to bind the matching `IWindowBackend`,
+                `IDockShell`, `IThumbnailProvider`, and `PlatformCapabilities`.
+              - Southbound: Binds `KWin`/`Mutter`/`Labwc` on Linux/BSD; on Windows
+                (`v0.7.3`), `WindowsHalBootstrap.vala` binds `Win32*` drivers at
+                compile time.
+[ ] [M2-03] `hal/Freedesktop/KWin/KWinThumbnailService.vala` (+ `NullThumbnailProvider`):
+            Implement `IThumbnailProvider`.
+            TRANSLATOR:
+              - Northbound: `Hal.Thumbnails.request_thumbnail(win_id, w, h, cb)`.
+              - Translation: Translates `win_id` + target pixel bounds into normalized
+                RGBA `Gdk.Pixbuf` (`alpha = 255` enforced).
+              - Southbound: `v0.7.2` KWin `ScreenShot2` UNIX pipe & Mutter `/dev/shm`
+                capture (no-op fallback on Labwc); `v0.7.3` Win32 `PrintWindow` / `BitBlt`.
+
+--- 2B. Purify All Core UI Windows, Layout & Controller Callers (`13` Files) ---
+[ ] [M2-04] `lib/Widgets/DockWindow.vala` (L84-105, L151-242, L272-359, L920,
+            L1127-1143, L1511, L1521):
+            Replace all `GtkLayerShell.*`, `WindowControl.*`, AND `window.input_shape_combine_region`
+            calls (L1511, L1521).
+            TRANSLATOR:
+              - Northbound: `Hal.Shell.init_dock_surface(this)`,
+                `Hal.Shell.configure_dock_geometry(...)`,
+                `Hal.Shell.update_exclusive_zone(...)`, and
+                `Hal.Shell.apply_input_region(this, region)` (`#34` pass-through!).
+              - Southbound: `GtkLayerShell` + `gdk_window_input_shape_combine_region`
+                on Wayland, `PositionDock` + `affectsStruts` on Mutter,
+                `SHAppBarMessage` + `WS_EX_LAYERED` / `HTTRANSPARENT` on Windows.
+[ ] [M2-05] `lib/Widgets/HoverWindow.vala` (L71-77, L126-142, L172-264):
+            Remove all 39 `GtkLayerShell.*` and `WindowControl.position_hover` /
+            `get_top_panel_floating_offset` calls.
+            TRANSLATOR:
+              - Northbound: `Hal.Shell.init_popup_surface(this, PopupSurfaceKind.TOOLTIP)`
+                & `Hal.Shell.position_popup_surface(this, anchor_rect, pos, ...)`.
+              - Southbound: `GtkLayerShell` (`OVERLAY` margins) on KWin/Labwc,
+                `PositionHover` on Mutter, `SetWindowPos(HWND_TOPMOST)` on Windows.
+[ ] [M2-06] `lib/Widgets/FolderMenuWindow.vala` (L78-84, L500-505, L718, L728,
+            L859, L965-983, L1111-1228):
+            Remove all 39 `GtkLayerShell.*` & `WindowControl.*` calls.
+            TRANSLATOR:
+              - Northbound: `Hal.Shell.init_popup_surface(this, PopupSurfaceKind.FOLDER_MENU)`,
+                `Hal.Shell.position_popup_surface(...)`, and
+                `Hal.Windows.perform_window_action(id, ACTIVATE / CLOSE)`.
+              - Southbound: Same 4-compositor popup & window action drivers.
+[ ] [M2-07] `lib/Widgets/WindowCardsWindow.vala` (L83-89, L249, L353-354,
+            L501-509, L594, L746, L755, L835-952):
+            Remove `GtkLayerShell.*`, `WindowControl.*`, and `KWinThumbnailService.*`.
+            TRANSLATOR:
+              - Northbound: `Hal.Shell` (`PopupSurfaceKind.PREVIEW_CARDS`),
+                `Hal.Thumbnails` (`get_cached`, `is_stale`, `request_thumbnail`),
+                and `Hal.Windows.perform_window_action(...)`.
+              - Southbound: `LayerShellDockShell` + `KWinThumbnailService` on Linux;
+                `Win32Shell` + `Win32ThumbnailProvider` on Windows.
+[ ] [M2-08] `lib/Widgets/PoofWindow.vala` (L73, L189):
+            Remove `SurfaceCoordinateService.*` calls.
+            TRANSLATOR:
+              - Northbound: `Hal.Shell.init_popup_surface(this, PopupSurfaceKind.POOF_ANIMATION)`
+                & `Hal.Shell.place_transient_overlay(this, x, y, w, h, ...)`!
+              - Southbound: VSync 3-beat `SurfaceCoordinateService` on KWin/Mutter
+                (graceful skip on Labwc); `SetWindowPos` layered popup on Windows.
+[ ] [M2-09] `lib/PositionManager.vala` (L60, L77, L154-159, L273-279, L1493):
+            Remove `GtkLayerShell.is_supported()` and `WindowControl.*` monitor/workarea calls.
+            TRANSLATOR:
+              - Northbound: `Hal.Shell.primary_monitor_changed`,
+                `Hal.Shell.get_primary_monitor_geometry(...)`,
+                `Hal.Shell.get_workarea_for_monitor(...)`, and
+                `Hal.Capabilities.uses_shell_anchored_surfaces`.
+              - Southbound: `GtkLayerShell` / `MutterBackend` / `EnumDisplayMonitors`.
+[ ] [M2-10] `lib/HideManager.vala` (L71, L145-146, L172, L277-284, L512-529):
+            Remove `getpid()`, `WindowControl.is_mutter()`, `WindowCapabilities.*`,
+            `environment_is_session_type(WAYLAND)`, and `WindowControl.*_intersects`.
+            TRANSLATOR:
+              - Northbound: `Hal.Capabilities.supports_hide_mode(mode)`,
+                `Hal.Capabilities.fallback_hide_mode`, `Hal.Windows.state_changed`,
+                `Hal.Windows.*_window_intersects(dock_rect)`, and
+                `Hal.Runtime.get_current_pid()` (for L71 `plank_pid`).
+              - Southbound: Compositor intersection caches on Wayland (`KWin`/`Mutter`/
+                `Labwc`) and `DWMWA_EXTENDED_FRAME_BOUNDS` + `IntersectRect` on Windows.
+[ ] [M2-11] `lib/DragManager.vala` (L354, L931, L1671):
+            Replace `GtkLayerShell.is_supported()` and `WindowControl.queue_command`.
+            TRANSLATOR:
+              - Northbound: `Hal.Capabilities.uses_shell_anchored_surfaces` and
+                `Hal.Windows.perform_window_action(id, ACTIVATE)`.
+              - Southbound: Wayland layer-shell vs Mutter/Win32 coordinate DND path.
+[ ] [M2-12] `lib/DockController.vala` (L187, L735, L743):
+            Replace `GtkLayerShell.is_supported()` and `WindowControl.handle_system_resume()`.
+            TRANSLATOR:
+              - Northbound: `Hal.Capabilities.uses_shell_anchored_surfaces` and
+                `Hal.Windows.handle_system_resume()`.
+[ ] [M2-13] `lib/Widgets/PreferencesWindow.vala` (L488-493, L931, L995, L1614,
+            L1693, L1722, L1781, L1795):
+            Remove `WindowControl.is_labwc()` (L490), `" (Requires KWin)"` compositor
+            branching, `primary_monitor_changed`, and `WindowCapabilities.*`.
+            TRANSLATOR:
+              - Northbound: `Hal.Capabilities.supports_hide_mode(mode)`,
+                `Hal.Capabilities.unsupported_hide_mode_hint(mode)`,
+                `Hal.Capabilities.supports_primary_display`, and
+                `Hal.Shell.primary_monitor_changed`.
+              - Southbound: Populated per active compositor (`KWin`/`Mutter`/`Labwc`/`Win32`).
+[ ] [M2-14] `lib/Items/PlankDockItem.vala` (L160) &
+            `lib/Items/PreferencesDockItem.vala` (L184):
+            Replace `environment_is_session_desktop(XdgSessionDesktop.PANTHEON)`.
+            TRANSLATOR:
+              - Northbound: `Hal.Capabilities.supports_quit_action`.
+              - Southbound: `false` only on Pantheon managed session; `true` everywhere else.
+[ ] [M2-15] `lib/Items/ShowDesktopDockItem.vala` (L52),
+            `lib/Items/DefaultApplicationDockItemProvider.vala` (L496, L1560), &
+            `lib/Services/WindowManager.vala` (L44, L46, L52, L151):
+            Replace `WindowControl.queue_command("desktop", "toggle_desktop")`,
+            `has_state()`, `get_windows()`, and `state_changed`.
+            TRANSLATOR:
+              - Northbound: `Hal.Windows.toggle_show_desktop()`,
+                `Hal.Windows.has_state()`, `Hal.Windows.get_windows()`,
+                `Hal.Windows.state_changed`.
+              - Southbound: KWin/Mutter/Labwc bridges on Wayland;
+                `IShellDispatch4::ToggleDesktop()` + `SetWinEventHook` on Windows.
+[ ] [M2-16] Build & 3-Compositor Move 2 Smoke Gate:
+            Run `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings) and
+            verify positioning, struts, tooltips, folder popups, window cards,
+            poof animation, and `#34` click pass-through on KWin, Mutter, and Labwc.
+
+================================================================================
+SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
+            Northbound Translators (`hal/Interfaces/`):
+              IBusBackend.vala (`IDockIpcServer`, `IMediaController`,
+                `INotificationBus`, `IDesktopThemeBus`, `ILauncherBadgeBus`),
+              ISystemTelemetry.vala (`ISessionPowerProvider`, `IBatteryProvider`,
+                `IBrightnessProvider`, `ICpuMemoryProvider`, `INetworkProvider`,
+                `IAudioProvider`, `ITrashProvider`, `IEjectorProvider`,
+                `IScreenshotProvider`),
+              IPlatformRuntime.vala (`DesktopUtilityKind`, `open_uri`, `http_get`,
+                `extract_archive`, `validate_keyfile_isolated`, `set_autostart_enabled`,
+                `parse_command_argv`, process signals/restart/PID)
+================================================================================
+
+--- 3A. Define Bus, Telemetry & Runtime Boundary Translators ---
+[ ] [M3-01] `hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala`:
+            Define 100% OS- and transport-agnostic pure Vala contracts (ZERO `DBus*`,
+            ZERO `GLib.Variant` wire tuples, ZERO `Portal`/`Unity`/`Xdg`/`Posix` names!).
+            TRANSLATOR:
+              - Northbound: Typed Vala structs (`MediaPlayerSnapshot`, `BatteryState`,
+                `NetworkState`, `CpuMemDiskSample`, `RemovableDriveInfo`, `TrashItemInfo`,
+                `LauncherBadgeState`) and typed Vala signals/methods.
+              - Translation: Unpacks D-Bus `Variant` trees / `/proc` / `/sys` on Linux
+                or Win32/COM/WinRT structs on Windows inside southbound drivers BEFORE
+                crossing `hal/Interfaces/`.
+[ ] [M3-02] `hal/Freedesktop/Dbus/DbusBroker.vala`:
+            Single shared Session & System `DBusConnection` pool + `NameOwnerChanged`
+            and `sender <-> unix_pid` cache for all Freedesktop bus drivers.
+[ ] [M3-03] `lib/DBus/{Interfaces,Client}.vala` + `lib/DBusManager.vala` ->
+            `hal/Freedesktop/Dbus/{DockIpcServer,DockIpcClient}.vala`, and purify
+            `lib/DockController.vala` (L53, L110):
+            TRANSLATOR:
+              - Northbound: `IDockIpcServer` (`bind_dock(IDockIpcTarget)`, `dispose()`)
+                & `IDockIpcClient` — `DockController` never references `DBusManager`!
+              - Translation: Translates external RPC requests (`add`, `remove`,
+                `get_count`, `get_persistent_applications`, `get_hover_position`) to
+                pure `IDockIpcTarget` callbacks on `DockController`.
+              - Southbound: `net.launchpad.plank.Items` D-Bus object on Freedesktop;
+                Named Pipe `\\.\pipe\WayPlank_<SID>` RPC on Windows (`v0.7.3`).
+[ ] [M3-04] `lib/Services/Environment.vala` -> `hal/Freedesktop/Xdg/XdgEnvironment.vala`:
+            Move `XdgSessionDesktop` / `XdgSessionType` / `XdgSessionClass` env-var
+            parser completely into `hal/Freedesktop/Xdg/` (zero callers left in `lib/`!).
+[ ] [M3-05] `lib/Services/EnvironmentSettings.vala` (L27-117) &
+            `lib/DockRenderer.vala` (L463):
+            Move `org.gnome.desktop.notifications` & `org.pantheon.desktop.gala.notifications`
+            schema probes into `hal/Freedesktop/Dbus/NotificationDbusService.vala`.
+            TRANSLATOR:
+              - Northbound: `Hal.Bus.Notifications.show_launcher_badges` (`bool` property
+                + notify signal read by `DockRenderer` L463).
+              - Southbound: GNOME/Pantheon GSettings schemas on Freedesktop; Windows
+                Taskbar badge setting (`HKCU\...\Explorer\Advanced\TaskbarBadges`) on Win32.
+[ ] [M3-06] `lib/Services/SystemTheme.vala` (L37-282), `lib/DockRenderer.vala` (L124,152),
+            & `lib/Drawing/Theme.vala` (L193):
+            Extract `org.freedesktop.portal.Settings` (`color-scheme`), `kdeglobals`,
+            `org.kde.kconfig.notify`, and `org.gnome.desktop.interface` into
+            `hal/Freedesktop/Dbus/DesktopThemeDbusService.vala`.
+            TRANSLATOR:
+              - Northbound: `IDesktopThemeBus` (`bool prefer_dark`, `signal color_scheme_changed(bool)`).
+                `SystemTheme` in `lib/Services/` stays a 100% pure GTK luminance +
+                `Hal.Bus.Theme` consumer!
+              - Southbound: Freedesktop Settings Portal / KDE / GNOME on Linux;
+                `WM_SETTINGCHANGE` (`ImmersiveColorSet`) + `AppsUseLightTheme` on Windows.
+[ ] [M3-07] `lib/Services/Unity.vala` (L26-288), `lib/DockController.vala` (L516,532),
+            & `lib/Items/ApplicationDockItemProvider.vala` (L23):
+            Extract `com.canonical.Unity.LauncherEntry` D-Bus ownership and `Variant`
+            `'(sa{sv})'` unpacking into `hal/Freedesktop/Dbus/LauncherEntryDbusService.vala`,
+            replacing `UnityClient` (`Variant`) with pure `ILauncherBadgeClient`.
+            TRANSLATOR:
+              - Northbound: `ILauncherBadgeBus` (`signal badge_updated(LauncherBadgeState)`,
+                `signal sender_vanished(string source_id)`), where `LauncherBadgeState`
+                carries typed `(app_uri, count, count_visible, progress, progress_visible, urgent)`
+                — ZERO `GLib.Variant` in `lib/`!
+              - Southbound: `com.canonical.Unity.LauncherEntry` on Freedesktop;
+                `ITaskbarList3` overlay/progress + UWP Badge notifications on Windows.
+
+--- 3B. Purify All 14 Active Hardware / Bus / CLI Docklets & Dialogs ---
+[ ] [M3-08] `lib/Items/MprisDockItem.vala` (L97-678):
+            Extract all 35 `org.mpris.MediaPlayer2` D-Bus queries/signals/calls.
+            TRANSLATOR:
+              - Northbound: `IMediaController` (`players_changed`, `play_pause`,
+                `next_track`, `previous_track`, `raise_player`, `MediaPlayerSnapshot`).
+              - Southbound: `MprisDbusService.vala` (`NameOwnerChanged` + `PropertiesChanged`)
+                on Freedesktop; `SendInput(VK_MEDIA_*)` + optional WinRT `GSMTC` on Windows.
+[ ] [M3-09] `lib/Items/DoNotDisturbDockItem.vala` (L23-675):
+            Extract `org.freedesktop.Notifications`, GNOME GSettings, and `swaync-client`/
+            `makoctl`/`dunstctl`/`xfconf-query` spawns, plus L672 `launch_desktop_utility`.
+            TRANSLATOR:
+              - Northbound: `INotificationBus` (`dnd_inhibited`, `dnd_state_changed`,
+                `set_dnd_inhibited(bool)`) + `Hal.Runtime.open_system_utility(NOTIFICATION_SETTINGS)`.
+              - Southbound: `NotificationDbusService.vala` on Freedesktop; Focus Assist /
+                `WpnNotifications` + `ms-settings:notifications` on Windows.
+[ ] [M3-10] `lib/Items/SessionDockItem.vala` (L134-565) &
+            `lib/Widgets/SessionWindow.vala` (L140-335):
+            Extract `login1`, `ScreenSaver`, `DisplayManager`, `org.kde.Shutdown`,
+            and `systemctl`/`loginctl`/`gnome-session-quit`/`labwc --exit`/`dm-tool`.
+            TRANSLATOR:
+              - Northbound: `ISessionPowerProvider` (`can_hibernate()`, `can_hybrid_sleep()`,
+                `can_reboot_to_firmware()`, `lock_screen()`, `switch_user()`, `logout()`,
+                `suspend()`, `hibernate()`, `hybrid_sleep()`, `restart()`,
+                `reboot_to_firmware()`, `shutdown()`, `get_session_user_and_host()`).
+              - Southbound: `LinuxSessionPower.vala` (`logind`/DE D-Bus) on Linux;
+                `LockWorkStation`, `WTSDisconnectSession`, `SetSuspendState`,
+                `ExitWindowsEx` on Windows.
+[ ] [M3-11] `lib/Items/BatteryDockItem.vala` (L104-220):
+            Extract `/sys/class/power_supply/*` reader and `kcmshell6`/`gnome-control-center`.
+            TRANSLATOR:
+              - Northbound: `IBatteryProvider` (`BatteryState` struct + `battery_changed`)
+                & `Hal.Runtime.open_system_utility(POWER_SETTINGS)`.
+              - Southbound: `UPower` / `/sys/class/power_supply` on Linux;
+                `GetSystemPowerStatus` + `WM_POWERBROADCAST` + `ms-settings:powersleep` on Windows.
+[ ] [M3-12] `lib/Items/BrightnessDockItem.vala` (L91-196):
+            Decouple from concrete `BrightnessControl` class and `kcmshell6`/`gnome-control-center`.
+            TRANSLATOR:
+              - Northbound: `IBrightnessProvider` (`is_available`, `get_percent`,
+                `set_percent`, `adjust_percent`, `brightness_changed`) &
+                `Hal.Runtime.open_system_utility(DISPLAY_SETTINGS)`.
+              - Southbound: `BrightnessControl` (KWin DRM / GNOME D-Bus / sysfs / DDC-CI)
+                on Linux; `dxva2.dll` `SetMonitorBrightness` + WMI + `ms-settings:display` on Windows.
+[ ] [M3-13] `lib/Items/CpuDockItem.vala` (L109, L148, L173, L238-242):
+            Extract `/proc/stat`, `/proc/meminfo`, `/proc/diskstats` and `xfce4-taskmanager`.
+            TRANSLATOR:
+              - Northbound: `ICpuMemoryProvider` (`sample() -> CpuMemDiskSample`) &
+                `Hal.Runtime.open_system_utility(SYSTEM_MONITOR)`.
+              - Southbound: `LinuxCpuMemDiskTelemetry.vala` (`/proc`) on Linux;
+                `GetSystemTimes` + `GlobalMemoryStatusEx` + `IOCTL_DISK_PERFORMANCE` +
+                `taskmgr.exe` on Windows.
+[ ] [M3-14] `lib/Items/NetworkDockItem.vala` (L114-285, L420-424):
+            Extract `org.freedesktop.NetworkManager` System D-Bus and `kcmshell6`/`gnome-control-center`.
+            TRANSLATOR:
+              - Northbound: `INetworkProvider` (`NetworkState` struct + `network_changed`)
+                & `Hal.Runtime.open_system_utility(NETWORK_SETTINGS)`.
+              - Southbound: `NetworkManagerDbusService.vala` on Linux; `iphlpapi.dll`
+                (`GetAdaptersAddresses`, `NotifyIpInterfaceChange`) + `wlanapi.dll` +
+                `ms-settings:network` on Windows.
+[ ] [M3-15] `lib/Items/VolumeDockItem.vala` (L131-161, L278-330, L377-381):
+            Extract `wpctl` / `pactl` / `amixer` spawns and `kcmshell6`/`gnome-control-center`.
+            TRANSLATOR:
+              - Northbound: `IAudioProvider` (`get_state`, `set_volume_percent`,
+                `set_muted`, `toggle_mute`, `audio_changed`) &
+                `Hal.Runtime.open_system_utility(SOUND_SETTINGS)`.
+              - Southbound: `LinuxAudioTelemetry.vala` (`wpctl`/`pactl`/`amixer`) on Linux;
+                CoreAudio `IAudioEndpointVolume` + `ms-settings:sound` on Windows.
+[ ] [M3-16] `lib/Items/EjectorDockItem.vala` (L27-253):
+            Extract `GLib.VolumeMonitor` (GVFS/UDisks2-dependent!), `/media`/`/run/media`/
+            `/mnt` path checks, `org.freedesktop.Notifications`, and `notify-send`.
+            TRANSLATOR:
+              - Northbound: `IEjectorProvider` (`drives_changed`, `get_removable_drives() ->
+                Gee.List<RemovableDriveInfo>`, `eject_drive(id)`, `eject_all()`) +
+                `Hal.Bus.Notifications.send_toast(...)`.
+              - Southbound: `FreedesktopEjectorProvider.vala` (`VolumeMonitor` + `/media`
+                filter) on Linux; `CM_Request_Device_EjectW` + `IOCTL_STORAGE_EJECT_MEDIA`
+                on Windows.
+[ ] [M3-17] `lib/Items/ScreenshotDockItem.vala` (L51-227):
+            Extract `org.freedesktop.portal.Screenshot`, `spectacle`/`gnome-screenshot`/
+            `grim`+`slurp`/`flameshot`, `Gtk.show_uri_on_window`, and `xdg-open`.
+            TRANSLATOR:
+              - Northbound: `IScreenshotProvider` (`capture_full_screen()`,
+                `capture_interactive_region()`, `open_screenshots_folder()`).
+              - Southbound: `FreedesktopScreenshotProvider.vala` on Linux; Win32 GDI
+                `BitBlt` PNG capture + `ms-screenclip:` on Windows.
+[ ] [M3-18] `lib/Items/TrashDockItem.vala` (L25-437):
+            Extract `trash:///`, `~/.local/share/Trash/{files,info}`, `file.trash()`,
+            `KWinTrashBridge`, `kioclient`/`xdg-open`, and `Gtk.show_uri_on_window`.
+            TRANSLATOR:
+              - Northbound: `ITrashProvider` (`trash_changed`, `get_item_count()`,
+                `list_items() -> Gee.List<TrashItemInfo>`, `move_uri_to_trash(uri)`,
+                `restore_item(id)`, `delete_item_permanently(id)`, `empty_trash()`,
+                `open_trash_ui()`).
+              - Southbound: `FreedesktopTrashProvider.vala` (`trash:///` + XDG Trash +
+                `KWinTrashBridge`) on Linux; `SHQueryRecycleBinW` + `SHEmptyRecycleBinW` +
+                `SHFileOperationW(FOF_ALLOWUNDO)` + `shell:RecycleBinFolder` on Windows.
+[ ] [M3-19] `lib/Items/WeatherDockItem.vala` (L318-500) &
+            `lib/Widgets/WeatherCityDialog.vala` (L285-385):
+            Replace all 6 `curl -s --max-time ...` subprocess calls.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.http_get_sync(url, timeout_sec)`.
+              - Southbound: `UnixHttpAndArchive.vala` (`curl`) on Linux/BSD; native
+                `WinHTTP.dll` (`WinHttpOpen`/`WinHttpSendRequest`) on Windows.
+[ ] [M3-20] `lib/Widgets/WeatherWindow.vala` (L425):
+            Replace `Gtk.show_uri_on_window(this, url, ...)`.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.open_uri(url)`.
+              - Southbound: `AppInfo` / `xdg-open` on Freedesktop; `ShellExecuteExW` on Windows.
+[ ] [M3-21] `lib/Widgets/CalendarWindow.vala` (L41-45):
+            Replace `System.launch_desktop_utility` (`gnome-calendar` / `xfce4-calendar`).
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.open_system_utility(DesktopUtilityKind.CALENDAR)`.
+              - Southbound: DE calendar launcher on Linux; `outlookcal:` / Calendar on Windows.
+[ ] [M3-22] `lib/Services/ThemeManager.vala` (L151-162):
+            Replace `Shell.quote` + `unzip` / `tar -xzf` / `tar -xJf` / `tar -xjf` spawns.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.extract_archive(archive_path, dest_dir)`.
+              - Southbound: `unzip` / `tar` on Linux/BSD; native in-process zlib/ZIP &
+                TAR extractor on Windows.
+
+--- 3C. Purify C Headers, Core VAPI, POSIX Fork/Signals & Process Lifecycle ---
+[ ] [M3-23] `lib/Drawing/Surface.vala` (L531):
+            Replace `Posix.memset(abuffer, 0, sizeof(double) * size)` with 100%
+            portable `GLib.Memory.set(abuffer, 0, sizeof(double) * size)`.
+[ ] [M3-24] `lib/gtk-compat.c` (L32, L44) & `include/config.h` (L41-43):
+            Guard ELF `__attribute__((weak))` probes in `gtk-compat.c` with
+            `#if !defined(_WIN32) && defined(__GNUC__)` (calling GTK3 functions directly
+            in static Win32 builds), and guard Unix `PREFIX`/`DATADIR`/`PKGDATADIR`
+            defaults in `include/config.h` with `#ifndef _WIN32`.
+[ ] [M3-25] `vapi/core/compat.vapi` (L27-36) -> `vapi/freedesktop/unix-compat.vapi`:
+            Remove `<sys/prctl.h>` (`prctl`) and `<unistd.h>` (`setproctitle`, `getpid`)
+            from `vapi/core/compat.vapi` so `vapi/core/` has ZERO Unix C headers!
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.set_process_title(name)` &
+                `Hal.Runtime.get_current_pid()`.
+              - Southbound: `prctl` / `getpid` on Linux; `GetCurrentProcessId()` on Windows.
+[ ] [M3-26] `lib/DockPreferences.vala` (L374-396):
+            Extract `Posix.fork()`, `Posix.waitpid()`, `Posix._exit()`, `Posix.EINTR`
+            in `probe_latch_file_in_subprocess()`.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.validate_keyfile_isolated(path) -> bool`.
+              - Southbound: `fork()` + `KeyFile` child validator on Linux/BSD;
+                `CreateProcessW(..., "--validate-latch")` isolated child on Windows.
+[ ] [M3-27] `lib/DockController.vala` (L250-269, L328, L337, L411) &
+            `lib/Widgets/PreferencesWindow.vala` (L1099-1138, L1801-1802):
+            Extract `~/.config/autostart/wayplank.desktop` (incl. KDE `ScreenShot2`
+            whitelist & `LabwcBackend.sync_autostart`) and `killall -q plank`.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.is_autostart_enabled()`,
+                `Hal.Runtime.set_autostart_enabled(bool)`, and
+                `Hal.Runtime.terminate_legacy_competing_docks()`.
+              - Southbound: `XdgAutostart.vala` + Labwc autostart on Freedesktop;
+                `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (`WayPlank`) on Windows.
+[ ] [M3-28] `src/Main.vala` (L39-46, L110-146, L189-201):
+            Extract `/proc/%d/cmdline`, `Posix.stat`/`getpid`/`getuid`/`kill`, `pidof`,
+            `GTK_USE_PORTAL=0`, and `"GdkWaylandDisplay"` check.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.replace_running_instances(dock_name)`,
+                `Hal.Runtime.prepare_process_environment()`,
+                `Hal.Runtime.verify_supported_display(display, out error_msg)`,
+                `Hal.Runtime.get_system_data_dir()`, `Hal.Runtime.get_self_launcher_id()`.
+              - Southbound: `/proc` + `Posix.kill` + Wayland check on Linux; Named Pipe
+                `--replace` shutdown + Win32 display check + `%LOCALAPPDATA%\WayPlank`
+                schema bootstrap on Windows.
+[ ] [M3-29] `lib/Factories/AbstractMain.vala` (L101-131, L254-262, L346-382, L588-592,
+            L2102, L2119-2261):
+            Extract `GLib.Unix.signal_add` (`SIGINT`/`SIGTERM`/`SIGHUP`/`SIGWINCH`),
+            `/proc/self/exe` live upgrade restart, `Posix.utsname()`/`exit()`, `prctl`/
+            `setproctitle`, `login1` (`PrepareForSleep`, `Unlock`) & `ScreenSaver` D-Bus.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime` (`install_lifecycle_signals`, `os_release_summary`,
+                `reexec_self_on_upgrade`, `exit_immediately`, `open_uri`, `system_resumed`)
+                + `Hal.initialize()` / `Hal.shutdown()`.
+              - Southbound: Unix signals + `/proc/self/exe` + `logind` on Linux;
+                Win32 console/window message handler + `CreateProcessW(GetModuleFileNameW)`
+                + `WM_POWERBROADCAST` / `WTSRegisterSessionNotification` on Windows.
+[ ] [M3-30] Build & Move 3 Smoke Gate:
+            Run `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings) and
+            verify all 16 docklets, system dark/light theme flip, Unity badges,
+            autostart toggle, and clean Quit / `--replace`.
+
+================================================================================
+SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREWALL
+            Northbound Translators (`hal/Interfaces/`):
+              IAppSystem.vala (`AppDescriptor`, `ProcessSnapshot`, `RecentDocInfo`),
+              IAppMenuBus (`IBusBackend.vala`),
+              Cross-OS `Path` & `CommandLineTokenizer` helpers
+            Southbound Drivers (`hal/Freedesktop/Xdg/`, `hal/Linux/ProcFs/`,
+              `hal/Freedesktop/Dbus/AppMenuDbusService.vala`)
+================================================================================
+
+--- 4A. Define `IAppSystem` & `IAppMenuBus` Boundary Translators ---
+[ ] [M4-01] `hal/Interfaces/IAppSystem.vala` (+ `IAppMenuBus` in `IBusBackend.vala`):
+            Define 100% OS-neutral `AppDescriptor` (`uri`, `base_id`, `display_name`,
+            `generic_name`, `comment`, `icon_token`, `exec_command`, `working_dir`,
+            `url_target`, `startup_wm_class_or_aumid`, `sandbox_ids`, `categories`,
+            `mime_types`, `keywords`, `quicklist_actions`, `is_nodisplay`,
+            `is_hidden`, `is_terminal`, `is_terminal_emulator` `#30`, `browser_profile`),
+            `ProcessSnapshot` (`pid`, `uid_matches_self`, `executable_comm`,
+            `full_cmdline`, `cmdline_argv`, `working_dir`, `env_appimage`,
+            `env_wineprefix`, `child_cmdlines`, `open_fd_targets`), and `RecentDocInfo`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps` (`load_launcher`, `discover_launcher_dirs`,
+                `is_launcher_uri`, `is_self_launcher`, `launcher_exists`,
+                `monitor_launcher`, `launch_app`, `launch_action`, `launch_command`,
+                `get_default_app_for_role(DefaultAppRole)`, `inspect_process(pid)`,
+                `scan_user_processes()`, `synthesize_fallback_launcher(...)`,
+                `find_installed_browser_binary(family)`, `get_recent_documents()`),
+                and `Hal.Bus.AppMenu` (`menu_profile_discovered`, `query_browser_profile`).
+              - Southbound: `XdgAppSystem` (`.desktop`) + `LinuxProcessInspector` (`/proc`)
+                + `AppMenuDbusService` (`dbusmenu` `id=61`) on Linux; `Win32AppSystem`
+                (`.lnk` `IShellLinkW`, UWP `AUMID`, PEB/Win32 process, Recent `.lnk`)
+                + `Win32AppMenuBus` on Windows (`v0.7.3`).
+[ ] [M4-02] `hal/Freedesktop/Xdg/XdgAppSystem.vala` +
+            `hal/Linux/ProcFs/LinuxProcessInspector.vala` +
+            `hal/Freedesktop/Dbus/AppMenuDbusService.vala`:
+            Implement full Freedesktop/Linux southbound drivers behind `IAppSystem`
+            and `IAppMenuBus` (including cross-OS `parse_command_argv` preserving `\`
+            on Windows while supporting POSIX shell quoting on Freedesktop).
+
+--- 4B. Purify Identity Engine, Launchers, Paths & Cross-OS URI/Path Checks ---
+[ ] [M4-03] `lib/Services/ApplicationIdentity.vala` (L60, L107-143, L406, L754-759,
+            L1120, L1863-1867, L2010, L2114, L2309-2312, L2596-3015, L3116-3124,
+            L3378, L3543, plus L133,468,555,982,1022 `has_prefix("/")`):
+            Replace `/proc/<pid>/*`, `Posix.realpath`/`stat`, `.desktop` `KeyFile` I/O,
+            `com.canonical.dbusmenu` (`id=61`), `Shell.parse_argv` (`\` trap!), and
+            Unix `has_prefix("/")` checks.
+            TRANSLATOR:
+              - Northbound: Consumes pure `AppDescriptor`, `ProcessSnapshot`,
+                `Hal.Bus.AppMenu`, `Hal.Runtime.parse_command_argv()`, and
+                `Path.is_absolute()`. The 6-Layer mathematical solver $S(I, W) \in [0..124]$
+                remains 100% pure portable Core!
+[ ] [M4-04] `lib/Services/ApplicationDiscovery.vala` (L89, L223, L252-342, L502,
+            L568-593, L646, L697, L857-902, L949-1003, L1050, L1358-1542):
+            Replace `WindowControl.*`, `/proc/<pid>/*`, `Shell.parse_argv`/`quote`,
+            hardcoded `/usr/bin/google-chrome-stable` & `/opt/google/chrome/google-chrome`,
+            and `wayplank-app-*.desktop` writers.
+            TRANSLATOR:
+              - Northbound: `Hal.Windows`, `Hal.Apps.inspect_process()`,
+                `Hal.Apps.find_installed_browser_binary()`, and
+                `Hal.Apps.synthesize_fallback_launcher()`.
+[ ] [M4-05] `lib/Services/Matcher.vala` (L66-132, L251, L287-302, L345):
+            Replace `WindowControl.*`, `/proc` scan, `Posix.getuid`/`stat`,
+            `Shell.parse_argv`, and `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Windows`, `Hal.Apps.scan_user_processes()`,
+                `Hal.Runtime.parse_command_argv()`, and `Path.is_absolute()`.
+[ ] [M4-06] `lib/Services/System.vala` (L38-459):
+            Convert `System` into a 100% pure Core facade delegating URI opening,
+            launcher execution, mount lookup, and utility opening to `Hal.Apps`,
+            `Hal.Telemetry.Ejector`, and `Hal.Runtime` (zero `DesktopAppInfo`,
+            zero `VolumeMonitor`, zero `xdg-open`, zero `XdgSessionDesktop`).
+[ ] [M4-07] `lib/Services/RecentFilesService.vala` (L72, L95-126, L161-209, L293-298):
+            Replace `DesktopAppInfo`, `Gtk.RecentManager`, `Shell.parse_argv`, and
+            `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.load_launcher()`, `Hal.Apps.get_recent_documents()`,
+                `Hal.Apps.launch_app()`, `Hal.Runtime.parse_command_argv()`, `Path.is_absolute()`.
+              - Southbound: `Gtk.RecentManager` (`recently-used.xbel`) on Freedesktop;
+                `%APPDATA%\Microsoft\Windows\Recent\*.lnk` (`IShellLinkW`) on Windows.
+[ ] [M4-08] `lib/Services/Paths.vala` (L131-133) & `lib/Services/Utils.vala` (L44-46):
+            Move `/var/lib/snapd/desktop`, `/var/lib/flatpak/exports/share`,
+            `Build.DATADIR + "/glib-2.0/schemas"`, and `/usr/{local/,}share/glib-2.0/schemas`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.get_extra_data_dirs()` &
+                `Hal.Runtime.get_extra_schema_dirs()`.
+[ ] [M4-09] `lib/Factories/ItemFactory.vala` (L30-82, L162, L328-520, L707-722):
+            Move Linux `.desktop` candidate ID tables, `DesktopAppInfo`, `AppInfo.*`,
+            and L713 `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.get_default_app_for_role(FILE_MANAGER / BROWSER /
+                TERMINAL / TEXT_EDITOR)`, `Hal.Apps.discover_default_seed_apps()`,
+                `Hal.Apps.resolve_launcher_uri()`, and `Path.is_absolute()`.
+[ ] [M4-10] `lib/Items/ApplicationDockItem.vala` (L100-143, L258-385, L483, L518,
+            L559, L580, L646, L725, L903):
+            Replace `WindowControl.*`, `DesktopAppInfo`, `AppInfo.create_from_commandline`,
+            and L559/580 `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Windows.perform_window_action(...)`,
+                `Hal.Apps.load_launcher()`, `Hal.Apps.launch_action()`,
+                `Hal.Apps.launch_command()`, and `Path.is_absolute()`.
+[ ] [M4-11] `lib/Items/ApplicationDockItemProvider.vala` (L78, L202-242):
+            Replace `WindowControl.get_windows()`, `Posix.getpid()`, and hardcoded
+            `"wayplank.desktop"` / `".desktop"` checks.
+            TRANSLATOR:
+              - Northbound: `Hal.Windows.get_windows()`, `Hal.Runtime.get_current_pid()`,
+                `Hal.Apps.is_self_launcher()`, `Hal.Apps.strip_launcher_extension()`.
+[ ] [M4-12] `lib/Items/DockItemProvider.vala` (L49-50, L57-62):
+            Replace `Posix.realpath`, `.desktop` suffix check, and `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Runtime.canonicalize_path()`,
+                `Hal.Apps.is_launcher_uri()`, and `Path.is_absolute()`.
+[ ] [M4-13] `lib/Items/DockItem.vala` (L508), `lib/Items/DockItemPreferences.vala` (L83),
+            & `lib/Services/AppUsageService.vala` (L131):
+            Purify launcher URI existence/monitoring and replace Unix `has_prefix("/")`
+            with `Path.is_absolute()`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.launcher_exists(uri)` / `monitor_launcher(uri)`
+                (supports both `file://` `.desktop`/`.lnk` and Windows `aumid://` Store
+                apps!) + `Path.is_absolute()`.
+[ ] [M4-14] `lib/Items/FileDockItem.vala` (L150, L265, L277, L452, L563-572, L592, L769):
+            Replace `DesktopAppInfo`, `.desktop` checks, and `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.is_launcher_uri()`, `Hal.Apps.load_launcher()`,
+                and `Path.is_absolute()`.
+[ ] [M4-15] `lib/DragManager.vala` (L378-439, L707):
+            Replace `DesktopAppInfo`, `.desktop` checks, `AppInfo.launch_default_for_uri`,
+            and `has_prefix("/")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.resolve_launcher_uri()`, `Hal.Runtime.open_uri()`,
+                and `Path.is_absolute()`.
+[ ] [M4-16] `lib/Widgets/FolderMenuWindow.vala` (L678, L800, L1013, L1023) &
+            `lib/Widgets/DockWindow.vala` (L1351):
+            Replace `DesktopAppInfo`, `AppInfo.create_from_commandline`, and
+            `AppInfo.get_default_for_type("text/plain")`.
+            TRANSLATOR:
+              - Northbound: `Hal.Apps.is_launcher_uri()`, `Hal.Apps.load_launcher()`,
+                `Hal.Apps.launch_command()`, `Hal.Apps.get_default_app_for_role(TEXT_EDITOR)`.
+[ ] [M4-17] `lib/Widgets/IconChooserDialog.vala` (L231, L507-511) &
+            `lib/Drawing/DrawingService.vala` (L81, L242-245):
+            Replace hardcoded `/var/lib/flatpak/...`, `/var/lib/snapd/...`, `/usr/...`
+            with `Hal.Apps.discover_launcher_dirs()`, and replace `has_prefix("/")` /
+            `has_prefix("~/")` with `Path.is_absolute()` + `Environment.get_home_dir()`.
+
+--- 4C. Enable Automated HAL Purity Firewall & Qualify `FAT 0.7.2` ---
+[ ] [M4-18] `BuildBin.sh` — Enable Mandatory Pre-Compile HAL Purity Firewall on
+            BOTH `src/ + lib/` AND `hal/Interfaces/ + vapi/core/`:
+            Fail build immediately if `grep -rnE` finds ANY forbidden symbol:
+              1) Inside `src/`, `lib/`, `hal/Interfaces/`, or `vapi/core/`:
+                 `GtkLayerShell|GdkWayland|GdkX11|GdkWin32|Posix\.|GLib\.Unix|`
+                 `UnixFDList|UnixInputStream|sys/prctl\.h|unistd\.h|DesktopAppInfo|`
+                 `GDesktopAppInfo|VolumeMonitor|RecentManager|show_uri|\[DBus|`
+                 `DBusConnection|DBusProxy|DBusManager|DBusClient|BusType\.|`
+                 `Bus\.(get|own_name|watch_name)|UnityClient|IPortalThemeBus|`
+                 `/proc/|/sys/|/dev/i2c|trash://|WindowControl|WindowCapabilities|`
+                 `KWin|MutterBackend|LabwcBackend|WlrBridge|SurfaceCoordinateService|`
+                 `BrightnessControl|XdgSession|environment_is_session_|Shell\.parse_argv|`
+                 `has_prefix\s*\(\s*"/"|Win32|HWND`
+[ ] [M4-19] Run Identity Engine Automated 65,025-Case Regression Matrix + Full
+            3-Compositor ISA-88 `FAT 0.7.2` Qualification across KDE Plasma 6
+            (KWin), GNOME Shell (Mutter), and Labwc (`0 [ko]`), delete this
+            temporary `.txt` file, and freeze `hal/Interfaces/` for `v0.7.3`.
+
+================================================================================
+SECTION 5 — VERIFIED BUCKET A: 28 FILES 100.0% PURE PORTABLE CORE TODAY
+            (Zero direct or indirect OS/Compositor/Bus/Path/URI couplings!)
+================================================================================
+  01. [PURE-CORE] lib/gtk-compat.h
+  02. [PURE-CORE] lib/InternalConsts.vala
+  03. [PURE-CORE] lib/InternalQuarks.vala
+  04. [PURE-CORE] lib/Drawing/Color.vala
+  05. [PURE-CORE] lib/Drawing/DockTheme.vala
+  06. [PURE-CORE] lib/Drawing/Easing.vala
+  07. [PURE-CORE] lib/Drawing/Renderer.vala
+  08. [PURE-CORE] lib/Drawing/SurfaceCache.vala
+  09. [PURE-CORE] lib/Factories/Factory.vala
+  10. [PURE-CORE] lib/Items/ClockDockItem.vala
+  11. [PURE-CORE] lib/Items/DigitalClockDockItem.vala
+  12. [PURE-CORE] lib/Items/DockContainer.vala
+  13. [PURE-CORE] lib/Items/DockElement.vala
+  14. [PURE-CORE] lib/Items/DockItemDrawValue.vala
+  15. [PURE-CORE] lib/Items/Enums.vala
+  16. [PURE-CORE] lib/Items/PinnedExpanderDockItem.vala
+  17. [PURE-CORE] lib/Items/PlaceholderDockItem.vala
+  18. [PURE-CORE] lib/Items/SeparatorDockItem.vala
+  19. [PURE-CORE] lib/Items/TransientDockItem.vala
+  20. [PURE-CORE] lib/Services/Logger.vala
+  21. [PURE-CORE] lib/Services/Preferences.vala
+  22. [PURE-CORE] lib/Services/Settings.vala
+  23. [PURE-CORE] lib/Services/Worker.vala
+  24. [PURE-CORE] lib/Widgets/CompositedWindow.vala
+  25. [PURE-CORE] lib/Widgets/FirstRunWindow.vala
+  26. [PURE-CORE] lib/Widgets/HelpWindow.vala
+  27. [PURE-CORE] lib/Widgets/TitledSeparatorMenuItem.vala
+  28. [PURE-CORE] vapi/core/config.vapi (plus `hal/Interfaces/WindowInfo.vala` DTO)
+================================================================================

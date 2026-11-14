@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.1.2\n"
+"Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-14 09:17+0100\n"
-"PO-Revision-Date: 2026-11-14 09:17+0100\n"
+"POT-Creation-Date: 2026-11-14 15:42+0100\n"
+"PO-Revision-Date: 2026-11-14 15:42+0100\n"
 "Last-Translator: 史有虎 (IFtiger-hu) <2212363803@qq.com>\n"
 "Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
 "Language: zh_CN\n"

@@ -1529,18 +1529,99 @@ namespace Plank
 		private static bool is_chromium_browser_binary (string exe_name)
 		{
 			var n = normalize (exe_name);
-			return n == "google-chrome" || n == "google-chrome-stable" || n == "google-chrome-beta" || n == "google-chrome-unstable" ||
+			return n == "google-chrome" || n == "google-chrome-stable" || n == "google-chrome-beta" ||
+			       n == "google-chrome-unstable" || n == "google-chrome-dev" || n == "google-chrome-canary" ||
+			       n == "com.google.chrome" || n == "com.google.chrome.dev" ||
 			       n == "chrome" || n == "chromium" || n == "chromium-browser" ||
+			       n == "org.chromium.chromium" || n == "io.github.ungoogled_software.ungoogled_chromium" ||
 			       n == "brave" || n == "brave-browser" || n == "brave-browser-stable" ||
-			       n == "microsoft-edge" || n == "microsoft-edge-stable" || n == "msedge" ||
-			       n == "vivaldi" || n == "vivaldi-stable" || n == "opera";
+			       n == "brave-browser-beta" || n == "brave-browser-dev" || n == "brave-browser-nightly" ||
+			       n == "com.brave.browser" || n == "com.brave.browser.beta" || n == "com.brave.browser.nightly" ||
+			       n == "microsoft-edge" || n == "microsoft-edge-stable" || n == "microsoft-edge-beta" ||
+			       n == "microsoft-edge-dev" || n == "msedge" || n == "com.microsoft.edge" ||
+			       n == "vivaldi" || n == "vivaldi-stable" || n == "vivaldi-snapshot" || n == "com.vivaldi.vivaldi" ||
+			       n == "opera" || n == "com.opera.opera";
 		}
 
-		private static bool is_browser_binary (string exe_name)
+		public static bool is_browser_binary (string exe_name)
 		{
 			var n = normalize (exe_name);
 			return is_chromium_browser_binary (n) ||
-			       n == "firefox" || n == "firefox-esr" || n == "firefox-bin" || n == "librewolf" || n == "zen" || n == "zen-bin";
+			       n == "firefox" || n == "firefox-esr" || n == "firefox-bin" || n == "org.mozilla.firefox" ||
+			       n == "librewolf" || n == "io.gitlab.librewolf-community" ||
+			       n == "zen" || n == "zen-bin" || n == "app.zen_browser.zen" ||
+			       n == "mullvad-browser" || n == "net.mullvad.mullvadbrowser";
+		}
+
+		public static string get_browser_family_for_token (string raw_token)
+		{
+			var n = normalize (raw_token);
+			if (n == "")
+				return "";
+			if (n == "chrome" || n.has_prefix ("google-chrome") || n.has_prefix ("com.google.chrome"))
+				return "google-chrome";
+			if (n == "chromium" || n == "chromium-browser" || n.has_prefix ("org.chromium.chromium") ||
+			    n == "io.github.ungoogled_software.ungoogled_chromium")
+				return "chromium";
+			if (n == "brave" || n.has_prefix ("brave-browser") || n.has_prefix ("com.brave.browser"))
+				return "brave";
+			if (n == "msedge" || n.has_prefix ("microsoft-edge") || n.has_prefix ("com.microsoft.edge"))
+				return "edge";
+			if (n.has_prefix ("vivaldi") || n.has_prefix ("com.vivaldi."))
+				return "vivaldi";
+			if (n == "opera" || n.has_prefix ("com.opera."))
+				return "opera";
+			if (n == "firefox" || n == "firefox-esr" || n == "firefox-bin" || n.has_prefix ("org.mozilla.firefox"))
+				return "firefox";
+			if (n == "librewolf" || n.has_prefix ("io.gitlab.librewolf"))
+				return "librewolf";
+			if (n == "zen" || n == "zen-bin" || n.has_prefix ("app.zen_browser."))
+				return "zen";
+			if (n == "mullvad-browser" || n.has_prefix ("net.mullvad."))
+				return "mullvad";
+			return "";
+		}
+
+		public static string get_window_browser_family (WindowInfo window)
+		{
+			var win_ids = new string?[] {
+				window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName, window.Executable
+			};
+			foreach (var wid in win_ids) {
+				if (wid == null || wid == "")
+					continue;
+				var fam = get_browser_family_for_token (wid);
+				if (fam != "")
+					return fam;
+			}
+			if (window.Caption != "") {
+				var lower = window.Caption.down ().strip ();
+				if (lower.has_suffix (" - google chrome") || lower.has_suffix (" — google chrome") ||
+				    lower.contains (" - google chrome - ") || lower.contains (" - google chrome (") || lower == "google chrome")
+					return "google-chrome";
+				if (lower.has_suffix (" - brave") || lower.has_suffix (" — brave") ||
+				    lower.has_suffix (" - brave browser") || lower.has_suffix (" — brave browser") || lower == "brave")
+					return "brave";
+				if (lower.has_suffix (" - chromium") || lower.has_suffix (" — chromium") || lower == "chromium")
+					return "chromium";
+				if (lower.has_suffix (" - microsoft edge") || lower.has_suffix (" - microsoft​ edge") || lower == "microsoft edge")
+					return "edge";
+				if (lower.has_suffix (" - vivaldi") || lower == "vivaldi")
+					return "vivaldi";
+				if (lower.has_suffix (" - opera") || lower == "opera")
+					return "opera";
+				if (lower.has_suffix (" - mozilla firefox") || lower.has_suffix (" — mozilla firefox") ||
+				    lower.has_suffix (" - firefox") || lower == "mozilla firefox" || lower == "firefox")
+					return "firefox";
+			}
+			return "";
+		}
+
+		public static bool is_google_chrome_window (WindowInfo window)
+		{
+			return !has_explicit_webapp_window_id (window) &&
+			       is_plain_browser_window (window) &&
+			       get_window_browser_family (window) == "google-chrome";
 		}
 
 		private static bool is_generic_runtime_binary (string exe_name)
@@ -1614,6 +1695,10 @@ namespace Plank
 			       lower_caption.has_suffix (" — brave") ||
 			       lower_caption.contains (" - brave - ") ||
 			       lower_caption.contains (" - brave (") ||
+			       lower_caption.has_suffix (" - brave browser") ||
+			       lower_caption.has_suffix (" — brave browser") ||
+			       lower_caption.contains (" - brave browser - ") ||
+			       lower_caption.contains (" - brave browser (") ||
 			       lower_caption.has_suffix (" - microsoft\u200b edge") ||
 			       lower_caption.has_suffix (" - microsoft edge") ||
 			       lower_caption.contains (" - microsoft edge - ") ||
@@ -2077,6 +2162,42 @@ namespace Plank
 			       argument_tokens.size > 0 || required_browser_args.size > 0 || required_mod_tokens.size > 0 || requires_incognito;
 		}
 
+		public string get_browser_family ()
+		{
+			foreach (var exe in executable_tokens) {
+				var fam = get_browser_family_for_token (exe);
+				if (fam != "")
+					return fam;
+			}
+			foreach (var sw in startup_wm_classes) {
+				var fam = get_browser_family_for_token (sw);
+				if (fam != "")
+					return fam;
+			}
+			foreach (var pt in primary_tokens) {
+				var fam = get_browser_family_for_token (pt);
+				if (fam != "")
+					return fam;
+			}
+			foreach (var tok in tokens) {
+				var fam = get_browser_family_for_token (tok);
+				if (fam != "")
+					return fam;
+			}
+			return "";
+		}
+
+		public bool shares_browser_family_with (ApplicationIdentity other)
+		{
+			if (this == other)
+				return true;
+			var fa = this.get_browser_family ();
+			var fb = other.get_browser_family ();
+			if (fa != "" && fb != "")
+				return fa == fb;
+			return this.shares_application_with (other);
+		}
+
 		public bool shares_application_with (ApplicationIdentity other)
 		{
 			if (this == other)
@@ -2302,14 +2423,7 @@ namespace Plank
 			string cfg = GLib.Environment.get_user_config_dir ();
 			if (cfg == "")
 				return;
-			string[] rel_paths = {
-				"google-chrome/Local State",
-				"chromium/Local State",
-				"BraveSoftware/Brave-Browser/Local State",
-				"microsoft-edge/Local State"
-			};
-			foreach (unowned string rel in rel_paths)
-				parse_local_state_file (GLib.Path.build_filename (cfg, rel));
+			parse_local_state_file (GLib.Path.build_filename (cfg, "google-chrome/Local State"));
 		}
 
 		private static string get_fallback_default_profile ()
@@ -3071,7 +3185,7 @@ namespace Plank
 					window_browser_profiles.set (w.Id, "__webapp__");
 					continue;
 				}
-				if (!is_plain_browser_window (w))
+				if (!is_google_chrome_window (w))
 					continue;
 				ever_seen_browser_pids.add (w.Pid);
 				if (!open_browser_window_order.contains (w.Id))
@@ -3153,7 +3267,7 @@ namespace Plank
 				get_locked_window_launcher_uri (window);
 				return;
 			}
-			if (!is_plain_browser_window (window)) {
+			if (!is_google_chrome_window (window)) {
 				get_locked_window_launcher_uri (window);
 				return;
 			}
@@ -3333,7 +3447,7 @@ namespace Plank
 				if (can_lock)
 					window_locked_launcher_uris.set (window.Id, uri);
 
-				string? prof = get_window_browser_profile (window);
+				string? prof = is_google_chrome_window (window) ? get_window_browser_profile (window) : "";
 				if (prof != null && prof != "") {
 					string? disp = format_chrome_profile_identity_name (prof);
 					if (disp != null && disp != "")
@@ -3352,7 +3466,7 @@ namespace Plank
 				if (cached_disp != null && cached_disp != "")
 					return cached_disp;
 			}
-			string? prof = get_window_browser_profile (window);
+			string? prof = is_google_chrome_window (window) ? get_window_browser_profile (window) : "";
 			if (prof != null && prof != "") {
 				string? disp = format_chrome_profile_identity_name (prof);
 				if (disp != null && disp != "" && window.Id != "") {
@@ -3686,7 +3800,20 @@ namespace Plank
 						return 0;
 				}
 
-				if (window.Caption != "") {
+				bool has_plain_wayland_browser_id = false;
+				foreach (var wid in new string?[] { window.DesktopFileName, window.ApplicationId }) {
+					if (wid == null || wid == "")
+						continue;
+					var norm_wid = normalize (wid);
+					if (norm_wid != "" && is_browser_binary (norm_wid)) {
+						has_plain_wayland_browser_id = true;
+						break;
+					}
+				}
+				bool cmd_has_app_flag = window.Cmdline != "" &&
+					(window.Cmdline.down ().contains ("--app=") || window.Cmdline.down ().contains ("--app-id="));
+
+				if (window.Caption != "" && (!has_plain_wayland_browser_id || cmd_has_app_flag)) {
 					var cap_down = window.Caption.down ().strip ();
 					bool browser_matches = false;
 					foreach (var wid in win_ids) {
@@ -3755,6 +3882,8 @@ namespace Plank
 			// or gnome-terminal-server child process), match the dedicated CLI/TUI launcher at Score 118.
 			// Conversely, a non-terminal launcher must NEVER match a terminal window when hosted_tokens does not match!
 			if (!is_terminal_emulator_launcher () && is_terminal_window (window)) {
+				if (!is_terminal_app)
+					return 0;
 				var hosted_tokens = extract_terminal_hosted_tokens (window);
 				if (hosted_tokens.size > 0) {
 					bool cmd_matched = false;

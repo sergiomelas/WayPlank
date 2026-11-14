@@ -834,13 +834,28 @@ namespace Plank
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
 				bool allow_anticipate = controller.prefs.ZoomEnabled && controller.prefs.AnticipateZoom;
 				if (allow_anticipate) {
-					if (is_horizontal_dock ()) {
-						cursor_region.y = 0;
-						cursor_region.height = DockHeight;
-					} else {
-						cursor_region.x = 0;
-						cursor_region.width = DockWidth;
+					int zoom_headroom = int.max (0, ZoomIconSize - IconSize);
+					var anticipate_region = static_dock_region;
+					switch (Position) {
+					default:
+					case Gtk.PositionType.BOTTOM:
+						anticipate_region.y = int.max (0, static_dock_region.y - zoom_headroom);
+						anticipate_region.height = DockHeight - anticipate_region.y;
+						break;
+					case Gtk.PositionType.TOP:
+						anticipate_region.y = 0;
+						anticipate_region.height = int.min (DockHeight, static_dock_region.y + static_dock_region.height + zoom_headroom);
+						break;
+					case Gtk.PositionType.LEFT:
+						anticipate_region.x = 0;
+						anticipate_region.width = int.min (DockWidth, static_dock_region.x + static_dock_region.width + zoom_headroom);
+						break;
+					case Gtk.PositionType.RIGHT:
+						anticipate_region.x = int.max (0, static_dock_region.x - zoom_headroom);
+						anticipate_region.width = DockWidth - anticipate_region.x;
+						break;
 					}
+					cursor_region.union (anticipate_region, out cursor_region);
 				}
 				return cursor_region;
 			}

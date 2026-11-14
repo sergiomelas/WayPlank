@@ -1,46 +1,46 @@
-# WayPlank V0.7.1 (Public Beta 2) Detailed Technical Changelog
+# WayPlank V0.7.1 / V0.7.1.2 (Public Beta 2 & Burn-In Hotfix) Detailed Technical Changelog
 
 Release Series: **V0.7.x Series (The Public Beta Milestone)**  
-Current Milestone: **V0.7.1 (Public Beta 2: First-Run Onboarding Classic vs Explorer, 100% Read-Only Legacy Plank Migration, Pinned Apps Usage-Adaptive Accordion, MONLMIP Rank 1, SR Flip-Flop Reboot Persistence, Browser Auto-Translated User Guide, 6-Layer Application Identity Engine, KDE Plasma Edit Mode Coexistence & Zero-[ko] Remediation)**  
-Release Date: **2026-11-10 (100.0% FAT Qualified — Followed by 1-Week Community Burn-In ~Nov 16–23, 2026 $\longrightarrow$ 1-Week Linux HAL/Bus "Kernel" Freeze in `v0.7.2` ~Nov 23–30, 2026)**  
+Current Milestone: **V0.7.1.2 (Public Beta 2 Hotfix: First-Run Onboarding Classic vs Explorer, 100% Read-Only Legacy Plank Migration, Pinned Apps Usage-Adaptive Accordion, MONLMIP Rank 1, SR Flip-Flop Reboot Persistence, Browser Auto-Translated User Guide, 6-Layer Application Identity Engine, KDE Plasma Edit Mode Coexistence & `v0.7.1.2` Burn-In Remediations `#30`, `#32`–`#35`)**  
+Release Date: **2026-11-10 (`v0.7.1`) / 2026-11-14 (`v0.7.1.2` Hotfix — 100.0% FAT Qualified, Followed by 1-Week Community Burn-In ~Nov 16–23, 2026 $\longrightarrow$ 1-Week Linux HAL/Bus "Kernel" Freeze in `v0.7.2` ~Nov 23–30, 2026)**  
 Maintainer: **Sergio Melas** (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
 Collaborators & Contributors:
 - **史有虎 (IFtiger-hu)** (Collaborator & Simplified Chinese Reviewer, GitHub: [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub))
-- **Renate Schwiedernoch** (German `de` Localization Contributor)
-- **Michailo Buchko** (Ukrainian `uk` Localization Contributor)
-- **@polpodan** (Community Issue Reporter — Issue [#27](https://github.com/sergiomelas/WayPlank/issues/27))
+- **Renate Schwiedernoch** (German `de` Localization Contributor & Issues [#28](https://github.com/sergiomelas/WayPlank/issues/28), [#29](https://github.com/sergiomelas/WayPlank/issues/29))
+- **Michailo Buchko** (Ukrainian `uk` Localization Contributor & Issue [#34](https://github.com/sergiomelas/WayPlank/issues/34))
+- **@polpodan**, **@winteriscariot**, **@tcliuqiang**, **@Play-InTheWay** (Community Issue Reporters — Issues [#27](https://github.com/sergiomelas/WayPlank/issues/27), [#30](https://github.com/sergiomelas/WayPlank/issues/30), [#32](https://github.com/sergiomelas/WayPlank/issues/32), [#33](https://github.com/sergiomelas/WayPlank/issues/33))
 
 ---
 
 ## 1. 📋 Overview & Motivation
 
 Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2026-11-05 FAT 0.7.0.txt`](../FAT/2026-11-05%20FAT%200.7.0.txt) at `359/377` = `95.2% PASS`, with 18 open `[ko]` points transferred to `v0.7.1`)**, **WayPlank `v0.7.1` (Public Beta 2)** delivers a major user-experience and architectural consolidation:
-1. **First-Run Onboarding Popup (`FirstRunWindow` — `WayPlank Classic` vs `WayPlank Explorer`) + 100% Read-Only Legacy Plank Migration (`~/.config/plank` $\rightarrow$ `~/.config/wayplank`, `FAT 1.9` `[  ]`)**:
+1. **First-Run Onboarding Popup (`FirstRunWindow` — `WayPlank Classic` vs `WayPlank Explorer`) + 100% Read-Only Legacy Plank Migration (`~/.config/plank` $\rightarrow$ `~/.config/wayplank`, `FAT 1.9` `[ko->ok]`)**:
    - Copies compatible `.dockitem` launchers, user folders (`FileDockItem`), and supported docklets from `~/.config/plank/<dock>/launchers` into `~/.config/wayplank/<dock>/launchers` in **100% read-only mode** so dual-session X11 Plank configurations are never modified or deleted.
    - Presents `FirstRunWindow` on first launch so users can choose between **🏛️ WayPlank Classic** (Free Mode near classic Plank) and **🚀 WayPlank Explorer** (Categorized mode + 4 Smart Folder Drawers + Docklets Accordion + Pinned Apps Accordion `Auto-Fit Capacity` + Window Preview Cards) without ever deleting existing user items or folders.
-2. **Smart Usage-Adaptive Accordion for Pinned Apps (`PinnedExpanderDockItem`, `AppUsageService`, Issue [#26](https://github.com/sergiomelas/WayPlank/issues/26), `FAT 6.14` `[  ]`)**:
+2. **Smart Usage-Adaptive Accordion for Pinned Apps (`PinnedExpanderDockItem`, `AppUsageService`, Issue [#26](https://github.com/sergiomelas/WayPlank/issues/26), `FAT 6.14` `[ko->ok]`)**:
    - Ports GNOME Shell's `shell-app-usage.c` frecency algorithm (`AppUsageService.vala`, reading GNOME Shell's `~/.local/share/gnome-shell/application_state` XML + runtime focus tracking with a 5s minimum focus threshold ignoring `Alt+Tab`, lazy exponential half-life decay, zero background timers) with **`Off`**, **`Auto-Fit Capacity`**, and **`Top Most Used` (`1..20`)** modes (`PinnedAccordionMode`), a unified **`›|` / `«|`** `PinnedExpanderDockItem` (`0.5` slot width with integrated vertical separator bar and pure manual `Click to Expand/Compress` mode), symmetric 2-phase slot/vertical expand-collapse animation (`PositionManager.get_effective_item_slot()` + `DockRenderer` `allow_animation` on `RemoveTime > 0`, `StructuralPosition`, and rightmost anchor when `DockletsOnRight` is active), per-icon `KeepVisible` override, and a **`Show Icon Tooltips`** switch (`TooltipsEnabled`), while keeping running/urgent apps visible at all times.
-3. **Live Accordions While `Preferences`, `Help`, or `About` Windows Are Open (`FAT 6.14` `[  ]`)**:
+3. **Live Accordions While `Preferences`, `Help`, or `About` Windows Are Open (`FAT 6.14` `[ko->ok]`)**:
    - Removes `PreferencesWindow`, `HelpWindow`, `FirstRunWindow`, and `AboutDialog` from `DockController.is_interaction_active ()` so both the Docklets Accordion and Pinned Apps Accordion expand and collapse live on the dock while the user adjusts settings in `Preferences`.
-4. **MONLMIP Rank 1 (`WayPlank Always Left`), Full Profile & SR Flip-Flop Disk Persistence (`~/.config/wayplank/latch-state.ini`), Startup Validation & Centered `Show Trash` (`FAT 3.10, 7.8, 7.9` `[ok]`, `FAT 7.17` `[ko->ok]`)**:
+4. **MONLMIP Rank 1 (`WayPlank Always Left`), Full Profile & SR Flip-Flop Disk Persistence (`~/.config/wayplank/latch-state.ini`), Startup Validation & Centered `Show Trash` (`FAT 7.8` `[ok]`, `FAT 3.10, 7.9, 7.17` `[ko->ok]`)**:
    - Keeps `WayPlank Always Left` clickable (`sensitive = true`) in both Categorized and Free Mode: toggling it ON while `Categorize Items` is OFF promotes `Categorize Items` ON via a Monotonic Linear Mixed-Integer Program (`MONLMIP` of Rank 1), while toggling `Categorize Items` ON/OFF preserves `WayPlank Always Left`.
    - Persists all **43 `DockPreferences` properties** (`[DockPreferences]`) and **7 `[LatchState]` keys** (the 5 SR Flip-Flop states `ReserveSpace` vs `HideDock`/`IconZoom`, `CategorizeItems`, `AnchorAlwaysLeft` plus the 2 independent accordion latch states `DockletsExpanded` and `PinnedExpanded`) across WayPlank restarts and OS reboots in a single unified `~/.config/wayplank/latch-state.ini`, protected by a fork-isolated syntax probe (`probe_latch_file_in_subprocess`), per-key schema range validation, `.dockitem` corruption quarantine (`ItemFactory.load_elements` + `..` path-traversal rejection), a localized `"Load environment failed"` startup diagnostic dialog (`AbstractMain`), and an 8-scenario interactive test suite (`FAT/Test Files/Environment/Test environments.sh`).
    - Relocates `Show Trash` to the bottom-center of `Preferences -> Docklets` directly beneath the 7×2 docklets grid (`FAT 7.8`).
-5. **Browser Auto-Translation of `wayplank_user_guide.html` (`switch_lang.sh` Compatible + China-Safe Fallback, `FAT 2.6` `[  ]`)**:
+5. **Browser Auto-Translation of `wayplank_user_guide.html` (`switch_lang.sh` Compatible + China-Safe Fallback, `FAT 2.6` `[ok]`)**:
    - Detects the active WayPlank locale (`LANGUAGE` $\rightarrow$ `LC_ALL` $\rightarrow$ `LC_MESSAGES` $\rightarrow$ `LANG` $\rightarrow$ `setlocale`, 100% compatible with `"FAT/Test Files/Localization/switch_lang.sh"` without altering the OS desktop language) and translates `wayplank_user_guide.html` automatically in the browser via `Promise.any` across `translate.googleapis.com` + `api.mymemory.translated.net` + mainland China fallback `res.zvo.cn/translate/translate.js`, with a top-right `#wp-lang-select` switcher and `notranslate` protection on `<pre>`, `<code>`, and `.mermaid`.
 6. **6-Layer Application Identity Engine (`#22` — [`Documentation/APPLICATION_IDENTITY_ENGINE.md`](../Documentation/APPLICATION_IDENTITY_ENGINE.md), `FAT 1.11, 2.12–2.15`)**:
    - Replaces legacy X11 string heuristics with a formal 6-Layer Deterministic Multi-Tier Application Identity Engine (`L1` Wayland Compositor Surface Identity $\rightarrow$ `L2` `/proc/<pid>` Kernel Process Inspection & Ancestor Climb $\rightarrow$ `L3` Container/Sandbox Unwrapping for Flatpak/Snap/AppImage/Firejail $\rightarrow$ `L4` Multi-Runtime Script/Interpreter Unwrapping for Python/Node/Java/.NET/Electron/Wine $\rightarrow$ `L5` Browser Multi-Profile, PWA & Custom Flag Isolation $\rightarrow$ `L6` Deterministic 13-Tier Scoring Matrix + Global Hungarian-Style Optimal Assignment Solver & Dynamic Runtime Re-Evaluation).
 7. **KDE Plasma 6 Edit Mode & Multi-Compositor Show Desktop Coexistence (`#23` — Issue [#27](https://github.com/sergiomelas/WayPlank/issues/27) by `@polpodan`, `FAT 6.1` `[ko->ok]`)**:
    - Subscribes to `org.kde.PlasmaShell.editMode` on D-Bus in `KWinBridge.vala` so entering KDE Plasma 6 Edit Mode lets `showingDesktop=true` pass through undisturbed while temporarily hiding WayPlank via `fullscreen_window_intersects ()`, whereas `Super + D` outside Edit Mode continues to keep WayPlank visible (`showDesktop(false)` + `toggle_desktop ()`); extends the same `Super + D` vs `Main.overview` separation to GNOME Shell (`MutterBackend.vala`).
-8. **Complete Remediation of All `v0.7.0` Audit Issues (`#19`–`#27` $\rightarrow$ `0 [ko]` Open Defects)**:
-   - Remediates and qualifies all 18 `[ko]` compositor test instances transferred from `v0.7.0` (`#20`–`#23`, verified `[ko->ok]` in `FAT 0.7.1`) alongside `FAT 6.1` (`1 [ko->ok]` KDE #27) and `FAT 7.17` (`3 [ko->ok]`), `522/522` in-RAM localized strings across all 8 languages (`zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk`, `en`), and a post-`91c94e9` stability hardening pass (`S1`–`S11`, including the `SurfaceCache` `GDestroyNotify` closure fix codified as `AI_RULES.md` Rule #14).
-   - Updates [`FAT/2026-11-10 FAT 0.7.1.txt`](../FAT/2026-11-10%20FAT%200.7.1.txt) to **100.0% Multi-Compositor Qualification (`375/375` Applicable Passed: `344 [ok]` Consolidated Baseline + `31 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` Open Defects)**.
+8. **Complete Remediation of All `v0.7.0` Audit Issues & `v0.7.1.2` Burn-In Hotfixes (`#19`–`#30`, `#32`–`#35` $\rightarrow$ `0 [ko]` Open Defects)**:
+   - Remediates and qualifies all 18 `[ko]` compositor test instances transferred from `v0.7.0` (`#20`–`#23`, verified `[ko->ok]` in `FAT 0.7.1`) plus the `v0.7.1.2` burn-in hotfix pass (`#30`, `#32`, `#33`, `#34`, `#35` across `FAT 2.14, 3.10, 5.4, 6.12, 7.17`), `FAT 6.1` (`1 [ko->ok]` KDE #27), `522/522` in-RAM localized strings across all 8 languages (`zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk`, `en`), and the stability/performance passes (`S1`–`S12`, including the `SurfaceCache` `GDestroyNotify` closure fix codified as `AI_RULES.md` Rule #14).
+   - Updates [`FAT/2026-11-10 FAT 0.7.1.txt`](../FAT/2026-11-10%20FAT%200.7.1.txt) to **100.0% Multi-Compositor Qualification (`375/375` Applicable Passed: `336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` Open Defects)**.
 
 ---
 
 ## 2. 🚀 New Features & Architectural Enhancements in V0.7.1 (`#16`, `#19`–`#21`)
 
-### 2.1. First-Run Onboarding Popup (`FirstRunWindow` — `WayPlank Classic` vs `WayPlank Explorer`) & 100% Read-Only `~/.config/plank` Migration (`#20` | `FAT 1.9` `[  ]`)
+### 2.1. First-Run Onboarding Popup (`FirstRunWindow` — `WayPlank Classic` vs `WayPlank Explorer`) & 100% Read-Only `~/.config/plank` Migration (`#20` | `FAT 1.9` `[ko->ok]`)
 - **Files Modified / Created**:
   - `lib/Widgets/FirstRunWindow.vala` (new)
   - `lib/DockController.vala` (`apply_onboarding_profile ()`, `~/.config/wayplank/<dock>/onboarding-done`)
@@ -52,7 +52,7 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
   2. **Zero Deletion of User Items or Folders**: Neither **🏛️ WayPlank Classic** (`CategorizeItems = false`, `PinnedAccordionMode = PINNED_ACCORDION_OFF`, `AccordionDocklets = false`) nor **🚀 WayPlank Explorer** (`CategorizeItems = true`, `PinnedAccordionMode = PINNED_ACCORDION_AUTO_FIT`, `AccordionDocklets = true`, `ShowWindowCards = true`, plus non-destructive seeding of the 4 Smart Folder Drawers via `ensure_default_folders ()`) ever deletes any existing user `.dockitem` launcher or user folder (`FileDockItem`). Switching back to `Classic` only removes unmodified Explorer-seeded `wayplank-folder-{system,office,navigation}.dockitem` wrappers if they still point to `~/.config/wayplank/folders/`.
   3. **Headless / CI & Shutdown Safety**: Setting `WAYPLANK_NO_PROMPT=1`, `CI=1`, or `NONINTERACTIVE=1` bypasses `FirstRunWindow` automatically, and `FirstRunWindow.cancel_without_applying ()` ensures clean shutdowns (`SIGTERM` / `SIGWINCH`) do not prematurely mark `onboarding-done`.
 
-### 2.2. Smart Usage-Adaptive Accordion for Pinned Apps & `Show Icon Tooltips` Switch (`#16` | Issue [#26](https://github.com/sergiomelas/WayPlank/issues/26) | `FAT 6.14` `[  ]`)
+### 2.2. Smart Usage-Adaptive Accordion for Pinned Apps & `Show Icon Tooltips` Switch (`#16` | Issue [#26](https://github.com/sergiomelas/WayPlank/issues/26) | `FAT 6.14` `[ko->ok]`)
 - **Files Modified / Created**:
   - `lib/Services/AppUsageService.vala` (new)
   - `lib/Items/PinnedExpanderDockItem.vala` (new)
@@ -79,7 +79,7 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
   2. **Unified Full-Profile & SR Flip-Flop Reboot Persistence (`~/.config/wayplank/latch-state.ini`) & Startup Validation (`FAT 7.17` `[ko->ok]`)**: `DockPreferences` persists all **43 dock preferences** under `[DockPreferences]` alongside all **7 `[LatchState]` keys** (`HasSavedPreReserveState`, `SavedHideModeBeforeReserve`, `SavedZoomBeforeReserve`, `HasSavedAnchorAlwaysLeft`, `SavedAnchorAlwaysLeft`, `DockletsExpanded`, `PinnedExpanded`) under `[LatchState]` in `~/.config/wayplank/latch-state.ini` via `FileUtils.set_contents` (automatically migrating and removing legacy `<dock>/latch-state.ini`). On startup, `probe_latch_file_in_subprocess ()` validates `KeyFile` syntax inside an isolated child process before parsing, validates every key against schema ranges and path/theme/monitor invariants, quarantines corrupted or path-traversal `.dockitem` files in `ItemFactory.load_elements ()`, displays a centered `"Load environment failed"` dialog listing defaulted settings and discarded `.dockitem` files, and includes an 8-scenario test suite in `FAT/Test Files/Environment/Test environments.sh` (`Corrupted`, `Partial`, `OutOfRange`, `InvalidTypesAndPaths`, `CorruptedDockItems`, `ValidCustomProfile`, `EmptyProfile`, `Restore`).
   3. **Centered `Show Trash` (`FAT 7.8`)**: `Show Trash` is centered directly beneath the 7×2 docklets grid in `Preferences -> Docklets`.
 
-### 2.4. Browser Auto-Translation of `wayplank_user_guide.html` (`switch_lang.sh` Compatible + China-Safe Fallback, `#21` | `FAT 2.6` `[  ]`)
+### 2.4. Browser Auto-Translation of `wayplank_user_guide.html` (`switch_lang.sh` Compatible + China-Safe Fallback, `#21` | `FAT 2.6` `[ok]`)
 - **Files Modified**:
   - `lib/Factories/AbstractMain.vala` (`show_guide ()`)
 - **Permanent Architectural Invariants**:
@@ -93,7 +93,7 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
 1. **`#1` — CLI `-V` Verbose Short Flag Collision (`src/Main.vala` | Issue `#24` part 1 | `FAT 13.8`)**:
    - Removed `|| arg == "-V"` from `src/Main.vala:35` so `-V` routes cleanly to `AbstractMain` `--verbose` while `-v` / `--version` prints the version.
 2. **`#2` — Single-Source-of-Truth Global Constants, `VERSION`, `.dockitem` Metadata & Monolithic `GResource` Stock Themes (Issue `#24` part 2 | `FAT 12.1, 13.8`)**:
-   - Centralized `MIN/MAX/DEFAULT_EFFECT_DURATION = 300/1500/600` (fixing `PoofWindow` `1500 ms` clamp), `ACCORDION_DELAY` bounds, canonical root `VERSION` (`0.7.1`), `DockItemPreferences` (`CustomIcon`, `BrowserProfile`, `KeepVisible`), and embedded all 5 stock `.theme` files in RAM (`GResource`, `350 ms` `DEFAULT_HIDE_TIME`, zero `/usr/share/wayplank/themes/` in `.deb`/`.rpm`).
+   - Centralized `MIN/MAX/DEFAULT_EFFECT_DURATION = 300/1500/600` (fixing `PoofWindow` `1500 ms` clamp), `ACCORDION_DELAY` bounds, canonical root `VERSION` (`0.7.1` / `0.7.1.2`), `DockItemPreferences` (`CustomIcon`, `BrowserProfile`, `KeepVisible`), and embedded all 5 stock `.theme` files in RAM (`GResource`, `350 ms` `DEFAULT_HIDE_TIME`, zero `/usr/share/wayplank/themes/` in `.deb`/`.rpm`).
 3. **`#3` — Accordion Tooltip Arrow Direction under `DockletsOnRight` (`lib/Widgets/DockWindow.vala` | Issue `#21` part 1 | `FAT 5.6`)**:
    - Flipped `arrow_expand` / `arrow_collapse` when `DockletsOnRight` is active.
 4. **`#4` — Diagnostic Inspector Shortcut (`Ctrl + Alt + Shift + Right Click`) + Enhanced Debug Output (`lib/Widgets/DockWindow.vala` | Issue `#21` part 2)**:
@@ -115,25 +115,25 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
 
 ---
 
-## 4. 🟡 Category 2: Core HAL-Consumer Remediations (`#11`–`#14` — `Zero HAL Driver Modification`, Marked `[ko->test]` in `FAT 0.7.1`)
+## 4. 🟡 Category 2: Core HAL-Consumer Remediations (`#11`–`#14` — `Zero HAL Driver Modification`, Qualified `[ko->ok]` in `FAT 0.7.1`)
 
-1. **`#11` — Chrome `.sh` Profile Wrappers, Multi-Profile PWAs & `.dockitem` `BrowserProfile` Scoring (Issue `#20` | `FAT 1.11` `[ko->test]`)**:
+1. **`#11` — Chrome `.sh` Profile Wrappers, Multi-Profile PWAs & `.dockitem` `BrowserProfile` Scoring (Issue `#20` | `FAT 1.11` `[ko->ok]`)**:
    - **Files Modified (`0` HAL Files Touched)**: `lib/Services/ApplicationIdentity.vala`, `lib/Services/ApplicationDiscovery.vala`, `lib/Services/WindowManager.vala`, `lib/Items/ApplicationDockItem.vala`, `lib/Items/DockItemPreferences.vala`.
    - **Invariants**:
      - Extracts `detected_browser_profile` (`--profile-directory=`, `--user-data-dir=`, `-P`, `--profile=`, expanding `$HOME`/`~/` in `.sh` scripts) without losing it when `pwa_id != ""`.
      - Enforces **strict `AND` conjunction** of all differentiating wrapper switches (`--user-agent`, `--incognito`, `--tor`, `--guest`, `--user-data-dir`, `--profile-directory`, `--class`) on specialized browser launchers (`winchrome-syensqo.sh`, `chrome-private.sh`), never matching generic webpage titles (allowing `(Incognito)` suffix for shared-process Chrome incognito windows).
      - Passes `.dockitem` `BrowserProfile` metadata into `match_score ()` (`score = 124` / `118`, `0` on mismatched profile) and auto-populates `Prefs.BrowserProfile` from `identity.detected_browser_profile` when empty.
-2. **`#12` — Labwc Do Not Disturb Toggle & Cross-Desktop Docklet Settings Priority (Issue `#23` | `FAT 6.12, 6.18` `[ko->test]`)**:
+2. **`#12` — Labwc Do Not Disturb Toggle & Cross-Desktop Docklet Settings Priority (Issue `#23` | `FAT 6.12, 6.18` `[ko->ok]`)**:
    - **Files Modified (`0` HAL Files Touched)**: `lib/Services/System.vala`, `lib/Items/DoNotDisturbDockItem.vala`, `lib/Items/BatteryDockItem.vala`, `lib/Items/BrightnessDockItem.vala`, `lib/Items/CpuDockItem.vala`, `lib/Items/NetworkDockItem.vala`, `lib/Items/VolumeDockItem.vala`, `lib/Widgets/CalendarWindow.vala`.
    - **Invariants**:
      - Guards `org.gnome.desktop.notifications` `show-banners` write in `DoNotDisturbDockItem.inhibit ()` / `uninhibit ()` with `environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)` so Labwc reaches `dunstctl set-paused` and `swaync-client` (`FAT 6.18`).
      - Centralizes `System.launch_desktop_utility (kde_cmds, gnome_cmds, generic_cmds)` checking `XDG_CURRENT_DESKTOP` once across all 7 docklets (`FAT 6.12`).
-3. **`#13` — `Shift + Left Click` Window Cycle & Overflow Scroll Exemption (Issue `#21` parts 4 & 5 | `FAT 7.11, 10.4` `[ko->test]`)**:
+3. **`#13` — `Shift + Left Click` Window Cycle & Overflow Scroll Exemption (Issue `#21` parts 4 & 5 | `FAT 7.11, 10.4` `[ko->ok]`)**:
    - **Files Modified (`0` HAL Files Touched)**: `lib/Widgets/DockWindow.vala`, `lib/Items/ApplicationDockItem.vala`.
    - **Invariants**:
      - Gates `window_cards.show_for_item ()` on `!has_ctrl && !has_shift` and handles `Gdk.ModifierType.SHIFT_MASK` in `ApplicationDockItem.on_clicked ()` via `WindowManager.cycle_window (Launcher, true, out uuid)` (`FAT 7.11`).
      - Centralizes `item_captures_scroll (DockItem? item)` returning `true` for `VolumeDockItem`, `BrightnessDockItem`, `MprisDockItem`, and `ApplicationDockItem` with `window_count_for_app (Launcher) > 1` so scrolling over those icons adjusts their parameter instead of scrolling the overflow dock (`FAT 10.4`).
-4. **`#14` — `WindowCardsWindow` Middle-Click to Close Single Window (Issue `#21` part 6 | `FAT 12.4` `[ko->test]`)**:
+4. **`#14` — `WindowCardsWindow` Middle-Click to Close Single Window (Issue `#21` part 6 | `FAT 12.4` `[ko->ok]`)**:
    - **File Modified (`0` HAL Files Touched)**: `lib/Widgets/WindowCardsWindow.vala`.
    - **Invariant**: Shares the single-card close block (`WindowControl.queue_command (win.Id, "close")`, remove `eb`, `close_cards ()` if empty else `update_position ()`) across both `(event.button == Gdk.BUTTON_PRIMARY && is_close_click)` and `event.button == Gdk.BUTTON_MIDDLE`.
 5. **`#22` — 6-Layer Deterministic Application Identity Engine ([`Documentation/APPLICATION_IDENTITY_ENGINE.md`](../Documentation/APPLICATION_IDENTITY_ENGINE.md) | `FAT 1.11, 2.12–2.15`)**:
@@ -144,9 +144,9 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
 
 ---
 
-## 5. 🔴 Category 3: True HAL Modifications (`#15`, `#23` — Marked `[ko->test]` / `[ko->ok]` in `FAT 0.7.1`)
+## 5. 🔴 Category 3: True HAL Modifications (`#15`, `#23` — Qualified `[ko->ok]` in `FAT 0.7.1`)
 
-1. **`#15` — Multi-Compositor HAL Signals & Preview Thumbnail Cache (Issue `#22` | `FAT 2.7, 2.9, 12.6` `[ko->test]`)**:
+1. **`#15` — Multi-Compositor HAL Signals & Preview Thumbnail Cache (Issue `#22` | `FAT 2.7, 2.9, 12.6` `[ko->ok]`)**:
    - **GNOME Mutter (`lib/Services/MutterBackend.vala` — `FAT 2.7`)**:
      - Emits `this._notifyWindowsChanged ()` when normal app windows (`=== 'other'`) fire `window-demands-attention` / `window-marked-urgent` or per-window `notify::demands-attention` / `notify::urgent` in `_connectWindow`.
      - Tracks monotonic `this._minSeq` on `notify::minimized` for `MinimizedSequence` and parses `minimizedSequence` in `MutterBackend.parse_window_infos ()`.
@@ -190,13 +190,20 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
 - **`S11` — 20-Pass CPU, Timer, Subprocess & Compositor-Wakeup Optimization (`ClockDockItem`, `DigitalClockDockItem`, `VolumeDockItem`, `DoNotDisturbDockItem`, `MprisDockItem`, `BatteryDockItem`, `NetworkDockItem`, `CpuDockItem`, `DockItem`, `DockItemProvider`, `ApplicationDiscovery`, `WindowManager`, `SurfaceCache`, `Renderer`, `DockRenderer`, `PositionManager`, `HideManager`, `DockWindow`, `MutterBackend`, `KWinBackend`, `LabwcBackend`, `BrightnessControl`)**:
   - Eliminated 1 Hz `reset_icon_buffer()` full-dock redraws in `ClockDockItem` (only redrawing on minute transition); guarded `DockItem.State` setter; removed duplicate `notify` signal connections and filtered `!IsAttached && RemoveTime == 0` items in `DockItemProvider`; paused periodic polling across all 8 polling docklets while collapsed inside the Accordion (`!IsAttached`) with instant refresh on `notify["IsAttached"]`; cached `wpctl` binary path & `LC_ALL=C` env in `VolumeDockItem`; replaced GNOME `gsettings` subprocess polling with in-process `GLib.Settings` in `DoNotDisturbDockItem`; added `NameOwnerChanged` subscription & identity caching in `MprisDockItem`; cached battery sysfs path and stopped polling on desktops without battery in `BatteryDockItem`; debounced `NetworkDockItem` D-Bus signals; coalesced `Count = 1` + `BadgeText`; eliminated double `WindowManager.refresh_windows()` and unnecessary disk scans in `ApplicationDiscovery`; added geometry-only fast path in `WindowManager`; added exact-match priority + $O(1)$ `scaled_cache` in `SurfaceCache`; bounded `ItemState.URGENT` `Gdk.FrameClock` spin to `GlowTime`; skipped `animated_draw()` when 100% hidden & inactive; added idempotence guard to `update_layer_shell_anchors()`; pooled `DockItemDrawValue` instances and precomputed `item_slots` in `PositionManager`; gated window intersection loops by active `HideMode` in `HideManager`; and added negative `/proc` PID cache TTL on `LabwcBackend` plus `sysfs_monitor` check in `BrightnessControl`.
 
+- **`S12` — `v0.7.1.2` Burn-In Hotfix Pass (Issues `#30`, `#32`, `#33`, `#34`, `#35`)**:
+  - **Issue [#30](https://github.com/sergiomelas/WayPlank/issues/30) (`ApplicationIdentity.vala`, `ApplicationDiscovery.vala` — `FAT 2.14` `[ko->ok]` ×3)**: Added Beta/Dev/Nightly & Flatpak browser IDs, `" - brave browser"` tab suffixes, strict browser-family classification (`get_window_browser_family()` / `is_google_chrome_window()` / `shares_browser_family_with()` isolating Google Chrome `Local State` profiles from Brave, Firefox, Chromium, and Edge), Wayland base browser `app_id` caption guard, and `is_terminal_app` guard for GUI apps spawned from terminals (`kitty` $\rightarrow$ `kate` / `neovide`).
+  - **Issue [#33](https://github.com/sergiomelas/WayPlank/issues/33) (`Utils.vala`, `README.md` — `FAT 7.17` `[ko->ok]` ×3)**: Added `"/usr/local/share/glib-2.0/schemas"` ahead of `"/usr/share/glib-2.0/schemas"` and required `schema.has_key ("effect-duration")` in `Utils.get_schema_source()` so upstream `plank` schemas never shadow WayPlank's 43-key schema, plus Arch/Garuda `dconf` & `sudo pacman -Rns plank` instructions.
+  - **Issue [#35](https://github.com/sergiomelas/WayPlank/issues/35) (`PreferencesDockItem.vala`, `DockWindow.vala` — `FAT 6.12` `[ko->ok]` ×3)**: Extracted `PreferencesDockItem.create_docklets_submenu_item()` and prepended the `_Docklets` checkbox chooser submenu on all docklets and `TrashDockItem` in `SystemMenuAccess == 4`.
+  - **Issue [#34](https://github.com/sergiomelas/WayPlank/issues/34) (`PositionManager.vala` — `FAT 5.4` `[ko->ok]` ×3)**: Clamped `allow_anticipate` perpendicular input-mask expansion strictly to `ZoomIconSize - IconSize`, freeing the upper `UrgentBounceHeight` air-space for 100% click and cursor passthrough across KWin, Mutter, and Labwc.
+  - **Issue [#32](https://github.com/sergiomelas/WayPlank/issues/32) (`MutterBackend.vala`, `Documentation/USER_GUIDE.md` — `FAT 3.10` GNOME `[ko->ok]`)**: Bumped GNOME Shell companion bridge to `version: 5` (`BRIDGE_GEN = "v0712_bridge_2"`), eliminated the `set_reserve_space(false -> true)` double D-Bus call in `notify_monitor_layout_changed()`, anchored `_baseWorkArea()` & `_syncReserveStrut()` strictly to physical `monGeo` + primary `Main.panel.height`, kept `_strutActor` strictly isolated to WayPlank's active monitor across `PositionDock` and cable hotplug/unplug (`monitors-changed` with `_lastDockOnPrimary` affinity & persistent `trackFullscreen: false` chrome updates), added 1-shot `workareas-changed` workarea verification + `_applyDockPosition` re-assertion, and documented `impl-<hash>.js` hot-reloading vs GNOME Shell 45+ loader cache in `USER_GUIDE.md`.
+
 ---
 
-## 7. 🧪 Public Beta 2 Factory Acceptance Testing Status (`FAT/2026-11-10 FAT 0.7.1.txt`)
+## 7. 🧪 Public Beta 2 (`v0.7.1.2`) Factory Acceptance Testing Status (`FAT/2026-11-10 FAT 0.7.1.txt`)
 
-- **377 Total Qualification Test Points Defined — 100.0% Multi-Compositor Qualification (`344 [ok]` Consolidated Baseline, `31 [ko->ok]` Squashed, `0 [ko->test]` Pending, `0 [  ]` Open, `2 [NA]`, `0 [ko]` Open Defects = `375/375` Applicable Passed)**:
-  - **Session 1 (GNOME Shell / Mutter)**: `126` tests | `116 [ok]` | `10 [ko->ok]` (`1.9, 1.11, 2.7, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4`) | `0 [ko->test]` | `0 [  ]` | `0 [NA]` | `0 [ko]` (`100.0% Qualified`)
-  - **Session 2 (KDE Plasma 6 / KWin)**: `126` tests | `115 [ok]` | `11 [ko->ok]` (`1.9, 1.11, 2.9, 6.1, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4, 12.6`) | `0 [ko->test]` | `0 [  ]` | `0 [NA]` | `0 [ko]` (`100.0% Qualified`)
-  - **Session 3 (Labwc / wlroots)**: `125` tests | `113 [ok]` | `10 [ko->ok]` (`1.9, 1.11, 6.12, 6.14, 6.18, 7.9, 7.11, 7.17, 10.4, 12.4`) | `0 [ko->test]` | `0 [  ]` | `2 [NA]` (`2.7, 10.6`) | `0 [ko]` (`100.0% Qualified`)
+- **377 Total Qualification Test Points Defined — 100.0% Multi-Compositor Qualified (`375/375` Applicable Passed: `336 [ok]` Consolidated Baseline, `39 [ko->ok]` Squashed, `0 [ko->test]`, `0 [  ]` Open, `2 [NA]`, `0 [ko]` Open Defects)**:
+  - **Session 1 (GNOME Shell / Mutter)**: `126` tests | `113 [ok]` | `13 [ko->ok]` (`1.9, 1.11, 2.7, 2.14, 3.10, 5.4, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4`) | `0 [ko->test]` | `0 [  ]` | `0 [NA]` | `0 [ko]` (`100.0% Qualified`)
+  - **Session 2 (KDE Plasma 6 / KWin)**: `126` tests | `112 [ok]` | `14 [ko->ok]` (`1.9, 1.11, 2.9, 2.14, 5.4, 6.1, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4, 12.6`) | `0 [ko->test]` | `0 [  ]` | `0 [NA]` | `0 [ko]` (`100.0% Qualified`)
+  - **Session 3 (Labwc / wlroots)**: `125` tests | `111 [ok]` | `12 [ko->ok]` (`1.9, 1.11, 2.14, 5.4, 6.12, 6.14, 6.18, 7.9, 7.11, 7.17, 10.4, 12.4`) | `0 [ko->test]` | `0 [  ]` | `2 [NA]` (`2.7, 10.6`) | `0 [ko]` (`100.0% Qualified`)
 - **Monolithic Embedded Localization (`522 / 522` Strings — 100%)**:
   - All 7 embedded `.mo` catalogs (`zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk`) + `en` native fallback updated to `522 / 522` translated messages (`0 fuzzy, 0 untranslated`).

@@ -187,6 +187,8 @@ SESSION 1: GNOME (Mutter Backend)
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
           'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
           persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
+        - On multi-monitor setups, verify space is reserved strictly on the
+          dock's active monitor and recovers across cable hotplug/unplug.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -802,6 +804,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
           'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
           persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
+        - On multi-monitor setups, verify space is reserved strictly on the
+          dock's active monitor and recovers across cable hotplug/unplug.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -1425,6 +1429,8 @@ SESSION 3: LABWC (wlroots Backend)
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
           'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
           persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
+        - On multi-monitor setups, verify space is reserved strictly on the
+          dock's active monitor and recovers across cable hotplug/unplug.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [  ] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals

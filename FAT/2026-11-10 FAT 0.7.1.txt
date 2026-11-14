@@ -8,16 +8,16 @@ Milestone: V0.7.1 (Public Beta 2: First-Run Onboarding Classic/Explorer, Pinned
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [PASSED - 100% QUALIFIED] | 115 [ok] | 11 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko] (100.0% Qualified)
+      [CONCLUDED - 100% QUALIFIED IN V0.7.1.2] | 112 [ok] | 14 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko] (100.0% Qualified)
   - GNOME (Mutter Backend):
-      [PASSED - 100% QUALIFIED] | 116 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko] (100.0% Qualified)
+      [CONCLUDED - 100% QUALIFIED IN V0.7.1.2] | 113 [ok] | 13 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko] (100.0% Qualified)
   - LABWC (wlroots Backend):
-      [PASSED - 100% QUALIFIED] | 113 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] | 0 [ko] (100.0% Qualified)
+      [CONCLUDED - 100% QUALIFIED IN V0.7.1.2] | 111 [ok] | 12 [ko->ok] | 0 [ko->test] | 0 [  ] | 2 [NA] | 0 [ko] (100.0% Applicable)
   - TOTAL SCOREBOARD:
-      377 Tests Defined | 344 [ok] Consolidated Baseline | 31 [ko->ok] Squashed |
+      377 Tests Defined | 336 [ok] Consolidated Baseline | 39 [ko->ok] Squashed |
       0 [ko->test] Remediations | 0 Pending [  ] |
       2 [NA] Limitations | 0 Open Defects ([ko])
-      QUALIFICATION STATUS: PASSED - 100.0% QUALIFIED FOR V0.7.1 ACROSS ALL 3 COMPOSITORS (375/375 APPLICABLE = 100.0%)
+      QUALIFICATION STATUS: 100.0% MULTI-COMPOSITOR QUALIFIED (375/375 APPLICABLE PASSED)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified in v0.7.0 & graduated to v0.7.1 baseline per Phase B.1)
@@ -29,7 +29,7 @@ Test Status Legend (ISA-88 Qualification Standard):
   - [NA]        : Not Applicable / Deferred (De-scoped from current test cycle)
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN]
+SESSION 1: GNOME (Mutter Backend) - [CONCLUDED - 100% QUALIFIED IN V0.7.1.2 | 113 [ok] | 13 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN]
 ================================================================================
 ================================================================================
 
@@ -171,12 +171,27 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
         (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
         window list remain intact, no JSON parse errors
         or vanished indicators
-   [ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
         - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
           browser profile) alongside native/Flatpak apps: verify each spawns
           its own isolated icon and running count.
         - Verify short app names ('Gram', 'Web') never hijack substring titles
           ('Instagram', 'Open WebUI').
+        - Bug: (Issue #30) (1) ApplicationIdentity.is_chromium_browser_binary()
+          missed brave-browser-beta/dev/nightly and Flatpak browser IDs
+          (causing has_explicit_webapp_window_id() 'brave-' prefix to reject
+          Brave Nightly/Beta on its own launcher) and has_browser_tab_suffix()
+          missed ' - brave browser', letting a YouTube web-app .desktop score
+          118 on caption. (2) Hosted /proc child-token matching (#L3757) lacked
+          an is_terminal_app guard, letting GUI launchers (neovide.desktop)
+          spawned from kitty claim the parent kitty window at Score 118.
+        - Remediation: Added Beta/Dev/Nightly & Flatpak browser IDs, browser
+          family classification (get_window_browser_family /
+          is_google_chrome_window / shares_browser_family_with isolating Chrome
+          Local State profiles from Brave/Firefox/Chromium/Edge), and
+          ' - brave browser' suffixes in ApplicationIdentity.vala &
+          ApplicationDiscovery.vala; guarded caption web-app fallback without
+          --app=; and required is_terminal_app == true for terminal children.
    [ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding Dialog Masking (Issues #14, #16):
         - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
           independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
@@ -208,7 +223,7 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [ok] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
+   [ko->ok] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
         - Toggle 'Reserve Screen Space' ON -> auto-clears 'Hide Dock' and
@@ -216,6 +231,32 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
           'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
           persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
+        - On multi-monitor setups, verify space is reserved strictly on the
+          dock's active monitor and recovers across cable hotplug/unplug.
+        - Bug: (Issue #32 + Multi-Monitor Hotplug Audit, GNOME Mutter only)
+          (1) _baseWorkArea() read ws.get_work_area_for_monitor() (updated
+          asynchronously on BEFORE_REDRAW in gnome-shell layout.js), so
+          notify_monitor_layout_changed() calling set_reserve_space(false -> true)
+          subtracted thickness cumulatively (60 -> 120 -> 180...) plus Ubuntu
+          Dock struts. (2) When _applyDockPosition() ran before BEFORE_REDRAW
+          applied set_builtin_struts, Mutter constraints.c left
+          require_fully_onscreen = TRUE and shoved the dock above its own strut.
+          (3) On multi-monitor cable hotplug/unplug, 'monitors-changed' ran at
+          0ms using pre-hotplug _lastDockGeo before PositionManager's 250ms
+          debounce sent PositionDock(), while PositionDock() never re-synced
+          _strutActor and destroy/recreate with trackFullscreen: true inside
+          uiGroup (no_layout = true) could leave the strut on the wrong monitor
+          or unapplied over maximized windows.
+        - Remediation: Bumped BRIDGE_GEN ("v0712_bridge_2") and metadata.json
+          version: 5 in MutterBackend.vala, anchored _baseWorkArea() and
+          _syncReserveStrut() strictly to physical monGeo + primary
+          Main.panel.height (Rule 5.9), removed the false -> true double D-Bus
+          call in notify_monitor_layout_changed(), synchronized _syncReserveStrut()
+          on every PositionDock() and post-reanchor 'monitors-changed' with
+          primary-display affinity (_lastDockOnPrimary), switched _strutActor to
+          persistent in-place updates (trackFullscreen: false) with explicit
+          _queueUpdateRegions(), and added 1-shot workarea verification plus
+          _applyDockPosition re-assertion on 'workareas-changed'.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [ok] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -232,11 +273,22 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering dock or tooltips never steals active window focus; full
           dock width responds with zero dead zones.
         - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
           above the visible dock pill pass 100% through to underlying windows.
+        - Bug: (Issue #34) With ZoomEnabled && AnticipateZoom ON (default true),
+          PositionManager.get_cursor_region() (#L835-844) expands the layer-shell
+          input mask across the full DockHeight (VisibleDockHeight +
+          UrgentBounceHeight, #L762), where UrgentBounceHeight is 1.0x-1.667x
+          IconSize (80px-106px of empty transparent air above unzoomed icons),
+          swallowing clicks and overriding cursor shapes on underlying windows.
+        - Remediation: Clamped the allow_anticipate perpendicular input-mask
+          expansion in PositionManager.get_cursor_region() strictly to
+          zoom_headroom = int.max(0, ZoomIconSize - IconSize) from
+          static_dock_region (unioned with any active hover_region), freeing
+          the upper UrgentBounceHeight air-space while preserving magnetic zoom.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -323,6 +375,14 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
         REMEDIATED (Issue #23 - Verified Live in v0.7.1): Centralized
           System.launch_desktop_utility() prioritizing native utilities matching
           the active XDG_CURRENT_DESKTOP session.
+        - Bug: (Issue #35) When SystemMenuAccess == 4 ('Dedicated icon on dock', default),
+          right-clicking any docklet other than the WayPlank anchor icon enters
+          else { append_global_preferences_and_quit (menu_items); } in
+          DockWindow.vala#L1234-1236, omitting the '_Docklets' checkbox chooser
+          submenu on individual docklet context menus.
+        - Remediation: Shared PreferencesDockItem.create_docklets_submenu_item(controller)
+          and prepended the '_Docklets' checkbox submenu on all docklets/Trash
+          inside the SystemMenuAccess == 4 branch of DockWindow.show_menu().
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -493,6 +553,15 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
           subprocess fallback, per-key validation, and 'Load environment failed'
           startup popup listing defaulted keys/items.
+        - Bug: (Issue #33) README.md Step 4 installs GSettings schemas into
+          /usr/local/share/glib-2.0/schemas, which Utils.get_schema_source()
+          omitted from candidate_dirs, while legacy upstream plank in
+          /usr/share/glib-2.0/schemas shadowed WayPlank's 43-key schema with
+          ~18 legacy keys (and Arch/Garuda prerequisites omitted dconf).
+        - Remediation: Added /usr/local/share/glib-2.0/schemas ahead of
+          /usr/share/glib-2.0/schemas and required schema.has_key("effect-duration")
+          in Utils.get_schema_source() (Utils.vala); updated README.md Arch/Garuda
+          instructions to install dconf and remove legacy plank.
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
@@ -716,14 +785,14 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED | 116 [ok] | 10 [
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 ================================================================================
-SESSION 1 RESULT: PASSED - 100.0% QUALIFIED FOR V0.7.1 (GNOME / Mutter Backend) - 116 [ok] + 10 [ko->ok] | 0 [ko]
+SESSION 1 RESULT: CONCLUDED - 100% QUALIFIED IN V0.7.1.2 (GNOME / Mutter Backend) - 113 [ok] + 13 [ko->ok] | 0 [ko->test] | 0 [ko]
 ================================================================================
-  * Tests: 126 | Consolidated Baseline: 116 [ok] | Squashed: 10 [ko->ok] (1.9, 1.11, 2.7, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4) | Remediations: 0 [ko->test] | New Features: 0 [  ]
+  * Tests: 126 | Consolidated Baseline: 113 [ok] | Squashed: 13 [ko->ok] (1.9, 1.11, 2.7, 2.14, 3.10, 5.4, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4) | Remediations: 0 [ko->test] | New Features: 0 [  ]
   * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100.0% (126/126 Qualified)
 ================================================================================
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 11 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN]
+SESSION 2: KDE PLASMA (KWin Backend) - [CONCLUDED - 100% QUALIFIED IN V0.7.1.2 | 112 [ok] | 14 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN]
 ================================================================================
 ================================================================================
 
@@ -864,12 +933,27 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 1
         (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
         window list remain intact,
         no JSON parse errors or vanished indicators
-   [ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
         - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
           browser profile) alongside native/Flatpak apps: verify each spawns
           its own isolated icon and running count.
         - Verify short app names ('Gram', 'Web') never hijack substring titles
           ('Instagram', 'Open WebUI').
+        - Bug: (Issue #30) (1) ApplicationIdentity.is_chromium_browser_binary()
+          missed brave-browser-beta/dev/nightly and Flatpak browser IDs
+          (causing has_explicit_webapp_window_id() 'brave-' prefix to reject
+          Brave Nightly/Beta on its own launcher) and has_browser_tab_suffix()
+          missed ' - brave browser', letting a YouTube web-app .desktop score
+          118 on caption. (2) Hosted /proc child-token matching (#L3757) lacked
+          an is_terminal_app guard, letting GUI launchers (neovide.desktop)
+          spawned from kitty claim the parent kitty window at Score 118.
+        - Remediation: Added Beta/Dev/Nightly & Flatpak browser IDs, browser
+          family classification (get_window_browser_family /
+          is_google_chrome_window / shares_browser_family_with isolating Chrome
+          Local State profiles from Brave/Firefox/Chromium/Edge), and
+          ' - brave browser' suffixes in ApplicationIdentity.vala &
+          ApplicationDiscovery.vala; guarded caption web-app fallback without
+          --app=; and required is_terminal_app == true for terminal children.
    [ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding Dialog Masking (Issues #14, #16):
         - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
           independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
@@ -913,6 +997,8 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 1
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
           'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
           persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
+        - On multi-monitor setups, verify space is reserved strictly on the
+          dock's active monitor and recovers across cable hotplug/unplug.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [ok] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -929,11 +1015,22 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 1
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering dock or tooltips never steals active window focus; full
           dock width responds with zero dead zones.
         - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
           above the visible dock pill pass 100% through to underlying windows.
+        - Bug: (Issue #34) With ZoomEnabled && AnticipateZoom ON (default true),
+          PositionManager.get_cursor_region() (#L835-844) expands the layer-shell
+          input mask across the full DockHeight (VisibleDockHeight +
+          UrgentBounceHeight, #L762), where UrgentBounceHeight is 1.0x-1.667x
+          IconSize (80px-106px of empty transparent air above unzoomed icons),
+          swallowing clicks and overriding cursor shapes on underlying windows.
+        - Remediation: Clamped the allow_anticipate perpendicular input-mask
+          expansion in PositionManager.get_cursor_region() strictly to
+          zoom_headroom = int.max(0, ZoomIconSize - IconSize) from
+          static_dock_region (unioned with any active hover_region), freeing
+          the upper UrgentBounceHeight air-space while preserving magnetic zoom.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -1008,10 +1105,18 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 1
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [ok] 6.12 Docklet Right-Click Context Menu Consistency:
+   [ko->ok] 6.12 Docklet Right-Click Context Menu Consistency:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
+        - Bug: (Issue #35) When SystemMenuAccess == 4 ('Dedicated icon on dock', default),
+          right-clicking any docklet other than the WayPlank anchor icon enters
+          else { append_global_preferences_and_quit (menu_items); } in
+          DockWindow.vala#L1234-1236, omitting the '_Docklets' checkbox chooser
+          submenu on individual docklet context menus.
+        - Remediation: Shared PreferencesDockItem.create_docklets_submenu_item(controller)
+          and prepended the '_Docklets' checkbox submenu on all docklets/Trash
+          inside the SystemMenuAccess == 4 branch of DockWindow.show_menu().
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -1192,6 +1297,15 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 1
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
           subprocess fallback, per-key validation, and 'Load environment failed'
           startup popup listing defaulted keys/items.
+        - Bug: (Issue #33) README.md Step 4 installs GSettings schemas into
+          /usr/local/share/glib-2.0/schemas, which Utils.get_schema_source()
+          omitted from candidate_dirs, while legacy upstream plank in
+          /usr/share/glib-2.0/schemas shadowed WayPlank's 43-key schema with
+          ~18 legacy keys (and Arch/Garuda prerequisites omitted dconf).
+        - Remediation: Added /usr/local/share/glib-2.0/schemas ahead of
+          /usr/share/glib-2.0/schemas and required schema.has_key("effect-duration")
+          in Utils.get_schema_source() (Utils.vala); updated README.md Arch/Garuda
+          instructions to install dconf and remove legacy plank.
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
@@ -1427,14 +1541,14 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED | 115 [ok] | 1
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 ================================================================================
-SESSION 2 RESULT: PASSED - 100.0% QUALIFIED FOR V0.7.1 (KDE PLASMA / KWin Backend) - 115 [ok] + 11 [ko->ok] | 0 [ko]
+SESSION 2 RESULT: CONCLUDED - 100% QUALIFIED IN V0.7.1.2 (KDE PLASMA / KWin Backend) - 112 [ok] + 14 [ko->ok] | 0 [ko->test] | 0 [ko]
 ================================================================================
-  * Tests: 126 | Consolidated Baseline: 115 [ok] | Squashed: 11 [ko->ok] (1.9, 1.11, 2.9, 6.1, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4, 12.6) | Remediations: 0 [ko->test] | New Features: 0 [  ]
+  * Tests: 126 | Consolidated Baseline: 112 [ok] | Squashed: 14 [ko->ok] (1.9, 1.11, 2.9, 2.14, 5.4, 6.1, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4, 12.6) | Remediations: 0 [ko->test] | New Features: 0 [  ]
   * Protocol Limitations: 0 [NA] | Open Defects: 0 [ko] | Final Compliance: 100.0% (126/126 Qualified)
 ================================================================================
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN | 2 NA]
+SESSION 3: LABWC (wlroots Backend) - [CONCLUDED - 100% QUALIFIED IN V0.7.1.2 | 111 [ok] | 12 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 OPEN | 2 NA]
 ================================================================================
 ================================================================================
 
@@ -1574,12 +1688,27 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 
         (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
         window list remain intact,
         no JSON parse errors or vanished indicators
-   [ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
         - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
           browser profile) alongside native/Flatpak apps: verify each spawns
           its own isolated icon and running count.
         - Verify short app names ('Gram', 'Web') never hijack substring titles
           ('Instagram', 'Open WebUI').
+        - Bug: (Issue #30) (1) ApplicationIdentity.is_chromium_browser_binary()
+          missed brave-browser-beta/dev/nightly and Flatpak browser IDs
+          (causing has_explicit_webapp_window_id() 'brave-' prefix to reject
+          Brave Nightly/Beta on its own launcher) and has_browser_tab_suffix()
+          missed ' - brave browser', letting a YouTube web-app .desktop score
+          118 on caption. (2) Hosted /proc child-token matching (#L3757) lacked
+          an is_terminal_app guard, letting GUI launchers (neovide.desktop)
+          spawned from kitty claim the parent kitty window at Score 118.
+        - Remediation: Added Beta/Dev/Nightly & Flatpak browser IDs, browser
+          family classification (get_window_browser_family /
+          is_google_chrome_window / shares_browser_family_with isolating Chrome
+          Local State profiles from Brave/Firefox/Chromium/Edge), and
+          ' - brave browser' suffixes in ApplicationIdentity.vala &
+          ApplicationDiscovery.vala; guarded caption web-app fallback without
+          --app=; and required is_terminal_app == true for terminal children.
    [ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding Dialog Masking (Issues #14, #16):
         - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
           independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
@@ -1619,6 +1748,8 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 
           all 4 edges; toggling 'Hide Dock' or 'Icon Zoom' ON auto-clears
           'Reserve Screen Space' (both in GUI and via 'gsettings set'), and
           persists across restarts/reboots in ~/.config/wayplank/latch-state.ini.
+        - On multi-monitor setups, verify space is reserved strictly on the
+          dock's active monitor and recovers across cable hotplug/unplug.
 4. VIRTUAL DESKTOPS & WORKSPACES
    [ok] 4.1 Empty Workspace Switch:
         Window covers dock on WS1 -> switch to empty WS2 -> dock reveals
@@ -1637,11 +1768,22 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+   [ko->ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering dock or tooltips never steals active window focus; full
           dock width responds with zero dead zones.
         - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
           above the visible dock pill pass 100% through to underlying windows.
+        - Bug: (Issue #34) With ZoomEnabled && AnticipateZoom ON (default true),
+          PositionManager.get_cursor_region() (#L835-844) expands the layer-shell
+          input mask across the full DockHeight (VisibleDockHeight +
+          UrgentBounceHeight, #L762), where UrgentBounceHeight is 1.0x-1.667x
+          IconSize (80px-106px of empty transparent air above unzoomed icons),
+          swallowing clicks and overriding cursor shapes on underlying windows.
+        - Remediation: Clamped the allow_anticipate perpendicular input-mask
+          expansion in PositionManager.get_cursor_region() strictly to
+          zoom_headroom = int.max(0, ZoomIconSize - IconSize) from
+          static_dock_region (unioned with any active hover_region), freeing
+          the upper UrgentBounceHeight air-space while preserving magnetic zoom.
    [ok] 5.5 Tooltip Badges & Clean Identity:
         - Trash tooltip strictly displays "Trash" (never "Trash • Docklet").
         - In free mode: tooltips display item type badges ('• Folder', '•
@@ -1720,6 +1862,14 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 
         REMEDIATED (Issue #23 - Verified Live in v0.7.1): Centralized
           System.launch_desktop_utility() prioritizing native utilities matching
           the active XDG_CURRENT_DESKTOP session.
+        - Bug: (Issue #35) When SystemMenuAccess == 4 ('Dedicated icon on dock', default),
+          right-clicking any docklet other than the WayPlank anchor icon enters
+          else { append_global_preferences_and_quit (menu_items); } in
+          DockWindow.vala#L1234-1236, omitting the '_Docklets' checkbox chooser
+          submenu on individual docklet context menus.
+        - Remediation: Shared PreferencesDockItem.create_docklets_submenu_item(controller)
+          and prepended the '_Docklets' checkbox submenu on all docklets/Trash
+          inside the SystemMenuAccess == 4 branch of DockWindow.show_menu().
    [ok] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -1893,6 +2043,15 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 
           CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
           subprocess fallback, per-key validation, and 'Load environment failed'
           startup popup listing defaulted keys/items.
+        - Bug: (Issue #33) README.md Step 4 installs GSettings schemas into
+          /usr/local/share/glib-2.0/schemas, which Utils.get_schema_source()
+          omitted from candidate_dirs, while legacy upstream plank in
+          /usr/share/glib-2.0/schemas shadowed WayPlank's 43-key schema with
+          ~18 legacy keys (and Arch/Garuda prerequisites omitted dconf).
+        - Remediation: Added /usr/local/share/glib-2.0/schemas ahead of
+          /usr/share/glib-2.0/schemas and required schema.has_key("effect-duration")
+          in Utils.get_schema_source() (Utils.vala); updated README.md Arch/Garuda
+          instructions to install dconf and remove legacy plank.
 8. MULTI MONITOR VALIDATION MATRIX
    [ok] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
@@ -2115,8 +2274,8 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED | 113 [ok] | 10 
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 ================================================================================
-SESSION 3 RESULT: PASSED - 100.0% QUALIFIED FOR V0.7.1 (LABWC / wlroots Backend) - 113 [ok] + 10 [ko->ok] | 0 [ko]
+SESSION 3 RESULT: CONCLUDED - 100% QUALIFIED IN V0.7.1.2 (LABWC / wlroots Backend) - 111 [ok] + 12 [ko->ok] | 0 [ko->test] | 0 [ko]
 ================================================================================
-  * Tests: 125 | Consolidated Baseline: 113 [ok] | Squashed: 10 [ko->ok] (1.9, 1.11, 6.12, 6.14, 6.18, 7.9, 7.11, 7.17, 10.4, 12.4) | Remediations: 0 [ko->test] | New Features: 0 [  ]
+  * Tests: 125 | Consolidated Baseline: 111 [ok] | Squashed: 12 [ko->ok] (1.9, 1.11, 2.14, 5.4, 6.12, 6.14, 6.18, 7.9, 7.11, 7.17, 10.4, 12.4) | Remediations: 0 [ko->test] | New Features: 0 [  ]
   * Protocol Limitations: 2 [NA] (2.7, 10.6) | Open Defects: 0 [ko] | Final Compliance: 100.0% (123/123 Applicable)
 ================================================================================

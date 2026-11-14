@@ -103,7 +103,7 @@ namespace Plank
 			
 			load_from_launcher ();
 			prev_window_count = WindowManager.get_default ().window_count_for_app (Launcher);
-			update_indicator (!WindowControl.has_state ());
+			update_indicator (!Hal.Windows.has_state ());
 		}
 		
 		bool is_app_cleaned_up = false;
@@ -255,7 +255,7 @@ namespace Plank
 					string? cycle_uuid;
 					if (WindowManager.get_default ().cycle_window (Launcher, true, out cycle_uuid)) {
 						message ("Wayplank: shift-click on '%s' -> cycle window uuid=%s", Text, cycle_uuid);
-						WindowControl.queue_command (cycle_uuid, "activate");
+						Hal.Windows.perform_window_action (cycle_uuid, WindowAction.ACTIVATE);
 						return AnimationType.NONE;
 					}
 				}
@@ -267,7 +267,7 @@ namespace Plank
 				string action;
 				if (WindowManager.get_default ().resolve_click_command (Launcher, click_behavior, restore_minimized, out uuid, out action)) {
 					message ("Wayplank: click on '%s' (app_id=%s) -> uuid=%s action=%s", Text, app_id, uuid, action);
-					WindowControl.queue_command (uuid, action);
+					Hal.Windows.perform_window_action (uuid, WindowAction.from_command_name (action));
 					return AnimationType.BOUNCE;
 				}
 				message ("Wayplank: click on '%s' -> no matching window, launching new instance", Text);
@@ -288,7 +288,7 @@ namespace Plank
 			string? uuid;
 			if (WindowManager.get_default ().cycle_window (Launcher, forward, out uuid)) {
 				message ("Wayplank: scroll on '%s' -> cycle window uuid=%s (forward=%s)", Text, uuid, forward.to_string ());
-				WindowControl.queue_command (uuid, "activate");
+				Hal.Windows.perform_window_action (uuid, WindowAction.ACTIVATE);
 			}
 			return AnimationType.NONE;
 		}
@@ -327,14 +327,14 @@ namespace Plank
 						var win_item = create_literal_menu_item (cap, null, false);
 						string target_id = win.Id;
 						win_item.activate.connect (() => {
-							WindowControl.queue_command (target_id, "activate");
+							Hal.Windows.perform_window_action (target_id, WindowAction.ACTIVATE);
 						});
 						items.add (win_item);
 					}
 					var close_all_item = create_menu_item (_("Close _All"), "window-close", true);
 					close_all_item.activate.connect (() => {
 						foreach (var win in windows) {
-							WindowControl.queue_command (win.Id, "close");
+							Hal.Windows.perform_window_action (win.Id, WindowAction.CLOSE);
 						}
 					});
 					items.add (close_all_item);
@@ -343,7 +343,7 @@ namespace Plank
 					var close_item = create_menu_item (_("_Close"), "window-close", true);
 					string target_id = win.Id;
 					close_item.activate.connect (() => {
-						WindowControl.queue_command (target_id, "close");
+						Hal.Windows.perform_window_action (target_id, WindowAction.CLOSE);
 					});
 					items.add (close_item);
 				}
@@ -643,7 +643,7 @@ namespace Plank
 			
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
 			if (windows.size > 0) {
-				WindowControl.queue_command (windows[0].Id, "activate");
+				Hal.Windows.perform_window_action (windows[0].Id, WindowAction.ACTIVATE);
 			}
 			
 			return true;

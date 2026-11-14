@@ -181,7 +181,7 @@ namespace Plank
 			about_item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (about_item);
 
-			if (!environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
+			if (Hal.Capabilities.supports_quit_action) {
 				items.add (new Gtk.SeparatorMenuItem ());
 
 				var quit_item = DockElement.create_menu_item (_("_Quit"), "application-exit", true);

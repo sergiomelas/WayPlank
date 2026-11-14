@@ -48,8 +48,8 @@ namespace Plank
 		
 		public void toggle_desktop ()
 		{
-			// Neutral compositor command via WindowControl (bidirectional minimize / restore toggle)
-			WindowControl.queue_command ("desktop", "toggle_desktop");
+			// Neutral compositor command via Hal.Windows (bidirectional minimize / restore toggle)
+			Hal.Windows.toggle_show_desktop ();
 		}
 		
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)

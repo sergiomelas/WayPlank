@@ -101,7 +101,7 @@ namespace Plank
 			SystemTheme.cleanup_if_active ();
 			BrightnessControl.cleanup_if_active ();
 			AppUsageService.shutdown_if_active ();
-			WindowControl.cleanup ();
+			Hal.cleanup ();
 			GLib.Settings.sync ();
 		}
 
@@ -372,14 +372,14 @@ namespace Plank
 			environment_initialize ();
 			
 			Paths.initialize (exec_name, build_pkg_data_dir);
-			WindowControl.initialize ();
+			Hal.initialize ();
 			
 			initialize ();
 			create_docks ();
-			WindowControl.get_default ().bridge_reconnected.connect (() => {
+			Hal.Windows.bridge_reconnected.connect (() => {
 				schedule_dock_refresh (150);
 			});
-			WindowControl.start ();
+			Hal.start ();
 			create_actions ();
 			setup_power_management_listener ();
 			setup_binary_upgrade_watcher ();
@@ -585,11 +585,11 @@ namespace Plank
 				about_dlg.set_logo_icon_name (app_icon);
 			}
 			
-			var fully_supported_compositors = WindowCapabilities.fully_supported_compositors ();
+			var fully_supported_compositors = Hal.Capabilities.fully_supported_summary;
 			var fully_supported = (fully_supported_compositors == ""
 				? _("Fully supported compositors: none")
 				: _("Fully supported compositors: %s").printf (fully_supported_compositors));
-			var partially_supported_compositors = WindowCapabilities.partially_supported_compositors ();
+			var partially_supported_compositors = Hal.Capabilities.partially_supported_summary;
 			var partially_supported = (partially_supported_compositors == ""
 				? _("Partially supported compositors: none")
 				: _("Partially supported compositors: %s").printf (partially_supported_compositors));

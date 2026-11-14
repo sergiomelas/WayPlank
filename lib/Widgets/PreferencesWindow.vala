@@ -485,14 +485,14 @@ namespace Plank
 					model.get (iter, 1, out id);
 					if (id != "") {
 						var mode = (HideType) int.parse (id);
-						bool supported = WindowCapabilities.hide_mode_supported (mode);
+						bool supported = Hal.Capabilities.supports_hide_mode (mode);
 						cell.sensitive = supported;
-						if (cell is Gtk.CellRendererText && WindowControl.is_labwc () && !supported) {
+						string hint = Hal.Capabilities.get_unsupported_hide_mode_hint (mode);
+						if (cell is Gtk.CellRendererText && !supported && hint != "") {
 							string text = "";
 							model.get (iter, 0, out text);
-							string req_kwin = _(" (Requires KWin)");
-							if (!text.contains (req_kwin))
-								((Gtk.CellRendererText) cell).text = text + req_kwin;
+							if (!text.contains (hint))
+								((Gtk.CellRendererText) cell).text = text + hint;
 						}
 					}
 				});
@@ -928,7 +928,7 @@ namespace Plank
 		void hidemode_changed (Gtk.ComboBox widget)
 		{
 			var mode = (HideType) int.parse (widget.get_active_id ());
-			if (WindowCapabilities.hide_mode_supported (mode))
+			if (Hal.Capabilities.supports_hide_mode (mode))
 				prefs.HideMode = mode;
 			else
 				cb_hidemode.active_id = ((int) HideType.DODGE_MAXIMIZED).to_string ();
@@ -992,7 +992,7 @@ namespace Plank
 				var mode = (active_id != null && active_id != "") ? (HideType) int.parse (active_id) : HideType.INTELLIGENT;
 				if (mode == HideType.NONE)
 					mode = HideType.INTELLIGENT;
-				if (WindowCapabilities.hide_mode_supported (mode))
+				if (Hal.Capabilities.supports_hide_mode (mode))
 					prefs.HideMode = mode;
 				else
 					prefs.HideMode = HideType.DODGE_MAXIMIZED;
@@ -1131,7 +1131,7 @@ namespace Plank
 			}
 
 			if (success) {
-				WindowControl.sync_autostart (enabled);
+				Hal.sync_autostart (enabled);
 			} else {
 				sw_autostart.notify["active"].disconnect (autostart_toggled);
 				sw_autostart.set_active (!enabled);
@@ -1611,7 +1611,7 @@ namespace Plank
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
 			get_screen ().monitors_changed.connect (rebuild_monitor_list);
-			WindowControl.get_default ().primary_monitor_changed.connect (rebuild_monitor_list);
+			Hal.Shell.primary_monitor_changed.connect (rebuild_monitor_list);
 			dock_preferences.notify["visible-child"].connect (on_stack_page_changed);
 			dock_preferences.notify["transition-running"].connect (on_stack_page_changed);
 			if (controller != null && controller.position_manager != null) {
@@ -1690,7 +1690,7 @@ namespace Plank
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
 			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
-			WindowControl.get_default ().primary_monitor_changed.disconnect (rebuild_monitor_list);
+			Hal.Shell.primary_monitor_changed.disconnect (rebuild_monitor_list);
 			dock_preferences.notify["visible-child"].disconnect (on_stack_page_changed);
 			dock_preferences.notify["transition-running"].disconnect (on_stack_page_changed);
 			if (controller != null && controller.position_manager != null) {
@@ -1719,7 +1719,7 @@ namespace Plank
 					active_pos = pos;
 			}
 			
-			bool primary_supported = WindowCapabilities.primary_display_supported ();
+			bool primary_supported = Hal.Capabilities.supports_primary_display;
 			string primary_tt = primary_supported
 				? _("Automatically display the dock on the primary monitor; disable to choose a specific display")
 				: _("Not supported by this compositor");
@@ -1778,7 +1778,7 @@ namespace Plank
 			cb_theme.tooltip_text = prefs.Theme;
 			update_theme_buttons ();
 
-			var effective_mode = (prefs.HideMode != HideType.NONE && !WindowCapabilities.hide_mode_supported (prefs.HideMode))
+			var effective_mode = (prefs.HideMode != HideType.NONE && !Hal.Capabilities.supports_hide_mode (prefs.HideMode))
 				? HideType.DODGE_MAXIMIZED
 				: prefs.HideMode;
 			cb_hidemode.active_id = ((int) effective_mode).to_string ();
@@ -1792,7 +1792,7 @@ namespace Plank
 			adj_offset.value = prefs.Offset;
 			adj_zoom_percent.value = prefs.ZoomPercent;
 			sw_hide.set_active (prefs.HideMode != HideType.NONE);
-			bool primary_supported = WindowCapabilities.primary_display_supported ();
+			bool primary_supported = Hal.Capabilities.supports_primary_display;
 			sw_primary_display.set_active (primary_supported && prefs.Monitor == "");
 			sw_primary_display.sensitive = primary_supported;
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);

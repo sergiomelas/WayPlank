@@ -41,15 +41,15 @@ namespace Plank
 			matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
 			known_window_ids = new Gee.HashSet<string> ();
 			ApplicationIdentity.init_browser_profile_tracking ();
-			cached_windows = WindowControl.get_windows ();
+			cached_windows = Hal.Windows.get_windows ();
 			sync_window_profiles ();
-			WindowControl.get_default ().state_changed.connect (refresh_windows);
+			Hal.Windows.state_changed.connect (refresh_windows);
 			ApplicationDiscovery.get_default ().changed.connect (refresh_windows);
 		}
 
 		~WindowManager ()
 		{
-			WindowControl.get_default ().state_changed.disconnect (refresh_windows);
+			Hal.Windows.state_changed.disconnect (refresh_windows);
 			ApplicationDiscovery.get_default ().changed.disconnect (refresh_windows);
 		}
 
@@ -148,7 +148,7 @@ namespace Plank
 
 		void refresh_windows ()
 		{
-			var next_windows = WindowControl.get_windows ();
+			var next_windows = Hal.Windows.get_windows ();
 			if (initial_browser_scan_done && is_same_non_geometry_state (cached_windows, next_windows)) {
 				for (int i = 0; i < cached_windows.size; i++)
 					cached_windows[i].Geometry = next_windows[i].Geometry;

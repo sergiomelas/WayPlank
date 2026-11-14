@@ -142,8 +142,8 @@ namespace Plank
 
 			window.enter_notify_event.connect (handle_enter_notify_event);
 			window.leave_notify_event.connect (handle_leave_notify_event);
-			WindowControl.get_default ().state_changed.connect (window_state_changed);
-			if (!environment_is_session_type (XdgSessionType.WAYLAND))
+			Hal.Windows.state_changed.connect (window_state_changed);
+			if (Hal.Capabilities.supports_pressure_reveal)
 				pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
 			is_initialized = true;
 			update_window_intersect ();
@@ -169,7 +169,7 @@ namespace Plank
 			}
 			
 			if (is_initialized) {
-				WindowControl.get_default ().state_changed.disconnect (window_state_changed);
+				Hal.Windows.state_changed.disconnect (window_state_changed);
 			}
 			if (pressure_reveal_timer_id > 0U) {
 				Source.remove (pressure_reveal_timer_id);
@@ -274,14 +274,14 @@ namespace Plank
 		public HideType get_effective_hide_mode ()
 		{
 			var mode = controller.prefs.HideMode;
-			if (mode != HideType.NONE && !WindowCapabilities.hide_mode_supported (mode))
-				return WindowControl.is_mutter () ? HideType.AUTO : HideType.DODGE_MAXIMIZED;
+			if (mode != HideType.NONE && !Hal.Capabilities.supports_hide_mode (mode))
+				return Hal.Capabilities.fallback_hide_mode;
 			return mode;
 		}
 
 		bool pressure_reveal_tick ()
 		{
-			if (environment_is_session_type (XdgSessionType.WAYLAND))
+			if (!Hal.Capabilities.supports_pressure_reveal)
 				return false;
 
 			if (!controller.prefs.PressureReveal || get_effective_hide_mode () == HideType.NONE || !Hidden) {
@@ -509,7 +509,7 @@ namespace Plank
 		void update_window_intersect ()
 		{
 			var dock_rect = controller.position_manager.get_static_dock_region ();
-			var new_fullscreen_inhibit = WindowControl.fullscreen_window_intersects (dock_rect);
+			var new_fullscreen_inhibit = Hal.Windows.fullscreen_window_intersects (dock_rect);
 			bool fs_changed = (FullscreenInhibit != new_fullscreen_inhibit);
 			FullscreenInhibit = new_fullscreen_inhibit;
 			if (FullscreenInhibit) {
@@ -519,14 +519,14 @@ namespace Plank
 				switch (get_effective_hide_mode ()) {
 				case HideType.INTELLIGENT:
 				case HideType.DODGE_ACTIVE:
-					active_application_intersect = WindowControl.active_window_intersects (dock_rect);
+					active_application_intersect = Hal.Windows.active_window_intersects (dock_rect);
 					active_window_intersect = active_application_intersect;
 					break;
 				case HideType.DODGE_MAXIMIZED:
-					active_maximized_window_intersect = WindowControl.maximized_window_intersects (dock_rect);
+					active_maximized_window_intersect = Hal.Windows.maximized_window_intersects (dock_rect);
 					break;
 				case HideType.WINDOW_DODGE:
-					window_intersect = WindowControl.any_window_intersects (dock_rect);
+					window_intersect = Hal.Windows.any_window_intersects (dock_rect);
 					break;
 				default:
 					break;

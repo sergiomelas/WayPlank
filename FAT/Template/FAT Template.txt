@@ -1,10 +1,9 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-10
-Milestone: V0.7.1 (Public Beta 2: First-Run Onboarding Classic/Explorer, Pinned
-           Apps Accordion, MONLMIP Rank 1, Full Profile Persistence & Core
-           Feature Freeze)
+Date: 2026-11-14
+Milestone: V0.7.2 (Public Beta 3: 3-Zone Dichotomic HAL & Agnostic Boundary
+           Translator Freeze — MOC-0.7.2-HAL-001)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
@@ -17,7 +16,7 @@ Compositor Validation Status & Qualification Scoreboard:
       [  ] Tests Executed | [  ] [ok] | [  ] Bugs Squashed | [  ] Open Defects
 
 Test Status Legend (ISA-88 Qualification Standard):
-  - [ok]        : Compliant / Passed (Verified during v0.7.0 testing & consolidated in v0.7.1)
+  - [ok]        : Compliant / Passed (Verified in prior release & consolidated in baseline)
   - [  ]        : Pending test execution / Open test point
   - [ko]        : Non-conformance / Defect logged
   - [ko->test]  : Remediation need still to be tested
@@ -631,6 +630,42 @@ SESSION 1: GNOME (Mutter Backend)
           speed live and auto-hides when all 3 selectors are 'None'; cycle all
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
+14. 3-ZONE DICHOTOMIC HAL & TRANSLATOR QUALIFICATION (v0.7.2 FOCUS)
+   [  ] 14.1 Cold-Start & Hot-Start (.deb / --replace) Compositor State Isolation & Accordion Divisor Integrity (IWindowBackend.is_compositor_managed):
+        - Cold start and hot restart ('sudo dpkg -i build/wayplank_0.7.2_amd64.deb'
+          and 'wayplank --replace') with Pinned Apps Accordion active ('Auto-Fit'
+          or 'Top N Most Used') and collapsed ('PinnedExpanded=false'): verify
+          the '›|' accordion divisor renders immediately on frame 0 without
+          requiring any window open/close event, and headless background daemons
+          (e.g. 'easyeffects --gapplication-service') or unmapped browser helper
+          processes never inflate running state via '/proc' fallback.
+   [  ] 14.2 Zone 2 IDockShell Surface, Strut, Popup & #34 Input-Region Translator Parity:
+        - Verify DockWindow anchoring (Bottom/Top/Left/Right), Panel Mode
+          exclusive-zone / strut reservation, #34 AnticipateZoom input-region
+          click pass-through on overlapping windows, and popup positioning across
+          TOOLTIP (HoverWindow), FOLDER_MENU (FolderMenuWindow), PREVIEW_CARDS
+          (WindowCardsWindow), and POOF_ANIMATION (PoofWindow) operate cleanly
+          through Hal.Shell (IDockShell) with zero direct GtkLayerShell calls in
+          Zone 1.
+   [  ] 14.3 Zone 2 IWindowBackend, IThumbnailProvider & PlatformCapabilities Translator Parity:
+        - Verify window enumeration, running/active/urgent indicators,
+          WindowAction dispatch (ACTIVATE, MINIMIZE, MAXIMIZE, RESTORE, CLOSE),
+          Show Desktop toggle, Intellihide/Dodge geometric intersection queries,
+          live RGBA window preview thumbnails (Hal.Thumbnails), and capability-
+          driven Preferences UI sensitivity (Hal.Caps) operate cleanly through
+          Zone 2 translators.
+   [  ] 14.4 Zone 2 IBusBackend, ISystemTelemetry & IPlatformRuntime Docklet/Portal Translator Parity:
+        - Verify all 14 docklets + Trash (Volume, Brightness, Battery, System
+          Pressure CPU/RAM/Disk, Network, Weather, MPRIS, DND, Screenshot,
+          Session & Power, Drive Ejector, Clocks, Show Desktop), FreeDesktop
+          color-scheme portal sync, and single-instance / autostart lifecycle
+          operate cleanly through Zone 2 bus, telemetry, and runtime translators.
+   [  ] 14.5 Zone 2 IAppSystem & Cross-OS Application Identity Translator Parity:
+        - Verify 6-layer ApplicationIdentity window-to-launcher matching,
+          Chrome/Brave/Firefox multi-profile & PWA isolation (#20, #30), CLI VM
+          & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
+          drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
+          direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
 ================================================================================
 SESSION 1 RESULT: (GNOME / Mutter Backend)
 ================================================================================
@@ -1259,6 +1294,42 @@ SESSION 2: KDE PLASMA (KWin Backend)
           speed live and auto-hides when all 3 selectors are 'None'; cycle all
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
+14. 3-ZONE DICHOTOMIC HAL & TRANSLATOR QUALIFICATION (v0.7.2 FOCUS)
+   [  ] 14.1 Cold-Start & Hot-Start (.deb / --replace) Compositor State Isolation & Accordion Divisor Integrity (IWindowBackend.is_compositor_managed):
+        - Cold start and hot restart ('sudo dpkg -i build/wayplank_0.7.2_amd64.deb'
+          and 'wayplank --replace') with Pinned Apps Accordion active ('Auto-Fit'
+          or 'Top N Most Used') and collapsed ('PinnedExpanded=false'): verify
+          the '›|' accordion divisor renders immediately on frame 0 without
+          requiring any window open/close event, and headless background daemons
+          (e.g. 'easyeffects --gapplication-service') or unmapped browser helper
+          processes never inflate running state via '/proc' fallback.
+   [  ] 14.2 Zone 2 IDockShell Surface, Strut, Popup & #34 Input-Region Translator Parity:
+        - Verify DockWindow anchoring (Bottom/Top/Left/Right), Panel Mode
+          exclusive-zone / strut reservation, #34 AnticipateZoom input-region
+          click pass-through on overlapping windows, and popup positioning across
+          TOOLTIP (HoverWindow), FOLDER_MENU (FolderMenuWindow), PREVIEW_CARDS
+          (WindowCardsWindow), and POOF_ANIMATION (PoofWindow) operate cleanly
+          through Hal.Shell (IDockShell) with zero direct GtkLayerShell calls in
+          Zone 1.
+   [  ] 14.3 Zone 2 IWindowBackend, IThumbnailProvider & PlatformCapabilities Translator Parity:
+        - Verify window enumeration, running/active/urgent indicators,
+          WindowAction dispatch (ACTIVATE, MINIMIZE, MAXIMIZE, RESTORE, CLOSE),
+          Show Desktop toggle, Intellihide/Dodge geometric intersection queries,
+          live RGBA window preview thumbnails (Hal.Thumbnails), and capability-
+          driven Preferences UI sensitivity (Hal.Caps) operate cleanly through
+          Zone 2 translators.
+   [  ] 14.4 Zone 2 IBusBackend, ISystemTelemetry & IPlatformRuntime Docklet/Portal Translator Parity:
+        - Verify all 14 docklets + Trash (Volume, Brightness, Battery, System
+          Pressure CPU/RAM/Disk, Network, Weather, MPRIS, DND, Screenshot,
+          Session & Power, Drive Ejector, Clocks, Show Desktop), FreeDesktop
+          color-scheme portal sync, and single-instance / autostart lifecycle
+          operate cleanly through Zone 2 bus, telemetry, and runtime translators.
+   [  ] 14.5 Zone 2 IAppSystem & Cross-OS Application Identity Translator Parity:
+        - Verify 6-layer ApplicationIdentity window-to-launcher matching,
+          Chrome/Brave/Firefox multi-profile & PWA isolation (#20, #30), CLI VM
+          & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
+          drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
+          direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
 ================================================================================
 SESSION 2 RESULT: (KDE Plasma / KWin Backend)
 ================================================================================
@@ -1865,6 +1936,42 @@ SESSION 3: LABWC (wlroots Backend)
           speed live and auto-hides when all 3 selectors are 'None'; cycle all
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
+14. 3-ZONE DICHOTOMIC HAL & TRANSLATOR QUALIFICATION (v0.7.2 FOCUS)
+   [  ] 14.1 Cold-Start & Hot-Start (.deb / --replace) Compositor State Isolation & Accordion Divisor Integrity (IWindowBackend.is_compositor_managed):
+        - Cold start and hot restart ('sudo dpkg -i build/wayplank_0.7.2_amd64.deb'
+          and 'wayplank --replace') with Pinned Apps Accordion active ('Auto-Fit'
+          or 'Top N Most Used') and collapsed ('PinnedExpanded=false'): verify
+          the '›|' accordion divisor renders immediately on frame 0 without
+          requiring any window open/close event, and headless background daemons
+          (e.g. 'easyeffects --gapplication-service') or unmapped browser helper
+          processes never inflate running state via '/proc' fallback.
+   [  ] 14.2 Zone 2 IDockShell Surface, Strut, Popup & #34 Input-Region Translator Parity:
+        - Verify DockWindow anchoring (Bottom/Top/Left/Right), Panel Mode
+          exclusive-zone / strut reservation, #34 AnticipateZoom input-region
+          click pass-through on overlapping windows, and popup positioning across
+          TOOLTIP (HoverWindow), FOLDER_MENU (FolderMenuWindow), PREVIEW_CARDS
+          (WindowCardsWindow), and POOF_ANIMATION (PoofWindow) operate cleanly
+          through Hal.Shell (IDockShell) with zero direct GtkLayerShell calls in
+          Zone 1.
+   [  ] 14.3 Zone 2 IWindowBackend, IThumbnailProvider & PlatformCapabilities Translator Parity:
+        - Verify window enumeration, running/active/urgent indicators,
+          WindowAction dispatch (ACTIVATE, MINIMIZE, MAXIMIZE, RESTORE, CLOSE),
+          Show Desktop toggle, Intellihide/Dodge geometric intersection queries,
+          live RGBA window preview thumbnails (Hal.Thumbnails), and capability-
+          driven Preferences UI sensitivity (Hal.Caps) operate cleanly through
+          Zone 2 translators.
+   [  ] 14.4 Zone 2 IBusBackend, ISystemTelemetry & IPlatformRuntime Docklet/Portal Translator Parity:
+        - Verify all 14 docklets + Trash (Volume, Brightness, Battery, System
+          Pressure CPU/RAM/Disk, Network, Weather, MPRIS, DND, Screenshot,
+          Session & Power, Drive Ejector, Clocks, Show Desktop), FreeDesktop
+          color-scheme portal sync, and single-instance / autostart lifecycle
+          operate cleanly through Zone 2 bus, telemetry, and runtime translators.
+   [  ] 14.5 Zone 2 IAppSystem & Cross-OS Application Identity Translator Parity:
+        - Verify 6-layer ApplicationIdentity window-to-launcher matching,
+          Chrome/Brave/Firefox multi-profile & PWA isolation (#20, #30), CLI VM
+          & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
+          drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
+          direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
 ================================================================================
 SESSION 3 RESULT: (LABWC / wlroots Backend)
 ================================================================================

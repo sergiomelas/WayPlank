@@ -20,6 +20,9 @@
 
 namespace Plank
 {
+	[CCode (cname = "wayplank_hal_platform_register_dbus")]
+	extern void hal_platform_register_dbus (DBusConnection connection, string object_path) throws GLib.IOError;
+
 	/**
 	 * Provide an interface to manage items of the dock
 	 */
@@ -212,7 +215,7 @@ namespace Plank
 			try {
 				var dbus_items = new DBusItems (controller);
 				dbus_items_signal_id = connection.register_object<Plank.DBusItemsIface> (object_path, dbus_items);
-				WindowControl.register_dbus (connection, object_path);
+				hal_platform_register_dbus (connection, object_path);
 			} catch (IOError e) {
 				warning ("Could not register service (%s)", e.message);
 			}

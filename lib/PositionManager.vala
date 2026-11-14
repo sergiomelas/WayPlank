@@ -57,7 +57,7 @@ namespace Plank
 			screen.size_changed.connect (on_screen_topology_changed);
 			screen.composited_changed.connect (screen_composited_changed);
 			controller.window.notify["scale-factor"].connect (on_scale_factor_changed);
-			WindowControl.get_default ().primary_monitor_changed.connect (prefs_monitor_changed);
+			Hal.Shell.primary_monitor_changed.connect (prefs_monitor_changed);
 			
 			last_scale_factor = controller.window.get_scale_factor ();
 			var monitor = get_monitor_for_plug_name (screen.get_display (), controller.prefs.Monitor);
@@ -74,7 +74,7 @@ namespace Plank
 				screen_topology_timer_id = 0U;
 			}
 
-			WindowControl.get_default ().primary_monitor_changed.disconnect (prefs_monitor_changed);
+			Hal.Shell.primary_monitor_changed.disconnect (prefs_monitor_changed);
 			
 			if (controller != null) {
 				controller.prefs.notify.disconnect (prefs_changed);
@@ -156,7 +156,7 @@ namespace Plank
 					return primary;
 
 				int px, py, pw, ph;
-				if (WindowControl.get_primary_monitor_geometry (out px, out py, out pw, out ph)) {
+				if (Hal.Shell.get_primary_monitor_geometry (out px, out py, out pw, out ph)) {
 					for (int i = 0; i < display.get_n_monitors (); i++) {
 						var mon = display.get_monitor (i);
 						var geom = mon.get_geometry ();
@@ -267,23 +267,7 @@ namespace Plank
 
 		Gdk.Rectangle get_effective_monitor_geometry (Gdk.Monitor? monitor)
 		{
-			if (monitor == null)
-				return Gdk.Rectangle ();
-
-			if (GtkLayerShell.is_supported ())
-				return monitor.get_geometry ();
-
-			var geom = monitor.get_geometry ();
-			Gdk.Rectangle wa;
-			if (WindowControl.get_workarea_for_geometry (geom, out wa)) {
-				debug ("Wayplank: using Mutter workarea %d,%d %dx%d (monitor geom was %d,%d %dx%d)",
-					wa.x, wa.y, wa.width, wa.height, geom.x, geom.y, geom.width, geom.height);
-				return wa;
-			}
-
-			debug ("Wayplank: fallback to monitor.get_workarea() %d,%d %dx%d",
-				monitor.get_workarea ().x, monitor.get_workarea ().y, monitor.get_workarea ().width, monitor.get_workarea ().height);
-			return monitor.get_workarea ();
+			return Hal.Shell.get_effective_monitor_geometry (monitor);
 		}
 
 		uint screen_topology_timer_id = 0U;
@@ -1487,36 +1471,12 @@ namespace Plank
 
 		public void get_hover_position (DockElement item, out int x, out int y)
 		{
-			// =========================================================================
-			// 1. NATIVE LAYER SHELL COMPOSITORS: KWIN (PLASMA) & LABWC (WLROOTS)
-			// =========================================================================
-			if (GtkLayerShell.is_supported ()) {
-				unowned DockItem? dock_item = (item as DockItem);
-				if (dock_item != null) {
-					var val = get_draw_value_for_item (dock_item);
-					x = (int) Math.round (val.center.x);
-					y = (int) Math.round (val.center.y);
-				} else {
-					var rect = get_hover_region_for_element (item);
-					x = rect.x + rect.width / 2;
-					y = rect.y + rect.height / 2;
-				}
-				return;
-			}
-
-			// =========================================================================
-			// 2. NON-LAYER SHELL COMPOSITOR: GNOME SHELL / MUTTER ONLY
-			// =========================================================================
 			unowned DockItem? dock_item = (item as DockItem);
 			if (dock_item != null) {
 				var val = get_draw_value_for_item (dock_item);
-				x = (int) Math.round (val.static_center.x > 0 ? val.static_center.x : val.center.x);
-				if (is_horizontal_dock ()) {
-					y = (int) Math.round (val.center.y);
-				} else {
-					int half_icon = (int) Math.round (IconSize / 2.0);
-					y = (int) Math.round (val.static_center.y > 0 ? val.static_center.y : val.center.y) + half_icon;
-				}
+				Gdk.Point dyn_pt = { (int) Math.round (val.center.x), (int) Math.round (val.center.y) };
+				Gdk.Point stat_pt = { (int) Math.round (val.static_center.x), (int) Math.round (val.static_center.y) };
+				Hal.Shell.resolve_tooltip_anchor (is_horizontal_dock (), IconSize, dyn_pt, stat_pt, out x, out y);
 			} else {
 				var rect = get_hover_region_for_element (item);
 				x = rect.x + rect.width / 2;

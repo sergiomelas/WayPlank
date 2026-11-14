@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-14 15:42+0100\n"
-"PO-Revision-Date: 2026-11-14 15:42+0100\n"
+"POT-Creation-Date: 2026-11-15 00:01+0100\n"
+"PO-Revision-Date: 2026-11-15 00:01+0100\n"
 "Last-Translator: Michailo Buchko <mixabuchko@gmail.com>\n"
 "Language-Team: Ukrainian <uk@li.org>\n"
 "Language: uk\n"
@@ -18,6 +18,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: hal/Freedesktop/FreedesktopHalBootstrap.vala:135
+msgid " (Requires KWin)"
+msgstr " (Потребує KWin)"
 
 #: lib/DockPreferences.vala:414 lib/DockPreferences.vala:424
 #: lib/Factories/AbstractMain.vala:1609
@@ -66,11 +70,11 @@ msgstr "Відхилено пошкоджений або недійсний ел
 msgid "Load environment failed"
 msgstr "Помилка завантаження середовища"
 
-#: lib/Items/ApplicationDockItem.vala:334 lib/Widgets/FolderMenuWindow.vala:971
+#: lib/Items/ApplicationDockItem.vala:334 lib/Widgets/FolderMenuWindow.vala:952
 msgid "Close _All"
 msgstr "Закрити _всі"
 
-#: lib/Items/ApplicationDockItem.vala:343 lib/Widgets/FolderMenuWindow.vala:981
+#: lib/Items/ApplicationDockItem.vala:343 lib/Widgets/FolderMenuWindow.vala:962
 msgid "_Close"
 msgstr "_Закрити"
 
@@ -284,8 +288,8 @@ msgstr "Немає знімних пристроїв"
 msgid "Drop to copy into %s"
 msgstr "Відпустіть, щоб скопіювати до %s"
 
-#: lib/Items/FileDockItem.vala:656 lib/Widgets/FolderMenuWindow.vala:539
-#: lib/Widgets/FolderMenuWindow.vala:778
+#: lib/Items/FileDockItem.vala:656 lib/Widgets/FolderMenuWindow.vala:520
+#: lib/Widgets/FolderMenuWindow.vala:759
 msgid "Empty Folder"
 msgstr "Порожня тека"
 
@@ -297,7 +301,7 @@ msgstr "_Відкрити у файловому менеджері"
 msgid "Empty"
 msgstr "Порожньо"
 
-#: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1042
+#: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1023
 #: lib/Widgets/PreferencesWindow.vala:732
 msgid "_Open"
 msgstr "_Відкрити"
@@ -432,7 +436,7 @@ msgid "Report a _Bug Online..."
 msgstr "Повідомити про _помилку в мережі..."
 
 #: lib/Items/PlankDockItem.vala:83 lib/Items/PreferencesDockItem.vala:168
-#: lib/Widgets/DockWindow.vala:1321
+#: lib/Widgets/DockWindow.vala:1207
 msgid "_Shortcuts & Gestures..."
 msgstr "_Скорочення та жести..."
 
@@ -513,7 +517,7 @@ msgid "_About"
 msgstr "_Про програму"
 
 #: lib/Items/PlankDockItem.vala:163 lib/Items/PreferencesDockItem.vala:187
-#: lib/Widgets/DockWindow.vala:1333
+#: lib/Widgets/DockWindow.vala:1219
 msgid "_Quit"
 msgstr "_Завершити"
 
@@ -521,7 +525,7 @@ msgstr "_Завершити"
 msgid "Preferences"
 msgstr "Параметри"
 
-#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1327
+#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1213
 msgid "_Preferences..."
 msgstr "_Параметри..."
 
@@ -848,47 +852,47 @@ msgstr "Нещодавні файли"
 msgid "Calendar"
 msgstr "Календар"
 
-#: lib/Widgets/DockWindow.vala:890
+#: lib/Widgets/DockWindow.vala:795
 msgid "Folder"
 msgstr "Тека"
 
-#: lib/Widgets/DockWindow.vala:892
+#: lib/Widgets/DockWindow.vala:797
 msgid "Running"
 msgstr "Запущено"
 
-#: lib/Widgets/DockWindow.vala:894
+#: lib/Widgets/DockWindow.vala:799
 msgid "Docklet"
 msgstr "Докліт"
 
-#: lib/Widgets/DockWindow.vala:1371 lib/Widgets/DockWindow.vala:1413
+#: lib/Widgets/DockWindow.vala:1257 lib/Widgets/DockWindow.vala:1299
 msgid "Developer _Tools"
 msgstr "_Засоби розробника"
 
-#: lib/Widgets/DockWindow.vala:1378
+#: lib/Widgets/DockWindow.vala:1264
 msgid "Open config folder"
 msgstr "Відкрити теку конфігурації"
 
-#: lib/Widgets/DockWindow.vala:1387
+#: lib/Widgets/DockWindow.vala:1273
 msgid "Open current theme file"
 msgstr "Відкрити файл поточної теми"
 
-#: lib/Widgets/DockWindow.vala:1394
+#: lib/Widgets/DockWindow.vala:1280
 msgid "Print app usage ranking"
 msgstr "Вивести рейтинг використання програм"
 
-#: lib/Widgets/DockWindow.vala:1420
+#: lib/Widgets/DockWindow.vala:1306
 msgid "Print info to stdout"
 msgstr "Вивести інформацію в stdout"
 
-#: lib/Widgets/DockWindow.vala:1430
+#: lib/Widgets/DockWindow.vala:1316
 msgid "Open dockitem file"
 msgstr "Відкрити файл dockitem"
 
-#: lib/Widgets/DockWindow.vala:1439
+#: lib/Widgets/DockWindow.vala:1325
 msgid "Open launcher file"
 msgstr "Відкрити файл запускача"
 
-#: lib/Widgets/DockWindow.vala:1446
+#: lib/Widgets/DockWindow.vala:1332
 msgid "Print usage score"
 msgstr "Вивести оцінку використання"
 
@@ -965,16 +969,16 @@ msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "Ви можете будь-коли змінити або налаштувати будь-яку функцію в Параметрах WayPlank."
 
-#: lib/Widgets/FolderMenuWindow.vala:572
+#: lib/Widgets/FolderMenuWindow.vala:553
 msgid "Back"
 msgstr "Назад"
 
-#: lib/Widgets/FolderMenuWindow.vala:933
+#: lib/Widgets/FolderMenuWindow.vala:914
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr "Програма запущена (вікон: %d)"
 
-#: lib/Widgets/FolderMenuWindow.vala:1035
+#: lib/Widgets/FolderMenuWindow.vala:1016
 msgid "_New Window"
 msgstr "_Нове вікно"
 
@@ -1330,10 +1334,6 @@ msgstr "Усі файли"
 #: lib/Widgets/PreferencesWindow.vala:307
 msgid "WayPlank Preferences"
 msgstr "Параметри WayPlank"
-
-#: lib/Widgets/PreferencesWindow.vala:493
-msgid " (Requires KWin)"
-msgstr " (Потребує KWin)"
 
 #: lib/Widgets/PreferencesWindow.vala:715
 #, c-format
@@ -1692,11 +1692,11 @@ msgstr "Відчувається як %d%s"
 msgid "No forecast data available"
 msgstr "Немає даних прогнозу"
 
-#: lib/Widgets/WindowCardsWindow.vala:495
+#: lib/Widgets/WindowCardsWindow.vala:480
 msgid "Application"
 msgstr "Програма"
 
-#: lib/Widgets/WindowCardsWindow.vala:628
+#: lib/Widgets/WindowCardsWindow.vala:613
 msgid "Minimized"
 msgstr "Згорнуто"
 

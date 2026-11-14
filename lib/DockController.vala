@@ -184,8 +184,7 @@ namespace Plank
 			position_manager.update (renderer.theme);
 			window.update_size_and_position ();
 			window.show_all ();
-			if (GtkLayerShell.is_supported ())
-				window.present ();
+			Hal.Shell.present_dock_after_show (window);
 			window.queue_draw ();
 
 			// Geometry and theme are known now: let the Smart Pinned Accordion decide
@@ -264,7 +263,7 @@ namespace Plank
 						"X-GNOME-Autostart-enabled=true\n" +
 						"X-GNOME-Autostart-Delay=2\n" +
 						"X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2\n");
-					WindowControl.sync_autostart (true);
+					Hal.sync_autostart (true);
 				} catch (FileError e) {
 					warning ("Unable to create default autostart entry '%s': %s", autostart_path, e.message);
 				}
@@ -732,7 +731,7 @@ namespace Plank
 		public void handle_system_resume ()
 		{
 			message ("DockController '%s': handling system resume / wake-up", name);
-			WindowControl.handle_system_resume ();
+			Hal.Windows.handle_system_resume ();
 			window.update_layer_shell_monitor ();
 			position_manager.update_dock_position ();
 			window.update_size_and_position ();
@@ -740,8 +739,7 @@ namespace Plank
 				renderer.reset_buffers ();
 			hide_manager.wake_up ();
 			window.show_all ();
-			if (GtkLayerShell.is_supported ())
-				window.present ();
+			Hal.Shell.present_dock_after_show (window);
 			if (renderer != null)
 				renderer.animated_draw ();
 		}

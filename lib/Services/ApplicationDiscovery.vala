@@ -86,7 +86,7 @@ namespace Plank
 			refresh_desktop_index ();
 			ensure_folder_monitors ();
 
-			WindowControl.get_default ().state_changed.connect (on_window_control_state_changed);
+			Hal.Windows.state_changed.connect (on_window_control_state_changed);
 		}
 
 		bool recompute_effective_profile_hints ()
@@ -220,7 +220,7 @@ namespace Plank
 
 		~ApplicationDiscovery ()
 		{
-			WindowControl.get_default ().state_changed.disconnect (on_window_control_state_changed);
+			Hal.Windows.state_changed.disconnect (on_window_control_state_changed);
 			if (debounce_timer_id > 0U)
 				Source.remove (debounce_timer_id);
 			if (change_timer_id > 0U)
@@ -249,9 +249,9 @@ namespace Plank
 
 		void on_window_control_state_changed ()
 		{
-			if (!WindowControl.has_state ())
+			if (!Hal.Windows.has_state ())
 				return;
-			int cur_count = WindowControl.get_windows ().size;
+			int cur_count = Hal.Windows.get_windows ().size;
 			bool should_gc = (!initial_gc_done || (last_gc_window_count >= 0 && cur_count < last_gc_window_count));
 			last_gc_window_count = cur_count;
 			if (!should_gc)
@@ -280,7 +280,7 @@ namespace Plank
 
 		bool gc_synthetic_launchers ()
 		{
-			if (!WindowControl.has_state ())
+			if (!Hal.Windows.has_state ())
 				return false;
 
 			if (initial_gc_done) {
@@ -332,7 +332,7 @@ namespace Plank
 				} catch { }
 			}
 
-			var windows = WindowControl.get_windows ();
+			var windows = Hal.Windows.get_windows ();
 			bool removed_any = false;
 			try {
 				var enumerator = user_app_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
@@ -499,7 +499,7 @@ namespace Plank
 			var identity = identity_for_launcher (launcher_uri);
 			if (identity == null)
 				return result;
-			foreach (var window in WindowControl.get_windows ())
+			foreach (var window in Hal.Windows.get_windows ())
 				if (is_best_launcher_for_window (launcher_uri, window))
 					result.add (window);
 			return result;
@@ -1047,7 +1047,7 @@ namespace Plank
 		
 		public string[] active_launcher_ids ()
 		{
-			var windows = WindowControl.get_windows ();
+			var windows = Hal.Windows.get_windows ();
 			var signature_builder = new StringBuilder ("");
 			foreach (var window in windows)
 				signature_builder.append ("%s|%s|%s|%s|%s|%s|%s;".printf (window.Id, window.ApplicationId, window.ResourceClass, window.ResourceName, window.Caption, ApplicationIdentity.get_window_browser_profile (window), ApplicationIdentity.get_locked_window_launcher_uri (window)));

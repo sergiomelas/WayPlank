@@ -156,8 +156,8 @@ namespace Plank
 			item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (item);
 			
-			// No explicit quit-item on elementary OS
-			if (!environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
+			// No explicit quit-item when session disallowing quit (e.g. Pantheon)
+			if (Hal.Capabilities.supports_quit_action) {
 				items.add (new Gtk.SeparatorMenuItem ());
 			
 				item = create_menu_item (_("_Quit"), "application-exit", true);

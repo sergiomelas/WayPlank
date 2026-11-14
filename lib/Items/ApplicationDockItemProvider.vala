@@ -199,7 +199,7 @@ namespace Plank
 
 		public void sync_compositor_windows ()
 		{
-			var windows = WindowControl.get_windows ();
+			var windows = Hal.Windows.get_windows ();
 			var discovery = ApplicationDiscovery.get_default ();
 			var my_pid = Posix.getpid ();
 			var active_transient_launchers = new Gee.HashSet<string> ();

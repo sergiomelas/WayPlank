@@ -23,7 +23,7 @@ namespace Plank
 	/**
 	 * An animated compositor-agnostic overlay window that renders icon removal
 	 * animations anchored accurately to the icon's canonical dock slot via
-	 * SurfaceCoordinateService, reporting deterministic frame completion via
+	 * Hal.Shell, reporting deterministic frame completion via
 	 * the poof_completed(tx_id) handshake signal.
 	 */
 	public class PoofWindow : CompositedWindow
@@ -70,7 +70,7 @@ namespace Plank
 
 		construct
 		{
-			SurfaceCoordinateService.init_overlay_surface (this, "wayplank-poof", "poof");
+			Hal.Shell.init_popup_surface (this, PopupSurfaceKind.POOF_ANIMATION);
 
 			try {
 				poof_image = new Gdk.Pixbuf.from_resource ("%s/img/poof.svg".printf (Plank.G_RESOURCE_PATH));
@@ -186,7 +186,7 @@ namespace Plank
 			start_time = GLib.get_monotonic_time ();
 			frame_time = start_time;
 
-			SurfaceCoordinateService.place_dock_overlay (
+			Hal.Shell.place_transient_overlay (
 				this, monitor, dock_edge, along_coord, perp_from_dock_base,
 				canvas_size, canvas_size, reserve_space_active, dock_exclusive_thickness,
 				out canvas_cx, out canvas_cy

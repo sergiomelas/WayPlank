@@ -493,7 +493,7 @@ namespace Plank
 			var window_manager = WindowManager.get_default ();
 			if (window_manager.window_count_for_app (app.Launcher) > 0)
 				return true;
-			if (!WindowControl.has_state () && app.running_for_accordion)
+			if (!Hal.Windows.has_state () && app.running_for_accordion)
 				return true;
 			if (Prefs.ShowAttentionIndicators && window_manager.app_demands_attention (app.Launcher))
 				return true;
@@ -1557,7 +1557,7 @@ namespace Plank
 
 		protected override void app_opened (string app_id)
 		{
-			if (WindowControl.has_state ())
+			if (Hal.Windows.has_state ())
 				return;
 
 			unowned ApplicationDockItem? found = item_for_application_id (app_id);

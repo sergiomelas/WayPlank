@@ -37,8 +37,15 @@ namespace Plank
 			KWinBridge.get_default ().bridge_reconnected.disconnect (forward_bridge_reconnected);
 		}
 
+		bool has_reserve_state = false;
+		bool last_reserve_enabled = false;
+		int last_reserve_thickness = 0;
+		Gtk.PositionType last_reserve_pos = Gtk.PositionType.BOTTOM;
+
 		void forward_bridge_reconnected ()
 		{
+			if (has_reserve_state)
+				KWinBridge.set_reserve_space (last_reserve_enabled, last_reserve_thickness, last_reserve_pos);
 			bridge_reconnected ();
 		}
 		
@@ -112,6 +119,21 @@ namespace Plank
 		public void handle_system_resume ()
 		{
 			KWinBridge.handle_system_resume ();
+		}
+
+		public override void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position)
+		{
+			if (has_reserve_state
+				&& enabled == last_reserve_enabled
+				&& thickness == last_reserve_thickness
+				&& position == last_reserve_pos)
+				return;
+
+			has_reserve_state = true;
+			last_reserve_enabled = enabled;
+			last_reserve_thickness = thickness;
+			last_reserve_pos = position;
+			KWinBridge.set_reserve_space (enabled, thickness, position);
 		}
 
 		bool cached_top_floating = true;

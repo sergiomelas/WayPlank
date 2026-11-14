@@ -20,9 +20,7 @@
 
 namespace Plank
 {
-	public delegate void ThumbnailReadyCallback (Gdk.Pixbuf? pixbuf);
-
-	public class KWinThumbnailService : GLib.Object
+	public class KWinThumbnailService : GLib.Object, IThumbnailProvider
 	{
 		static KWinThumbnailService? instance = null;
 
@@ -81,6 +79,12 @@ namespace Plank
 		public Gdk.Pixbuf? get_cached (string win_id)
 		{
 			return cache.has_key (win_id) ? cache.get (win_id) : null;
+		}
+
+		public void evict (string win_id)
+		{
+			cache.unset (win_id);
+			cache_time.unset (win_id);
 		}
 
 		public bool is_stale (string win_id)

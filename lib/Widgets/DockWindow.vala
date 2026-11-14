@@ -80,30 +80,12 @@ namespace Plank
 
 		construct
 		{
-			// Wayland Layer Shell initialization
-			if (GtkLayerShell.is_supported ()) {
-				GtkLayerShell.init_for_window (this);
-				GtkLayerShell.set_layer (this, GtkLayerShell.Layer.TOP);
-				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
-				GtkLayerShell.set_namespace (this, "wayplank");
-				update_exclusive_zone ();
-
-				update_layer_shell_monitor ();
-
-				// Apply dynamic anchors based on current preferences
-				update_layer_shell_anchors ();
-
-				WindowControl.get_default ().state_changed.connect (on_layer_shell_state_changed);
-			} else {
-				set_decorated (false);
-				set_type_hint (Gdk.WindowTypeHint.DOCK);
-				set_skip_taskbar_hint (true);
-				set_skip_pager_hint (true);
-				set_keep_above (true);
-				set_title ("wayplank");
-				set_role ("dock");
-				WindowControl.get_default ().state_changed.connect (on_backend_state_changed);
-			}
+			// Agnostic shell surface initialization
+			Hal.Shell.init_dock_surface (this);
+			update_exclusive_zone ();
+			update_layer_shell_monitor ();
+			update_layer_shell_anchors ();
+			Hal.Windows.state_changed.connect (on_compositor_state_changed);
 
 			realize.connect (() => {
 				input_rect = { -1, -1, -1, -1 };
@@ -139,18 +121,14 @@ namespace Plank
 			update_exclusive_zone ();
 		}
 
-		void on_layer_shell_state_changed ()
+		void on_compositor_state_changed ()
 		{
-			if (controller.prefs.Position == Gtk.PositionType.TOP) {
-				update_layer_shell_anchors ();
-			}
-		}
-
-		void on_backend_state_changed ()
-		{
-			if (!GtkLayerShell.is_supported () && !get_visible ()) {
+			var display = get_display ();
+			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
+			bool needs_refresh = false;
+			Hal.Shell.handle_compositor_state_changed (this, monitor, controller.prefs.Position, out needs_refresh);
+			if (needs_refresh)
 				update_size_and_position ();
-			}
 		}
 
 		void on_reserve_space_changed ()
@@ -161,8 +139,7 @@ namespace Plank
 
 		void on_position_changed ()
 		{
-			if (GtkLayerShell.is_supported ())
-				update_layer_shell_anchors ();
+			update_layer_shell_anchors ();
 			if (controller.renderer != null && controller.renderer.theme != null)
 				controller.position_manager.update (controller.renderer.theme);
 			update_exclusive_zone ();
@@ -195,17 +172,7 @@ namespace Plank
 			last_excl_thickness = eff_thickness;
 			last_excl_pos = pos;
 
-			if (GtkLayerShell.is_supported ()) {
-				if (reserve) {
-					GtkLayerShell.set_layer (this, GtkLayerShell.Layer.BOTTOM);
-					GtkLayerShell.set_exclusive_zone (this, thickness);
-				} else {
-					GtkLayerShell.set_layer (this, GtkLayerShell.Layer.TOP);
-					GtkLayerShell.set_exclusive_zone (this, 0);
-				}
-			}
-
-			WindowControl.set_reserve_space (reserve, thickness, pos);
+			Hal.Shell.update_exclusive_zone (this, reserve, thickness, pos);
 		}
 
 		public void cancel_long_press ()
@@ -221,11 +188,7 @@ namespace Plank
 		~DockWindow ()
 		{
 			cancel_long_press ();
-			if (GtkLayerShell.is_supported ()) {
-				WindowControl.get_default ().state_changed.disconnect (on_layer_shell_state_changed);
-			} else {
-				WindowControl.get_default ().state_changed.disconnect (on_backend_state_changed);
-			}
+			Hal.Windows.state_changed.disconnect (on_compositor_state_changed);
 			if (tracked_monitor != null) {
 				if (monitor_workarea_handler_id != 0UL) {
 					tracked_monitor.disconnect (monitor_workarea_handler_id);
@@ -239,7 +202,7 @@ namespace Plank
 				controller.prefs.notify["ReserveSpace"].disconnect (on_reserve_space_changed);
 				controller.prefs.notify["ZoomEnabled"].disconnect (on_reserve_space_changed);
 				controller.prefs.notify["IconSize"].disconnect (update_exclusive_zone);
-				WindowControl.set_reserve_space (false, 0, controller.prefs.Position);
+				Hal.Shell.update_exclusive_zone (this, false, 0, controller.prefs.Position);
 			}
 
 			if (menu != null) {
@@ -260,85 +223,28 @@ namespace Plank
 			HoveredItemProvider = null;
 		}
 
-		bool anchors_initialized = false;
-		Gtk.PositionType last_anchor_pos = Gtk.PositionType.BOTTOM;
-		int last_top_margin = -1;
-		int last_bottom_margin = -1;
-		int last_left_margin = -1;
-		int last_right_margin = -1;
-
 		void update_layer_shell_anchors ()
 		{
-			if (!GtkLayerShell.is_supported ())
-				return;
-
-			var pos = controller.prefs.Position;
-
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
-			int top_margin = 0;
-			int bottom_margin = 0;
-			int left_margin = 0;
-			int right_margin = 0;
-			if (monitor != null) {
-				var geom = monitor.get_geometry ();
-				var work = monitor.get_workarea ();
-				int top_panel = int.max (0, work.y - geom.y);
-				int bottom_panel = int.max (0, (geom.y + geom.height) - (work.y + work.height));
-				int left_panel = int.max (0, work.x - geom.x);
-				int right_panel = int.max (0, (geom.x + geom.width) - (work.x + work.width));
-				if (pos == Gtk.PositionType.TOP && top_panel > 0)
-					top_margin = top_panel + 2;
-				else if (pos == Gtk.PositionType.BOTTOM && bottom_panel > 0)
-					bottom_margin = bottom_panel + 2;
-				else if (pos == Gtk.PositionType.LEFT && left_panel > 0)
-					left_margin = left_panel + 2;
-				else if (pos == Gtk.PositionType.RIGHT && right_panel > 0)
-					right_margin = right_panel + 2;
-			}
-			if (pos == Gtk.PositionType.TOP) {
-				Gdk.Rectangle mon_geom = (monitor != null) ? monitor.get_geometry () : Gdk.Rectangle ();
-				top_margin += WindowControl.get_top_panel_floating_offset (mon_geom);
-			}
-
-			if (anchors_initialized
-				&& pos == last_anchor_pos
-				&& top_margin == last_top_margin
-				&& bottom_margin == last_bottom_margin
-				&& left_margin == last_left_margin
-				&& right_margin == last_right_margin) {
-				return;
-			}
-			anchors_initialized = true;
-			last_anchor_pos = pos;
-			last_top_margin = top_margin;
-			last_bottom_margin = bottom_margin;
-			last_left_margin = left_margin;
-			last_right_margin = right_margin;
-
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.RIGHT);
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, pos == Gtk.PositionType.TOP || pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.RIGHT);
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, pos == Gtk.PositionType.LEFT || pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP);
-			GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, pos == Gtk.PositionType.RIGHT || pos == Gtk.PositionType.BOTTOM || pos == Gtk.PositionType.TOP);
-
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, top_margin);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, bottom_margin);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, left_margin);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, right_margin);
-			queue_draw ();
+			if (Hal.Shell.update_dock_anchors (this, monitor, controller.prefs.Position))
+				queue_draw ();
 		}
 
 		public void update_layer_shell_monitor ()
 		{
-			if (!GtkLayerShell.is_supported ())
-				return;
-
 			var display = get_display ();
 			if (display == null)
 				return;
 
 			var monitor = PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor);
 			if (monitor == null)
+				return;
+
+			bool monitor_switched = false;
+			bool needs_refresh = false;
+			Hal.Shell.sync_dock_monitor (this, monitor, out monitor_switched, out needs_refresh);
+			if (!needs_refresh)
 				return;
 
 			if (monitor != tracked_monitor) {
@@ -349,14 +255,13 @@ namespace Plank
 				tracked_monitor = monitor;
 				if (tracked_monitor != null) {
 					monitor_workarea_handler_id = tracked_monitor.notify["workarea"].connect (() => {
-						WindowControl.invalidate_panel_cache ();
+						Hal.Shell.invalidate_panel_cache ();
 						update_layer_shell_anchors ();
 					});
 				}
 			}
 
-			if (GtkLayerShell.get_monitor (this) != monitor) {
-				GtkLayerShell.set_monitor (this, monitor);
+			if (monitor_switched) {
 				if (controller.renderer != null)
 					controller.renderer.reset_buffers ();
 				update_exclusive_zone ();
@@ -917,9 +822,9 @@ namespace Plank
 			hover.set_text (tooltip_text);
 			controller.position_manager.get_hover_position (HoveredItem, out x, out y);
 			var dock_region = controller.position_manager.get_dock_window_region ();
-			var dock_thickness = GtkLayerShell.is_supported ()
-				? controller.position_manager.get_visual_thickness () + 40
-				: (controller.position_manager.is_horizontal_dock () ? dock_region.height : dock_region.width);
+			var dock_span = controller.position_manager.is_horizontal_dock () ? dock_region.height : dock_region.width;
+			var dock_thickness = Hal.Shell.resolve_tooltip_dock_thickness (
+				controller.position_manager.get_visual_thickness (), dock_span);
 			var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
 			hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
 
@@ -1123,26 +1028,7 @@ namespace Plank
 				set_input_mask ();
 			}
 
-			bool ready = true;
-			if (!GtkLayerShell.is_supported ()) {
-				int cur_w, cur_h;
-				get_size (out cur_w, out cur_h);
-				if (cur_w != win_rect.width || cur_h != win_rect.height) {
-					resize (win_rect.width, win_rect.height);
-				}
-				move (win_rect.x, win_rect.y);
-				ready = WindowControl.position_dock (win_rect.x, win_rect.y, win_rect.width, win_rect.height);
-			}
-
-			if (ready) {
-				show_all ();
-				stick ();
-				if (!GtkLayerShell.is_supported ())
-					present (); 
-				queue_draw ();
-			} else if (!GtkLayerShell.is_supported () && get_visible ()) {
-				hide ();
-			}
+			Hal.Shell.commit_dock_geometry (this, win_rect);
 		}
 
 		public void update_icon_regions ()
@@ -1508,7 +1394,7 @@ namespace Plank
 			input_rect = cursor_region;
 
 			if (cursor_region.width <= 0 || cursor_region.height <= 0) {
-				window.input_shape_combine_region (new Cairo.Region (), 0, 0);
+				Hal.Shell.apply_input_region (this, new Cairo.Region ());
 				return;
 			}
 
@@ -1518,7 +1404,7 @@ namespace Plank
 				cursor_region.width,
 				cursor_region.height
 			};
-			window.input_shape_combine_region (new Cairo.Region.rectangle (region_rect), 0, 0);
+			Hal.Shell.apply_input_region (this, new Cairo.Region.rectangle (region_rect));
 		}
 	}
 }

@@ -104,7 +104,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
 ================================================================================
 
 --- 2A. Create Agnostic Boundary Translators & Purge Move-1 `hal/Interfaces/` Leaks ---
-[ ] [M2-01] `hal/Interfaces/{Hal,PlatformCapabilities,IDockShell,IWindowBackend,IThumbnailProvider}.vala`:
+[x] [M2-01] `hal/Interfaces/{Hal,PlatformCapabilities,IDockShell,IWindowBackend,IThumbnailProvider}.vala`:
             Purge `DBusConnection`, `GtkLayerShell`, `XdgSession*`, and `KWin`/`Mutter`/
             `Labwc` references from `hal/Interfaces/`.
             TRANSLATOR:
@@ -129,7 +129,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
               - Southbound: `v0.7.2` Freedesktop drivers (`KWin`, `Mutter`, `Wlroots`,
                 `LayerShellDockShell`); `v0.7.3` `Win32Shell`, `Win32Backend`,
                 `Win32ThumbnailProvider`.
-[ ] [M2-02] `hal/Freedesktop/FreedesktopHalBootstrap.vala` +
+[x] [M2-02] `hal/Freedesktop/FreedesktopHalBootstrap.vala` +
             `hal/Freedesktop/Shell/LayerShellDockShell.vala`:
             Relocate the runtime Wayland compositor probe/router out of
             `hal/Interfaces/WindowControl.vala` & `WindowCapabilities.vala` into
@@ -143,7 +143,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
               - Southbound: Binds `KWin`/`Mutter`/`Labwc` on Linux/BSD; on Windows
                 (`v0.7.3`), `WindowsHalBootstrap.vala` binds `Win32*` drivers at
                 compile time.
-[ ] [M2-03] `hal/Freedesktop/KWin/KWinThumbnailService.vala` (+ `NullThumbnailProvider`):
+[x] [M2-03] `hal/Freedesktop/KWin/KWinThumbnailService.vala` (+ `NullThumbnailProvider`):
             Implement `IThumbnailProvider`.
             TRANSLATOR:
               - Northbound: `Hal.Thumbnails.request_thumbnail(win_id, w, h, cb)`.
@@ -153,7 +153,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 capture (no-op fallback on Labwc); `v0.7.3` Win32 `PrintWindow` / `BitBlt`.
 
 --- 2B. Purify All Core UI Windows, Layout & Controller Callers (`13` Files) ---
-[ ] [M2-04] `lib/Widgets/DockWindow.vala` (L84-105, L151-242, L272-359, L920,
+[x] [M2-04] `lib/Widgets/DockWindow.vala` (L84-105, L151-242, L272-359, L920,
             L1127-1143, L1511, L1521):
             Replace all `GtkLayerShell.*`, `WindowControl.*`, AND `window.input_shape_combine_region`
             calls (L1511, L1521).
@@ -165,7 +165,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
               - Southbound: `GtkLayerShell` + `gdk_window_input_shape_combine_region`
                 on Wayland, `PositionDock` + `affectsStruts` on Mutter,
                 `SHAppBarMessage` + `WS_EX_LAYERED` / `HTTRANSPARENT` on Windows.
-[ ] [M2-05] `lib/Widgets/HoverWindow.vala` (L71-77, L126-142, L172-264):
+[x] [M2-05] `lib/Widgets/HoverWindow.vala` (L71-77, L126-142, L172-264):
             Remove all 39 `GtkLayerShell.*` and `WindowControl.position_hover` /
             `get_top_panel_floating_offset` calls.
             TRANSLATOR:
@@ -173,7 +173,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 & `Hal.Shell.position_popup_surface(this, anchor_rect, pos, ...)`.
               - Southbound: `GtkLayerShell` (`OVERLAY` margins) on KWin/Labwc,
                 `PositionHover` on Mutter, `SetWindowPos(HWND_TOPMOST)` on Windows.
-[ ] [M2-06] `lib/Widgets/FolderMenuWindow.vala` (L78-84, L500-505, L718, L728,
+[x] [M2-06] `lib/Widgets/FolderMenuWindow.vala` (L78-84, L500-505, L718, L728,
             L859, L965-983, L1111-1228):
             Remove all 39 `GtkLayerShell.*` & `WindowControl.*` calls.
             TRANSLATOR:
@@ -181,7 +181,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 `Hal.Shell.position_popup_surface(...)`, and
                 `Hal.Windows.perform_window_action(id, ACTIVATE / CLOSE)`.
               - Southbound: Same 4-compositor popup & window action drivers.
-[ ] [M2-07] `lib/Widgets/WindowCardsWindow.vala` (L83-89, L249, L353-354,
+[x] [M2-07] `lib/Widgets/WindowCardsWindow.vala` (L83-89, L249, L353-354,
             L501-509, L594, L746, L755, L835-952):
             Remove `GtkLayerShell.*`, `WindowControl.*`, and `KWinThumbnailService.*`.
             TRANSLATOR:
@@ -190,14 +190,14 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 and `Hal.Windows.perform_window_action(...)`.
               - Southbound: `LayerShellDockShell` + `KWinThumbnailService` on Linux;
                 `Win32Shell` + `Win32ThumbnailProvider` on Windows.
-[ ] [M2-08] `lib/Widgets/PoofWindow.vala` (L73, L189):
+[x] [M2-08] `lib/Widgets/PoofWindow.vala` (L73, L189):
             Remove `SurfaceCoordinateService.*` calls.
             TRANSLATOR:
               - Northbound: `Hal.Shell.init_popup_surface(this, PopupSurfaceKind.POOF_ANIMATION)`
                 & `Hal.Shell.place_transient_overlay(this, x, y, w, h, ...)`!
               - Southbound: VSync 3-beat `SurfaceCoordinateService` on KWin/Mutter
                 (graceful skip on Labwc); `SetWindowPos` layered popup on Windows.
-[ ] [M2-09] `lib/PositionManager.vala` (L60, L77, L154-159, L273-279, L1493):
+[x] [M2-09] `lib/PositionManager.vala` (L60, L77, L154-159, L273-279, L1493):
             Remove `GtkLayerShell.is_supported()` and `WindowControl.*` monitor/workarea calls.
             TRANSLATOR:
               - Northbound: `Hal.Shell.primary_monitor_changed`,
@@ -205,7 +205,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 `Hal.Shell.get_workarea_for_monitor(...)`, and
                 `Hal.Capabilities.uses_shell_anchored_surfaces`.
               - Southbound: `GtkLayerShell` / `MutterBackend` / `EnumDisplayMonitors`.
-[ ] [M2-10] `lib/HideManager.vala` (L71, L145-146, L172, L277-284, L512-529):
+[x] [M2-10] `lib/HideManager.vala` (L71, L145-146, L172, L277-284, L512-529):
             Remove `getpid()`, `WindowControl.is_mutter()`, `WindowCapabilities.*`,
             `environment_is_session_type(WAYLAND)`, and `WindowControl.*_intersects`.
             TRANSLATOR:
@@ -215,18 +215,18 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 `Hal.Runtime.get_current_pid()` (for L71 `plank_pid`).
               - Southbound: Compositor intersection caches on Wayland (`KWin`/`Mutter`/
                 `Labwc`) and `DWMWA_EXTENDED_FRAME_BOUNDS` + `IntersectRect` on Windows.
-[ ] [M2-11] `lib/DragManager.vala` (L354, L931, L1671):
+[x] [M2-11] `lib/DragManager.vala` (L354, L931, L1671):
             Replace `GtkLayerShell.is_supported()` and `WindowControl.queue_command`.
             TRANSLATOR:
               - Northbound: `Hal.Capabilities.uses_shell_anchored_surfaces` and
                 `Hal.Windows.perform_window_action(id, ACTIVATE)`.
               - Southbound: Wayland layer-shell vs Mutter/Win32 coordinate DND path.
-[ ] [M2-12] `lib/DockController.vala` (L187, L735, L743):
+[x] [M2-12] `lib/DockController.vala` (L187, L735, L743):
             Replace `GtkLayerShell.is_supported()` and `WindowControl.handle_system_resume()`.
             TRANSLATOR:
               - Northbound: `Hal.Capabilities.uses_shell_anchored_surfaces` and
                 `Hal.Windows.handle_system_resume()`.
-[ ] [M2-13] `lib/Widgets/PreferencesWindow.vala` (L488-493, L931, L995, L1614,
+[x] [M2-13] `lib/Widgets/PreferencesWindow.vala` (L488-493, L931, L995, L1614,
             L1693, L1722, L1781, L1795):
             Remove `WindowControl.is_labwc()` (L490), `" (Requires KWin)"` compositor
             branching, `primary_monitor_changed`, and `WindowCapabilities.*`.
@@ -236,13 +236,13 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 `Hal.Capabilities.supports_primary_display`, and
                 `Hal.Shell.primary_monitor_changed`.
               - Southbound: Populated per active compositor (`KWin`/`Mutter`/`Labwc`/`Win32`).
-[ ] [M2-14] `lib/Items/PlankDockItem.vala` (L160) &
+[x] [M2-14] `lib/Items/PlankDockItem.vala` (L160) &
             `lib/Items/PreferencesDockItem.vala` (L184):
             Replace `environment_is_session_desktop(XdgSessionDesktop.PANTHEON)`.
             TRANSLATOR:
               - Northbound: `Hal.Capabilities.supports_quit_action`.
               - Southbound: `false` only on Pantheon managed session; `true` everywhere else.
-[ ] [M2-15] `lib/Items/ShowDesktopDockItem.vala` (L52),
+[x] [M2-15] `lib/Items/ShowDesktopDockItem.vala` (L52),
             `lib/Items/DefaultApplicationDockItemProvider.vala` (L496, L1560), &
             `lib/Services/WindowManager.vala` (L44, L46, L52, L151):
             Replace `WindowControl.queue_command("desktop", "toggle_desktop")`,
@@ -253,7 +253,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
                 `Hal.Windows.state_changed`.
               - Southbound: KWin/Mutter/Labwc bridges on Wayland;
                 `IShellDispatch4::ToggleDesktop()` + `SetWinEventHook` on Windows.
-[ ] [M2-16] Build & 3-Compositor Move 2 Smoke Gate:
+[x] [M2-16] Build & 3-Compositor Move 2 Smoke Gate:
             Run `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings) and
             verify positioning, struts, tooltips, folder popups, window cards,
             poof animation, and `#34` click pass-through on KWin, Mutter, and Labwc.

@@ -351,10 +351,7 @@ namespace Plank
 				set_drag_icon (context, DragItem, 0.8);
 			});
 			
-			if (!GtkLayerShell.is_supported ()) {
-				context.get_device ().get_seat ().grab (window.get_window (), Gdk.SeatCapabilities.POINTER, true,
-					null, null, null);
-			}
+			Hal.Shell.begin_drag_pointer_grab (window, context);
 		}
 
 		public static string? resolve_drop_uri (string raw_str)
@@ -928,9 +925,7 @@ namespace Plank
 			dropped_on_target = false;
 			left_dock_during_drag = false;
 			last_hovered_trash = false;
-			if (!GtkLayerShell.is_supported ()) {
-				context.get_device ().get_seat ().ungrab ();
-			}
+			Hal.Shell.end_drag_pointer_grab (context);
 
 			if (!RemovalActive) {
 				unowned DefaultApplicationDockItemProvider? default_app_provider = controller.default_provider as DefaultApplicationDockItemProvider;
@@ -1668,7 +1663,7 @@ namespace Plank
 				var windows = WindowManager.get_default ().matching_windows (launcher);
 				if (windows.size > 0) {
 					message ("Wayplank: spring-loaded hover on '%s' -> activate window %s", item.Text, windows[0].Id);
-					WindowControl.queue_command (windows[0].Id, "activate");
+					Hal.Windows.perform_window_action (windows[0].Id, WindowAction.ACTIVATE);
 				}
 			}
 		}

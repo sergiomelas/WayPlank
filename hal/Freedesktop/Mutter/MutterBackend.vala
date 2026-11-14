@@ -301,8 +301,15 @@ export default class WayplankBridgeImpl {
         }));
         this._signals.push(display.connect('window-created', (d, win) => {
             this._connectWindow(win);
-            if (this._classifyWindow(win) === 'other')
+            if (this._classifyWindow(win) === 'other') {
+                this._clampWindowToReserve(win);
                 this._notifyWindowsChanged();
+            }
+        }));
+        this._signals.push(display.connect('grab-op-end', (d, arg1, arg2) => {
+            const win = (arg1 && arg1.get_frame_rect) ? arg1 : arg2;
+            if (win && this._classifyWindow(win) === 'other')
+                this._clampWindowToReserve(win);
         }));
         const handleFocus = (fw) => {
             if (!fw) {
@@ -1603,6 +1610,73 @@ export default class WayplankBridgeImpl {
         }
     }
 
+    _clampWindowToReserve(win) {
+        try {
+            if (!this._lastReserveEnabled || !(this._lastReserveThickness > 0) || !this._strutRect)
+                return;
+            if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'other')
+                return;
+            const t = win.get_window_type ? win.get_window_type() : Meta.WindowType.NORMAL;
+            if ((t !== Meta.WindowType.NORMAL && t !== Meta.WindowType.DIALOG) ||
+                (win.is_skip_taskbar && win.is_skip_taskbar()) ||
+                win.minimized ||
+                (win.is_fullscreen && win.is_fullscreen()) ||
+                (win.get_maximized && win.get_maximized() !== 0))
+                return;
+            const targetMon = this._strutRect.mon;
+            if (!win.get_monitor || win.get_monitor() !== targetMon)
+                return;
+            const monGeo = global.display.get_monitor_geometry(targetMon);
+            const base = this._baseWorkArea(targetMon);
+            let minX = monGeo.x, minY = base.y;
+            let maxRight = monGeo.x + monGeo.width, maxBottom = monGeo.y + monGeo.height;
+            const pos = this._lastReservePosition;
+            const thick = this._lastReserveThickness;
+            if (pos === 3) maxBottom = Math.min(maxBottom, monGeo.y + monGeo.height - thick);
+            else if (pos === 2) minY = Math.max(minY, base.y + thick);
+            else if (pos === 0) minX = Math.max(minX, monGeo.x + thick);
+            else if (pos === 1) maxRight = Math.min(maxRight, monGeo.x + monGeo.width - thick);
+
+            const fr = win.get_frame_rect ? win.get_frame_rect() : null;
+            if (!fr || fr.width <= 0 || fr.height <= 0 || !win.move_resize_frame)
+                return;
+            let nx = fr.x, ny = fr.y, nw = fr.width, nh = fr.height;
+            if (pos === 3 || pos === 2) {
+                if (pos === 3 && ny + nh > maxBottom) {
+                    ny = Math.max(minY, maxBottom - nh);
+                    if (ny + nh > maxBottom) nh = Math.max(120, maxBottom - ny);
+                } else if (pos === 2 && ny < minY) {
+                    ny = minY;
+                    if (ny + nh > maxBottom) nh = Math.max(120, maxBottom - ny);
+                }
+            } else if (pos === 0 || pos === 1) {
+                if (pos === 1 && nx + nw > maxRight) {
+                    nx = Math.max(minX, maxRight - nw);
+                    if (nx + nw > maxRight) nw = Math.max(160, maxRight - nx);
+                } else if (pos === 0 && nx < minX) {
+                    nx = minX;
+                    if (nx + nw > maxRight) nw = Math.max(160, maxRight - nx);
+                }
+            }
+            if (Math.abs(nx - fr.x) >= 1 || Math.abs(ny - fr.y) >= 1 ||
+                Math.abs(nw - fr.width) >= 1 || Math.abs(nh - fr.height) >= 1) {
+                win.move_resize_frame(false, Math.round(nx), Math.round(ny), Math.round(nw), Math.round(nh));
+            }
+        } catch (e) { }
+    }
+
+    _clampAllWindowsToReserve() {
+        if (!this._lastReserveEnabled || !(this._lastReserveThickness > 0) || !this._strutRect)
+            return;
+        try {
+            const actors = global.get_window_actors ? global.get_window_actors() : [];
+            for (const actor of actors) {
+                const w = actor && actor.get_meta_window ? actor.get_meta_window() : null;
+                if (w) this._clampWindowToReserve(w);
+            }
+        } catch (e) { }
+    }
+
     // D-Bus Method: SetReserveSpace
     SetReserveSpace(enabled, thickness, position) {
         if (this._lastReserveEnabled === enabled &&
@@ -1622,6 +1696,8 @@ export default class WayplankBridgeImpl {
                 this._applyDockPosition(win, this._lastDockGeo.x, this._lastDockGeo.y, this._lastDockGeo.width, this._lastDockGeo.height);
             }
         }
+        if (enabled && thickness > 0)
+            this._clampAllWindowsToReserve();
         return ok;
     }
 }

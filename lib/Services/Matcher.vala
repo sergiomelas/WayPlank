@@ -63,27 +63,27 @@ namespace Plank
 		construct
 		{
 			// Only scan /proc if no compositor window-control is providing live state
-			if (!WindowControl.has_state ()) {
+			if (!Hal.Windows.has_state ()) {
 				scan_running_applications ();
 				scan_timer_id = GLib.Timeout.add_seconds (5, () => {
-					if (!WindowControl.has_state ())
+					if (!Hal.Windows.has_state ())
 						scan_running_applications ();
 					return true;
 				});
 			}
 
-			WindowControl.get_default ().state_changed.connect (on_window_control_state_changed);
+			Hal.Windows.state_changed.connect (on_window_control_state_changed);
 		}
 
 		void on_window_control_state_changed ()
 		{
-			if (WindowControl.has_state () && scan_timer_id > 0U) {
+			if (Hal.Windows.has_state () && scan_timer_id > 0U) {
 				GLib.Source.remove (scan_timer_id);
 				scan_timer_id = 0U;
-			} else if (!WindowControl.has_state () && scan_timer_id == 0U) {
+			} else if (!Hal.Windows.has_state () && scan_timer_id == 0U) {
 				scan_running_applications ();
 				scan_timer_id = GLib.Timeout.add_seconds (5, () => {
-					if (!WindowControl.has_state ())
+					if (!Hal.Windows.has_state ())
 						scan_running_applications ();
 					return true;
 				});
@@ -92,7 +92,7 @@ namespace Plank
 
 		~Matcher ()
 		{
-			WindowControl.get_default ().state_changed.disconnect (on_window_control_state_changed);
+			Hal.Windows.state_changed.disconnect (on_window_control_state_changed);
 			if (scan_timer_id > 0U) {
 				GLib.Source.remove (scan_timer_id);
 				scan_timer_id = 0U;

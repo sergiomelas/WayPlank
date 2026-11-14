@@ -76,21 +76,7 @@ namespace Plank
 			resizable = false;
 			accept_focus = false;
 			can_focus = false;
-			set_decorated (false);
-			set_title ("wayplank-hover-cards");
-			set_role ("popup-menu");
-
-			if (GtkLayerShell.is_supported ()) {
-				GtkLayerShell.init_for_window (this);
-				GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
-				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
-				GtkLayerShell.set_namespace (this, "wayplank-hover-cards");
-			} else {
-				set_type_hint (Gdk.WindowTypeHint.POPUP_MENU);
-				set_skip_taskbar_hint (true);
-				set_skip_pager_hint (true);
-				set_keep_above (true);
-			}
+			Hal.Shell.init_popup_surface (this, PopupSurfaceKind.PREVIEW_CARDS);
 
 			unowned Gdk.Screen screen = get_screen ();
 			var visual = screen.get_rgba_visual ();
@@ -246,7 +232,7 @@ namespace Plank
 
 			string? uuid;
 			if (WindowManager.get_default ().cycle_window (TargetItem.Launcher, forward, out uuid)) {
-				WindowControl.queue_command (uuid, "activate");
+				Hal.Windows.perform_window_action (uuid, WindowAction.ACTIVATE);
 			}
 			return Gdk.EVENT_STOP;
 		}
@@ -350,8 +336,7 @@ namespace Plank
 
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
-			if (monitor != null && GtkLayerShell.is_supported ())
-				GtkLayerShell.set_monitor (this, monitor);
+			Hal.Shell.set_surface_monitor (this, monitor);
 
 			update_position (true);
 
@@ -498,15 +483,15 @@ namespace Plank
 			int max_prev_w = 190;
 			int max_prev_h = 160;
 
-			Gdk.Pixbuf? thumb_pixbuf = KWinThumbnailService.get_default ().get_cached (win.Id);
+			Gdk.Pixbuf? thumb_pixbuf = Hal.Thumbnails.get_cached (win.Id);
 			if (thumb_pixbuf != null)
 				apply_card_aspect_size (eb, da, thumb_pixbuf);
 
-			if (thumb_pixbuf == null || KWinThumbnailService.get_default ().is_stale (win.Id)) {
+			if (thumb_pixbuf == null || Hal.Thumbnails.is_stale (win.Id)) {
 				GLib.WeakRef self_ref = GLib.WeakRef (this);
 				GLib.WeakRef eb_ref = GLib.WeakRef (eb);
 				GLib.WeakRef da_ref = GLib.WeakRef (da);
-				KWinThumbnailService.get_default ().request_thumbnail (win.Id, max_prev_w, max_prev_h, (pix) => {
+				Hal.Thumbnails.request_thumbnail (win.Id, max_prev_w, max_prev_h, (pix) => {
 					if (pix != null) {
 						thumb_pixbuf = pix;
 						var self_win = (WindowCardsWindow?) self_ref.get ();
@@ -591,7 +576,7 @@ namespace Plank
 				Theme.draw_rounded_rect (cr, prev_x, prev_y, prev_w_d, prev_h_d, prev_r, prev_r, 0.0);
 				cr.clip ();
 
-				var current_thumb = (thumb_pixbuf != null) ? thumb_pixbuf : KWinThumbnailService.get_default ().get_cached (win.Id);
+				var current_thumb = (thumb_pixbuf != null) ? thumb_pixbuf : Hal.Thumbnails.get_cached (win.Id);
 				if (current_thumb != null) {
 					cr.set_source_rgba (16.0 / 255.0, 20.0 / 255.0, 28.0 / 255.0, 0.92);
 					cr.fill ();
@@ -743,7 +728,7 @@ namespace Plank
 				bool is_close_click = (Math.hypot (event.x - close_x, event.y - close_y) <= 13.0);
 
 				if ((event.button == Gdk.BUTTON_PRIMARY && is_close_click) || event.button == Gdk.BUTTON_MIDDLE) {
-					WindowControl.queue_command (win.Id, "close");
+					Hal.Windows.perform_window_action (win.Id, WindowAction.CLOSE);
 					eb.destroy ();
 					if (cards_box.get_children ().length () == 0) {
 						close_cards ();
@@ -752,7 +737,7 @@ namespace Plank
 					}
 					return Gdk.EVENT_STOP;
 				} else if (event.button == Gdk.BUTTON_PRIMARY) {
-					WindowControl.queue_command (win.Id, "activate");
+					Hal.Windows.perform_window_action (win.Id, WindowAction.ACTIVATE);
 					close_cards ();
 					return Gdk.EVENT_STOP;
 				}
@@ -799,9 +784,6 @@ namespace Plank
 
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
-			var geo = (monitor != null) ? monitor.get_geometry () : Gdk.Rectangle ();
-			int mon_w = geo.width > 0 ? geo.width : 1920;
-			int mon_h = geo.height > 0 ? geo.height : 1080;
 
 			int center_x = (int) Math.round (val.center.x);
 			int center_y = (int) Math.round (val.center.y);
@@ -832,125 +814,10 @@ namespace Plank
 			last_pos_edge = pm.Position;
 			last_thickness = visual_thickness;
 
-			if (GtkLayerShell.is_supported ()) {
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
-
-				switch (pm.Position) {
-				case Gtk.PositionType.BOTTOM:
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, false);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-
-					int bottom_margin = visual_thickness + GAP;
-
-					if (monitor != null) {
-						var work = monitor.get_workarea ();
-						int bottom_panel = int.max (0, (geo.y + geo.height) - (work.y + work.height));
-						if (bottom_panel > 0)
-							bottom_margin += bottom_panel + 2;
-					}
-
-					int clamped_x = int.max (GAP, int.min (mon_w - width - GAP, center_x - width / 2));
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, bottom_margin);
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
-					break;
-
-				case Gtk.PositionType.TOP:
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-
-					int top_margin = visual_thickness + GAP;
-
-					if (monitor != null) {
-						var work = monitor.get_workarea ();
-						int top_panel = int.max (0, work.y - geo.y);
-						if (top_panel > 0)
-							top_margin += top_panel + 2;
-					}
-					top_margin += WindowControl.get_top_panel_floating_offset (geo);
-
-					int clamped_top_x = int.max (GAP, int.min (mon_w - width - GAP, center_x - width / 2));
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, top_margin);
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_top_x);
-					break;
-
-				case Gtk.PositionType.LEFT:
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
-
-					int left_margin = visual_thickness + GAP;
-
-					if (monitor != null) {
-						var work = monitor.get_workarea ();
-						int left_panel = int.max (0, work.x - geo.x);
-						if (left_panel > 0)
-							left_margin += left_panel + 2;
-					}
-
-					int clamped_left_y = int.max (GAP, int.min (mon_h - height - GAP, center_y - height / 2));
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, left_margin);
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_left_y);
-					break;
-
-				case Gtk.PositionType.RIGHT:
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, false);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
-					GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
-
-					int right_margin = visual_thickness + GAP;
-
-					if (monitor != null) {
-						var work = monitor.get_workarea ();
-						int right_panel = int.max (0, (geo.x + geo.width) - (work.x + work.width));
-						if (right_panel > 0)
-							right_margin += right_panel + 2;
-					}
-
-					int clamped_right_y = int.max (GAP, int.min (mon_h - height - GAP, center_y - height / 2));
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, right_margin);
-					GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_right_y);
-					break;
-				}
-			} else {
-				int mon_x = geo.x;
-				int mon_y = geo.y;
-
-				int target_x = mon_x + center_x - width / 2;
-				int target_y = mon_y + center_y;
-				int mutter_offset = 8;
-
-				switch (pm.Position) {
-				case Gtk.PositionType.BOTTOM:
-					target_y = mon_y + mon_h - visual_thickness - GAP - height + mutter_offset;
-					break;
-				case Gtk.PositionType.TOP:
-					int top_bar_offset = int.max (0, (monitor != null ? monitor.get_workarea ().y - monitor.get_geometry ().y : 0));
-					target_y = mon_y + top_bar_offset + visual_thickness + GAP - mutter_offset;
-					break;
-				case Gtk.PositionType.LEFT:
-					target_x = mon_x + visual_thickness + GAP - mutter_offset;
-					target_y = mon_y + center_y - height / 2;
-					break;
-				case Gtk.PositionType.RIGHT:
-					target_x = mon_x + mon_w - visual_thickness - GAP - width + mutter_offset;
-					target_y = mon_y + center_y - height / 2;
-					break;
-				}
-
-				var abs_x = int.max (mon_x + GAP, int.min (mon_x + mon_w - width - GAP, target_x));
-				var abs_y = int.max (mon_y + GAP, int.min (mon_y + mon_h - height - GAP, target_y));
-				move (abs_x, abs_y);
-				WindowControl.position_hover (abs_x, abs_y, width, height);
-			}
+			Hal.Shell.position_popup_surface (
+				this, PopupSurfaceKind.PREVIEW_CARDS, monitor, pm.Position,
+				center_x, center_y, width, height, visual_thickness, GAP
+			);
 		}
 
 		public void cancel_dismiss_timer ()

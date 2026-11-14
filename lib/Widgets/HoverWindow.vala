@@ -22,7 +22,7 @@ namespace Plank
 {
 	/**
 	 * A hover window that shows labels for dock items.
-	 * Positioned dynamically using GtkLayerShell.
+	 * Positioned dynamically via Hal.Shell.
 	 */
 	public class HoverWindow : Gtk.Window
 	{
@@ -36,7 +36,6 @@ namespace Plank
 		
 		Gtk.Box box;
 		Gtk.Label label;
-		uint pos_timer_id = 0U;
 		
 		public HoverWindow ()
 		{
@@ -45,15 +44,7 @@ namespace Plank
 
 		~HoverWindow ()
 		{
-			cancel_pos_timer ();
-		}
-
-		void cancel_pos_timer ()
-		{
-			if (pos_timer_id > 0U) {
-				GLib.Source.remove (pos_timer_id);
-				pos_timer_id = 0U;
-			}
+			Hal.Shell.cancel_popup_sync (this);
 		}
 		
 		construct
@@ -63,22 +54,7 @@ namespace Plank
 			resizable = false;
 			accept_focus = false;
 			can_focus = false;
-			set_decorated (false);
-			set_title ("wayplank-hover");
-			set_role ("popup-menu");
-			
-			// Wayland Layer Shell initialization
-			if (GtkLayerShell.is_supported ()) {
-				GtkLayerShell.init_for_window (this);
-				GtkLayerShell.set_layer (this, GtkLayerShell.Layer.OVERLAY);
-				GtkLayerShell.set_keyboard_mode (this, GtkLayerShell.KeyboardMode.NONE);
-				GtkLayerShell.set_namespace (this, "wayplank-hover");
-			} else {
-				set_type_hint (Gdk.WindowTypeHint.POPUP_MENU);
-				set_skip_taskbar_hint (true);
-				set_skip_pager_hint (true);
-				set_keep_above (true);
-			}
+			Hal.Shell.init_popup_surface (this, PopupSurfaceKind.TOOLTIP);
 
 			unowned Gdk.Screen screen = get_screen ();
 			var visual = screen.get_rgba_visual ();
@@ -116,154 +92,28 @@ namespace Plank
 			label = new Gtk.Label (null);
 			label.set_line_wrap (false);
 			box.pack_start (label, false, false, 0);
-
-			hide.connect (cancel_pos_timer);
-			unmap.connect (cancel_pos_timer);
 		}
 		
 		public void show_at (int x, int y, Gtk.PositionType position, int dock_thickness, Gdk.Monitor? monitor)
 		{
-			if (monitor != null && GtkLayerShell.is_supported ())
-				GtkLayerShell.set_monitor (this, monitor);
+			Hal.Shell.set_surface_monitor (this, monitor);
 
 			show ();
-			
+
 			Gtk.Requisition requisition;
 			get_preferred_size (null, out requisition);
 			var width = requisition.width > 0 ? requisition.width : get_allocated_width ();
 			var height = requisition.height > 0 ? requisition.height : get_allocated_height ();
 
-			var edge_margin = dock_thickness + GAP;
-
-			var geo = monitor != null ? monitor.get_geometry () : Gdk.Rectangle ();
-			var mon_w = geo.width > 0 ? geo.width : 1920;
-			var mon_h = geo.height > 0 ? geo.height : 1080;
-
-			if (!GtkLayerShell.is_supported ()) {
-				int mon_x = geo.x;
-				int mon_y = geo.y;
-
-				int target_x = mon_x + x - width / 2;
-				int target_y = mon_y + y;
-
-				switch (position) {
-				case Gtk.PositionType.BOTTOM:
-					target_y = mon_y + mon_h - edge_margin - height;
-					break;
-				case Gtk.PositionType.TOP:
-					int top_bar_offset = int.max (0, (monitor != null ? monitor.get_workarea ().y - monitor.get_geometry ().y : 0));
-					target_y = mon_y + top_bar_offset + edge_margin;
-					break;
-				case Gtk.PositionType.LEFT:
-					target_x = mon_x + edge_margin;
-					target_y = mon_y + y - height / 2;
-					break;
-				case Gtk.PositionType.RIGHT:
-					target_x = mon_x + mon_w - edge_margin - width;
-					target_y = mon_y + y - height / 2;
-					break;
-				}
-
-				var abs_x = int.max (mon_x + GAP, int.min (mon_x + mon_w - width - GAP, target_x));
-				var abs_y = int.max (mon_y + GAP, int.min (mon_y + mon_h - height - GAP, target_y));
-
-				cancel_pos_timer ();
-				move (abs_x, abs_y);
-				WindowControl.position_hover (abs_x, abs_y, width, height);
-				pos_timer_id = GLib.Timeout.add (25, () => {
-					pos_timer_id = 0U;
-					if (get_visible ()) {
-						move (abs_x, abs_y);
-						WindowControl.position_hover (abs_x, abs_y, width, height);
-					}
-					return false;
-				});
-				return;
-			}
-
-			var clamped_x = int.max (GAP, int.min (mon_w - width - GAP, x - width / 2));
-			var clamped_y = int.max (GAP, int.min (mon_h - height - GAP, y - height / 2));
-
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, 0);
-			GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, 0);
-
-			switch (position) {
-			case Gtk.PositionType.BOTTOM:
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, false);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-				
-				int bottom_panel_offset = 0;
-				if (monitor != null) {
-					var geom = monitor.get_geometry ();
-					var work = monitor.get_workarea ();
-					int bottom_panel = int.max (0, (geom.y + geom.height) - (work.y + work.height));
-					if (bottom_panel > 0)
-						bottom_panel_offset = bottom_panel + 2;
-				}
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.BOTTOM, edge_margin + bottom_panel_offset);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
-				break;
-
-			case Gtk.PositionType.TOP:
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-				
-				int top_panel_offset = 0;
-				Gdk.Rectangle mon_geom = Gdk.Rectangle ();
-				if (monitor != null) {
-					mon_geom = monitor.get_geometry ();
-					var work = monitor.get_workarea ();
-					int top_panel = int.max (0, work.y - mon_geom.y);
-					if (top_panel > 0)
-						top_panel_offset = top_panel + 2;
-				}
-				top_panel_offset += WindowControl.get_top_panel_floating_offset (mon_geom);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, edge_margin + top_panel_offset);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, clamped_x);
-				break;
-
-			case Gtk.PositionType.LEFT:
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, false);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
-				
-				int left_panel_offset = 0;
-				if (monitor != null) {
-					var geom = monitor.get_geometry ();
-					var work = monitor.get_workarea ();
-					int left_panel = int.max (0, work.x - geom.x);
-					if (left_panel > 0)
-						left_panel_offset = left_panel + 2;
-				}
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.LEFT, edge_margin + left_panel_offset);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_y);
-				break;
-
-			case Gtk.PositionType.RIGHT:
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.RIGHT, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.LEFT, false);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.TOP, true);
-				GtkLayerShell.set_anchor (this, GtkLayerShell.Edge.BOTTOM, false);
-				
-				int right_panel_offset = 0;
-				if (monitor != null) {
-					var geom = monitor.get_geometry ();
-					var work = monitor.get_workarea ();
-					int right_panel = int.max (0, (geom.x + geom.width) - (work.x + work.width));
-					if (right_panel > 0)
-						right_panel_offset = right_panel + 2;
-				}
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.RIGHT, edge_margin + right_panel_offset);
-				GtkLayerShell.set_margin (this, GtkLayerShell.Edge.TOP, clamped_y);
-				break;
-			}
+			Hal.Shell.cancel_popup_sync (this);
+			Hal.Shell.position_popup_surface (
+				this, PopupSurfaceKind.TOOLTIP, monitor, position,
+				x, y, width, height, dock_thickness, GAP
+			);
+			Hal.Shell.sync_popup_after_show (
+				this, PopupSurfaceKind.TOOLTIP, monitor, position,
+				x, y, dock_thickness, GAP
+			);
 		}
 
 		/**

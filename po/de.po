@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 17:58+0100\n"
-"PO-Revision-Date: 2026-11-15 17:58+0100\n"
+"POT-Creation-Date: 2026-11-15 18:56+0100\n"
+"PO-Revision-Date: 2026-11-15 18:56+0100\n"
 "Last-Translator: Renate Schwiedernoch <renate.schwiedernoch@gmail.com>\n"
 "Language-Team: German <de@li.org>\n"
 "Language: de\n"
@@ -23,7 +23,7 @@ msgstr ""
 msgid "Wired Connection"
 msgstr "LAN-Verbindung"
 
-#: hal/Freedesktop/FreedesktopHalBootstrap.vala:329
+#: hal/Freedesktop/FreedesktopHalBootstrap.vala:346
 msgid " (Requires KWin)"
 msgstr " (Erfordert KWin)"
 

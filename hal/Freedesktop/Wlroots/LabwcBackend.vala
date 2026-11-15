@@ -275,10 +275,11 @@ namespace Plank
 				now_sec = 1;
 			if (toplevel_pid_cache.has_key (cache_key)) {
 				int cached_pid = toplevel_pid_cache.get (cache_key);
-				if (cached_pid > 0 && FileUtils.test ("/proc/%d/cmdline".printf (cached_pid), FileTest.EXISTS)) {
+				if (cached_pid > 0 && Hal.Apps.is_process_alive (cached_pid)) {
+					var cached_snap = Hal.Apps.inspect_process (cached_pid, false);
 					info.Pid = cached_pid;
-					info.Cmdline = LinuxProcessInspector.get_process_cmdline (cached_pid);
-					info.Executable = LinuxProcessInspector.get_process_comm (cached_pid);
+					info.Cmdline = cached_snap.full_cmdline;
+					info.Executable = cached_snap.executable_comm;
 					return;
 				}
 				if (cached_pid < 0 && (now_sec - (-cached_pid)) < 5) {
@@ -287,67 +288,16 @@ namespace Plank
 				toplevel_pid_cache.unset (cache_key);
 			}
 
-			var caption_tokens = new Gee.ArrayList<string> ();
-			if (info.Caption != "") {
-				var cleaned = info.Caption.down ()
-					.replace ("(", " ")
-					.replace (")", " ")
-					.replace ("[", " ")
-					.replace ("]", " ")
-					.replace (":", " ")
-					.replace (",", " ");
-				foreach (var part in cleaned.split (" ")) {
-					var tok = part.strip ();
-					if (tok.length >= 2 && tok != target_cls && tok != "qemu")
-						caption_tokens.add (tok);
-				}
-			}
-
-			int best_pid = 0;
-			int best_score = 0;
-			var comm_prefix = target_cls.length > 15 ? target_cls.substring (0, 15) : target_cls;
-
-			try {
-				var proc_dir = Dir.open ("/proc", 0);
-				unowned string? entry = null;
-				while ((entry = proc_dir.read_name ()) != null) {
-					int pid = int.parse (entry);
-					if (pid <= 0)
-						continue;
-
-					var comm = LinuxProcessInspector.get_process_comm (pid).down ();
-					if (comm == "")
-						continue;
-
-					var cmdline = LinuxProcessInspector.get_process_cmdline (pid);
-					var cmd_lower = cmdline.down ();
-
-					bool bin_match = (comm == target_cls || comm == comm_prefix || cmd_lower.contains (target_cls));
-					if (!bin_match)
-						continue;
-
-					int score = 10;
-					if (!cmd_lower.contains ("--type=") && !comm.contains ("crashpad"))
-						score += 25;
-					foreach (var tok in caption_tokens) {
-						if (cmd_lower.contains (tok))
-							score += 50;
-					}
-
-					if (score > best_score) {
-						best_score = score;
-						best_pid = pid;
-					}
-				}
-			} catch { }
+			int best_pid = Hal.Apps.find_pid_by_app_hint (target_cls, info.Caption);
 
 			if (toplevel_pid_cache.size > 256)
 				toplevel_pid_cache.clear ();
 			if (best_pid > 0) {
 				toplevel_pid_cache.set (cache_key, best_pid);
+				var snap = Hal.Apps.inspect_process (best_pid, false);
 				info.Pid = best_pid;
-				info.Cmdline = LinuxProcessInspector.get_process_cmdline (best_pid);
-				info.Executable = LinuxProcessInspector.get_process_comm (best_pid);
+				info.Cmdline = snap.full_cmdline;
+				info.Executable = snap.executable_comm;
 			} else {
 				toplevel_pid_cache.set (cache_key, -now_sec);
 			}

@@ -26,6 +26,9 @@ namespace Plank
 	[CCode (cname = "wayplank_hal_platform_early_runtime")]
 	extern IPlatformRuntime hal_platform_early_runtime ();
 
+	[CCode (cname = "wayplank_hal_platform_early_apps")]
+	extern IAppSystem hal_platform_early_apps ();
+
 	/**
 	 * Northbound OS- and protocol-blind Hardware, Compositor & Bus Meta-Object.
 	 * Core (`src/` + `lib/`) interacts exclusively with `Hal` without knowing
@@ -40,6 +43,7 @@ namespace Plank
 		static IBusBackend? bus_instance;
 		static ISystemTelemetry? telemetry_instance;
 		static IPlatformRuntime? runtime_instance;
+		static IAppSystem? apps_instance;
 
 		public static PlatformCapabilities Capabilities {
 			get {
@@ -99,6 +103,16 @@ namespace Plank
 			}
 		}
 
+		public static IAppSystem Apps {
+			get {
+				if (apps_instance == null)
+					apps_instance = hal_platform_early_apps ();
+				if (apps_instance == null)
+					apps_instance = new NullAppSystem ();
+				return apps_instance;
+			}
+		}
+
 		public static void initialize ()
 		{
 			hal_platform_bootstrap ();
@@ -114,11 +128,13 @@ namespace Plank
 		}
 
 		public static void bind_system_stack (IBusBackend bus,
-			ISystemTelemetry telemetry, IPlatformRuntime runtime)
+			ISystemTelemetry telemetry, IPlatformRuntime runtime, IAppSystem? apps = null)
 		{
 			bus_instance = bus;
 			telemetry_instance = telemetry;
 			runtime_instance = runtime;
+			if (apps != null)
+				apps_instance = apps;
 		}
 
 		public static void start ()
@@ -128,6 +144,8 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			if (apps_instance != null)
+				apps_instance.cleanup ();
 			if (shell_instance != null)
 				shell_instance.cleanup ();
 			if (thumbnails_instance != null)

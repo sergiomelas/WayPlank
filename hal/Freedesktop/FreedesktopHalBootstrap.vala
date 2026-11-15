@@ -131,6 +131,7 @@ namespace Plank
 		INotificationBus? _notifications = null;
 		IDesktopThemeBus? _theme = null;
 		ILauncherBadgeBus? _badges = null;
+		IAppMenuBus? _app_menu = null;
 
 		public IDockIpcServer create_dock_ipc_server (IDockIpcTarget target)
 		{
@@ -177,6 +178,14 @@ namespace Plank
 			}
 		}
 
+		public IAppMenuBus AppMenu {
+			get {
+				if (_app_menu == null)
+					_app_menu = AppMenuDbusService.get_default ();
+				return _app_menu;
+			}
+		}
+
 		public void cleanup ()
 		{
 			if (_dock_ipc_client != null)
@@ -189,6 +198,8 @@ namespace Plank
 				_theme.cleanup ();
 			if (_badges != null)
 				_badges.cleanup ();
+			if (_app_menu != null)
+				_app_menu.cleanup ();
 			DbusBroker.get_default ().cleanup ();
 		}
 	}
@@ -306,6 +317,12 @@ namespace Plank
 			return LinuxPlatformRuntime.get_default ();
 		}
 
+		[CCode (cname = "wayplank_hal_platform_early_apps")]
+		public static IAppSystem early_apps ()
+		{
+			return XdgAppSystem.get_default ();
+		}
+
 		[CCode (cname = "wayplank_hal_platform_bootstrap")]
 		public static void initialize ()
 		{
@@ -340,7 +357,8 @@ namespace Plank
 			Hal.bind_system_stack (
 				new FreedesktopBusBackend (),
 				new FreedesktopSystemTelemetry (),
-				LinuxPlatformRuntime.get_default ()
+				LinuxPlatformRuntime.get_default (),
+				XdgAppSystem.get_default ()
 			);
 		}
 	}

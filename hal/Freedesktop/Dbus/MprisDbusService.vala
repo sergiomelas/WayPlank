@@ -300,10 +300,28 @@ namespace Plank
 						}
 					}
 
+					int resolved_pid = (int) DbusBroker.get_default ().resolve_sender_pid (name);
+					if (resolved_pid <= 0) {
+						int inst_idx = name.index_of (".instance");
+						if (inst_idx > 0 && inst_idx + 9 < name.length)
+							resolved_pid = int.parse (name.substring (inst_idx + 9));
+					}
+
+					string clean_bus = name.has_prefix ("org.mpris.MediaPlayer2.")
+						? name.substring ("org.mpris.MediaPlayer2.".length)
+						: name;
+					int fb_inst_idx = clean_bus.index_of (".instance");
+					if (fb_inst_idx > 0)
+						clean_bus = clean_bus.substring (0, fb_inst_idx);
+					string fallback_name = clean_bus.length > 0
+						? (clean_bus.substring (0, 1).ascii_up () + clean_bus.substring (1))
+						: "";
+
 					var info = new MediaPlayerInfo ();
 					info.player_id = name;
 					info.identity = cur_identity;
-					info.owner_pid = (int) DbusBroker.get_default ().resolve_sender_pid (name);
+					info.fallback_app_name = fallback_name;
+					info.owner_pid = resolved_pid > 0 ? resolved_pid : 0;
 					info.status = cur_status;
 					info.title = cur_title;
 					info.artist = cur_artist;

@@ -373,6 +373,84 @@ namespace Plank
 			return Build.DATADIR;
 		}
 
+		public string[] get_extra_schema_dirs ()
+		{
+			return {
+				Path.build_filename (Build.DATADIR, "glib-2.0", "schemas"),
+				"/usr/local/share/glib-2.0/schemas",
+				"/usr/share/glib-2.0/schemas"
+			};
+		}
+
+		public string canonicalize_path (string path)
+		{
+			if (path == "")
+				return "";
+			string? real = Posix.realpath (path);
+			if (real != null && real != "")
+				return real;
+			string parent = Path.get_dirname (path);
+			string bname = Path.get_basename (path);
+			if (parent != "" && parent != "." && bname != "" && bname != "." && bname != "/") {
+				string? real_parent = Posix.realpath (parent);
+				if (real_parent != null && real_parent != "")
+					return Path.build_filename (real_parent, bname);
+			}
+			return Path.build_filename (path);
+		}
+
+		public bool paths_equal (string path_a, string path_b)
+		{
+			if (path_a == path_b)
+				return true;
+			if (path_a == "" || path_b == "")
+				return false;
+			return canonicalize_path (path_a) == canonicalize_path (path_b);
+		}
+
+		public string expand_path_variables (string raw, Gee.HashMap<string, string>? extra_vars = null)
+		{
+			string s = raw.strip ();
+			if (extra_vars != null && extra_vars.size > 0 && s.contains ("$")) {
+				var sorted_keys = new Gee.ArrayList<string> ();
+				sorted_keys.add_all (extra_vars.keys);
+				sorted_keys.sort ((a, b) => {
+					if (a.length != b.length)
+						return b.length - a.length;
+					return strcmp (a, b);
+				});
+				foreach (var k in sorted_keys) {
+					var val = extra_vars.get (k) ?? "";
+					s = s.replace ("${" + k + "}", val);
+					s = s.replace ("$" + k, val);
+				}
+			}
+			string home = GLib.Environment.get_home_dir ();
+			string user = GLib.Environment.get_user_name ();
+			string cfg = GLib.Environment.get_user_config_dir ();
+			string data = GLib.Environment.get_user_data_dir ();
+			if (cfg != "") {
+				if (home != "")
+					s = s.replace ("${XDG_CONFIG_HOME:-$HOME/.config}", cfg).replace ("${XDG_CONFIG_HOME:-${HOME}/.config}", cfg);
+				s = s.replace ("${XDG_CONFIG_HOME}", cfg).replace ("$XDG_CONFIG_HOME", cfg);
+			}
+			if (data != "") {
+				if (home != "")
+					s = s.replace ("${XDG_DATA_HOME:-$HOME/.local/share}", data).replace ("${XDG_DATA_HOME:-${HOME}/.local/share}", data);
+				s = s.replace ("${XDG_DATA_HOME}", data).replace ("$XDG_DATA_HOME", data);
+			}
+			if (home != "") {
+				s = s.replace ("${HOME}", home).replace ("$HOME", home);
+				if (s == "~")
+					s = home;
+				else if (s.has_prefix ("~/"))
+					s = home + s.substring (1);
+			}
+			if (user != "")
+				s = s.replace ("${USER}", user).replace ("$USER", user);
+			return s;
+		}
+
 		public int get_current_pid ()
 		{
 			return getpid ();

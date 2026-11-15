@@ -69,6 +69,7 @@ namespace Plank
 	{
 		public string player_id = "";
 		public string identity = "";
+		public string fallback_app_name = "";
 		public string status = "Stopped";
 		public string title = "";
 		public string artist = "";
@@ -160,6 +161,18 @@ namespace Plank
 	}
 
 	/**
+	 * Agnostic exported application menu / window profile-checkmark translator (`Hal.Bus.AppMenu`).
+	 */
+	public interface IAppMenuBus : GLib.Object
+	{
+		public signal void menu_changed (int pid, string menu_token);
+
+		public abstract Gee.ArrayList<string> query_ordered_window_profile_labels (int pid, string[]? known_profile_labels = null);
+		public abstract string query_profile_label_at_token (int pid, string menu_token, string[]? known_profile_labels = null);
+		public abstract void cleanup ();
+	}
+
+	/**
 	 * Aggregate northbound IPC & desktop event bus contract (`Hal.Bus`).
 	 */
 	public interface IBusBackend : GLib.Object
@@ -170,6 +183,7 @@ namespace Plank
 		public abstract INotificationBus Notifications { get; }
 		public abstract IDesktopThemeBus Theme { get; }
 		public abstract ILauncherBadgeBus Badges { get; }
+		public abstract IAppMenuBus AppMenu { get; }
 		public abstract void cleanup ();
 	}
 
@@ -239,6 +253,19 @@ namespace Plank
 		public void cleanup () {}
 	}
 
+	internal class NullAppMenuBus : GLib.Object, IAppMenuBus
+	{
+		public Gee.ArrayList<string> query_ordered_window_profile_labels (int pid, string[]? known_profile_labels = null)
+		{
+			return new Gee.ArrayList<string> ();
+		}
+		public string query_profile_label_at_token (int pid, string menu_token, string[]? known_profile_labels = null)
+		{
+			return "";
+		}
+		public void cleanup () {}
+	}
+
 	internal class NullBusBackend : GLib.Object, IBusBackend
 	{
 		IDockIpcClient ipc_client = new NullDockIpcClient ();
@@ -246,6 +273,7 @@ namespace Plank
 		INotificationBus notifications = new NullNotificationBus ();
 		IDesktopThemeBus theme = new NullDesktopThemeBus ();
 		ILauncherBadgeBus badges = new NullLauncherBadgeBus ();
+		IAppMenuBus app_menu = new NullAppMenuBus ();
 
 		public IDockIpcServer create_dock_ipc_server (IDockIpcTarget target)
 		{
@@ -257,6 +285,7 @@ namespace Plank
 		public INotificationBus Notifications { get { return notifications; } }
 		public IDesktopThemeBus Theme { get { return theme; } }
 		public ILauncherBadgeBus Badges { get { return badges; } }
+		public IAppMenuBus AppMenu { get { return app_menu; } }
 		public void cleanup () {}
 	}
 }

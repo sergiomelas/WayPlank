@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 17:58+0100\n"
-"PO-Revision-Date: 2026-11-15 17:58+0100\n"
+"POT-Creation-Date: 2026-11-15 18:56+0100\n"
+"PO-Revision-Date: 2026-11-15 18:56+0100\n"
 "Last-Translator: Michailo Buchko <mixabuchko@gmail.com>\n"
 "Language-Team: Ukrainian <uk@li.org>\n"
 "Language: uk\n"
@@ -24,7 +24,7 @@ msgstr ""
 msgid "Wired Connection"
 msgstr "Дротове з'єднання"
 
-#: hal/Freedesktop/FreedesktopHalBootstrap.vala:329
+#: hal/Freedesktop/FreedesktopHalBootstrap.vala:346
 msgid " (Requires KWin)"
 msgstr " (Потребує KWin)"
 

@@ -3,14 +3,14 @@
 > [!WARNING]
 > **🚧 ISA-88 QUALIFICATION STATUS: WORK IN PROGRESS — UNQUALIFIED DEVELOPMENT BRANCH (`hal-v0.7.2`)**  
 > `v0.7.1.2` (`FAT/2026-11-13 FAT 0.7.1.txt`, `375/375` = `100.0% PASS`) remains the active qualified public release on `main`.  
-> Moves 1–3 (including the **33-item ISA-88 Post-Audit Remediation across Sub-Gates A, B & C**, `backup/0.7.2-move-3b`) are **implemented and live smoke-checked across KDE Plasma 6 (`KWin`), GNOME Shell (`Mutter`), and `Labwc`**, while **Move 4 (`IAppSystem` + Dual-Zone Firewall, `[M4-01..40]`)** and **formal human ISA-88 qualification (`FAT/2026-11-15 FAT 0.7.2.txt`, `394` test definitions)** are still pending execution and maintainer sign-off.
+> Moves 1–3 (`backup/0.7.2-move-3b`) and **Move 4 Sub-Gate M4-A (`IAppSystem` + `IAppMenuBus` Zone 2 contracts & `XdgAppSystem` / `AppMenuDbusService` / `LinuxProcessInspector` Zone 3 drivers, `backup/0.7.2-move-4a`)** are **implemented and live smoke-checked across KDE Plasma 6 (`KWin`), GNOME Shell (`Mutter`), and `Labwc`**, while **Move 4 Sub-Gates M4-B & M4-C (Core caller purification + Dual-Zone Firewall)** and **formal human ISA-88 qualification (`FAT/2026-11-15 FAT 0.7.2.txt`, `394` test definitions)** are still pending execution and maintainer sign-off.
 
 Release Series: **V0.7.x Series (The Public Beta Milestone)**  
 Current Milestone: **V0.7.2 (Public Beta 3 — `MOC-0.7.2-HAL-001`: 3-Zone Dichotomic Architecture, Agnostic Boundary Translator Layer `hal/Interfaces/`, Concentrated Freedesktop/Linux Southbound Drivers & Automated Dual-Zone HAL Purity Firewall)**  
-Status / Target Window: **Active Engineering on `hal-v0.7.2` (~2026-11-14 to 2026-11-30 — Pending Move 4 & Formal `FAT 0.7.2` Qualification)**  
+Status / Target Window: **Active Engineering on `hal-v0.7.2` (~2026-11-14 to 2026-11-30 — Pending Move 4 Sub-Gates M4-B/M4-C & Formal `FAT 0.7.2` Qualification)**  
 Maintainer: **Sergio Melas** (sergiomelas@gmail.com, GitHub: [@sergiomelas](https://github.com/sergiomelas))  
 Architecture References:
-- [`Documentation/Architecture/README.md`](../Documentation/Architecture/README.md) (`DOC-ARCH-MASTER-001` Rev 2.2)
+- [`Documentation/Architecture/README.md`](../Documentation/Architecture/README.md) (`DOC-ARCH-MASTER-001` Rev 2.3)
 - [`Documentation/Architecture/HAL_COMPOSITORS.md`](../Documentation/Architecture/HAL_COMPOSITORS.md) (`DOC-ARCH-COMP-002` Rev 2.0)
 - [`Documentation/Architecture/HAL_BUSES.md`](../Documentation/Architecture/HAL_BUSES.md) (`DOC-ARCH-BUS-003` Rev 2.0)
 - [`Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md`](../Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md) (`DOC-ARCH-ID-004` Rev 2.0)
@@ -75,9 +75,11 @@ With WayPlank's Linux user-facing core feature-frozen at **`100.0%` multi-compos
 - **Sub-Gate C — Portable Cairo Surface, Locale-Independent Floats, Cross-OS Path/Theme Safety & 13 GResource Vector Fallbacks (`[M3-34, 40, 43..45, 48, 50, 51]`):**
   - Switched `Drawing.Surface` backing buffer to `Cairo.ImageSurface` while preserving `device_scale` HiDPI cache isolation, fixed `Theme.notify_property("TopRoundness")` and `ApplicationDockItem` cold-start `position_manager` null guard, switched CSS/HTTP float formatting in `WeatherDockItem` & `PreferencesWindow` to `g_ascii_formatd` (`double.format`), added Win32/DOS reserved-name and path-traversal guards in `ThemeManager` & `DockPreferences`, and authored **13 WayPlank vector fallback SVGs** in `data/docklets/` (`63` total embedded SVGs in `plank.gresource.xml`) with `Gtk.IconTheme`-first resolution in `DrawingService`.
 
-### 2.4. Move 4 — `IAppSystem` Data Translator, Cross-OS Path/Argv Purity, Build Firewall & Formal `FAT 0.7.2` *(Pending — `[M4-01..40]`)*
-- **Remaining Engineering & Qualification Gate (`40` Items in `HAL_DIFFUSED_CHUNKS_CHECKLIST.txt` Section 4):**
-  - Freeze `IAppSystem.vala` (`AppDescriptor`, `ProcessSnapshot`, `RecentDocInfo`, `QuicklistAction`, `DefaultAppRole`, `BrowserFamily`) and `IAppMenuBus`; implement `XdgAppSystem.vala`, expand `LinuxProcessInspector.vala`, and implement `AppMenuDbusService.vala` (`dbusmenu` `id=61` + `Local State`).
-  - Purify the remaining Core files in `src/` and `lib/` (`ApplicationIdentity`, `ApplicationDiscovery`, `Matcher`, `System`, `RecentFilesService`, `Paths`, `Utils`, `ItemFactory`, `ApplicationDockItem*`, `DockItem*`, `FileDockItem`, `DragManager`, `FolderMenuWindow`, `DockWindow`, `IconChooserDialog`, `DrawingService`, `AppUsageService`, `Main`, `AbstractMain`), keeping 100% of the 6-Layer mathematical identity solver $S(I, W) \in [0, 124]$ in Zone 1 Core.
-  - Enable the automated pre-compile **Dual-Zone HAL Purity Firewall** in `BuildBin.sh`.
-  - Hand off to the human maintainer for full 3-compositor **ISA-88 `FAT 0.7.2` qualification (`FAT/2026-11-15 FAT 0.7.2.txt`)**.
+### 2.4. Move 4 — `IAppSystem` Data Translator, Cross-OS Path/Argv Purity, Build Firewall & Formal `FAT 0.7.2` *(In Progress — `[M4-01..40]`)*
+- **Sub-Gate M4-A — Zone 2 Contracts & Zone 3 Drivers *(Implemented & 3-Compositor Live-Verified — Tag `backup/0.7.2-move-4a`)*:**
+  - Frozen `IAppSystem.vala` (`AppDescriptor`, `ProcessSnapshot`, `RecentDocInfo`, `QuicklistAction`, `DefaultAppRole`, `BrowserFamily`), `IAppMenuBus` (`IBusBackend.vala`), `IPlatformRuntime` path/schema hooks (`canonicalize_path`, `paths_equal`, `expand_path_variables`, `get_extra_schema_dirs`), and early `Hal.Apps` (`wayplank_hal_platform_early_apps`); eliminated the final Zone 2 leak (`0` Firewall matches across `hal/Interfaces/` + `vapi/core/`).
+  - Implemented `XdgAppSystem.vala`, `AppMenuDbusService.vala` (`dbusmenu` `id=61` + ascending `:1.N` / `<hex>` probes), expanded `LinuxProcessInspector.vala` (`find_pid_by_app_hint` with `+50` QEMU caption scoring), routed `LabwcBackend.vala` fallback PID resolution through `Hal.Apps`, populated `MprisDbusService.vala` `owner_pid` + `fallback_app_name`, and verified `0` errors / `0` warnings (`WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`) + `3/3` live smoke check (`KWin`, `Mutter`, `Labwc`).
+- **Remaining Engineering & Qualification Gates (`Sub-Gates M4-B & M4-C`):**
+  - **Sub-Gate M4-B:** Purify the 24 non-solver Core files in `src/` and `lib/` (`System`, `RecentFilesService`, `Paths`, `Utils`, `WindowManager`, `ItemFactory`, `ApplicationDockItem*`, `DockItem*`, `FileDockItem`, `MprisDockItem`, `DragManager`, `FolderMenuWindow`, `DockWindow`, `IconChooserDialog`, `DrawingService`, `AppUsageService`, `SessionWindow`, `FirstRunWindow`, `Main`, `AbstractMain`).
+  - **Sub-Gate M4-C:** Purify `ApplicationIdentity`, `ApplicationDiscovery`, and `Matcher` (keeping 100% of the 6-Layer mathematical identity solver $S(I, W) \in [0, 124]$ in Zone 1 Core), enable the automated pre-compile **Dual-Zone HAL Purity Firewall** in `BuildBin.sh`, and verify the **65,025-case Identity Engine Regression Matrix**.
+  - **Final Qualification:** Hand off to the human maintainer for full 3-compositor **ISA-88 `FAT 0.7.2` qualification (`FAT/2026-11-15 FAT 0.7.2.txt`)**.

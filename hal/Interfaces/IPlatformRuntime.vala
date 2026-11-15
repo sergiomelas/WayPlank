@@ -59,6 +59,10 @@ namespace Plank
 		public abstract bool verify_supported_display (Gdk.Display? display, out string error_message);
 		public abstract string get_self_launcher_id ();
 		public abstract string get_system_data_dir ();
+		public abstract string[] get_extra_schema_dirs ();
+		public abstract string canonicalize_path (string path);
+		public abstract bool paths_equal (string path_a, string path_b);
+		public abstract string expand_path_variables (string raw, Gee.HashMap<string, string>? extra_vars = null);
 		public virtual bool uses_native_single_instance_ipc () { return false; }
 		public virtual bool try_forward_cli_to_running_instance (string dock_name, string action) { return false; }
 		public virtual string sanitize_dock_name (string? raw_name)
@@ -118,8 +122,12 @@ namespace Plank
 			error_message = "";
 			return display != null;
 		}
-		public string get_self_launcher_id () { return "wayplank.desktop"; }
+		public string get_self_launcher_id () { return ""; }
 		public string get_system_data_dir () { return Build.DATADIR; }
+		public string[] get_extra_schema_dirs () { return {}; }
+		public string canonicalize_path (string path) { return path; }
+		public bool paths_equal (string path_a, string path_b) { return path_a == path_b; }
+		public string expand_path_variables (string raw, Gee.HashMap<string, string>? extra_vars = null) { return raw; }
 		public int get_current_pid () { return 0; }
 		public void set_process_title (string title) {}
 		public string os_release_summary () { return "unknown"; }

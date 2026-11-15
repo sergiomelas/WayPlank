@@ -131,6 +131,56 @@ namespace Plank
 			}
 		}
 
+		static int parse_unique_conn_serial (string name)
+		{
+			if (!name.has_prefix (":1."))
+				return int.MAX;
+			return int.parse (name.substring (3));
+		}
+
+		/**
+		 * Enumerates all unique session-bus connections (`:1.N`) owned by `pid`
+		 * sorted in ascending serial order so main UI connections precede worker threads.
+		 */
+		public Gee.ArrayList<string> resolve_unique_senders_for_pid (int pid)
+		{
+			var result = new Gee.ArrayList<string> ();
+			if (pid <= 0)
+				return result;
+
+			var bus = get_session_bus ();
+			if (bus == null)
+				return result;
+
+			try {
+				var names_res = bus.call_sync (
+					"org.freedesktop.DBus",
+					"/org/freedesktop/DBus",
+					"org.freedesktop.DBus",
+					"ListNames",
+					null,
+					new VariantType ("(as)"),
+					DBusCallFlags.NONE,
+					100,
+					null
+				);
+				string[] names = names_res.get_child_value (0).get_strv ();
+				foreach (unowned string n in names) {
+					if (!n.has_prefix (":1."))
+						continue;
+					if ((int) resolve_sender_pid (n) == pid)
+						result.add (n);
+				}
+				result.sort ((a, b) => {
+					int sa = parse_unique_conn_serial (a);
+					int sb = parse_unique_conn_serial (b);
+					return (sa < sb) ? -1 : ((sa > sb) ? 1 : 0);
+				});
+			} catch (Error e) { }
+
+			return result;
+		}
+
 		[CCode (instance_pos = -1)]
 		void on_session_name_owner_changed (DBusConnection conn, string sender, string obj_path,
 			string iface_name, string sig_name, Variant parameters)

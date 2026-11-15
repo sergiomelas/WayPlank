@@ -194,22 +194,30 @@ namespace Plank
 			}
 		}
 
-		~DefaultApplicationDockItemProvider ()
+		bool is_def_provider_cleaned_up = false;
+
+		public override void cleanup ()
 		{
+			if (is_def_provider_cleaned_up)
+				return;
+			is_def_provider_cleaned_up = true;
+
 			cancel_collapse_timer ();
-			Prefs.notify["CurrentWorkspaceOnly"].disconnect (handle_setting_changed);
-			Prefs.notify["PinnedOnly"].disconnect (handle_pinned_only_changed);
-			Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
-			Prefs.notify["AnchorAlwaysLeft"].disconnect (handle_category_layout_changed);
-			Prefs.notify["DockletsOnRight"].disconnect (handle_category_layout_changed);
-			Prefs.notify["AccordionDocklets"].disconnect (handle_accordion_docklets_changed);
-			Prefs.notify["SystemMenuAccess"].disconnect (handle_system_menu_access_changed);
-			Prefs.notify["ShowRunningIndicators"].disconnect (handle_running_indicators_changed);
-			Prefs.notify["ShowAttentionIndicators"].disconnect (handle_running_indicators_changed);
-			Prefs.notify["PinnedAccordionMode"].disconnect (handle_pinned_accordion_changed);
-			Prefs.notify["PinnedAccordionCount"].disconnect (handle_pinned_accordion_changed);
-			Prefs.notify["AccordionClickToExpand"].disconnect (handle_click_to_expand_changed);
-			Prefs.notify["IconSize"].disconnect (handle_icon_size_changed);
+			if (Prefs != null) {
+				Prefs.notify["CurrentWorkspaceOnly"].disconnect (handle_setting_changed);
+				Prefs.notify["PinnedOnly"].disconnect (handle_pinned_only_changed);
+				Prefs.notify["CategorizeItems"].disconnect (handle_categorize_items_changed);
+				Prefs.notify["AnchorAlwaysLeft"].disconnect (handle_category_layout_changed);
+				Prefs.notify["DockletsOnRight"].disconnect (handle_category_layout_changed);
+				Prefs.notify["AccordionDocklets"].disconnect (handle_accordion_docklets_changed);
+				Prefs.notify["SystemMenuAccess"].disconnect (handle_system_menu_access_changed);
+				Prefs.notify["ShowRunningIndicators"].disconnect (handle_running_indicators_changed);
+				Prefs.notify["ShowAttentionIndicators"].disconnect (handle_running_indicators_changed);
+				Prefs.notify["PinnedAccordionMode"].disconnect (handle_pinned_accordion_changed);
+				Prefs.notify["PinnedAccordionCount"].disconnect (handle_pinned_accordion_changed);
+				Prefs.notify["AccordionClickToExpand"].disconnect (handle_click_to_expand_changed);
+				Prefs.notify["IconSize"].disconnect (handle_icon_size_changed);
+			}
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
 			if (pinned_expander != null) {
 				disconnect_element (pinned_expander);
@@ -225,6 +233,13 @@ namespace Plank
 				docklets_expander.cleanup ();
 				docklets_expander = null;
 			}
+
+			base.cleanup ();
+		}
+
+		~DefaultApplicationDockItemProvider ()
+		{
+			cleanup ();
 		}
 
 		void handle_running_indicators_changed ()

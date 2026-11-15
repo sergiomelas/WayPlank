@@ -46,15 +46,23 @@ namespace Plank
 			start_timer ();
 		}
 		
+		private bool cleaned_up = false;
+
 		~ClockDockItem ()
 		{
-			notify["IsAttached"].disconnect (on_attached_changed);
+			if (!cleaned_up) {
+				cleaned_up = true;
+				notify["IsAttached"].disconnect (on_attached_changed);
+			}
 			stop_timer ();
 		}
 
 		public override void cleanup ()
 		{
-			notify["IsAttached"].disconnect (on_attached_changed);
+			if (!cleaned_up) {
+				cleaned_up = true;
+				notify["IsAttached"].disconnect (on_attached_changed);
+			}
 			stop_timer ();
 			base.cleanup ();
 		}

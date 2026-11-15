@@ -78,6 +78,10 @@ namespace Plank
 		
 		~Preferences ()
 		{
+			if (save_retry_timer_id > 0U) {
+				GLib.Source.remove (save_retry_timer_id);
+				save_retry_timer_id = 0U;
+			}
 			notify.disconnect (handle_notify);
 			apply ();
 			stop_monitor ();
@@ -348,6 +352,8 @@ namespace Plank
 		bool is_delayed_internal = false;
 		bool is_changed = false;
 		int64 last_save_time = 0;
+		uint save_retry_timer_id = 0U;
+		uint save_retry_attempts = 0U;
 		
 		/**
 		 * Delays saving changes to the backing file until apply() is called.
@@ -425,6 +431,10 @@ namespace Plank
 			}
 			
 			stop_monitor ();
+			if (save_retry_timer_id > 0U) {
+				GLib.Source.remove (save_retry_timer_id);
+				save_retry_timer_id = 0U;
+			}
 			is_delayed = false;
 			is_changed = false;
 			
@@ -455,7 +465,7 @@ namespace Plank
 		
 		void start_monitor ()
 		{
-			if (backing_monitor != null)
+			if (backing_monitor != null || backing_file == null)
 				return;
 			
 			try {
@@ -494,7 +504,12 @@ namespace Plank
 		
 		void load_prefs ()
 		{
-			string backing_file_path = (backing_file.get_path () ?? "");
+			if (backing_file == null)
+				return;
+			string? raw_backing_path = backing_file.get_path ();
+			if (raw_backing_path == null || raw_backing_path == "")
+				return;
+			string backing_file_path = raw_backing_path;
 			
 			debug ("Loading preferences from file '%s'", backing_file_path);
 			
@@ -623,7 +638,10 @@ namespace Plank
 			if (read_only || backing_file == null)
 				return;
 			
-			string backing_file_path = (backing_file.get_path () ?? "");
+			string? raw_save_path = backing_file.get_path ();
+			if (raw_save_path == null || raw_save_path == "")
+				return;
+			string backing_file_path = raw_save_path;
 			
 			if (is_delayed || is_delayed_internal) {
 				Logger.verbose ("Preferences.save_prefs('%s') - delaying save", backing_file_path);
@@ -693,20 +711,40 @@ namespace Plank
 			}
 			
 			debug ("Saving preferences '%s'", backing_file_path);
-			is_changed = false;
 			
 			try {
 				var stream = new DataOutputStream (backing_file.replace (null, false, 0));
 				stream.put_string (file.to_data ());
 				stream.close ();
+				is_changed = false;
+				save_retry_attempts = 0U;
 				last_save_time = GLib.get_monotonic_time ();
 			} catch (Error e) {
+				is_changed = true;
 				warning ("Unable to create the preferences file '%s'", backing_file_path);
 				debug (e.message);
+				if (save_retry_attempts < 3U && save_retry_timer_id == 0U) {
+					save_retry_attempts++;
+					save_retry_timer_id = schedule_save_retry (this);
+				}
 			}
 			
 			thaw_notify ();
 			start_monitor ();
+		}
+
+		private static uint schedule_save_retry (Preferences target)
+		{
+			var self_ref = GLib.WeakRef (target);
+			return GLib.Timeout.add (150, () => {
+				var prefs = self_ref.get () as Preferences;
+				if (prefs != null) {
+					prefs.save_retry_timer_id = 0U;
+					if (!prefs.read_only && prefs.is_changed && !prefs.is_delayed && prefs.backing_file != null)
+						prefs.save_prefs ();
+				}
+				return false;
+			});
 		}
 	}
 }

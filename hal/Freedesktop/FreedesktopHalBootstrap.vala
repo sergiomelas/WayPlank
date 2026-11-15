@@ -27,14 +27,25 @@ namespace Plank
 	 */
 	class FreedesktopWindowBackendAdapter : GLib.Object, IWindowBackend
 	{
+		bool signals_connected = false;
+
 		public FreedesktopWindowBackendAdapter ()
 		{
 			WindowControl.get_default ().state_changed.connect (on_state_changed);
 			WindowControl.get_default ().bridge_reconnected.connect (on_bridge_reconnected);
+			signals_connected = true;
 		}
 
 		~FreedesktopWindowBackendAdapter ()
 		{
+			disconnect_signals ();
+		}
+
+		void disconnect_signals ()
+		{
+			if (!signals_connected)
+				return;
+			signals_connected = false;
 			WindowControl.get_default ().state_changed.disconnect (on_state_changed);
 			WindowControl.get_default ().bridge_reconnected.disconnect (on_bridge_reconnected);
 		}
@@ -57,6 +68,7 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			disconnect_signals ();
 			WindowControl.cleanup ();
 		}
 
@@ -167,6 +179,8 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			if (_dock_ipc_client != null)
+				_dock_ipc_client.cleanup ();
 			if (_media != null)
 				_media.cleanup ();
 			if (_notifications != null)
@@ -276,6 +290,7 @@ namespace Plank
 				_ejector.cleanup ();
 			if (_trash != null)
 				_trash.cleanup ();
+			KWinTrashBridge.cleanup_if_active ();
 		}
 	}
 
@@ -310,6 +325,7 @@ namespace Plank
 			caps.supports_quit_action = !environment_is_session_desktop (XdgSessionDesktop.PANTHEON);
 			caps.supports_pressure_reveal = !environment_is_session_type (XdgSessionType.WAYLAND);
 			caps.supports_hardware_brightness = true;
+			caps.uses_shell_anchored_surfaces = environment_is_session_type (XdgSessionType.WAYLAND) || GtkLayerShell.is_supported ();
 			caps.unsupported_hide_mode_suffix = WindowControl.is_labwc () ? _(" (Requires KWin)") : "";
 			caps.fully_supported_summary = WindowCapabilities.fully_supported_compositors ();
 			caps.partially_supported_summary = WindowCapabilities.partially_supported_compositors ();

@@ -33,7 +33,7 @@ namespace Plank
 		/**
 		 * The dock element's container which it is added too (if any).
 		 */
-		public DockContainer? Container { get; set; default = null; }
+		public weak DockContainer? Container { get; set; default = null; }
 		
 		string _text = "";
 		/**
@@ -364,6 +364,30 @@ namespace Plank
 		 */
 		public abstract void reset_buffers ();
 		
+		static string? resolve_menu_icon_spec (string? icon)
+		{
+			if (icon == null || icon == "")
+				return null;
+
+			if (DrawingService.has_icon (icon))
+				return icon;
+
+			var sym_candidates = new GLib.StringBuilder ();
+			foreach (unowned string token in icon.split (";;")) {
+				if (token == null || token == "" || token.has_suffix ("-symbolic")
+					|| token.contains ("/") || token.contains ("\\") || token.contains ("://"))
+					continue;
+				if (sym_candidates.len > 0)
+					sym_candidates.append (";;");
+				sym_candidates.append (token + "-symbolic");
+			}
+
+			if (sym_candidates.len > 0 && DrawingService.has_icon (sym_candidates.str))
+				return sym_candidates.str;
+
+			return null;
+		}
+
 		/**
 		 * Creates a new menu item with mnemonics enabled.
 		 *
@@ -374,13 +398,14 @@ namespace Plank
 		 */
 		public static Gtk.MenuItem create_menu_item (string title, string? icon = null, bool force_show_icon = false)
 		{
-			if (icon == null || icon == "")
+			var resolved_icon = resolve_menu_icon_spec (icon);
+			if (resolved_icon == null)
 				return new Gtk.MenuItem.with_mnemonic (title);
 			
 			int width, height;
 			Gtk.icon_size_lookup (Gtk.IconSize.MENU, out width, out height);
 			
-			return create_menu_item_iternal (title, DrawingService.load_icon (icon, width, height), force_show_icon, true);
+			return create_menu_item_iternal (title, DrawingService.load_icon (resolved_icon, width, height), force_show_icon, true);
 		}
 		
 		/**
@@ -412,13 +437,14 @@ namespace Plank
 		 */
 		public static Gtk.MenuItem create_literal_menu_item (string title, string? icon = null, bool force_show_icon = true)
 		{
-			if (icon == null || icon == "")
+			var resolved_icon = resolve_menu_icon_spec (icon);
+			if (resolved_icon == null)
 				return new Gtk.MenuItem.with_label (title);
 			
 			int width, height;
 			Gtk.icon_size_lookup (Gtk.IconSize.MENU, out width, out height);
 			
-			return create_menu_item_iternal (title, DrawingService.load_icon (icon, width, height), force_show_icon, false);
+			return create_menu_item_iternal (title, DrawingService.load_icon (resolved_icon, width, height), force_show_icon, false);
 		}
 		
 		/**

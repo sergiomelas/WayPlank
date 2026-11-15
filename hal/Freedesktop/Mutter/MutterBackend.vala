@@ -1759,36 +1759,42 @@ export default class WayplankBridgeImpl {
 			// If GNOME Shell previously crashed and entered failsafe mode ('disable-user-extensions = true'),
 			// reset the master switch and ensure our extension UUID is enrolled.
 			var schema_source = SettingsSchemaSource.get_default ();
-			if (schema_source != null && schema_source.lookup ("org.gnome.shell", true) != null) {
+			var shell_schema = schema_source != null ? schema_source.lookup ("org.gnome.shell", true) : null;
+			if (shell_schema != null) {
 				var shell_settings = new GLib.Settings ("org.gnome.shell");
-				if (shell_settings.get_boolean ("disable-user-extensions")) {
+				if (shell_schema.has_key ("disable-user-extensions")
+					&& shell_settings.get_boolean ("disable-user-extensions")) {
 					message ("MutterBackend: GNOME Shell Safety Mode detected (disable-user-extensions=true), auto-recovering...");
 					shell_settings.set_boolean ("disable-user-extensions", false);
 				}
 
-				var disabled = shell_settings.get_strv ("disabled-extensions");
-				if (EXTENSION_UUID in disabled) {
-					var updated_disabled = new Gee.ArrayList<string> ();
-					foreach (var d in disabled) {
-						if (d != EXTENSION_UUID)
-							updated_disabled.add (d);
+				if (shell_schema.has_key ("disabled-extensions")) {
+					var disabled = shell_settings.get_strv ("disabled-extensions");
+					if (EXTENSION_UUID in disabled) {
+						var updated_disabled = new Gee.ArrayList<string> ();
+						foreach (var d in disabled) {
+							if (d != EXTENSION_UUID)
+								updated_disabled.add (d);
+						}
+						string[] new_arr = new string[updated_disabled.size];
+						for (int i = 0; i < updated_disabled.size; i++)
+							new_arr[i] = updated_disabled.get (i);
+						shell_settings.set_strv ("disabled-extensions", new_arr);
 					}
-					string[] new_arr = new string[updated_disabled.size];
-					for (int i = 0; i < updated_disabled.size; i++)
-						new_arr[i] = updated_disabled.get (i);
-					shell_settings.set_strv ("disabled-extensions", new_arr);
 				}
 
-				var enabled = shell_settings.get_strv ("enabled-extensions");
-				if (!(EXTENSION_UUID in enabled)) {
-					var updated_enabled = new Gee.ArrayList<string> ();
-					foreach (var e in enabled)
-						updated_enabled.add (e);
-					updated_enabled.add (EXTENSION_UUID);
-					string[] new_arr = new string[updated_enabled.size];
-					for (int i = 0; i < updated_enabled.size; i++)
-						new_arr[i] = updated_enabled.get (i);
-					shell_settings.set_strv ("enabled-extensions", new_arr);
+				if (shell_schema.has_key ("enabled-extensions")) {
+					var enabled = shell_settings.get_strv ("enabled-extensions");
+					if (!(EXTENSION_UUID in enabled)) {
+						var updated_enabled = new Gee.ArrayList<string> ();
+						foreach (var e in enabled)
+							updated_enabled.add (e);
+						updated_enabled.add (EXTENSION_UUID);
+						string[] new_arr = new string[updated_enabled.size];
+						for (int i = 0; i < updated_enabled.size; i++)
+							new_arr[i] = updated_enabled.get (i);
+						shell_settings.set_strv ("enabled-extensions", new_arr);
+					}
 				}
 			}
 
@@ -2010,8 +2016,8 @@ export default class WayplankBridgeImpl {
 					if (json.has_member ("pid")) {
 						info.Pid = (int) json.get_int_member ("pid");
 						if (info.Pid > 0) {
-							info.Cmdline = ApplicationDiscovery.get_process_cmdline (info.Pid);
-							info.Executable = ApplicationDiscovery.get_process_comm (info.Pid);
+							info.Cmdline = LinuxProcessInspector.get_process_cmdline (info.Pid);
+							info.Executable = LinuxProcessInspector.get_process_comm (info.Pid);
 						}
 					}
 

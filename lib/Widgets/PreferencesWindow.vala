@@ -33,6 +33,9 @@ namespace Plank
 		public DockController controller { get; construct set; }
 		
 		DockPreferences prefs;
+		weak DockController? bound_controller = null;
+		weak DockPreferences? bound_prefs = null;
+		weak Gdk.Screen? bound_screen = null;
 		
 		[GtkChild]
 		unowned Gtk.ComboBoxText cb_theme;
@@ -481,17 +484,17 @@ namespace Plank
 		{
 			foreach (unowned Gtk.CellRenderer renderer in cb_hidemode.get_cells ()) {
 				cb_hidemode.set_cell_data_func (renderer, (layout, cell, model, iter) => {
-					string id = "";
+					string? id = null;
 					model.get (iter, 1, out id);
-					if (id != "") {
+					if (id != null && id != "") {
 						var mode = (HideType) int.parse (id);
 						bool supported = Hal.Capabilities.supports_hide_mode (mode);
 						cell.sensitive = supported;
 						string hint = Hal.Capabilities.get_unsupported_hide_mode_hint (mode);
 						if (cell is Gtk.CellRendererText && !supported && hint != "") {
-							string text = "";
+							string? text = null;
 							model.get (iter, 0, out text);
-							if (!text.contains (hint))
+							if (text != null && !text.contains (hint))
 								((Gtk.CellRendererText) cell).text = text + hint;
 						}
 					}
@@ -927,16 +930,22 @@ namespace Plank
 		
 		void hidemode_changed (Gtk.ComboBox widget)
 		{
-			var mode = (HideType) int.parse (widget.get_active_id ());
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			var mode = (HideType) int.parse (active_id);
 			if (Hal.Capabilities.supports_hide_mode (mode))
 				prefs.HideMode = mode;
 			else
-				cb_hidemode.active_id = ((int) HideType.DODGE_MAXIMIZED).to_string ();
+				cb_hidemode.active_id = ((int) Hal.Capabilities.fallback_hide_mode).to_string ();
 		}
 		
 		void position_changed (Gtk.ComboBox widget)
 		{
-			prefs.Position = (Gtk.PositionType) int.parse (widget.get_active_id ());
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			prefs.Position = (Gtk.PositionType) int.parse (active_id);
 		}
 		
 		void update_alignment_sensitivity ()
@@ -976,13 +985,19 @@ namespace Plank
 
 		void alignment_changed (Gtk.ComboBox widget)
 		{
-			prefs.Alignment = (Gtk.Align) int.parse (widget.get_active_id ());
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			prefs.Alignment = (Gtk.Align) int.parse (active_id);
 			update_alignment_sensitivity ();
 		}
 		
 		void items_alignment_changed (Gtk.ComboBox widget)
 		{
-			prefs.ItemsAlignment = (Gtk.Align) int.parse (widget.get_active_id ());
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			prefs.ItemsAlignment = (Gtk.Align) int.parse (active_id);
 		}
 		
 		void hide_toggled (GLib.Object widget, ParamSpec param)
@@ -995,7 +1010,7 @@ namespace Plank
 				if (Hal.Capabilities.supports_hide_mode (mode))
 					prefs.HideMode = mode;
 				else
-					prefs.HideMode = HideType.DODGE_MAXIMIZED;
+					prefs.HideMode = Hal.Capabilities.fallback_hide_mode;
 				cb_hidemode.active_id = ((int) prefs.HideMode).to_string ();
 			} else {
 				if (prefs.HideMode != HideType.NONE)
@@ -1123,7 +1138,10 @@ namespace Plank
 
 		void window_click_behavior_changed (Gtk.ComboBox widget)
 		{
-			prefs.WindowClickBehavior = int.parse (widget.get_active_id ());
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			prefs.WindowClickBehavior = int.parse (active_id);
 		}
 
 		void active_highlight_changed (Gtk.ComboBox widget)
@@ -1334,8 +1352,9 @@ namespace Plank
 
 		void system_menu_access_changed ()
 		{
-			if (cb_system_menu_access.active_id != null) {
-				int val = int.parse (cb_system_menu_access.active_id);
+			var active_id = cb_system_menu_access.active_id;
+			if (active_id != null && active_id != "") {
+				int val = int.parse (active_id);
 				if (val >= 1 && val <= 4 && prefs.SystemMenuAccess != val) {
 					prefs.SystemMenuAccess = val;
 				}
@@ -1400,12 +1419,16 @@ namespace Plank
 					}
 
 					try {
+						char pct_buf[double.DTOSTR_BUF_SIZE];
+						char hl_buf[double.DTOSTR_BUF_SIZE];
+						string pct_str = pct.format (pct_buf, "%.1f");
+						string hl_str = hl_pct.format (hl_buf, "%.1f");
 						string css = "trough {\n" +
-						             "    background-image: linear-gradient(to right, rgba(120, 120, 120, 0.25) 0%, rgba(120, 120, 120, 0.25) %.1f%%, rgba(224, 27, 36, 0.50) %.1f%%, rgba(224, 27, 36, 0.85) 100%%);\n".printf (pct, pct) +
+						             "    background-image: linear-gradient(to right, rgba(120, 120, 120, 0.25) 0%, rgba(120, 120, 120, 0.25) %s%%, rgba(224, 27, 36, 0.50) %s%%, rgba(224, 27, 36, 0.85) 100%%);\n".printf (pct_str, pct_str) +
 						             "}\n" +
 						             "scale.slider-exceeded highlight {\n" +
 						             "    background-color: transparent;\n" +
-						             "    background-image: linear-gradient(to right, #3584e4 0%, #3584e4 %.1f%%, #e01b24 %.1f%%, #e01b24 100%%);\n".printf (hl_pct, hl_pct) +
+						             "    background-image: linear-gradient(to right, #3584e4 0%, #3584e4 %s%%, #e01b24 %s%%, #e01b24 100%%);\n".printf (hl_str, hl_str) +
 						             "}\n" +
 						             "scale.slider-exceeded.marks-after slider {\n" +
 						             "    background-color: transparent;\n" +
@@ -1514,7 +1537,12 @@ namespace Plank
 				return;
 			signals_connected = true;
 
-			prefs.notify.connect (prefs_changed);
+			bound_controller = controller;
+			bound_prefs = prefs;
+			bound_screen = get_screen ();
+
+			if (bound_prefs != null)
+				bound_prefs.notify.connect (prefs_changed);
 			
 			cb_theme.changed.connect (theme_changed);
 			btn_add_theme.clicked.connect (on_add_theme_clicked);
@@ -1573,17 +1601,18 @@ namespace Plank
 			sw_docklet_weather.notify["active"].connect (docklet_weather_toggled);
 			sw_docklet_network.notify["active"].connect (docklet_network_toggled);
 			sw_docklet_dnd.notify["active"].connect (docklet_dnd_toggled);
-			if (controller != null && controller.default_provider != null)
-				controller.default_provider.elements_changed.connect (default_provider_elements_changed);
+			if (bound_controller != null && bound_controller.default_provider != null)
+				bound_controller.default_provider.elements_changed.connect (default_provider_elements_changed);
 			cb_alignment.changed.connect (alignment_changed);
 			cb_items_alignment.changed.connect (items_alignment_changed);
-			get_screen ().monitors_changed.connect (rebuild_monitor_list);
+			if (bound_screen != null)
+				bound_screen.monitors_changed.connect (rebuild_monitor_list);
 			Hal.Shell.primary_monitor_changed.connect (rebuild_monitor_list);
 			dock_preferences.notify["visible-child"].connect (on_stack_page_changed);
 			dock_preferences.notify["transition-running"].connect (on_stack_page_changed);
-			if (controller != null && controller.position_manager != null) {
-				controller.position_manager.notify["icon-size"].connect (on_position_manager_icon_size_changed);
-				controller.position_manager.notify["max-icon-size"].connect (on_position_manager_icon_size_changed);
+			if (bound_controller != null && bound_controller.position_manager != null) {
+				bound_controller.position_manager.notify["icon-size"].connect (on_position_manager_icon_size_changed);
+				bound_controller.position_manager.notify["max-icon-size"].connect (on_position_manager_icon_size_changed);
 			}
 		}
 		
@@ -1593,7 +1622,8 @@ namespace Plank
 				return;
 			signals_connected = false;
 
-			prefs.notify.disconnect (prefs_changed);
+			if (bound_prefs != null)
+				bound_prefs.notify.disconnect (prefs_changed);
 			
 			cb_theme.changed.disconnect (theme_changed);
 			btn_add_theme.clicked.disconnect (on_add_theme_clicked);
@@ -1652,18 +1682,23 @@ namespace Plank
 			sw_docklet_weather.notify["active"].disconnect (docklet_weather_toggled);
 			sw_docklet_network.notify["active"].disconnect (docklet_network_toggled);
 			sw_docklet_dnd.notify["active"].disconnect (docklet_dnd_toggled);
-			if (controller != null && controller.default_provider != null)
-				controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
+			if (bound_controller != null && bound_controller.default_provider != null)
+				bound_controller.default_provider.elements_changed.disconnect (default_provider_elements_changed);
 			cb_alignment.changed.disconnect (alignment_changed);
 			cb_items_alignment.changed.disconnect (items_alignment_changed);
-			get_screen ().monitors_changed.disconnect (rebuild_monitor_list);
+			if (bound_screen != null)
+				bound_screen.monitors_changed.disconnect (rebuild_monitor_list);
 			Hal.Shell.primary_monitor_changed.disconnect (rebuild_monitor_list);
 			dock_preferences.notify["visible-child"].disconnect (on_stack_page_changed);
 			dock_preferences.notify["transition-running"].disconnect (on_stack_page_changed);
-			if (controller != null && controller.position_manager != null) {
-				controller.position_manager.notify["icon-size"].disconnect (on_position_manager_icon_size_changed);
-				controller.position_manager.notify["max-icon-size"].disconnect (on_position_manager_icon_size_changed);
+			if (bound_controller != null && bound_controller.position_manager != null) {
+				bound_controller.position_manager.notify["icon-size"].disconnect (on_position_manager_icon_size_changed);
+				bound_controller.position_manager.notify["max-icon-size"].disconnect (on_position_manager_icon_size_changed);
 			}
+
+			bound_controller = null;
+			bound_prefs = null;
+			bound_screen = null;
 		}
 		
 		void rebuild_monitor_list ()
@@ -1746,7 +1781,7 @@ namespace Plank
 			update_theme_buttons ();
 
 			var effective_mode = (prefs.HideMode != HideType.NONE && !Hal.Capabilities.supports_hide_mode (prefs.HideMode))
-				? HideType.DODGE_MAXIMIZED
+				? Hal.Capabilities.fallback_hide_mode
 				: prefs.HideMode;
 			cb_hidemode.active_id = ((int) effective_mode).to_string ();
 			cb_position.active_id = ((int) prefs.Position).to_string ();
@@ -1981,10 +2016,9 @@ namespace Plank
 			if (img == null)
 				return;
 			
-			var default_theme = Gtk.IconTheme.get_default ();
 			string? matched = null;
 			foreach (var name in system_icon_names.split (";;")) {
-				if (default_theme.has_icon (name)) {
+				if (DrawingService.theme_has_icon (name)) {
 					matched = name;
 					break;
 				}

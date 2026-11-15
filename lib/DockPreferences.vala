@@ -570,7 +570,7 @@ namespace Plank
 							@set (prop_name, new_v);
 					} else if (type == typeof (string)) {
 						string new_v = kf.get_string ("DockPreferences", prop_name);
-						if (new_v.contains ("/") || (prop_name == "Theme" && new_v == ""))
+						if (prop_name == "Theme" && (new_v == "" || new_v == "." || new_v == ".." || new_v.contains ("/") || new_v.contains ("\\")))
 							throw new KeyFileError.INVALID_VALUE ("Invalid string");
 						string? old_v = null;
 						@get (prop_name, out old_v);
@@ -579,7 +579,7 @@ namespace Plank
 					} else if (type == typeof (string[])) {
 						string[] new_v = kf.get_string_list ("DockPreferences", prop_name);
 						foreach (unowned string entry in new_v) {
-							if (entry == "" || entry.contains ("/") || !entry.has_suffix (".dockitem"))
+							if (entry == "" || entry.contains ("..") || entry.contains ("/") || entry.contains ("\\") || !entry.has_suffix (".dockitem"))
 								throw new KeyFileError.INVALID_VALUE ("Invalid dockitem entry");
 						}
 						string[] old_v = get_strv_property (prop_name);
@@ -934,10 +934,12 @@ namespace Plank
 				break;
 			
 			case "Theme":
-				if (Theme == "")
+				if (Theme == "" || Theme == "." || Theme == "..") {
 					Theme = Plank.Theme.DEFAULT_NAME;
-				else if (Theme.contains ("/"))
-					Theme = Theme.replace ("/", "");
+				} else if (Theme.contains ("/") || Theme.contains ("\\")) {
+					string sanitized = Theme.replace ("/", "").replace ("\\", "");
+					Theme = (sanitized == "" || sanitized == "." || sanitized == "..") ? Plank.Theme.DEFAULT_NAME : sanitized;
+				}
 				break;
 			case "ActiveHighlight":
 				if (ActiveHighlight < 0 || ActiveHighlight > MAX_ACTIVE_HIGHLIGHT)

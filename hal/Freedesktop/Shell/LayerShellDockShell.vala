@@ -142,13 +142,24 @@ namespace Plank
 			}
 		}
 
+		bool monitor_signal_connected = false;
+
 		public LayerShellDockShell ()
 		{
 			WindowControl.get_default ().primary_monitor_changed.connect (on_backend_primary_monitor_changed);
+			monitor_signal_connected = true;
 		}
 
 		~LayerShellDockShell ()
 		{
+			cleanup ();
+		}
+
+		public void cleanup ()
+		{
+			if (!monitor_signal_connected)
+				return;
+			monitor_signal_connected = false;
 			WindowControl.get_default ().primary_monitor_changed.disconnect (on_backend_primary_monitor_changed);
 		}
 

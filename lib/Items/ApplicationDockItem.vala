@@ -62,7 +62,7 @@ namespace Plank
 			return (accepts_payload || is_web_browser () || (supported_mime_types != null && supported_mime_types.size > 0));
 		}
 		
-		string? unity_dbusname = null;
+		string? badge_sender_id = null;
 		string base_launcher_text = "";
 		int prev_window_count = 0;
 		int browser_profile_reg_id = 0;
@@ -164,7 +164,7 @@ namespace Plank
 			if (is_urgent) {
 				if (!was_urgent) {
 					LastUrgent = GLib.get_monotonic_time ();
-					get_dock ()?.position_manager.ensure_item_visible (this);
+					get_dock ()?.position_manager?.ensure_item_visible (this);
 				}
 				State |= ItemState.URGENT;
 			} else {
@@ -922,17 +922,17 @@ namespace Plank
 		
 		
 		/**
-		 * Get current libunity dbusname
+		 * Get current remote badge/progress IPC sender identifier (`badge_sender_id`).
 		 *
-		 * @return the dbusname which provides the LauncherEntry interface, or NULL
+		 * @return the IPC sender identifier providing LauncherEntry state, or NULL
 		 */
 		public unowned string? get_unity_dbusname ()
 		{
-			return unity_dbusname;
+			return badge_sender_id;
 		}
 		
 		/**
-		 * Whether this item provides information worth showing
+		 * Whether this item provides remote badge/progress information worth showing.
 		 */
 		public bool has_unity_info ()
 		{
@@ -944,7 +944,7 @@ namespace Plank
 		 */
 		public void unity_update (string sender_name, LauncherBadgeState state)
 		{
-			unity_dbusname = sender_name;
+			badge_sender_id = sender_name;
 
 			if (state.has_count && Count != state.count)
 				Count = state.count;
@@ -962,11 +962,11 @@ namespace Plank
 		}
 		
 		/**
-		 * Reset this item's remote libunity values
+		 * Reset this item's remote badge/progress values (`badge_sender_id`).
 		 */
 		public void unity_reset ()
 		{
-			unity_dbusname = null;
+			badge_sender_id = null;
 			
 			Count = 0;
 			CountVisible = false;

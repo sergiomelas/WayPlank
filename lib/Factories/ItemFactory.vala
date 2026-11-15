@@ -111,7 +111,7 @@ namespace Plank
 		 */
 		public virtual DockItem get_item_for_dock ()
 		{
-			return PlankDockItem.get_instance ();
+			return new PlankDockItem ();
 		}
 		
 		/**

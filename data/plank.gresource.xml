@@ -67,7 +67,20 @@
 		<file alias="docklets/weather-storm.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-storm.svg</file>
 		<file alias="docklets/weather-fog.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-fog.svg</file>
 		<file alias="docklets/network.svg" compressed="true" preprocess="xml-stripblanks">docklets/network.svg</file>
+		<file alias="docklets/network-offline.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-offline.svg</file>
 		<file alias="docklets/dnd.svg" compressed="true" preprocess="xml-stripblanks">docklets/dnd.svg</file>
+		<file alias="docklets/dnd-muted.svg" compressed="true" preprocess="xml-stripblanks">docklets/dnd-muted.svg</file>
+		<file alias="docklets/session-lock.svg" compressed="true" preprocess="xml-stripblanks">docklets/session-lock.svg</file>
+		<file alias="docklets/session-users.svg" compressed="true" preprocess="xml-stripblanks">docklets/session-users.svg</file>
+		<file alias="docklets/session-logout.svg" compressed="true" preprocess="xml-stripblanks">docklets/session-logout.svg</file>
+		<file alias="docklets/session-suspend.svg" compressed="true" preprocess="xml-stripblanks">docklets/session-suspend.svg</file>
+		<file alias="docklets/session-hibernate.svg" compressed="true" preprocess="xml-stripblanks">docklets/session-hibernate.svg</file>
+		<file alias="docklets/session-reboot.svg" compressed="true" preprocess="xml-stripblanks">docklets/session-reboot.svg</file>
+		<file alias="docklets/settings-gear.svg" compressed="true" preprocess="xml-stripblanks">docklets/settings-gear.svg</file>
+		<file alias="docklets/starred.svg" compressed="true" preprocess="xml-stripblanks">docklets/starred.svg</file>
+		<file alias="docklets/list-add.svg" compressed="true" preprocess="xml-stripblanks">docklets/list-add.svg</file>
+		<file alias="docklets/help-browser.svg" compressed="true" preprocess="xml-stripblanks">docklets/help-browser.svg</file>
+		<file alias="docklets/application-exit.svg" compressed="true" preprocess="xml-stripblanks">docklets/application-exit.svg</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/preferences.ui</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/slider-marks-below-red.svg</file>
 		<file alias="themes/Transparent/dock.theme" compressed="true">themes/Transparent/dock.theme</file>

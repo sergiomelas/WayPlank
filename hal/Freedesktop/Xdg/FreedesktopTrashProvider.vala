@@ -100,6 +100,16 @@ namespace Plank
 			}
 		}
 
+		public void stop_monitoring ()
+		{
+			cleanup ();
+		}
+
+		static bool is_safe_trash_id (string id)
+		{
+			return id != "" && id != "." && id != ".." && !id.contains ("/") && !id.contains ("\\");
+		}
+
 		public void cleanup ()
 		{
 			if (trash_monitor != null) {
@@ -163,8 +173,10 @@ namespace Plank
 						try {
 							var kf = new KeyFile ();
 							kf.load_from_file (info_file.get_path (), KeyFileFlags.NONE);
-							if (kf.has_key ("Trash Info", "Path"))
-								orig_path = kf.get_string ("Trash Info", "Path");
+							if (kf.has_key ("Trash Info", "Path")) {
+								string raw_p = kf.get_string ("Trash Info", "Path");
+								orig_path = Uri.unescape_string (raw_p) ?? raw_p;
+							}
 							if (kf.has_key ("Trash Info", "DeletionDate"))
 								del_date = kf.get_string ("Trash Info", "DeletionDate");
 						} catch { }
@@ -184,7 +196,7 @@ namespace Plank
 
 		public bool restore_item (string id)
 		{
-			if (id == "")
+			if (!is_safe_trash_id (id))
 				return false;
 			try {
 				var files_dir = get_xdg_trash_files_dir ();
@@ -230,7 +242,7 @@ namespace Plank
 
 		public bool delete_item_permanently (string id)
 		{
-			if (id == "")
+			if (!is_safe_trash_id (id))
 				return false;
 			bool removed = false;
 			try {
@@ -347,10 +359,11 @@ namespace Plank
 				var now = new DateTime.now_local ();
 				string date_str = now.format ("%Y-%m-%dT%H:%M:%S");
 				string? orig_path = file.get_path ();
-				if (orig_path == null)
-					orig_path = file.get_uri ();
+				string escaped_path = orig_path != null
+					? Uri.escape_string (orig_path, "/", true)
+					: file.get_uri ();
 
-				string info_content = "[Trash Info]\nPath=%s\nDeletionDate=%s\n".printf (orig_path, date_str);
+				string info_content = "[Trash Info]\nPath=%s\nDeletionDate=%s\n".printf (escaped_path, date_str);
 				FileUtils.set_contents (dest_info.get_path (), info_content);
 
 				try {
@@ -419,7 +432,7 @@ namespace Plank
 			var data_dir = Environment.get_user_data_dir ();
 			var trash_dir = Path.build_filename (data_dir, "Trash");
 			try {
-				Gtk.show_uri_on_window (null, "file://" + trash_dir, Gdk.CURRENT_TIME);
+				Gtk.show_uri_on_window (null, File.new_for_path (trash_dir).get_uri (), Gdk.CURRENT_TIME);
 			} catch (Error e) { }
 		}
 	}

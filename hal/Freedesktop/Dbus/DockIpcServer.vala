@@ -46,8 +46,9 @@ namespace Plank
 	 */
 	class DBusItems : GLib.Object, Plank.DBusItemsIface
 	{
-		IDockIpcTarget target;
+		weak IDockIpcTarget? target;
 		uint changed_timer_id = 0U;
+		bool is_cleaned_up = false;
 
 		public DBusItems (IDockIpcTarget _target)
 		{
@@ -55,9 +56,16 @@ namespace Plank
 			target.ipc_elements_changed.connect (handle_elements_changed);
 		}
 
-		~DBusItems ()
+		public void cleanup ()
 		{
-			target.ipc_elements_changed.disconnect (handle_elements_changed);
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
+			if (target != null) {
+				target.ipc_elements_changed.disconnect (handle_elements_changed);
+				target = null;
+			}
 
 			if (changed_timer_id > 0U) {
 				GLib.Source.remove (changed_timer_id);
@@ -65,46 +73,58 @@ namespace Plank
 			}
 		}
 
+		~DBusItems ()
+		{
+			cleanup ();
+		}
+
 		void handle_elements_changed ()
 		{
-			if (changed_timer_id > 0U)
+			if (is_cleaned_up || changed_timer_id > 0U)
 				return;
 
 			// Fire updates with a reasonable rate
 			changed_timer_id = Timeout.add (500, () => {
 				changed_timer_id = 0U;
-				changed ();
+				if (!is_cleaned_up && target != null)
+					changed ();
 				return false;
 			});
 		}
 
 		public bool add (string uri)
 		{
-			return target.ipc_add_item (uri);
+			return (target != null) ? target.ipc_add_item (uri) : false;
 		}
 
 		public bool remove (string uri)
 		{
-			return target.ipc_remove_item (uri);
+			return (target != null) ? target.ipc_remove_item (uri) : false;
 		}
 
 		public int get_count ()
 		{
-			return target.ipc_get_item_count ();
+			return (target != null) ? target.ipc_get_item_count () : 0;
 		}
 
 		public string[] get_persistent_applications ()
 		{
-			return target.ipc_get_persistent_applications ();
+			return (target != null) ? target.ipc_get_persistent_applications () : new string[0];
 		}
 
 		public string[] get_transient_applications ()
 		{
-			return target.ipc_get_transient_applications ();
+			return (target != null) ? target.ipc_get_transient_applications () : new string[0];
 		}
 
 		public bool get_hover_position (string uri, out int x, out int y, out Gtk.PositionType dock_position)
 		{
+			if (target == null) {
+				x = -1;
+				y = -1;
+				dock_position = Gtk.PositionType.BOTTOM;
+				return false;
+			}
 			return target.ipc_get_hover_position (uri, out x, out y, out dock_position);
 		}
 	}
@@ -114,10 +134,15 @@ namespace Plank
 	 */
 	public class DockIpcServer : GLib.Object, IDockIpcServer
 	{
-		public IDockIpcTarget target { private get; construct; }
+		weak IDockIpcTarget? _target = null;
+		public weak IDockIpcTarget target {
+			private get { return _target; }
+			construct { _target = value; }
+		}
 
 		DBusConnection? connection = null;
 		string? dock_object_path;
+		DBusItems? dbus_items_impl = null;
 
 		uint dbus_items_signal_id = 0U;
 		uint dbus_client_ping_signal_id = 0U;
@@ -125,6 +150,19 @@ namespace Plank
 		public DockIpcServer (IDockIpcTarget target)
 		{
 			Object (target: target);
+		}
+
+		public static string sanitize_object_path_segment (string raw_name)
+		{
+			var sb = new StringBuilder ();
+			for (int i = 0; i < raw_name.length; i++) {
+				char c = raw_name[i];
+				if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_')
+					sb.append_c (c);
+				else
+					sb.append_c ('_');
+			}
+			return sb.len > 0 ? sb.str : "dock";
 		}
 
 		construct
@@ -142,9 +180,10 @@ namespace Plank
 				return;
 			}
 
-			string dock_name = target.get_ipc_dock_name ();
-			if (!object_path.has_suffix (dock_name))
-				object_path = "%s/%s".printf (object_path, dock_name);
+			string safe_seg = sanitize_object_path_segment (target.get_ipc_dock_name ());
+			string seg_suffix = "/" + safe_seg;
+			if (!object_path.has_suffix (seg_suffix))
+				object_path = object_path.has_suffix ("/") ? (object_path + safe_seg) : (object_path + seg_suffix);
 
 			// Listen for "Ping" signals coming from clients
 			try {
@@ -155,8 +194,8 @@ namespace Plank
 			}
 
 			try {
-				var dbus_items = new DBusItems (target);
-				dbus_items_signal_id = connection.register_object<Plank.DBusItemsIface> (object_path, dbus_items);
+				dbus_items_impl = new DBusItems (target);
+				dbus_items_signal_id = connection.register_object<Plank.DBusItemsIface> (object_path, dbus_items_impl);
 				WindowControl.register_dbus (connection, object_path);
 			} catch (IOError e) {
 				warning ("Could not register service (%s)", e.message);
@@ -179,6 +218,10 @@ namespace Plank
 
 		public void dispose_ipc ()
 		{
+			if (dbus_items_impl != null) {
+				dbus_items_impl.cleanup ();
+				dbus_items_impl = null;
+			}
 			if (connection != null) {
 				if (dbus_items_signal_id > 0U) {
 					connection.unregister_object (dbus_items_signal_id);
@@ -189,12 +232,15 @@ namespace Plank
 					dbus_client_ping_signal_id = 0U;
 				}
 			}
+			_target = null;
 		}
 
 		[CCode (instance_pos = -1)]
 		void handle_client_ping (DBusConnection connection, string sender_name, string object_path,
 			string interface_name, string signal_name, Variant parameters)
 		{
+			if (dock_object_path == null)
+				return;
 			try {
 				// Broadcast to inform running clients
 				connection.emit_signal (null, dock_object_path, Plank.DBUS_DOCK_INTERFACE_NAME, Plank.DBUS_PING_NAME, null);

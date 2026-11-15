@@ -929,7 +929,7 @@ namespace Plank
 				if (!kscreen_outputs.is_empty) {
 					var sb = new StringBuilder ("kscreen-doctor");
 					foreach (var out_name in kscreen_outputs) {
-						sb.append_printf (" output.%s.brightness.%d", out_name, target);
+						sb.append_printf (" %s", Shell.quote ("output.%s.brightness.%d".printf (out_name, target)));
 					}
 					try {
 						GLib.Process.spawn_command_line_async (sb.str);
@@ -957,7 +957,7 @@ namespace Plank
 				if (!kscreen_outputs.is_empty) {
 					var sb = new StringBuilder ("kscreen-doctor");
 					foreach (var out_name in kscreen_outputs) {
-						sb.append_printf (" output.%s.brightness.%d", out_name, target);
+						sb.append_printf (" %s", Shell.quote ("output.%s.brightness.%d".printf (out_name, target)));
 					}
 					try {
 						GLib.Process.spawn_command_line_async (sb.str);
@@ -991,7 +991,7 @@ namespace Plank
 					if (!backlight_devices.is_empty) {
 						foreach (var dev in backlight_devices) {
 							try {
-								GLib.Process.spawn_command_line_async ("brightnessctl -d %s set %d%%".printf (dev, target));
+								GLib.Process.spawn_command_line_async ("brightnessctl -d %s set %d%%".printf (GLib.Shell.quote (dev), target));
 							} catch (GLib.Error e) { }
 						}
 					} else {

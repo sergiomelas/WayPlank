@@ -287,7 +287,11 @@ namespace Plank
 		{
 			return new Gee.ArrayList<RemovableDriveInfo> ();
 		}
-		public void eject_drive (string id, owned DriveEjectCallback? callback = null) {}
+		public void eject_drive (string id, owned DriveEjectCallback? callback = null)
+		{
+			if (callback != null)
+				callback (false, id, _("Drive not available"));
+		}
 		public void eject_all (owned DriveEjectCallback? per_drive_callback = null) {}
 		public void cleanup () {}
 	}

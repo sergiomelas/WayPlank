@@ -56,6 +56,7 @@ namespace Plank
 		DockItem? dock_itself_item;
 		uint serialize_item_positions_timer_id = 0U;
 		bool is_initialized = false;
+		bool is_disposed = false;
 
 		public bool is_first_run_launch { get; private set; default = false; }
 		public bool migrated_from_legacy_plank { get; private set; default = false; }
@@ -125,35 +126,91 @@ namespace Plank
 				last_explicit_monitor = prefs.Monitor;
 		}
 
-		~DockController ()
+		public void dispose_dock ()
 		{
-			if (ipc_server != null)
-				ipc_server.dispose_ipc ();
-			folder_menu.destroy ();
-			window_cards.destroy ();
-			prefs.notify["Monitor"].disconnect (update_explicit_monitor);
-			prefs.notify["Position"].disconnect (update_visible_elements);
-			prefs.notify["ShowDockItem"].disconnect (update_show_dock_item);
-			
-			if (is_initialized) {
-				positions_changed.disconnect (handle_positions_changed);
-				states_changed.disconnect (handle_states_changed);
-				elements_changed.disconnect (handle_elements_changed);
-			}
-			
+			if (is_disposed)
+				return;
+			is_disposed = true;
+
 			if (serialize_item_positions_timer_id > 0U) {
 				Source.remove (serialize_item_positions_timer_id);
 				serialize_item_positions_timer_id = 0U;
 			}
 			serialize_item_positions ();
+			if (prefs != null)
+				prefs.flush_to_disk ();
 
-			items.clear ();
-			visible_items.clear ();
+			if (ipc_server != null) {
+				ipc_server.dispose_ipc ();
+				ipc_server = null;
+			}
 
-			if (hover != null)
+			if (is_initialized) {
+				positions_changed.disconnect (handle_positions_changed);
+				states_changed.disconnect (handle_states_changed);
+				elements_changed.disconnect (handle_elements_changed);
+				is_initialized = false;
+			}
+
+			if (prefs != null) {
+				prefs.notify["Monitor"].disconnect (update_explicit_monitor);
+				prefs.notify["Position"].disconnect (update_visible_elements);
+				prefs.notify["ShowDockItem"].disconnect (update_show_dock_item);
+			}
+
+			if (renderer != null)
+				renderer.cleanup ();
+			if (drag_manager != null)
+				drag_manager.cleanup ();
+			if (hide_manager != null)
+				hide_manager.cleanup ();
+			if (position_manager != null)
+				position_manager.cleanup ();
+
+			if (folder_menu != null) {
+				folder_menu.destroy ();
+				folder_menu = null;
+			}
+			if (window_cards != null) {
+				window_cards.destroy ();
+				window_cards = null;
+			}
+			if (hover != null) {
 				hover.destroy ();
-			if (window != null)
+				hover = null;
+			}
+			if (window != null) {
 				window.destroy ();
+				window = null;
+			}
+
+			if (dock_itself_item != null) {
+				dock_itself_item.cleanup ();
+				dock_itself_item = null;
+			}
+
+			base.cleanup ();
+			default_provider = null;
+
+			if (items != null)
+				items.clear ();
+			if (visible_items != null)
+				visible_items.clear ();
+
+			renderer = null;
+			drag_manager = null;
+			hide_manager = null;
+			position_manager = null;
+		}
+
+		public override void cleanup ()
+		{
+			dispose_dock ();
+		}
+
+		~DockController ()
+		{
+			dispose_dock ();
 		}
 		
 		/**
@@ -721,14 +778,30 @@ namespace Plank
 		public bool ipc_get_hover_position (string uri, out int x, out int y, out Gtk.PositionType dock_position)
 		{
 			unowned DockItem? found = null;
-			foreach (unowned DockItem item in Items) {
-				if (uri == item.Launcher) {
-					found = item;
-					break;
+			if (default_provider != null)
+				found = default_provider.item_for_uri (uri);
+
+			if (found == null && internal_elements != null) {
+				foreach (var el in internal_elements) {
+					unowned DockItemProvider? prov = (el as DockItemProvider);
+					if (prov != null && prov != default_provider) {
+						found = prov.item_for_uri (uri);
+						if (found != null)
+							break;
+					}
 				}
 			}
 
-			if (found == null) {
+			if (found == null && Items != null) {
+				foreach (unowned DockItem item in Items) {
+					if (uri == item.Launcher) {
+						found = item;
+						break;
+					}
+				}
+			}
+
+			if (found == null || position_manager == null) {
 				x = y = -1;
 				dock_position = 0;
 				return false;

@@ -23,7 +23,13 @@ namespace Plank
 {
 	public class PositionManager : GLib.Object
 	{
-		public DockController controller { private get; construct; }
+		weak DockController? _controller = null;
+		public weak DockController controller {
+			private get { return _controller; }
+			construct { _controller = value; }
+		}
+		bool is_initialized = false;
+		bool is_cleaned_up = false;
 		
 		public bool screen_is_composited { get; private set; }
 		
@@ -65,32 +71,49 @@ namespace Plank
 			current_monitor_ref.set (monitor);
 			
 			screen_is_composited = screen.is_composited ();
+			is_initialized = true;
 		}
 		
-		~PositionManager ()
+		public void cleanup ()
 		{
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
 			if (screen_topology_timer_id != 0U) {
 				Source.remove (screen_topology_timer_id);
 				screen_topology_timer_id = 0U;
 			}
 
-			Hal.Shell.primary_monitor_changed.disconnect (prefs_monitor_changed);
-			
-			if (controller != null) {
-				controller.prefs.notify.disconnect (prefs_changed);
-				if (controller.window != null) {
-					controller.window.notify["scale-factor"].disconnect (on_scale_factor_changed);
-					unowned Gdk.Screen screen = controller.window.get_screen ();
-					if (screen != null) {
-						screen.monitors_changed.disconnect (on_screen_topology_changed);
-						screen.size_changed.disconnect (on_screen_topology_changed);
-						screen.composited_changed.disconnect (screen_composited_changed);
+			if (is_initialized) {
+				Hal.Shell.primary_monitor_changed.disconnect (prefs_monitor_changed);
+				
+				if (controller != null) {
+					if (controller.prefs != null)
+						controller.prefs.notify.disconnect (prefs_changed);
+					if (controller.window != null) {
+						controller.window.notify["scale-factor"].disconnect (on_scale_factor_changed);
+						unowned Gdk.Screen screen = controller.window.get_screen ();
+						if (screen != null) {
+							screen.monitors_changed.disconnect (on_screen_topology_changed);
+							screen.size_changed.disconnect (on_screen_topology_changed);
+							screen.composited_changed.disconnect (screen_composited_changed);
+						}
 					}
 				}
+				is_initialized = false;
 			}
 			
-			draw_values.clear ();
-			draw_value_pool.clear ();
+			if (draw_values != null)
+				draw_values.clear ();
+			if (draw_value_pool != null)
+				draw_value_pool.clear ();
+			_controller = null;
+		}
+
+		~PositionManager ()
+		{
+			cleanup ();
 		}
 		
 		void prefs_changed (Object prefs, ParamSpec prop)
@@ -192,10 +215,11 @@ namespace Plank
 			// In multi-monitor setups (especially with identical monitor models),
 			// coordinates in compositor space are the most reliable anchor, since
 			// synthetic indices like (1), (2) can fluctuate upon sleep/wake.
-			if (plug_name.contains ("@")) {
-				int at_idx = plug_name.index_of ("@");
+			int bracket_idx = plug_name.last_index_of ("[");
+			int at_idx = plug_name.last_index_of ("@");
+			if (bracket_idx >= 0 && at_idx > bracket_idx) {
 				int end_idx = plug_name.index_of ("]", at_idx);
-				if (at_idx >= 0 && end_idx > at_idx) {
+				if (end_idx > at_idx) {
 					var coord_str = plug_name.substring (at_idx + 1, end_idx - at_idx - 1).strip ();
 					var parts = coord_str.split (",");
 					if (parts.length == 2) {
@@ -213,14 +237,16 @@ namespace Plank
 			// 3. Stable Label match ignoring volatile resolution/coordinates (e.g. "DELL P2219H (1)" or "eDP-1-0x0B58")
 			// This preserves monitor assignment across fractional scaling, DPI changes, and resolution switches.
 			string plug_label = plug_name;
-			if (plug_label.contains ("[")) {
-				plug_label = plug_label.split ("[")[0].strip ();
+			int plug_b = plug_label.last_index_of ("[");
+			if (plug_b >= 0) {
+				plug_label = plug_label.substring (0, plug_b).strip ();
 			}
 			if (plug_label != "") {
 				for (int i = 0; i < n_monitors; i++) {
 					string cur_label = names[i];
-					if (cur_label.contains ("["))
-						cur_label = cur_label.split ("[")[0].strip ();
+					int cur_b = cur_label.last_index_of ("[");
+					if (cur_b >= 0)
+						cur_label = cur_label.substring (0, cur_b).strip ();
 					if (plug_label == cur_label)
 						return display.get_monitor (i);
 				}
@@ -233,8 +259,8 @@ namespace Plank
 					return display.get_monitor (i);
 			}
 
-			// 5. Fallback to matching raw model prefix or name (only if no coordinates were specified)
-			if (!plug_name.contains ("@")) {
+			// 5. Fallback to matching raw model prefix or name (only if no trailing [WxH @ X,Y] tag was specified)
+			if (!(bracket_idx >= 0 && at_idx > bracket_idx)) {
 				for (int i = 0; i < n_monitors; i++) {
 					var monitor = display.get_monitor (i);
 					if (monitor != null) {

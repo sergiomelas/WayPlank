@@ -164,6 +164,8 @@ namespace Plank
 					return;
 				}
 			}
+			if (callback != null)
+				callback (false, id, _("Drive is no longer mounted"));
 		}
 
 		public void eject_all (owned DriveEjectCallback? per_drive_callback = null)

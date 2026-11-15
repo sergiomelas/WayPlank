@@ -32,6 +32,7 @@ namespace Plank
 		DBusConnection? session_conn = null;
 		DBusConnection? system_conn = null;
 		uint name_owner_sub_id = 0U;
+		GLib.Mutex cache_mutex;
 		Gee.HashMap<string, uint> sender_pid_cache;
 
 		public static DbusBroker get_default ()
@@ -90,8 +91,14 @@ namespace Plank
 		{
 			if (bus_or_sender == "")
 				return 0U;
-			if (sender_pid_cache.has_key (bus_or_sender))
-				return sender_pid_cache.get (bus_or_sender);
+
+			cache_mutex.lock ();
+			if (sender_pid_cache.has_key (bus_or_sender)) {
+				uint cached = sender_pid_cache.get (bus_or_sender);
+				cache_mutex.unlock ();
+				return cached;
+			}
+			cache_mutex.unlock ();
 
 			var bus = get_session_bus ();
 			if (bus == null)
@@ -111,8 +118,13 @@ namespace Plank
 				);
 				uint pid = 0U;
 				res.get ("(u)", out pid);
-				if (pid > 0U)
+				if (pid > 0U) {
+					cache_mutex.lock ();
+					if (sender_pid_cache.size > 256)
+						sender_pid_cache.clear ();
 					sender_pid_cache.set (bus_or_sender, pid);
+					cache_mutex.unlock ();
+				}
 				return pid;
 			} catch (Error e) {
 				return 0U;
@@ -125,10 +137,12 @@ namespace Plank
 		{
 			string name = "", old_owner = "", new_owner = "";
 			parameters.get ("(sss)", out name, out old_owner, out new_owner);
+			cache_mutex.lock ();
 			if (old_owner != "")
 				sender_pid_cache.unset (old_owner);
 			if (name != "" && new_owner == "")
 				sender_pid_cache.unset (name);
+			cache_mutex.unlock ();
 			session_name_owner_changed (name, old_owner, new_owner);
 		}
 
@@ -138,7 +152,9 @@ namespace Plank
 				session_conn.signal_unsubscribe (name_owner_sub_id);
 				name_owner_sub_id = 0U;
 			}
+			cache_mutex.lock ();
 			sender_pid_cache.clear ();
+			cache_mutex.unlock ();
 		}
 	}
 }

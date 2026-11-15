@@ -25,6 +25,7 @@ namespace Plank
 		const string ICON_NAMES = "media-eject;;drive-removable-media;;media-eject-symbolic";
 
 		private ulong drives_changed_id = 0;
+		private bool cleaned_up = false;
 
 		public EjectorDockItem ()
 		{
@@ -61,12 +62,14 @@ namespace Plank
 
 		public override void cleanup ()
 		{
+			cleaned_up = true;
 			stop_monitoring ();
 			base.cleanup ();
 		}
 
 		public override void @delete ()
 		{
+			cleaned_up = true;
 			stop_monitoring ();
 			base.@delete ();
 		}
@@ -107,6 +110,8 @@ namespace Plank
 		public void eject_drive_by_id (string id)
 		{
 			Hal.Telemetry.Ejector.eject_drive (id, (success, drive_name, error_message) => {
+				if (cleaned_up)
+					return;
 				if (success) {
 					notify_ejected (drive_name);
 					update_ejector_status ();
@@ -117,6 +122,8 @@ namespace Plank
 		public void eject_all ()
 		{
 			Hal.Telemetry.Ejector.eject_all ((success, drive_name, error_message) => {
+				if (cleaned_up)
+					return;
 				if (success) {
 					notify_ejected (drive_name);
 					update_ejector_status ();

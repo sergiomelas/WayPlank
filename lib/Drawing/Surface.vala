@@ -60,6 +60,22 @@ namespace Plank
 			Object (Width: width, Height: height, Internal: new Cairo.ImageSurface (Cairo.Format.ARGB32, width, height));
 		}
 		
+		static Cairo.Surface create_scaled_image_surface (int width, int height, Cairo.Surface model)
+		{
+			double sx = 1.0, sy = 1.0;
+			model.get_device_scale (out sx, out sy);
+			if (sx <= 0.0)
+				sx = 1.0;
+			if (sy <= 0.0)
+				sy = 1.0;
+			int px_w = int.max (0, (int) Math.ceil (width * sx));
+			int px_h = int.max (0, (int) Math.ceil (height * sy));
+			var img = new Cairo.ImageSurface (Cairo.Format.ARGB32, px_w, px_h);
+			if (sx != 1.0 || sy != 1.0)
+				img.set_device_scale (sx, sy);
+			return img;
+		}
+
 		/**
 		 * Creates a new surface compatible with an existing {@link Cairo.Surface}.
 		 *
@@ -69,7 +85,7 @@ namespace Plank
 		 */
 		public Surface.with_cairo_surface (int width, int height, Cairo.Surface model)
 		{
-			Object (Width: width, Height: height, Internal: new Cairo.Surface.similar (model, Cairo.Content.COLOR_ALPHA, width, height));
+			Object (Width: width, Height: height, Internal: create_scaled_image_surface (width, height, model));
 		}
 
 		/**
@@ -81,7 +97,7 @@ namespace Plank
 		 */
 		public Surface.with_surface (int width, int height, Surface model)
 		{
-			Object (Width: width, Height: height, Internal: new Cairo.Surface.similar (model.Internal, Cairo.Content.COLOR_ALPHA, width, height));
+			Object (Width: width, Height: height, Internal: create_scaled_image_surface (width, height, model.Internal));
 		}
 		
 		/**
@@ -154,8 +170,10 @@ namespace Plank
 		 *
 		 * @return the {@link Gdk.Pixbuf}
 		 */
-		public Gdk.Pixbuf to_pixbuf ()
+		public Gdk.Pixbuf? to_pixbuf ()
 		{
+			if (Width <= 0 || Height <= 0)
+				return null;
 			return Gdk.pixbuf_get_from_surface (Internal, 0, 0, Width, Height);
 		}
 		
@@ -225,7 +243,12 @@ namespace Plank
 		 */
 		public Color average_color ()
 		{
-			return DrawingService.average_color (Gdk.pixbuf_get_from_surface (Internal, 0, 0, Width, Height));
+			if (Width <= 0 || Height <= 0)
+				return { 0.0, 0.0, 0.0, 0.0 };
+			var pb = Gdk.pixbuf_get_from_surface (Internal, 0, 0, Width, Height);
+			if (pb == null)
+				return { 0.0, 0.0, 0.0, 0.0 };
+			return DrawingService.average_color (pb);
 		}
 		
 		/**

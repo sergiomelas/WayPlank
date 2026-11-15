@@ -23,7 +23,7 @@ namespace Plank
 	public class DoNotDisturbDockItem : DockItem
 	{
 		const string ICON_ACTIVE = "preferences-desktop-notification-bell;;notifications;;preferences-system-notifications;;notification-symbolic";
-		const string ICON_MUTED = "notifications-disabled;;notifications-disabled-symbolic;;notification-disabled;;preferences-desktop-notification-bell";
+		const string ICON_MUTED = "notifications-disabled;;notifications-disabled-symbolic;;notification-disabled";
 
 		private bool is_dnd_active = false;
 		private ulong dnd_signal_id = 0;
@@ -67,26 +67,33 @@ namespace Plank
 				schedule_dnd_poll ();
 		}
 
-		~DoNotDisturbDockItem ()
+		private bool cleaned_up = false;
+
+		private void stop_dnd_resources ()
 		{
+			if (cleaned_up)
+				return;
+			cleaned_up = true;
 			is_disposed = true;
+			notify["IsAttached"].disconnect (on_attached_changed);
 			stop_timer ();
 			disconnect_dnd_signal ();
 		}
 
+		~DoNotDisturbDockItem ()
+		{
+			stop_dnd_resources ();
+		}
+
 		public override void cleanup ()
 		{
-			is_disposed = true;
-			stop_timer ();
-			disconnect_dnd_signal ();
+			stop_dnd_resources ();
 			base.cleanup ();
 		}
 
 		public override void @delete ()
 		{
-			is_disposed = true;
-			stop_timer ();
-			disconnect_dnd_signal ();
+			stop_dnd_resources ();
 			base.@delete ();
 		}
 

@@ -544,6 +544,8 @@ wlr_toplevel_bridge_queue_command (const gchar *target, const gchar *action)
                 zwlr_foreign_toplevel_handle_v1_activate (found_toplevel->handle, default_seat);
             }
         }
+    } else if (g_strcmp0 (action, "minimize") == 0) {
+        zwlr_foreign_toplevel_handle_v1_set_minimized (found_toplevel->handle);
     } else if (g_strcmp0 (action, "close") == 0) {
         zwlr_foreign_toplevel_handle_v1_close (found_toplevel->handle);
     }

@@ -353,9 +353,24 @@ namespace Plank
 				Environment.unset_variable ("GTK_USE_PORTAL");
 		}
 
-		public bool verify_supported_display (Gdk.Display? display)
+		public bool verify_supported_display (Gdk.Display? display, out string error_message)
 		{
-			return (display != null && display.get_type ().name () == "GdkWaylandDisplay");
+			if (display != null && display.get_type ().name () == "GdkWaylandDisplay") {
+				error_message = "";
+				return true;
+			}
+			error_message = _("WayPlank is designed exclusively for Wayland sessions.");
+			return false;
+		}
+
+		public string get_self_launcher_id ()
+		{
+			return "wayplank.desktop";
+		}
+
+		public string get_system_data_dir ()
+		{
+			return Build.DATADIR;
 		}
 
 		public int get_current_pid ()
@@ -574,6 +589,11 @@ namespace Plank
 				}
 				screensaver_sub_ids.clear ();
 			}
+		}
+
+		public void invalidate_process_cache (int pid)
+		{
+			LinuxProcessInspector.invalidate_process_cmdline (pid);
 		}
 	}
 }

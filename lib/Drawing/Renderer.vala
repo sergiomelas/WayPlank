@@ -34,6 +34,7 @@ namespace Plank
 		uint timer_id = 0U;
 		ulong widget_realize_handler_id = 0UL;
 		bool is_updating = false;
+		bool is_renderer_cleaned_up = false;
 		
 		/**
 		 * Creates a new animation renderer.
@@ -49,17 +50,37 @@ namespace Plank
 			widget_realize_handler_id = widget.realize.connect (on_widget_realize);
 		}
 		
-		~Renderer ()
+		public virtual void cleanup ()
 		{
-			if (timer_id > 0U) {
-				widget.remove_tick_callback (timer_id);
+			if (is_renderer_cleaned_up)
+				return;
+			is_renderer_cleaned_up = true;
+
+			if (widget != null) {
+				if (is_updating) {
+					unowned Gdk.FrameClock? frame_clock = widget.get_frame_clock ();
+					if (frame_clock != null)
+						frame_clock.end_updating ();
+					is_updating = false;
+				}
+				if (timer_id > 0U) {
+					widget.remove_tick_callback (timer_id);
+					timer_id = 0U;
+				}
+				if (widget_realize_handler_id > 0UL) {
+					widget.disconnect (widget_realize_handler_id);
+					widget_realize_handler_id = 0UL;
+				}
+			} else {
+				is_updating = false;
 				timer_id = 0U;
-			}
-			
-			if (widget_realize_handler_id > 0UL) {
-				widget.disconnect (widget_realize_handler_id);
 				widget_realize_handler_id = 0UL;
 			}
+		}
+
+		~Renderer ()
+		{
+			cleanup ();
 		}
 		
 		/**

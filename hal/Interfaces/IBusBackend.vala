@@ -59,6 +59,7 @@ namespace Plank
 		public abstract string[]? get_persistent_applications ();
 		public abstract string[]? get_transient_applications ();
 		public abstract bool get_hover_position (string uri, out int x, out int y, out Gtk.PositionType dock_position);
+		public virtual void cleanup () {}
 	}
 
 	/**
@@ -71,6 +72,7 @@ namespace Plank
 		public string status = "Stopped";
 		public string title = "";
 		public string artist = "";
+		public int owner_pid = 0;
 		public bool is_browser = false;
 		public bool can_pause = true;
 	}

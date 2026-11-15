@@ -36,7 +36,7 @@ namespace Plank
 		{
 			Indicator = IndicatorState.NONE;
 			Text = _("Drop applications or files here");
-			Icon = "add";
+			Icon = "list-add;;list-add-symbolic";
 		}
 		
 		/**

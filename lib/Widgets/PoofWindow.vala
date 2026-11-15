@@ -70,7 +70,15 @@ namespace Plank
 
 		construct
 		{
+			resizable = false;
+			accept_focus = false;
+			can_focus = false;
+			focus_on_map = false;
 			Hal.Shell.init_popup_surface (this, PopupSurfaceKind.POOF_ANIMATION);
+			realize.connect (() => {
+				var empty_region = new Cairo.Region ();
+				Hal.Shell.apply_input_region (this, empty_region);
+			});
 
 			try {
 				poof_image = new Gdk.Pixbuf.from_resource ("%s/img/poof.svg".printf (Plank.G_RESOURCE_PATH));

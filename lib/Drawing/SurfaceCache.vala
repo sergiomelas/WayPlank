@@ -137,8 +137,17 @@ namespace Plank
 			last_info = null;
 			
 			//TODO Adaptive delay depending on the access rate
-			clean_up_timer_id = Gdk.threads_add_timeout (5 * 60 * 1000, () => {
-				clean_up ();
+			clean_up_timer_id = schedule_clean_up_timer<G> (this);
+		}
+
+		private static uint schedule_clean_up_timer<T> (SurfaceCache<T> target)
+		{
+			GLib.WeakRef weak_self = GLib.WeakRef (target);
+			return GLib.Timeout.add_seconds (5 * 60, () => {
+				var self = (SurfaceCache<T>?) weak_self.get ();
+				if (self == null)
+					return false;
+				self.clean_up ();
 				return true;
 			});
 		}

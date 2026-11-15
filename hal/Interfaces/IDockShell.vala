@@ -72,6 +72,7 @@ namespace Plank
 		public abstract Gdk.Rectangle get_effective_monitor_geometry (Gdk.Monitor? monitor);
 		public abstract int get_top_panel_floating_offset (Gdk.Rectangle mon_geom = Gdk.Rectangle ());
 		public abstract void invalidate_panel_cache ();
+		public virtual void cleanup () {}
 	}
 
 	/**

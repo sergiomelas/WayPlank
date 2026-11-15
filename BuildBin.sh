@@ -78,7 +78,12 @@ glib-compile-resources \
 rm -rf "${BASE_DIR}/data/locale"
 
 echo "🏗️ Compiling Vala & C sources to native binary..."
-mapfile -t VALA_FILES < <(find "${BASE_DIR}/hal" "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala" | sort)
+mapfile -t VALA_FILES < <(find "${BASE_DIR}/hal/Interfaces" "${BASE_DIR}/hal/Freedesktop" "${BASE_DIR}/hal/Linux" "${BASE_DIR}/lib" "${BASE_DIR}/src" -name "*.vala" | sort)
+
+VALA_EXTRA_DEFINES=()
+if [ -f /usr/include/sys/prctl.h ] || compgen -G "/usr/include/*/sys/prctl.h" >/dev/null; then
+    VALA_EXTRA_DEFINES+=(-D HAVE_SYS_PRCTL_H)
+fi
 
 C_SOURCES=("${BASE_DIR}/lib/resources.c")
 if [ -f "${BASE_DIR}/lib/gtk-compat.c" ]; then
@@ -106,6 +111,7 @@ if valac -g \
     --pkg unix-compat \
     --pkg config \
     --pkg wlr-bridge \
+    "${VALA_EXTRA_DEFINES[@]}" \
     -X -D_GNU_SOURCE \
     -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \

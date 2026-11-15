@@ -431,7 +431,7 @@ namespace Plank
 			if (pb != null) {
 				img.set_from_pixbuf (pb);
 			} else {
-				img.set_from_icon_name ("weather-few-clouds", Gtk.IconSize.DIALOG);
+				img.set_from_pixbuf (DrawingService.load_icon ("weather-few-clouds;;weather", pixel_size, pixel_size));
 			}
 			img.pixel_size = pixel_size;
 		}

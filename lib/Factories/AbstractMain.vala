@@ -50,29 +50,46 @@ namespace Plank
 			is_shutting_down = true;
 
 			if (app_instance != null) {
-				if (app_instance.first_run_dlg != null) {
-					app_instance.first_run_dlg.cancel_without_applying ();
-					app_instance.first_run_dlg.destroy ();
-					app_instance.first_run_dlg = null;
-				}
-				if (app_instance.env_error_dlg != null) {
-					app_instance.env_error_dlg.destroy ();
-					app_instance.env_error_dlg = null;
-				}
-				if (app_instance.about_dlg != null) {
-					app_instance.stop_about_easter_egg (true);
-					app_instance.about_dlg.destroy ();
-					app_instance.about_dlg = null;
-				}
-				foreach (var dock in app_instance.docks) {
-					dock.flush_pending_serialization ();
-					if (dock.prefs != null)
-						dock.prefs.flush_to_disk ();
-				}
-
 				if (app_instance.resume_timer_id > 0U) {
 					GLib.Source.remove (app_instance.resume_timer_id);
 					app_instance.resume_timer_id = 0U;
+				}
+				if (app_instance.preferences_dlg != null) {
+					var dlg = app_instance.preferences_dlg;
+					app_instance.preferences_dlg = null;
+					dlg.destroy ();
+				}
+				if (app_instance.help_dlg != null) {
+					var dlg = app_instance.help_dlg;
+					app_instance.help_dlg = null;
+					dlg.destroy ();
+				}
+				if (app_instance.first_run_dlg != null) {
+					var dlg = app_instance.first_run_dlg;
+					app_instance.first_run_dlg = null;
+					dlg.cancel_without_applying ();
+					dlg.destroy ();
+				}
+				if (app_instance.env_error_dlg != null) {
+					var dlg = app_instance.env_error_dlg;
+					app_instance.env_error_dlg = null;
+					dlg.destroy ();
+				}
+				if (app_instance.about_dlg != null) {
+					app_instance.stop_about_easter_egg (true);
+					var dlg = app_instance.about_dlg;
+					app_instance.about_dlg = null;
+					dlg.destroy ();
+				}
+				if (app_instance.docks != null) {
+					var docks_snapshot = app_instance.docks.to_array ();
+					foreach (var dock in docks_snapshot) {
+						if (dock.window != null)
+							app_instance.remove_window (dock.window);
+						dock.dispose_dock ();
+					}
+					app_instance.primary_dock = null;
+					app_instance.docks.clear ();
 				}
 			}
 
@@ -214,13 +231,15 @@ namespace Plank
 		{
 			app_instance = this;
 			flags = ApplicationFlags.HANDLES_COMMAND_LINE;
+			if (Hal.Runtime.uses_native_single_instance_ipc ())
+				flags |= ApplicationFlags.NON_UNIQUE;
 			docks = new Gee.ArrayList<DockController> ();
 			
 			// set program name
 			Hal.Runtime.set_process_title (exec_name);
 			Environment.set_prgname (exec_name);
 			
-			Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Build.DATADIR + "/locale");
+			Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Path.build_filename (Hal.Runtime.get_system_data_dir (), "locale"));
 			Intl.bind_textdomain_codeset (Build.GETTEXT_PACKAGE, "UTF-8");
 			
 			add_main_option_entries (options);
@@ -253,7 +272,9 @@ namespace Plank
 			else
 				Logger.DisplayLevel = LogLevel.WARN;
 			
-			if (options.lookup ("name", "&s", out dock_name)) {
+			string? raw_dock_opt = null;
+			if (options.lookup ("name", "s", out raw_dock_opt) && raw_dock_opt != null && raw_dock_opt != "") {
+				dock_name = Hal.Runtime.sanitize_dock_name (raw_dock_opt);
 				application_id = "%s.%s".printf (app_dbus, dock_name);
 			} else {
 				dock_name = "";
@@ -321,16 +342,16 @@ namespace Plank
 			message ("Cairo version: %s", Cairo.version_string ());
 			message ("Pango version: %s", Pango.version_string ());
 			message ("+ Cairo/Gtk+ HiDPI support enabled");
-#if HAVE_DBUSMENU
-			message ("+ Dynamic Quicklists support enabled");
-#endif
 			if (Gtk.Widget.get_default_direction () == Gtk.TextDirection.RTL)
 				message ("+ RTL support enabled");
 			
 			internal_quarks_initialize ();
 			
-			Paths.initialize (exec_name, build_pkg_data_dir);
 			Hal.initialize ();
+			Paths.initialize (exec_name, build_pkg_data_dir);
+			var default_win_icon = DrawingService.load_icon ("wayplank;;plank", 48, 48);
+			if (default_win_icon != null)
+				Gtk.Window.set_default_icon (default_win_icon);
 			
 			initialize ();
 			create_docks ();
@@ -367,14 +388,23 @@ namespace Plank
 			var settings = create_settings ("net.launchpad.plank");
 			var enabled_docks = settings.get_strv ("enabled-docks");
 			
-			// Allow up to 8 docks
-			if (enabled_docks.length <= 0) {
-				enabled_docks = { "dock1" };
-				settings.set_strv ("enabled-docks", enabled_docks);
-			} else if (enabled_docks.length > 8) {
-				enabled_docks = enabled_docks[0:8];
-				settings.set_strv ("enabled-docks", enabled_docks);
+			// Allow up to 8 docks, sanitizing and deduplicating names
+			var valid_docks = new Gee.ArrayList<string> ();
+			foreach (unowned string raw_dn in enabled_docks) {
+				string clean_dn = Hal.Runtime.sanitize_dock_name (raw_dn);
+				if (!valid_docks.contains (clean_dn)) {
+					valid_docks.add (clean_dn);
+					if (valid_docks.size >= 8)
+						break;
+				}
 			}
+			if (valid_docks.size <= 0) {
+				valid_docks.add ("dock1");
+				settings.set_strv ("enabled-docks", valid_docks.to_array ());
+			} else if (valid_docks.size != enabled_docks.length) {
+				settings.set_strv ("enabled-docks", valid_docks.to_array ());
+			}
+			enabled_docks = valid_docks.to_array ();
 			
 			message ("Running with %i docks ('%s')", enabled_docks.length, string.joinv ("', '", enabled_docks));
 			foreach (unowned string dock_name in enabled_docks)
@@ -500,6 +530,8 @@ namespace Plank
 		 */
 		public bool is_launcher_for_dock (string launcher)
 		{
+			if (app_launcher == null || app_launcher == "")
+				return false;
 			return launcher.has_suffix (app_launcher);
 		}
 		
@@ -554,6 +586,9 @@ namespace Plank
 			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
 			about_dlg.set_website (main_url);
 			about_dlg.set_website_label (_("Website"));
+			about_dlg.activate_link.connect ((uri) => {
+				return Hal.Runtime.open_uri (uri, about_dlg);
+			});
 			
 			if (about_authors != null && about_authors.length > 0)
 				about_dlg.set_authors (about_authors);
@@ -689,6 +724,9 @@ namespace Plank
 				lbl.set_use_markup (true);
 				lbl.set_markup ("<span size=\"small\">%s</span>".printf (lines[i]));
 				lbl.set_track_visited_links (false);
+				lbl.activate_link.connect ((uri) => {
+					return Hal.Runtime.open_uri (uri, lbl.get_toplevel () as Gtk.Window);
+				});
 				lbl.set_selectable (false);
 				lbl.set_can_focus (false);
 				lbl.set_halign (Gtk.Align.START);
@@ -1646,15 +1684,17 @@ namespace Plank
 			DirUtils.create_with_parents (cache_dir, 0755);
 			string html_path = Path.build_filename (cache_dir, "wayplank_user_guide.html");
 
-			string?[] env_candidates = {
-				Environment.get_variable ("LANGUAGE"),
-				Environment.get_variable ("LC_ALL"),
-				Environment.get_variable ("LC_MESSAGES"),
-				Environment.get_variable ("LANG"),
-				Intl.setlocale (LocaleCategory.MESSAGES, null)
-			};
+			var env_candidates = new Gee.ArrayList<string?> ();
+			env_candidates.add (Environment.get_variable ("LANGUAGE"));
+			env_candidates.add (Environment.get_variable ("LC_ALL"));
+			env_candidates.add (Environment.get_variable ("LC_MESSAGES"));
+			env_candidates.add (Environment.get_variable ("LANG"));
+			env_candidates.add (Intl.setlocale (LocaleCategory.MESSAGES, null));
+			foreach (unowned string lang_name in Intl.get_language_names ())
+				env_candidates.add (lang_name);
+
 			string sys_lang = "en";
-			foreach (unowned string? cand_raw in env_candidates) {
+			foreach (string? cand_raw in env_candidates) {
 				if (cand_raw == null || cand_raw.strip () == "")
 					continue;
 				string first_tok = cand_raw.split (":")[0].strip ();
@@ -2054,7 +2094,7 @@ namespace Plank
 
 			try {
 				FileUtils.set_contents (html_path, builder.str);
-				string uri = "file://" + html_path;
+				string uri = File.new_for_path (html_path).get_uri ();
 				if (!Hal.Runtime.open_uri (uri))
 					System.get_default ().open_uri (uri);
 			} catch (GLib.Error e) {
@@ -2070,6 +2110,16 @@ namespace Plank
 			Hal.Runtime.system_resumed.connect ((delay_ms) => {
 				schedule_dock_refresh (delay_ms);
 			});
+			Hal.Runtime.remote_action_requested.connect ((target_dock, action) => {
+				if (is_shutting_down)
+					return;
+				if (action == "preferences")
+					activate_action ("preferences", null);
+				else if (action == "shortcuts")
+					activate_action ("shortcuts", null);
+				else
+					refresh_docks ();
+			});
 			Hal.Runtime.binary_upgrade_detected.connect ((saved_exe) => {
 				if (is_shutting_down || is_reloading_for_upgrade)
 					return;
@@ -2084,6 +2134,9 @@ namespace Plank
 
 		void schedule_dock_refresh (uint delay_ms)
 		{
+			if (is_shutting_down)
+				return;
+
 			if (resume_timer_id > 0U) {
 				GLib.Source.remove (resume_timer_id);
 				resume_timer_id = 0U;
@@ -2091,6 +2144,8 @@ namespace Plank
 
 			resume_timer_id = GLib.Timeout.add (delay_ms, () => {
 				resume_timer_id = 0U;
+				if (is_shutting_down)
+					return false;
 				refresh_docks ();
 				return false;
 			});

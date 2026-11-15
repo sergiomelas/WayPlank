@@ -57,10 +57,15 @@ namespace Plank
 			start_timer ();
 		}
 
+		private bool cleaned_up = false;
+
 		~MprisDockItem ()
 		{
 			is_disposed = true;
-			notify["IsAttached"].disconnect (on_attached_changed);
+			if (!cleaned_up) {
+				cleaned_up = true;
+				notify["IsAttached"].disconnect (on_attached_changed);
+			}
 			stop_timer ();
 			disconnect_media_listener ();
 		}
@@ -68,7 +73,10 @@ namespace Plank
 		public override void cleanup ()
 		{
 			is_disposed = true;
-			notify["IsAttached"].disconnect (on_attached_changed);
+			if (!cleaned_up) {
+				cleaned_up = true;
+				notify["IsAttached"].disconnect (on_attached_changed);
+			}
 			stop_timer ();
 			disconnect_media_listener ();
 			base.cleanup ();
@@ -261,8 +269,10 @@ namespace Plank
 			}
 
 			var live_ids = new Gee.HashSet<string> ();
-			foreach (var p in players)
+			foreach (var p in players) {
+				p.identity = ApplicationIdentity.get_identity_for_pid_or_bus (p.owner_pid, p.player_id, p.identity);
 				live_ids.add (p.player_id);
+			}
 
 			var stale = new Gee.ArrayList<string> ();
 			foreach (var k in last_known_status.keys) {

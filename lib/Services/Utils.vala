@@ -39,16 +39,17 @@ namespace Plank
 	{
 		if (custom_schema_source == null) {
 			var default_source = GLib.SettingsSchemaSource.get_default ();
+			string sys_data_dir = Hal.Runtime.get_system_data_dir ();
 			string[] candidate_dirs = {
-				Environment.get_current_dir () + "/data/glib-2.0/schemas",
-				Build.DATADIR + "/glib-2.0/schemas",
-				"/usr/local/share/glib-2.0/schemas",
-				"/usr/share/glib-2.0/schemas"
+				Path.build_filename (Environment.get_current_dir (), "data", "glib-2.0", "schemas"),
+				Path.build_filename (sys_data_dir, "glib-2.0", "schemas"),
+				Path.build_filename ("/usr", "local", "share", "glib-2.0", "schemas"),
+				Path.build_filename ("/usr", "share", "glib-2.0", "schemas")
 			};
 
 			GLib.SettingsSchemaSource? legacy_fallback = null;
 			foreach (var dir in candidate_dirs) {
-				if (FileUtils.test (dir + "/gschemas.compiled", FileTest.EXISTS)) {
+				if (FileUtils.test (Path.build_filename (dir, "gschemas.compiled"), FileTest.EXISTS)) {
 					try {
 						var source = new GLib.SettingsSchemaSource.from_directory (dir, default_source, false);
 						var schema = source.lookup ("net.launchpad.plank.dock.settings", true);

@@ -31,6 +31,7 @@ namespace Plank
 		public abstract bool is_stale (string win_id);
 		public abstract void request_thumbnail (string win_id, int target_w, int target_h, owned ThumbnailReadyCallback cb);
 		public abstract void evict (string win_id);
+		public virtual void cleanup () {}
 	}
 
 	/**

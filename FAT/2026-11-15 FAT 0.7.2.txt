@@ -7,14 +7,14 @@ Milestone: V0.7.2 (Public Beta 3: 3-Zone Dichotomic HAL & Agnostic Boundary
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend):
-      [IN PROGRESS - MOVE 2] | 103 [ok] | 0 [ko->ok] | 1 [ko->test] | 27 [  ] | 0 [NA] | 0 [ko]
+      [IN PROGRESS - MOVE 2] | 102 [ok] | 1 [ko->ok] | 3 [ko->test] | 27 [  ] | 0 [NA] | 0 [ko]
   - GNOME (Mutter Backend):
-      [IN PROGRESS - MOVE 2] | 102 [ok] | 0 [ko->ok] | 1 [ko->test] | 28 [  ] | 0 [NA] | 0 [ko]
+      [IN PROGRESS - MOVE 2] | 101 [ok] | 0 [ko->ok] | 1 [ko->test] | 29 [  ] | 0 [NA] | 0 [ko]
   - LABWC (wlroots Backend):
-      [IN PROGRESS - MOVE 2] | 100 [ok] | 0 [ko->ok] | 1 [ko->test] | 27 [  ] | 2 [NA] | 0 [ko]
+      [IN PROGRESS - MOVE 2] | 99 [ok] | 0 [ko->ok] | 1 [ko->test] | 28 [  ] | 2 [NA] | 0 [ko]
   - TOTAL SCOREBOARD:
-      392 Tests Defined | 305 [ok] Consolidated Baseline (Phase B.1) | 0 [ko->ok] Squashed |
-      3 [ko->test] Remediations | 82 Pending [  ] (70 Phase B.2 HAL-Only Resets + 12 New Section 14) |
+      394 Tests Defined | 302 [ok] Consolidated Baseline (Phase B.1) | 1 [ko->ok] Squashed |
+      5 [ko->test] Remediations | 84 Pending [  ] (72 Phase B.2 HAL-Only Resets + 12 New Section 14) |
       2 [NA] Limitations | 0 Open Defects ([ko])
 
 Test Status Legend (ISA-88 Qualification Standard):
@@ -27,7 +27,7 @@ Test Status Legend (ISA-88 Qualification Standard):
   - [NA]        : Not Applicable / Deferred (Compositor protocol limitation)
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 102 [ok] | 0 [ko->ok] | 1 [ko->test] | 28 [  ] | 0 [NA] | 0 OPEN]
+SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 101 [ok] | 0 [ko->ok] | 1 [ko->test] | 29 [  ] | 0 [NA] | 0 OPEN]
 ================================================================================
 
 0. Crashes during test
@@ -266,7 +266,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 102 [o
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
-   [ok] 6.9 Drive Ejector Docklet (docklet://ejector):
+   [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
         - Displays removable drive icon with orange gradient fallback.
         - Badge counter displays number of mounted removable drives/volumes.
         - Left-click: safely unmounts/ejects (if 1 device) or opens device
@@ -687,11 +687,44 @@ SESSION 1 RESULT: (GNOME / Mutter Backend)
 ================================================================================
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 103 [ok] | 0 [ko->ok] | 1 [ko->test] | 27 [  ] | 0 [NA] | 0 OPEN]
+SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 102 [ok] | 1 [ko->ok] | 3 [ko->test] | 27 [  ] | 0 [NA] | 0 OPEN]
 ================================================================================
 
 0. Crashes during test
-   [  ] : Situation
+   [ko->test] 0.1 Crash (SIGABRT: 'free(): invalid size') on Multi-Dock CLI Launch ('wayplank -n dock-2'):
+        - Launch a secondary named dock via CLI ('wayplank -n dock-2') with
+          'ShowDockItem=true' and verify clean startup, D-Bus registration
+          ('net.launchpad.plank.dock-2'), and 'SIGINT' teardown with zero heap
+          or GVariant errors.
+        - Bug: In AbstractMain.handle_local_options() (AbstractMain.vala:276),
+          'options.lookup("name", "&s", out raw_dock_opt)' borrowed an unowned
+          interior GVariantDict string pointer ('&s') into an owned Vala
+          variable ('string? raw_dock_opt'), causing Vala's scope-exit cleanup
+          to call g_free() on the interior GVariant buffer ('free(): invalid size'
+          -> SIGABRT).
+        - Remediation: Changed GVariantDict lookup format from '"&s"' to '"s"'
+          in AbstractMain.vala:276 so g_variant_dict_lookup() returns an owned
+          heap copy matching Vala's automatic scope-exit free.
+   [ko->test] 0.2 Crash (SIGSEGV at +5m 00s in SurfaceCache) & LauncherEntry int32 Variant Assertion:
+        - Run WayPlank across the 5-minute ('300s') SurfaceCache maintenance
+          interval and emit KDE KJobTracker-style 'com.canonical.Unity.LauncherEntry.Update'
+          signals carrying 'int32' ('"i"') / 'uint32' ('"u"') '"count"' payloads;
+          verify zero SIGSEGV at +5m 00s and zero GLib Variant assertion errors.
+        - Bug: (1) In SurfaceCache.construct (SurfaceCache.vala:141), capturing
+          'GLib.WeakRef weak_self' inside 'Gdk.threads_add_timeout(5 * 60 * 1000, ...)'
+          passed an unowned 'GLib.SourceFunc' (no GDestroyNotify in gdk-3.0.vapi),
+          causing Vala to free 'BlockData' at the end of 'construct {}' and
+          dereference freed memory in 'g_weak_ref_get()' at +5m 00s (Use-After-Free
+          -> SIGSEGV); (2) LauncherEntryDbusService.unpack_payload() called
+          'prop_value.get_int64()' unconditionally on non-int64 KDE KJobTracker
+          '"count"' variants.
+        - Remediation: Replaced 'Gdk.threads_add_timeout' in SurfaceCache.vala
+          with a static 'schedule_clean_up_timer<T>()' helper calling owned
+          'GLib.Timeout.add_seconds(5 * 60, ...)' (and moved WeakRef closures in
+          Preferences, ApplicationDockItemProvider, and NotificationDbusService
+          into static helpers with zero implicit strong 'self' capture), and added
+          multi-type integer/double/boolean Variant guards in
+          LauncherEntryDbusService.vala.
 
 1. ICON & LAUNCHER MANAGEMENT
    [ok] 1.1 Pinning via Menu:
@@ -926,7 +959,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 103
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
-   [ok] 6.9 Drive Ejector Docklet (docklet://ejector):
+   [ko->ok] 6.9 Drive Ejector Docklet (docklet://ejector):
         - Displays removable drive icon with orange gradient fallback.
         - Badge counter displays number of mounted removable drives/volumes.
         - Left-click: safely unmounts/ejects (if 1 device) or opens device
@@ -935,6 +968,16 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 103
           removed").
         - Right-click context menu lists all mounted removable drives with
           "Eject / Safe Remove" actions.
+        - Bug: Crash (SIGABRT in g_variant_new_va <- g_variant_builder_add)
+          upon safe drive removal when EjectorDockItem.notify_ejected() called
+          NotificationDbusService.send_toast() (NotificationDbusService.vala:611):
+          'builder.add("as", new string[0])' passed a Vala 'gchar**' + length
+          pair to GLib format '"as"', which expects a 'GVariantBuilder*'.
+        - Remediation: Replaced 'builder.add("as", new string[0])' with
+          'builder.open(new GLib.VariantType("as")); builder.close();' plus
+          null-coalesced toast strings in NotificationDbusService.vala, and
+          added an idempotent 'cleaned_up' async callback guard in
+          EjectorDockItem.vala.
    [ok] 6.10a Screen Brightness - Standalone Laptop Internal Display (Fast-Path):
         - Verify direct internal panel (/sys/class/backlight) control with %
           badge, 5% mouse-wheel steps, left-click presets (25/50/75/100%), and
@@ -1363,7 +1406,7 @@ SESSION 2 RESULT: (KDE Plasma / KWin Backend)
 ================================================================================
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 100 [ok] | 0 [ko->ok] | 1 [ko->test] | 27 [  ] | 2 [NA] | 0 OPEN]
+SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 99 [ok] | 0 [ko->ok] | 1 [ko->test] | 28 [  ] | 2 [NA] | 0 OPEN]
 ================================================================================
 
 0. Crashes during test
@@ -1598,7 +1641,7 @@ SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS - MOVE 2 QUALIFICATION | 100 [
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
-   [ok] 6.9 Drive Ejector Docklet (docklet://ejector):
+   [  ] 6.9 Drive Ejector Docklet (docklet://ejector):
         - Displays removable drive icon with orange gradient fallback.
         - Badge counter displays number of mounted removable drives/volumes.
         - Left-click: safely unmounts/ejects (if 1 device) or opens device

@@ -680,8 +680,13 @@ namespace Plank
 
 		public static void invalidate_process_cmdline (int pid)
 		{
-			if (pid > 0 && pid_cmdline_cache != null)
-				pid_cmdline_cache.unset (pid);
+			if (pid > 0) {
+				if (pid_cmdline_cache != null)
+					pid_cmdline_cache.unset (pid);
+				if (pid_comm_cache != null)
+					pid_comm_cache.unset (pid);
+				Hal.Runtime.invalidate_process_cache (pid);
+			}
 		}
 
 		public static string get_process_comm (int pid)

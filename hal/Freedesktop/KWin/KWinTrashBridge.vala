@@ -46,11 +46,24 @@ namespace Plank
 
 		~KWinTrashBridge ()
 		{
+			unsubscribe_listener ();
+		}
+
+		void unsubscribe_listener ()
+		{
 			if (signal_sub_id > 0U) {
 				var bus = get_session_bus ();
 				if (bus != null)
 					bus.signal_unsubscribe (signal_sub_id);
 				signal_sub_id = 0U;
+			}
+		}
+
+		public static void cleanup_if_active ()
+		{
+			if (default_instance != null) {
+				default_instance.unsubscribe_listener ();
+				default_instance = null;
 			}
 		}
 

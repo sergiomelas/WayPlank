@@ -36,7 +36,8 @@ namespace Plank
 		const uint8 ALPHA_THRESHOLD = 24;
 		
 		static Mutex icon_theme_mutex;
-		static Gtk.IconTheme icon_theme;
+		static Gtk.IconTheme? icon_theme;
+		static Gtk.IconTheme? headless_icon_theme;
 		
 		DrawingService ()
 		{
@@ -46,12 +47,45 @@ namespace Plank
 		{
 			icon_theme_mutex.lock ();
 			
-			if (icon_theme == null)
-				icon_theme = Gtk.IconTheme.get_for_screen (Gdk.Screen.get_default ());
+			if (icon_theme == null) {
+				var screen = Gdk.Screen.get_default ();
+				if (screen != null)
+					icon_theme = Gtk.IconTheme.get_for_screen (screen);
+			}
 			
+			if (icon_theme != null) {
+				unowned Gtk.IconTheme res = icon_theme;
+				icon_theme_mutex.unlock ();
+				return res;
+			}
+			
+			if (headless_icon_theme == null)
+				headless_icon_theme = new Gtk.IconTheme ();
+			
+			unowned Gtk.IconTheme fallback_res = headless_icon_theme;
 			icon_theme_mutex.unlock ();
 			
-			return icon_theme;
+			return fallback_res;
+		}
+
+		/**
+		 * Mutex-protected, null-safe lookup directly against the active Gtk.IconTheme
+		 * (without built-in GResource fallbacks, for graded icon-set selection).
+		 */
+		public static bool theme_has_icon (string icon_name)
+		{
+			if (icon_name == null || icon_name == "")
+				return false;
+
+			unowned Gtk.IconTheme? theme = get_icon_theme ();
+			if (theme == null)
+				return false;
+
+			icon_theme_mutex.lock ();
+			bool exists = theme.has_icon (icon_name);
+			icon_theme_mutex.unlock ();
+
+			return exists;
 		}
 		
 		/**
@@ -147,14 +181,24 @@ namespace Plank
 		 */
 		public static string? get_icon_from_gicon (Icon? icon)
 		{
+			while (icon is EmblemedIcon)
+				icon = ((EmblemedIcon) icon).get_icon ();
+
 			if (icon is ThemedIcon) {
 				var icons = string.joinv (";;", ((ThemedIcon) icon).get_names ());
 				// Remove possible null values which sneaked through joinv, possibly a GTK+ bug?
 				return icons.replace ("(null);;", "");
 			}
 			
-			if (icon is FileIcon)
-				return ((FileIcon) icon).get_file ().get_path ();
+			if (icon is FileIcon) {
+				var f = ((FileIcon) icon).get_file ();
+				var path = f.get_path ();
+				if (path != null && path != "")
+					return path;
+				var uri = f.get_uri ();
+				if (uri != null && uri.down ().has_prefix ("resource://"))
+					return uri;
+			}
 			
 			return null;
 		}
@@ -172,9 +216,17 @@ namespace Plank
 			Gdk.Pixbuf? pbuf = null;
 			
 			var all_names = names.split (";;");
-			all_names += DEFAULT_ICON;
 			
 			foreach (unowned string name in all_names) {
+				if (name == null || name == "")
+					continue;
+
+				if (name.down ().has_prefix ("resource://")) {
+					pbuf = load_pixbuf_from_resource (name.substring ("resource://".length), width, height);
+					if (pbuf != null)
+						break;
+				}
+
 				var file = try_get_icon_file (name);
 				if (file != null) {
 					pbuf = load_pixbuf_from_file (file, width, height);
@@ -190,9 +242,11 @@ namespace Plank
 					message ("Could not find icon '%s'", name);
 			}
 			
-			// If not found in theme, check integrated docklet fallback resources
+			// If not found in active system theme, check integrated GResource fallback icons
 			if (pbuf == null) {
 				foreach (unowned string name in all_names) {
+					if (name == null || name == "")
+						continue;
 					var fallback = get_docklet_fallback_resource (name);
 					if (fallback != null) {
 						pbuf = load_pixbuf_from_resource (fallback, width, height);
@@ -201,6 +255,10 @@ namespace Plank
 					}
 				}
 			}
+
+			// Try theme default icon before embedded last-resort icon
+			if (pbuf == null)
+				pbuf = load_pixbuf (DEFAULT_ICON, int.max (width, height));
 			
 			// Load internal default icon as last resort
 			if (pbuf == null)
@@ -241,7 +299,7 @@ namespace Plank
 				file = File.new_for_uri (name);
 			else if (name.has_prefix ("~/"))
 				file = File.new_for_path (name.replace ("~", Environment.get_home_dir ()));
-			else if (name.has_prefix ("/"))
+			else if (Path.is_absolute (name))
 				file = File.new_for_path (name);
 			
 			if (file != null && file.query_exists ())
@@ -310,9 +368,17 @@ namespace Plank
 			Cairo.Surface? surface = null;
 			
 			var all_names = names.split (";;");
-			all_names += DEFAULT_ICON;
 			
 			foreach (unowned string name in all_names) {
+				if (name == null || name == "")
+					continue;
+
+				if (name.down ().has_prefix ("resource://")) {
+					surface = load_surface_from_resource_at_scale (name.substring ("resource://".length), width, height, scale);
+					if (surface != null)
+						break;
+				}
+
 				var file = try_get_icon_file (name);
 				if (file != null) {
 					var pbuf = load_pixbuf_from_file (file, width, height);
@@ -334,9 +400,11 @@ namespace Plank
 					message ("Could not find icon '%s'", name);
 			}
 			
-			// If not found in theme, check integrated docklet fallback resources
+			// If not found in active system theme, check integrated GResource fallback icons
 			if (surface == null) {
 				foreach (unowned string name in all_names) {
+					if (name == null || name == "")
+						continue;
 					var fallback = get_docklet_fallback_resource (name);
 					if (fallback != null) {
 						surface = load_surface_from_resource_at_scale (fallback, width, height, scale);
@@ -345,6 +413,10 @@ namespace Plank
 					}
 				}
 			}
+
+			// Try theme default icon before embedded last-resort icon
+			if (surface == null)
+				surface = load_surface (DEFAULT_ICON, int.max (width, height) / scale, scale);
 			
 			// Load internal default icon as last resort
 			if (surface == null)
@@ -436,10 +508,49 @@ namespace Plank
 				case "system-shutdown-symbolic":
 				case "xfsm-shutdown":
 					return Plank.G_RESOURCE_PATH + "/docklets/session.svg";
+				case "system-lock-screen":
+				case "system-lock-screen-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/session-lock.svg";
+				case "system-users":
+				case "system-switch-user":
+				case "system-users-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/session-users.svg";
+				case "system-log-out":
+				case "system-log-out-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/session-logout.svg";
+				case "system-suspend":
+				case "system-suspend-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/session-suspend.svg";
+				case "system-suspend-hibernate":
+				case "system-suspend-hibernate-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/session-hibernate.svg";
+				case "system-reboot":
+				case "system-reboot-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/session-reboot.svg";
 				case "plank":
 				case "wayplank":
 				case "preferences-other":
 					return Plank.G_RESOURCE_PATH + "/docklets/preferences.svg";
+				case "preferences-system":
+				case "preferences-system-symbolic":
+				case "configure":
+					return Plank.G_RESOURCE_PATH + "/docklets/settings-gear.svg";
+				case "starred":
+				case "starred-symbolic":
+				case "non-starred-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/starred.svg";
+				case "list-add":
+				case "list-add-symbolic":
+				case "add":
+					return Plank.G_RESOURCE_PATH + "/docklets/list-add.svg";
+				case "help-browser":
+				case "help-browser-symbolic":
+				case "help-contents":
+				case "help-contents-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/help-browser.svg";
+				case "application-exit":
+				case "application-exit-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/application-exit.svg";
 				case "media-eject":
 				case "media-eject-symbolic":
 				case "drive-removable-media":
@@ -496,18 +607,41 @@ namespace Plank
 				case "weather":
 					return Plank.G_RESOURCE_PATH + "/docklets/weather.svg";
 				case "network-wireless-signal-excellent":
+				case "network-wireless-signal-excellent-symbolic":
+				case "network-wireless-connected-100":
 				case "network-wireless-signal-good":
+				case "network-wireless-signal-good-symbolic":
+				case "network-wireless-connected-75":
 				case "network-wireless-signal-ok":
+				case "network-wireless-signal-ok-symbolic":
+				case "network-wireless-connected-50":
 				case "network-wireless-signal-weak":
+				case "network-wireless-signal-weak-symbolic":
+				case "network-wireless-connected-25":
 				case "network-wireless-signal-none":
+				case "network-wireless-signal-none-symbolic":
 				case "network-wireless-connected":
 				case "network-wireless":
 				case "network-wired-activated":
 				case "network-wired":
-				case "network-offline":
+				case "network-workgroup":
 				case "network-idle":
-				case "network-error":
 					return Plank.G_RESOURCE_PATH + "/docklets/network.svg";
+				case "network-offline":
+				case "network-offline-symbolic":
+				case "network-error":
+				case "network-wired-disconnected":
+				case "network-wireless-disconnected":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-offline.svg";
+				case "preferences-desktop-notification-bell":
+				case "notifications":
+				case "preferences-system-notifications":
+				case "notification-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/dnd.svg";
+				case "notifications-disabled":
+				case "notifications-disabled-symbolic":
+				case "notification-disabled":
+					return Plank.G_RESOURCE_PATH + "/docklets/dnd-muted.svg";
 				default:
 					return null;
 			}
@@ -584,7 +718,7 @@ namespace Plank
 			var scaled_width = int.max (1, (int) (source_width * scale));
 			var scaled_height = int.max (1, (int) (source_height * scale));
 			
-			return source.scale_simple (scaled_width, scaled_height, Gdk.InterpType.HYPER);
+			return source.scale_simple (scaled_width, scaled_height, Gdk.InterpType.HYPER) ?? source;
 		}
 		
 		/**

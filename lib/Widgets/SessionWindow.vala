@@ -119,7 +119,10 @@ namespace Plank
 			set_type_hint (Gdk.WindowTypeHint.DIALOG);
 			set_keep_above (true);
 			set_focus_on_map (true);
-			icon_name = "system-shutdown";
+			if (DrawingService.theme_has_icon ("system-shutdown"))
+				icon_name = "system-shutdown";
+			else
+				icon = DrawingService.load_icon ("system-shutdown", 48, 48);
 			skip_taskbar_hint = true;
 			skip_pager_hint = true;
 
@@ -382,7 +385,7 @@ namespace Plank
 
 			switch (action) {
 				case ConfirmAction.LOGOUT:
-					confirm_icon.set_from_icon_name ("system-log-out", Gtk.IconSize.DIALOG);
+					apply_session_icon (confirm_icon, "system-log-out", Gtk.IconSize.DIALOG, 54);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Log Out of Session?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to log out of your current session?")));
 					confirm_action_btn.label = _("Log Out");
@@ -390,7 +393,7 @@ namespace Plank
 					confirm_action_btn.get_style_context ().add_class ("destructive-action");
 					break;
 				case ConfirmAction.RESTART:
-					confirm_icon.set_from_icon_name ("system-reboot", Gtk.IconSize.DIALOG);
+					apply_session_icon (confirm_icon, "system-reboot", Gtk.IconSize.DIALOG, 54);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Restart System?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to restart your computer? Unsaved changes will be lost.")));
 					confirm_action_btn.label = _("Restart");
@@ -398,7 +401,7 @@ namespace Plank
 					confirm_action_btn.get_style_context ().add_class ("suggested-action");
 					break;
 				case ConfirmAction.REBOOT_UEFI:
-					confirm_icon.set_from_icon_name ("preferences-system", Gtk.IconSize.DIALOG);
+					apply_session_icon (confirm_icon, "preferences-system", Gtk.IconSize.DIALOG, 54);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Reboot to UEFI / BIOS?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to restart your computer and enter the UEFI / BIOS firmware settings? Unsaved changes will be lost.")));
 					confirm_action_btn.label = _("UEFI / BIOS");
@@ -406,7 +409,7 @@ namespace Plank
 					confirm_action_btn.get_style_context ().add_class ("suggested-action");
 					break;
 				case ConfirmAction.SHUTDOWN:
-					confirm_icon.set_from_icon_name ("system-shutdown", Gtk.IconSize.DIALOG);
+					apply_session_icon (confirm_icon, "system-shutdown", Gtk.IconSize.DIALOG, 54);
 					confirm_title.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Shut Down Computer?")));
 					confirm_desc.set_markup ("<span color='#888888'>%s</span>".printf (_("Are you sure you want to turn off your computer? Unsaved changes will be lost.")));
 					confirm_action_btn.label = _("Shut Down");
@@ -417,6 +420,22 @@ namespace Plank
 
 			stack.set_visible_child_name ("confirm");
 			confirm_cancel_btn.grab_focus ();
+		}
+
+		void apply_session_icon (Gtk.Image img, string icon_spec, Gtk.IconSize size, int pixel_size)
+		{
+			if (DrawingService.theme_has_icon (icon_spec)) {
+				img.set_from_icon_name (icon_spec, size);
+				img.pixel_size = pixel_size;
+				return;
+			}
+
+			int scale = int.max (1, get_scale_factor ());
+			var surf = DrawingService.load_icon_for_scale (icon_spec, pixel_size * scale, pixel_size * scale, scale);
+			if (surf != null)
+				img.set_from_surface (surf);
+			else
+				img.set_from_pixbuf (DrawingService.load_icon (icon_spec, pixel_size, pixel_size));
 		}
 
 		delegate void ActionCallback ();
@@ -435,8 +454,8 @@ namespace Plank
 			box.halign = Gtk.Align.CENTER;
 			box.valign = Gtk.Align.CENTER;
 
-			var img = new Gtk.Image.from_icon_name (icon_name, Gtk.IconSize.DND);
-			img.pixel_size = 32;
+			var img = new Gtk.Image ();
+			apply_session_icon (img, icon_name, Gtk.IconSize.DND, 32);
 
 			var lbl = new Gtk.Label (label_text);
 			lbl.use_markup = true;

@@ -44,14 +44,13 @@ namespace Plank
 				return false;
 
 			var folder = Theme.get_theme_folder (name);
-			if (folder == null)
+			if (folder == null || Paths.HomeFolder == null)
 				return false;
 
-			string? path = folder.get_path ();
-			string home_prefix = Environment.get_home_dir ();
-			if (!home_prefix.has_suffix ("/"))
-				home_prefix += "/";
-			return (path != null && path.has_prefix (home_prefix));
+			if (Paths.ThemeFolder != null && (folder.equal (Paths.ThemeFolder) || folder.has_prefix (Paths.ThemeFolder)))
+				return false;
+
+			return folder.has_prefix (Paths.HomeFolder);
 		}
 
 		/**
@@ -71,12 +70,25 @@ namespace Plank
 
 		private static bool is_safe_theme_name (string? name)
 		{
-			if (name == null)
+			if (name == null || name == "")
+				return false;
+			if (name.has_suffix (" ") || name.has_suffix ("."))
 				return false;
 			string trimmed = name.strip ();
 			if (trimmed == "" || trimmed == "." || trimmed == "..")
 				return false;
-			if (trimmed.contains ("/") || trimmed.contains ("\\"))
+			for (int i = 0; i < trimmed.length; i++) {
+				char c = trimmed[i];
+				if (c < 0x20 || c == '/' || c == '\\' || c == '<' || c == '>'
+					|| c == ':' || c == '"' || c == '|' || c == '?' || c == '*')
+					return false;
+			}
+			int dot_idx = trimmed.index_of_char ('.');
+			string stem = (dot_idx >= 0 ? trimmed.substring (0, dot_idx) : trimmed).ascii_up ();
+			if (stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL")
+				return false;
+			if ((stem.has_prefix ("COM") || stem.has_prefix ("LPT"))
+				&& stem.length == 4 && stem[3] >= '1' && stem[3] <= '9')
 				return false;
 			return true;
 		}
@@ -150,8 +162,11 @@ namespace Plank
 				if (lower.has_suffix (".theme")) {
 					// Standalone .theme file
 					var src_file = File.new_for_path (archive_path);
-					string theme_name = src_file.get_basename ().replace (".theme", "");
-					if (theme_name == "dock" || theme_name == "") {
+					string raw_base = src_file.get_basename () ?? "";
+					string theme_name = raw_base.down ().has_suffix (".theme")
+						? raw_base.substring (0, raw_base.length - 6)
+						: raw_base;
+					if (theme_name.down () == "dock" || theme_name == "") {
 						var parent = src_file.get_parent ();
 						theme_name = parent != null ? (parent.get_basename () ?? "") : "";
 					}
@@ -181,7 +196,7 @@ namespace Plank
 					string name;
 					if (dir_path == root_tmp) {
 						var f = File.new_for_path (archive_path);
-						name = f.get_basename ();
+						name = f.get_basename () ?? "";
 						string[] exts = { ".tar.gz", ".tar.xz", ".tar.bz2", ".zip", ".tgz", ".txz", ".theme" };
 						foreach (var ext in exts) {
 							if (name.down ().has_suffix (ext)) {
@@ -190,7 +205,7 @@ namespace Plank
 							}
 						}
 					} else {
-						name = dir.get_basename ();
+						name = dir.get_basename () ?? "";
 					}
 
 					if (!is_safe_theme_name (name))

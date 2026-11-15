@@ -20,61 +20,6 @@
 
 namespace Plank
 {
-	interface DesktopNotificationsSetting : Object
-	{
-		public abstract bool ShowNotifications { get; set; }
-	}
-
-	class PantheonDesktopNotificationsSetting : Plank.Settings, DesktopNotificationsSetting
-	{
-		static PantheonDesktopNotificationsSetting? instance = null;
-
-		public static unowned PantheonDesktopNotificationsSetting? try_get_instance ()
-		{
-			if (instance == null) {
-				var settings = try_create_settings ("org.pantheon.desktop.gala.notifications");
-				if (settings != null && ("do-not-disturb" in settings.settings_schema.list_keys ()))
-					instance = (PantheonDesktopNotificationsSetting) Object.new (typeof (PantheonDesktopNotificationsSetting),
-						"settings", settings, "bind-flags", SettingsBindFlags.GET | SettingsBindFlags.INVERT_BOOLEAN, null);
-			}
-
-			return instance;
-		}
-
-		[Description (nick = "do-not-disturb")]
-		public bool ShowNotifications { get; set; }
-
-		public PantheonDesktopNotificationsSetting ()
-		{
-			Object ();
-		}
-	}
-
-	class GnomeDesktopNotificationsSetting : Plank.Settings, DesktopNotificationsSetting
-	{
-		static GnomeDesktopNotificationsSetting? instance = null;
-
-		public static unowned GnomeDesktopNotificationsSetting? try_get_instance ()
-		{
-			if (instance == null) {
-				var settings = try_create_settings ("org.gnome.desktop.notifications");
-				if (settings != null && ("show-banners" in settings.settings_schema.list_keys ()))
-					instance = (GnomeDesktopNotificationsSetting) Object.new (typeof (GnomeDesktopNotificationsSetting),
-						"settings", settings, "bind-flags", SettingsBindFlags.GET, null);
-			}
-
-			return instance;
-		}
-
-		[Description (nick = "show-banners")]
-		public bool ShowNotifications { get; set; }
-
-		public GnomeDesktopNotificationsSetting ()
-		{
-			Object ();
-		}
-	}
-
 	[DBus (name = "org.freedesktop.Notifications")]
 	private class FallbackNotificationAbsorber : GLib.Object
 	{
@@ -140,7 +85,10 @@ namespace Plank
 			get { return show_badges; }
 		}
 
-		DesktopNotificationsSetting? badge_notifications = null;
+		GLib.Settings? badge_settings = null;
+		string badge_settings_key = "";
+		bool badge_invert_boolean = false;
+		ulong badge_settings_handler_id = 0UL;
 		DBusConnection? session_bus = null;
 		uint dbus_signal_id = 0U;
 		uint inhibit_cookie = 0U;
@@ -149,20 +97,33 @@ namespace Plank
 		bool standalone_absorber_active = false;
 		FallbackNotificationAbsorber? absorber_obj = null;
 		GLib.Settings? gnome_notif_settings = null;
+		ulong gnome_notif_handler_id = 0UL;
 		bool is_disposed = false;
 
 		construct
 		{
-			if (environment_is_session_desktop (XdgSessionDesktop.GNOME))
-				badge_notifications = GnomeDesktopNotificationsSetting.try_get_instance ();
-			else if (environment_is_session_desktop (XdgSessionDesktop.PANTHEON))
-				badge_notifications = PantheonDesktopNotificationsSetting.try_get_instance ();
-			else
-				badge_notifications = null;
+			var schema_src = SettingsSchemaSource.get_default ();
+			if (schema_src != null) {
+				if (environment_is_session_desktop (XdgSessionDesktop.GNOME)) {
+					var schema = schema_src.lookup ("org.gnome.desktop.notifications", true);
+					if (schema != null && schema.has_key ("show-banners")) {
+						badge_settings = new GLib.Settings ("org.gnome.desktop.notifications");
+						badge_settings_key = "show-banners";
+						badge_invert_boolean = false;
+					}
+				} else if (environment_is_session_desktop (XdgSessionDesktop.PANTHEON)) {
+					var schema = schema_src.lookup ("org.pantheon.desktop.gala.notifications", true);
+					if (schema != null && schema.has_key ("do-not-disturb")) {
+						badge_settings = new GLib.Settings ("org.pantheon.desktop.gala.notifications");
+						badge_settings_key = "do-not-disturb";
+						badge_invert_boolean = true;
+					}
+				}
+			}
 
-			if (badge_notifications != null) {
-				show_badges = badge_notifications.ShowNotifications;
-				badge_notifications.notify.connect (on_badge_notifications_changed);
+			if (badge_settings != null && badge_settings_key != "") {
+				show_badges = read_badge_setting ();
+				badge_settings_handler_id = badge_settings.changed[badge_settings_key].connect (on_badge_notifications_changed);
 			}
 
 			session_bus = DbusBroker.get_default ().get_session_bus ();
@@ -178,11 +139,11 @@ namespace Plank
 				);
 			}
 
-			if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)) {
-				var schema_src = SettingsSchemaSource.get_default ();
-				if (schema_src != null && schema_src.lookup ("org.gnome.desktop.notifications", true) != null) {
+			if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU) && schema_src != null) {
+				var notif_schema = schema_src.lookup ("org.gnome.desktop.notifications", true);
+				if (notif_schema != null && notif_schema.has_key ("show-banners")) {
 					gnome_notif_settings = new GLib.Settings ("org.gnome.desktop.notifications");
-					gnome_notif_settings.changed["show-banners"].connect (() => {
+					gnome_notif_handler_id = gnome_notif_settings.changed["show-banners"].connect (() => {
 						if (!is_disposed && gnome_notif_settings != null)
 							dnd_state_changed (!gnome_notif_settings.get_boolean ("show-banners"));
 					});
@@ -195,11 +156,19 @@ namespace Plank
 			cleanup ();
 		}
 
+		bool read_badge_setting ()
+		{
+			if (badge_settings == null || badge_settings_key == "")
+				return true;
+			bool val = badge_settings.get_boolean (badge_settings_key);
+			return badge_invert_boolean ? !val : val;
+		}
+
 		void on_badge_notifications_changed ()
 		{
-			if (badge_notifications == null)
+			if (is_disposed || badge_settings == null)
 				return;
-			bool next_val = badge_notifications.ShowNotifications;
+			bool next_val = read_badge_setting ();
 			if (show_badges != next_val) {
 				show_badges = next_val;
 				show_launcher_badges_changed ();
@@ -219,7 +188,7 @@ namespace Plank
 
 		public bool get_instant_dnd_inhibited ()
 		{
-			if (gnome_notif_settings != null)
+			if (gnome_notif_settings != null && gnome_notif_settings.settings_schema.has_key ("show-banners"))
 				return !gnome_notif_settings.get_boolean ("show-banners");
 			return false;
 		}
@@ -242,9 +211,16 @@ namespace Plank
 				return false;
 			}
 
-			GLib.WeakRef self_ref = GLib.WeakRef (this);
-			absorber_owner_id = Bus.own_name_on_connection (
-				session_bus,
+			absorber_owner_id = register_absorber_owner (session_bus, this);
+			standalone_absorber_active = true;
+			return true;
+		}
+
+		private static uint register_absorber_owner (DBusConnection bus, NotificationDbusService target)
+		{
+			GLib.WeakRef self_ref = GLib.WeakRef (target);
+			return Bus.own_name_on_connection (
+				bus,
 				"org.freedesktop.Notifications",
 				BusNameOwnerFlags.ALLOW_REPLACEMENT,
 				(conn, name) => { },
@@ -257,8 +233,6 @@ namespace Plank
 					}
 				}
 			);
-			standalone_absorber_active = true;
-			return true;
 		}
 
 		private void stop_standalone_absorber ()
@@ -631,15 +605,20 @@ namespace Plank
 
 		public void send_toast (string summary, string body, string icon_name)
 		{
+			string safe_icon = icon_name ?? "";
+			string safe_summary = summary ?? "";
+			string safe_body = body ?? "";
+
 			var bus = session_bus ?? DbusBroker.get_default ().get_session_bus ();
 			if (bus != null && bus_has_owner (bus, "org.freedesktop.Notifications")) {
 				var builder = new GLib.VariantBuilder (new GLib.VariantType ("(susssasa{sv}i)"));
 				builder.add ("s", "WayPlank");
 				builder.add ("u", 0U);
-				builder.add ("s", icon_name);
-				builder.add ("s", summary);
-				builder.add ("s", body);
-				builder.add ("as", new string[0]);
+				builder.add ("s", safe_icon);
+				builder.add ("s", safe_summary);
+				builder.add ("s", safe_body);
+				builder.open (new GLib.VariantType ("as"));
+				builder.close ();
 				builder.open (new GLib.VariantType ("a{sv}"));
 				builder.close ();
 				builder.add ("i", 3000);
@@ -660,9 +639,9 @@ namespace Plank
 
 			try {
 				Process.spawn_command_line_async ("notify-send -i %s %s %s".printf (
-					Shell.quote (icon_name),
-					Shell.quote (summary),
-					Shell.quote (body)
+					Shell.quote (safe_icon),
+					Shell.quote (safe_summary),
+					Shell.quote (safe_body)
 				));
 			} catch (Error e2) { }
 		}
@@ -670,9 +649,19 @@ namespace Plank
 		public void cleanup ()
 		{
 			is_disposed = true;
-			if (badge_notifications != null) {
-				badge_notifications.notify.disconnect (on_badge_notifications_changed);
-				badge_notifications = null;
+			if (badge_settings != null) {
+				if (badge_settings_handler_id > 0UL) {
+					SignalHandler.disconnect (badge_settings, badge_settings_handler_id);
+					badge_settings_handler_id = 0UL;
+				}
+				badge_settings = null;
+			}
+			if (gnome_notif_settings != null) {
+				if (gnome_notif_handler_id > 0UL) {
+					SignalHandler.disconnect (gnome_notif_settings, gnome_notif_handler_id);
+					gnome_notif_handler_id = 0UL;
+				}
+				gnome_notif_settings = null;
 			}
 			stop_standalone_absorber ();
 			if (dbus_signal_id > 0U && session_bus != null) {

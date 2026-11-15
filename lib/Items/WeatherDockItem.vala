@@ -395,7 +395,11 @@ namespace Plank
 
 			// 2. Fetch Open-Meteo forecast
 			string unit_param = (unit_snap == "F") ? "&temperature_unit=fahrenheit&wind_speed_unit=mph" : "";
-			string forecast_url = "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,relative_humidity_2m_max,relative_humidity_2m_min&timezone=auto%s".printf (lat, lon, unit_param);
+			char lat_buf[double.DTOSTR_BUF_SIZE];
+			char lon_buf[double.DTOSTR_BUF_SIZE];
+			string lat_str = lat.format (lat_buf, "%.4f");
+			string lon_str = lon.format (lon_buf, "%.4f");
+			string forecast_url = "https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,relative_humidity_2m_max,relative_humidity_2m_min&timezone=auto%s".printf (lat_str, lon_str, unit_param);
 			string forecast_out;
 			bool fetched_ok = false;
 

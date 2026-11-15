@@ -29,9 +29,6 @@ namespace Plank
 	public const uint ITEM_SCROLL_DURATION = 300;
 	
 	public const uint ITEM_SERIALIZATION_DELAY = 3000;
-
-	public const uint UNITY_UPDATE_THRESHOLD_DURATION = 32;
-	public const uint UNITY_UPDATE_THRESHOLD_FAST_COUNT = 3;
 	
 	public const string SURFACE_STATS_DRAWING_TIME_EXCEEDED = "drawing-time-exceeded";
 	

@@ -170,7 +170,7 @@ namespace Plank
 			} catch (Error e) { }
 
 			var seat_path = Environment.get_variable ("XDG_SEAT_PATH");
-			if (seat_path == null || seat_path == "")
+			if (seat_path == null || seat_path == "" || !Variant.is_object_path (seat_path))
 				seat_path = "/org/freedesktop/DisplayManager/Seat0";
 
 			try {
@@ -228,7 +228,7 @@ namespace Plank
 			debug ("LinuxSessionPower: switching to user greeter");
 
 			var seat_path = Environment.get_variable ("XDG_SEAT_PATH");
-			if (seat_path == null || seat_path == "")
+			if (seat_path == null || seat_path == "" || !Variant.is_object_path (seat_path))
 				seat_path = "/org/freedesktop/DisplayManager/Seat0";
 
 			try {
@@ -362,14 +362,14 @@ namespace Plank
 			var session_id = Environment.get_variable ("XDG_SESSION_ID");
 			if (session_id != null && session_id != "") {
 				try {
-					Process.spawn_command_line_async ("loginctl terminate-session " + session_id);
+					Process.spawn_command_line_async ("loginctl terminate-session " + Shell.quote (session_id));
 					return;
 				} catch (Error e) { }
 			}
 
 			var user = Environment.get_user_name ();
 			try {
-				Process.spawn_command_line_async ("loginctl terminate-user " + user);
+				Process.spawn_command_line_async ("loginctl terminate-user " + Shell.quote (user));
 			} catch (Error e) {
 				warning ("Failed to log out: %s", e.message);
 			}

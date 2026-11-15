@@ -51,8 +51,14 @@ namespace Plank
 			}
 		}
 
-		~ApplicationDockItemProvider ()
+		bool is_app_provider_cleaned_up = false;
+
+		public override void cleanup ()
 		{
+			if (is_app_provider_cleaned_up)
+				return;
+			is_app_provider_cleaned_up = true;
+
 			queued_files = null;
 			Matcher.get_default ().application_opened.disconnect (app_opened);
 			Matcher.get_default ().application_closed.disconnect (app_closed);
@@ -64,6 +70,13 @@ namespace Plank
 				items_monitor.cancel ();
 				items_monitor = null;
 			}
+
+			base.cleanup ();
+		}
+
+		~ApplicationDockItemProvider ()
+		{
+			cleanup ();
 		}
 
 		protected unowned ApplicationDockItem? item_for_application_id (string app_id)
@@ -380,9 +393,66 @@ namespace Plank
 				process_queued_files ();
 		}
 
-		// ILauncherBadgeClient interface stubs (preserved 1-to-1 from V0.2.0 baseline)
-		public void remove_launcher_entry (string sender_id) {}
-		public void update_launcher_entry (string sender_id, LauncherBadgeState state, bool is_retry = false) {}
+		public virtual void remove_launcher_entry (string sender_id)
+		{
+			if (sender_id == "")
+				return;
+
+			foreach (var element in internal_elements) {
+				unowned ApplicationDockItem? app_item = (element as ApplicationDockItem);
+				if (app_item != null && app_item.get_unity_dbusname () == sender_id)
+					app_item.unity_reset ();
+			}
+		}
+
+		public virtual void update_launcher_entry (string sender_id, LauncherBadgeState state, bool is_retry = false)
+		{
+			string target = state.app_uri != null ? state.app_uri.strip () : "";
+			if (target == "")
+				return;
+
+			string target_base = Path.get_basename (target).down ();
+			string norm_target = ApplicationIdentity.normalize (target_base);
+			bool matched = false;
+
+			foreach (var element in internal_elements) {
+				unowned ApplicationDockItem? app_item = (element as ApplicationDockItem);
+				if (app_item == null)
+					continue;
+
+				bool is_match = (sender_id != "" && app_item.get_unity_dbusname () == sender_id);
+				if (!is_match && app_item.Launcher != "") {
+					if (app_item.Launcher == target) {
+						is_match = true;
+					} else {
+						string item_base = Path.get_basename (app_item.Launcher).down ();
+						if (item_base == target_base
+							|| (norm_target != "" && ApplicationIdentity.normalize (item_base) == norm_target)) {
+							is_match = true;
+						}
+					}
+				}
+
+				if (is_match) {
+					app_item.unity_update (sender_id, state);
+					matched = true;
+				}
+			}
+
+			if (!matched && !is_retry)
+				schedule_badge_retry (this, sender_id, state);
+		}
+
+		private static void schedule_badge_retry (ApplicationDockItemProvider target, string sender_id, LauncherBadgeState state)
+		{
+			var self_ref = GLib.WeakRef (target);
+			Timeout.add (500, () => {
+				var provider = self_ref.get () as ApplicationDockItemProvider;
+				if (provider != null)
+					provider.update_launcher_entry (sender_id, state, true);
+				return false;
+			});
+		}
 	}
 }
 

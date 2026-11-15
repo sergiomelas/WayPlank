@@ -200,6 +200,9 @@ namespace Plank
 			});
 		}
 
+		const uint UPDATE_THRESHOLD_DURATION_MS = 32;
+		const uint UPDATE_THRESHOLD_FAST_COUNT = 3;
+
 		void handle_update_request (string sender_name, Variant parameters)
 		{
 			if (launcher_entries == null)
@@ -209,14 +212,14 @@ namespace Plank
 			LauncherEntry? entry;
 			if ((entry = launcher_entries.get (sender_name)) != null) {
 				entry.parameters = parameters;
-				if (current_time - entry.last_update < UNITY_UPDATE_THRESHOLD_DURATION * 1000
-					&& entry.fast_count > UNITY_UPDATE_THRESHOLD_FAST_COUNT) {
+				if (current_time - entry.last_update < UPDATE_THRESHOLD_DURATION_MS * 1000
+					&& entry.fast_count > UPDATE_THRESHOLD_FAST_COUNT) {
 					if (entry.timer_id <= 0U) {
 						if (!entry.warned) {
 							warning ("LauncherEntry '%s' is behaving badly, skipping requests", sender_name);
 							entry.warned = true;
 						}
-						entry.timer_id = Timeout.add (UNITY_UPDATE_THRESHOLD_DURATION, () => {
+						entry.timer_id = Timeout.add (UPDATE_THRESHOLD_DURATION_MS, () => {
 							entry.timer_id = 0U;
 							entry.last_update = GLib.get_monotonic_time ();
 							if (entry.sender_name != null && entry.parameters != null)
@@ -256,7 +259,7 @@ namespace Plank
 			var launcher_entries_it = launcher_entries.map_iterator ();
 			while (launcher_entries_it.next ()) {
 				var entry = launcher_entries_it.get_value ();
-				if (current_time - entry.last_update > 10 * UNITY_UPDATE_THRESHOLD_DURATION * 1000) {
+				if (current_time - entry.last_update > 10 * UPDATE_THRESHOLD_DURATION_MS * 1000) {
 					if (entry.timer_id > 0U) {
 						Source.remove (entry.timer_id);
 						entry.timer_id = 0U;
@@ -269,9 +272,39 @@ namespace Plank
 			if (!keep_running)
 				launcher_entries_timer_id = 0U;
 
-			Logger.verbose ("[Unity] Keeping %i active LauncherEntries", launcher_entries.size);
+			debug ("[LauncherEntry] Keeping %i active LauncherEntries", launcher_entries.size);
 
 			return keep_running;
+		}
+
+		static bool try_extract_int64 (Variant v, out int64 result)
+		{
+			unowned string ts = v.get_type_string ();
+			if (ts == "x") { result = v.get_int64 (); return true; }
+			if (ts == "i") { result = (int64) v.get_int32 (); return true; }
+			if (ts == "u") { result = (int64) v.get_uint32 (); return true; }
+			if (ts == "t") { result = (int64) v.get_uint64 (); return true; }
+			if (ts == "n") { result = (int64) v.get_int16 (); return true; }
+			if (ts == "q") { result = (int64) v.get_uint16 (); return true; }
+			if (ts == "y") { result = (int64) v.get_byte (); return true; }
+			if (ts == "d") { result = (int64) v.get_double (); return true; }
+			result = 0;
+			return false;
+		}
+
+		static bool try_extract_double (Variant v, out double result)
+		{
+			if (v.is_of_type (VariantType.DOUBLE)) {
+				result = v.get_double ();
+				return true;
+			}
+			int64 ival;
+			if (try_extract_int64 (v, out ival)) {
+				result = (double) ival;
+				return true;
+			}
+			result = 0.0;
+			return false;
 		}
 
 		static LauncherBadgeState unpack_payload (Variant parameters)
@@ -293,26 +326,43 @@ namespace Plank
 			VariantIter prop_iter;
 			string app_uri = "";
 			parameters.get ("(sa{sv})", out app_uri, out prop_iter);
-			state.app_uri = app_uri;
+			string clean_uri = app_uri != null ? app_uri.strip () : "";
+			if (clean_uri.has_prefix ("application://"))
+				clean_uri = clean_uri.substring ("application://".length);
+			while (clean_uri.has_prefix ("/"))
+				clean_uri = clean_uri.substring (1);
+			state.app_uri = clean_uri;
 
 			string prop_key;
 			Variant prop_value;
 			while (prop_iter.next ("{sv}", out prop_key, out prop_value)) {
 				if (prop_key == "count") {
-					state.has_count = true;
-					state.count = prop_value.get_int64 ();
+					int64 cval;
+					if (try_extract_int64 (prop_value, out cval)) {
+						state.has_count = true;
+						state.count = cval;
+					}
 				} else if (prop_key == "count-visible") {
-					state.has_count_visible = true;
-					state.count_visible = prop_value.get_boolean ();
+					if (prop_value.is_of_type (VariantType.BOOLEAN)) {
+						state.has_count_visible = true;
+						state.count_visible = prop_value.get_boolean ();
+					}
 				} else if (prop_key == "progress") {
-					state.has_progress = true;
-					state.progress = prop_value.get_double ();
+					double pval;
+					if (try_extract_double (prop_value, out pval)) {
+						state.has_progress = true;
+						state.progress = pval;
+					}
 				} else if (prop_key == "progress-visible") {
-					state.has_progress_visible = true;
-					state.progress_visible = prop_value.get_boolean ();
+					if (prop_value.is_of_type (VariantType.BOOLEAN)) {
+						state.has_progress_visible = true;
+						state.progress_visible = prop_value.get_boolean ();
+					}
 				} else if (prop_key == "urgent") {
-					state.has_urgent = true;
-					state.urgent = prop_value.get_boolean ();
+					if (prop_value.is_of_type (VariantType.BOOLEAN)) {
+						state.has_urgent = true;
+						state.urgent = prop_value.get_boolean ();
+					}
 				}
 			}
 

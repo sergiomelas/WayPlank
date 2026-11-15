@@ -27,6 +27,7 @@ namespace Plank
 	public class LinuxAudioTelemetry : GLib.Object, IAudioProvider
 	{
 		static LinuxAudioTelemetry? default_instance = null;
+		static GLib.Mutex init_mutex;
 		static string? cached_wpctl_path = null;
 		static bool wpctl_probed = false;
 		static string[]? c_locale_env = null;
@@ -45,16 +46,20 @@ namespace Plank
 			int exit_status;
 			string output;
 
+			init_mutex.lock ();
 			if (!wpctl_probed) {
 				cached_wpctl_path = Environment.find_program_in_path ("wpctl");
 				c_locale_env = Environ.set_variable (Environ.get (), "LC_ALL", "C", true);
 				wpctl_probed = true;
 			}
+			string? wpctl_path = cached_wpctl_path;
+			string[]? locale_env = c_locale_env;
+			init_mutex.unlock ();
 
-			if (cached_wpctl_path != null) {
+			if (wpctl_path != null) {
 				try {
-					string[] argv = { cached_wpctl_path, "get-volume", "@DEFAULT_AUDIO_SINK@" };
-					if (Process.spawn_sync (null, argv, c_locale_env, SpawnFlags.STDERR_TO_DEV_NULL, null, out output, null, out exit_status) && exit_status == 0) {
+					string[] argv = { wpctl_path, "get-volume", "@DEFAULT_AUDIO_SINK@" };
+					if (Process.spawn_sync (null, argv, locale_env, SpawnFlags.STDERR_TO_DEV_NULL, null, out output, null, out exit_status) && exit_status == 0) {
 						var idx = output.index_of ("Volume: ");
 						if (idx >= 0) {
 							bool parsed_muted = output.contains ("[MUTED]");

@@ -87,6 +87,13 @@ namespace Plank
 			cache_time.unset (win_id);
 		}
 
+		public void cleanup ()
+		{
+			cache.clear ();
+			cache_time.clear ();
+			pending_callbacks.clear ();
+		}
+
 		public bool is_stale (string win_id)
 		{
 			if (!cache.has_key (win_id) || !cache_time.has_key (win_id))

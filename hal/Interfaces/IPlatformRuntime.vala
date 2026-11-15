@@ -43,6 +43,7 @@ namespace Plank
 		public signal void termination_requested (int signal_number);
 		public signal void binary_upgrade_detected (string executable_path);
 		public signal void system_resumed (uint recommended_delay_ms);
+		public signal void remote_action_requested (string dock_name, string action);
 
 		public abstract bool open_system_utility (DesktopUtilityKind kind);
 		public abstract bool open_uri (string uri, Gtk.Window? parent = null);
@@ -55,7 +56,34 @@ namespace Plank
 		public abstract void replace_running_instances (string target_dock_name);
 		public abstract void prepare_process_environment ();
 		public abstract void restore_process_environment ();
-		public abstract bool verify_supported_display (Gdk.Display? display);
+		public abstract bool verify_supported_display (Gdk.Display? display, out string error_message);
+		public abstract string get_self_launcher_id ();
+		public abstract string get_system_data_dir ();
+		public virtual bool uses_native_single_instance_ipc () { return false; }
+		public virtual bool try_forward_cli_to_running_instance (string dock_name, string action) { return false; }
+		public virtual string sanitize_dock_name (string? raw_name)
+		{
+			if (raw_name == null)
+				return "dock1";
+			string s = raw_name.strip ();
+			if (s.length == 0 || s.length > 64)
+				return "dock1";
+			char first = s[0];
+			if (!((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z') || first == '_'))
+				return "dock1";
+			for (int i = 1; i < s.length; i++) {
+				char c = s[i];
+				if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-'))
+					return "dock1";
+			}
+			string upper = s.up ();
+			if (upper == "CON" || upper == "PRN" || upper == "AUX" || upper == "NUL")
+				return "dock1";
+			if (upper.length == 4 && (upper.has_prefix ("COM") || upper.has_prefix ("LPT"))
+				&& upper[3] >= '1' && upper[3] <= '9')
+				return "dock1";
+			return s;
+		}
 		public abstract int get_current_pid ();
 		public abstract void set_process_title (string title);
 		public abstract string os_release_summary ();
@@ -64,6 +92,7 @@ namespace Plank
 		public abstract void reexec_self_on_upgrade (string executable_path, string? dock_name);
 		public abstract void exit_immediately (int status_code);
 		public abstract string[] parse_command_argv (string cmdline);
+		public virtual void invalidate_process_cache (int pid) {}
 		public abstract void cleanup ();
 	}
 
@@ -84,7 +113,13 @@ namespace Plank
 		public void replace_running_instances (string target_dock_name) {}
 		public void prepare_process_environment () {}
 		public void restore_process_environment () {}
-		public bool verify_supported_display (Gdk.Display? display) { return display != null; }
+		public bool verify_supported_display (Gdk.Display? display, out string error_message)
+		{
+			error_message = "";
+			return display != null;
+		}
+		public string get_self_launcher_id () { return "wayplank.desktop"; }
+		public string get_system_data_dir () { return Build.DATADIR; }
 		public int get_current_pid () { return 0; }
 		public void set_process_title (string title) {}
 		public string os_release_summary () { return "unknown"; }

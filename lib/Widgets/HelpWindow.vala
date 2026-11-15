@@ -68,7 +68,12 @@ namespace Plank
 			set_skip_pager_hint (true);
 			set_keep_above (true);
 			set_focus_on_map (true);
-			icon_name = "plank";
+			if (DrawingService.theme_has_icon ("wayplank"))
+				icon_name = "wayplank";
+			else if (DrawingService.theme_has_icon ("plank"))
+				icon_name = "plank";
+			else
+				icon = DrawingService.load_icon ("wayplank;;plank", 48, 48);
 
 			// Stack for multi-page categories
 			var stack = new Gtk.Stack ();

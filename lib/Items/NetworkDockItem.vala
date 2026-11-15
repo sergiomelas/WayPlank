@@ -57,10 +57,15 @@ namespace Plank
 			start_listeners ();
 		}
 
+		private bool cleaned_up = false;
+
 		~NetworkDockItem ()
 		{
 			is_disposed = true;
-			notify["IsAttached"].disconnect (on_attached_changed);
+			if (!cleaned_up) {
+				cleaned_up = true;
+				notify["IsAttached"].disconnect (on_attached_changed);
+			}
 			stop_timer ();
 			stop_listeners ();
 		}
@@ -68,7 +73,10 @@ namespace Plank
 		public override void cleanup ()
 		{
 			is_disposed = true;
-			notify["IsAttached"].disconnect (on_attached_changed);
+			if (!cleaned_up) {
+				cleaned_up = true;
+				notify["IsAttached"].disconnect (on_attached_changed);
+			}
 			stop_timer ();
 			stop_listeners ();
 			base.cleanup ();

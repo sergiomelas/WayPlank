@@ -30,19 +30,9 @@ namespace Plank
 
 	public class PlankDockItem : DockItem
 	{
-		static PlankDockItem? instance;
-		
-		public static unowned PlankDockItem get_instance ()
+		public PlankDockItem ()
 		{
-			if (instance == null)
-				instance = new PlankDockItem ();
-			
-			return instance;
-		}
-		
-		PlankDockItem ()
-		{
-			GLib.Object (Prefs: new DockItemPreferences (), Text: "Plank", Icon: "plank");
+			GLib.Object (Prefs: new DockItemPreferences (), Text: "WayPlank", Icon: "wayplank;;plank");
 		}
 		
 		construct

@@ -94,7 +94,12 @@ namespace Plank
 			set_skip_pager_hint (true);
 			set_keep_above (true);
 			set_focus_on_map (true);
-			icon_name = "plank";
+			if (DrawingService.theme_has_icon ("wayplank"))
+				icon_name = "wayplank";
+			else if (DrawingService.theme_has_icon ("plank"))
+				icon_name = "plank";
+			else
+				icon = DrawingService.load_icon ("wayplank;;plank", 48, 48);
 
 			var header = new Gtk.HeaderBar ();
 			header.show_close_button = true;
@@ -167,13 +172,15 @@ namespace Plank
 
 			root.pack_start (cards_box, true, true, 0);
 
-			var x11_note_lbl = new Gtk.Label (_("Note: Please remove any custom launchers or autostart workarounds (such as GDK_BACKEND=x11) previously created to force legacy Plank to run in X11 mode on Wayland."));
-			x11_note_lbl.get_style_context ().add_class ("dim-label");
-			x11_note_lbl.set_xalign (0.5f);
-			x11_note_lbl.set_justify (Gtk.Justification.CENTER);
-			x11_note_lbl.set_line_wrap (true);
-			x11_note_lbl.set_max_width_chars (76);
-			root.pack_start (x11_note_lbl, false, false, 0);
+			if (Hal.Capabilities.uses_shell_anchored_surfaces) {
+				var x11_note_lbl = new Gtk.Label (_("Note: Please remove any custom launchers or autostart workarounds (such as GDK_BACKEND=x11) previously created to force legacy Plank to run in X11 mode on Wayland."));
+				x11_note_lbl.get_style_context ().add_class ("dim-label");
+				x11_note_lbl.set_xalign (0.5f);
+				x11_note_lbl.set_justify (Gtk.Justification.CENTER);
+				x11_note_lbl.set_line_wrap (true);
+				x11_note_lbl.set_max_width_chars (76);
+				root.pack_start (x11_note_lbl, false, false, 0);
+			}
 
 			var footer_lbl = new Gtk.Label (_("You can switch or customize any feature at any time in WayPlank Preferences."));
 			footer_lbl.get_style_context ().add_class ("dim-label");
@@ -199,7 +206,18 @@ namespace Plank
 			card.get_style_context ().add_class ("onboarding-card");
 
 			var top_row = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
-			var img = new Gtk.Image.from_icon_name (icon_sym, Gtk.IconSize.LARGE_TOOLBAR);
+			Gtk.Image img;
+			if (DrawingService.theme_has_icon (icon_sym)) {
+				img = new Gtk.Image.from_icon_name (icon_sym, Gtk.IconSize.LARGE_TOOLBAR);
+			} else {
+				img = new Gtk.Image ();
+				int scale = int.max (1, get_scale_factor ());
+				var surf = DrawingService.load_icon_for_scale (icon_sym, 24 * scale, 24 * scale, scale);
+				if (surf != null)
+					img.set_from_surface (surf);
+				else
+					img.set_from_pixbuf (DrawingService.load_icon (icon_sym, 24, 24));
+			}
 			top_row.pack_start (img, false, false, 0);
 
 			var title_lbl = new Gtk.Label (title);

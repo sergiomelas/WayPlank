@@ -28,7 +28,12 @@ namespace Plank
 		const int MIN_WIDTH = 220;
 		public const uint DISMISS_DELAY = 450U;
 
-		public DockController controller { get; construct; }
+		weak DockController? _controller = null;
+		public weak DockController controller {
+			get { return _controller; }
+			construct { _controller = value; }
+		}
+		bool is_window_cleaned_up = false;
 		public FileDockItem? TargetItem { get; protected set; default = null; }
 
 		File? current_dir = null;
@@ -327,24 +332,29 @@ namespace Plank
 				w.destroy ();
 		}
 
-		public override void destroy ()
+		void cleanup_window_resources ()
 		{
+			if (is_window_cleaned_up)
+				return;
+			is_window_cleaned_up = true;
 			has_last_pos = false;
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
 			cancel_dismiss_timer ();
 			cancel_position_timer ();
-			clear_items ();
 			remove_theme_style ();
+			_controller = null;
+		}
+
+		public override void destroy ()
+		{
+			cleanup_window_resources ();
+			clear_items ();
 			base.destroy ();
 		}
 
 		~FolderMenuWindow ()
 		{
-			has_last_pos = false;
-			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
-			cancel_dismiss_timer ();
-			cancel_position_timer ();
-			remove_theme_style ();
+			cleanup_window_resources ();
 		}
 
 		void apply_theme_style ()

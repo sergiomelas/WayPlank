@@ -36,14 +36,45 @@ namespace Plank
         return "";
     }
 
+    private static int run_validate_latch_cli (string path)
+    {
+        if (path == null || path == "")
+            return 1;
+        try {
+            var kf = new KeyFile ();
+            kf.load_from_file (path, KeyFileFlags.NONE);
+            if (!kf.has_group ("LatchState") && !kf.has_group ("DockPreferences"))
+                return 1;
+            foreach (unowned string grp in kf.get_groups ())
+                foreach (unowned string k in kf.get_keys (grp))
+                    kf.get_value (grp, k);
+            return 0;
+        } catch (Error e) {
+            return 1;
+        }
+    }
+
     public static int main (string[] argv)
     {
+        for (int i = 1; i < argv.length; i++) {
+            unowned string a = argv[i];
+            if (a == "--")
+                break;
+            if (a == "--validate-latch" && i + 1 < argv.length)
+                return run_validate_latch_cli (argv[i + 1]);
+            if (a.has_prefix ("--validate-latch="))
+                return run_validate_latch_cli (a.substring ("--validate-latch=".length));
+        }
+
         Intl.setlocale (LocaleCategory.ALL, "");
         Intl.setlocale (LocaleCategory.NUMERIC, "C");
         PlankCompat.i18n_init ();
 
         bool replace_requested = false;
+        bool preferences_requested = false;
         string target_dock_name = extract_dock_name_from_args (argv);
+        if (target_dock_name != "")
+            target_dock_name = Hal.Runtime.sanitize_dock_name (target_dock_name);
 
         foreach (unowned string arg in argv) {
             if (arg == "--help" || arg == "-h" || arg == "-?") {
@@ -61,9 +92,18 @@ namespace Plank
             if (arg == "--replace" || arg == "--reload" || arg == "-r") {
                 replace_requested = true;
             }
+            if (arg == "--preferences" || arg == "-p") {
+                preferences_requested = true;
+            }
         }
 
         string effective_dock_name = target_dock_name != "" ? target_dock_name : "dock1";
+        if (!replace_requested && Hal.Runtime.uses_native_single_instance_ipc ()) {
+            string action = preferences_requested ? "preferences" : "refresh";
+            if (Hal.Runtime.try_forward_cli_to_running_instance (effective_dock_name, action))
+                return 0;
+        }
+
         string first_run_launchers_dir = Path.build_filename (Environment.get_user_config_dir (), "wayplank", effective_dock_name, "launchers");
         bool onboarding_first_run = !FileUtils.test (first_run_launchers_dir, FileTest.IS_DIR);
 
@@ -77,13 +117,15 @@ namespace Plank
         Intl.setlocale (LocaleCategory.NUMERIC, "C");
 
         unowned Gdk.Display? display = Gdk.Display.get_default ();
-        if (!Hal.Runtime.verify_supported_display (display)) {
+        string display_error_msg = "";
+        if (!Hal.Runtime.verify_supported_display (display, out display_error_msg)) {
             var dialog = new Gtk.MessageDialog (
                 null,
                 Gtk.DialogFlags.MODAL,
                 Gtk.MessageType.WARNING,
                 Gtk.ButtonsType.OK,
-                _("WayPlank is designed exclusively for Wayland sessions.")
+                "%s",
+                display_error_msg
             );
             dialog.title = _("WayPlank - Unsupported Session");
             dialog.run ();
@@ -119,9 +161,11 @@ namespace Plank
                     "Daniel Foré <daniel@elementaryos.org>"
                 };
 
+            string sys_data_dir = Hal.Runtime.get_system_data_dir ();
+
             Object (
-                build_data_dir : Build.DATADIR,
-                build_pkg_data_dir : Build.PKGDATADIR,
+                build_data_dir : sys_data_dir,
+                build_pkg_data_dir : Path.build_filename (sys_data_dir, "wayplank"),
                 build_release_name : Build.RELEASE_NAME,
                 build_version : Build.VERSION,
                 build_version_info : Build.VERSION_INFO,
@@ -132,7 +176,7 @@ namespace Plank
                 app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
                 app_dbus : "net.launchpad.plank",
                 app_icon : "plank",
-                app_launcher : "wayplank.desktop",
+                app_launcher : Hal.Runtime.get_self_launcher_id (),
 
                 main_url : "https://github.com/sergiomelas/wayplank",
                 help_url : "https://github.com/sergiomelas/wayplank/issues",

@@ -97,11 +97,21 @@ namespace Plank
 
 		~FreedesktopDockIpcClient ()
 		{
+			cleanup ();
+		}
+
+		public void cleanup ()
+		{
+			disconnect_proxies ();
 			if (connection != null) {
-				if (dbus_dock_ping_id > 0)
+				if (dbus_dock_ping_id > 0) {
 					connection.signal_unsubscribe (dbus_dock_ping_id);
-				if (dbus_name_owner_changed_signal_id > 0)
+					dbus_dock_ping_id = 0;
+				}
+				if (dbus_name_owner_changed_signal_id > 0) {
 					connection.signal_unsubscribe (dbus_name_owner_changed_signal_id);
+					dbus_name_owner_changed_signal_id = 0;
+				}
 			}
 		}
 

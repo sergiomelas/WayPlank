@@ -26,7 +26,13 @@ namespace Plank
 	 */
 	public class DockRenderer : Renderer
 	{
-		public DockController controller { private get; construct; }
+		weak DockController? _controller = null;
+		public weak DockController controller {
+			private get { return _controller; }
+			construct { _controller = value; }
+		}
+		bool is_initialized = false;
+		bool is_cleaned_up = false;
 		
 		public DockTheme theme { get; private set; }
 		
@@ -122,6 +128,7 @@ namespace Plank
 #endif
 			controller.prefs.notify.connect (prefs_changed);
 			SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
+			Hal.Bus.Notifications.show_launcher_badges_changed.connect (animated_draw);
 			
 			load_theme ();
 		}
@@ -139,39 +146,62 @@ namespace Plank
 			controller.window.notify["HoveredItem"].connect (animated_draw);
 			controller.hide_manager.notify["Hidden"].connect (hidden_changed);
 			controller.hide_manager.notify["Hovered"].connect (hovered_changed);
+			is_initialized = true;
 		}
 		
-		~DockRenderer ()
+		public override void cleanup ()
 		{
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
 			cancel_shrink_after_paint ();
 			if (reset_position_manager_timer_id > 0U) {
 				Source.remove (reset_position_manager_timer_id);
 				reset_position_manager_timer_id = 0U;
 			}
-			item_scratch_pool.clear ();
+			if (item_scratch_pool != null)
+				item_scratch_pool.clear ();
 			SystemTheme.get_default ().theme_changed.disconnect (on_system_theme_changed);
+			Hal.Bus.Notifications.show_launcher_badges_changed.disconnect (animated_draw);
 
 			if (controller != null) {
-				controller.prefs.notify.disconnect (prefs_changed);
-				if (controller.hide_manager != null) {
-					controller.hide_manager.notify["Hidden"].disconnect (hidden_changed);
-					controller.hide_manager.notify["Hovered"].disconnect (hovered_changed);
-				}
-				if (controller.window != null) {
-					controller.window.notify["HoveredItem"].disconnect (animated_draw);
+				if (controller.prefs != null)
+					controller.prefs.notify.disconnect (prefs_changed);
+				if (is_initialized) {
+					if (controller.hide_manager != null) {
+						controller.hide_manager.notify["Hidden"].disconnect (hidden_changed);
+						controller.hide_manager.notify["Hovered"].disconnect (hovered_changed);
+					}
+					if (controller.window != null) {
+						controller.window.notify["HoveredItem"].disconnect (animated_draw);
+					}
 				}
 			}
+			is_initialized = false;
+
 			if (theme != null) {
 				theme.notify.disconnect (theme_changed);
 			}
+			var gtk_settings = Gtk.Settings.get_default ();
 			if (gtk_theme_name_changed_handler_id > 0UL) {
-				SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_theme_name_changed_handler_id);
+				if (gtk_settings != null)
+					SignalHandler.disconnect (gtk_settings, gtk_theme_name_changed_handler_id);
 				gtk_theme_name_changed_handler_id = 0UL;
 			}
 			if (gtk_dark_theme_changed_handler_id > 0UL) {
-				SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_dark_theme_changed_handler_id);
+				if (gtk_settings != null)
+					SignalHandler.disconnect (gtk_settings, gtk_dark_theme_changed_handler_id);
 				gtk_dark_theme_changed_handler_id = 0UL;
 			}
+
+			base.cleanup ();
+			_controller = null;
+		}
+
+		~DockRenderer ()
+		{
+			cleanup ();
 		}
 		
 		void prefs_changed (Object prefs, ParamSpec prop)
@@ -248,6 +278,8 @@ namespace Plank
 			
 			reset_position_manager_timer_id = Gdk.threads_add_timeout (50, () => {
 				reset_position_manager_timer_id = 0U;
+				if (is_cleaned_up || controller == null || controller.prefs == null || controller.position_manager == null)
+					return false;
 				
 				reset_buffers ();
 				reset_item_buffers ();
@@ -261,6 +293,8 @@ namespace Plank
 		
 		void on_system_theme_changed (bool is_dark)
 		{
+			if (is_cleaned_up || controller == null || controller.prefs == null)
+				return;
 			unowned string cur_theme = controller.prefs.Theme;
 			if (cur_theme == Theme.DEFAULT_NAME || cur_theme == Theme.GTK_THEME_NAME) {
 				load_theme ();
@@ -285,24 +319,30 @@ namespace Plank
 
 		void load_theme ()
 		{
+			if (is_cleaned_up || controller == null || controller.prefs == null)
+				return;
+
 			var is_reload = (theme != null);
 			
 			if (is_reload)
 				theme.notify.disconnect (theme_changed);
 			
 			unowned string name = controller.prefs.Theme;
+			var gtk_settings = Gtk.Settings.get_default ();
 			if (name == Theme.DEFAULT_NAME || name == Theme.GTK_THEME_NAME) {
-				if (gtk_theme_name_changed_handler_id == 0UL)
-					gtk_theme_name_changed_handler_id = Gtk.Settings.get_default ().notify["gtk-theme-name"].connect (load_theme);
-				if (gtk_dark_theme_changed_handler_id == 0UL)
-					gtk_dark_theme_changed_handler_id = Gtk.Settings.get_default ().notify["gtk-application-prefer-dark-theme"].connect (load_theme);
+				if (gtk_theme_name_changed_handler_id == 0UL && gtk_settings != null)
+					gtk_theme_name_changed_handler_id = gtk_settings.notify["gtk-theme-name"].connect (load_theme);
+				if (gtk_dark_theme_changed_handler_id == 0UL && gtk_settings != null)
+					gtk_dark_theme_changed_handler_id = gtk_settings.notify["gtk-application-prefer-dark-theme"].connect (load_theme);
 			} else {
 				if (gtk_theme_name_changed_handler_id > 0UL) {
-					SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_theme_name_changed_handler_id);
+					if (gtk_settings != null)
+						SignalHandler.disconnect (gtk_settings, gtk_theme_name_changed_handler_id);
 					gtk_theme_name_changed_handler_id = 0UL;
 				}
 				if (gtk_dark_theme_changed_handler_id > 0UL) {
-					SignalHandler.disconnect (Gtk.Settings.get_default (), gtk_dark_theme_changed_handler_id);
+					if (gtk_settings != null)
+						SignalHandler.disconnect (gtk_settings, gtk_dark_theme_changed_handler_id);
 					gtk_dark_theme_changed_handler_id = 0UL;
 				}
 			}

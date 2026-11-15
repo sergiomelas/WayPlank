@@ -25,7 +25,13 @@ namespace Plank
 	 */
 	public class DragManager : GLib.Object
 	{
-		public DockController controller { private get; construct; }
+		weak DockController? _controller = null;
+		public weak DockController controller {
+			private get { return _controller; }
+			construct { _controller = value; }
+		}
+		bool is_initialized = false;
+		bool is_cleaned_up = false;
 		
 		public bool InternalDragActive { get; private set; default = false; }
 
@@ -183,10 +189,15 @@ namespace Plank
 			enable_drag_to (window);
 			if (!prefs.LockItems)
 				enable_drag_from (window);
+			is_initialized = true;
 		}
 		
-		~DragManager ()
+		public void cleanup ()
 		{
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
 			flush_active_removal ();
 			if (poof_completed_handler_id > 0UL) {
 				SignalHandler.disconnect (PoofWindow.get_default (), poof_completed_handler_id);
@@ -199,8 +210,9 @@ namespace Plank
 			cancel_drag_timers ();
 			cancel_spring_loaded_timer ();
 			disconnect_hovered_item_handler ();
-			if (controller != null) {
-				controller.prefs.notify["LockItems"].disconnect (lock_items_changed);
+			if (is_initialized && controller != null) {
+				if (controller.prefs != null)
+					controller.prefs.notify["LockItems"].disconnect (lock_items_changed);
 				
 				if (controller.window != null) {
 					unowned DockWindow window = controller.window;
@@ -217,6 +229,13 @@ namespace Plank
 					disable_drag_from (window);
 				}
 			}
+			is_initialized = false;
+			_controller = null;
+		}
+
+		~DragManager ()
+		{
+			cleanup ();
 		}
 		
 		void lock_items_changed ()

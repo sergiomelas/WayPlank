@@ -32,7 +32,12 @@ namespace Plank
 		/**
 		 * The controller for this dock.
 		 */
-		public DockController controller { private get; construct; }
+		weak DockController? _controller = null;
+		public weak DockController controller {
+			private get { return _controller; }
+			construct { _controller = value; }
+		}
+		bool is_window_cleaned_up = false;
 
 		/**
 		 * The currently hovered item (if any).
@@ -123,6 +128,8 @@ namespace Plank
 
 		void on_compositor_state_changed ()
 		{
+			if (is_window_cleaned_up || controller == null || controller.prefs == null)
+				return;
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
 			bool needs_refresh = false;
@@ -133,14 +140,18 @@ namespace Plank
 
 		void on_reserve_space_changed ()
 		{
+			if (is_window_cleaned_up || controller == null || controller.prefs == null)
+				return;
 			update_exclusive_zone ();
 			update_size_and_position ();
 		}
 
 		void on_position_changed ()
 		{
+			if (is_window_cleaned_up || controller == null || controller.prefs == null)
+				return;
 			update_layer_shell_anchors ();
-			if (controller.renderer != null && controller.renderer.theme != null)
+			if (controller.renderer != null && controller.renderer.theme != null && controller.position_manager != null)
 				controller.position_manager.update (controller.renderer.theme);
 			update_exclusive_zone ();
 			update_size_and_position ();
@@ -153,6 +164,8 @@ namespace Plank
 
 		void update_exclusive_zone ()
 		{
+			if (is_window_cleaned_up || controller == null || controller.prefs == null || controller.position_manager == null)
+				return;
 			bool reserve = controller.prefs.ReserveSpace && controller.prefs.HideMode == HideType.NONE && !controller.prefs.ZoomEnabled;
 			int thickness = controller.position_manager.get_visual_thickness ();
 
@@ -185,8 +198,12 @@ namespace Plank
 			long_press_button = 0;
 		}
 
-		~DockWindow ()
+		void cleanup_window_resources ()
 		{
+			if (is_window_cleaned_up)
+				return;
+			is_window_cleaned_up = true;
+
 			cancel_long_press ();
 			Hal.Windows.state_changed.disconnect (on_compositor_state_changed);
 			if (tracked_monitor != null) {
@@ -221,10 +238,24 @@ namespace Plank
 			ClickedItem = null;
 			HoveredItem = null;
 			HoveredItemProvider = null;
+			_controller = null;
+		}
+
+		public override void destroy ()
+		{
+			cleanup_window_resources ();
+			base.destroy ();
+		}
+
+		~DockWindow ()
+		{
+			cleanup_window_resources ();
 		}
 
 		void update_layer_shell_anchors ()
 		{
+			if (is_window_cleaned_up || controller == null || controller.prefs == null)
+				return;
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
 			if (Hal.Shell.update_dock_anchors (this, monitor, controller.prefs.Position))
@@ -233,6 +264,8 @@ namespace Plank
 
 		public void update_layer_shell_monitor ()
 		{
+			if (is_window_cleaned_up || controller == null || controller.prefs == null)
+				return;
 			var display = get_display ();
 			if (display == null)
 				return;
@@ -1204,7 +1237,7 @@ namespace Plank
 		{
 			items.add (new Gtk.SeparatorMenuItem ());
 
-			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser", true);
+			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser;;help-contents", true);
 			shortcuts_item.activate.connect (() => {
 				Application.get_default ().activate_action ("shortcuts", null);
 			});

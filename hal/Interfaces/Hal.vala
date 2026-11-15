@@ -128,13 +128,18 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			if (shell_instance != null)
+				shell_instance.cleanup ();
+			if (thumbnails_instance != null)
+				thumbnails_instance.cleanup ();
+			if (windows_instance != null)
+				windows_instance.cleanup ();
 			if (telemetry_instance != null)
 				telemetry_instance.cleanup ();
-			if (bus_instance != null)
-				bus_instance.cleanup ();
 			if (runtime_instance != null)
 				runtime_instance.cleanup ();
-			Windows.cleanup ();
+			if (bus_instance != null)
+				bus_instance.cleanup ();
 		}
 	}
 }

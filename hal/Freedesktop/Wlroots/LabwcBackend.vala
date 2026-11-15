@@ -277,8 +277,8 @@ namespace Plank
 				int cached_pid = toplevel_pid_cache.get (cache_key);
 				if (cached_pid > 0 && FileUtils.test ("/proc/%d/cmdline".printf (cached_pid), FileTest.EXISTS)) {
 					info.Pid = cached_pid;
-					info.Cmdline = ApplicationDiscovery.get_process_cmdline (cached_pid);
-					info.Executable = ApplicationDiscovery.get_process_comm (cached_pid);
+					info.Cmdline = LinuxProcessInspector.get_process_cmdline (cached_pid);
+					info.Executable = LinuxProcessInspector.get_process_comm (cached_pid);
 					return;
 				}
 				if (cached_pid < 0 && (now_sec - (-cached_pid)) < 5) {
@@ -315,11 +315,11 @@ namespace Plank
 					if (pid <= 0)
 						continue;
 
-					var comm = ApplicationDiscovery.get_process_comm (pid).down ();
+					var comm = LinuxProcessInspector.get_process_comm (pid).down ();
 					if (comm == "")
 						continue;
 
-					var cmdline = ApplicationDiscovery.get_process_cmdline (pid);
+					var cmdline = LinuxProcessInspector.get_process_cmdline (pid);
 					var cmd_lower = cmdline.down ();
 
 					bool bin_match = (comm == target_cls || comm == comm_prefix || cmd_lower.contains (target_cls));
@@ -346,8 +346,8 @@ namespace Plank
 			if (best_pid > 0) {
 				toplevel_pid_cache.set (cache_key, best_pid);
 				info.Pid = best_pid;
-				info.Cmdline = ApplicationDiscovery.get_process_cmdline (best_pid);
-				info.Executable = ApplicationDiscovery.get_process_comm (best_pid);
+				info.Cmdline = LinuxProcessInspector.get_process_cmdline (best_pid);
+				info.Executable = LinuxProcessInspector.get_process_comm (best_pid);
 			} else {
 				toplevel_pid_cache.set (cache_key, -now_sec);
 			}

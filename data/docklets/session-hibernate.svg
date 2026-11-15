@@ -1,0 +1,10 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="shib_bg" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#00695c" offset="0"/>
+  <stop stop-color="#26a69a" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#shib_bg)"/>
+ <rect x="13" y="25" width="22" height="10" rx="2.5" ry="2.5" fill="#ffffff"/>
+ <circle cx="30.5" cy="30" r="1.8" fill="#00695c"/>
+ <path d="M 24 12 L 24 22 M 19.5 18 L 24 22.5 L 28.5 18" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

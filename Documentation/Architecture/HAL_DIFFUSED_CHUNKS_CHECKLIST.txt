@@ -1,10 +1,11 @@
 ================================================================================
-WAYPLANK v0.7.2 — TEMPORARY EXHAUSTIVE HAL EXTRACTION & TRANSLATOR CHECKLIST
+WAYPLANK v0.7.2 — MASTER EXHAUSTIVE HAL EXTRACTION & TRANSLATOR AUDIT CHECKLIST
 ================================================================================
 Maintainer / Author : Sergio Melas <sergiomelas@gmail.com>
-ISA-88 MOC Control  : MOC-0.7.2-HAL-001 (Rev 2.0 — Design-Before-Build Gate)
-Branch              : hal-v0.7.2 (Temporary local working audit file — delete
-                      before final v0.7.2 squash/merge once 100% [x] & Firewall GREEN)
+ISA-88 MOC Control  : MOC-0.7.2-HAL-001 (Rev 2.2 — Master Audit Specification)
+Branch              : hal-v0.7.2 (Permanent ISA-88 Master MOC Audit & Inventory
+                      Record — preserved alongside its two companion Batch
+                      Execution Protocols documented below)
 Prime Rule          : ZERO Linux, BSD, Wayland, D-Bus, XDG, POSIX, or Windows
                       direct calls, types, paths, or names are allowed ABOVE the
                       Agnostic Boundary Translator Layer (`hal/Interfaces/`).
@@ -12,18 +13,86 @@ Prime Rule          : ZERO Linux, BSD, Wayland, D-Bus, XDG, POSIX, or Windows
                       implement the Southbound Driver SECOND, and switch Core THIRD.
 
 ================================================================================
-COMPLETE REPOSITORY ACCOUNTING (112 Code / Protocol / VAPI Files = 100.0%):
+ISA-88 S88.01 DOCUMENT HIERARCHY & COMPANION PROTOCOLS RATIONALE:
 ================================================================================
-  1. Relocated in Move 1 (`hal/` + `vapi/`)           :  21 files
-     - Pure / Southbound Drivers Ready                :  17 files
-     - Move-1 Boundary Files Needing Translator Purge :   4 files
-       (`hal/Interfaces/{WindowBackend,WindowCapabilities,WindowControl}.vala`
-        & `vapi/core/compat.vapi` — caught in Pass 2/3 rescan!)
-  2. Remaining in `src/` + `lib/` + `include/`        :  91 files
-     - BUCKET A (100.0% OS-Agnostic Pure Core Today)  :  28 files (Zero edits!)
-     - BUCKET B (Diffused OS/Bus/Path/Class Chunks)   :  63 files
-     - CHECK: 28 + 63 = 91 files; 91 + 21 = 112 files (0 unaccounted files!)
-  3. Total Discrete `[ ]` Translator Chunks (Moves 2–4): 74 chunks
+To preserve strict ISA-88 separation between the *Master Audit Specification*
+(ordered chronologically by audit discovery pass to prove mathematical
+convergence) and *Executable Unit Procedures / Batch Records* (ordered
+dependency-first by compilation Sub-Gates and human approval checkpoints),
+`MOC-0.7.2-HAL-001` is governed across three synchronized documents in
+`Documentation/Architecture/`:
+
+  1. `HAL_DIFFUSED_CHUNKS_CHECKLIST.txt` (THIS MASTER SPECIFICATION):
+     - Role: Exhaustive codebase inventory & 4-pass convergence proof across
+       all repository source, header, protocol, and VAPI files (`112` baseline
+       files at Move 1 -> `140/140` files after Moves 2 & 3, converged at
+       `Pass 4 Delta = 0` missed chunks).
+     - Ordering Axis: Grouped by architectural Move (`Sections 1-4`) and
+       chronological audit pass (`Pass 1 -> Pass 2 -> Pass 3 -> Pass 4`), so an
+       auditor can verify every discovered chunk without structural reordering.
+
+  2. `HAL_DIFFUSED_CHUNKS_CHECKLIST - M123 - Remediation.txt`
+     (COMPANION UNIT PROCEDURE 1 — MOVES 1-3 POST-AUDIT REMEDIATION):
+     - Rationale: Following the 4-pass full-repo retro-audit after Move 3, `33`
+       subtle boundary/regression items (`[M1-10..11]`, `[M2-06..18]`,
+       `[M3-26..43]`) required remediation across already-migrated Moves 1-3
+       files. Rather than scrambling this Master Inventory, those `33` items
+       were sequenced into three compile-verified ISA-88 Sub-Gates (`Sub-Gate A`
+       -> `Sub-Gate B` -> `Sub-Gate C`) matching the archived `.deb` and `.zip`
+       audit snapshots (`Post remediation Grup A / B / C`, git tag
+       `backup/0.7.2-move-3b`). Status: **100% CLOSED (`33/33 [ok]`)**.
+
+  3. `HAL_DIFFUSED_CHUNKS_CHECKLIST - M4 - Implementation.txt`
+     (COMPANION UNIT PROCEDURE 2 — MOVE 4 EXECUTION & PURITY FIREWALL):
+     - Rationale: Section 4 of this Master Specification contains `40` Move-4
+       items (`[M4-01..19]` base items + `[M4-20..40]` 4-pass convergence
+       additions), several of which span Zone 2 contracts, Zone 3 drivers, and
+       Zone 1 Core callers simultaneously. Executing them in raw discovery order
+       would break intermediate builds or violate the *Translator-Before-Move*
+       law. Companion Unit Procedure 2 maps all `40/40` items (`0` omitted) into
+       three strictly ordered, `.deb`-verified Sub-Gates (`Sub-Gate M4-A`: Zone
+       2 Contracts & Zone 3 Drivers -> `Sub-Gate M4-B`: 16 Non-Solver Core Files
+       -> `Sub-Gate M4-C`: 3 Identity Solver Core Files + `BuildBin.sh` Dual-Zone
+       HAL Purity Firewall + 65,025-Case Identity Matrix) with full ISA-88
+       `[  ] / [ok] / [ko] / [ko->test] / [ko->ok]` state tracking.
+
+  MASTER AUDIT SUITE CLOSEOUT GATES (ALL THREE DOCUMENTS MUST CLOSE `[x]`):
+  [x] [DOC-01] Close Companion Unit Procedure 1 (`... - M123 - Remediation.txt`):
+               All `33/33` Moves 1–3 post-audit remediation items verified `[ok]`
+               across `Sub-Gates A, B, C`, archived in `_Debs/` & `_Backup/`
+               (`Post remediation Grup A / B / C`), tagged `backup/0.7.2-move-3b`.
+  [ ] [DOC-02] Close Companion Unit Procedure 2 (`... - M4 - Implementation.txt`):
+               All `40/40` Move-4 items (`[M4-01..40]`) verified `[ok]` / `[ko->ok]`
+               across `Sub-Gates M4-A, M4-B, M4-C`, `BuildBin.sh` Dual-Zone HAL
+               Purity Firewall `GREEN` (`0` leaks), 65,025-case Identity Matrix
+               `100% PASS`, archived in `_Debs/` & `_Backup/`, tagged `backup/0.7.2-move-4`.
+  [ ] [DOC-03] Close Master Audit Specification (`HAL_DIFFUSED_CHUNKS_CHECKLIST.txt`):
+               100% of Section 1–4 items (`Moves 1–4`) marked `[x]` in 1-to-1 sync
+               with `[DOC-01]` & `[DOC-02]`, full 3-compositor ISA-88 `FAT 0.7.2`
+               qualified (`0 [ko]`), and `hal/Interfaces/` frozen for `v0.7.3`.
+
+================================================================================
+COMPLETE REPOSITORY ACCOUNTING (Baseline 112 Files -> 140/140 Converged Files):
+================================================================================
+  A. Initial Baseline Accounting at Move 1 (`112` Code / Protocol / VAPI Files):
+     1. Relocated in Move 1 (`hal/` + `vapi/`)           :  21 files
+        - Pure / Southbound Drivers Ready                :  17 files
+        - Move-1 Boundary Files Needing Translator Purge :   4 files
+          (`hal/Interfaces/{WindowBackend,WindowCapabilities,WindowControl}.vala`
+           & `vapi/core/compat.vapi` — caught in Pass 2/3 rescan & closed in M2/M3!)
+     2. Remaining in `src/` + `lib/` + `include/`        :  91 files
+        - BUCKET A (100.0% OS-Agnostic Pure Core)        :  28 files (Zero edits!)
+        - BUCKET B (Diffused OS/Bus/Path/Class Chunks)   :  63 files
+        - CHECK: 28 + 63 = 91 files; 91 + 21 = 112 files (0 unaccounted files!)
+  B. Post-Move-3 4-Pass Convergence Accounting (`140/140` Active Repo Files):
+     - Zone 1 (`src/` + `lib/` + `include/` + `vapi/core/`):  87 files
+     - Zone 2 (`hal/Interfaces/` Northbound Translators)   :  12 files
+     - Zone 3 (`hal/{Freedesktop,Linux}/` + `vapi/freedesktop/`): 41 files
+     - CHECK: 87 + 12 + 41 = 140 files (`Pass 4 Delta = 0` new leaks across all 6 shards!)
+  C. Total Discrete Translator & Convergence Items:
+     - Moves 1–3 + Remediation (`Sections 1–3`)          : 100% `[x]` / `33/33 [ok]`
+     - Move 4 (`Section 4`, `[M4-01]` .. `[M4-40]`)      :  40 items (governed by
+       `HAL_DIFFUSED_CHUNKS_CHECKLIST - M4 - Implementation.txt`)
 
 ALL SUBTLE & INDIRECT CROSS-OS TRAPS CAUGHT BY FULL ITERATIVE RESCAN:
   01. `hal/Interfaces/WindowBackend.vala` (L34): leaks `DBusConnection` inside
@@ -94,11 +163,11 @@ SECTION 1 — MOVE 1: SKELETON & ZERO-LOGIC DRIVER RELOCATION (COMPLETED)
             verified `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings)
 
 --- Move 1 Leftovers to Treat ---
-[ ] [M1-10] `BuildBin.sh` (L81):
+[x] [M1-10] `BuildBin.sh` (L81):
             Scope Vala source discovery to `hal/Interfaces`, `hal/Freedesktop`, and
             `hal/Linux` instead of globbing all of `hal/` (so Linux builds will not
             compile `hal/Windows/` when `v0.7.3` starts).
-[ ] [M1-11] `po/POTFILES.in` (L1-96):
+[x] [M1-11] `po/POTFILES.in` (L1-96):
             Remove 18 stale relocated/deleted `lib/` paths (`lib/DBus/*`, `lib/DBusManager.vala`,
             `lib/Services/{Environment*,KWin*,LabwcBackend,MutterBackend,SurfaceCoordinateService,
             Unity,Window*}.vala`) and list active translatable sources (`FirstRunWindow.vala`,
@@ -271,24 +340,24 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             poof animation, and `#34` click pass-through on KWin, Mutter, and Labwc.
 
 --- Move 2 Leftovers to Treat ---
-[ ] [M2-17] `lib/Widgets/DockWindow.vala` (L188-224, L257):
+[x] [M2-17] `lib/Widgets/DockWindow.vala` (L188-224, L257):
             Add `public override void destroy ()` with idempotent signal disconnect and
             `Hal.Shell.update_exclusive_zone (this, false, ...)` teardown. Currently
             `tracked_monitor.notify["workarea"].connect (() => ...)` holds a strong ref
             to `DockWindow` on `Gdk.Monitor` while cleanup is only in `~DockWindow()`,
             leaking `DockWindow` and leaving `Hal.Windows.state_changed` / struts active
             when `dock_window.destroy ()` is called.
-[ ] [M2-18] `lib/Widgets/PreferencesWindow.vala` (L934, L998, L1749) &
+[x] [M2-18] `lib/Widgets/PreferencesWindow.vala` (L934, L998, L1749) &
             `lib/HideManager.vala` (L67-72):
             Replace hardcoded `HideType.DODGE_MAXIMIZED` fallback at L934, L998, L1749
             with `Hal.Capabilities.fallback_hide_mode`, and remove dead `plank_pid`
             field in `HideManager.vala`.
-[ ] [M2-19] `lib/Widgets/PreferencesWindow.vala` (L930, L939, L979, L984, L1126) &
+[x] [M2-19] `lib/Widgets/PreferencesWindow.vala` (L930, L939, L979, L984, L1126) &
             `lib/Widgets/DockWindow.vala` (L35):
             Null-guard `widget.get_active_id ()` before `int.parse (...)` (prevents
             `atoi(NULL)` `SIGSEGV` on out-of-range preference IDs), and break the strong
             `DockController.window <-> DockWindow.controller` reference cycle on destroy.
-[ ] [M2-20] `lib/DockController.vala`, `lib/HideManager.vala` (L74),
+[x] [M2-20] `lib/DockController.vala`, `lib/HideManager.vala` (L74),
             `lib/DockRenderer.vala` (L29), `lib/PositionManager.vala` (L26),
             `lib/DragManager.vala` (L28), `lib/Widgets/{FolderMenuWindow:31,WindowCardsWindow:36}.vala`,
             & `hal/Freedesktop/Dbus/DockIpcServer.vala` (L49, L117, L180-192):
@@ -296,12 +365,12 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             7 child objects and add `DockController.dispose_dock ()` (disconnecting
             `ipc_elements_changed`, cancelling `DockIpcServer`'s `500ms` timer, and
             destroying child popups deterministically on dock removal/shutdown).
-[ ] [M2-21] `hal/Interfaces/PlatformCapabilities.vala`, `hal/Freedesktop/WindowCapabilities.vala`
+[x] [M2-21] `hal/Interfaces/PlatformCapabilities.vala`, `hal/Freedesktop/WindowCapabilities.vala`
             (L69), & `lib/HideManager.vala` (L26-52):
             Move `public enum HideType` from `lib/HideManager.vala` into
             `hal/Interfaces/PlatformCapabilities.vala` (with OS-agnostic doc comments) so
             `hal/Interfaces/` and `hal/Freedesktop/` have zero upward type dependency on `lib/`.
-[ ] [M2-22] `hal/Freedesktop/KWin/KWinBridge.vala` (L458-480),
+[x] [M2-22] `hal/Freedesktop/KWin/KWinBridge.vala` (L458-480),
             `hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c` (L527-554), &
             `lib/Widgets/PoofWindow.vala` (L71-74):
             Implement `WindowAction.MINIMIZE` (`"minimize"`) in `KWinBridge`
@@ -310,7 +379,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             with `MutterBackend`; in `PoofWindow` `construct`, set `resizable = false;
             accept_focus = false; can_focus = false; focus_on_map = false;` + empty
             `Cairo.Region ()` input shape so Poof never steals focus or swallows clicks.
-[ ] [M2-23] `lib/Widgets/PreferencesWindow.vala` (L1337-1338) &
+[x] [M2-23] `lib/Widgets/PreferencesWindow.vala` (L1337-1338) &
             `hal/Freedesktop/Mutter/MutterBackend.vala` (L1761-1793):
             Guard `cb_system_menu_access.active_id != ""` alongside `!= null` before
             `int.parse (...)` in `PreferencesWindow.system_menu_access_changed ()`; and
@@ -319,7 +388,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             `schema.has_key ("disabled-extensions")`, and
             `schema.has_key ("enabled-extensions")` on `org.gnome.shell` before calling
             `shell_settings.get_*` / `set_*` (`SIGTRAP` guard).
-[ ] [M2-24] `hal/Interfaces/PlatformCapabilities.vala` (L44),
+[x] [M2-24] `hal/Interfaces/PlatformCapabilities.vala` (L44),
             `hal/Interfaces/IDockShell.vala` (L75),
             `hal/Interfaces/IThumbnailProvider.vala` (L34),
             `hal/Interfaces/Hal.vala` (L129-138),
@@ -332,7 +401,7 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             `LayerShellDockShell.cleanup ()` and invoking `shell_instance.cleanup ()` +
             `thumbnails_instance.cleanup ()` inside `Hal.cleanup ()` so `v0.7.3`
             `Win32Shell` deterministically calls `SHAppBarMessage(ABM_REMOVE)` on shutdown.
-[ ] [M2-25] `lib/DockController.vala` (L36-42, L128-157),
+[x] [M2-25] `lib/DockController.vala` (L36-42, L128-157),
             `lib/DockRenderer.vala` (L132-175), `lib/PositionManager.vala` (L50-94),
             `lib/DragManager.vala` (L164-220), `lib/Drawing/Renderer.vala` (L29, L48-63),
             `lib/Items/DockElement.vala` (L36), `lib/Items/DockContainer.vala`
@@ -607,11 +676,11 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             autostart toggle, and clean Quit / `--replace`.
 
 --- Move 3 Leftovers to Treat ---
-[ ] [M3-31] `BuildBin.sh` (L110) & `vapi/freedesktop/unix-compat.vapi` (L23):
+[x] [M3-31] `BuildBin.sh` (L110) & `vapi/freedesktop/unix-compat.vapi` (L23):
             Pass `-D HAVE_SYS_PRCTL_H` to `valac` on Linux in `BuildBin.sh` (currently
             omitted while GCC receives `-Dsetproctitle(x)=`, turning
             `Hal.Runtime.set_process_title ()` into a silent no-op).
-[ ] [M3-32] `src/Main.vala` (L80-86, L123-124, L135), `lib/Factories/AbstractMain.vala`
+[x] [M3-32] `src/Main.vala` (L80-86, L123-124, L135), `lib/Factories/AbstractMain.vala`
             (L146, L501-504), & `hal/Interfaces/IPlatformRuntime.vala`:
             Complete the 3 remaining sub-methods on `Hal.Runtime`:
             1) `verify_supported_display (display, out string error_msg)` (removes
@@ -620,7 +689,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             3) `get_system_data_dir ()` (replaces compile-time `Build.DATADIR` / relative
                `"./share"` at `Main.vala:124` & `AbstractMain.vala:146,502`, which fails
                when Windows autostart CWD is `C:\Windows\System32`).
-[ ] [M3-33] `lib/Factories/AbstractMain.vala` (L223, L1649-1655, L2057) &
+[x] [M3-33] `lib/Factories/AbstractMain.vala` (L223, L1649-1655, L2057) &
             `lib/gtk-compat.c` (L189-197):
             1) `AbstractMain.vala:2057` (`show_guide`): replace `"file://" + html_path`
                (invalid SMB URI `file://C:\Users\...` on Windows) with
@@ -630,7 +699,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             3) `AbstractMain.vala:1649-1655` & `gtk-compat.c:189-197`: fall back to
                `GLib.Intl.get_language_names ()` / `g_get_language_names ()` so Windows
                MSVCRT `setlocale` (`"Italian_Italy.1252"`) resolves ISO language codes.
-[ ] [M3-34] `lib/Services/ThemeManager.vala` (L50-54), `lib/Drawing/Theme.vala`
+[x] [M3-34] `lib/Services/ThemeManager.vala` (L50-54), `lib/Drawing/Theme.vala`
             (L675,685,720,722,727,746,751,762), & `lib/DockPreferences.vala`
             (L573,582,939-940):
             1) `ThemeManager.is_user_theme ()`: replace `Environment.get_home_dir () + "/"`
@@ -639,13 +708,13 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                with `Path.build_filename` / chained `get_child`.
             3) `DockPreferences.vala`: reject `"\\"` alongside `"/"` in theme/item name
                path-traversal checks.
-[ ] [M3-35] `lib/Items/DoNotDisturbDockItem.vala` (L56), `lib/Items/DockItem.vala` (L257),
+[x] [M3-35] `lib/Items/DoNotDisturbDockItem.vala` (L56), `lib/Items/DockItem.vala` (L257),
             & 7 Docklets (`Battery`, `Clock`, `Cpu`, `DigitalClock`, `Mpris`, `Network`, `Volume`):
             Disconnect `notify["IsAttached"]` in `DoNotDisturbDockItem.cleanup ()`, add an
             idempotent `cleaned_up` guard across the 7 docklets so `cleanup ()` + `~dtor`
             never double-disconnects `notify["IsAttached"]`, and call `stop_removal ()` in
             `DockItem.cleanup ()`.
-[ ] [M3-36] `hal/Freedesktop/Dbus/DbusBroker.vala` (L35, L89-133),
+[x] [M3-36] `hal/Freedesktop/Dbus/DbusBroker.vala` (L35, L89-133),
             `hal/Freedesktop/KWin/KWinTrashBridge.vala`, `hal/Interfaces/Hal.vala` (L137),
             & 4 Upward `hal/ -> lib/Services/` Calls (`KWinBridge:640`, `MutterBackend:2013`,
             `LabwcBackend:278-350`, `MprisDbusService:294`):
@@ -656,7 +725,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                `ApplicationIdentity` inside `MprisDbusService.vala:294`.
             3) Guard `Hal.shutdown ()` with `if (windows_instance != null) windows_instance.cleanup ()`
                and add `KWinTrashBridge.cleanup_if_active ()`.
-[ ] [M3-37] `lib/Factories/AbstractMain.vala` (L324, L332-333, L337, L555, L688-700,
+[x] [M3-37] `lib/Factories/AbstractMain.vala` (L324, L332-333, L337, L555, L688-700,
             L2070, L2085-2097) & `lib/gtk-compat.c` (L197):
             1) Swap `Hal.initialize ()` BEFORE `Paths.initialize (...)` at `AbstractMain.vala:332-333`;
             2) Connect `activate_link` on `about_dlg` (L555) and every credit `Gtk.Label` in
@@ -666,14 +735,14 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                and remove leftover `#if HAVE_DBUSMENU` log flag (L324);
             4) Guard `#ifdef LC_MESSAGES` in `lib/gtk-compat.c:197` (`LC_MESSAGES` is not
                defined in Windows `<locale.h>` MSVCRT/UCRT).
-[ ] [M3-38] `lib/DockRenderer.vala` (L168-174, L296-306, L463), `lib/DockController.vala`
+[x] [M3-38] `lib/DockRenderer.vala` (L168-174, L296-306, L463), `lib/DockController.vala`
             (L725), & `hal/Interfaces/ISystemTelemetry.vala` (L290):
             Connect `Hal.Bus.Notifications.show_launcher_badges_changed` in `DockRenderer`
             to trigger `animated_draw ()`, null-guard `Gtk.Settings.get_default ()` at
             L168-174 & L296-306, use `provider.item_for_uri (uri)` in
             `DockController.ipc_get_hover_position ()` (L725), and invoke `callback (false, ...)`
             in `NullEjectorProvider.eject_drive ()`.
-[ ] [M3-39] `hal/Interfaces/Hal.vala` (L129-138), `hal/Freedesktop/FreedesktopHalBootstrap.vala`
+[x] [M3-39] `hal/Interfaces/Hal.vala` (L129-138), `hal/Freedesktop/FreedesktopHalBootstrap.vala`
             (L77-84, L140-147), `hal/Freedesktop/Dbus/DockIpcClient.vala`, &
             `hal/Linux/LinuxAudioTelemetry.vala` (L48-52):
             Order `Hal.cleanup ()` so `bus_instance.cleanup ()` (`DbusBroker.cleanup ()`)
@@ -681,17 +750,17 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             `DockIpcClient.cleanup ()` and `_trash.stop_monitoring ()` in
             `FreedesktopHalBootstrap`, and guard lazy init in `LinuxAudioTelemetry.probe_state_sync ()`
             with a `static GLib.Mutex`.
-[ ] [M3-40] `lib/Items/WeatherDockItem.vala` (L398):
+[x] [M3-40] `lib/Items/WeatherDockItem.vala` (L398):
             Format latitude/longitude in the Open-Meteo URL with `GLib.Ascii.formatd`
             instead of `%.4f` so Win32 COM/Shell resets of thread `LC_NUMERIC` never emit
             comma-decimals (`45,4642`).
-[ ] [M3-41] `lib/Services/Settings.vala` (L41, L49), `lib/Services/Utils.vala` (L42-50),
+[x] [M3-41] `lib/Services/Settings.vala` (L41, L49), `lib/Services/Utils.vala` (L42-50),
             & `lib/Services/Preferences.vala` (L445, L630-705):
             Delegate `Plank.Settings` constructors (`L41, L49`) to `create_settings (schema, path)`
             in `Utils.vala`, use `Path.build_filename` in `Utils.vala:42-50`, null-guard
             `backing_file.get_path ()` at `Preferences.vala:445`, and preserve `is_changed = true`
             (with retry) if `backing_file.replace ()` hits a transient Windows sharing lock.
-[ ] [M3-42] `src/Main.vala` (L48-78), `lib/Factories/AbstractMain.vala` (L216, L256-289,
+[x] [M3-42] `src/Main.vala` (L48-78), `lib/Factories/AbstractMain.vala` (L216, L256-289,
             L368-395), & `hal/Interfaces/IPlatformRuntime.vala`:
             Handle `--validate-latch <path>` early in `src/Main.vala` (before
             `replace_running_instances` / `Gtk.init`, required by `v0.7.3`
@@ -700,7 +769,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             / `remote_action_requested` on `IPlatformRuntime` for Session-D-Bus-free
             Windows single-instance CLI forwarding; and sanitize `dock_name` /
             `enabled-docks` against `^[A-Za-z_][A-Za-z0-9_-]*$` (excluding Win32 DOS stems).
-[ ] [M3-43] `lib/DockPreferences.vala` (L572-584, L936-941), `lib/PositionManager.vala`
+[x] [M3-43] `lib/DockPreferences.vala` (L572-584, L936-941), `lib/PositionManager.vala`
             (L126-143, L195-204), & `lib/Services/ThemeManager.vala` (L50-55):
             Scope `/` and `\` path-traversal rejection in `DockPreferences` strictly to
             `prop_name == "Theme"` (plus `.` and `..`, and `..` on `DockItems` at L582) so
@@ -709,7 +778,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             `PositionManager.get_monitor_for_plug_name ()` (L195, L198); and guard
             `!folder.equal (Paths.ThemeFolder) && !folder.has_prefix (Paths.ThemeFolder)`
             in `ThemeManager.is_user_theme ()`.
-[ ] [M3-44] `lib/Drawing/Surface.vala` (L70-85, L157-160, L226-229),
+[x] [M3-44] `lib/Drawing/Surface.vala` (L70-85, L157-160, L226-229),
             `lib/Drawing/DrawingService.vala` (L599), &
             `lib/Drawing/Theme.vala` (L109-115, L383, L435, L502):
             Allocate in-RAM `Cairo.ImageSurface (ARGB32, ceil(w*sx), ceil(h*sy))` with
@@ -718,12 +787,12 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             thousands of Win32 kernel `HDC`+`HBITMAP` GDI objects across `SurfaceCache`
             frames); null-guard `Gdk.pixbuf_get_from_surface` in `Surface`/`DrawingService`
             and `Gtk.Settings.get_default ()` / `Gdk.Screen.get_default ()` in `Theme.vala`.
-[ ] [M3-45] `lib/Widgets/PreferencesWindow.vala` (L1404, L1408) & `lib/gtk-compat.c` (L92-110):
+[x] [M3-45] `lib/Widgets/PreferencesWindow.vala` (L1404, L1408) & `lib/gtk-compat.c` (L92-110):
             Format `pct` and `hl_pct` with `GLib.Ascii.formatd` inside `PreferencesWindow`
             CSS `linear-gradient(...)` (prevents comma-decimal locales `54,3%` breaking
             `GtkCssProvider`), and normalize `'-'` -> `'_'` (`zh-CN` -> `zh_CN`) in
             `wayplank_match_embedded_lang ()` (`gtk-compat.c:100`).
-[ ] [M3-46] `hal/Freedesktop/Dbus/NotificationDbusService.vala` (L28-65, L181-188, L223),
+[x] [M3-46] `hal/Freedesktop/Dbus/NotificationDbusService.vala` (L28-65, L181-188, L223),
             `hal/Freedesktop/Dbus/DesktopThemeDbusService.vala` (L202-204),
             `hal/Freedesktop/Dbus/LauncherEntryDbusService.vala` (L212-272, L296),
             `lib/InternalConsts.vala`, & `lib/Items/ApplicationDockItemProvider.vala` (L383-385):
@@ -732,14 +801,14 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             `lib/InternalConsts.vala`), guard `schema.has_key ("show-banners")` and
             `schema.has_key ("color-scheme")` before `g_settings_get_*` (`SIGTRAP` guard),
             and normalize `"application://"` southbound inside `LauncherEntryDbusService`.
-[ ] [M3-47] `hal/Freedesktop/Xdg/FreedesktopEjectorProvider.vala` (L159-167) &
+[x] [M3-47] `hal/Freedesktop/Xdg/FreedesktopEjectorProvider.vala` (L159-167) &
             `hal/Freedesktop/Xdg/FreedesktopTrashProvider.vala` (L187, L202, L233, L353, L422):
             Invoke `callback (false, ...)` when drive vanished in
             `FreedesktopEjectorProvider.eject_drive ()`; escape `Path=` with
             `Uri.escape_string (orig_path, "/", true)` in `.trashinfo` (`100%.pdf` restore
             fix), reject `/` and `.`/`..` in `restore_item`/`delete_item_permanently`, and
             use `File.new_for_path (trash_dir).get_uri ()` in `open_trash_ui ()`.
-[ ] [M3-48] `lib/Drawing/Theme.vala` (L680, L683), `lib/Services/ThemeManager.vala`
+[x] [M3-48] `lib/Drawing/Theme.vala` (L680, L683), `lib/Services/ThemeManager.vala`
             (L72-82, L153), `lib/Widgets/WeatherWindow.vala` (L434),
             `lib/Widgets/HelpWindow.vala` (L71), `lib/Widgets/FirstRunWindow.vala`
             (L97, L149, L159, L170), `lib/Factories/AbstractMain.vala`,
@@ -755,7 +824,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             (`GDK_BACKEND=x11` Wayland note) on `Hal.Capabilities.uses_shell_anchored_surfaces`;
             and wrap `session_id`, `user`, and `dev` with `Shell.quote (...)` in
             `LinuxSessionPower.vala:365,372` and `BrightnessControl.vala:994`.
-[ ] [M3-49] `hal/Freedesktop/Dbus/DockIpcServer.vala` (L145-147, L159-160, L169),
+[x] [M3-49] `hal/Freedesktop/Dbus/DockIpcServer.vala` (L145-147, L159-160, L169),
             `hal/Freedesktop/Dbus/DesktopThemeDbusService.vala` (L54-63, L72-89),
             `hal/Freedesktop/Dbus/NotificationDbusService.vala` (L184-188, L670-682),
             `hal/Freedesktop/Xdg/FreedesktopTrashProvider.vala` (L166-167),
@@ -769,7 +838,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             `FreedesktopTrashProvider.list_items ()` (`L167`); validate
             `Variant.is_object_path (seat_path)` on `XDG_SEAT_PATH` in `LinuxSessionPower`;
             and wrap `output.%s.brightness.%d` with `Shell.quote` in `BrightnessControl:932,960`.
-[ ] [M3-50] `lib/Items/ApplicationDockItemProvider.vala` (L384-385),
+[x] [M3-50] `lib/Items/ApplicationDockItemProvider.vala` (L384-385),
             `lib/Items/ApplicationDockItem.vala` (L924-967),
             `lib/Items/PlankDockItem.vala` (L33-46),
             `lib/Items/BrightnessDockItem.vala` (L33-67),
@@ -785,7 +854,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             null-safe `DrawingService.theme_has_icon ()`; extend `last_index_of ("[")` and
             trailing `[...@...]` parsing to `PositionManager.vala:216-224,237`; and capture
             `GLib.WeakRef` in `SurfaceCache`'s 5-minute timeout closure (`L140-158`).
-[ ] [M3-51] `data/plank.gresource.xml`, `lib/Drawing/DrawingService.vala`
+[x] [M3-51] `data/plank.gresource.xml`, `lib/Drawing/DrawingService.vala`
             (L49-50, L148-160, L435-438), `lib/Widgets/SessionWindow.vala`,
             `lib/Widgets/FirstRunWindow.vala` (L149, L159),
             `lib/Widgets/DockWindow.vala` (L1207),
@@ -805,7 +874,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             `create_literal_menu_item` (`L375-422`), check `DrawingService.has_icon` (trying
             `icon + "-symbolic"`) and fall back to an iconless `Gtk.MenuItem` instead of
             stamping `application-default-icon.svg`.
-[ ] [M3-52] `lib/Factories/ItemFactory.vala` (L114) &
+[x] [M3-52] `lib/Factories/ItemFactory.vala` (L114) &
             `lib/Factories/AbstractMain.vala` (L53-82, L206-211):
             Update `ItemFactory.get_item_for_dock ()` (`L114`) to `return new PlankDockItem ();`
             (matching `[M3-50]`'s public per-dock `PlankDockItem ()` constructor); and in
@@ -1240,8 +1309,9 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
                  `has_prefix\s*\(\s*"/"|Win32|HWND`
 [ ] [M4-19] Run Identity Engine Automated 65,025-Case Regression Matrix + Full
             3-Compositor ISA-88 `FAT 0.7.2` Qualification across KDE Plasma 6
-            (KWin), GNOME Shell (Mutter), and Labwc (`0 [ko]`), delete this
-            temporary `.txt` file, and freeze `hal/Interfaces/` for `v0.7.3`.
+            (KWin), GNOME Shell (Mutter), and Labwc (`0 [ko]`), synchronize and
+            close Master Audit Suite gates `[DOC-02]` & `[DOC-03]`, and freeze
+            `hal/Interfaces/` for `v0.7.3`.
 
 ================================================================================
 SECTION 5 — VERIFIED BUCKET A: 28 FILES 100.0% PURE PORTABLE CORE TODAY
@@ -1275,4 +1345,16 @@ SECTION 5 — VERIFIED BUCKET A: 28 FILES 100.0% PURE PORTABLE CORE TODAY
   26. [PURE-CORE] lib/Widgets/HelpWindow.vala
   27. [PURE-CORE] lib/Widgets/TitledSeparatorMenuItem.vala
   28. [PURE-CORE] vapi/core/config.vapi (plus `hal/Interfaces/WindowInfo.vala` DTO)
+
+================================================================================
+SECTION 6 — MASTER MOC-0.7.2-HAL-001 FINAL SIGN-OFF CHECKLIST
+================================================================================
+[x] [CLOSE-M123] Moves 1, 2 & 3 + Companion Unit Procedure 1 (`M123 - Remediation`)
+                 100% closed (`33/33 [ok]`, `backup/0.7.2-move-3b`).
+[ ] [CLOSE-M4]   Move 4 + Companion Unit Procedure 2 (`M4 - Implementation`)
+                 100% closed (`40/40 [ok]`, Dual-Zone Firewall `GREEN`, 65,025-case
+                 Identity Matrix `PASS`, `backup/0.7.2-move-4`).
+[ ] [CLOSE-MOC]  All 3 `MOC-0.7.2-HAL-001` Audit Documents (`[DOC-01..03]`) 100%
+                 synchronized & closed, 3-compositor `FAT 0.7.2` signed off by
+                 Sergio Melas (`0 [ko]`), `hal/Interfaces/` frozen for `v0.7.3`.
 ================================================================================

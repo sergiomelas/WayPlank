@@ -106,13 +106,14 @@ namespace Plank
 		
 		construct
 		{
-			unowned Gtk.Settings gtk_settings = Gtk.Settings.get_default ();
-			
-			var gtk_theme = gtk_settings.gtk_theme_name;
+			unowned Gtk.Settings? gtk_settings = Gtk.Settings.get_default ();
+			string? gtk_theme = (gtk_settings != null) ? gtk_settings.gtk_theme_name : null;
 			update_style_context (gtk_theme);
-			
-			gtk_settings.notify["gtk-theme-name"].connect (gtk_theme_name_changed);
-			gtk_settings.notify["gtk-application-prefer-dark-theme"].connect (gtk_theme_name_changed);
+
+			if (gtk_settings != null) {
+				gtk_settings.notify["gtk-theme-name"].connect (gtk_theme_name_changed);
+				gtk_settings.notify["gtk-application-prefer-dark-theme"].connect (gtk_theme_name_changed);
+			}
 		}
 
 		~Theme ()
@@ -145,7 +146,7 @@ namespace Plank
 			if (theme_name == GTK_THEME_NAME && theme_folder == null)
 				apply_dynamic_gtk_theme ();
 			
-			notify (new ParamSpecBoolean ("theme-changed", "theme-changed", "theme-changed", true, ParamFlags.READABLE));
+			notify_property ("TopRoundness");
 		}
 		
 		public unowned Gtk.StyleContext get_style_context ()
@@ -380,7 +381,8 @@ namespace Plank
 			top_radius = top_radius.clamp (0.0, min_size / 2.0);
 			rev_radius = rev_radius.clamp (0.0, double.min (width / 3.0, double.max (0.0, height - top_radius)));
 
-			if (!Gdk.Screen.get_default ().is_composited ()) {
+			unowned Gdk.Screen? screen = Gdk.Screen.get_default ();
+			if (screen != null && !screen.is_composited ()) {
 				draw_rounded_rect (cr, x, y, width, height, 0.0, 0.0, line_width);
 				return;
 			}
@@ -432,7 +434,8 @@ namespace Plank
 			top_radius = top_radius.clamp (0.0, min_size / 2.0);
 			rev_radius = rev_radius.clamp (0.0, double.min (width / 3.0, double.max (0.0, height - top_radius)));
 
-			if (!Gdk.Screen.get_default ().is_composited ())
+			unowned Gdk.Screen? screen = Gdk.Screen.get_default ();
+			if (screen != null && !screen.is_composited ())
 				return;
 
 			cr.move_to (x, y + height);
@@ -499,7 +502,8 @@ namespace Plank
 			top_radius = top_radius.clamp (0.0, min_size);
 			bottom_radius = bottom_radius.clamp (0.0, min_size - top_radius);
 			
-			if (!Gdk.Screen.get_default ().is_composited ())
+			unowned Gdk.Screen? screen = Gdk.Screen.get_default ();
+			if (screen != null && !screen.is_composited ())
 				top_radius = bottom_radius = 0.0;
 			
 			// if the top isnt round, we have to adjust the starting point a bit
@@ -672,17 +676,17 @@ namespace Plank
 			enumerate_theme_folder (Paths.AppThemeFolder, list);
 			
 			// 2. User's legacy plank themes folder (~/.local/share/plank/themes)
-			enumerate_theme_folder (Paths.DataHomeFolder.get_child ("plank/themes"), list);
+			enumerate_theme_folder (Paths.DataHomeFolder.get_child ("plank").get_child ("themes"), list);
 			
 			// 3. User's ~/.themes folder
 			enumerate_theme_folder (Paths.HomeFolder.get_child (".themes"), list);
 			
-			// 4. System wayplank themes folder (/usr/share/wayplank/themes)
+			// 4. System wayplank themes folder (Paths.ThemeFolder)
 			enumerate_theme_folder (Paths.ThemeFolder, list);
 			
-			// 5. System legacy plank themes folders (/usr/share/plank/themes)
+			// 5. System legacy plank themes folders (Paths.DataDirFolders)
 			foreach (var datafolder in Paths.DataDirFolders) {
-				enumerate_theme_folder (datafolder.get_child ("plank/themes"), list);
+				enumerate_theme_folder (datafolder.get_child ("plank").get_child ("themes"), list);
 			}
 			
 			var others = new Gee.ArrayList<string> ();
@@ -717,14 +721,14 @@ namespace Plank
 
 			if (is_valid_theme_dir (Paths.AppThemeFolder.get_child (name)))
 				return true;
-			if (is_valid_theme_dir (Paths.DataHomeFolder.get_child ("plank/themes/%s".printf (name))))
+			if (is_valid_theme_dir (Paths.DataHomeFolder.get_child ("plank").get_child ("themes").get_child (name)))
 				return true;
-			if (is_valid_theme_dir (Paths.HomeFolder.get_child (".themes/%s".printf (name))))
+			if (is_valid_theme_dir (Paths.HomeFolder.get_child (".themes").get_child (name)))
 				return true;
 			if (is_valid_theme_dir (Paths.ThemeFolder.get_child (name)))
 				return true;
 			foreach (var datafolder in Paths.DataDirFolders) {
-				if (is_valid_theme_dir (datafolder.get_child ("plank/themes/%s".printf (name))))
+				if (is_valid_theme_dir (datafolder.get_child ("plank").get_child ("themes").get_child (name)))
 					return true;
 			}
 			return false;
@@ -743,12 +747,12 @@ namespace Plank
 				return folder;
 			
 			// 2. Look in user's legacy plank themes folder (~/.local/share/plank/themes)
-			folder = Paths.DataHomeFolder.get_child ("plank/themes/%s".printf (name));
+			folder = Paths.DataHomeFolder.get_child ("plank").get_child ("themes").get_child (name);
 			if (is_valid_theme_dir (folder))
 				return folder;
 			
 			// 3. Look in user's ~/.themes folder
-			folder = Paths.HomeFolder.get_child (".themes/%s".printf (name));
+			folder = Paths.HomeFolder.get_child (".themes").get_child (name);
 			if (is_valid_theme_dir (folder))
 				return folder;
 
@@ -759,7 +763,7 @@ namespace Plank
 			
 			// 5. Look in system's legacy plank themes folders
 			foreach (var datafolder in Paths.DataDirFolders) {
-				folder = datafolder.get_child ("plank/themes/%s".printf (name));
+				folder = datafolder.get_child ("plank").get_child ("themes").get_child (name);
 				if (is_valid_theme_dir (folder))
 					return folder;
 			}

@@ -25,12 +25,8 @@ namespace Plank
 	 */
 	public abstract class DockContainer : DockElement
 	{
-		protected static PlaceholderDockItem placeholder_item;
-		
-		static construct
-		{
-			placeholder_item = new PlaceholderDockItem ();
-		}
+		protected PlaceholderDockItem placeholder_item;
+		bool is_container_cleaned_up = false;
 		
 		/**
 		 * Triggered when the collection of elements has changed.
@@ -85,23 +81,43 @@ namespace Plank
 		{
 			visible_elements = new Gee.ArrayList<DockElement> ();
 			internal_elements = new Gee.ArrayList<DockElement> ();
+			placeholder_item = new PlaceholderDockItem ();
 			
 			connect_element (placeholder_item);
 		}
 		
+		public virtual void cleanup ()
+		{
+			if (is_container_cleaned_up)
+				return;
+			is_container_cleaned_up = true;
+
+			if (placeholder_item != null) {
+				disconnect_element (placeholder_item);
+				placeholder_item.cleanup ();
+			}
+			
+			if (visible_elements != null)
+				visible_elements.clear ();
+			
+			if (internal_elements != null) {
+				var elements = new Gee.HashSet<DockElement> ();
+				elements.add_all (internal_elements);
+				foreach (var element in elements) {
+					remove_without_signaling (element);
+					element.Container = null;
+					if (element is DockContainer)
+						((DockContainer) element).cleanup ();
+					else if (element is DockItem)
+						((DockItem) element).cleanup ();
+				}
+				internal_elements.clear ();
+			}
+		}
+
 		~DockContainer ()
 		{
-			disconnect_element (placeholder_item);
-			
-			visible_elements.clear ();
-			
-			var elements = new Gee.HashSet<DockElement> ();
-			elements.add_all (internal_elements);
-			foreach (var element in elements) {
-				remove_without_signaling (element);
-				element.Container = null;
-			}
-			internal_elements.clear ();
+			cleanup ();
 		}
 		
 		/**

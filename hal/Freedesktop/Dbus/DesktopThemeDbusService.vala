@@ -41,6 +41,8 @@ namespace Plank
 		DBusConnection? bus = null;
 		FileMonitor? kdeglobals_monitor = null;
 		GLib.Settings? gnome_settings = null;
+		ulong color_scheme_handler_id = 0UL;
+		ulong gtk_theme_handler_id = 0UL;
 		bool shutting_down = false;
 
 		construct
@@ -49,17 +51,22 @@ namespace Plank
 			init_kde_monitor ();
 
 			var source = SettingsSchemaSource.get_default ();
-			if (source != null && source.lookup ("org.gnome.desktop.interface", true) != null) {
+			var iface_schema = source != null ? source.lookup ("org.gnome.desktop.interface", true) : null;
+			if (iface_schema != null) {
 				try {
 					gnome_settings = new GLib.Settings ("org.gnome.desktop.interface");
-					gnome_settings.changed["color-scheme"].connect (() => {
-						if (!shutting_down)
-							color_scheme_changed ();
-					});
-					gnome_settings.changed["gtk-theme"].connect (() => {
-						if (!shutting_down)
-							gtk_theme_changed ();
-					});
+					if (iface_schema.has_key ("color-scheme")) {
+						color_scheme_handler_id = gnome_settings.changed["color-scheme"].connect (() => {
+							if (!shutting_down)
+								color_scheme_changed ();
+						});
+					}
+					if (iface_schema.has_key ("gtk-theme")) {
+						gtk_theme_handler_id = gnome_settings.changed["gtk-theme"].connect (() => {
+							if (!shutting_down)
+								gtk_theme_changed ();
+						});
+					}
 				} catch (Error e) { }
 			}
 		}
@@ -72,6 +79,17 @@ namespace Plank
 		public void cleanup ()
 		{
 			shutting_down = true;
+			if (gnome_settings != null) {
+				if (color_scheme_handler_id > 0UL) {
+					SignalHandler.disconnect (gnome_settings, color_scheme_handler_id);
+					color_scheme_handler_id = 0UL;
+				}
+				if (gtk_theme_handler_id > 0UL) {
+					SignalHandler.disconnect (gnome_settings, gtk_theme_handler_id);
+					gtk_theme_handler_id = 0UL;
+				}
+				gnome_settings = null;
+			}
 			if (bus != null) {
 				if (subscription_id > 0U) {
 					bus.signal_unsubscribe (subscription_id);
@@ -90,11 +108,8 @@ namespace Plank
 
 		public double get_font_scale_factor ()
 		{
-			if (gnome_settings != null) {
-				var keys = gnome_settings.settings_schema.list_keys ();
-				if ("text-scaling-factor" in keys)
-					return gnome_settings.get_double ("text-scaling-factor");
-			}
+			if (gnome_settings != null && gnome_settings.settings_schema.has_key ("text-scaling-factor"))
+				return gnome_settings.get_double ("text-scaling-factor");
 			return 1.0;
 		}
 
@@ -199,7 +214,8 @@ namespace Plank
 			// 3. Fallback to GNOME Settings schema if portal was inconclusive (code == 0)
 			if (!detected) {
 				var source = SettingsSchemaSource.get_default ();
-				if (source != null && source.lookup ("org.gnome.desktop.interface", true) != null) {
+				var iface_schema = source != null ? source.lookup ("org.gnome.desktop.interface", true) : null;
+				if (iface_schema != null && iface_schema.has_key ("color-scheme")) {
 					var gs = gnome_settings ?? new GLib.Settings ("org.gnome.desktop.interface");
 					var scheme = gs.get_string ("color-scheme");
 					if (scheme != null) {

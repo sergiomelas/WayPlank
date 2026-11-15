@@ -21,6 +21,37 @@
 namespace Plank
 {
 	/**
+	 * Policy controlling if and how a dock hides itself relative to windows and pointer state.
+	 */
+	public enum HideType
+	{
+		/**
+		 * The dock remains visible and reserves exclusive screen space when configured.
+		 */
+		NONE,
+		/**
+		 * The dock hides if a window in the active window group overlaps it.
+		 */
+		INTELLIGENT,
+		/**
+		 * The dock hides if the pointer is not over it.
+		 */
+		AUTO,
+		/**
+		 * The dock hides if there is an active maximized window.
+		 */
+		DODGE_MAXIMIZED,
+		/**
+		 * The dock hides if there is any window overlapping it.
+		 */
+		WINDOW_DODGE,
+		/**
+		 * The dock hides if the active window overlaps it.
+		 */
+		DODGE_ACTIVE,
+	}
+
+	/**
 	 * OS- and compositor-neutral capability descriptor populated at bootstrap
 	 * by the active platform driver. Core and UI layers query these flags
 	 * purely to present honest UI controls, never to branch driver logic.
@@ -39,6 +70,7 @@ namespace Plank
 		public bool supports_quit_action { get; set; default = true; }
 		public bool supports_pressure_reveal { get; set; default = false; }
 		public bool supports_hardware_brightness { get; set; default = true; }
+		public bool uses_shell_anchored_surfaces { get; set; default = false; }
 		public string unsupported_hide_mode_suffix { get; set; default = ""; }
 		public string fully_supported_summary { get; set; default = ""; }
 		public string partially_supported_summary { get; set; default = ""; }

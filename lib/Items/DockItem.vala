@@ -279,6 +279,9 @@ namespace Plank
 
 			launcher_file_monitor_stop ();
 			icon_file_monitor_stop ();
+
+			if (stop_removal ())
+				@delete ();
 		}
 
 		~DockItem ()

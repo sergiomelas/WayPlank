@@ -21,37 +21,6 @@
 namespace Plank
 {
 	/**
-	 * If/How the dock should hide itself.
-	 */
-	public enum HideType
-	{
-		/**
-		 * The dock remains visible and reserves space through the layer-shell exclusive zone.
-		 */
-		NONE,
-		/**
-		 * The dock hides if a window in the active window group overlaps it.
-		 */
-		INTELLIGENT,
-		/**
-		 * The dock hides if the mouse is not over it.
-		 */
-		AUTO,
-		/**
-		 * The dock hides if there is an active maximized window.
-		 */
-		DODGE_MAXIMIZED,
-		/**
-		 * The dock hides if there is any window overlapping it.
-		 */
-		WINDOW_DODGE,
-		/**
-		 * The dock hides if there is the active window overlapping it.
-		 */
-		DODGE_ACTIVE,
-	}
-	
-	/**
 	 * Handles checking if a dock should hide or not.
 	 */
 	public class HideManager : GLib.Object
@@ -63,15 +32,12 @@ namespace Plank
 		const uint PRESSURE_REVEAL_TIMEOUT = 50U;
 		const int PRESSURE_REVEAL_SIZE = 8;
 		
-		
-		static int plank_pid;
-		
-		static construct
-		{
-			plank_pid = Hal.Runtime.get_current_pid ();
+		weak DockController? _controller = null;
+		public weak DockController controller {
+			private get { return _controller; }
+			construct { _controller = value; }
 		}
-		
-		public DockController controller { private get; construct; }
+		bool is_cleaned_up = false;
 		
 		/**
 		 * If the dock is currently hidden.
@@ -156,10 +122,15 @@ namespace Plank
 			update_hidden ();
 		}
 		
-		~HideManager ()
+		public void cleanup ()
 		{
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
 			if (controller != null) {
-				controller.prefs.notify.disconnect (prefs_changed);
+				if (controller.prefs != null)
+					controller.prefs.notify.disconnect (prefs_changed);
 				
 				if (is_initialized && controller.window != null) {
 					unowned DockWindow window = controller.window;
@@ -170,6 +141,7 @@ namespace Plank
 			
 			if (is_initialized) {
 				Hal.Windows.state_changed.disconnect (window_state_changed);
+				is_initialized = false;
 			}
 			if (pressure_reveal_timer_id > 0U) {
 				Source.remove (pressure_reveal_timer_id);
@@ -177,6 +149,12 @@ namespace Plank
 			}
 			
 			stop_timers ();
+			_controller = null;
+		}
+
+		~HideManager ()
+		{
+			cleanup ();
 		}
 		
 		/**

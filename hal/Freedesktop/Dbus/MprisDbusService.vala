@@ -291,7 +291,6 @@ namespace Plank
 							}
 						} catch { }
 
-						cur_identity = ApplicationIdentity.get_identity_for_pid_or_bus (0, name, cur_identity);
 						if (cur_identity != "") {
 							identity_cache_mutex.lock ();
 							if (cached_player_identities.size > 64)
@@ -304,6 +303,7 @@ namespace Plank
 					var info = new MediaPlayerInfo ();
 					info.player_id = name;
 					info.identity = cur_identity;
+					info.owner_pid = (int) DbusBroker.get_default ().resolve_sender_pid (name);
 					info.status = cur_status;
 					info.title = cur_title;
 					info.artist = cur_artist;

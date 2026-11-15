@@ -30,15 +30,13 @@ namespace Plank
 	{
 		public static string get_brightness_icon_name (int percent)
 		{
-			var default_theme = Gtk.IconTheme.get_default ();
-
 			// 100% Maximum Brightness: Full solid sun icon
 			if (percent >= 100) {
-				if (default_theme.has_icon ("notification-display-brightness-full"))
+				if (DrawingService.theme_has_icon ("notification-display-brightness-full"))
 					return "notification-display-brightness-full";
-				if (default_theme.has_icon ("display-brightness-full"))
+				if (DrawingService.theme_has_icon ("display-brightness-full"))
 					return "display-brightness-full";
-				if (default_theme.has_icon ("brightness-full"))
+				if (DrawingService.theme_has_icon ("brightness-full"))
 					return "brightness-full";
 				return "brightness";
 			}
@@ -46,23 +44,23 @@ namespace Plank
 			string tier = (percent >= 66) ? "high" : (percent >= 33) ? "medium" : "low";
 
 			// Set 1: notification-display-brightness-* (Haptic-SML, GNOME notification spec)
-			if (default_theme.has_icon ("notification-display-brightness-high") &&
-			    default_theme.has_icon ("notification-display-brightness-medium") &&
-			    default_theme.has_icon ("notification-display-brightness-low")) {
+			if (DrawingService.theme_has_icon ("notification-display-brightness-high") &&
+			    DrawingService.theme_has_icon ("notification-display-brightness-medium") &&
+			    DrawingService.theme_has_icon ("notification-display-brightness-low")) {
 				return "notification-display-brightness-" + tier;
 			}
 
 			// Set 2: display-brightness-* (FreeDesktop status spec)
-			if (default_theme.has_icon ("display-brightness-high") &&
-			    default_theme.has_icon ("display-brightness-medium") &&
-			    default_theme.has_icon ("display-brightness-low")) {
+			if (DrawingService.theme_has_icon ("display-brightness-high") &&
+			    DrawingService.theme_has_icon ("display-brightness-medium") &&
+			    DrawingService.theme_has_icon ("display-brightness-low")) {
 				return "display-brightness-" + tier;
 			}
 
 			// Set 3: brightness-* (Breeze / legacy status spec)
-			if (default_theme.has_icon ("brightness-high") &&
-			    default_theme.has_icon ("brightness-medium") &&
-			    default_theme.has_icon ("brightness-low")) {
+			if (DrawingService.theme_has_icon ("brightness-high") &&
+			    DrawingService.theme_has_icon ("brightness-medium") &&
+			    DrawingService.theme_has_icon ("brightness-low")) {
 				return "brightness-" + tier;
 			}
 

@@ -38,7 +38,7 @@ namespace Plank
 		 */
 		protected Settings (string schema)
 		{
-			Object (settings: new GLib.Settings (schema));
+			Object (settings: create_settings (schema));
 		}
 		
 		/**
@@ -46,7 +46,7 @@ namespace Plank
 		 */
 		protected Settings.with_path (string schema, string path)
 		{
-			Object (settings: new GLib.Settings.with_path (schema, path));
+			Object (settings: create_settings (schema, path));
 		}
 		
 		construct

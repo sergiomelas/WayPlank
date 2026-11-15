@@ -101,6 +101,12 @@ wayplank_match_embedded_lang (const char *raw)
 	if (clean[0] == '\0')
 		return NULL;
 
+	/* Normalize BCP-47 hyphen tags (e.g. "zh-CN") to POSIX underscore ("zh_CN") */
+	for (char *p = clean; *p != '\0'; p++) {
+		if (*p == '-')
+			*p = '_';
+	}
+
 	/* Extract base language code before '_' (e.g. "it_IT" -> "it") */
 	char base[32];
 	g_strlcpy (base, clean, sizeof (base));
@@ -193,8 +199,20 @@ wayplank_i18n_init (void)
 		lang = wayplank_resolve_lang_from_env_str (g_getenv ("LC_MESSAGES"));
 	if (lang == NULL)
 		lang = wayplank_resolve_lang_from_env_str (g_getenv ("LANG"));
+#ifdef LC_MESSAGES
 	if (lang == NULL)
 		lang = wayplank_resolve_lang_from_env_str (setlocale (LC_MESSAGES, ""));
+#endif
+	if (lang == NULL) {
+		const char * const *sys_langs = g_get_language_names ();
+		for (int i = 0; sys_langs != NULL && sys_langs[i] != NULL; i++) {
+			const char *cand = wayplank_match_embedded_lang (sys_langs[i]);
+			if (cand != NULL) {
+				lang = cand;
+				break;
+			}
+		}
+	}
 
 	if (lang == NULL || g_strcmp0 (lang, "en") == 0)
 		return;

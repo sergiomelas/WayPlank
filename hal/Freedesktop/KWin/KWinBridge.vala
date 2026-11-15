@@ -471,6 +471,8 @@ namespace Plank
 			+ "            switchToDesktopIfNeeded(target);\n"
 			+ "            workspace.activeWindow = target;\n"
 			+ "        }\n"
+			+ "    } else if (action === \"minimize\") {\n"
+			+ "        target.minimized = true;\n"
 			+ "    } else if (action === \"close\") {\n"
 			+ "        if (typeof target.closeWindow === \"function\")\n"
 			+ "            target.closeWindow();\n"
@@ -637,8 +639,8 @@ namespace Plank
 					info.Caption = raw_capt;
 					info.Pid = (json.has_member ("pid") && !json.get_null_member ("pid")) ? (int) json.get_int_member ("pid") : 0;
 					if (info.Pid > 0) {
-						info.Cmdline = ApplicationDiscovery.get_process_cmdline (info.Pid);
-						info.Executable = ApplicationDiscovery.get_process_comm (info.Pid);
+						info.Cmdline = LinuxProcessInspector.get_process_cmdline (info.Pid);
+						info.Executable = LinuxProcessInspector.get_process_comm (info.Pid);
 					}
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height"))
 						info.Geometry = { (int) json.get_double_member ("x"), (int) json.get_double_member ("y"),

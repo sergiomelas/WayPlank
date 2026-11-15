@@ -119,7 +119,7 @@ flowchart TD
         direction LR
         UI_WIN["DockWindow • WindowCardsWindow • FolderMenuWindow • HoverWindow • PoofWindow • HideManager • PositionManager"];
         ID_CORE["ApplicationIdentity • ApplicationDiscovery • WindowManager • RecentFilesService"];
-        DOCKLETS["16 Pure Cairo/GTK Docklets • SystemTheme • Unity • AbstractMain"];
+        DOCKLETS["16 Pure Cairo/GTK Docklets • SystemTheme • ApplicationDockItemProvider • AbstractMain"];
     end
 
     subgraph ZONE2 ["🔀 ZONE 2: Frozen v0.7.2 Agnostic Boundary Translators (hal/Interfaces/)"]
@@ -158,7 +158,7 @@ flowchart TD
 | **`WindowManager`** | `IWindowBackend` (`WindowInfo` — zero `DBusConnection`) | `Compositor/Win32Backend.vala` + `win32-bridge.c` | Formats 64-bit `HWND` as opaque string `Id = "hwnd:0x%016llx"`. Marshals out-of-context `SetWinEventHook` via `g_idle_add` and filters cloaked UWP background windows (`DWMWA_CLOAKED != 0`). |
 | **`WindowCardsWindow`** | `IThumbnailProvider` | `Compositor/Win32ThumbnailProvider.vala` | GDI `PrintWindow(PW_RENDERFULLCONTENT)` leaves `alpha = 0` on GDI controls; enforces `buffer[i + 3] = 255` before returning `Gdk.Pixbuf`. |
 | **`ApplicationIdentity`, `ApplicationDiscovery`, `DockItem`, `RecentFilesService`** | `IAppSystem` + `Hal.Runtime.parse_command_argv` | `AppSystem/Win32AppSystem.vala` + `Win32PlatformRuntime.vala` | **1) UWP Host:** Unwraps `ApplicationFrameHost.exe` child `CoreWindow` `PID` and `PKEY_AppUserModel_ID` (`aumid://` supported by `launcher_exists`).<br>**2) Elevated Admin Processes:** `PROCESS_QUERY_LIMITED_INFORMATION` (`QueryFullProcessImageNameW`) always succeeds when `PROCESS_VM_READ` is denied (`full_cmdline = ""`).<br>**3) Backslash Safety:** `parse_command_argv` uses `CommandLineToArgvW` grammar so Windows `\` path separators are never stripped!<br>**4) Recent Jump-Lists:** `get_recent_documents()` parses `%APPDATA%\Microsoft\Windows\Recent\*.lnk`. |
-| **`SystemTheme`, `Unity`, `MprisDockItem`, `DoNotDisturbDockItem`** | `IDesktopThemeBus`, `ILauncherBadgeBus`, `IMediaController`, `INotificationBus` | `Bus/Win32BusBroker.vala` | Translates `AppsUseLightTheme` + `WM_SETTINGCHANGE` $\rightarrow$ `IDesktopThemeBus`, `ITaskbarList3` $\rightarrow$ `LauncherBadgeState`, `VK_MEDIA_*`/GSMTC $\rightarrow$ `MediaPlayerSnapshot`, Focus Assist $\rightarrow$ `INotificationBus`. |
+| **`SystemTheme`, `ApplicationDockItemProvider`, `MprisDockItem`, `DoNotDisturbDockItem`** | `IDesktopThemeBus`, `ILauncherBadgeBus`, `IMediaController`, `INotificationBus` | `Bus/Win32BusBroker.vala` | Translates `AppsUseLightTheme` + `WM_SETTINGCHANGE` $\rightarrow$ `IDesktopThemeBus`, `ITaskbarList3` $\rightarrow$ `LauncherBadgeState`, `VK_MEDIA_*`/GSMTC $\rightarrow$ `MediaPlayerSnapshot`, Focus Assist $\rightarrow$ `INotificationBus`. |
 | **`TrashDockItem` & `EjectorDockItem`** | `ITrashProvider` & `IEjectorProvider` | `Telemetry/Win32Telemetry.vala` | **Static GIO on Windows has NO `trash:///` VFS and NO `UDisks2` `VolumeMonitor`!** `ITrashProvider` translates Recycle Bin count/items/restore/empty/trash via `SHQueryRecycleBinW`, `SHEmptyRecycleBinW`, and `SHFileOperationW(FO_DELETE \| FOF_ALLOWUNDO)`. `IEjectorProvider` enumerates removable drives via `GetLogicalDrives` + `GetDriveTypeW` and ejects via `CM_Request_Device_EjectW`. |
 | **8 Docklets, `Weather*`, `ThemeManager`, `PreferencesWindow`** | `IPlatformRuntime` (`DesktopUtilityKind`) | `Telemetry/Win32PlatformRuntime.vala` | Maps `DesktopUtilityKind` to `ms-settings:sound`, `ms-settings:network`, `ms-settings:powersleep`, `ms-settings:display`, `ms-settings:dateandtime`, `taskmgr.exe`, and `outlookcal:`; implements `http_get_sync` via `WinHTTP.dll`, `open_uri` via `ShellExecuteW`, autostart via `HKCU\...\Run`, and isolated KeyFile validation via `CreateProcessW(..., "--validate-latch")`. |
 
@@ -270,10 +270,10 @@ flowchart TD
 | :--- | :--- | :--- | :--- |
 | **Trash** (`docklet://trash`) | `ITrashProvider` (`TrashItemInfo`) | `FreedesktopTrashProvider` (GVFS `trash:///`, `.trashinfo`, `file.trash()`) | `SHQueryRecycleBinW` + `SHEmptyRecycleBinW` + `SHFileOperationW(FO_DELETE \| FOF_ALLOWUNDO)` |
 | **Removable Drive Ejector** (`docklet://ejector`) | `IEjectorProvider` (`RemovableDriveInfo`) | `FreedesktopEjectorProvider` (`VolumeMonitor` + `/media` filter) | `GetLogicalDrives` (`DRIVE_REMOVABLE`) + `CM_Request_Device_EjectW` + `DeviceIoControl` |
-| **Analog & Digital Clocks (2)** | `IPlatformRuntime` (`DesktopUtilityKind`) | Pure GLib `DateTime` + Cairo (`DATE_TIME_SETTINGS` / `CALENDAR_APP`) | Pure GLib `DateTime` + Cairo (`ms-settings:dateandtime` / `outlookcal:`) |
-| **Battery Monitor** | `IBatteryProvider` | `UPowerDbusService` + `/sys/class/power_supply` | `GetSystemPowerStatus` + `WM_POWERBROADCAST` |
-| **System Pressure (CPU/RAM)** | `ICpuMemoryProvider` | `LinuxCpuMemoryTelemetry` (`/proc/{stat,meminfo,diskstats}`) | `GetSystemTimes` + `GlobalMemoryStatusEx` + `IOCTL_DISK_PERFORMANCE` |
-| **Network Monitor** (`docklet://network`) | `INetworkProvider` | `LinuxNetworkTelemetry` (`/sys/class/net`, `/proc/net/wireless`, `nmcli`) | `GetAdaptersAddresses` / `NotifyIpInterfaceChange` (`iphlpapi.dll`) + `wlanapi.dll` |
+| **Analog & Digital Clocks (2)** | `IPlatformRuntime` (`DesktopUtilityKind`) | Pure GLib `DateTime` + Cairo (`CALENDAR`) | Pure GLib `DateTime` + Cairo (`ms-settings:dateandtime` / `outlookcal:`) |
+| **Battery Monitor** | `IBatteryProvider` | `LinuxBatteryProvider` (UPower + `/sys/class/power_supply`) | `GetSystemPowerStatus` + `WM_POWERBROADCAST` |
+| **System Pressure (CPU/RAM)** | `ICpuMemoryProvider` | `LinuxCpuMemDiskTelemetry` (`/proc/{stat,meminfo,diskstats}`) | `GetSystemTimes` + `GlobalMemoryStatusEx` + `IOCTL_DISK_PERFORMANCE` |
+| **Network Monitor** (`docklet://network`) | `INetworkProvider` | `NetworkManagerDbusService` (`/sys/class/net`, `/proc/net/wireless`, `nmcli`) | `GetAdaptersAddresses` / `NotifyIpInterfaceChange` (`iphlpapi.dll`) + `wlanapi.dll` |
 | **Volume Control** | `IAudioProvider` | `LinuxAudioTelemetry` (`wpctl` / `pactl` / `amixer`) | CoreAudio (`IAudioEndpointVolume` + `IAudioEndpointVolumeCallback`) |
 | **Brightness Control** | `IBrightnessProvider` | `BrightnessControl` (KWin DRM, GNOME D-Bus, `/sys/class/backlight`, `ddcutil`) | `dxva2.dll` (`GetMonitorBrightness` / `SetMonitorBrightness`) + WMI |
 | **Do Not Disturb (DND)** | `INotificationBus` | `NotificationDbusService` (`plasmashell` / `Notifications` / `dunstctl`) | Windows Focus Assist / Quiet Hours (`WpnNotifications`) |
@@ -281,7 +281,7 @@ flowchart TD
 | **Show Desktop** | `IWindowBackend.toggle_show_desktop()` | KWin / Mutter / Labwc `toggle_show_desktop()` | Shell COM `IShellDispatch4::ToggleDesktop()` |
 | **Session & Power** (`3×3`) | `ISessionPowerProvider` | `LinuxSessionPower` (`systemd-logind` / KDE / GNOME) | `ExitWindowsEx`, `LockWorkStation`, `WTSDisconnectSession`, `SetSuspendState` |
 | **Media Player (MPRIS)** | `IMediaController` (`MediaPlayerSnapshot`) | `MprisDbusService` (`org.mpris.MediaPlayer2`) | `SendInput(VK_MEDIA_*)` + optional WinRT `GSMTC` via `GetProcAddress` |
-| **Weather Forecast** | `IPlatformRuntime.http_get_sync` | `UnixHttpAndArchive` (`curl`) | Stock Windows **`WinHTTP.dll`** (HTTPS REST) |
+| **Weather Forecast** | `IPlatformRuntime.http_get_sync` | `LinuxPlatformRuntime` (`curl`) | Stock Windows **`WinHTTP.dll`** (HTTPS REST) |
 | **Preferences** | `IPlatformRuntime` | `GSettings` + isolated `fork()` KeyFile validator + `~/.config/autostart` | `GRegistrySettingsBackend` + `CreateProcessW("--validate-latch")` + `HKCU\...\Run` |
 
 ---

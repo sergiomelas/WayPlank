@@ -57,7 +57,7 @@ flowchart TD
     subgraph ZONE1 ["🎨 ZONE 1: 100% Bus- & OS-Agnostic Portable Core (src/ + lib/ + vapi/core/)"]
         direction LR
         ID_CORE["ApplicationIdentity & WindowManager — Single-Pass Identity Lock & Chrome:Profile Tooltips"];
-        UI_CORE["DockController • SystemTheme • Unity • DockRenderer • PreferencesWindow"];
+        UI_CORE["DockController • SystemTheme • ApplicationDockItemProvider • DockRenderer • PreferencesWindow"];
         DOCKLETS_UI["16 Pure Cairo/GTK Docklets — Mpris • Battery • Session • DND • Volume • Brightness • Network • CPU • Trash • Ejector • Screenshot • Weather"];
     end
 
@@ -139,7 +139,7 @@ The Zone 1 Core hooks into Zone 2 exclusively through pure, OS-blind Vala transl
    - **`ITrashProvider`** (`TrashItemInfo` struct: `id`, `display_name`, `original_path`, `deletion_date`, `is_directory`; `trash_changed ()`, `get_item_count ()`, `list_items ()`, `move_uri_to_trash (uri)`, `restore_item (id)`, `empty_trash ()`, `open_trash_ui ()` — eliminates GVFS `trash:///`, `~/.local/share/Trash`, and `file.trash()` from `TrashDockItem.vala`).
    - **`IEjectorProvider`** (`RemovableDriveInfo` struct: `id`, `display_name`, `icon_name`, `mount_label`, `can_eject`; `drives_changed ()`, `get_removable_drives ()`, `eject_drive (id)`, `eject_all ()` — eliminates `GLib.VolumeMonitor` and `/media`/`/run/media`/`/mnt` from `EjectorDockItem.vala`).
 8. **`IPlatformRuntime` (OS Lifecycle, Desktop Utilities, Safe Argv, HTTP & Archive Translator):**
-   - `open_system_utility (DesktopUtilityKind)` where `DesktopUtilityKind = { DATE_TIME_SETTINGS, CALENDAR_APP, POWER_SETTINGS, SOUND_SETTINGS, NETWORK_SETTINGS, DISPLAY_SETTINGS, TASK_MANAGER }` *(eliminates hardcoded `kcmshell6` / `gnome-control-center` / `xfce4-*` strings across 8 docklets/windows)*.
+   - `open_system_utility (DesktopUtilityKind)` where `DesktopUtilityKind = { CALENDAR, SYSTEM_MONITOR, NOTIFICATION_SETTINGS, POWER_SETTINGS, DISPLAY_SETTINGS, NETWORK_SETTINGS, SOUND_SETTINGS }` *(eliminates hardcoded `kcmshell6` / `gnome-control-center` / `xfce4-*` strings across 8 docklets/windows)*.
    - `parse_command_argv (string cmdline) -> string[]` *(preserves Windows `\` path separators unlike POSIX `GLib.Shell.parse_argv`)*.
    - `http_get_sync (url, timeout_sec)`, `open_uri (uri)`, `extract_archive (archive_path, dest_dir)` *(used by `Weather*` & `ThemeManager`)*.
    - `validate_keyfile_isolated (path)` *(isolates `fork()`/`waitpid()` on Linux vs `CreateProcessW("--validate-latch")` on Windows)*.
@@ -293,7 +293,7 @@ Because WayPlank renders **100% of its dock graphics, parabolic zoom, 26 visual 
 flowchart TD
     subgraph ZONE1_CORE ["🎨 ZONE 1: 100% D-Bus/GVFS/POSIX-Free Core (src/ + lib/)"]
         IDENTITY["ApplicationIdentity — Single-Pass Lock"];
-        CORE_SVC["DockController • SystemTheme • Unity • ApplicationDockItemProvider"];
+        CORE_SVC["DockController • SystemTheme • ApplicationDockItemProvider"];
         DOCKLETS["16 Pure Cairo/GTK Docklets — Trash, Ejector, Mpris, Battery, Session, DND, Weather"];
     end
 
@@ -303,8 +303,8 @@ flowchart TD
 
     subgraph ZONE3_FDO ["🚌 ZONE 3A/3B: hal/Freedesktop/ + hal/Linux/ (Frozen v0.7.2)"]
         BROKER["DbusBroker — Shared Session & System DBusConnection + NameOwnerChanged / PID Cache"];
-        DBUS_SVC["DockIpcServer • AppMenuDbusService (id=61) • MprisDbusService • NotificationDbusService • DesktopThemeDbusService • LauncherEntryDbusService"];
-        XDG_LIN["FreedesktopTrashProvider • FreedesktopEjectorProvider • LinuxTelemetry/Power/Runtime (/proc • /sys • logind • wpctl • UnixHttpAndArchive)"];
+        DBUS_SVC["DockIpcServer • AppMenuDbusService (id=61) • MprisDbusService • NotificationDbusService • DesktopThemeDbusService • LauncherEntryDbusService • NetworkManagerDbusService"];
+        XDG_LIN["Freedesktop{Trash,Ejector,Screenshot}Provider • Linux{SessionPower,AudioTelemetry,PlatformRuntime} • LinuxCpuMemDiskTelemetry • LinuxBatteryProvider"];
         DBUS_SVC --> BROKER;
     end
 
@@ -336,8 +336,8 @@ Extracted from `ApplicationIdentity.vala` into `hal/Freedesktop/Dbus/AppMenuDbus
 | `lib/DBusManager.vala`, `lib/DBus/{Client,Interfaces}.vala`, `DockController.vala` | `net.launchpad.plank` (`/net/launchpad/plank/dock1` `Items` RPC) | `Freedesktop/Dbus/{DockIpcServer,DockIpcClient}.vala` | `IDockIpcServer` & `IDockIpcTarget` |
 | `lib/Items/TrashDockItem.vala` | GVFS `trash:///`, `~/.local/share/Trash/{files,info}`, `file.trash()`, `KWinTrashBridge`, `kioclient` | `Freedesktop/Xdg/FreedesktopTrashProvider.vala` | **`ITrashProvider`** (`TrashItemInfo`) |
 | `lib/Items/EjectorDockItem.vala` | GIO `VolumeMonitor`, `/media`/`/run/media`/`/mnt`, `notify-send` | `Freedesktop/Xdg/FreedesktopEjectorProvider.vala` | **`IEjectorProvider`** (`RemovableDriveInfo`) |
-| `lib/Items/{Session,Battery,Brightness,Cpu,Network,Volume,Screenshot}DockItem.vala`, `SessionWindow` | `login1`, `UPower`, `/proc/{stat,meminfo,diskstats}`, `/sys/class/*`, `wpctl`/`pactl`, `grim`/`spectacle` | `Linux/{ProcFs,SysFs,Systemd}/*` + `Xdg/FreedesktopScreenshotProvider.vala` | `ISystemTelemetry` (`7` hardware providers) |
-| `Weather*`, `ThemeManager`, `Main`, `AbstractMain`, `PreferencesWindow`, `8` Docklets | `curl`, `show_uri`, `unzip`/`tar`, `Posix.fork`/`kill`, `Unix.signal_add`, `~/.config/autostart`, `kcmshell6`/`gnome-control-center` | `Linux/Runtime/LinuxPlatformRuntime.vala` + `Xdg/{XdgAutostart,UnixHttpAndArchive}.vala` | **`IPlatformRuntime`** (`DesktopUtilityKind`) |
+| `lib/Items/{Session,Battery,Brightness,Cpu,Network,Volume,Screenshot}DockItem.vala`, `SessionWindow` | `login1`, `UPower`, `/proc/{stat,meminfo,diskstats}`, `/sys/class/*`, `wpctl`/`pactl`, `grim`/`spectacle` | `Freedesktop/Dbus/NetworkManagerDbusService.vala`, `Linux/{LinuxSessionPower,LinuxAudioTelemetry}.vala`, `Linux/{ProcFs,SysFs}/*`, `Xdg/FreedesktopScreenshotProvider.vala` | `ISystemTelemetry` (`7` hardware providers) |
+| `Weather*`, `ThemeManager`, `Main`, `AbstractMain`, `PreferencesWindow`, `8` Docklets | `curl`, `show_uri`, `unzip`/`tar`, `Posix.fork`/`kill`, `Unix.signal_add`, `~/.config/autostart`, `kcmshell6`/`gnome-control-center` | `Linux/LinuxPlatformRuntime.vala` + `Xdg/XdgAutostart.vala` | **`IPlatformRuntime`** (`DesktopUtilityKind`) |
 
 ---
 
@@ -377,21 +377,21 @@ flowchart TD
 | **`MprisDockItem` (`docklet://mpris`)** | `IMediaController` (`MediaPlayerSnapshot`) | `org.mpris.MediaPlayer2.Player` (`NameOwnerChanged` + `PropertiesChanged`) | `SendInput(VK_MEDIA_*)` + optional WinRT `GSMTC` metadata via `GetProcAddress` |
 | **`DoNotDisturbDockItem` (`docklet://dnd`)** | `INotificationBus` | `org.freedesktop.Notifications` / KDE `plasmashell` / `dunstctl` | Windows Focus Assist (`WNF_SHEL_QUIETHOURS`) / `WpnNotifications` |
 | **`SystemTheme` & `DockRenderer`** | **`IDesktopThemeBus`** | XDG Portal `color-scheme` + GNOME/Pantheon GSettings + `kdeglobals` | `WM_SETTINGCHANGE` (`ImmersiveColorSet`) + Registry `AppsUseLightTheme` |
-| **`Unity` & `ApplicationDockItemProvider`** | `ILauncherBadgeBus` (`LauncherBadgeState`) | `com.canonical.Unity.LauncherEntry` (`'(sa{sv})'` unpacked in `hal/`) | `ITaskbarList3::SetOverlayIcon` / `SetProgressValue` + UWP Badge notifications |
+| **`DockController` & `ApplicationDockItemProvider`** | `ILauncherBadgeBus` (`LauncherBadgeState`) | `com.canonical.Unity.LauncherEntry` (`'(sa{sv})'` unpacked in `LauncherEntryDbusService`) | `ITaskbarList3::SetOverlayIcon` / `SetProgressValue` + UWP Badge notifications |
 | **`TrashDockItem` (`docklet://trash`)** | **`ITrashProvider`** (`TrashItemInfo`) | GVFS `trash:///`, `~/.local/share/Trash/{files,info}`, `file.trash()`, `KWinTrashBridge` | `SHQueryRecycleBinW`, `SHEmptyRecycleBinW`, `SHFileOperationW(FO_DELETE \| FOF_ALLOWUNDO)` |
 | **`EjectorDockItem` (`docklet://ejector`)** | **`IEjectorProvider`** (`RemovableDriveInfo`) | GIO `VolumeMonitor` + `/media` / `/run/media` / `/mnt` filter | `GetLogicalDrives` (`DRIVE_REMOVABLE`) + `CM_Request_Device_EjectW` + `WM_DEVICECHANGE` |
-| **`Session`, `Battery`, `Volume`, `Brightness`, `Network`, `Cpu`, `Screenshot` Docklets** | `ISystemTelemetry` + `DesktopUtilityKind` | `login1`, `UPower`, `wpctl`/`pactl`, `BrightnessControl`, `/proc/*`, `/sys/*`, `grim`/`spectacle`, `kcmshell6`/`gnome-control-center` | `ExitWindowsEx`/`PowrProf`, `GetSystemPowerStatus`, CoreAudio, `dxva2.dll`, `iphlpapi`, `GetSystemTimes`, `BitBlt`, `ms-settings:*` |
-| **`Weather*` & `ThemeManager`** | `IPlatformRuntime` (`http_get_sync`, `open_uri`, `extract_archive`) | `curl` / `Gtk.show_uri_on_window` / `unzip` & `tar` (`UnixHttpAndArchive`) | Stock `WinHTTP.dll` / `ShellExecuteW` / native static `libz` ZIP & TAR |
+| **`Session`, `Battery`, `Volume`, `Brightness`, `Network`, `Cpu`, `Screenshot` Docklets** | `ISystemTelemetry` + `DesktopUtilityKind` | `LinuxSessionPower`, `LinuxBatteryProvider`, `LinuxAudioTelemetry`, `BrightnessControl`, `NetworkManagerDbusService`, `LinuxCpuMemDiskTelemetry`, `FreedesktopScreenshotProvider`, `LinuxPlatformRuntime` | `ExitWindowsEx`/`PowrProf`, `GetSystemPowerStatus`, CoreAudio, `dxva2.dll`, `iphlpapi`, `GetSystemTimes`, `BitBlt`, `ms-settings:*` |
+| **`Weather*` & `ThemeManager`** | `IPlatformRuntime` (`http_get_sync`, `open_uri`, `extract_archive`) | `curl` / `Gtk.show_uri_on_window` / `unzip` & `tar` (`LinuxPlatformRuntime`) | Stock `WinHTTP.dll` / `ShellExecuteW` / native static `libz` ZIP & TAR |
 
 ---
 
 ## 7. Two-Phase Bus Consolidation Roadmap (`v0.7.2` Translator Freeze ➔ `v0.7.3` Windows Bus Plug-In)
 
 ### Phase 1 — `v0.7.2` (Public Beta 3): Agnostic Bus/Telemetry Translators & Linux Freeze (`MOC-0.7.2-HAL-001`)
-1. **[ ] Step B1 (`hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala` — Move 3):** Freeze all pure Vala bus, telemetry, and runtime translator contracts (`IDockIpcServer`, `IAppMenuBus`, `IMediaController`, `INotificationBus`, `IDesktopThemeBus`, `ILauncherBadgeBus`, `ITrashProvider`, `IEjectorProvider`, 7 hardware providers, and `DesktopUtilityKind`).
-2. **[ ] Step B2 (`hal/Freedesktop/Dbus/DbusBroker.vala` & Bus Drivers — Move 3):** Implement `DbusBroker`, `DockIpcServer`, `MprisDbusService`, `NotificationDbusService`, `DesktopThemeDbusService`, `LauncherEntryDbusService`, `FreedesktopTrashProvider`, `FreedesktopEjectorProvider`, `FreedesktopScreenshotProvider`, `UnixHttpAndArchive`, and `Linux*{Telemetry,Power,Runtime}`.
+1. **[x] Step B1 (`hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala` — Move 3, *Implemented & 3-Compositor Smoke-Checked at `21e2fb0`, `backup/0.7.2-move-3`*):** Freeze all pure Vala bus, telemetry, and runtime translator contracts (`IDockIpcServer`, `IAppMenuBus`, `IMediaController`, `INotificationBus`, `IDesktopThemeBus`, `ILauncherBadgeBus`, `ITrashProvider`, `IEjectorProvider`, 7 hardware providers, and `DesktopUtilityKind`).
+2. **[x] Step B2 (`hal/Freedesktop/Dbus/DbusBroker.vala` & Bus/Telemetry Drivers — Move 3, *Implemented & 3-Compositor Smoke-Checked at `21e2fb0`, `backup/0.7.2-move-3`*):** Implement `DbusBroker`, `DockIpc{Server,Client}`, `MprisDbusService`, `NotificationDbusService`, `DesktopThemeDbusService`, `LauncherEntryDbusService`, `NetworkManagerDbusService`, `Freedesktop{Trash,Ejector,Screenshot}Provider`, `Linux{SessionPower,AudioTelemetry,PlatformRuntime}`, `LinuxCpuMemDiskTelemetry`, and `LinuxBatteryProvider` *(formal ISA-88 `FAT 0.7.2` qualification pending in Step B4)*.
 3. **[ ] Step B3 (`hal/Freedesktop/Dbus/AppMenuDbusService.vala` — Move 4):** Extract `com.canonical.AppMenu.Registrar` and `/com/canonical/menu/<HEX>` (`id=61`) Chrome multi-profile introspection behind `IAppMenuBus`.
-4. **[ ] Step B4 (Dual-Zone Firewall & `FAT 0.7.2` Qualification):** Activate the `BuildBin.sh` Dual-Zone HAL Purity Firewall forbidding any D-Bus, Variant-wire, GVFS, POSIX, `/proc`, or `/sys` reference inside `src/`, `lib/`, `hal/Interfaces/`, and `vapi/core/`, and qualify `FAT 0.7.2` at `100.0%` across KWin, Mutter, and Labwc.
+4. **[ ] Step B4 (Dual-Zone Firewall & Formal `FAT 0.7.2` Qualification):** Activate the `BuildBin.sh` Dual-Zone HAL Purity Firewall forbidding any D-Bus, Variant-wire, GVFS, POSIX, `/proc`, or `/sys` reference inside `src/`, `lib/`, `hal/Interfaces/`, and `vapi/core/`, and submit for formal human `FAT 0.7.2` qualification at `100.0%` across KWin, Mutter, and Labwc.
 
 ### Phase 2 — `v0.7.3` (Public Beta 4): Native `Windows Bus` Plug-In (`hal/Windows/{Bus,Telemetry}/`)
 5. **[ ] Step B5 (`Win32BusBroker.vala` & `Win32Telemetry.vala`):** Plug Named Pipe RPC, `UIAutomation` Chrome profile inspection, `VK_MEDIA_*`/GSMTC, Focus Assist, `AppsUseLightTheme`, `ITaskbarList3`, CoreAudio, `DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `CM_Request_Device_EjectW`, and `WinHTTP` directly into the frozen `v0.7.2` translators ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)).

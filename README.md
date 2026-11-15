@@ -191,21 +191,22 @@ mkdir -p build
 valac -g \
     --gresources=data/.plank.build.gresource.xml \
     --gresourcesdir=data \
-    --vapidir=vapi \
+    --vapidir=vapi/core \
+    --vapidir=vapi/freedesktop \
     --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
-    --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg config --pkg wlr-bridge \
+    --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg unix-compat --pkg config --pkg wlr-bridge \
     -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
     -X -DPACKAGE_VERSION=\"${PKG_VER}\" \
     -X "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
     -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -include -X include/config.h \
-    -X -Ilib -X -Ilib/Protocols -X -Ilib/Services -X -Iinclude -X -w -X -lm -X -lwayland-client \
-    $(find lib src -name "*.vala") \
+    -X -Ilib -X -Ihal/Freedesktop/Wlroots -X -Iinclude -X -w -X -lm -X -lwayland-client \
+    $(find hal lib src -name "*.vala") \
     lib/resources.c \
     lib/gtk-compat.c \
-    lib/Protocols/wlr-foreign-toplevel-management-protocol.c \
-    lib/Services/wlr-toplevel-bridge.c \
+    hal/Freedesktop/Wlroots/wlr-foreign-toplevel-management-protocol.c \
+    hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c \
     -o build/wayplank
 rm -f lib/resources.c data/.plank.build.gresource.xml
 ```
@@ -284,8 +285,7 @@ Wayplank operates under its own isolated namespace and standard XDG locations:
 
 - Configuration Directory: `~/.config/wayplank/`
 - Application Launchers: `~/.config/wayplank/dock1/launchers/`
-- Local User Themes: `~/.local/share/wayplank/themes/`
-- System Themes: `/usr/share/wayplank/themes/` (or `/usr/local/share/wayplank/themes/`)
+- Local User Themes: `~/.local/share/wayplank/themes/` *(all 6 built-in stock themes are embedded directly in binary `GResource` RAM; legacy Plank user/system paths `~/.local/share/plank/themes/` and `/usr/share/plank/themes/` remain readable for custom themes)*
 
 **Theme Configuration:**
 Wayplank inspects both system and user theme paths natively. To change dock appearance:
@@ -355,7 +355,7 @@ wayplank -d
   - [x] Configurable Category & Docklet Layout Engine (`Apps & Layout` tab): two-position Docklets (`Docklets on Right` System Tray layout vs. Default Left), symmetric `WayPlank Always Left` (`MONLMIP Rank 1`) & `Show Trash` edge anchors, and one-click `Align by Type` in Free Mode.
   - [x] **`v0.7.1` / `v0.7.1.2` (Public Beta 2 + Burn-In Hotfix — CONCLUDED & FROZEN at 100.0% FAT Qualified, [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt) — `375/375` Applicable)**: First-Run Onboarding (`Classic` vs `Explorer`) & read-only `~/.config/plank` migration, Smart Pinned Apps Accordion (`›|`/`«|`), Chrome D-Bus multi-profile & browser-family isolation (`#30`), `latch-state.ini` 43-key persistence & `/usr/local` schema guard (`#33`), GNOME single-monitor hotplug strut sync (`#32`), `AnticipateZoom` headroom clamp (`#34`), universal `_Docklets` submenu (`#35`), and 2-Tab Credits / Easter Egg.
   - [ ] Broaden community field testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
-  - [ ] **`v0.7.2` (Public Beta 3 — Active Development on `hal-v0.7.2` Branch ~Nov 14–30, 2026: Concentrated Linux HAL/Bus Implementation & Structural Freeze, [`FAT/2026-11-14 FAT 0.7.2.txt`](FAT/2026-11-14%20FAT%200.7.2.txt) — `392` Tests Defined)**: Physical extraction of all diffused Linux compositor drivers ([`HAL_COMPOSITORS.md`](Documentation/Architecture/HAL_COMPOSITORS.md)), Session/System D-Bus endpoints ([`HAL_BUSES.md`](Documentation/Architecture/HAL_BUSES.md)), and `.desktop`/`/proc`/`/sys` adapters ([`APPLICATION_IDENTITY_ENGINE.md`](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)) into `hal/{Interfaces,Freedesktop,Linux}/` per [`Architecture/README.md`](Documentation/Architecture/README.md) (rolling in all non-critical community fixes reported during `v0.7.1.2` burn-in and freezing `hal/Interfaces/` at `0 [ko]` on Linux).
+  - [ ] **`v0.7.2` (Public Beta 3 — Active Development on `hal-v0.7.2` Branch ~Nov 14–30, 2026: Concentrated Linux HAL/Bus Implementation & Structural Freeze, [`Changelogs/CHANGELOG_v0.7.2.md`](Changelogs/CHANGELOG_v0.7.2.md) [WIP] & [`FAT/2026-11-14 FAT 0.7.2.txt`](FAT/2026-11-14%20FAT%200.7.2.txt) — `392` Tests Defined)**: Physical extraction of all diffused Linux compositor drivers ([`HAL_COMPOSITORS.md`](Documentation/Architecture/HAL_COMPOSITORS.md)), Session/System D-Bus endpoints ([`HAL_BUSES.md`](Documentation/Architecture/HAL_BUSES.md)), and `.desktop`/`/proc`/`/sys` adapters ([`APPLICATION_IDENTITY_ENGINE.md`](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)) into `hal/{Interfaces,Freedesktop,Linux}/` per [`Architecture/README.md`](Documentation/Architecture/README.md) — **Moves 1–3 implemented & 3-compositor developer smoke-checked (`backup/0.7.2-move-3`); Move 4 (`IAppSystem` + Dual-Zone Firewall) & formal human `FAT 0.7.2` qualification pending**.
   - [ ] **`v0.7.3` (Public Beta 4 — Subsequent Beta ~Dec 2026: Native Windows Driver Plug-In)**: Plug `hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/` and `./BuildWin.sh` ([`HAL_WINDOWS_BACKEND.md`](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)) directly into the frozen `v0.7.2` `hal/Interfaces/` contracts to produce the standalone zero-DLL `wayplank.exe`.
 - [ ] Phase 8 (Planned) WayPlank Release Candidate (v0.8.x)
   - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.

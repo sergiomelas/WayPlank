@@ -137,10 +137,8 @@ namespace Plank
 			title_label.set_markup ("<span size='large' weight='bold'>%s</span>".printf (_("Session &amp; Power")));
 			title_label.halign = Gtk.Align.START;
 
-			string user = Environment.get_real_name ();
-			if (user == null || user == "" || user == "Unknown")
-				user = Environment.get_user_name ();
-			string host = Environment.get_host_name ();
+			string user, host;
+			Hal.Telemetry.SessionPower.get_session_user_and_host (out user, out host);
 
 			var subtitle_label = new Gtk.Label (null);
 			subtitle_label.set_markup ("<span color='#888888'>%s <b>%s</b> @ <b>%s</b></span>".printf (

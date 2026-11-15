@@ -109,14 +109,192 @@ namespace Plank
 	}
 
 	/**
-	 * Southbound Freedesktop/Wayland HAL bootstrapper linked exclusively into
+	 * Aggregate Freedesktop D-Bus stack adapter implementing `IBusBackend` (`Hal.Bus`).
+	 * Instantiates individual bus services lazily so unused docklets incur zero D-Bus traffic.
+	 */
+	class FreedesktopBusBackend : GLib.Object, IBusBackend
+	{
+		IDockIpcClient? _dock_ipc_client = null;
+		IMediaController? _media = null;
+		INotificationBus? _notifications = null;
+		IDesktopThemeBus? _theme = null;
+		ILauncherBadgeBus? _badges = null;
+
+		public IDockIpcServer create_dock_ipc_server (IDockIpcTarget target)
+		{
+			return new DockIpcServer (target);
+		}
+
+		public IDockIpcClient DockIpcClient {
+			get {
+				if (_dock_ipc_client == null)
+					_dock_ipc_client = FreedesktopDockIpcClient.get_instance ();
+				return _dock_ipc_client;
+			}
+		}
+
+		public IMediaController Media {
+			get {
+				if (_media == null)
+					_media = MprisDbusService.get_default ();
+				return _media;
+			}
+		}
+
+		public INotificationBus Notifications {
+			get {
+				if (_notifications == null)
+					_notifications = NotificationDbusService.get_default ();
+				return _notifications;
+			}
+		}
+
+		public IDesktopThemeBus Theme {
+			get {
+				if (_theme == null)
+					_theme = DesktopThemeDbusService.get_default ();
+				return _theme;
+			}
+		}
+
+		public ILauncherBadgeBus Badges {
+			get {
+				if (_badges == null)
+					_badges = LauncherEntryDbusService.get_default ();
+				return _badges;
+			}
+		}
+
+		public void cleanup ()
+		{
+			if (_media != null)
+				_media.cleanup ();
+			if (_notifications != null)
+				_notifications.cleanup ();
+			if (_theme != null)
+				_theme.cleanup ();
+			if (_badges != null)
+				_badges.cleanup ();
+			DbusBroker.get_default ().cleanup ();
+		}
+	}
+
+	/**
+	 * Aggregate Linux/Freedesktop hardware & session telemetry adapter (`Hal.Telemetry`).
+	 * Instantiates individual providers lazily so unused docklets incur zero polling or I/O.
+	 */
+	class FreedesktopSystemTelemetry : GLib.Object, ISystemTelemetry
+	{
+		ISessionPowerProvider? _session_power = null;
+		IBatteryProvider? _battery = null;
+		IBrightnessProvider? _brightness = null;
+		ICpuMemoryProvider? _cpu_memory = null;
+		INetworkProvider? _network = null;
+		IAudioProvider? _audio = null;
+		IEjectorProvider? _ejector = null;
+		IScreenshotProvider? _screenshot = null;
+		ITrashProvider? _trash = null;
+
+		public ISessionPowerProvider SessionPower {
+			get {
+				if (_session_power == null)
+					_session_power = LinuxSessionPower.get_default ();
+				return _session_power;
+			}
+		}
+
+		public IBatteryProvider Battery {
+			get {
+				if (_battery == null)
+					_battery = LinuxBatteryProvider.get_default ();
+				return _battery;
+			}
+		}
+
+		public IBrightnessProvider Brightness {
+			get {
+				if (_brightness == null)
+					_brightness = BrightnessControl.get_default ();
+				return _brightness;
+			}
+		}
+
+		public ICpuMemoryProvider CpuMemory {
+			get {
+				if (_cpu_memory == null)
+					_cpu_memory = LinuxCpuMemDiskTelemetry.get_default ();
+				return _cpu_memory;
+			}
+		}
+
+		public INetworkProvider Network {
+			get {
+				if (_network == null)
+					_network = NetworkManagerDbusService.get_default ();
+				return _network;
+			}
+		}
+
+		public IAudioProvider Audio {
+			get {
+				if (_audio == null)
+					_audio = LinuxAudioTelemetry.get_default ();
+				return _audio;
+			}
+		}
+
+		public IEjectorProvider Ejector {
+			get {
+				if (_ejector == null)
+					_ejector = FreedesktopEjectorProvider.get_default ();
+				return _ejector;
+			}
+		}
+
+		public IScreenshotProvider Screenshot {
+			get {
+				if (_screenshot == null)
+					_screenshot = FreedesktopScreenshotProvider.get_default ();
+				return _screenshot;
+			}
+		}
+
+		public ITrashProvider Trash {
+			get {
+				if (_trash == null)
+					_trash = FreedesktopTrashProvider.get_default ();
+				return _trash;
+			}
+		}
+
+		public void cleanup ()
+		{
+			BrightnessControl.cleanup_if_active ();
+			if (_network != null)
+				_network.cleanup ();
+			if (_ejector != null)
+				_ejector.cleanup ();
+			if (_trash != null)
+				_trash.cleanup ();
+		}
+	}
+
+	/**
+	 * Southbound Freedesktop/Linux HAL bootstrapper linked exclusively into
 	 * Linux/BSD builds via the `wayplank_hal_platform_*` link symbols.
 	 */
 	public class FreedesktopHalBootstrap : GLib.Object
 	{
+		[CCode (cname = "wayplank_hal_platform_early_runtime")]
+		public static IPlatformRuntime early_runtime ()
+		{
+			return LinuxPlatformRuntime.get_default ();
+		}
+
 		[CCode (cname = "wayplank_hal_platform_bootstrap")]
 		public static void initialize ()
 		{
+			environment_initialize ();
 			WindowControl.initialize ();
 
 			var caps = new PlatformCapabilities ();
@@ -143,18 +321,11 @@ namespace Plank
 				: (IThumbnailProvider) new NullThumbnailProvider ();
 
 			Hal.bind_display_stack (caps, shell, windows, thumbnails);
-		}
-
-		[CCode (cname = "wayplank_hal_platform_register_dbus")]
-		public static void register_dbus (DBusConnection connection, string object_path) throws GLib.IOError
-		{
-			WindowControl.register_dbus (connection, object_path);
-		}
-
-		[CCode (cname = "wayplank_hal_platform_sync_autostart")]
-		public static void sync_autostart (bool enabled)
-		{
-			WindowControl.sync_autostart (enabled);
+			Hal.bind_system_stack (
+				new FreedesktopBusBackend (),
+				new FreedesktopSystemTelemetry (),
+				LinuxPlatformRuntime.get_default ()
+			);
 		}
 	}
 }

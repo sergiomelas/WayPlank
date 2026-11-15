@@ -129,443 +129,76 @@ namespace Plank
 			return items;
 		}
 
-		public static bool is_kde_session ()
-		{
-			if (WindowControl.is_kwin ())
-				return true;
-			var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";
-			return desktop.down ().contains ("kde") || desktop.down ().contains ("plasma");
-		}
-
-		public static bool is_gnome_session ()
-		{
-			if (WindowControl.is_mutter ())
-				return true;
-			var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";
-			return desktop.down ().contains ("gnome") || desktop.down ().contains ("ubuntu");
-		}
-
 		public static void lock_screen ()
 		{
-			debug ("SessionDockItem: locking session");
-
-			// 1. GNOME Shell (Mutter) native ScreenSaver (active when GDM is the display manager)
-			if (is_gnome_session ()) {
-				try {
-					var bus = Bus.get_sync (BusType.SESSION, null);
-					bus.call_sync (
-						"org.gnome.ScreenSaver",
-						"/org/gnome/ScreenSaver",
-						"org.gnome.ScreenSaver",
-						"Lock",
-						null,
-						null,
-						DBusCallFlags.NONE,
-						1500,
-						null
-					);
-					return;
-				} catch (Error e) {
-					debug ("GNOME ScreenSaver Lock D-Bus call failed (non-GDM display manager or ScreenShield unavailable): %s", e.message);
-				}
-
-				if (Environment.find_program_in_path ("gnome-screensaver-command") != null) {
-					try {
-						Process.spawn_command_line_async ("gnome-screensaver-command -l");
-						return;
-					} catch (Error e) { }
-				}
-			}
-
-			// 2. KDE Plasma (KWin) ScreenSaver
-			if (is_kde_session ()) {
-				try {
-					var bus = Bus.get_sync (BusType.SESSION, null);
-					bus.call_sync (
-						"org.freedesktop.ScreenSaver",
-						"/ScreenSaver",
-						"org.freedesktop.ScreenSaver",
-						"Lock",
-						null,
-						null,
-						DBusCallFlags.NONE,
-						1500,
-						null
-					);
-					return;
-				} catch (Error e) {
-					debug ("KDE ScreenSaver Lock D-Bus call failed: %s", e.message);
-				}
-				try {
-					Process.spawn_command_line_async ("qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 3. FreeDesktop ScreenSaver (generic D-Bus interface)
-			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
-				bus.call_sync (
-					"org.freedesktop.ScreenSaver",
-					"/ScreenSaver",
-					"org.freedesktop.ScreenSaver",
-					"Lock",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				return;
-			} catch (Error e) { }
-
-			// 4. FreeDesktop DisplayManager Seat SwitchToGreeter (SDDM / LightDM / multi-DM fallback)
-			// When GNOME is run under SDDM, GNOME Shell intentionally disables ScreenShield because it lacks GDM's PAM backend.
-			// The display manager (SDDM) provides the secure lock & authentication via SwitchToGreeter.
-			var seat_path = Environment.get_variable ("XDG_SEAT_PATH");
-			if (seat_path == null || seat_path == "")
-				seat_path = "/org/freedesktop/DisplayManager/Seat0";
-
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.DisplayManager",
-					seat_path,
-					"org.freedesktop.DisplayManager.Seat",
-					"SwitchToGreeter",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				return;
-			} catch (Error e) {
-				debug ("DisplayManager SwitchToGreeter lock fallback failed: %s", e.message);
-			}
-
-			// 5. Standalone Wayland lockers (Labwc / Sway / Hyprland)
-			string[] lockers = { "swaylock", "waylock", "hyprlock" };
-			foreach (var locker in lockers) {
-				if (Environment.find_program_in_path (locker) != null) {
-					try {
-						Process.spawn_command_line_async (locker);
-						return;
-					} catch (Error e) { }
-				}
-			}
-
-			// 6. systemd-logind fallback
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.login1",
-					"/org/freedesktop/login1",
-					"org.freedesktop.login1.Manager",
-					"LockSessions",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				return;
-			} catch (Error e) { }
-
-			try {
-				Process.spawn_command_line_async ("loginctl lock-sessions");
-				return;
-			} catch (Error e) { }
+			Hal.Telemetry.SessionPower.lock_screen ();
 		}
 
 		public static void switch_user ()
 		{
-			debug ("SessionDockItem: switching to user greeter");
-
-			// 1. FreeDesktop DisplayManager Seat0 (LightDM, SDDM, GDM)
-			var seat_path = Environment.get_variable ("XDG_SEAT_PATH");
-			if (seat_path == null || seat_path == "")
-				seat_path = "/org/freedesktop/DisplayManager/Seat0";
-
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.DisplayManager",
-					seat_path,
-					"org.freedesktop.DisplayManager.Seat",
-					"SwitchToGreeter",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1000,
-					null
-				);
-				return;
-			} catch (Error e) {
-				debug ("DisplayManager SwitchToGreeter unavailable: %s", e.message);
-			}
-
-			// 2. dm-tool
-			if (Environment.find_program_in_path ("dm-tool") != null) {
-				try {
-					Process.spawn_command_line_async ("dm-tool switch-to-greeter");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 3. Fallback: lock session
-			lock_screen ();
-		}
-
-		static bool query_login1_capability (string method_name)
-		{
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				var res = bus.call_sync (
-					"org.freedesktop.login1",
-					"/org/freedesktop/login1",
-					"org.freedesktop.login1.Manager",
-					method_name,
-					null,
-					new VariantType ("(s)"),
-					DBusCallFlags.NONE,
-					1000,
-					null
-				);
-				string status = "";
-				res.get ("(s)", out status);
-				return (status == "yes" || status == "challenge");
-			} catch (Error e) {
-				debug ("SessionDockItem: %s query failed: %s", method_name, e.message);
-				return false;
-			}
+			Hal.Telemetry.SessionPower.switch_user ();
 		}
 
 		public static bool can_hibernate ()
 		{
-			return query_login1_capability ("CanHibernate");
+			return Hal.Telemetry.SessionPower.can_hibernate ();
 		}
 
 		public static bool can_hybrid_sleep ()
 		{
-			return query_login1_capability ("CanHybridSleep");
+			return Hal.Telemetry.SessionPower.can_hybrid_sleep ();
 		}
 
 		public static bool can_reboot_to_firmware ()
 		{
-			return query_login1_capability ("CanRebootToFirmwareSetup");
+			return Hal.Telemetry.SessionPower.can_reboot_to_firmware ();
 		}
 
 		public static void suspend ()
 		{
-			debug ("SessionDockItem: suspending system");
-			try {
-				Process.spawn_command_line_async ("systemctl suspend");
-				return;
-			} catch (Error e) { }
-			try {
-				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Suspend true");
-			} catch (Error e) {
-				warning ("Failed to suspend: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.suspend ();
 		}
 
 		public static void hibernate ()
 		{
-			debug ("SessionDockItem: hibernating system");
-			try {
-				Process.spawn_command_line_async ("systemctl hibernate");
-				return;
-			} catch (Error e) { }
-			try {
-				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Hibernate true");
-			} catch (Error e) {
-				warning ("Failed to hibernate: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.hibernate ();
 		}
 
 		public static void hybrid_sleep ()
 		{
-			debug ("SessionDockItem: hybrid-sleeping system");
-			try {
-				Process.spawn_command_line_async ("systemctl hybrid-sleep");
-				return;
-			} catch (Error e) { }
-			try {
-				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.HybridSleep true");
-			} catch (Error e) {
-				warning ("Failed to hybrid-sleep: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.hybrid_sleep ();
 		}
 
 		public static void reboot_to_firmware (bool prompt_if_needed)
 		{
-			debug ("SessionDockItem: reboot to UEFI/BIOS firmware setup requested (prompt=%s)", prompt_if_needed.to_string ());
-
 			if (prompt_if_needed && !confirm_dialog (_("Reboot to UEFI / BIOS"), _("Are you sure you want to restart your computer and enter the UEFI / BIOS firmware settings?"), _("UEFI / BIOS"))) {
 				return;
 			}
-
-			try {
-				Process.spawn_command_line_async ("systemctl reboot --firmware-setup");
-				return;
-			} catch (Error e) { }
-
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.login1",
-					"/org/freedesktop/login1",
-					"org.freedesktop.login1.Manager",
-					"SetRebootToFirmwareSetup",
-					new Variant ("(b)", true),
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				restart (false);
-				return;
-			} catch (Error e) {
-				warning ("Failed to reboot to firmware setup: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.reboot_to_firmware ();
 		}
 
 		public static void logout (bool prompt_if_needed)
 		{
-			debug ("SessionDockItem: logout requested (prompt=%s)", prompt_if_needed.to_string ());
-
 			if (prompt_if_needed && !confirm_dialog (_("Log Out"), _("Are you sure you want to log out of this session?"), _("Log Out"))) {
 				return;
 			}
-
-			// 1. KDE Plasma (via org.kde.Shutdown / plasma-shutdown)
-			if (is_kde_session ()) {
-				try {
-					Process.spawn_command_line_async ("qdbus org.kde.Shutdown /Shutdown logout");
-					return;
-				} catch (Error e) { }
-				try {
-					Process.spawn_command_line_async ("plasma-shutdown --logout");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 2. GNOME Shell
-			if (is_gnome_session ()) {
-				try {
-					Process.spawn_command_line_async ("gnome-session-quit --logout --no-prompt");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 3. Labwc
-			if (WindowControl.is_labwc () || Environment.find_program_in_path ("labwc") != null) {
-				try {
-					Process.spawn_command_line_async ("labwc --exit");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 4. loginctl terminate-session
-			var session_id = Environment.get_variable ("XDG_SESSION_ID");
-			if (session_id != null && session_id != "") {
-				try {
-					Process.spawn_command_line_async ("loginctl terminate-session " + session_id);
-					return;
-				} catch (Error e) { }
-			}
-
-			var user = Environment.get_user_name ();
-			try {
-				Process.spawn_command_line_async ("loginctl terminate-user " + user);
-			} catch (Error e) {
-				warning ("Failed to log out: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.logout ();
 		}
 
 		public static void restart (bool prompt_if_needed)
 		{
-			debug ("SessionDockItem: restart requested (prompt=%s)", prompt_if_needed.to_string ());
-
 			if (prompt_if_needed && !confirm_dialog (_("Restart System"), _("Are you sure you want to restart your computer?"), _("Restart"))) {
 				return;
 			}
-
-			// 1. GNOME Shell
-			if (is_gnome_session ()) {
-				try {
-					Process.spawn_command_line_async ("gnome-session-quit --reboot --no-prompt");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 2. systemctl reboot (standard across KDE Plasma, Labwc, wlroots, systemd)
-			try {
-				Process.spawn_command_line_async ("systemctl reboot");
-				return;
-			} catch (Error e) { }
-
-			// 3. loginctl reboot (elogind / systemd)
-			try {
-				Process.spawn_command_line_async ("loginctl reboot");
-				return;
-			} catch (Error e) { }
-
-			// 4. FreeDesktop login1 D-Bus interface
-			try {
-				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Reboot false");
-				return;
-			} catch (Error e) { }
-
-			// 5. Traditional fallback
-			try {
-				Process.spawn_command_line_async ("reboot");
-			} catch (Error e) {
-				warning ("Failed to reboot: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.restart ();
 		}
 
 		public static void shutdown (bool prompt_if_needed)
 		{
-			debug ("SessionDockItem: shutdown requested (prompt=%s)", prompt_if_needed.to_string ());
-
 			if (prompt_if_needed && !confirm_dialog (_("Shut Down System"), _("Are you sure you want to shut down your computer?"), _("Shut Down"), true)) {
 				return;
 			}
-
-			// 1. GNOME Shell
-			if (is_gnome_session ()) {
-				try {
-					Process.spawn_command_line_async ("gnome-session-quit --power-off --no-prompt");
-					return;
-				} catch (Error e) { }
-			}
-
-			// 2. systemctl poweroff (standard across KDE Plasma, Labwc, wlroots, systemd)
-			try {
-				Process.spawn_command_line_async ("systemctl poweroff");
-				return;
-			} catch (Error e) { }
-
-			// 3. loginctl poweroff (elogind / systemd)
-			try {
-				Process.spawn_command_line_async ("loginctl poweroff");
-				return;
-			} catch (Error e) { }
-
-			// 4. FreeDesktop login1 D-Bus interface
-			try {
-				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.PowerOff false");
-				return;
-			} catch (Error e) { }
-
-			// 5. Traditional fallback
-			try {
-				Process.spawn_command_line_async ("poweroff");
-			} catch (Error e) {
-				warning ("Failed to power off: %s", e.message);
-			}
+			Hal.Telemetry.SessionPower.shutdown ();
 		}
 
 		public static bool confirm_dialog (string title, string message, string action_label, bool is_destructive = false)

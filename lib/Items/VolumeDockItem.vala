@@ -29,26 +29,23 @@ namespace Plank
 		bool is_muted = false;
 		bool is_disposed = false;
 		bool poll_in_flight = false;
-		static string? cached_wpctl_path = null;
-		static bool wpctl_probed = false;
-		static string[]? c_locale_env = null;
-		
+
 		public VolumeDockItem ()
 		{
 			GLib.Object (Prefs: new DockItemPreferences ());
 		}
-		
+
 		public VolumeDockItem.with_dockitem_file (GLib.File file)
 		{
 			GLib.Object (Prefs: new DockItemPreferences.with_file (file));
 		}
-		
+
 		construct
 		{
 			Text = _("Volume");
 			Icon = "audio-volume-medium";
 			Button = PopupButton.RIGHT;
-			
+
 			refresh_volume_status (true);
 			notify["IsAttached"].connect (on_attached_changed);
 			init_timer_1 = Timeout.add (800, () => {
@@ -63,7 +60,7 @@ namespace Plank
 			});
 			start_timer ();
 		}
-		
+
 		~VolumeDockItem ()
 		{
 			is_disposed = true;
@@ -84,15 +81,15 @@ namespace Plank
 			if (IsAttached)
 				schedule_volume_poll ();
 		}
-		
+
 		void start_timer ()
 		{
 			if (timer_id != 0)
 				return;
-			
+
 			timer_id = Timeout.add_seconds (3, on_timer_tick);
 		}
-		
+
 		void stop_timer ()
 		{
 			if (timer_id != 0) {
@@ -108,12 +105,12 @@ namespace Plank
 				init_timer_2 = 0;
 			}
 		}
-		
+
 		public override bool is_valid ()
 		{
 			return true;
 		}
-		
+
 		public override void @delete ()
 		{
 			is_disposed = true;
@@ -121,74 +118,14 @@ namespace Plank
 			base.@delete ();
 		}
 
-		static bool probe_system_volume (out int out_vol, out bool out_muted)
-		{
-			out_vol = 70;
-			out_muted = false;
-			int exit_status;
-			string output;
-
-			if (!wpctl_probed) {
-				cached_wpctl_path = Environment.find_program_in_path ("wpctl");
-				c_locale_env = Environ.set_variable (Environ.get (), "LC_ALL", "C", true);
-				wpctl_probed = true;
-			}
-
-			if (cached_wpctl_path != null) {
-				try {
-					string[] argv = { cached_wpctl_path, "get-volume", "@DEFAULT_AUDIO_SINK@" };
-					if (Process.spawn_sync (null, argv, c_locale_env, SpawnFlags.STDERR_TO_DEV_NULL, null, out output, null, out exit_status) && exit_status == 0) {
-						var idx = output.index_of ("Volume: ");
-						if (idx >= 0) {
-							bool parsed_muted = output.contains ("[MUTED]");
-							var num_part = output.substring (idx + 8).strip ();
-							var space_idx = num_part.index_of (" ");
-							if (space_idx >= 0)
-								num_part = num_part.substring (0, space_idx);
-							num_part = num_part.replace (",", ".");
-							double val = double.parse (num_part);
-							int parsed_vol = (int) Math.round (val * 100.0);
-							if (parsed_vol < 0) parsed_vol = 0;
-							out_vol = parsed_vol;
-							out_muted = parsed_muted;
-							return true;
-						}
-					}
-				} catch (Error e) { }
-			}
-
-			try {
-				if (Process.spawn_command_line_sync ("sh -c 'LC_ALL=C pactl get-sink-mute @DEFAULT_SINK@; LC_ALL=C pactl get-sink-volume @DEFAULT_SINK@'", out output, null, out exit_status) && exit_status == 0) {
-					var idx = output.index_of ("%");
-					if (idx > 0) {
-						bool parsed_muted = output.contains ("Mute: yes");
-						var sub = output.slice (0, idx);
-						var last_space = sub.last_index_of (" ");
-						if (last_space >= 0) {
-							string num_str = sub.slice (last_space + 1, sub.length).strip ();
-							int v = int.parse (num_str);
-							if (v >= 0) {
-								out_vol = v;
-								out_muted = parsed_muted;
-								return true;
-							}
-						}
-					}
-				}
-			} catch (Error e) { }
-
-			return false;
-		}
-		
 		void refresh_volume_status (bool is_initial = false)
 		{
-			int parsed_vol;
-			bool parsed_muted;
-			if (probe_system_volume (out parsed_vol, out parsed_muted)) {
-				if (is_initial && (parsed_muted || parsed_vol == 0))
+			var st = Hal.Telemetry.Audio.probe_state_sync ();
+			if (st.ok) {
+				if (is_initial && (st.is_muted || st.volume_percent == 0))
 					return;
-				is_muted = parsed_muted;
-				volume = parsed_vol;
+				is_muted = st.is_muted;
+				volume = st.volume_percent;
 				update_display ();
 			} else if (!is_initial) {
 				update_display ();
@@ -200,9 +137,7 @@ namespace Plank
 			GLib.WeakRef self_ref = GLib.WeakRef (target);
 
 			new Thread<void*> ("wayplank-volume-poll", () => {
-				int parsed_vol;
-				bool parsed_muted;
-				bool ok = probe_system_volume (out parsed_vol, out parsed_muted);
+				AudioState st = Hal.Telemetry.Audio.probe_state_sync ();
 				Idle.add (() => {
 					var self = (VolumeDockItem?) self_ref.get ();
 					if (self == null)
@@ -210,9 +145,9 @@ namespace Plank
 					self.poll_in_flight = false;
 					if (self.is_disposed)
 						return false;
-					if (ok && (self.volume != parsed_vol || self.is_muted != parsed_muted)) {
-						self.volume = parsed_vol;
-						self.is_muted = parsed_muted;
+					if (st.ok && (self.volume != st.volume_percent || self.is_muted != st.is_muted)) {
+						self.volume = st.volume_percent;
+						self.is_muted = st.is_muted;
 						self.update_display ();
 					}
 					return false;
@@ -229,7 +164,7 @@ namespace Plank
 
 			spawn_volume_poll_worker (this);
 		}
-		
+
 		void update_display ()
 		{
 			if (is_muted) {
@@ -254,7 +189,7 @@ namespace Plank
 					Icon = "audio-volume-overamplified;;audio-volume-high-warning;;audio-volume-high-danger;;xfce4-mixer-volume-very-high";
 			}
 		}
-		
+
 		bool on_timer_tick ()
 		{
 			if (!IsAttached)
@@ -262,80 +197,36 @@ namespace Plank
 			schedule_volume_poll ();
 			return true;
 		}
-		
+
 		public void change_volume (int delta)
 		{
-			// If already at or above maximum and trying to increase, block
 			if (delta > 0 && volume >= 150)
 				return;
-			// If already at zero or below and trying to decrease, block
 			if (delta < 0 && volume <= 0)
 				return;
 
-			// If muted and raising volume, unmute immediately!
 			if (is_muted && delta > 0) {
 				is_muted = false;
-				if (Environment.find_program_in_path ("wpctl") != null) {
-					try {
-						Process.spawn_command_line_async ("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0");
-					} catch (Error e) { }
-				} else {
-					try {
-						Process.spawn_command_line_async ("pactl set-sink-mute @DEFAULT_SINK@ 0");
-					} catch (Error e) {
-						try {
-							Process.spawn_command_line_async ("amixer set Master unmute");
-						} catch (Error e2) { }
-					}
-				}
+				Hal.Telemetry.Audio.set_muted (false);
 			}
-			
+
 			int base_vol = (volume > 150) ? 150 : volume;
 			int new_volume = base_vol + delta;
 			if (new_volume < 0) new_volume = 0;
 			if (new_volume > 150) new_volume = 150;
 			volume = new_volume;
-			
-			// Always set ABSOLUTE volume to prevent unlimited relative runaway
-			if (Environment.find_program_in_path ("wpctl") != null) {
-				try {
-					Process.spawn_command_line_async ("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ %d%%".printf (volume));
-				} catch (Error e) { }
-			} else {
-				try {
-					Process.spawn_command_line_async ("pactl set-sink-volume @DEFAULT_SINK@ %d%%".printf (volume));
-				} catch (Error e) {
-					try {
-						Process.spawn_command_line_async ("amixer set Master %d%%".printf (volume));
-					} catch (Error e2) { }
-				}
-			}
-			
-			update_display ();
-		}
-		
-		public void toggle_mute ()
-		{
-			is_muted = !is_muted;
-			
-			if (Environment.find_program_in_path ("wpctl") != null) {
-				try {
-					Process.spawn_command_line_async ("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle");
-				} catch (Error e) { }
-			} else {
-				try {
-					Process.spawn_command_line_async ("pactl set-sink-mute @DEFAULT_SINK@ %s".printf (is_muted ? "1" : "0"));
-				} catch (Error e) {
-					try {
-						Process.spawn_command_line_async ("amixer set Master toggle");
-					} catch (Error e2) { }
-				}
-			}
-			
+
+			Hal.Telemetry.Audio.set_volume_percent (volume);
 			update_display ();
 		}
 
-		
+		public void toggle_mute ()
+		{
+			is_muted = !is_muted;
+			Hal.Telemetry.Audio.toggle_mute (is_muted);
+			update_display ();
+		}
+
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (direction == Gdk.ScrollDirection.UP) {
@@ -347,51 +238,47 @@ namespace Plank
 			}
 			return base.on_scrolled (direction, mod, event_time);
 		}
-		
+
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
 				toggle_mute ();
 				return AnimationType.BOUNCE;
 			}
-			
+
 			return AnimationType.NONE;
 		}
-		
+
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
-			
+
 			var header_item = new Gtk.MenuItem.with_label (Text);
 			header_item.sensitive = false;
 			items.add (header_item);
-			
+
 			items.add (new Gtk.SeparatorMenuItem ());
-			
+
 			var mute_item = create_menu_item (is_muted ? _("Un_mute") : _("_Mute"), "audio-volume-muted", true);
 			mute_item.activate.connect (toggle_mute);
 			items.add (mute_item);
-			
+
 			var mixer_item = create_menu_item (_("_Audio Settings..."), "multimedia-volume-control", true);
 			mixer_item.activate.connect (() => {
-				System.launch_desktop_utility (
-					{ "kcmshell6 kcm_pulseaudio", "kcmshell5 kcm_pulseaudio" },
-					{ "gnome-control-center sound" },
-					{ "pavucontrol" }
-				);
+				Hal.Runtime.open_system_utility (DesktopUtilityKind.SOUND_SETTINGS);
 			});
 			items.add (mixer_item);
-			
+
 			if (!is_dock_locked ()) {
 				items.add (new Gtk.SeparatorMenuItem ());
-				
+
 				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
 				remove_item.activate.connect (() => {
 					this.@delete ();
 				});
 				items.add (remove_item);
 			}
-			
+
 			return items;
 		}
 	}

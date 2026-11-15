@@ -36,45 +36,6 @@ namespace Plank
         return "";
     }
 
-    private static bool pid_matches_replace_target (int pid, Posix.uid_t self_uid, string target_dock_name)
-    {
-        Posix.Stat st;
-        if (Posix.stat ("/proc/%d".printf (pid), out st) != 0 || st.st_uid != self_uid)
-            return false;
-        try {
-            uint8[] raw;
-            if (!FileUtils.get_data ("/proc/%d/cmdline".printf (pid), out raw) || raw.length == 0)
-                return false;
-            var tokens = new Gee.ArrayList<string> ();
-            int start = 0;
-            for (int i = 0; i < raw.length; i++) {
-                if (raw[i] == 0) {
-                    if (i > start) {
-                        unowned string s = (string) (&raw[start]);
-                        tokens.add (s);
-                    } else {
-                        tokens.add ("");
-                    }
-                    start = i + 1;
-                }
-            }
-            if (start < raw.length) {
-                var tail = new uint8[raw.length - start + 1];
-                Memory.copy (tail, &raw[start], raw.length - start);
-                tail[raw.length - start] = 0;
-                tokens.add ((string) tail);
-            }
-            if (tokens.size == 0)
-                return false;
-            var exe_base = Path.get_basename (tokens[0]);
-            if (exe_base != "wayplank" && exe_base != "plank")
-                return false;
-            return extract_dock_name_from_args (tokens.to_array ()) == target_dock_name;
-        } catch (Error e) {
-            return false;
-        }
-    }
-
     public static int main (string[] argv)
     {
         Intl.setlocale (LocaleCategory.ALL, "");
@@ -107,43 +68,16 @@ namespace Plank
         bool onboarding_first_run = !FileUtils.test (first_run_launchers_dir, FileTest.IS_DIR);
 
         if (replace_requested || onboarding_first_run) {
-            int self_pid = (int) Posix.getpid ();
-            Posix.uid_t self_uid = Posix.getuid ();
-            bool sent_term = false;
-            try {
-                string out_pids = "";
-                Process.spawn_command_line_sync ("pidof wayplank plank", out out_pids);
-                foreach (unowned string tok in out_pids.strip ().split (" ")) {
-                    int p = int.parse (tok);
-                    if (p > 0 && p != self_pid && pid_matches_replace_target (p, self_uid, target_dock_name)) {
-                        Posix.kill ((Posix.pid_t) p, Posix.Signal.TERM);
-                        sent_term = true;
-                    }
-                }
-            } catch (Error e) { }
-            if (sent_term) {
-                Thread.usleep (200000);
-                try {
-                    string out_pids = "";
-                    Process.spawn_command_line_sync ("pidof wayplank plank", out out_pids);
-                    foreach (unowned string tok in out_pids.strip ().split (" ")) {
-                        int p = int.parse (tok);
-                        if (p > 0 && p != self_pid && pid_matches_replace_target (p, self_uid, target_dock_name))
-                            Posix.kill ((Posix.pid_t) p, Posix.Signal.KILL);
-                    }
-                } catch (Error e) { }
-                Thread.usleep (50000);
-            }
+            Hal.Runtime.replace_running_instances (target_dock_name);
         }
 
-        AbstractMain.saved_gtk_use_portal = Environment.get_variable ("GTK_USE_PORTAL");
-        Environment.set_variable ("GTK_USE_PORTAL", "0", true);
+        Hal.Runtime.prepare_process_environment ();
 
         Gtk.init (ref argv);
         Intl.setlocale (LocaleCategory.NUMERIC, "C");
 
         unowned Gdk.Display? display = Gdk.Display.get_default ();
-        if (display == null || display.get_type ().name () != "GdkWaylandDisplay") {
+        if (!Hal.Runtime.verify_supported_display (display)) {
             var dialog = new Gtk.MessageDialog (
                 null,
                 Gtk.DialogFlags.MODAL,

@@ -22,9 +22,9 @@ namespace Plank
 {
 	/**
 	 * Screen Brightness Docklet.
-	 * 100% Compositor-Agnostic UI Layer following the HAL Prime Directive.
-	 * All hardware, multi-monitor output discovery, kscreen-doctor and DDC/CI
-	 * control reside strictly in BrightnessControl (lib/Services/).
+	 * 100% OS- and Compositor-Agnostic UI Layer following the HAL Prime Directive.
+	 * All hardware, multi-monitor output discovery, and display brightness
+	 * control reside strictly behind Hal.Telemetry.Brightness.
 	 */
 	public class BrightnessDockItem : DockItem
 	{
@@ -88,7 +88,7 @@ namespace Plank
 			Text = _("Screen Brightness");
 			Button = PopupButton.RIGHT;
 
-			unowned BrightnessControl ctrl = BrightnessControl.get_default ();
+			unowned IBrightnessProvider ctrl = Hal.Telemetry.Brightness;
 			current_percent = ctrl.get_percent ();
 			Icon = get_brightness_icon_name (current_percent);
 			update_display (current_percent);
@@ -112,7 +112,7 @@ namespace Plank
 		public override void cleanup ()
 		{
 			if (changed_signal_id != 0) {
-				BrightnessControl.get_default ().disconnect (changed_signal_id);
+				Hal.Telemetry.Brightness.disconnect (changed_signal_id);
 				changed_signal_id = 0;
 			}
 
@@ -121,7 +121,7 @@ namespace Plank
 
 		public override bool is_valid ()
 		{
-			return BrightnessControl.get_default ().is_available ();
+			return Hal.Telemetry.Brightness.is_available ();
 		}
 
 		private void update_display (int percent)
@@ -139,10 +139,10 @@ namespace Plank
 		protected override AnimationType on_scrolled (Gdk.ScrollDirection direction, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (direction == Gdk.ScrollDirection.UP) {
-				BrightnessControl.get_default ().adjust_percent (5);
+				Hal.Telemetry.Brightness.adjust_percent (5);
 				return AnimationType.NONE;
 			} else if (direction == Gdk.ScrollDirection.DOWN) {
-				BrightnessControl.get_default ().adjust_percent (-5);
+				Hal.Telemetry.Brightness.adjust_percent (-5);
 				return AnimationType.NONE;
 			}
 			return base.on_scrolled (direction, mod, event_time);
@@ -158,7 +158,7 @@ namespace Plank
 				else if (current_percent < 100) next = 100;
 				else next = 25;
 
-				BrightnessControl.get_default ().set_percent (next, true);
+				Hal.Telemetry.Brightness.set_percent (next, true);
 				return AnimationType.BOUNCE;
 			}
 
@@ -182,7 +182,7 @@ namespace Plank
 				int p = presets[i];
 				string label = "%d%% %s".printf (p, p == 100 ? _("(Maximum)") : (p == 10 ? _("(Minimum)") : ""));
 				var item = create_menu_item (label, preset_icons[i], true);
-				item.activate.connect (() => BrightnessControl.get_default ().set_percent (p, true));
+				item.activate.connect (() => Hal.Telemetry.Brightness.set_percent (p, true));
 				items.add (item);
 			}
 
@@ -190,11 +190,7 @@ namespace Plank
 
 			var settings_item = create_menu_item (_("_Display Settings..."), "preferences-desktop-display", true);
 			settings_item.activate.connect (() => {
-				System.launch_desktop_utility (
-					{ "systemsettings kcm_kscreen", "kcmshell6 kcm_kscreen", "kcmshell5 kcm_kscreen" },
-					{ "gnome-control-center display" },
-					{ "wdisplays", "arandr" }
-				);
+				Hal.Runtime.open_system_utility (DesktopUtilityKind.DISPLAY_SETTINGS);
 			});
 			items.add (settings_item);
 

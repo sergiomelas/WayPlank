@@ -27,7 +27,7 @@ namespace Plank
 	 *
 	 * All needed controlling parts will be created and initialized.
 	 */
-	public class DockController : DockContainer
+	public class DockController : DockContainer, IDockIpcTarget
 	{
 		public string name { get; construct; }
 		public File config_folder { get; construct; }
@@ -50,7 +50,7 @@ namespace Plank
 			get { return default_provider as DefaultApplicationDockItemProvider; }
 		}
 		
-		DBusManager dbus_manager;
+		IDockIpcServer ipc_server;
 		Gee.ArrayList<unowned DockItem> visible_items;
 		Gee.ArrayList<unowned DockItem> items;
 		DockItem? dock_itself_item;
@@ -107,7 +107,7 @@ namespace Plank
 				last_explicit_monitor = prefs.Monitor;
 			prefs.notify["Monitor"].connect (update_explicit_monitor);
 			
-			dbus_manager = new DBusManager (this);
+			ipc_server = Hal.Bus.create_dock_ipc_server (this);
 			
 			position_manager = new PositionManager (this);
 			drag_manager = new DragManager (this);
@@ -127,6 +127,8 @@ namespace Plank
 
 		~DockController ()
 		{
+			if (ipc_server != null)
+				ipc_server.dispose_ipc ();
 			folder_menu.destroy ();
 			window_cards.destroy ();
 			prefs.notify["Monitor"].disconnect (update_explicit_monitor);
@@ -248,26 +250,7 @@ namespace Plank
 		
 		static void ensure_default_autostart ()
 		{
-			var autostart_dir = Path.build_filename (Environment.get_user_config_dir (), "autostart");
-			var autostart_path = Path.build_filename (autostart_dir, "wayplank.desktop");
-			if (DirUtils.create_with_parents (autostart_dir, 0755) == 0) {
-				try {
-					FileUtils.set_contents (autostart_path,
-						"[Desktop Entry]\n" +
-						"Type=Application\n" +
-						"Name=WayPlank\n" +
-						"Comment=Stupidly simple dock for Wayland\n" +
-						"Exec=wayplank\n" +
-						"Icon=plank\n" +
-						"Terminal=false\n" +
-						"X-GNOME-Autostart-enabled=true\n" +
-						"X-GNOME-Autostart-Delay=2\n" +
-						"X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2\n");
-					Hal.sync_autostart (true);
-				} catch (FileError e) {
-					warning ("Unable to create default autostart entry '%s': %s", autostart_path, e.message);
-				}
-			}
+			Hal.Runtime.set_autostart_enabled (true);
 		}
 
 		void apply_common_first_run_defaults ()
@@ -322,11 +305,7 @@ namespace Plank
 			}
 			
 			if (is_first_run) {
-				if (Path.get_basename (Environment.get_prgname () ?? "wayplank") != "plank") {
-					try {
-						Process.spawn_command_line_sync ("killall -q plank");
-					} catch { }
-				}
+				Hal.Runtime.terminate_legacy_competing_docks ();
 				var onboarding_marker = config_folder.get_child ("onboarding-done");
 				var legacy_launchers = Paths.ConfigHomeFolder.get_child ("plank").get_child (name).get_child ("launchers");
 				bool headless = (Environment.get_variable ("WAYPLANK_NO_PROMPT") == "1"
@@ -512,7 +491,7 @@ namespace Plank
 			
 			unowned ApplicationDockItemProvider? app_provider = (provider as ApplicationDockItemProvider);
 			if (app_provider != null) {
-				Unity.get_default ().add_client (app_provider);
+				Hal.Bus.Badges.add_client (app_provider);
 			}
 		}
 		
@@ -528,7 +507,7 @@ namespace Plank
 			
 			unowned ApplicationDockItemProvider? app_provider = (provider as ApplicationDockItemProvider);
 			if (app_provider != null) {
-				Unity.get_default ().remove_client (app_provider);
+				Hal.Bus.Badges.remove_client (app_provider);
 			}
 		}
 		
@@ -643,7 +622,121 @@ namespace Plank
 			if (container != this) {
 				var empty = new Gee.ArrayList<DockElement> ();
 				elements_changed (empty, empty);
+			} else {
+				ipc_elements_changed ();
 			}
+		}
+
+		public string get_ipc_dock_name ()
+		{
+			return name;
+		}
+
+		public GLib.File get_ipc_config_folder ()
+		{
+			return config_folder;
+		}
+
+		public bool ipc_add_item (string uri)
+		{
+			debug ("Try to remotely add '%s'", uri);
+			if (prefs.LockItems)
+				return false;
+
+			unowned ApplicationDockItemProvider? provider = (default_provider as ApplicationDockItemProvider);
+			if (provider == null)
+				return false;
+
+			unowned DockItem? item = provider.item_for_uri (uri);
+			if (item != null && item is TransientDockItem) {
+				((TransientDockItem) item).pin_launcher ();
+				return true;
+			}
+
+			return provider.add_item_with_uri (uri);
+		}
+
+		public bool ipc_remove_item (string uri)
+		{
+			debug ("Try to remotely remove '%s'", uri);
+			if (prefs.LockItems)
+				return false;
+
+			unowned ApplicationDockItemProvider? provider = (default_provider as ApplicationDockItemProvider);
+			if (provider == null)
+				return false;
+
+			unowned DockItem? item = provider.item_for_uri (uri);
+			if (item == null)
+				return false;
+
+			if (item is ApplicationDockItem) {
+				if (!(item is TransientDockItem))
+					((ApplicationDockItem) item).pin_launcher ();
+				return true;
+			}
+
+			return provider.remove (item);
+		}
+
+		public int ipc_get_item_count ()
+		{
+			return VisibleItems.size;
+		}
+
+		public string[] ipc_get_persistent_applications ()
+		{
+			Logger.verbose ("Remotely list persistent items");
+
+			string[] result = {};
+			unowned string launcher;
+			foreach (unowned DockItem item in Items) {
+				if (item is ApplicationDockItem && !(item is TransientDockItem)) {
+					launcher = item.Launcher;
+					if (launcher != null && launcher != "")
+						result += launcher;
+				}
+			}
+
+			return result;
+		}
+
+		public string[] ipc_get_transient_applications ()
+		{
+			Logger.verbose ("Remotely list transient items");
+
+			string[] result = {};
+			unowned string launcher;
+			foreach (unowned DockItem item in Items) {
+				if (item is TransientDockItem) {
+					launcher = item.Launcher;
+					if (launcher != null && launcher != "")
+						result += launcher;
+				}
+			}
+
+			return result;
+		}
+
+		public bool ipc_get_hover_position (string uri, out int x, out int y, out Gtk.PositionType dock_position)
+		{
+			unowned DockItem? found = null;
+			foreach (unowned DockItem item in Items) {
+				if (uri == item.Launcher) {
+					found = item;
+					break;
+				}
+			}
+
+			if (found == null) {
+				x = y = -1;
+				dock_position = 0;
+				return false;
+			}
+
+			position_manager.get_hover_position (found, out x, out y);
+			dock_position = position_manager.Position;
+			return true;
 		}
 		
 		void handle_positions_changed (DockContainer container, Gee.List<unowned DockElement> moved_items)

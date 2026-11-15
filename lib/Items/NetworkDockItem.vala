@@ -23,14 +23,13 @@ namespace Plank
 	public class NetworkDockItem : DockItem
 	{
 		uint timer_id = 0;
-		uint dbus_sub_id = 0;
 		uint signal_debounce_id = 0;
-		ulong netmon_handler_id = 0UL;
+		ulong net_changed_id = 0UL;
 		bool is_disposed = false;
 		bool poll_in_flight = false;
 
 		bool is_connected = false;
-		string connection_type = "none"; // "wifi", "ethernet", "none"
+		string connection_type = "none";
 		string connection_name = "";
 		int wifi_strength = 0;
 		string ip_address = "";
@@ -110,46 +109,18 @@ namespace Plank
 
 		void start_listeners ()
 		{
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				dbus_sub_id = bus.signal_subscribe (
-					"org.freedesktop.NetworkManager",
-					"org.freedesktop.DBus.Properties",
-					"PropertiesChanged",
-					null,
-					null,
-					DBusSignalFlags.NONE,
-					on_dbus_signal
-				);
-			} catch (Error e) { }
-
-			var netmon = NetworkMonitor.get_default ();
-			if (netmon != null) {
-				netmon_handler_id = netmon.network_changed.connect ((available) => {
-					schedule_network_poll ();
-				});
-			}
+			net_changed_id = Hal.Telemetry.Network.network_changed.connect (on_network_event);
 		}
 
 		void stop_listeners ()
 		{
-			if (dbus_sub_id != 0) {
-				try {
-					var bus = Bus.get_sync (BusType.SYSTEM, null);
-					bus.signal_unsubscribe (dbus_sub_id);
-				} catch (Error e) { }
-				dbus_sub_id = 0;
-			}
-
-			if (netmon_handler_id != 0UL) {
-				var netmon = NetworkMonitor.get_default ();
-				if (netmon != null)
-					netmon.disconnect (netmon_handler_id);
-				netmon_handler_id = 0UL;
+			if (net_changed_id != 0UL) {
+				Hal.Telemetry.Network.disconnect (net_changed_id);
+				net_changed_id = 0UL;
 			}
 		}
 
-		void on_dbus_signal (DBusConnection conn, string? sender, string path, string iface, string signal, Variant parameters)
+		void on_network_event ()
 		{
 			if (is_disposed || !IsAttached || signal_debounce_id != 0)
 				return;
@@ -174,177 +145,17 @@ namespace Plank
 			return true;
 		}
 
-		static bool probe_network_manager (out string out_type, out string out_name, out int out_strength, out string out_ip, out string out_gw)
+		void apply_network_status (NetworkState st)
 		{
-			out_type = "none";
-			out_name = "";
-			out_strength = 0;
-			out_ip = "";
-			out_gw = "";
+			is_connected = st.is_connected;
+			connection_type = st.connection_type;
+			connection_name = (st.connection_name == "" && st.is_connected && st.connection_type == "ethernet")
+				? _("Wired Connection")
+				: st.connection_name;
+			wifi_strength = st.wifi_strength;
+			ip_address = st.ip_address;
+			gateway = st.gateway;
 
-			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				var nm_props_var = bus.call_sync (
-					"org.freedesktop.NetworkManager",
-					"/org/freedesktop/NetworkManager",
-					"org.freedesktop.DBus.Properties",
-					"GetAll",
-					new Variant ("(s)", "org.freedesktop.NetworkManager"),
-					null,
-					DBusCallFlags.NO_AUTO_START,
-					300,
-					null
-				);
-
-				var nm_props = nm_props_var.get_child_value (0);
-				var primary_conn_type_val = nm_props.lookup_value ("PrimaryConnectionType", null);
-				string raw_type = "";
-				if (primary_conn_type_val != null) {
-					var v = primary_conn_type_val.is_of_type (VariantType.VARIANT)
-						? primary_conn_type_val.get_variant () : primary_conn_type_val;
-					raw_type = v.get_string ();
-				}
-
-				var primary_conn_val = nm_props.lookup_value ("PrimaryConnection", null);
-				string primary_conn_path = "";
-				if (primary_conn_val != null) {
-					var v = primary_conn_val.is_of_type (VariantType.VARIANT)
-						? primary_conn_val.get_variant () : primary_conn_val;
-					primary_conn_path = v.get_string ();
-				}
-
-				if (primary_conn_path != "" && primary_conn_path != "/") {
-					var conn_props_var = bus.call_sync (
-						"org.freedesktop.NetworkManager",
-						primary_conn_path,
-						"org.freedesktop.DBus.Properties",
-						"GetAll",
-						new Variant ("(s)", "org.freedesktop.NetworkManager.Connection.Active"),
-						null,
-						DBusCallFlags.NO_AUTO_START,
-						300,
-						null
-					);
-
-					var conn_props = conn_props_var.get_child_value (0);
-					var id_val = conn_props.lookup_value ("Id", null);
-					string cid = "";
-					if (id_val != null) {
-						var v = id_val.is_of_type (VariantType.VARIANT) ? id_val.get_variant () : id_val;
-						cid = v.get_string ();
-					}
-
-					var spec_val = conn_props.lookup_value ("SpecificObject", null);
-					string spec_path = "";
-					if (spec_val != null) {
-						var v = spec_val.is_of_type (VariantType.VARIANT) ? spec_val.get_variant () : spec_val;
-						spec_path = v.get_string ();
-					}
-
-					var ip4_val = conn_props.lookup_value ("Ip4Config", null);
-					string ip4_path = "";
-					if (ip4_val != null) {
-						var v = ip4_val.is_of_type (VariantType.VARIANT) ? ip4_val.get_variant () : ip4_val;
-						ip4_path = v.get_string ();
-					}
-
-					int strength = 0;
-					if (raw_type.contains ("wireless") && spec_path != "" && spec_path != "/") {
-						try {
-							var ap_props_var = bus.call_sync (
-								"org.freedesktop.NetworkManager",
-								spec_path,
-								"org.freedesktop.DBus.Properties",
-								"GetAll",
-								new Variant ("(s)", "org.freedesktop.NetworkManager.AccessPoint"),
-								null,
-								DBusCallFlags.NO_AUTO_START,
-								200,
-								null
-							);
-							var ap_props = ap_props_var.get_child_value (0);
-							var strength_val = ap_props.lookup_value ("Strength", null);
-							if (strength_val != null) {
-								var v = strength_val.is_of_type (VariantType.VARIANT) ? strength_val.get_variant () : strength_val;
-								strength = (int) v.get_byte ();
-							}
-						} catch { }
-					}
-
-					string ip = "";
-					string gw = "";
-					if (ip4_path != "" && ip4_path != "/") {
-						try {
-							var ip_props_var = bus.call_sync (
-								"org.freedesktop.NetworkManager",
-								ip4_path,
-								"org.freedesktop.DBus.Properties",
-								"GetAll",
-								new Variant ("(s)", "org.freedesktop.NetworkManager.IP4Config"),
-								null,
-								DBusCallFlags.NO_AUTO_START,
-								200,
-								null
-							);
-							var ip_props = ip_props_var.get_child_value (0);
-							var addr_data_val = ip_props.lookup_value ("AddressData", null);
-							if (addr_data_val != null) {
-								var v = addr_data_val.is_of_type (VariantType.VARIANT) ? addr_data_val.get_variant () : addr_data_val;
-								if (v.n_children () > 0) {
-									var first_dict = v.get_child_value (0);
-									var a_val = first_dict.lookup_value ("address", null);
-									if (a_val != null) {
-										var av = a_val.is_of_type (VariantType.VARIANT) ? a_val.get_variant () : a_val;
-										ip = av.get_string ();
-									}
-								}
-							}
-							var gw_val = ip_props.lookup_value ("Gateway", null);
-							if (gw_val != null) {
-								var v = gw_val.is_of_type (VariantType.VARIANT) ? gw_val.get_variant () : gw_val;
-								gw = v.get_string ();
-							}
-						} catch { }
-					}
-
-					out_name = cid;
-					out_strength = strength;
-					out_ip = ip;
-					out_gw = gw;
-					out_type = raw_type.contains ("wireless") ? "wifi" : "ethernet";
-					return true;
-				}
-			} catch { }
-
-			return false;
-		}
-
-		void apply_network_status (bool found_nm, string nm_type, string nm_name, int nm_strength, string nm_ip, string nm_gw)
-		{
-			if (found_nm) {
-				is_connected = true;
-				connection_type = nm_type;
-				connection_name = nm_name;
-				wifi_strength = nm_strength;
-				ip_address = nm_ip;
-				gateway = nm_gw;
-			} else {
-				var netmon = NetworkMonitor.get_default ();
-				if (netmon != null && netmon.get_network_available ()) {
-					is_connected = true;
-					connection_type = "ethernet";
-					connection_name = _("Wired Connection");
-				} else {
-					is_connected = false;
-					connection_type = "none";
-					connection_name = "";
-					ip_address = "";
-					gateway = "";
-					wifi_strength = 0;
-				}
-			}
-
-			// Update Text (tooltip) and Icon
 			if (is_connected) {
 				if (connection_type == "wifi") {
 					if (ip_address != "")
@@ -389,9 +200,7 @@ namespace Plank
 			GLib.WeakRef self_ref = GLib.WeakRef (target);
 
 			new Thread<void*> ("wayplank-network-poll", () => {
-				string nm_type, nm_name, nm_ip, nm_gw;
-				int nm_strength;
-				bool found_nm = probe_network_manager (out nm_type, out nm_name, out nm_strength, out nm_ip, out nm_gw);
+				NetworkState st = Hal.Telemetry.Network.probe_state_sync ();
 				Idle.add (() => {
 					var self = (NetworkDockItem?) self_ref.get ();
 					if (self == null)
@@ -399,7 +208,7 @@ namespace Plank
 					self.poll_in_flight = false;
 					if (self.is_disposed)
 						return false;
-					self.apply_network_status (found_nm, nm_type, nm_name, nm_strength, nm_ip, nm_gw);
+					self.apply_network_status (st);
 					return false;
 				});
 				return null;
@@ -417,11 +226,7 @@ namespace Plank
 
 		public void open_network_settings ()
 		{
-			System.launch_desktop_utility (
-				{ "kcmshell6 kcm_networkmanagement", "kcmshell5 kcm_networkmanagement" },
-				{ "gnome-control-center wifi", "gnome-control-center network" },
-				{ "nm-connection-editor" }
-			);
+			Hal.Runtime.open_system_utility (DesktopUtilityKind.NETWORK_SETTINGS);
 		}
 
 		public void copy_ip_to_clipboard ()
@@ -505,4 +310,3 @@ namespace Plank
 		}
 	}
 }
-

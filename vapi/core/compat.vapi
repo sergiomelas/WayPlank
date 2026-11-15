@@ -23,18 +23,6 @@ namespace Plank
 	[CCode (cheader_filename = "glib.h", cname = "g_quark_from_static_string")]
 	public GLib.Quark quark_from_static_string (string str);
 
-
-#if HAVE_SYS_PRCTL_H
-	[CCode (cheader_filename = "sys/prctl.h", cname = "prctl", sentinel = "")]
-	public int prctl (int option, ...);
-#else
-	[CCode (cheader_filename = "unistd.h", cname = "setproctitle", sentinel = "")]
-	public void setproctitle (string fmt, ...);
-#endif
-
-	[CCode (cheader_filename = "unistd.h", cname = "getpid")]
-	public int getpid ();
-
 	[CCode (cheader_filename = "", cname = "CLAMP")]
 	public int clamp (int x, int low, int high);
 	[CCode (cheader_filename = "", cname = "CLAMP")]
@@ -60,5 +48,3 @@ namespace PlankCompat
 	[CCode (cname = "wayplank_i18n_translate_widget")]
 	public void i18n_translate_widget (Gtk.Widget widget);
 }
-
-

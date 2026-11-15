@@ -528,7 +528,7 @@ namespace Plank
 			}
 			
 			// Clear buffer
-			Posix.memset (abuffer, 0, sizeof(double) * size);
+			GLib.Memory.set (abuffer, 0, sizeof (double) * size);
 			
 			// Precompute vertical shifts
 			shiftar = new int[int.max (width, height), gaussWidth];

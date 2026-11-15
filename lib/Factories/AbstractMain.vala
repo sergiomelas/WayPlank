@@ -42,29 +42,12 @@ namespace Plank
 		};
 
 		static bool is_shutting_down = false;
-		static uint sigint_source_id = 0U;
-		static uint sigterm_source_id = 0U;
-		static uint sighup_source_id = 0U;
-		public static string? saved_gtk_use_portal = null;
 
 		public static void perform_clean_shutdown ()
 		{
 			if (is_shutting_down)
 				return;
 			is_shutting_down = true;
-
-			if (sigint_source_id > 0U) {
-				GLib.Source.remove (sigint_source_id);
-				sigint_source_id = 0U;
-			}
-			if (sigterm_source_id > 0U) {
-				GLib.Source.remove (sigterm_source_id);
-				sigterm_source_id = 0U;
-			}
-			if (sighup_source_id > 0U) {
-				GLib.Source.remove (sighup_source_id);
-				sighup_source_id = 0U;
-			}
 
 			if (app_instance != null) {
 				if (app_instance.first_run_dlg != null) {
@@ -91,45 +74,28 @@ namespace Plank
 					GLib.Source.remove (app_instance.resume_timer_id);
 					app_instance.resume_timer_id = 0U;
 				}
-				if (app_instance.upgrade_signal_source_id > 0U) {
-					GLib.Source.remove (app_instance.upgrade_signal_source_id);
-					app_instance.upgrade_signal_source_id = 0U;
-				}
-				app_instance.teardown_power_management_listener ();
 			}
 
 			SystemTheme.cleanup_if_active ();
-			BrightnessControl.cleanup_if_active ();
 			AppUsageService.shutdown_if_active ();
 			Hal.cleanup ();
 			GLib.Settings.sync ();
 		}
 
-		static bool handle_unix_termination_signal (int sig)
+		static void handle_termination_signal (int sig)
 		{
 			warning ("Caught signal (%d), exiting", sig);
 			perform_clean_shutdown ();
 			if (app_instance != null)
 				app_instance.quit ();
 			else
-				Posix.exit (0);
-			return false;
+				Hal.Runtime.exit_immediately (0);
 		}
 		
 		static construct
 		{
-			sigint_source_id = GLib.Unix.signal_add ((int) Posix.Signal.INT, () => {
-				sigint_source_id = 0U;
-				return handle_unix_termination_signal ((int) Posix.Signal.INT);
-			});
-			sigterm_source_id = GLib.Unix.signal_add ((int) Posix.Signal.TERM, () => {
-				sigterm_source_id = 0U;
-				return handle_unix_termination_signal ((int) Posix.Signal.TERM);
-			});
-			sighup_source_id = GLib.Unix.signal_add ((int) Posix.Signal.HUP, () => {
-				sighup_source_id = 0U;
-				return handle_unix_termination_signal ((int) Posix.Signal.HUP);
-			});
+			Hal.Runtime.termination_requested.connect (handle_termination_signal);
+			Hal.Runtime.install_lifecycle_signals ();
 		}
 		
 		/**
@@ -251,11 +217,7 @@ namespace Plank
 			docks = new Gee.ArrayList<DockController> ();
 			
 			// set program name
-#if HAVE_SYS_PRCTL_H
-			prctl (15, exec_name);
-#else
-			setproctitle (exec_name);
-#endif
+			Hal.Runtime.set_process_title (exec_name);
 			Environment.set_prgname (exec_name);
 			
 			Intl.bindtextdomain (Build.GETTEXT_PACKAGE, Build.DATADIR + "/locale");
@@ -343,16 +305,13 @@ namespace Plank
 			
 			base.startup ();
 
-			if (saved_gtk_use_portal != null)
-				Environment.set_variable ("GTK_USE_PORTAL", saved_gtk_use_portal, true);
-			else
-				Environment.unset_variable ("GTK_USE_PORTAL");
+			Hal.Runtime.restore_process_environment ();
 			
 			if (!Thread.supported ())
 				critical ("Problem initializing thread support.");
 			
 			message ("%s version: %s", program_name, build_version);
-			message ("Kernel version: %s", Posix.utsname ().release);
+			message ("Kernel version: %s", Hal.Runtime.os_release_summary ());
 			message ("GLib version: %u.%u.%u (%u.%u.%u)",
 				GLib.Version.major, GLib.Version.minor, GLib.Version.micro,
 				GLib.Version.MAJOR, GLib.Version.MINOR, GLib.Version.MICRO);
@@ -369,7 +328,6 @@ namespace Plank
 				message ("+ RTL support enabled");
 			
 			internal_quarks_initialize ();
-			environment_initialize ();
 			
 			Paths.initialize (exec_name, build_pkg_data_dir);
 			Hal.initialize ();
@@ -381,8 +339,7 @@ namespace Plank
 			});
 			Hal.start ();
 			create_actions ();
-			setup_power_management_listener ();
-			setup_binary_upgrade_watcher ();
+			setup_runtime_watchers ();
 		}
 		
 		/**
@@ -2098,56 +2055,31 @@ namespace Plank
 			try {
 				FileUtils.set_contents (html_path, builder.str);
 				string uri = "file://" + html_path;
-				try {
-					AppInfo.launch_default_for_uri (uri, null);
-				} catch (GLib.Error err) {
+				if (!Hal.Runtime.open_uri (uri))
 					System.get_default ().open_uri (uri);
-				}
 			} catch (GLib.Error e) {
 				warning ("Failed to save/open guide HTML: %s", e.message);
 			}
 		}
 
 		uint resume_timer_id = 0U;
-		uint upgrade_signal_source_id = 0U;
-		string startup_exe_path = "";
 		bool is_reloading_for_upgrade = false;
 
-		void setup_binary_upgrade_watcher ()
+		void setup_runtime_watchers ()
 		{
-			try {
-				var resolved = FileUtils.read_link ("/proc/self/exe");
-				if (resolved.has_suffix (" (deleted)"))
-					resolved = resolved.substring (0, resolved.length - " (deleted)".length);
-				startup_exe_path = resolved;
-			} catch (Error e) {
-				startup_exe_path = "";
-			}
-
-			upgrade_signal_source_id = GLib.Unix.signal_add ((int) Posix.Signal.WINCH, () => {
-				if (is_shutting_down || is_reloading_for_upgrade || startup_exe_path == "")
-					return true;
-				try {
-					var current_link = FileUtils.read_link ("/proc/self/exe");
-					if (current_link.has_suffix (" (deleted)") && FileUtils.test (startup_exe_path, FileTest.IS_EXECUTABLE)) {
-						is_reloading_for_upgrade = true;
-						upgrade_signal_source_id = 0U;
-						string saved_exe = startup_exe_path;
-						string? saved_dock = dock_name;
-						message ("Binary upgrade detected at '%s', hot-reloading WayPlank...", saved_exe);
-						perform_clean_shutdown ();
-						string[] spawn_argv = { saved_exe, "--replace" };
-						if (saved_dock != null && saved_dock != "")
-							spawn_argv = { saved_exe, "--replace", "-n", saved_dock };
-						Process.spawn_async (null, spawn_argv, null, SpawnFlags.SEARCH_PATH, null, null);
-						Posix.exit (0);
-						return false;
-					}
-				} catch (Error e) {
-					warning ("Failed to hot-reload upgraded WayPlank binary: %s", e.message);
-				}
-				return true;
+			Hal.Runtime.system_resumed.connect ((delay_ms) => {
+				schedule_dock_refresh (delay_ms);
 			});
+			Hal.Runtime.binary_upgrade_detected.connect ((saved_exe) => {
+				if (is_shutting_down || is_reloading_for_upgrade)
+					return;
+				is_reloading_for_upgrade = true;
+				string? saved_dock = dock_name;
+				message ("Binary upgrade detected at '%s', hot-reloading WayPlank...", saved_exe);
+				perform_clean_shutdown ();
+				Hal.Runtime.reexec_self_on_upgrade (saved_exe, saved_dock);
+			});
+			Hal.Runtime.install_session_and_upgrade_watchers ();
 		}
 
 		void schedule_dock_refresh (uint delay_ms)
@@ -2169,110 +2101,6 @@ namespace Plank
 			message ("Refreshing all docks after resume / wake-up event...");
 			foreach (var dock in docks) {
 				dock.handle_system_resume ();
-			}
-		}
-
-		uint login_sleep_sub_id = 0U;
-		uint login_unlock_sub_id = 0U;
-		Gee.ArrayList<uint>? screensaver_sub_ids = null;
-
-		void teardown_power_management_listener ()
-		{
-			if (login_sleep_sub_id > 0U || login_unlock_sub_id > 0U) {
-				try {
-					var system_bus = Bus.get_sync (BusType.SYSTEM, null);
-					if (login_sleep_sub_id > 0U) {
-						system_bus.signal_unsubscribe (login_sleep_sub_id);
-						login_sleep_sub_id = 0U;
-					}
-					if (login_unlock_sub_id > 0U) {
-						system_bus.signal_unsubscribe (login_unlock_sub_id);
-						login_unlock_sub_id = 0U;
-					}
-				} catch (Error e) { }
-			}
-			if (screensaver_sub_ids != null && screensaver_sub_ids.size > 0) {
-				try {
-					var session_bus = Bus.get_sync (BusType.SESSION, null);
-					foreach (uint id in screensaver_sub_ids) {
-						if (id > 0U)
-							session_bus.signal_unsubscribe (id);
-					}
-				} catch (Error e) { }
-				screensaver_sub_ids.clear ();
-			}
-		}
-
-		void setup_power_management_listener ()
-		{
-			// 1. Listen for systemd-logind sleep/resume events (system bus)
-			try {
-				var system_bus = Bus.get_sync (BusType.SYSTEM, null);
-				login_sleep_sub_id = system_bus.signal_subscribe (
-					"org.freedesktop.login1",
-					"org.freedesktop.login1.Manager",
-					"PrepareForSleep",
-					"/org/freedesktop/login1",
-					null,
-					DBusSignalFlags.NONE,
-					(conn, sender, path, iface, signal_name, parameters) => {
-						bool is_sleeping = false;
-						parameters.get ("(b)", out is_sleeping);
-						if (!is_sleeping) {
-							message ("System resumed from suspend/hibernate! Scheduling dock refresh...");
-							schedule_dock_refresh (800);
-						}
-					}
-				);
-				debug ("Subscribed to systemd-logind PrepareForSleep signal");
-
-				login_unlock_sub_id = system_bus.signal_subscribe (
-					"org.freedesktop.login1",
-					"org.freedesktop.login1.Session",
-					"Unlock",
-					null,
-					null,
-					DBusSignalFlags.NONE,
-					(conn, sender, path, iface, signal_name, parameters) => {
-						message ("systemd-logind Session Unlock detected! Scheduling dock refresh...");
-						schedule_dock_refresh (500);
-					}
-				);
-				debug ("Subscribed to systemd-logind Session.Unlock signal");
-			} catch (Error e) {
-				debug ("Unable to subscribe to systemd-logind signals: %s", e.message);
-			}
-
-			// 2. Listen for ScreenSaver / Screen Lock unlock events (session bus: freedesktop + GNOME)
-			try {
-				var session_bus = Bus.get_sync (BusType.SESSION, null);
-				screensaver_sub_ids = new Gee.ArrayList<uint> ();
-				string[] screensaver_ifaces = {
-					"org.freedesktop.ScreenSaver",
-					"org.gnome.ScreenSaver"
-				};
-				foreach (unowned string ss_iface in screensaver_ifaces) {
-					uint sub_id = session_bus.signal_subscribe (
-						null,
-						ss_iface,
-						"ActiveChanged",
-						null,
-						null,
-						DBusSignalFlags.NONE,
-						(conn, sender, path, iface, signal_name, parameters) => {
-							bool is_active = false;
-							parameters.get ("(b)", out is_active);
-							if (!is_active) {
-								message ("Screen unlocked (%s)! Scheduling dock refresh...", iface);
-								schedule_dock_refresh (500);
-							}
-						}
-					);
-					screensaver_sub_ids.add (sub_id);
-				}
-				debug ("Subscribed to ScreenSaver ActiveChanged signals");
-			} catch (Error e) {
-				debug ("Unable to subscribe to ScreenSaver ActiveChanged: %s", e.message);
 			}
 		}
 	}

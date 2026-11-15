@@ -371,30 +371,7 @@ namespace Plank
 
 		bool probe_latch_file_in_subprocess (string path)
 		{
-			Posix.pid_t pid = Posix.fork ();
-			if (pid < 0)
-				return true;
-			if (pid == 0) {
-				try {
-					var kf = new KeyFile ();
-					kf.load_from_file (path, KeyFileFlags.NONE);
-					if (!kf.has_group ("LatchState") && !kf.has_group ("DockPreferences"))
-						Posix._exit (1);
-					foreach (unowned string grp in kf.get_groups ())
-						foreach (unowned string k in kf.get_keys (grp))
-							kf.get_value (grp, k);
-					Posix._exit (0);
-				} catch (Error e) {
-					Posix._exit (1);
-				}
-				Posix._exit (1);
-			}
-			int status = 0;
-			Posix.pid_t waited = -1;
-			do {
-				waited = Posix.waitpid (pid, out status, 0);
-			} while (waited == -1 && Posix.errno == Posix.EINTR);
-			if (waited == pid && Process.if_exited (status) && Process.exit_status (status) == 0)
+			if (Hal.Runtime.validate_keyfile_isolated (path))
 				return true;
 			FileUtils.unlink (path);
 			return false;

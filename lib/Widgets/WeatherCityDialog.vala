@@ -282,13 +282,12 @@ namespace Plank
 
 		private static Gee.ArrayList<string> fetch_geocoding_suggestions_sync (string query)
 		{
-			string geo_cmd = "curl -s --max-time 4 'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=6&language=en&format=json'".printf (GLib.Uri.escape_string (query));
+			string geo_url = "https://geocoding-api.open-meteo.com/v1/search?name=%s&count=6&language=en&format=json".printf (GLib.Uri.escape_string (query));
 			string geo_out;
-			int status;
 			var suggestions = new Gee.ArrayList<string> ();
 
 			try {
-				if (Process.spawn_command_line_sync (geo_cmd, out geo_out, null, out status) && status == 0) {
+				if (Hal.Runtime.http_get_sync (geo_url, 4, out geo_out)) {
 					var parser = new Json.Parser ();
 					parser.load_from_data (geo_out);
 					var root = parser.get_root ();
@@ -378,11 +377,10 @@ namespace Plank
 
 		private static bool check_location_validity_sync (string query)
 		{
-			string geo_cmd = "curl -s --max-time 4 'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json'".printf (GLib.Uri.escape_string (query));
+			string geo_url = "https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json".printf (GLib.Uri.escape_string (query));
 			string geo_out;
-			int status;
 			try {
-				if (Process.spawn_command_line_sync (geo_cmd, out geo_out, null, out status) && status == 0) {
+				if (Hal.Runtime.http_get_sync (geo_url, 4, out geo_out)) {
 					var parser = new Json.Parser ();
 					parser.load_from_data (geo_out);
 					var root = parser.get_root ();

@@ -23,8 +23,8 @@ namespace Plank
 	[CCode (cname = "wayplank_hal_platform_bootstrap")]
 	extern void hal_platform_bootstrap ();
 
-	[CCode (cname = "wayplank_hal_platform_sync_autostart")]
-	extern void hal_platform_sync_autostart (bool enabled);
+	[CCode (cname = "wayplank_hal_platform_early_runtime")]
+	extern IPlatformRuntime hal_platform_early_runtime ();
 
 	/**
 	 * Northbound OS- and protocol-blind Hardware, Compositor & Bus Meta-Object.
@@ -37,6 +37,9 @@ namespace Plank
 		static IDockShell? shell_instance;
 		static IWindowBackend? windows_instance;
 		static IThumbnailProvider? thumbnails_instance;
+		static IBusBackend? bus_instance;
+		static ISystemTelemetry? telemetry_instance;
+		static IPlatformRuntime? runtime_instance;
 
 		public static PlatformCapabilities Capabilities {
 			get {
@@ -70,6 +73,32 @@ namespace Plank
 			}
 		}
 
+		public static IBusBackend Bus {
+			get {
+				if (bus_instance == null)
+					bus_instance = new NullBusBackend ();
+				return bus_instance;
+			}
+		}
+
+		public static ISystemTelemetry Telemetry {
+			get {
+				if (telemetry_instance == null)
+					telemetry_instance = new NullSystemTelemetry ();
+				return telemetry_instance;
+			}
+		}
+
+		public static IPlatformRuntime Runtime {
+			get {
+				if (runtime_instance == null)
+					runtime_instance = hal_platform_early_runtime ();
+				if (runtime_instance == null)
+					runtime_instance = new NullPlatformRuntime ();
+				return runtime_instance;
+			}
+		}
+
 		public static void initialize ()
 		{
 			hal_platform_bootstrap ();
@@ -84,6 +113,14 @@ namespace Plank
 			thumbnails_instance = thumbnails;
 		}
 
+		public static void bind_system_stack (IBusBackend bus,
+			ISystemTelemetry telemetry, IPlatformRuntime runtime)
+		{
+			bus_instance = bus;
+			telemetry_instance = telemetry;
+			runtime_instance = runtime;
+		}
+
 		public static void start ()
 		{
 			Windows.start ();
@@ -91,12 +128,13 @@ namespace Plank
 
 		public static void cleanup ()
 		{
+			if (telemetry_instance != null)
+				telemetry_instance.cleanup ();
+			if (bus_instance != null)
+				bus_instance.cleanup ();
+			if (runtime_instance != null)
+				runtime_instance.cleanup ();
 			Windows.cleanup ();
-		}
-
-		public static void sync_autostart (bool enabled)
-		{
-			hal_platform_sync_autostart (enabled);
 		}
 	}
 }

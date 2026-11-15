@@ -25,7 +25,7 @@ namespace Plank
 	 * Encapsulates kernel PWM backlight, multi-monitor output discovery, KWin kscreen-doctor,
 	 * Mutter / wlroots DDC/CI worker, and bi-directional auto-sync across heterogeneous Wayland compositors.
 	 */
-	public class BrightnessControl : GLib.Object
+	public class BrightnessControl : GLib.Object, IBrightnessProvider
 	{
 		private static BrightnessControl? instance = null;
 
@@ -43,12 +43,6 @@ namespace Plank
 				instance.cleanup ();
 			}
 		}
-
-		/**
-		 * Emitted whenever screen brightness changes, whether initiated by user action,
-		 * desktop power management, ambient light sensors, or laptop Fn hotkeys.
-		 */
-		public signal void brightness_changed (int percent);
 
 		private string? backlight_device = null;
 		private uint32 max_raw_brightness = 100;

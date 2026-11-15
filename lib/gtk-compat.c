@@ -27,6 +27,7 @@
 
 /* Conditional compat-layer for Gtk+ 3.19.1+ */
 
+#if !defined(_WIN32) && defined(__GNUC__)
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 void
 __attribute__((weak)) gtk_widget_class_set_css_name (GtkWidgetClass *widget_class, const char *name);
@@ -50,6 +51,19 @@ plank_compat_gtk_widget_path_iter_set_object_name (GtkWidgetPath *path, gint pos
 	}
 }
 G_GNUC_END_IGNORE_DEPRECATIONS
+#else
+void
+plank_compat_gtk_widget_class_set_css_name (GtkWidgetClass *widget_class, const char *name)
+{
+	gtk_widget_class_set_css_name (widget_class, name);
+}
+
+void
+plank_compat_gtk_widget_path_iter_set_object_name (GtkWidgetPath *path, gint pos, const char *name)
+{
+	gtk_widget_path_iter_set_object_name (path, pos, name);
+}
+#endif
 
 /* ============================================================================
  * WayPlank Monolithic In-Memory Localization Engine (GResource .mo in RAM)

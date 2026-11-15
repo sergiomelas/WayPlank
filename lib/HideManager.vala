@@ -68,7 +68,7 @@ namespace Plank
 		
 		static construct
 		{
-			plank_pid = getpid ();
+			plank_pid = Hal.Runtime.get_current_pid ();
 		}
 		
 		public DockController controller { private get; construct; }

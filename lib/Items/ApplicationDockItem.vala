@@ -940,52 +940,25 @@ namespace Plank
 		}
 		
 		/**
-		 * Update this item's remote libunity value based on the given data
-		 *
-		 * @param sender_name the corressponding dbusname
-		 * @param prop_iter the data in a standardize format from libunity
+		 * Update this item's remote badge/progress values based on normalized HAL state.
 		 */
-		public void unity_update (string sender_name, VariantIter prop_iter)
+		public void unity_update (string sender_name, LauncherBadgeState state)
 		{
 			unity_dbusname = sender_name;
-			
-			string prop_key;
-			Variant prop_value;
-			
-			while (prop_iter.next ("{sv}", out prop_key, out prop_value)) {
-				if (prop_key == "count") {
-					var val = prop_value.get_int64 ();
-					if (Count != val)
-						Count = val;
-				} else if (prop_key == "count-visible") {
-					var val = prop_value.get_boolean ();
-					if (CountVisible != val)
-						CountVisible = val;
-				} else if (prop_key == "progress") {
-					var val = nround (prop_value.get_double (), 3U);
-					if (Progress != val)
-						Progress = val;
-				} else if (prop_key == "progress-visible") {
-					var val = prop_value.get_boolean ();
-					if (ProgressVisible != val)
-						ProgressVisible = val;
-				} else if (prop_key == "urgent") {
-					set_urgent (prop_value.get_boolean ());
-#if HAVE_DBUSMENU
-				} else if (prop_key == "quicklist") {
-					/* The value is the object path of the dbusmenu */
-					unowned string dbus_path = prop_value.get_string ();
-					// Make sure we don't update our Quicklist instance if isn't necessary
-					if (Quicklist == null || Quicklist.dbus_object != dbus_path)
-						if (dbus_path != "") {
-							Logger.verbose ("Loading dynamic quicklists for %s (%s)", Text, sender_name);
-							Quicklist = new DbusmenuGtk.Client (sender_name, dbus_path);
-						} else {
-							Quicklist = null;
-						}
-#endif
-				}
+
+			if (state.has_count && Count != state.count)
+				Count = state.count;
+			if (state.has_count_visible && CountVisible != state.count_visible)
+				CountVisible = state.count_visible;
+			if (state.has_progress) {
+				var val = nround (state.progress, 3U);
+				if (Progress != val)
+					Progress = val;
 			}
+			if (state.has_progress_visible && ProgressVisible != state.progress_visible)
+				ProgressVisible = state.progress_visible;
+			if (state.has_urgent)
+				set_urgent (state.urgent);
 		}
 		
 		/**

@@ -460,7 +460,7 @@ namespace Plank
 			unowned PositionManager position_manager = controller.position_manager;
 			
 			screen_is_composited = position_manager.screen_is_composited;
-			show_notifications = EnvironmentSettings.get_instance ().ShowNotifications;
+			show_notifications = Hal.Bus.Notifications.show_launcher_badges;
 			dynamic_animation_offset = 0.0;
 			
 			var fade_opacity = theme.FadeOpacity;

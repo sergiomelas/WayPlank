@@ -146,20 +146,8 @@ namespace Plank
 				tmp_dir_out = tmp_dir;
 
 				string lower = archive_path.down ();
-				int exit_status;
 
-				string q_archive = Shell.quote (archive_path);
-				string q_tmp = Shell.quote (tmp_dir);
-
-				if (lower.has_suffix (".zip")) {
-					Process.spawn_command_line_sync ("unzip -q -o %s -d %s".printf (q_archive, q_tmp), null, null, out exit_status);
-				} else if (lower.has_suffix (".tar.gz") || lower.has_suffix (".tgz")) {
-					Process.spawn_command_line_sync ("tar -xzf %s -C %s".printf (q_archive, q_tmp), null, null, out exit_status);
-				} else if (lower.has_suffix (".tar.xz") || lower.has_suffix (".txz")) {
-					Process.spawn_command_line_sync ("tar -xJf %s -C %s".printf (q_archive, q_tmp), null, null, out exit_status);
-				} else if (lower.has_suffix (".tar.bz2")) {
-					Process.spawn_command_line_sync ("tar -xjf %s -C %s".printf (q_archive, q_tmp), null, null, out exit_status);
-				} else if (lower.has_suffix (".theme")) {
+				if (lower.has_suffix (".theme")) {
 					// Standalone .theme file
 					var src_file = File.new_for_path (archive_path);
 					string theme_name = src_file.get_basename ().replace (".theme", "");
@@ -172,6 +160,8 @@ namespace Plank
 						t_dir.make_directory_with_parents (null);
 						src_file.copy (t_dir.get_child ("dock.theme"), FileCopyFlags.OVERWRITE, null, null);
 					}
+				} else {
+					Hal.Runtime.extract_archive (archive_path, tmp_dir);
 				}
 
 				find_themes_recursive (File.new_for_path (tmp_dir), tmp_dir, archive_path, list);

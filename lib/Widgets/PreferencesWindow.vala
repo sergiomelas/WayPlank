@@ -1099,40 +1099,7 @@ namespace Plank
 		void autostart_toggled (GLib.Object widget, ParamSpec param)
 		{
 			var enabled = ((Gtk.Switch) widget).get_active ();
-			var autostart_dir = Path.build_filename (Environment.get_user_config_dir (), "autostart");
-			var autostart_path = Path.build_filename (autostart_dir, "wayplank.desktop");
-			var success = true;
-
-			if (enabled) {
-				if (DirUtils.create_with_parents (autostart_dir, 0755) != 0) {
-					warning ("Unable to create autostart directory '%s'", autostart_dir);
-					success = false;
-				} else {
-					try {
-						FileUtils.set_contents (autostart_path,
-							"[Desktop Entry]\n" +
-							"Type=Application\n" +
-							"Name=WayPlank\n" +
-							"Comment=Stupidly simple dock for Wayland\n" +
-							"Exec=wayplank\n" +
-							"Icon=plank\n" +
-							"Terminal=false\n" +
-							"X-GNOME-Autostart-enabled=true\n" +
-							"X-GNOME-Autostart-Delay=2\n" +
-							"X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2\n");
-					} catch (FileError e) {
-						warning ("Unable to create autostart entry '%s': %s", autostart_path, e.message);
-						success = false;
-					}
-				}
-			} else if (FileUtils.test (autostart_path, FileTest.EXISTS) && FileUtils.remove (autostart_path) != 0) {
-				warning ("Unable to remove autostart entry '%s'", autostart_path);
-				success = false;
-			}
-
-			if (success) {
-				Hal.sync_autostart (enabled);
-			} else {
+			if (!Hal.Runtime.set_autostart_enabled (enabled)) {
 				sw_autostart.notify["active"].disconnect (autostart_toggled);
 				sw_autostart.set_active (!enabled);
 				sw_autostart.notify["active"].connect (autostart_toggled);
@@ -1798,9 +1765,7 @@ namespace Plank
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
 			sw_workspace_only.sensitive = false;
 			sw_workspace_only.tooltip_text = _("Workspace filtering is not yet supported under Wayland");
-			sw_autostart.set_active (FileUtils.test (
-				Path.build_filename (Environment.get_user_config_dir (), "autostart", "wayplank.desktop"),
-				FileTest.IS_REGULAR));
+			sw_autostart.set_active (Hal.Runtime.is_autostart_enabled ());
 			sw_show_unpinned.set_active (!prefs.PinnedOnly);
 			sw_scroll_overflow.set_active (prefs.ScrollOverflow);
 			update_system_menu_access_options ();

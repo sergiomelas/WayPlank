@@ -103,6 +103,7 @@ if valac -g \
     --pkg json-glib-1.0 \
     --pkg gee-0.8 \
     --pkg compat \
+    --pkg unix-compat \
     --pkg config \
     --pkg wlr-bridge \
     -X -D_GNU_SOURCE \

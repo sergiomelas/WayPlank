@@ -38,11 +38,7 @@ namespace Plank
 			}
 
 			// 1. Try launching a full standalone calendar application matching active desktop
-			if (System.launch_desktop_utility (
-				{ "merkuro-calendar", "kalendar", "korganizer" },
-				{ "gnome-calendar" },
-				{ "xfce4-calendar" }
-			)) {
+			if (Hal.Runtime.open_system_utility (DesktopUtilityKind.CALENDAR)) {
 				return;
 			}
 

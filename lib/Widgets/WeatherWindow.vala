@@ -421,11 +421,8 @@ namespace Plank
 			if (weather_item == null || weather_item.yr_location_id.length == 0)
 				return;
 			string url = weather_item.get_details_url (day_offset);
-			try {
-				Gtk.show_uri_on_window (this, url, Gdk.CURRENT_TIME);
-			} catch (GLib.Error e) {
-				warning ("WeatherWindow: failed to open details URL '%s': %s", url, e.message);
-			}
+			if (!Hal.Runtime.open_uri (url, this))
+				warning ("WeatherWindow: failed to open details URL '%s'", url);
 		}
 
 		private void set_image_icon (Gtk.Image img, string icon_names, int pixel_size)

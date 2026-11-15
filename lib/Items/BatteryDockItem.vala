@@ -26,32 +26,31 @@ namespace Plank
 		int percentage = 100;
 		bool is_charging = false;
 		bool is_full = false;
+		bool has_bat = false;
 		string status_desc = "Unknown";
-		string? cached_bat_dir_path = null;
-		bool bat_probed = false;
-		
+
 		public BatteryDockItem ()
 		{
 			GLib.Object (Prefs: new DockItemPreferences ());
 		}
-		
+
 		public BatteryDockItem.with_dockitem_file (GLib.File file)
 		{
 			GLib.Object (Prefs: new DockItemPreferences.with_file (file));
 		}
-		
+
 		construct
 		{
 			Text = _("Battery");
 			Icon = "battery-full";
 			Button = PopupButton.RIGHT;
-			
+
 			refresh_battery_status ();
 			notify["IsAttached"].connect (on_attached_changed);
-			if (cached_bat_dir_path != null)
+			if (has_bat)
 				start_timer ();
 		}
-		
+
 		~BatteryDockItem ()
 		{
 			notify["IsAttached"].disconnect (on_attached_changed);
@@ -67,18 +66,18 @@ namespace Plank
 
 		void on_attached_changed ()
 		{
-			if (IsAttached && cached_bat_dir_path != null)
+			if (IsAttached && has_bat)
 				refresh_battery_status ();
 		}
-		
+
 		void start_timer ()
 		{
 			if (timer_id != 0)
 				return;
-			
+
 			timer_id = Timeout.add_seconds (3, on_timer_tick);
 		}
-		
+
 		void stop_timer ()
 		{
 			if (timer_id != 0) {
@@ -86,78 +85,37 @@ namespace Plank
 				timer_id = 0;
 			}
 		}
-		
+
 		public override bool is_valid ()
 		{
 			return true;
 		}
-		
+
 		public override void @delete ()
 		{
 			stop_timer ();
 			base.@delete ();
 		}
-		
+
 		void refresh_battery_status ()
 		{
-			// 1. Inspect /sys/class/power_supply once and cache battery path
-			if (!bat_probed || (cached_bat_dir_path != null && !FileUtils.test (cached_bat_dir_path, FileTest.IS_DIR))) {
-				cached_bat_dir_path = null;
-				var ps_dir = File.new_for_path ("/sys/class/power_supply");
-				try {
-					var enumerator = ps_dir.enumerate_children ("standard::name", FileQueryInfoFlags.NONE, null);
-					FileInfo? info = null;
-					while ((info = enumerator.next_file (null)) != null) {
-						var candidate = Path.build_filename ("/sys/class/power_supply", info.get_name ());
-						var type_file = Path.build_filename (candidate, "type");
-						string type_str;
-						if (FileUtils.get_contents (type_file, out type_str) && type_str.strip () == "Battery") {
-							cached_bat_dir_path = candidate;
-							break;
-						}
-					}
-				} catch (Error e) { }
+			var st = Hal.Telemetry.Battery.query_state ();
+			has_bat = st.has_battery;
 
-				if (cached_bat_dir_path == null) {
-					for (int i = 0; i <= 3; i++) {
-						string test_path = "/sys/class/power_supply/BAT%d".printf (i);
-						if (FileUtils.test (test_path, FileTest.IS_DIR)) {
-							cached_bat_dir_path = test_path;
-							break;
-						}
-					}
-				}
-				bat_probed = true;
-			}
-			string? bat_dir_path = cached_bat_dir_path;
-
-			if (bat_dir_path != null) {
-				string cap_str, stat_str;
-				try {
-					if (FileUtils.get_contents (Path.build_filename (bat_dir_path, "capacity"), out cap_str)) {
-						percentage = int.parse (cap_str.strip ());
-						if (percentage < 0) percentage = 0;
-						if (percentage > 100) percentage = 100;
-					}
-				} catch (Error e) { }
-
-				try {
-					if (FileUtils.get_contents (Path.build_filename (bat_dir_path, "status"), out stat_str)) {
-						string s = stat_str.strip ();
-						is_charging = (s == "Charging");
-						is_full = (s == "Full");
-						if (s == "Discharging")
-							status_desc = _("Discharging");
-						else if (s == "Not charging")
-							status_desc = _("Not charging");
-						else if (s == "Unknown")
-							status_desc = _("Unknown");
-						else
-							status_desc = s;
-					}
-				} catch (Error e) { }
+			if (has_bat) {
+				percentage = st.percentage;
+				is_charging = st.is_charging;
+				is_full = st.is_full;
+				string s = st.raw_status;
+				if (s == "Discharging")
+					status_desc = _("Discharging");
+				else if (s == "Not charging")
+					status_desc = _("Not charging");
+				else if (s == "Unknown" || s == "")
+					status_desc = _("Unknown");
+				else
+					status_desc = s;
 			} else {
-				// No battery (Desktop / VM on AC power)
 				percentage = 100;
 				is_charging = false;
 				is_full = true;
@@ -172,7 +130,7 @@ namespace Plank
 				Text = _("Battery: %d%% (%s)").printf (percentage, status_desc);
 			}
 
-			if (bat_dir_path == null) {
+			if (!has_bat) {
 				Icon = "battery-ac-adapter;;battery-missing";
 			} else if (is_charging) {
 				if (percentage < 20)
@@ -196,11 +154,11 @@ namespace Plank
 					Icon = "battery-full";
 			}
 
-			Count = (bat_dir_path != null) ? 1 : 0;
-			BadgeText = (bat_dir_path != null) ? "%d%%".printf (percentage) : null;
-			CountVisible = (bat_dir_path != null);
+			Count = has_bat ? 1 : 0;
+			BadgeText = has_bat ? "%d%%".printf (percentage) : null;
+			CountVisible = has_bat;
 		}
-		
+
 		bool on_timer_tick ()
 		{
 			if (!IsAttached)
@@ -208,48 +166,43 @@ namespace Plank
 			refresh_battery_status ();
 			return true;
 		}
-		
+
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
 			if (button == PopupButton.LEFT) {
-				if (System.launch_desktop_utility (
-					{ "kcmshell6 powerdevilprofilesconfig", "kcmshell5 powerdevilprofilesconfig" },
-					{ "gnome-control-center power" },
-					{ "xfce4-power-manager-settings" }
-				)) {
+				if (Hal.Runtime.open_system_utility (DesktopUtilityKind.POWER_SETTINGS))
 					return AnimationType.BOUNCE;
-				}
 			}
-			
+
 			return AnimationType.NONE;
 		}
-		
+
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
-			
+
 			var status_item = new Gtk.MenuItem.with_label (Text);
 			status_item.sensitive = false;
 			items.add (status_item);
-			
+
 			items.add (new Gtk.SeparatorMenuItem ());
-			
+
 			var settings_item = create_menu_item (_("_Power Settings..."), "preferences-system-power", true);
 			settings_item.activate.connect (() => {
 				on_clicked (PopupButton.LEFT, 0, 0);
 			});
 			items.add (settings_item);
-			
+
 			if (!is_dock_locked ()) {
 				items.add (new Gtk.SeparatorMenuItem ());
-				
+
 				var remove_item = create_menu_item (_("_Remove from Dock"), "edit-delete", true);
 				remove_item.activate.connect (() => {
 					this.@delete ();
 				});
 				items.add (remove_item);
 			}
-			
+
 			return items;
 		}
 	}

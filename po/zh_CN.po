@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 00:01+0100\n"
-"PO-Revision-Date: 2026-11-15 00:01+0100\n"
+"POT-Creation-Date: 2026-11-15 01:12+0100\n"
+"PO-Revision-Date: 2026-11-15 01:12+0100\n"
 "Last-Translator: 史有虎 (IFtiger-hu) <2212363803@qq.com>\n"
 "Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
 "Language: zh_CN\n"
@@ -17,54 +17,59 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: hal/Freedesktop/FreedesktopHalBootstrap.vala:135
+#: hal/Freedesktop/Dbus/NetworkManagerDbusService.vala:276
+#: lib/Items/NetworkDockItem.vala:153
+msgid "Wired Connection"
+msgstr "有线网络连接"
+
+#: hal/Freedesktop/FreedesktopHalBootstrap.vala:313
 msgid " (Requires KWin)"
 msgstr " (需要 KWin)"
 
-#: lib/DockPreferences.vala:414 lib/DockPreferences.vala:424
-#: lib/Factories/AbstractMain.vala:1609
+#: lib/DockPreferences.vala:391 lib/DockPreferences.vala:401
+#: lib/Factories/AbstractMain.vala:1566
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "全部设置 (latch-state.ini 已损坏)"
 
-#: lib/Factories/AbstractMain.vala:563
+#: lib/Factories/AbstractMain.vala:520
 msgid "About WayPlank"
 msgstr "关于 WayPlank"
 
-#: lib/Factories/AbstractMain.vala:590
+#: lib/Factories/AbstractMain.vala:547
 msgid "Fully supported compositors: none"
 msgstr "完全支持的混成器: 无"
 
-#: lib/Factories/AbstractMain.vala:591
+#: lib/Factories/AbstractMain.vala:548
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "完全支持的混成器: %s"
 
-#: lib/Factories/AbstractMain.vala:594
+#: lib/Factories/AbstractMain.vala:551
 msgid "Partially supported compositors: none"
 msgstr "部分支持的混成器: 无"
 
-#: lib/Factories/AbstractMain.vala:595
+#: lib/Factories/AbstractMain.vala:552
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "部分支持的混成器: %s"
 
-#: lib/Factories/AbstractMain.vala:599
+#: lib/Factories/AbstractMain.vala:556
 msgid "Website"
 msgstr "官方网站"
 
-#: lib/Factories/AbstractMain.vala:610 src/Main.vala:210
+#: lib/Factories/AbstractMain.vala:567 src/Main.vala:144
 msgid "translator-credits"
 msgstr "史有虎 (IFtiger-hu) <2212363803@qq.com>"
 
-#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1610
+#: lib/Factories/AbstractMain.vala:1557 lib/Factories/AbstractMain.vala:1567
 msgid "Defaulting partially to default config for:"
 msgstr "以下配置项已部分恢复为默认配置："
 
-#: lib/Factories/AbstractMain.vala:1602 lib/Factories/AbstractMain.vala:1606
+#: lib/Factories/AbstractMain.vala:1559 lib/Factories/AbstractMain.vala:1563
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "已丢弃损坏或无效的启动器项 (.dockitem)："
 
-#: lib/Factories/AbstractMain.vala:1629 lib/Factories/AbstractMain.vala:1632
+#: lib/Factories/AbstractMain.vala:1586 lib/Factories/AbstractMain.vala:1589
 msgid "Load environment failed"
 msgstr "加载环境配置失败"
 
@@ -95,53 +100,53 @@ msgstr "更改图标(_I)..."
 msgid "Drop to open with %s"
 msgstr "松手使用 %s 打开"
 
-#: lib/Items/BatteryDockItem.vala:45
+#: lib/Items/BatteryDockItem.vala:44
 msgid "Battery"
 msgstr "电池"
 
-#: lib/Items/BatteryDockItem.vala:150
+#: lib/Items/BatteryDockItem.vala:111
 msgid "Discharging"
 msgstr "放电中"
 
-#: lib/Items/BatteryDockItem.vala:152
+#: lib/Items/BatteryDockItem.vala:113
 msgid "Not charging"
 msgstr "未充电"
 
-#: lib/Items/BatteryDockItem.vala:154 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:115 lib/Items/FileDockItem.vala:901
 msgid "Unknown"
 msgstr "未知"
 
-#: lib/Items/BatteryDockItem.vala:164
+#: lib/Items/BatteryDockItem.vala:122
 msgid "AC Power"
 msgstr "交流电源"
 
-#: lib/Items/BatteryDockItem.vala:168
+#: lib/Items/BatteryDockItem.vala:126
 #, c-format
 msgid "Battery: %d%% (Charging)"
 msgstr "电池: %d%% (充电中)"
 
-#: lib/Items/BatteryDockItem.vala:170
+#: lib/Items/BatteryDockItem.vala:128
 #, c-format
 msgid "Battery: %d%% (Full)"
 msgstr "电池: %d%% (充满)"
 
-#: lib/Items/BatteryDockItem.vala:172
+#: lib/Items/BatteryDockItem.vala:130
 #, c-format
 msgid "Battery: %d%% (%s)"
 msgstr "电池: %d%% (%s)"
 
-#: lib/Items/BatteryDockItem.vala:237
+#: lib/Items/BatteryDockItem.vala:190
 msgid "_Power Settings..."
 msgstr "电源设置(_P)..."
 
-#: lib/Items/BatteryDockItem.vala:246 lib/Items/BrightnessDockItem.vala:204
-#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:269
+#: lib/Items/BatteryDockItem.vala:199 lib/Items/BrightnessDockItem.vala:200
+#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:155
 #: lib/Items/DigitalClockDockItem.vala:234
-#: lib/Items/DoNotDisturbDockItem.vala:714 lib/Items/EjectorDockItem.vala:284
-#: lib/Items/MprisDockItem.vala:784 lib/Items/NetworkDockItem.vala:497
-#: lib/Items/ScreenshotDockItem.vala:268 lib/Items/SessionDockItem.vala:122
-#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:403
-#: lib/Items/VolumeDockItem.vala:388 lib/Items/WeatherDockItem.vala:592
+#: lib/Items/DoNotDisturbDockItem.vala:231 lib/Items/EjectorDockItem.vala:205
+#: lib/Items/MprisDockItem.vala:488 lib/Items/NetworkDockItem.vala:302
+#: lib/Items/ScreenshotDockItem.vala:104 lib/Items/SessionDockItem.vala:122
+#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:155
+#: lib/Items/VolumeDockItem.vala:275 lib/Items/WeatherDockItem.vala:588
 msgid "_Remove from Dock"
 msgstr "从 Dock 移除(_R)"
 
@@ -179,16 +184,16 @@ msgstr "时钟"
 msgid "_Copy Time"
 msgstr "复制时间(_C)"
 
-#: lib/Items/CpuDockItem.vala:49
+#: lib/Items/CpuDockItem.vala:45
 msgid "System Monitor"
 msgstr "系统监控"
 
-#: lib/Items/CpuDockItem.vala:223
+#: lib/Items/CpuDockItem.vala:114
 #, c-format
 msgid "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%"
 msgstr "系统: %d%% | CPU: %d%% | 内存: %d%% (%.1f / %.1f GB) | 磁盘: %d%%"
 
-#: lib/Items/CpuDockItem.vala:260
+#: lib/Items/CpuDockItem.vala:146
 msgid "_System Monitor..."
 msgstr "系统监控(_S)..."
 
@@ -217,67 +222,67 @@ msgstr "插件 / Docklets"
 msgid "Digital Clock"
 msgstr "数字时钟"
 
-#: lib/Items/DoNotDisturbDockItem.vala:100
-#: lib/Items/DoNotDisturbDockItem.vala:693 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:47
+#: lib/Items/DoNotDisturbDockItem.vala:210 data/ui/preferences.ui:1946
 msgid "Do Not Disturb"
 msgstr "请勿打扰"
 
-#: lib/Items/DoNotDisturbDockItem.vala:261
+#: lib/Items/DoNotDisturbDockItem.vala:131
 msgid "Notifications: Silenced (Do Not Disturb)"
 msgstr "通知: 已静音 (请勿打扰模式)"
 
-#: lib/Items/DoNotDisturbDockItem.vala:261
+#: lib/Items/DoNotDisturbDockItem.vala:131
 msgid "Notifications: Active"
 msgstr "通知: 正常接收"
 
-#: lib/Items/DoNotDisturbDockItem.vala:700
+#: lib/Items/DoNotDisturbDockItem.vala:217
 msgid "Resume Notifications"
 msgstr "恢复接收通知"
 
-#: lib/Items/DoNotDisturbDockItem.vala:700
+#: lib/Items/DoNotDisturbDockItem.vala:217
 msgid "Silence Notifications"
 msgstr "静音桌面通知"
 
-#: lib/Items/DoNotDisturbDockItem.vala:707
+#: lib/Items/DoNotDisturbDockItem.vala:224
 msgid "_Notification Settings..."
 msgstr "通知设置(_N)..."
 
-#: lib/Items/EjectorDockItem.vala:48 data/ui/preferences.ui:2462
+#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2462
 msgid "Removable Drives"
 msgstr "可移动驱动器"
 
-#: lib/Items/EjectorDockItem.vala:146
+#: lib/Items/EjectorDockItem.vala:97
 #, c-format
 msgid "Removable Drives (%u mounted)"
 msgstr "可移动驱动器 (%u 个已挂载)"
 
-#: lib/Items/EjectorDockItem.vala:150
+#: lib/Items/EjectorDockItem.vala:101
 msgid "Removable Drives (None connected)"
 msgstr "可移动驱动器 (未连接)"
 
-#: lib/Items/EjectorDockItem.vala:188 lib/Items/EjectorDockItem.vala:210
+#: lib/Items/EjectorDockItem.vala:130
 msgid "Safe to Remove"
 msgstr "可安全移除"
 
-#: lib/Items/EjectorDockItem.vala:189
+#: lib/Items/EjectorDockItem.vala:131
 #, c-format
 msgid "Device '%s' has been safely unmounted."
 msgstr "设备 '%s' 已成功安全卸载。"
 
-#: lib/Items/EjectorDockItem.vala:227 lib/Items/EjectorDockItem.vala:265
+#: lib/Items/EjectorDockItem.vala:147 lib/Items/EjectorDockItem.vala:186
 #, c-format
 msgid "Eject '%s'"
 msgstr "弹出 '%s'"
 
-#: lib/Items/EjectorDockItem.vala:233 lib/Items/EjectorDockItem.vala:271
+#: lib/Items/EjectorDockItem.vala:153 lib/Items/EjectorDockItem.vala:192
 msgid "Eject All Devices"
 msgstr "弹出所有设备"
 
-#: lib/Items/EjectorDockItem.vala:253
+#: lib/Items/EjectorDockItem.vala:173
 msgid "No removable devices connected"
 msgstr "没有连接的可移动设备"
 
-#: lib/Items/EjectorDockItem.vala:276
+#: lib/Items/EjectorDockItem.vala:197
 msgid "No Removable Devices"
 msgstr "无移动存储设备"
 
@@ -328,96 +333,92 @@ msgstr "游戏"
 msgid "Utilities"
 msgstr "实用工具"
 
-#: lib/Items/MprisDockItem.vala:64 lib/Items/MprisDockItem.vala:540
+#: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:258
 #: lib/Services/ApplicationIdentity.vala:3518 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "媒体播放器"
 
-#: lib/Items/MprisDockItem.vala:503 lib/Items/MprisDockItem.vala:734
+#: lib/Items/MprisDockItem.vala:221 lib/Items/MprisDockItem.vala:438
 msgid "Playing"
 msgstr "播放中"
 
-#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
+#: lib/Items/MprisDockItem.vala:222 lib/Items/MprisDockItem.vala:439
 msgid "Paused"
 msgstr "已暂停"
 
-#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
+#: lib/Items/MprisDockItem.vala:222 lib/Items/MprisDockItem.vala:439
 msgid "Stopped"
 msgstr "已停止"
 
-#: lib/Items/MprisDockItem.vala:513
+#: lib/Items/MprisDockItem.vala:231
 #, c-format
 msgid "Media Player (%s)"
 msgstr "媒体播放器 (%s)"
 
-#: lib/Items/MprisDockItem.vala:525
+#: lib/Items/MprisDockItem.vala:243
 msgid "Media Player (Inactive)"
 msgstr "媒体播放器 (未激活)"
 
-#: lib/Items/MprisDockItem.vala:769
+#: lib/Items/MprisDockItem.vala:473
 msgid "Play / _Pause"
 msgstr "播放 / 暂停(_P)"
 
-#: lib/Items/MprisDockItem.vala:773
+#: lib/Items/MprisDockItem.vala:477
 msgid "_Next Track"
 msgstr "下一曲(_N)"
 
-#: lib/Items/MprisDockItem.vala:777
+#: lib/Items/MprisDockItem.vala:481
 msgid "P_revious Track"
 msgstr "上一曲(_R)"
 
-#: lib/Items/NetworkDockItem.vala:51
+#: lib/Items/NetworkDockItem.vala:50
 msgid "Network"
 msgstr "网络"
 
-#: lib/Items/NetworkDockItem.vala:336
-msgid "Wired Connection"
-msgstr "有线网络连接"
-
-#: lib/Items/NetworkDockItem.vala:351
+#: lib/Items/NetworkDockItem.vala:162
 #, c-format
 msgid "Wi-Fi: %s (%d%%) - %s"
 msgstr "Wi-Fi: %s (%d%%) - %s"
 
-#: lib/Items/NetworkDockItem.vala:353 lib/Items/NetworkDockItem.vala:459
+#: lib/Items/NetworkDockItem.vala:164 lib/Items/NetworkDockItem.vala:264
 #, c-format
 msgid "Wi-Fi: %s (%d%%)"
 msgstr "Wi-Fi: %s (%d%%)"
 
-#: lib/Items/NetworkDockItem.vala:371
+#: lib/Items/NetworkDockItem.vala:182
 #, c-format
 msgid "Ethernet: %s - %s"
 msgstr "有线网络: %s - %s"
 
-#: lib/Items/NetworkDockItem.vala:371 lib/Items/NetworkDockItem.vala:373
-#: lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:182 lib/Items/NetworkDockItem.vala:184
+#: lib/Items/NetworkDockItem.vala:266
 msgid "Connected"
 msgstr "已连接"
 
-#: lib/Items/NetworkDockItem.vala:373 lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:184 lib/Items/NetworkDockItem.vala:266
 #, c-format
 msgid "Ethernet: %s"
 msgstr "有线网络: %s"
 
-#: lib/Items/NetworkDockItem.vala:380 lib/Items/NetworkDockItem.vala:463
+#: lib/Items/NetworkDockItem.vala:191 lib/Items/NetworkDockItem.vala:268
 msgid "Network: Disconnected"
 msgstr "网络: 已断开"
 
-#: lib/Items/NetworkDockItem.vala:471
+#: lib/Items/NetworkDockItem.vala:276
 #, c-format
 msgid "IP: %s"
 msgstr "IP 地址: %s"
 
-#: lib/Items/NetworkDockItem.vala:477
+#: lib/Items/NetworkDockItem.vala:282
 #, c-format
 msgid "Gateway: %s"
 msgstr "网关: %s"
 
-#: lib/Items/NetworkDockItem.vala:485
+#: lib/Items/NetworkDockItem.vala:290
 msgid "Copy _IP Address"
 msgstr "复制 IP 地址(_I)"
 
-#: lib/Items/NetworkDockItem.vala:490
+#: lib/Items/NetworkDockItem.vala:295
 msgid "_Network Settings..."
 msgstr "网络设置(_N)..."
 
@@ -547,19 +548,19 @@ msgstr "插件(_D)..."
 msgid "Screenshot"
 msgstr "截屏"
 
-#: lib/Items/ScreenshotDockItem.vala:247
+#: lib/Items/ScreenshotDockItem.vala:83
 msgid "Capture Area / Rectangular..."
 msgstr "截取选定区域..."
 
-#: lib/Items/ScreenshotDockItem.vala:251
+#: lib/Items/ScreenshotDockItem.vala:87
 msgid "Capture Entire Screen"
 msgstr "截取全屏"
 
-#: lib/Items/ScreenshotDockItem.vala:255
+#: lib/Items/ScreenshotDockItem.vala:91
 msgid "Capture Active Window"
 msgstr "截取活动窗口"
 
-#: lib/Items/ScreenshotDockItem.vala:261
+#: lib/Items/ScreenshotDockItem.vala:97
 msgid "Open Screenshots Folder"
 msgstr "打开截屏保存目录"
 
@@ -607,59 +608,59 @@ msgstr "关机(_S)..."
 msgid "Session _Dialog..."
 msgstr "会话管理窗口(_D)..."
 
-#: lib/Items/SessionDockItem.vala:405
+#: lib/Items/SessionDockItem.vala:174
 msgid "Reboot to UEFI / BIOS"
 msgstr "重启进入 UEFI / BIOS"
 
-#: lib/Items/SessionDockItem.vala:405
+#: lib/Items/SessionDockItem.vala:174
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings?"
 msgstr "您确定要重启计算机并进入 UEFI / BIOS 固件设置吗？"
 
-#: lib/Items/SessionDockItem.vala:405 lib/Widgets/SessionWindow.vala:237
-#: lib/Widgets/SessionWindow.vala:406
+#: lib/Items/SessionDockItem.vala:174 lib/Widgets/SessionWindow.vala:235
+#: lib/Widgets/SessionWindow.vala:404
 msgid "UEFI / BIOS"
 msgstr "UEFI / BIOS"
 
-#: lib/Items/SessionDockItem.vala:438 lib/Widgets/SessionWindow.vala:184
-#: lib/Widgets/SessionWindow.vala:390
+#: lib/Items/SessionDockItem.vala:182 lib/Widgets/SessionWindow.vala:182
+#: lib/Widgets/SessionWindow.vala:388
 msgid "Log Out"
 msgstr "注销"
 
-#: lib/Items/SessionDockItem.vala:438
+#: lib/Items/SessionDockItem.vala:182
 msgid "Are you sure you want to log out of this session?"
 msgstr "确定要退出此会话吗？"
 
-#: lib/Items/SessionDockItem.vala:491
+#: lib/Items/SessionDockItem.vala:190
 msgid "Restart System"
 msgstr "重启系统"
 
-#: lib/Items/SessionDockItem.vala:491
+#: lib/Items/SessionDockItem.vala:190
 msgid "Are you sure you want to restart your computer?"
 msgstr "确定要重启计算机吗？"
 
-#: lib/Items/SessionDockItem.vala:491 lib/Widgets/SessionWindow.vala:229
-#: lib/Widgets/SessionWindow.vala:398
+#: lib/Items/SessionDockItem.vala:190 lib/Widgets/SessionWindow.vala:227
+#: lib/Widgets/SessionWindow.vala:396
 msgid "Restart"
 msgstr "重启"
 
-#: lib/Items/SessionDockItem.vala:533
+#: lib/Items/SessionDockItem.vala:198
 msgid "Shut Down System"
 msgstr "关闭计算机"
 
-#: lib/Items/SessionDockItem.vala:533
+#: lib/Items/SessionDockItem.vala:198
 msgid "Are you sure you want to shut down your computer?"
 msgstr "确定要关闭计算机吗？"
 
-#: lib/Items/SessionDockItem.vala:533 lib/Widgets/SessionWindow.vala:250
-#: lib/Widgets/SessionWindow.vala:414
+#: lib/Items/SessionDockItem.vala:198 lib/Widgets/SessionWindow.vala:248
+#: lib/Widgets/SessionWindow.vala:412
 msgid "Shut Down"
 msgstr "关机"
 
-#: lib/Items/SessionDockItem.vala:588 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:261
-#: lib/Widgets/SessionWindow.vala:306 lib/Widgets/WeatherCityDialog.vala:162
+#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
+#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:259
+#: lib/Widgets/SessionWindow.vala:304 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "取消"
 
@@ -671,59 +672,59 @@ msgstr "显示桌面"
 msgid "_Show / Hide Desktop"
 msgstr "显示 / 隐藏桌面(_S)"
 
-#: lib/Items/TrashDockItem.vala:48
+#: lib/Items/TrashDockItem.vala:43
 msgid "Trash"
 msgstr "回收站"
 
-#: lib/Items/TrashDockItem.vala:180
+#: lib/Items/TrashDockItem.vala:87
 msgid "Trash (Empty)"
 msgstr "回收站 (空)"
 
-#: lib/Items/TrashDockItem.vala:183
+#: lib/Items/TrashDockItem.vala:90
 msgid "Trash (1 item)"
 msgstr "回收站 (1 项)"
 
-#: lib/Items/TrashDockItem.vala:186
+#: lib/Items/TrashDockItem.vala:93
 #, c-format
 msgid "Trash (%u items)"
 msgstr "回收站 (%u 项)"
 
-#: lib/Items/TrashDockItem.vala:391
+#: lib/Items/TrashDockItem.vala:143
 msgid "_Open Trash"
 msgstr "打开回收站(_O)"
 
-#: lib/Items/TrashDockItem.vala:395
+#: lib/Items/TrashDockItem.vala:147
 msgid "_Empty Trash"
 msgstr "清空回收站(_E)"
 
-#: lib/Items/VolumeDockItem.vala:48
+#: lib/Items/VolumeDockItem.vala:45
 msgid "Volume"
 msgstr "音量"
 
-#: lib/Items/VolumeDockItem.vala:236
+#: lib/Items/VolumeDockItem.vala:171
 #, c-format
 msgid "Volume: %d%% (Muted)"
 msgstr "音量: %d%% (静音)"
 
-#: lib/Items/VolumeDockItem.vala:241
+#: lib/Items/VolumeDockItem.vala:176
 #, c-format
 msgid "Volume: %d%%"
 msgstr "音量: %d%%"
 
-#: lib/Items/VolumeDockItem.vala:371
+#: lib/Items/VolumeDockItem.vala:262
 msgid "Un_mute"
 msgstr "取消静音(_M)"
 
-#: lib/Items/VolumeDockItem.vala:371
+#: lib/Items/VolumeDockItem.vala:262
 msgid "_Mute"
 msgstr "静音(_M)"
 
-#: lib/Items/VolumeDockItem.vala:375
+#: lib/Items/VolumeDockItem.vala:266
 msgid "_Audio Settings..."
 msgstr "声音设置(_A)..."
 
 #: lib/Items/WeatherDockItem.vala:62 lib/Items/WeatherDockItem.vala:199
-#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:490
 msgid "Checking weather..."
 msgstr "正在获取天气..."
 
@@ -732,7 +733,7 @@ msgid "Weather"
 msgstr "天气"
 
 #: lib/Items/WeatherDockItem.vala:179 lib/Items/WeatherDockItem.vala:224
-#: lib/Items/WeatherDockItem.vala:493 lib/Widgets/WeatherWindow.vala:297
+#: lib/Items/WeatherDockItem.vala:490 lib/Widgets/WeatherWindow.vala:297
 msgid "Detecting location..."
 msgstr "正在定位..."
 
@@ -741,104 +742,104 @@ msgid "Updating weather..."
 msgstr "正在更新天气..."
 
 #: lib/Items/WeatherDockItem.vala:199 lib/Items/WeatherDockItem.vala:224
-#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:473
-#: lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:388 lib/Items/WeatherDockItem.vala:470
+#: lib/Items/WeatherDockItem.vala:490
 msgid "Offline"
 msgstr "离线"
 
-#: lib/Items/WeatherDockItem.vala:355
+#: lib/Items/WeatherDockItem.vala:354
 msgid "Location not found"
 msgstr "未找到位置"
 
-#: lib/Items/WeatherDockItem.vala:392 lib/Items/WeatherDockItem.vala:475
+#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:472
 msgid "No internet connection"
 msgstr "无网络连接"
 
-#: lib/Items/WeatherDockItem.vala:569
+#: lib/Items/WeatherDockItem.vala:565
 msgid "Refresh Weather"
 msgstr "刷新天气"
 
-#: lib/Items/WeatherDockItem.vala:575
+#: lib/Items/WeatherDockItem.vala:571
 msgid "Set Location..."
 msgstr "设置城市位置..."
 
-#: lib/Items/WeatherDockItem.vala:581
+#: lib/Items/WeatherDockItem.vala:577
 msgid "Switch to Fahrenheit (°F)"
 msgstr "切换到华氏度 (°F)"
 
-#: lib/Items/WeatherDockItem.vala:581
+#: lib/Items/WeatherDockItem.vala:577
 msgid "Switch to Celsius (°C)"
 msgstr "切换到摄氏度 (°C)"
 
-#: lib/Items/WeatherDockItem.vala:605
+#: lib/Items/WeatherDockItem.vala:601
 msgid "Clear sky"
 msgstr "晴朗"
 
-#: lib/Items/WeatherDockItem.vala:606
+#: lib/Items/WeatherDockItem.vala:602
 msgid "Mainly clear"
 msgstr "晴间多云"
 
-#: lib/Items/WeatherDockItem.vala:607 lib/Items/WeatherDockItem.vala:633
+#: lib/Items/WeatherDockItem.vala:603 lib/Items/WeatherDockItem.vala:629
 msgid "Partly cloudy"
 msgstr "多云"
 
-#: lib/Items/WeatherDockItem.vala:608
+#: lib/Items/WeatherDockItem.vala:604
 msgid "Overcast"
 msgstr "阴天"
 
-#: lib/Items/WeatherDockItem.vala:610
+#: lib/Items/WeatherDockItem.vala:606
 msgid "Foggy"
 msgstr "有雾"
 
-#: lib/Items/WeatherDockItem.vala:613
+#: lib/Items/WeatherDockItem.vala:609
 msgid "Drizzle"
 msgstr "毛毛雨"
 
-#: lib/Items/WeatherDockItem.vala:615
+#: lib/Items/WeatherDockItem.vala:611
 msgid "Freezing drizzle"
 msgstr "冻毛毛雨"
 
-#: lib/Items/WeatherDockItem.vala:617
+#: lib/Items/WeatherDockItem.vala:613
 msgid "Rain"
 msgstr "降雨"
 
-#: lib/Items/WeatherDockItem.vala:618
+#: lib/Items/WeatherDockItem.vala:614
 msgid "Heavy rain"
 msgstr "大雨"
 
-#: lib/Items/WeatherDockItem.vala:620
+#: lib/Items/WeatherDockItem.vala:616
 msgid "Freezing rain"
 msgstr "冻雨"
 
-#: lib/Items/WeatherDockItem.vala:622
+#: lib/Items/WeatherDockItem.vala:618
 msgid "Snow"
 msgstr "降雪"
 
-#: lib/Items/WeatherDockItem.vala:623
+#: lib/Items/WeatherDockItem.vala:619
 msgid "Heavy snow"
 msgstr "大雪"
 
-#: lib/Items/WeatherDockItem.vala:624
+#: lib/Items/WeatherDockItem.vala:620
 msgid "Snow grains"
 msgstr "雪粒"
 
-#: lib/Items/WeatherDockItem.vala:626
+#: lib/Items/WeatherDockItem.vala:622
 msgid "Rain showers"
 msgstr "阵雨"
 
-#: lib/Items/WeatherDockItem.vala:627
+#: lib/Items/WeatherDockItem.vala:623
 msgid "Violent rain showers"
 msgstr "狂暴阵雨"
 
-#: lib/Items/WeatherDockItem.vala:629
+#: lib/Items/WeatherDockItem.vala:625
 msgid "Snow showers"
 msgstr "阵雪"
 
-#: lib/Items/WeatherDockItem.vala:630
+#: lib/Items/WeatherDockItem.vala:626
 msgid "Thunderstorm"
 msgstr "雷阵雨"
 
-#: lib/Items/WeatherDockItem.vala:632
+#: lib/Items/WeatherDockItem.vala:628
 msgid "Thunderstorm with hail"
 msgstr "雷阵雨伴有冰雹"
 
@@ -846,7 +847,7 @@ msgstr "雷阵雨伴有冰雹"
 msgid "Recent Files"
 msgstr "最近打开的文件"
 
-#: lib/Widgets/CalendarWindow.vala:63
+#: lib/Widgets/CalendarWindow.vala:59
 msgid "Calendar"
 msgstr "日历"
 
@@ -1387,28 +1388,28 @@ msgid ""
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "确定要删除主题 '%s' 吗？\n此操作将从 ~/.local/share/wayplank/themes/ 中移除该主题。"
 
-#: lib/Widgets/PreferencesWindow.vala:1288 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1255 data/ui/preferences.ui:554
 msgid "Docklets Only"
 msgstr "仅小部件"
 
-#: lib/Widgets/PreferencesWindow.vala:1289 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1256 data/ui/preferences.ui:555
 msgid "Docklets Only (with fallback)"
 msgstr "仅小部件 (带回退)"
 
-#: lib/Widgets/PreferencesWindow.vala:1290 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1257 data/ui/preferences.ui:556
 msgid "All Icons (integrated)"
 msgstr "所有图标 (全局集成)"
 
-#: lib/Widgets/PreferencesWindow.vala:1291 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1258 data/ui/preferences.ui:557
 msgid "Dedicated Icon (on dock)"
 msgstr "专属图标 (停靠栏常驻)"
 
-#: lib/Widgets/PreferencesWindow.vala:1469
+#: lib/Widgets/PreferencesWindow.vala:1436
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "超限平滑翻页已激活: 保留图标大小 %dpx"
 
-#: lib/Widgets/PreferencesWindow.vala:1472
+#: lib/Widgets/PreferencesWindow.vala:1439
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1416,12 +1417,12 @@ msgid ""
 "the dock smoothly scrolls with mouse wheel when items exceed screen space."
 msgstr "目标图标大小: %dpx。\n行为设置中已启用 '超限平滑翻页'：图标绝不会被动缩小，当项目超出屏幕空间时可通过滚轮平滑浏览。"
 
-#: lib/Widgets/PreferencesWindow.vala:1483
+#: lib/Widgets/PreferencesWindow.vala:1450
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ 受限于屏幕物理空间强制限制为 %dpx (自动缩小)"
 
-#: lib/Widgets/PreferencesWindow.vala:1485
+#: lib/Widgets/PreferencesWindow.vala:1452
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1430,12 +1431,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ 图标大小设定为 %dpx，但因屏幕空间不足被强制约束在 %dpx。\n图标会自动缩小以容纳在屏幕内。\n若要无视屏幕限制解锁更大图标尺寸，请在 '行为' 中启用 '超限平滑翻页'。"
 
-#: lib/Widgets/PreferencesWindow.vala:1493
+#: lib/Widgets/PreferencesWindow.vala:1460
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "在不缩小的情况下完全适应屏幕 (容纳上限: %dpx)"
 
-#: lib/Widgets/PreferencesWindow.vala:1495
+#: lib/Widgets/PreferencesWindow.vala:1462
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1443,23 +1444,23 @@ msgid ""
 "shrinking activates)."
 msgstr "目标图标大小: %dpx。\n完全舒适适应屏幕 (触发自动缩小的临界上限为 %dpx)。"
 
-#: lib/Widgets/PreferencesWindow.vala:1724 data/ui/preferences.ui:232
+#: lib/Widgets/PreferencesWindow.vala:1691 data/ui/preferences.ui:232
 #: data/ui/preferences.ui:245
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "自动在主显示器上显示停靠栏；关闭后可手动指定目标显示器"
 
-#: lib/Widgets/PreferencesWindow.vala:1725
+#: lib/Widgets/PreferencesWindow.vala:1692
 msgid "Not supported by this compositor"
 msgstr "当前合成器不支持"
 
-#: lib/Widgets/PreferencesWindow.vala:1800 data/ui/preferences.ui:1448
+#: lib/Widgets/PreferencesWindow.vala:1767 data/ui/preferences.ui:1448
 #: data/ui/preferences.ui:1462
 msgid "Workspace filtering is not yet supported under Wayland"
 msgstr "工作区独立过滤功能在当前 Wayland 规范下暂未开放"
 
-#: lib/Widgets/PreferencesWindow.vala:1809 data/ui/preferences.ui:849
+#: lib/Widgets/PreferencesWindow.vala:1774 data/ui/preferences.ui:849
 #: data/ui/preferences.ui:862
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
@@ -1467,7 +1468,7 @@ msgid ""
 "for fluid unhiding"
 msgstr "需触及屏幕物理最边缘 (1px) 方可呼出停靠栏以防误触；关闭后则在边缘 10px 范围内平滑灵敏呼出"
 
-#: lib/Widgets/PreferencesWindow.vala:1813 data/ui/preferences.ui:876
+#: lib/Widgets/PreferencesWindow.vala:1778 data/ui/preferences.ui:876
 #: data/ui/preferences.ui:889
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
@@ -1476,7 +1477,7 @@ msgid ""
 "Reserve Screen Space"
 msgstr "按停靠栏厚度预留屏幕边缘空间（面板模式），使最大化窗口自动平铺而不重叠；开启此项将自动关闭“隐藏停靠栏”与“图标缩放”，而开启这两项中的任意一项将自动关闭“预留屏幕空间”"
 
-#: lib/Widgets/PreferencesWindow.vala:1816 data/ui/preferences.ui:1008
+#: lib/Widgets/PreferencesWindow.vala:1781 data/ui/preferences.ui:1008
 #: data/ui/preferences.ui:1022
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
@@ -1484,8 +1485,8 @@ msgid ""
 "positioned immediately behind or above the dock"
 msgstr "当光标靠近停靠栏时提前开始图标放大，带来流畅磁吸手感；禁用后可严格穿透鼠标点击至紧随停靠栏后方或上方的窗口"
 
-#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:310
-#: lib/Widgets/SessionWindow.vala:356
+#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:308
+#: lib/Widgets/SessionWindow.vala:354
 msgid "Session & Power"
 msgstr "电源与会话"
 
@@ -1493,116 +1494,116 @@ msgstr "电源与会话"
 msgid "Session &amp; Power"
 msgstr "电源与会话"
 
-#: lib/Widgets/SessionWindow.vala:147
+#: lib/Widgets/SessionWindow.vala:145
 msgid "Logged in as"
 msgstr "当前登录用户"
 
-#: lib/Widgets/SessionWindow.vala:170
+#: lib/Widgets/SessionWindow.vala:168
 msgid "Lock Screen"
 msgstr "锁定屏幕"
 
-#: lib/Widgets/SessionWindow.vala:170
+#: lib/Widgets/SessionWindow.vala:168
 msgid "Lock the current session"
 msgstr "锁定当前桌面会话"
 
-#: lib/Widgets/SessionWindow.vala:177
+#: lib/Widgets/SessionWindow.vala:175
 msgid "Switch User"
 msgstr "切换用户"
 
-#: lib/Widgets/SessionWindow.vala:177
+#: lib/Widgets/SessionWindow.vala:175
 msgid "Switch to another user or login screen"
 msgstr "切换到其他系统用户或锁屏登录界面"
 
-#: lib/Widgets/SessionWindow.vala:184
+#: lib/Widgets/SessionWindow.vala:182
 msgid "Log out of the current session"
 msgstr "退出并注销当前用户会话"
 
-#: lib/Widgets/SessionWindow.vala:190
+#: lib/Widgets/SessionWindow.vala:188
 msgid "Suspend"
 msgstr "待机/睡眠"
 
-#: lib/Widgets/SessionWindow.vala:190
+#: lib/Widgets/SessionWindow.vala:188
 msgid "Put computer into low-power sleep mode"
 msgstr "将计算机置于低功耗睡眠待机状态"
 
-#: lib/Widgets/SessionWindow.vala:199
+#: lib/Widgets/SessionWindow.vala:197
 msgid "Hibernate"
 msgstr "休眠"
 
-#: lib/Widgets/SessionWindow.vala:202
+#: lib/Widgets/SessionWindow.vala:200
 msgid "Save session to disk and power off"
 msgstr "将当前会话保存到磁盘并关闭电源"
 
-#: lib/Widgets/SessionWindow.vala:203
+#: lib/Widgets/SessionWindow.vala:201
 msgid ""
 "Hibernation is not available on this system (swap or kernel support missing)"
 msgstr "此系统不支持休眠（缺少交换分区或内核支持）"
 
-#: lib/Widgets/SessionWindow.vala:215
+#: lib/Widgets/SessionWindow.vala:213
 msgid "Hybrid Sleep"
 msgstr "混合睡眠"
 
-#: lib/Widgets/SessionWindow.vala:218
+#: lib/Widgets/SessionWindow.vala:216
 msgid "Save session to disk and put computer into low-power sleep mode"
 msgstr "将会话保存到磁盘并将计算机置于低功耗睡眠状态"
 
-#: lib/Widgets/SessionWindow.vala:219
+#: lib/Widgets/SessionWindow.vala:217
 msgid ""
 "Hybrid Sleep is not available on this system (swap or kernel support missing)"
 msgstr "此系统不支持混合睡眠（缺少交换分区或内核支持）"
 
-#: lib/Widgets/SessionWindow.vala:229
+#: lib/Widgets/SessionWindow.vala:227
 msgid "Reboot the operating system"
 msgstr "重启操作系统"
 
-#: lib/Widgets/SessionWindow.vala:240
+#: lib/Widgets/SessionWindow.vala:238
 msgid "Restart and enter the motherboard UEFI / BIOS firmware settings"
 msgstr "重启并进入主板 UEFI / BIOS 固件设置"
 
-#: lib/Widgets/SessionWindow.vala:241
+#: lib/Widgets/SessionWindow.vala:239
 msgid "UEFI / BIOS firmware setup is not supported on this system"
 msgstr "此系统不支持直接进入 UEFI / BIOS 固件设置"
 
-#: lib/Widgets/SessionWindow.vala:250
+#: lib/Widgets/SessionWindow.vala:248
 msgid "Power off the computer"
 msgstr "彻底关闭计算机电源"
 
-#: lib/Widgets/SessionWindow.vala:383
+#: lib/Widgets/SessionWindow.vala:381
 msgid "Confirm Session Action"
 msgstr "确认会话操作"
 
-#: lib/Widgets/SessionWindow.vala:388
+#: lib/Widgets/SessionWindow.vala:386
 msgid "Log Out of Session?"
 msgstr "注销当前用户会话？"
 
-#: lib/Widgets/SessionWindow.vala:389
+#: lib/Widgets/SessionWindow.vala:387
 msgid "Are you sure you want to log out of your current session?"
 msgstr "确定要注销当前会话吗？"
 
-#: lib/Widgets/SessionWindow.vala:396
+#: lib/Widgets/SessionWindow.vala:394
 msgid "Restart System?"
 msgstr "重启计算机系统？"
 
-#: lib/Widgets/SessionWindow.vala:397
+#: lib/Widgets/SessionWindow.vala:395
 msgid ""
 "Are you sure you want to restart your computer? Unsaved changes will be lost."
 msgstr "确定要重启计算机吗？未保存的更改将会丢失。"
 
-#: lib/Widgets/SessionWindow.vala:404
+#: lib/Widgets/SessionWindow.vala:402
 msgid "Reboot to UEFI / BIOS?"
 msgstr "重启进入 UEFI / BIOS？"
 
-#: lib/Widgets/SessionWindow.vala:405
+#: lib/Widgets/SessionWindow.vala:403
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings? Unsaved changes will be lost."
 msgstr "您确定要重启计算机并进入 UEFI / BIOS 固件设置吗？未保存的更改将会丢失。"
 
-#: lib/Widgets/SessionWindow.vala:412
+#: lib/Widgets/SessionWindow.vala:410
 msgid "Shut Down Computer?"
 msgstr "关闭计算机？"
 
-#: lib/Widgets/SessionWindow.vala:413
+#: lib/Widgets/SessionWindow.vala:411
 msgid ""
 "Are you sure you want to turn off your computer? Unsaved changes will be "
 "lost."
@@ -1645,7 +1646,7 @@ msgstr "°F (华氏度)"
 msgid "Save & Apply"
 msgstr "保存并应用"
 
-#: lib/Widgets/WeatherCityDialog.vala:426
+#: lib/Widgets/WeatherCityDialog.vala:424
 msgid "Location not found. Please choose from suggestions or leave blank."
 msgstr "未找到指定位置。请从候选建议中挑选或留空自动检测。"
 
@@ -1698,11 +1699,11 @@ msgstr "应用程序"
 msgid "Minimized"
 msgstr "已最小化"
 
-#: src/Main.vala:152
+#: src/Main.vala:86
 msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank 专为 Wayland 桌面会话设计。"
 
-#: src/Main.vala:154
+#: src/Main.vala:88
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - 不支持的会话"
 

@@ -21,31 +21,10 @@
 namespace Plank
 {
 	/**
-	 * The interface to provide the LauncherEntry handling.
+	 * Southbound `com.canonical.Unity.LauncherEntry` D-Bus driver (`ILauncherBadgeBus`),
+	 * rate-limiting incoming `(sa{sv})` signals and unpacking them into `LauncherBadgeState`.
 	 */
-	public interface UnityClient : Object
-	{
-		/**
-		 * The LauncherEntry corresponding to the sender_name requested an update
-		 *
-		 * @param sender_name the dbusname
-		 * @param parameters the data in a standardize format '(sa{sv})' from libunity
-		 * @param is_retry whether this data was already processed before and decided to give is another run
-		 */
-		public abstract void update_launcher_entry (string sender_name, Variant parameters, bool is_retry = false);
-
-		/**
-		 * The LauncherEntry corresponding to the sender_name vanished
-		 *
-		 * @param sender_name the dbusname
-		 */
-		public abstract void remove_launcher_entry (string sender_name);
-	}
-
-	/**
-	 * Handle the LauncherEntry DBus interface implemented by applications.
-	 */
-	public class Unity : GLib.Object
+	public class LauncherEntryDbusService : GLib.Object, ILauncherBadgeBus
 	{
 		class LauncherEntry
 		{
@@ -61,41 +40,32 @@ namespace Plank
 		const string INTERFACE_NAME = "com.canonical.Unity.LauncherEntry";
 		const string SIGNAL_NAME = "Update";
 
-		static Unity? instance = null;
-		static DBusConnection connection = null;
+		static LauncherEntryDbusService? instance = null;
+		static DBusConnection? connection = null;
 		static uint unity_bus_id = 0U;
 		static VariantType payload_variant_type;
 
-		public static unowned Unity get_default ()
+		public static unowned LauncherEntryDbusService get_default ()
 		{
 			if (instance == null)
-				instance = new Unity ();
+				instance = new LauncherEntryDbusService ();
 
 			return instance;
 		}
 
 		static construct
 		{
-			acquire_unity_dbus ();
 			payload_variant_type = new VariantType ("(sa{sv})");
 		}
 
-		/**
-		 * Connect DBus connection and try to aquire unity busname
-		 */
 		static void acquire_unity_dbus ()
 		{
-			// Initialize Unity DBus
-			try {
-				if (connection == null)
-					connection = Bus.get_sync (BusType.SESSION, null);
-			} catch (Error e) {
-				warning (e.message);
+			if (connection == null)
+				connection = DbusBroker.get_default ().get_session_bus ();
+			if (connection == null)
 				return;
-			}
 
 			if (unity_bus_id == 0U) {
-				// Acquire Unity bus-name to activate libunity clients since normally there shouldn't be a running Unity
 				unity_bus_id = Bus.own_name (BusType.SESSION, DBUS_NAME, BusNameOwnerFlags.ALLOW_REPLACEMENT,
 					(BusAcquiredCallback) handle_bus_acquired, (BusNameAcquiredCallback) handle_name_acquired,
 					(BusNameLostCallback) handle_name_lost);
@@ -104,7 +74,6 @@ namespace Plank
 
 		static void handle_bus_acquired (DBusConnection conn, string name)
 		{
-			// Nothing here since we just want to provide this bus without any functionality
 		}
 
 		static void handle_name_acquired (DBusConnection conn, string name)
@@ -120,21 +89,20 @@ namespace Plank
 				debug ("%s lost", name);
 		}
 
-		Gee.HashSet<UnityClient> clients;
-
+		Gee.HashSet<ILauncherBadgeClient>? clients;
 		uint launcher_entry_dbus_signal_id = 0U;
 		uint dbus_name_owner_changed_signal_id = 0U;
-		Gee.HashMap<string, LauncherEntry> launcher_entries;
+		Gee.HashMap<string, LauncherEntry>? launcher_entries;
 		uint launcher_entries_timer_id = 0U;
 
-		Unity ()
+		LauncherEntryDbusService ()
 		{
 			Object ();
 		}
 
 		construct
 		{
-			clients = new Gee.HashSet<UnityClient> ();
+			clients = new Gee.HashSet<ILauncherBadgeClient> ();
 			launcher_entries = new Gee.HashMap<string, LauncherEntry> ();
 
 			acquire_unity_dbus ();
@@ -149,7 +117,12 @@ namespace Plank
 			}
 		}
 
-		~Unity ()
+		~LauncherEntryDbusService ()
+		{
+			cleanup ();
+		}
+
+		public void cleanup ()
 		{
 			if (launcher_entries_timer_id > 0U) {
 				Source.remove (launcher_entries_timer_id);
@@ -168,35 +141,33 @@ namespace Plank
 
 			clients = null;
 
-			if (unity_bus_id > 0U)
+			if (unity_bus_id > 0U) {
 				Bus.unown_name (unity_bus_id);
+				unity_bus_id = 0U;
+			}
 
 			if (connection != null) {
-				if (launcher_entry_dbus_signal_id > 0U)
+				if (launcher_entry_dbus_signal_id > 0U) {
 					connection.signal_unsubscribe (launcher_entry_dbus_signal_id);
-				if (dbus_name_owner_changed_signal_id > 0U)
+					launcher_entry_dbus_signal_id = 0U;
+				}
+				if (dbus_name_owner_changed_signal_id > 0U) {
 					connection.signal_unsubscribe (dbus_name_owner_changed_signal_id);
+					dbus_name_owner_changed_signal_id = 0U;
+				}
 			}
 		}
 
-		/**
-		 * Add a client which will receive all update requests of running LauncherEntry applications.
-		 *
-		 * @param client the client to add
-		 */
-		public void add_client (UnityClient client)
+		public void add_client (ILauncherBadgeClient client)
 		{
-			clients.add (client);
+			if (clients != null)
+				clients.add (client);
 		}
 
-		/**
-		 * Remove a client.
-		 *
-		 * @param client the client to remove
-		 */
-		public void remove_client (UnityClient client)
+		public void remove_client (ILauncherBadgeClient client)
 		{
-			clients.remove (client);
+			if (clients != null)
+				clients.remove (client);
 		}
 
 		[CCode (instance_pos = -1)]
@@ -214,6 +185,9 @@ namespace Plank
 		void handle_name_owner_changed (DBusConnection connection, string sender_name, string object_path,
 			string interface_name, string signal_name, Variant parameters)
 		{
+			if (clients == null)
+				return;
+
 			string name, before, after;
 			parameters.get ("(sss)", out name, out before, out after);
 
@@ -228,6 +202,9 @@ namespace Plank
 
 		void handle_update_request (string sender_name, Variant parameters)
 		{
+			if (launcher_entries == null)
+				return;
+
 			var current_time = GLib.get_monotonic_time ();
 			LauncherEntry? entry;
 			if ((entry = launcher_entries.get (sender_name)) != null) {
@@ -242,14 +219,16 @@ namespace Plank
 						entry.timer_id = Timeout.add (UNITY_UPDATE_THRESHOLD_DURATION, () => {
 							entry.timer_id = 0U;
 							entry.last_update = GLib.get_monotonic_time ();
-							perform_update (entry.sender_name, entry.parameters);
+							if (entry.sender_name != null && entry.parameters != null)
+								perform_update (entry.sender_name, entry.parameters);
 							return false;
 						});
 					}
 				} else {
 					entry.fast_count++;
 					entry.last_update = current_time;
-					perform_update (entry.sender_name, entry.parameters);
+					if (entry.sender_name != null && entry.parameters != null)
+						perform_update (entry.sender_name, entry.parameters);
 				}
 			} else {
 				entry = new LauncherEntry ();
@@ -267,6 +246,11 @@ namespace Plank
 
 		bool clean_up_launcher_entries ()
 		{
+			if (launcher_entries == null) {
+				launcher_entries_timer_id = 0U;
+				return false;
+			}
+
 			var current_time = GLib.get_monotonic_time ();
 
 			var launcher_entries_it = launcher_entries.map_iterator ();
@@ -290,15 +274,64 @@ namespace Plank
 			return keep_running;
 		}
 
+		static LauncherBadgeState unpack_payload (Variant parameters)
+		{
+			var state = LauncherBadgeState () {
+				app_uri = "",
+				has_count = false,
+				count = 0,
+				has_count_visible = false,
+				count_visible = false,
+				has_progress = false,
+				progress = 0.0,
+				has_progress_visible = false,
+				progress_visible = false,
+				has_urgent = false,
+				urgent = false
+			};
+
+			VariantIter prop_iter;
+			string app_uri = "";
+			parameters.get ("(sa{sv})", out app_uri, out prop_iter);
+			state.app_uri = app_uri;
+
+			string prop_key;
+			Variant prop_value;
+			while (prop_iter.next ("{sv}", out prop_key, out prop_value)) {
+				if (prop_key == "count") {
+					state.has_count = true;
+					state.count = prop_value.get_int64 ();
+				} else if (prop_key == "count-visible") {
+					state.has_count_visible = true;
+					state.count_visible = prop_value.get_boolean ();
+				} else if (prop_key == "progress") {
+					state.has_progress = true;
+					state.progress = prop_value.get_double ();
+				} else if (prop_key == "progress-visible") {
+					state.has_progress_visible = true;
+					state.progress_visible = prop_value.get_boolean ();
+				} else if (prop_key == "urgent") {
+					state.has_urgent = true;
+					state.urgent = prop_value.get_boolean ();
+				}
+			}
+
+			return state;
+		}
+
 		void perform_update (string sender_name, Variant parameters)
 		{
+			if (clients == null)
+				return;
+
 			if (!parameters.is_of_type (payload_variant_type)) {
 				warning ("Illegal payload signature '%s' from %s. expected '(sa{sv})'", parameters.get_type_string (), sender_name);
 				return;
 			}
 
+			var state = unpack_payload (parameters);
 			clients.foreach ((client) => {
-				client.update_launcher_entry (sender_name, parameters);
+				client.update_launcher_entry (sender_name, state);
 				return true;
 			});
 		}

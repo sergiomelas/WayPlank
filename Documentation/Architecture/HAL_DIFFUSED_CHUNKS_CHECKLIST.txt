@@ -273,7 +273,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
 ================================================================================
 
 --- 3A. Define Bus, Telemetry & Runtime Boundary Translators ---
-[ ] [M3-01] `hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala`:
+[x] [M3-01] `hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala`:
             Define 100% OS- and transport-agnostic pure Vala contracts (ZERO `DBus*`,
             ZERO `GLib.Variant` wire tuples, ZERO `Portal`/`Unity`/`Xdg`/`Posix` names!).
             TRANSLATOR:
@@ -283,10 +283,10 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Translation: Unpacks D-Bus `Variant` trees / `/proc` / `/sys` on Linux
                 or Win32/COM/WinRT structs on Windows inside southbound drivers BEFORE
                 crossing `hal/Interfaces/`.
-[ ] [M3-02] `hal/Freedesktop/Dbus/DbusBroker.vala`:
+[x] [M3-02] `hal/Freedesktop/Dbus/DbusBroker.vala`:
             Single shared Session & System `DBusConnection` pool + `NameOwnerChanged`
             and `sender <-> unix_pid` cache for all Freedesktop bus drivers.
-[ ] [M3-03] `lib/DBus/{Interfaces,Client}.vala` + `lib/DBusManager.vala` ->
+[x] [M3-03] `lib/DBus/{Interfaces,Client}.vala` + `lib/DBusManager.vala` ->
             `hal/Freedesktop/Dbus/{DockIpcServer,DockIpcClient}.vala`, and purify
             `lib/DockController.vala` (L53, L110):
             TRANSLATOR:
@@ -297,10 +297,10 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 pure `IDockIpcTarget` callbacks on `DockController`.
               - Southbound: `net.launchpad.plank.Items` D-Bus object on Freedesktop;
                 Named Pipe `\\.\pipe\WayPlank_<SID>` RPC on Windows (`v0.7.3`).
-[ ] [M3-04] `lib/Services/Environment.vala` -> `hal/Freedesktop/Xdg/XdgEnvironment.vala`:
+[x] [M3-04] `lib/Services/Environment.vala` -> `hal/Freedesktop/Xdg/XdgEnvironment.vala`:
             Move `XdgSessionDesktop` / `XdgSessionType` / `XdgSessionClass` env-var
             parser completely into `hal/Freedesktop/Xdg/` (zero callers left in `lib/`!).
-[ ] [M3-05] `lib/Services/EnvironmentSettings.vala` (L27-117) &
+[x] [M3-05] `lib/Services/EnvironmentSettings.vala` (L27-117) &
             `lib/DockRenderer.vala` (L463):
             Move `org.gnome.desktop.notifications` & `org.pantheon.desktop.gala.notifications`
             schema probes into `hal/Freedesktop/Dbus/NotificationDbusService.vala`.
@@ -309,7 +309,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 + notify signal read by `DockRenderer` L463).
               - Southbound: GNOME/Pantheon GSettings schemas on Freedesktop; Windows
                 Taskbar badge setting (`HKCU\...\Explorer\Advanced\TaskbarBadges`) on Win32.
-[ ] [M3-06] `lib/Services/SystemTheme.vala` (L37-282), `lib/DockRenderer.vala` (L124,152),
+[x] [M3-06] `lib/Services/SystemTheme.vala` (L37-282), `lib/DockRenderer.vala` (L124,152),
             & `lib/Drawing/Theme.vala` (L193):
             Extract `org.freedesktop.portal.Settings` (`color-scheme`), `kdeglobals`,
             `org.kde.kconfig.notify`, and `org.gnome.desktop.interface` into
@@ -320,7 +320,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `Hal.Bus.Theme` consumer!
               - Southbound: Freedesktop Settings Portal / KDE / GNOME on Linux;
                 `WM_SETTINGCHANGE` (`ImmersiveColorSet`) + `AppsUseLightTheme` on Windows.
-[ ] [M3-07] `lib/Services/Unity.vala` (L26-288), `lib/DockController.vala` (L516,532),
+[x] [M3-07] `lib/Services/Unity.vala` (L26-288), `lib/DockController.vala` (L516,532),
             & `lib/Items/ApplicationDockItemProvider.vala` (L23):
             Extract `com.canonical.Unity.LauncherEntry` D-Bus ownership and `Variant`
             `'(sa{sv})'` unpacking into `hal/Freedesktop/Dbus/LauncherEntryDbusService.vala`,
@@ -334,14 +334,14 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `ITaskbarList3` overlay/progress + UWP Badge notifications on Windows.
 
 --- 3B. Purify All 14 Active Hardware / Bus / CLI Docklets & Dialogs ---
-[ ] [M3-08] `lib/Items/MprisDockItem.vala` (L97-678):
+[x] [M3-08] `lib/Items/MprisDockItem.vala` (L97-678):
             Extract all 35 `org.mpris.MediaPlayer2` D-Bus queries/signals/calls.
             TRANSLATOR:
               - Northbound: `IMediaController` (`players_changed`, `play_pause`,
                 `next_track`, `previous_track`, `raise_player`, `MediaPlayerSnapshot`).
               - Southbound: `MprisDbusService.vala` (`NameOwnerChanged` + `PropertiesChanged`)
                 on Freedesktop; `SendInput(VK_MEDIA_*)` + optional WinRT `GSMTC` on Windows.
-[ ] [M3-09] `lib/Items/DoNotDisturbDockItem.vala` (L23-675):
+[x] [M3-09] `lib/Items/DoNotDisturbDockItem.vala` (L23-675):
             Extract `org.freedesktop.Notifications`, GNOME GSettings, and `swaync-client`/
             `makoctl`/`dunstctl`/`xfconf-query` spawns, plus L672 `launch_desktop_utility`.
             TRANSLATOR:
@@ -349,7 +349,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `set_dnd_inhibited(bool)`) + `Hal.Runtime.open_system_utility(NOTIFICATION_SETTINGS)`.
               - Southbound: `NotificationDbusService.vala` on Freedesktop; Focus Assist /
                 `WpnNotifications` + `ms-settings:notifications` on Windows.
-[ ] [M3-10] `lib/Items/SessionDockItem.vala` (L134-565) &
+[x] [M3-10] `lib/Items/SessionDockItem.vala` (L134-565) &
             `lib/Widgets/SessionWindow.vala` (L140-335):
             Extract `login1`, `ScreenSaver`, `DisplayManager`, `org.kde.Shutdown`,
             and `systemctl`/`loginctl`/`gnome-session-quit`/`labwc --exit`/`dm-tool`.
@@ -361,14 +361,14 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: `LinuxSessionPower.vala` (`logind`/DE D-Bus) on Linux;
                 `LockWorkStation`, `WTSDisconnectSession`, `SetSuspendState`,
                 `ExitWindowsEx` on Windows.
-[ ] [M3-11] `lib/Items/BatteryDockItem.vala` (L104-220):
+[x] [M3-11] `lib/Items/BatteryDockItem.vala` (L104-220):
             Extract `/sys/class/power_supply/*` reader and `kcmshell6`/`gnome-control-center`.
             TRANSLATOR:
               - Northbound: `IBatteryProvider` (`BatteryState` struct + `battery_changed`)
                 & `Hal.Runtime.open_system_utility(POWER_SETTINGS)`.
               - Southbound: `UPower` / `/sys/class/power_supply` on Linux;
                 `GetSystemPowerStatus` + `WM_POWERBROADCAST` + `ms-settings:powersleep` on Windows.
-[ ] [M3-12] `lib/Items/BrightnessDockItem.vala` (L91-196):
+[x] [M3-12] `lib/Items/BrightnessDockItem.vala` (L91-196):
             Decouple from concrete `BrightnessControl` class and `kcmshell6`/`gnome-control-center`.
             TRANSLATOR:
               - Northbound: `IBrightnessProvider` (`is_available`, `get_percent`,
@@ -376,7 +376,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `Hal.Runtime.open_system_utility(DISPLAY_SETTINGS)`.
               - Southbound: `BrightnessControl` (KWin DRM / GNOME D-Bus / sysfs / DDC-CI)
                 on Linux; `dxva2.dll` `SetMonitorBrightness` + WMI + `ms-settings:display` on Windows.
-[ ] [M3-13] `lib/Items/CpuDockItem.vala` (L109, L148, L173, L238-242):
+[x] [M3-13] `lib/Items/CpuDockItem.vala` (L109, L148, L173, L238-242):
             Extract `/proc/stat`, `/proc/meminfo`, `/proc/diskstats` and `xfce4-taskmanager`.
             TRANSLATOR:
               - Northbound: `ICpuMemoryProvider` (`sample() -> CpuMemDiskSample`) &
@@ -384,7 +384,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: `LinuxCpuMemDiskTelemetry.vala` (`/proc`) on Linux;
                 `GetSystemTimes` + `GlobalMemoryStatusEx` + `IOCTL_DISK_PERFORMANCE` +
                 `taskmgr.exe` on Windows.
-[ ] [M3-14] `lib/Items/NetworkDockItem.vala` (L114-285, L420-424):
+[x] [M3-14] `lib/Items/NetworkDockItem.vala` (L114-285, L420-424):
             Extract `org.freedesktop.NetworkManager` System D-Bus and `kcmshell6`/`gnome-control-center`.
             TRANSLATOR:
               - Northbound: `INetworkProvider` (`NetworkState` struct + `network_changed`)
@@ -392,7 +392,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: `NetworkManagerDbusService.vala` on Linux; `iphlpapi.dll`
                 (`GetAdaptersAddresses`, `NotifyIpInterfaceChange`) + `wlanapi.dll` +
                 `ms-settings:network` on Windows.
-[ ] [M3-15] `lib/Items/VolumeDockItem.vala` (L131-161, L278-330, L377-381):
+[x] [M3-15] `lib/Items/VolumeDockItem.vala` (L131-161, L278-330, L377-381):
             Extract `wpctl` / `pactl` / `amixer` spawns and `kcmshell6`/`gnome-control-center`.
             TRANSLATOR:
               - Northbound: `IAudioProvider` (`get_state`, `set_volume_percent`,
@@ -400,7 +400,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `Hal.Runtime.open_system_utility(SOUND_SETTINGS)`.
               - Southbound: `LinuxAudioTelemetry.vala` (`wpctl`/`pactl`/`amixer`) on Linux;
                 CoreAudio `IAudioEndpointVolume` + `ms-settings:sound` on Windows.
-[ ] [M3-16] `lib/Items/EjectorDockItem.vala` (L27-253):
+[x] [M3-16] `lib/Items/EjectorDockItem.vala` (L27-253):
             Extract `GLib.VolumeMonitor` (GVFS/UDisks2-dependent!), `/media`/`/run/media`/
             `/mnt` path checks, `org.freedesktop.Notifications`, and `notify-send`.
             TRANSLATOR:
@@ -410,7 +410,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: `FreedesktopEjectorProvider.vala` (`VolumeMonitor` + `/media`
                 filter) on Linux; `CM_Request_Device_EjectW` + `IOCTL_STORAGE_EJECT_MEDIA`
                 on Windows.
-[ ] [M3-17] `lib/Items/ScreenshotDockItem.vala` (L51-227):
+[x] [M3-17] `lib/Items/ScreenshotDockItem.vala` (L51-227):
             Extract `org.freedesktop.portal.Screenshot`, `spectacle`/`gnome-screenshot`/
             `grim`+`slurp`/`flameshot`, `Gtk.show_uri_on_window`, and `xdg-open`.
             TRANSLATOR:
@@ -418,7 +418,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `capture_interactive_region()`, `open_screenshots_folder()`).
               - Southbound: `FreedesktopScreenshotProvider.vala` on Linux; Win32 GDI
                 `BitBlt` PNG capture + `ms-screenclip:` on Windows.
-[ ] [M3-18] `lib/Items/TrashDockItem.vala` (L25-437):
+[x] [M3-18] `lib/Items/TrashDockItem.vala` (L25-437):
             Extract `trash:///`, `~/.local/share/Trash/{files,info}`, `file.trash()`,
             `KWinTrashBridge`, `kioclient`/`xdg-open`, and `Gtk.show_uri_on_window`.
             TRANSLATOR:
@@ -429,24 +429,24 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: `FreedesktopTrashProvider.vala` (`trash:///` + XDG Trash +
                 `KWinTrashBridge`) on Linux; `SHQueryRecycleBinW` + `SHEmptyRecycleBinW` +
                 `SHFileOperationW(FOF_ALLOWUNDO)` + `shell:RecycleBinFolder` on Windows.
-[ ] [M3-19] `lib/Items/WeatherDockItem.vala` (L318-500) &
+[x] [M3-19] `lib/Items/WeatherDockItem.vala` (L318-500) &
             `lib/Widgets/WeatherCityDialog.vala` (L285-385):
             Replace all 6 `curl -s --max-time ...` subprocess calls.
             TRANSLATOR:
               - Northbound: `Hal.Runtime.http_get_sync(url, timeout_sec)`.
               - Southbound: `UnixHttpAndArchive.vala` (`curl`) on Linux/BSD; native
                 `WinHTTP.dll` (`WinHttpOpen`/`WinHttpSendRequest`) on Windows.
-[ ] [M3-20] `lib/Widgets/WeatherWindow.vala` (L425):
+[x] [M3-20] `lib/Widgets/WeatherWindow.vala` (L425):
             Replace `Gtk.show_uri_on_window(this, url, ...)`.
             TRANSLATOR:
               - Northbound: `Hal.Runtime.open_uri(url)`.
               - Southbound: `AppInfo` / `xdg-open` on Freedesktop; `ShellExecuteExW` on Windows.
-[ ] [M3-21] `lib/Widgets/CalendarWindow.vala` (L41-45):
+[x] [M3-21] `lib/Widgets/CalendarWindow.vala` (L41-45):
             Replace `System.launch_desktop_utility` (`gnome-calendar` / `xfce4-calendar`).
             TRANSLATOR:
               - Northbound: `Hal.Runtime.open_system_utility(DesktopUtilityKind.CALENDAR)`.
               - Southbound: DE calendar launcher on Linux; `outlookcal:` / Calendar on Windows.
-[ ] [M3-22] `lib/Services/ThemeManager.vala` (L151-162):
+[x] [M3-22] `lib/Services/ThemeManager.vala` (L151-162):
             Replace `Shell.quote` + `unzip` / `tar -xzf` / `tar -xJf` / `tar -xjf` spawns.
             TRANSLATOR:
               - Northbound: `Hal.Runtime.extract_archive(archive_path, dest_dir)`.
@@ -454,29 +454,29 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 TAR extractor on Windows.
 
 --- 3C. Purify C Headers, Core VAPI, POSIX Fork/Signals & Process Lifecycle ---
-[ ] [M3-23] `lib/Drawing/Surface.vala` (L531):
+[x] [M3-23] `lib/Drawing/Surface.vala` (L531):
             Replace `Posix.memset(abuffer, 0, sizeof(double) * size)` with 100%
             portable `GLib.Memory.set(abuffer, 0, sizeof(double) * size)`.
-[ ] [M3-24] `lib/gtk-compat.c` (L32, L44) & `include/config.h` (L41-43):
+[x] [M3-24] `lib/gtk-compat.c` (L32, L44) & `include/config.h` (L41-43):
             Guard ELF `__attribute__((weak))` probes in `gtk-compat.c` with
             `#if !defined(_WIN32) && defined(__GNUC__)` (calling GTK3 functions directly
             in static Win32 builds), and guard Unix `PREFIX`/`DATADIR`/`PKGDATADIR`
             defaults in `include/config.h` with `#ifndef _WIN32`.
-[ ] [M3-25] `vapi/core/compat.vapi` (L27-36) -> `vapi/freedesktop/unix-compat.vapi`:
+[x] [M3-25] `vapi/core/compat.vapi` (L27-36) -> `vapi/freedesktop/unix-compat.vapi`:
             Remove `<sys/prctl.h>` (`prctl`) and `<unistd.h>` (`setproctitle`, `getpid`)
             from `vapi/core/compat.vapi` so `vapi/core/` has ZERO Unix C headers!
             TRANSLATOR:
               - Northbound: `Hal.Runtime.set_process_title(name)` &
                 `Hal.Runtime.get_current_pid()`.
               - Southbound: `prctl` / `getpid` on Linux; `GetCurrentProcessId()` on Windows.
-[ ] [M3-26] `lib/DockPreferences.vala` (L374-396):
+[x] [M3-26] `lib/DockPreferences.vala` (L374-396):
             Extract `Posix.fork()`, `Posix.waitpid()`, `Posix._exit()`, `Posix.EINTR`
             in `probe_latch_file_in_subprocess()`.
             TRANSLATOR:
               - Northbound: `Hal.Runtime.validate_keyfile_isolated(path) -> bool`.
               - Southbound: `fork()` + `KeyFile` child validator on Linux/BSD;
                 `CreateProcessW(..., "--validate-latch")` isolated child on Windows.
-[ ] [M3-27] `lib/DockController.vala` (L250-269, L328, L337, L411) &
+[x] [M3-27] `lib/DockController.vala` (L250-269, L328, L337, L411) &
             `lib/Widgets/PreferencesWindow.vala` (L1099-1138, L1801-1802):
             Extract `~/.config/autostart/wayplank.desktop` (incl. KDE `ScreenShot2`
             whitelist & `LabwcBackend.sync_autostart`) and `killall -q plank`.
@@ -486,7 +486,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
                 `Hal.Runtime.terminate_legacy_competing_docks()`.
               - Southbound: `XdgAutostart.vala` + Labwc autostart on Freedesktop;
                 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (`WayPlank`) on Windows.
-[ ] [M3-28] `src/Main.vala` (L39-46, L110-146, L189-201):
+[x] [M3-28] `src/Main.vala` (L39-46, L110-146, L189-201):
             Extract `/proc/%d/cmdline`, `Posix.stat`/`getpid`/`getuid`/`kill`, `pidof`,
             `GTK_USE_PORTAL=0`, and `"GdkWaylandDisplay"` check.
             TRANSLATOR:
@@ -497,7 +497,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: `/proc` + `Posix.kill` + Wayland check on Linux; Named Pipe
                 `--replace` shutdown + Win32 display check + `%LOCALAPPDATA%\WayPlank`
                 schema bootstrap on Windows.
-[ ] [M3-29] `lib/Factories/AbstractMain.vala` (L101-131, L254-262, L346-382, L588-592,
+[x] [M3-29] `lib/Factories/AbstractMain.vala` (L101-131, L254-262, L346-382, L588-592,
             L2102, L2119-2261):
             Extract `GLib.Unix.signal_add` (`SIGINT`/`SIGTERM`/`SIGHUP`/`SIGWINCH`),
             `/proc/self/exe` live upgrade restart, `Posix.utsname()`/`exit()`, `prctl`/
@@ -509,7 +509,7 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
               - Southbound: Unix signals + `/proc/self/exe` + `logind` on Linux;
                 Win32 console/window message handler + `CreateProcessW(GetModuleFileNameW)`
                 + `WM_POWERBROADCAST` / `WTSRegisterSessionNotification` on Windows.
-[ ] [M3-30] Build & Move 3 Smoke Gate:
+[x] [M3-30] Build & Move 3 Smoke Gate:
             Run `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings) and
             verify all 16 docklets, system dark/light theme flip, Unity badges,
             autostart toggle, and clean Quit / `--replace`.

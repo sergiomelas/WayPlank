@@ -38,9 +38,15 @@
 #endif
 #define GETTEXT_PACKAGE "wayplank"
 
+#ifndef _WIN32
 #define PREFIX "/usr"
 #define DATADIR "/usr/share"
 #define PKGDATADIR "/usr/share/wayplank"
+#else
+#define PREFIX "."
+#define DATADIR "./share"
+#define PKGDATADIR "./share/wayplank"
+#endif
 #define RELEASE_NAME "WayPlank"
 #ifndef VERSION_INFO
 #define VERSION_INFO "WayPlank " PACKAGE_VERSION " - " PACKAGE_VERSION_DECO

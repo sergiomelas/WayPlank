@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 00:01+0100\n"
-"PO-Revision-Date: 2026-11-15 00:01+0100\n"
+"POT-Creation-Date: 2026-11-15 01:12+0100\n"
+"PO-Revision-Date: 2026-11-15 01:12+0100\n"
 "Last-Translator: Michailo Buchko <mixabuchko@gmail.com>\n"
 "Language-Team: Ukrainian <uk@li.org>\n"
 "Language: uk\n"
@@ -19,54 +19,59 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: hal/Freedesktop/FreedesktopHalBootstrap.vala:135
+#: hal/Freedesktop/Dbus/NetworkManagerDbusService.vala:276
+#: lib/Items/NetworkDockItem.vala:153
+msgid "Wired Connection"
+msgstr "Дротове з'єднання"
+
+#: hal/Freedesktop/FreedesktopHalBootstrap.vala:313
 msgid " (Requires KWin)"
 msgstr " (Потребує KWin)"
 
-#: lib/DockPreferences.vala:414 lib/DockPreferences.vala:424
-#: lib/Factories/AbstractMain.vala:1609
+#: lib/DockPreferences.vala:391 lib/DockPreferences.vala:401
+#: lib/Factories/AbstractMain.vala:1566
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Усі параметри (latch-state.ini пошкоджено)"
 
-#: lib/Factories/AbstractMain.vala:563
+#: lib/Factories/AbstractMain.vala:520
 msgid "About WayPlank"
 msgstr "Про WayPlank"
 
-#: lib/Factories/AbstractMain.vala:590
+#: lib/Factories/AbstractMain.vala:547
 msgid "Fully supported compositors: none"
 msgstr "Повністю підтримувані композитори: немає"
 
-#: lib/Factories/AbstractMain.vala:591
+#: lib/Factories/AbstractMain.vala:548
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "Повністю підтримувані композитори: %s"
 
-#: lib/Factories/AbstractMain.vala:594
+#: lib/Factories/AbstractMain.vala:551
 msgid "Partially supported compositors: none"
 msgstr "Частково підтримувані композитори: немає"
 
-#: lib/Factories/AbstractMain.vala:595
+#: lib/Factories/AbstractMain.vala:552
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "Частково підтримувані композитори: %s"
 
-#: lib/Factories/AbstractMain.vala:599
+#: lib/Factories/AbstractMain.vala:556
 msgid "Website"
 msgstr "Вебсайт"
 
-#: lib/Factories/AbstractMain.vala:610 src/Main.vala:210
+#: lib/Factories/AbstractMain.vala:567 src/Main.vala:144
 msgid "translator-credits"
 msgstr "Michailo Buchko <mixabuchko@gmail.com>"
 
-#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1610
+#: lib/Factories/AbstractMain.vala:1557 lib/Factories/AbstractMain.vala:1567
 msgid "Defaulting partially to default config for:"
 msgstr "Часткове скидання до типової конфігурації для:"
 
-#: lib/Factories/AbstractMain.vala:1602 lib/Factories/AbstractMain.vala:1606
+#: lib/Factories/AbstractMain.vala:1559 lib/Factories/AbstractMain.vala:1563
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "Відхилено пошкоджений або недійсний елемент dockitem:"
 
-#: lib/Factories/AbstractMain.vala:1629 lib/Factories/AbstractMain.vala:1632
+#: lib/Factories/AbstractMain.vala:1586 lib/Factories/AbstractMain.vala:1589
 msgid "Load environment failed"
 msgstr "Помилка завантаження середовища"
 
@@ -97,53 +102,53 @@ msgstr "Змінити _піктограму..."
 msgid "Drop to open with %s"
 msgstr "Відпустіть, щоб відкрити в %s"
 
-#: lib/Items/BatteryDockItem.vala:45
+#: lib/Items/BatteryDockItem.vala:44
 msgid "Battery"
 msgstr "Акумулятор"
 
-#: lib/Items/BatteryDockItem.vala:150
+#: lib/Items/BatteryDockItem.vala:111
 msgid "Discharging"
 msgstr "Розряджається"
 
-#: lib/Items/BatteryDockItem.vala:152
+#: lib/Items/BatteryDockItem.vala:113
 msgid "Not charging"
 msgstr "Не заряджається"
 
-#: lib/Items/BatteryDockItem.vala:154 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:115 lib/Items/FileDockItem.vala:901
 msgid "Unknown"
 msgstr "Невідомо"
 
-#: lib/Items/BatteryDockItem.vala:164
+#: lib/Items/BatteryDockItem.vala:122
 msgid "AC Power"
 msgstr "Живлення від мережі"
 
-#: lib/Items/BatteryDockItem.vala:168
+#: lib/Items/BatteryDockItem.vala:126
 #, c-format
 msgid "Battery: %d%% (Charging)"
 msgstr "Акумулятор: %d%% (заряджається)"
 
-#: lib/Items/BatteryDockItem.vala:170
+#: lib/Items/BatteryDockItem.vala:128
 #, c-format
 msgid "Battery: %d%% (Full)"
 msgstr "Акумулятор: %d%% (повний)"
 
-#: lib/Items/BatteryDockItem.vala:172
+#: lib/Items/BatteryDockItem.vala:130
 #, c-format
 msgid "Battery: %d%% (%s)"
 msgstr "Акумулятор: %d%% (%s)"
 
-#: lib/Items/BatteryDockItem.vala:237
+#: lib/Items/BatteryDockItem.vala:190
 msgid "_Power Settings..."
 msgstr "Параметри _живлення..."
 
-#: lib/Items/BatteryDockItem.vala:246 lib/Items/BrightnessDockItem.vala:204
-#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:269
+#: lib/Items/BatteryDockItem.vala:199 lib/Items/BrightnessDockItem.vala:200
+#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:155
 #: lib/Items/DigitalClockDockItem.vala:234
-#: lib/Items/DoNotDisturbDockItem.vala:714 lib/Items/EjectorDockItem.vala:284
-#: lib/Items/MprisDockItem.vala:784 lib/Items/NetworkDockItem.vala:497
-#: lib/Items/ScreenshotDockItem.vala:268 lib/Items/SessionDockItem.vala:122
-#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:403
-#: lib/Items/VolumeDockItem.vala:388 lib/Items/WeatherDockItem.vala:592
+#: lib/Items/DoNotDisturbDockItem.vala:231 lib/Items/EjectorDockItem.vala:205
+#: lib/Items/MprisDockItem.vala:488 lib/Items/NetworkDockItem.vala:302
+#: lib/Items/ScreenshotDockItem.vala:104 lib/Items/SessionDockItem.vala:122
+#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:155
+#: lib/Items/VolumeDockItem.vala:275 lib/Items/WeatherDockItem.vala:588
 msgid "_Remove from Dock"
 msgstr "_Вилучити з дока"
 
@@ -181,16 +186,16 @@ msgstr "Годинник"
 msgid "_Copy Time"
 msgstr "_Копіювати час"
 
-#: lib/Items/CpuDockItem.vala:49
+#: lib/Items/CpuDockItem.vala:45
 msgid "System Monitor"
 msgstr "Системний монітор"
 
-#: lib/Items/CpuDockItem.vala:223
+#: lib/Items/CpuDockItem.vala:114
 #, c-format
 msgid "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%"
 msgstr "Система: %d%% | ЦП: %d%% | ОЗП: %d%% (%.1f / %.1f ГБ) | Диск: %d%%"
 
-#: lib/Items/CpuDockItem.vala:260
+#: lib/Items/CpuDockItem.vala:146
 msgid "_System Monitor..."
 msgstr "_Системний монітор..."
 
@@ -219,67 +224,67 @@ msgstr "Докліти"
 msgid "Digital Clock"
 msgstr "Цифровий годинник"
 
-#: lib/Items/DoNotDisturbDockItem.vala:100
-#: lib/Items/DoNotDisturbDockItem.vala:693 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:47
+#: lib/Items/DoNotDisturbDockItem.vala:210 data/ui/preferences.ui:1946
 msgid "Do Not Disturb"
 msgstr "Не турбувати"
 
-#: lib/Items/DoNotDisturbDockItem.vala:261
+#: lib/Items/DoNotDisturbDockItem.vala:131
 msgid "Notifications: Silenced (Do Not Disturb)"
 msgstr "Сповіщення: вимкнено («Не турбувати»)"
 
-#: lib/Items/DoNotDisturbDockItem.vala:261
+#: lib/Items/DoNotDisturbDockItem.vala:131
 msgid "Notifications: Active"
 msgstr "Сповіщення: активні"
 
-#: lib/Items/DoNotDisturbDockItem.vala:700
+#: lib/Items/DoNotDisturbDockItem.vala:217
 msgid "Resume Notifications"
 msgstr "Увімкнути сповіщення"
 
-#: lib/Items/DoNotDisturbDockItem.vala:700
+#: lib/Items/DoNotDisturbDockItem.vala:217
 msgid "Silence Notifications"
 msgstr "Вимкнути звук сповіщень"
 
-#: lib/Items/DoNotDisturbDockItem.vala:707
+#: lib/Items/DoNotDisturbDockItem.vala:224
 msgid "_Notification Settings..."
 msgstr "_Параметри сповіщень..."
 
-#: lib/Items/EjectorDockItem.vala:48 data/ui/preferences.ui:2462
+#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2462
 msgid "Removable Drives"
 msgstr "Знімні диски"
 
-#: lib/Items/EjectorDockItem.vala:146
+#: lib/Items/EjectorDockItem.vala:97
 #, c-format
 msgid "Removable Drives (%u mounted)"
 msgstr "Знімні диски (змонтовано: %u)"
 
-#: lib/Items/EjectorDockItem.vala:150
+#: lib/Items/EjectorDockItem.vala:101
 msgid "Removable Drives (None connected)"
 msgstr "Знімні диски (жодного не підключено)"
 
-#: lib/Items/EjectorDockItem.vala:188 lib/Items/EjectorDockItem.vala:210
+#: lib/Items/EjectorDockItem.vala:130
 msgid "Safe to Remove"
 msgstr "Можна безпечно відключити"
 
-#: lib/Items/EjectorDockItem.vala:189
+#: lib/Items/EjectorDockItem.vala:131
 #, c-format
 msgid "Device '%s' has been safely unmounted."
 msgstr "Пристрій '%s' безпечно відключено."
 
-#: lib/Items/EjectorDockItem.vala:227 lib/Items/EjectorDockItem.vala:265
+#: lib/Items/EjectorDockItem.vala:147 lib/Items/EjectorDockItem.vala:186
 #, c-format
 msgid "Eject '%s'"
 msgstr "Витягти '%s'"
 
-#: lib/Items/EjectorDockItem.vala:233 lib/Items/EjectorDockItem.vala:271
+#: lib/Items/EjectorDockItem.vala:153 lib/Items/EjectorDockItem.vala:192
 msgid "Eject All Devices"
 msgstr "Витягти всі пристрої"
 
-#: lib/Items/EjectorDockItem.vala:253
+#: lib/Items/EjectorDockItem.vala:173
 msgid "No removable devices connected"
 msgstr "Знімні пристрої не підключено"
 
-#: lib/Items/EjectorDockItem.vala:276
+#: lib/Items/EjectorDockItem.vala:197
 msgid "No Removable Devices"
 msgstr "Немає знімних пристроїв"
 
@@ -330,96 +335,92 @@ msgstr "Ігри"
 msgid "Utilities"
 msgstr "Утиліти"
 
-#: lib/Items/MprisDockItem.vala:64 lib/Items/MprisDockItem.vala:540
+#: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:258
 #: lib/Services/ApplicationIdentity.vala:3518 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "Медіапрогравач"
 
-#: lib/Items/MprisDockItem.vala:503 lib/Items/MprisDockItem.vala:734
+#: lib/Items/MprisDockItem.vala:221 lib/Items/MprisDockItem.vala:438
 msgid "Playing"
 msgstr "Відтворюється"
 
-#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
+#: lib/Items/MprisDockItem.vala:222 lib/Items/MprisDockItem.vala:439
 msgid "Paused"
 msgstr "Призупинено"
 
-#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
+#: lib/Items/MprisDockItem.vala:222 lib/Items/MprisDockItem.vala:439
 msgid "Stopped"
 msgstr "Зупинено"
 
-#: lib/Items/MprisDockItem.vala:513
+#: lib/Items/MprisDockItem.vala:231
 #, c-format
 msgid "Media Player (%s)"
 msgstr "Медіапрогравач (%s)"
 
-#: lib/Items/MprisDockItem.vala:525
+#: lib/Items/MprisDockItem.vala:243
 msgid "Media Player (Inactive)"
 msgstr "Медіапрогравач (неактивний)"
 
-#: lib/Items/MprisDockItem.vala:769
+#: lib/Items/MprisDockItem.vala:473
 msgid "Play / _Pause"
 msgstr "Відтворити / _Пауза"
 
-#: lib/Items/MprisDockItem.vala:773
+#: lib/Items/MprisDockItem.vala:477
 msgid "_Next Track"
 msgstr "_Наступна доріжка"
 
-#: lib/Items/MprisDockItem.vala:777
+#: lib/Items/MprisDockItem.vala:481
 msgid "P_revious Track"
 msgstr "_Попередня доріжка"
 
-#: lib/Items/NetworkDockItem.vala:51
+#: lib/Items/NetworkDockItem.vala:50
 msgid "Network"
 msgstr "Мережа"
 
-#: lib/Items/NetworkDockItem.vala:336
-msgid "Wired Connection"
-msgstr "Дротове з'єднання"
-
-#: lib/Items/NetworkDockItem.vala:351
+#: lib/Items/NetworkDockItem.vala:162
 #, c-format
 msgid "Wi-Fi: %s (%d%%) - %s"
 msgstr "Wi-Fi: %s (%d%%) - %s"
 
-#: lib/Items/NetworkDockItem.vala:353 lib/Items/NetworkDockItem.vala:459
+#: lib/Items/NetworkDockItem.vala:164 lib/Items/NetworkDockItem.vala:264
 #, c-format
 msgid "Wi-Fi: %s (%d%%)"
 msgstr "Wi-Fi: %s (%d%%)"
 
-#: lib/Items/NetworkDockItem.vala:371
+#: lib/Items/NetworkDockItem.vala:182
 #, c-format
 msgid "Ethernet: %s - %s"
 msgstr "Ethernet: %s - %s"
 
-#: lib/Items/NetworkDockItem.vala:371 lib/Items/NetworkDockItem.vala:373
-#: lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:182 lib/Items/NetworkDockItem.vala:184
+#: lib/Items/NetworkDockItem.vala:266
 msgid "Connected"
 msgstr "Підключено"
 
-#: lib/Items/NetworkDockItem.vala:373 lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:184 lib/Items/NetworkDockItem.vala:266
 #, c-format
 msgid "Ethernet: %s"
 msgstr "Ethernet: %s"
 
-#: lib/Items/NetworkDockItem.vala:380 lib/Items/NetworkDockItem.vala:463
+#: lib/Items/NetworkDockItem.vala:191 lib/Items/NetworkDockItem.vala:268
 msgid "Network: Disconnected"
 msgstr "Мережа: відключено"
 
-#: lib/Items/NetworkDockItem.vala:471
+#: lib/Items/NetworkDockItem.vala:276
 #, c-format
 msgid "IP: %s"
 msgstr "IP: %s"
 
-#: lib/Items/NetworkDockItem.vala:477
+#: lib/Items/NetworkDockItem.vala:282
 #, c-format
 msgid "Gateway: %s"
 msgstr "Шлюз: %s"
 
-#: lib/Items/NetworkDockItem.vala:485
+#: lib/Items/NetworkDockItem.vala:290
 msgid "Copy _IP Address"
 msgstr "Копіювати _IP-адресу"
 
-#: lib/Items/NetworkDockItem.vala:490
+#: lib/Items/NetworkDockItem.vala:295
 msgid "_Network Settings..."
 msgstr "Параметри _мережі..."
 
@@ -549,19 +550,19 @@ msgstr "_Докліти..."
 msgid "Screenshot"
 msgstr "Знімок екрана"
 
-#: lib/Items/ScreenshotDockItem.vala:247
+#: lib/Items/ScreenshotDockItem.vala:83
 msgid "Capture Area / Rectangular..."
 msgstr "Захопити область / прямокутник..."
 
-#: lib/Items/ScreenshotDockItem.vala:251
+#: lib/Items/ScreenshotDockItem.vala:87
 msgid "Capture Entire Screen"
 msgstr "Захопити весь екран"
 
-#: lib/Items/ScreenshotDockItem.vala:255
+#: lib/Items/ScreenshotDockItem.vala:91
 msgid "Capture Active Window"
 msgstr "Захопити активне вікно"
 
-#: lib/Items/ScreenshotDockItem.vala:261
+#: lib/Items/ScreenshotDockItem.vala:97
 msgid "Open Screenshots Folder"
 msgstr "Відкрити теку знімків екрана"
 
@@ -609,59 +610,59 @@ msgstr "_Вимкнути..."
 msgid "Session _Dialog..."
 msgstr "_Діалог сеансу..."
 
-#: lib/Items/SessionDockItem.vala:405
+#: lib/Items/SessionDockItem.vala:174
 msgid "Reboot to UEFI / BIOS"
 msgstr "Перезавантажити в UEFI / BIOS"
 
-#: lib/Items/SessionDockItem.vala:405
+#: lib/Items/SessionDockItem.vala:174
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings?"
 msgstr "Ви впевнені, що хочете перезавантажити комп'ютер і увійти до налаштувань прошивки UEFI / BIOS?"
 
-#: lib/Items/SessionDockItem.vala:405 lib/Widgets/SessionWindow.vala:237
-#: lib/Widgets/SessionWindow.vala:406
+#: lib/Items/SessionDockItem.vala:174 lib/Widgets/SessionWindow.vala:235
+#: lib/Widgets/SessionWindow.vala:404
 msgid "UEFI / BIOS"
 msgstr "UEFI / BIOS"
 
-#: lib/Items/SessionDockItem.vala:438 lib/Widgets/SessionWindow.vala:184
-#: lib/Widgets/SessionWindow.vala:390
+#: lib/Items/SessionDockItem.vala:182 lib/Widgets/SessionWindow.vala:182
+#: lib/Widgets/SessionWindow.vala:388
 msgid "Log Out"
 msgstr "Вийти"
 
-#: lib/Items/SessionDockItem.vala:438
+#: lib/Items/SessionDockItem.vala:182
 msgid "Are you sure you want to log out of this session?"
 msgstr "Справді вийти з цього сеансу?"
 
-#: lib/Items/SessionDockItem.vala:491
+#: lib/Items/SessionDockItem.vala:190
 msgid "Restart System"
 msgstr "Перезавантажити систему"
 
-#: lib/Items/SessionDockItem.vala:491
+#: lib/Items/SessionDockItem.vala:190
 msgid "Are you sure you want to restart your computer?"
 msgstr "Справді перезавантажити комп'ютер?"
 
-#: lib/Items/SessionDockItem.vala:491 lib/Widgets/SessionWindow.vala:229
-#: lib/Widgets/SessionWindow.vala:398
+#: lib/Items/SessionDockItem.vala:190 lib/Widgets/SessionWindow.vala:227
+#: lib/Widgets/SessionWindow.vala:396
 msgid "Restart"
 msgstr "Перезавантажити"
 
-#: lib/Items/SessionDockItem.vala:533
+#: lib/Items/SessionDockItem.vala:198
 msgid "Shut Down System"
 msgstr "Вимкнути систему"
 
-#: lib/Items/SessionDockItem.vala:533
+#: lib/Items/SessionDockItem.vala:198
 msgid "Are you sure you want to shut down your computer?"
 msgstr "Справді вимкнути комп'ютер?"
 
-#: lib/Items/SessionDockItem.vala:533 lib/Widgets/SessionWindow.vala:250
-#: lib/Widgets/SessionWindow.vala:414
+#: lib/Items/SessionDockItem.vala:198 lib/Widgets/SessionWindow.vala:248
+#: lib/Widgets/SessionWindow.vala:412
 msgid "Shut Down"
 msgstr "Вимкнути"
 
-#: lib/Items/SessionDockItem.vala:588 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:261
-#: lib/Widgets/SessionWindow.vala:306 lib/Widgets/WeatherCityDialog.vala:162
+#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
+#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:259
+#: lib/Widgets/SessionWindow.vala:304 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Скасувати"
 
@@ -673,59 +674,59 @@ msgstr "Показати стільницю"
 msgid "_Show / Hide Desktop"
 msgstr "_Показати / сховати стільницю"
 
-#: lib/Items/TrashDockItem.vala:48
+#: lib/Items/TrashDockItem.vala:43
 msgid "Trash"
 msgstr "Смітник"
 
-#: lib/Items/TrashDockItem.vala:180
+#: lib/Items/TrashDockItem.vala:87
 msgid "Trash (Empty)"
 msgstr "Смітник (порожній)"
 
-#: lib/Items/TrashDockItem.vala:183
+#: lib/Items/TrashDockItem.vala:90
 msgid "Trash (1 item)"
 msgstr "Смітник (1 елемент)"
 
-#: lib/Items/TrashDockItem.vala:186
+#: lib/Items/TrashDockItem.vala:93
 #, c-format
 msgid "Trash (%u items)"
 msgstr "Смітник (елементів: %u)"
 
-#: lib/Items/TrashDockItem.vala:391
+#: lib/Items/TrashDockItem.vala:143
 msgid "_Open Trash"
 msgstr "_Відкрити смітник"
 
-#: lib/Items/TrashDockItem.vala:395
+#: lib/Items/TrashDockItem.vala:147
 msgid "_Empty Trash"
 msgstr "_Очистити смітник"
 
-#: lib/Items/VolumeDockItem.vala:48
+#: lib/Items/VolumeDockItem.vala:45
 msgid "Volume"
 msgstr "Гучність"
 
-#: lib/Items/VolumeDockItem.vala:236
+#: lib/Items/VolumeDockItem.vala:171
 #, c-format
 msgid "Volume: %d%% (Muted)"
 msgstr "Гучність: %d%% (вимкнено)"
 
-#: lib/Items/VolumeDockItem.vala:241
+#: lib/Items/VolumeDockItem.vala:176
 #, c-format
 msgid "Volume: %d%%"
 msgstr "Гучність: %d%%"
 
-#: lib/Items/VolumeDockItem.vala:371
+#: lib/Items/VolumeDockItem.vala:262
 msgid "Un_mute"
 msgstr "Увімкнути з_вук"
 
-#: lib/Items/VolumeDockItem.vala:371
+#: lib/Items/VolumeDockItem.vala:262
 msgid "_Mute"
 msgstr "Вимкнути з_вук"
 
-#: lib/Items/VolumeDockItem.vala:375
+#: lib/Items/VolumeDockItem.vala:266
 msgid "_Audio Settings..."
 msgstr "_Параметри звуку..."
 
 #: lib/Items/WeatherDockItem.vala:62 lib/Items/WeatherDockItem.vala:199
-#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:490
 msgid "Checking weather..."
 msgstr "Перевірка погоди..."
 
@@ -734,7 +735,7 @@ msgid "Weather"
 msgstr "Погода"
 
 #: lib/Items/WeatherDockItem.vala:179 lib/Items/WeatherDockItem.vala:224
-#: lib/Items/WeatherDockItem.vala:493 lib/Widgets/WeatherWindow.vala:297
+#: lib/Items/WeatherDockItem.vala:490 lib/Widgets/WeatherWindow.vala:297
 msgid "Detecting location..."
 msgstr "Визначення місцезнаходження..."
 
@@ -743,104 +744,104 @@ msgid "Updating weather..."
 msgstr "Оновлення погоди..."
 
 #: lib/Items/WeatherDockItem.vala:199 lib/Items/WeatherDockItem.vala:224
-#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:473
-#: lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:388 lib/Items/WeatherDockItem.vala:470
+#: lib/Items/WeatherDockItem.vala:490
 msgid "Offline"
 msgstr "Не в мережі"
 
-#: lib/Items/WeatherDockItem.vala:355
+#: lib/Items/WeatherDockItem.vala:354
 msgid "Location not found"
 msgstr "Місцезнаходження не знайдено"
 
-#: lib/Items/WeatherDockItem.vala:392 lib/Items/WeatherDockItem.vala:475
+#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:472
 msgid "No internet connection"
 msgstr "Немає з'єднання з інтернетом"
 
-#: lib/Items/WeatherDockItem.vala:569
+#: lib/Items/WeatherDockItem.vala:565
 msgid "Refresh Weather"
 msgstr "Оновити погоду"
 
-#: lib/Items/WeatherDockItem.vala:575
+#: lib/Items/WeatherDockItem.vala:571
 msgid "Set Location..."
 msgstr "Указати місцезнаходження..."
 
-#: lib/Items/WeatherDockItem.vala:581
+#: lib/Items/WeatherDockItem.vala:577
 msgid "Switch to Fahrenheit (°F)"
 msgstr "Перемкнути на градуси Фаренгейта (°F)"
 
-#: lib/Items/WeatherDockItem.vala:581
+#: lib/Items/WeatherDockItem.vala:577
 msgid "Switch to Celsius (°C)"
 msgstr "Перемкнути на градуси Цельсія (°C)"
 
-#: lib/Items/WeatherDockItem.vala:605
+#: lib/Items/WeatherDockItem.vala:601
 msgid "Clear sky"
 msgstr "Ясно"
 
-#: lib/Items/WeatherDockItem.vala:606
+#: lib/Items/WeatherDockItem.vala:602
 msgid "Mainly clear"
 msgstr "Переважно ясно"
 
-#: lib/Items/WeatherDockItem.vala:607 lib/Items/WeatherDockItem.vala:633
+#: lib/Items/WeatherDockItem.vala:603 lib/Items/WeatherDockItem.vala:629
 msgid "Partly cloudy"
 msgstr "Мінлива хмарність"
 
-#: lib/Items/WeatherDockItem.vala:608
+#: lib/Items/WeatherDockItem.vala:604
 msgid "Overcast"
 msgstr "Похмуро"
 
-#: lib/Items/WeatherDockItem.vala:610
+#: lib/Items/WeatherDockItem.vala:606
 msgid "Foggy"
 msgstr "Туман"
 
-#: lib/Items/WeatherDockItem.vala:613
+#: lib/Items/WeatherDockItem.vala:609
 msgid "Drizzle"
 msgstr "Мряка"
 
-#: lib/Items/WeatherDockItem.vala:615
+#: lib/Items/WeatherDockItem.vala:611
 msgid "Freezing drizzle"
 msgstr "Крижана мряка"
 
-#: lib/Items/WeatherDockItem.vala:617
+#: lib/Items/WeatherDockItem.vala:613
 msgid "Rain"
 msgstr "Дощ"
 
-#: lib/Items/WeatherDockItem.vala:618
+#: lib/Items/WeatherDockItem.vala:614
 msgid "Heavy rain"
 msgstr "Сильний дощ"
 
-#: lib/Items/WeatherDockItem.vala:620
+#: lib/Items/WeatherDockItem.vala:616
 msgid "Freezing rain"
 msgstr "Крижаний дощ"
 
-#: lib/Items/WeatherDockItem.vala:622
+#: lib/Items/WeatherDockItem.vala:618
 msgid "Snow"
 msgstr "Сніг"
 
-#: lib/Items/WeatherDockItem.vala:623
+#: lib/Items/WeatherDockItem.vala:619
 msgid "Heavy snow"
 msgstr "Сильний снігопад"
 
-#: lib/Items/WeatherDockItem.vala:624
+#: lib/Items/WeatherDockItem.vala:620
 msgid "Snow grains"
 msgstr "Снігова крупа"
 
-#: lib/Items/WeatherDockItem.vala:626
+#: lib/Items/WeatherDockItem.vala:622
 msgid "Rain showers"
 msgstr "Короткочасні дощі"
 
-#: lib/Items/WeatherDockItem.vala:627
+#: lib/Items/WeatherDockItem.vala:623
 msgid "Violent rain showers"
 msgstr "Сильні зливи"
 
-#: lib/Items/WeatherDockItem.vala:629
+#: lib/Items/WeatherDockItem.vala:625
 msgid "Snow showers"
 msgstr "Короткочасний сніг"
 
-#: lib/Items/WeatherDockItem.vala:630
+#: lib/Items/WeatherDockItem.vala:626
 msgid "Thunderstorm"
 msgstr "Гроза"
 
-#: lib/Items/WeatherDockItem.vala:632
+#: lib/Items/WeatherDockItem.vala:628
 msgid "Thunderstorm with hail"
 msgstr "Гроза з градом"
 
@@ -848,7 +849,7 @@ msgstr "Гроза з градом"
 msgid "Recent Files"
 msgstr "Нещодавні файли"
 
-#: lib/Widgets/CalendarWindow.vala:63
+#: lib/Widgets/CalendarWindow.vala:59
 msgid "Calendar"
 msgstr "Календар"
 
@@ -1389,28 +1390,28 @@ msgid ""
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "Справді видалити тему '%s'?\nЇї буде вилучено з ~/.local/share/wayplank/themes/."
 
-#: lib/Widgets/PreferencesWindow.vala:1288 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1255 data/ui/preferences.ui:554
 msgid "Docklets Only"
 msgstr "Лише докліти"
 
-#: lib/Widgets/PreferencesWindow.vala:1289 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1256 data/ui/preferences.ui:555
 msgid "Docklets Only (with fallback)"
 msgstr "Лише докліти (з запасним варіантом)"
 
-#: lib/Widgets/PreferencesWindow.vala:1290 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1257 data/ui/preferences.ui:556
 msgid "All Icons (integrated)"
 msgstr "Усі піктограми (вбудовано)"
 
-#: lib/Widgets/PreferencesWindow.vala:1291 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1258 data/ui/preferences.ui:557
 msgid "Dedicated Icon (on dock)"
 msgstr "Окрема піктограма (на доці)"
 
-#: lib/Widgets/PreferencesWindow.vala:1469
+#: lib/Widgets/PreferencesWindow.vala:1436
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "Прокручування при переповненні активне: збережено %d пікс."
 
-#: lib/Widgets/PreferencesWindow.vala:1472
+#: lib/Widgets/PreferencesWindow.vala:1439
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1418,12 +1419,12 @@ msgid ""
 "the dock smoothly scrolls with mouse wheel when items exceed screen space."
 msgstr "Цільовий розмір піктограм: %d пікс.\nУвімкнено «Прокручування при переповненні» в розділі «Поведінка»: піктограми ніколи не зменшуватимуться, а док плавно прокручується колесом миші, коли елементи не вміщуються на екрані."
 
-#: lib/Widgets/PreferencesWindow.vala:1483
+#: lib/Widgets/PreferencesWindow.vala:1450
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ Обмежено до %d пікс. через місце на екрані (автозменшення)"
 
-#: lib/Widgets/PreferencesWindow.vala:1485
+#: lib/Widgets/PreferencesWindow.vala:1452
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1432,12 +1433,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ Розмір піктограм установлено %d пікс., але обмежено до %d пікс. через місце на екрані.\nПіктограми автоматично зменшуватимуться, щоб вміститися.\nЩоб розблокувати більші розміри без зменшення, увімкніть «Прокручування при переповненні» в розділі «Поведінка»."
 
-#: lib/Widgets/PreferencesWindow.vala:1493
+#: lib/Widgets/PreferencesWindow.vala:1460
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "Вміщується на екрані без зменшення (ліміт: %d пікс.)"
 
-#: lib/Widgets/PreferencesWindow.vala:1495
+#: lib/Widgets/PreferencesWindow.vala:1462
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1445,23 +1446,23 @@ msgid ""
 "shrinking activates)."
 msgstr "Цільовий розмір піктограм: %d пікс.\nКомфортно вміщується на екрані (ліміт екрана: %d пікс. до початку автозменшення)."
 
-#: lib/Widgets/PreferencesWindow.vala:1724 data/ui/preferences.ui:232
+#: lib/Widgets/PreferencesWindow.vala:1691 data/ui/preferences.ui:232
 #: data/ui/preferences.ui:245
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "Автоматично показувати док на основному моніторі; вимкніть, щоб вибрати певний дисплей"
 
-#: lib/Widgets/PreferencesWindow.vala:1725
+#: lib/Widgets/PreferencesWindow.vala:1692
 msgid "Not supported by this compositor"
 msgstr "Не підтримується цим композитором"
 
-#: lib/Widgets/PreferencesWindow.vala:1800 data/ui/preferences.ui:1448
+#: lib/Widgets/PreferencesWindow.vala:1767 data/ui/preferences.ui:1448
 #: data/ui/preferences.ui:1462
 msgid "Workspace filtering is not yet supported under Wayland"
 msgstr "Фільтрація за робочими просторами ще не підтримується у Wayland"
 
-#: lib/Widgets/PreferencesWindow.vala:1809 data/ui/preferences.ui:849
+#: lib/Widgets/PreferencesWindow.vala:1774 data/ui/preferences.ui:849
 #: data/ui/preferences.ui:862
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
@@ -1469,7 +1470,7 @@ msgid ""
 "for fluid unhiding"
 msgstr "Вимагає торкання фізичного краю екрана (1 пікс.) для показу дока, що запобігає випадковому спрацюванню; якщо вимкнено, док з'являється за 10 пікс. до краю для плавного показу"
 
-#: lib/Widgets/PreferencesWindow.vala:1813 data/ui/preferences.ui:876
+#: lib/Widgets/PreferencesWindow.vala:1778 data/ui/preferences.ui:876
 #: data/ui/preferences.ui:889
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
@@ -1478,7 +1479,7 @@ msgid ""
 "Reserve Screen Space"
 msgstr "Резервує простір екрана відповідно до товщини дока (режим панелі), щоб максимізовані вікна не перекривали док; увімкнення автоматично вимикає «Приховувати док» і «Збільшення піктограм», а увімкнення будь-якої з них автоматично вимикає «Резервувати простір екрана»"
 
-#: lib/Widgets/PreferencesWindow.vala:1816 data/ui/preferences.ui:1008
+#: lib/Widgets/PreferencesWindow.vala:1781 data/ui/preferences.ui:1008
 #: data/ui/preferences.ui:1022
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
@@ -1486,8 +1487,8 @@ msgid ""
 "positioned immediately behind or above the dock"
 msgstr "Починає збільшувати значки, коли курсор наближається до панелі, створюючи плавне магнітне відчуття; вимкніть, щоб точно передавати клацання миші вікнам, розташованим безпосередньо позаду або над панеллю"
 
-#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:310
-#: lib/Widgets/SessionWindow.vala:356
+#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:308
+#: lib/Widgets/SessionWindow.vala:354
 msgid "Session & Power"
 msgstr "Сеанс і живлення"
 
@@ -1495,116 +1496,116 @@ msgstr "Сеанс і живлення"
 msgid "Session &amp; Power"
 msgstr "Сеанс і живлення"
 
-#: lib/Widgets/SessionWindow.vala:147
+#: lib/Widgets/SessionWindow.vala:145
 msgid "Logged in as"
 msgstr "Ви увійшли як"
 
-#: lib/Widgets/SessionWindow.vala:170
+#: lib/Widgets/SessionWindow.vala:168
 msgid "Lock Screen"
 msgstr "Заблокувати екран"
 
-#: lib/Widgets/SessionWindow.vala:170
+#: lib/Widgets/SessionWindow.vala:168
 msgid "Lock the current session"
 msgstr "Заблокувати поточний сеанс"
 
-#: lib/Widgets/SessionWindow.vala:177
+#: lib/Widgets/SessionWindow.vala:175
 msgid "Switch User"
 msgstr "Змінити користувача"
 
-#: lib/Widgets/SessionWindow.vala:177
+#: lib/Widgets/SessionWindow.vala:175
 msgid "Switch to another user or login screen"
 msgstr "Перейти до іншого користувача або екрана входу"
 
-#: lib/Widgets/SessionWindow.vala:184
+#: lib/Widgets/SessionWindow.vala:182
 msgid "Log out of the current session"
 msgstr "Вийти з поточного сеансу"
 
-#: lib/Widgets/SessionWindow.vala:190
+#: lib/Widgets/SessionWindow.vala:188
 msgid "Suspend"
 msgstr "Призупинити"
 
-#: lib/Widgets/SessionWindow.vala:190
+#: lib/Widgets/SessionWindow.vala:188
 msgid "Put computer into low-power sleep mode"
 msgstr "Перевести комп'ютер у режим сну з низьким енергоспоживанням"
 
-#: lib/Widgets/SessionWindow.vala:199
+#: lib/Widgets/SessionWindow.vala:197
 msgid "Hibernate"
 msgstr "Гібернація"
 
-#: lib/Widgets/SessionWindow.vala:202
+#: lib/Widgets/SessionWindow.vala:200
 msgid "Save session to disk and power off"
 msgstr "Зберегти сеанс на диск і вимкнути живлення"
 
-#: lib/Widgets/SessionWindow.vala:203
+#: lib/Widgets/SessionWindow.vala:201
 msgid ""
 "Hibernation is not available on this system (swap or kernel support missing)"
 msgstr "Гібернація недоступна в цій системі (відсутня підтримка swap або ядра)"
 
-#: lib/Widgets/SessionWindow.vala:215
+#: lib/Widgets/SessionWindow.vala:213
 msgid "Hybrid Sleep"
 msgstr "Гібридний сон"
 
-#: lib/Widgets/SessionWindow.vala:218
+#: lib/Widgets/SessionWindow.vala:216
 msgid "Save session to disk and put computer into low-power sleep mode"
 msgstr "Зберегти сеанс на диск і перевести комп'ютер у режим сну з низьким енергоспоживанням"
 
-#: lib/Widgets/SessionWindow.vala:219
+#: lib/Widgets/SessionWindow.vala:217
 msgid ""
 "Hybrid Sleep is not available on this system (swap or kernel support missing)"
 msgstr "Гібридний сон недоступний у цій системі (відсутня підтримка swap або ядра)"
 
-#: lib/Widgets/SessionWindow.vala:229
+#: lib/Widgets/SessionWindow.vala:227
 msgid "Reboot the operating system"
 msgstr "Перезавантажити операційну систему"
 
-#: lib/Widgets/SessionWindow.vala:240
+#: lib/Widgets/SessionWindow.vala:238
 msgid "Restart and enter the motherboard UEFI / BIOS firmware settings"
 msgstr "Перезавантажити та увійти до налаштувань прошивки UEFI / BIOS материнської плати"
 
-#: lib/Widgets/SessionWindow.vala:241
+#: lib/Widgets/SessionWindow.vala:239
 msgid "UEFI / BIOS firmware setup is not supported on this system"
 msgstr "Налаштування прошивки UEFI / BIOS не підтримується в цій системі"
 
-#: lib/Widgets/SessionWindow.vala:250
+#: lib/Widgets/SessionWindow.vala:248
 msgid "Power off the computer"
 msgstr "Вимкнути живлення комп'ютера"
 
-#: lib/Widgets/SessionWindow.vala:383
+#: lib/Widgets/SessionWindow.vala:381
 msgid "Confirm Session Action"
 msgstr "Підтвердьте дію із сеансом"
 
-#: lib/Widgets/SessionWindow.vala:388
+#: lib/Widgets/SessionWindow.vala:386
 msgid "Log Out of Session?"
 msgstr "Вийти із сеансу?"
 
-#: lib/Widgets/SessionWindow.vala:389
+#: lib/Widgets/SessionWindow.vala:387
 msgid "Are you sure you want to log out of your current session?"
 msgstr "Справді вийти з поточного сеансу?"
 
-#: lib/Widgets/SessionWindow.vala:396
+#: lib/Widgets/SessionWindow.vala:394
 msgid "Restart System?"
 msgstr "Перезавантажити систему?"
 
-#: lib/Widgets/SessionWindow.vala:397
+#: lib/Widgets/SessionWindow.vala:395
 msgid ""
 "Are you sure you want to restart your computer? Unsaved changes will be lost."
 msgstr "Справді перезавантажити комп'ютер? Незбережені зміни буде втрачено."
 
-#: lib/Widgets/SessionWindow.vala:404
+#: lib/Widgets/SessionWindow.vala:402
 msgid "Reboot to UEFI / BIOS?"
 msgstr "Перезавантажити в UEFI / BIOS?"
 
-#: lib/Widgets/SessionWindow.vala:405
+#: lib/Widgets/SessionWindow.vala:403
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings? Unsaved changes will be lost."
 msgstr "Ви впевнені, що хочете перезавантажити комп'ютер і увійти до налаштувань прошивки UEFI / BIOS? Незбережені зміни буде втрачено."
 
-#: lib/Widgets/SessionWindow.vala:412
+#: lib/Widgets/SessionWindow.vala:410
 msgid "Shut Down Computer?"
 msgstr "Вимкнути комп'ютер?"
 
-#: lib/Widgets/SessionWindow.vala:413
+#: lib/Widgets/SessionWindow.vala:411
 msgid ""
 "Are you sure you want to turn off your computer? Unsaved changes will be "
 "lost."
@@ -1647,7 +1648,7 @@ msgstr "°F (Фаренгейт)"
 msgid "Save & Apply"
 msgstr "Зберегти й застосувати"
 
-#: lib/Widgets/WeatherCityDialog.vala:426
+#: lib/Widgets/WeatherCityDialog.vala:424
 msgid "Location not found. Please choose from suggestions or leave blank."
 msgstr "Місцезнаходження не знайдено. Виберіть із запропонованих або залиште поле порожнім."
 
@@ -1700,11 +1701,11 @@ msgstr "Програма"
 msgid "Minimized"
 msgstr "Згорнуто"
 
-#: src/Main.vala:152
+#: src/Main.vala:86
 msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank розроблено виключно для сеансів Wayland."
 
-#: src/Main.vala:154
+#: src/Main.vala:88
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - Непідтримуваний сеанс"
 

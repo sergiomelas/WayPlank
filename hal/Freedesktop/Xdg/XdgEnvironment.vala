@@ -26,11 +26,11 @@ namespace Plank
 		GREETER,
 		LOCK_SCREEN,
 		BACKGROUND;
-		
+
 		public static XdgSessionClass from_string (string s)
 		{
 			XdgSessionClass result;
-			
+
 			switch (s.down ()) {
 			default:
 			case "user": result = XdgSessionClass.USER; break;
@@ -38,11 +38,11 @@ namespace Plank
 			case "lock-screen": result = XdgSessionClass.LOCK_SCREEN; break;
 			case "background": result = XdgSessionClass.BACKGROUND; break;
 			}
-			
+
 			return result;
 		}
 	}
-	
+
 	[Flags]
 	public enum XdgSessionDesktop
 	{
@@ -60,11 +60,11 @@ namespace Plank
 		PANTHEON = 1 << 11,
 		OLD = 1 << 12,
 		UBUNTU = 1 << 13;
-		
+
 		static XdgSessionDesktop from_single_string (string s)
 		{
 			XdgSessionDesktop result;
-			
+
 			switch (s.down ().strip ()) {
 			case "gnome":
 			case "gnome-xorg":
@@ -93,14 +93,14 @@ namespace Plank
 			case "old": result = XdgSessionDesktop.OLD; break;
 			default: result = 0; break;
 			}
-			
+
 			return result;
 		}
-		
+
 		public static XdgSessionDesktop from_string (string s)
 		{
 			XdgSessionDesktop result = 0;
-			
+
 			string normalized = s.replace (":", ";");
 			if (normalized.contains (";")) {
 				foreach (unowned string e in normalized.split (";"))
@@ -109,71 +109,81 @@ namespace Plank
 			} else {
 				result = from_single_string (s.strip ());
 			}
-			
+
 			return result;
 		}
 	}
-	
+
 	public enum XdgSessionType
 	{
 		UNSPECIFIED,
 		TTY,
 		WAYLAND;
-		
+
 		public static XdgSessionType from_string (string s)
 		{
 			XdgSessionType result;
-			
+
 			switch (s.down ()) {
 			default:
 			case "unspecified": result = XdgSessionType.UNSPECIFIED; break;
 			case "tty": result = XdgSessionType.TTY; break;
 			case "wayland": result = XdgSessionType.WAYLAND; break;
 			}
-			
+
 			return result;
 		}
 	}
-	
+
 	static XdgSessionClass session_class;
 	static XdgSessionDesktop session_desktop;
 	static XdgSessionType session_type;
+	static bool environment_initialized = false;
 
 	public static void environment_initialize ()
 	{
+		if (environment_initialized)
+			return;
+		environment_initialized = true;
 		session_class = get_xdg_session_class ();
 		session_desktop = get_xdg_session_desktop ();
 		session_type = get_xdg_session_type ();
 	}
-	
+
 	public static bool environment_is_session_class (XdgSessionClass type)
 	{
+		if (!environment_initialized)
+			environment_initialize ();
 		return (type == session_class);
 	}
-	
+
 	public static bool environment_is_session_desktop (XdgSessionDesktop type)
 	{
+		if (!environment_initialized)
+			environment_initialize ();
 		return ((session_desktop & type) != 0);
 	}
-	
+
 	public static bool environment_is_session_type (XdgSessionType type)
 	{
+		if (!environment_initialized)
+			environment_initialize ();
 		return (type == session_type);
 	}
-	
+
 	static XdgSessionClass get_xdg_session_class ()
 	{
 		unowned string? result;
-		
+
 		result = Environment.get_variable ("XDG_SESSION_CLASS");
 		if (result != null)
 			return XdgSessionClass.from_string (result);
-		
+
 		warning ("XDG_SESSION_CLASS not set in this environment!");
-		
+
 		return XdgSessionClass.USER;
 	}
-	
+
 	static XdgSessionDesktop get_xdg_session_desktop ()
 	{
 		XdgSessionDesktop result = 0;
@@ -200,20 +210,20 @@ namespace Plank
 
 		return result;
 	}
-	
+
 	static XdgSessionType get_xdg_session_type ()
 	{
 		unowned string? result;
-		
+
 		result = Environment.get_variable ("XDG_SESSION_TYPE");
 		if (result != null)
 			return XdgSessionType.from_string (result);
-		
+
 		if (Environment.get_variable ("WAYLAND_DISPLAY") != null)
 			return XdgSessionType.WAYLAND;
-		
+
 		warning ("XDG_SESSION_TYPE not set in this environment!");
-		
+
 		return XdgSessionType.UNSPECIFIED;
 	}
 }

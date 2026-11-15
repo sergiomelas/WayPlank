@@ -20,7 +20,7 @@
 
 namespace Plank
 {
-	public class ApplicationDockItemProvider : DockItemProvider, UnityClient
+	public class ApplicationDockItemProvider : DockItemProvider, ILauncherBadgeClient
 	{
 		public File LaunchersDir { get; construct; }
 
@@ -201,7 +201,7 @@ namespace Plank
 		{
 			var windows = Hal.Windows.get_windows ();
 			var discovery = ApplicationDiscovery.get_default ();
-			var my_pid = Posix.getpid ();
+			var my_pid = Hal.Runtime.get_current_pid ();
 			var active_transient_launchers = new Gee.HashSet<string> ();
 
 			foreach (var window in windows) {
@@ -380,9 +380,9 @@ namespace Plank
 				process_queued_files ();
 		}
 
-		// Unity.Client interface stubs
-		public void remove_launcher_entry (string sender_name) {}
-		public void update_launcher_entry (string sender_name, Variant parameters, bool is_retry = false) {}
+		// ILauncherBadgeClient interface stubs (preserved 1-to-1 from V0.2.0 baseline)
+		public void remove_launcher_entry (string sender_id) {}
+		public void update_launcher_entry (string sender_id, LauncherBadgeState state, bool is_retry = false) {}
 	}
 }
 

@@ -315,11 +315,10 @@ namespace Plank
 
 			// 1. Resolve coordinates
 			if (configured_city.length > 0) {
-				string geo_cmd = "curl -s --max-time 5 'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json'".printf (GLib.Uri.escape_string (configured_city));
+				string geo_url = "https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json".printf (GLib.Uri.escape_string (configured_city));
 				string geo_out;
-				int status;
 				try {
-					if (Process.spawn_command_line_sync (geo_cmd, out geo_out, null, out status) && status == 0) {
+					if (Hal.Runtime.http_get_sync (geo_url, 5, out geo_out)) {
 						var parser = new Json.Parser ();
 						parser.load_from_data (geo_out);
 						var root = parser.get_root ();
@@ -360,9 +359,8 @@ namespace Plank
 
 				// Only if configured_city was EMPTY -> perform automatic IP Geolocation detection
 				string ip_out;
-				int status;
 				try {
-					if (Process.spawn_command_line_sync ("curl -s --max-time 4 'http://ip-api.com/json'", out ip_out, null, out status) && status == 0) {
+					if (Hal.Runtime.http_get_sync ("http://ip-api.com/json", 4, out ip_out)) {
 						var parser = new Json.Parser ();
 						parser.load_from_data (ip_out);
 						var root = parser.get_root ();
@@ -397,13 +395,12 @@ namespace Plank
 
 			// 2. Fetch Open-Meteo forecast
 			string unit_param = (unit_snap == "F") ? "&temperature_unit=fahrenheit&wind_speed_unit=mph" : "";
-			string forecast_cmd = "curl -s --max-time 5 'https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,relative_humidity_2m_max,relative_humidity_2m_min&timezone=auto%s'".printf (lat, lon, unit_param);
+			string forecast_url = "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,relative_humidity_2m_max,relative_humidity_2m_min&timezone=auto%s".printf (lat, lon, unit_param);
 			string forecast_out;
-			int f_status;
 			bool fetched_ok = false;
 
 			try {
-				if (Process.spawn_command_line_sync (forecast_cmd, out forecast_out, null, out f_status) && f_status == 0) {
+				if (Hal.Runtime.http_get_sync (forecast_url, 5, out forecast_out)) {
 					var parser = new Json.Parser ();
 					parser.load_from_data (forecast_out);
 					var root = parser.get_root ();
@@ -493,11 +490,10 @@ namespace Plank
 			if (query.length == 0 || query == _("Detecting location...") || query == _("Offline") || query == _("Checking weather..."))
 				return "";
 
-			string yr_search_cmd = "curl -s --max-time 4 'https://www.yr.no/api/v0/locations/search?q=%s'".printf (GLib.Uri.escape_string (query));
+			string yr_search_url = "https://www.yr.no/api/v0/locations/search?q=%s".printf (GLib.Uri.escape_string (query));
 			string yr_out;
-			int yr_status;
 			try {
-				if (Process.spawn_command_line_sync (yr_search_cmd, out yr_out, null, out yr_status) && yr_status == 0) {
+				if (Hal.Runtime.http_get_sync (yr_search_url, 4, out yr_out)) {
 					var parser = new Json.Parser ();
 					parser.load_from_data (yr_out);
 					var root = parser.get_root ();

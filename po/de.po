@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 00:01+0100\n"
-"PO-Revision-Date: 2026-11-15 00:01+0100\n"
+"POT-Creation-Date: 2026-11-15 01:12+0100\n"
+"PO-Revision-Date: 2026-11-15 01:12+0100\n"
 "Last-Translator: Renate Schwiedernoch <renate.schwiedernoch@gmail.com>\n"
 "Language-Team: German <de@li.org>\n"
 "Language: de\n"
@@ -18,54 +18,59 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: hal/Freedesktop/FreedesktopHalBootstrap.vala:135
+#: hal/Freedesktop/Dbus/NetworkManagerDbusService.vala:276
+#: lib/Items/NetworkDockItem.vala:153
+msgid "Wired Connection"
+msgstr "LAN-Verbindung"
+
+#: hal/Freedesktop/FreedesktopHalBootstrap.vala:313
 msgid " (Requires KWin)"
 msgstr " (Erfordert KWin)"
 
-#: lib/DockPreferences.vala:414 lib/DockPreferences.vala:424
-#: lib/Factories/AbstractMain.vala:1609
+#: lib/DockPreferences.vala:391 lib/DockPreferences.vala:401
+#: lib/Factories/AbstractMain.vala:1566
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Alle Einstellungen (latch-state.ini beschädigt)"
 
-#: lib/Factories/AbstractMain.vala:563
+#: lib/Factories/AbstractMain.vala:520
 msgid "About WayPlank"
 msgstr "Über WayPlank"
 
-#: lib/Factories/AbstractMain.vala:590
+#: lib/Factories/AbstractMain.vala:547
 msgid "Fully supported compositors: none"
 msgstr "Vollständig unterstützte Compositoren: keine"
 
-#: lib/Factories/AbstractMain.vala:591
+#: lib/Factories/AbstractMain.vala:548
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "Vollständig unterstützte Compositoren: %s"
 
-#: lib/Factories/AbstractMain.vala:594
+#: lib/Factories/AbstractMain.vala:551
 msgid "Partially supported compositors: none"
 msgstr "Teilweise unterstützte Compositoren: keine"
 
-#: lib/Factories/AbstractMain.vala:595
+#: lib/Factories/AbstractMain.vala:552
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "Teilweise unterstützte Compositoren: %s"
 
-#: lib/Factories/AbstractMain.vala:599
+#: lib/Factories/AbstractMain.vala:556
 msgid "Website"
 msgstr "Webseite"
 
-#: lib/Factories/AbstractMain.vala:610 src/Main.vala:210
+#: lib/Factories/AbstractMain.vala:567 src/Main.vala:144
 msgid "translator-credits"
 msgstr "Renate Schwiedernoch <renate.schwiedernoch@gmail.com>"
 
-#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1610
+#: lib/Factories/AbstractMain.vala:1557 lib/Factories/AbstractMain.vala:1567
 msgid "Defaulting partially to default config for:"
 msgstr "Teilweises Zurücksetzen auf die Standardkonfiguration für:"
 
-#: lib/Factories/AbstractMain.vala:1602 lib/Factories/AbstractMain.vala:1606
+#: lib/Factories/AbstractMain.vala:1559 lib/Factories/AbstractMain.vala:1563
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "Beschädigtes oder ungültiges Dockitem verworfen:"
 
-#: lib/Factories/AbstractMain.vala:1629 lib/Factories/AbstractMain.vala:1632
+#: lib/Factories/AbstractMain.vala:1586 lib/Factories/AbstractMain.vala:1589
 msgid "Load environment failed"
 msgstr "Laden der Umgebung fehlgeschlagen"
 
@@ -96,53 +101,53 @@ msgstr "_Symbol ändern..."
 msgid "Drop to open with %s"
 msgstr "Ablegen, um mit %s zu öffnen"
 
-#: lib/Items/BatteryDockItem.vala:45
+#: lib/Items/BatteryDockItem.vala:44
 msgid "Battery"
 msgstr "Akku"
 
-#: lib/Items/BatteryDockItem.vala:150
+#: lib/Items/BatteryDockItem.vala:111
 msgid "Discharging"
 msgstr "Wird entladen"
 
-#: lib/Items/BatteryDockItem.vala:152
+#: lib/Items/BatteryDockItem.vala:113
 msgid "Not charging"
 msgstr "Lädt nicht"
 
-#: lib/Items/BatteryDockItem.vala:154 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:115 lib/Items/FileDockItem.vala:901
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: lib/Items/BatteryDockItem.vala:164
+#: lib/Items/BatteryDockItem.vala:122
 msgid "AC Power"
 msgstr "Netzbetrieb"
 
-#: lib/Items/BatteryDockItem.vala:168
+#: lib/Items/BatteryDockItem.vala:126
 #, c-format
 msgid "Battery: %d%% (Charging)"
 msgstr "Akku: %d%% (Lädt)"
 
-#: lib/Items/BatteryDockItem.vala:170
+#: lib/Items/BatteryDockItem.vala:128
 #, c-format
 msgid "Battery: %d%% (Full)"
 msgstr "Akku: %d%% (Voll)"
 
-#: lib/Items/BatteryDockItem.vala:172
+#: lib/Items/BatteryDockItem.vala:130
 #, c-format
 msgid "Battery: %d%% (%s)"
 msgstr "Akku: %d%% (%s)"
 
-#: lib/Items/BatteryDockItem.vala:237
+#: lib/Items/BatteryDockItem.vala:190
 msgid "_Power Settings..."
 msgstr "_Energieeinstellungen..."
 
-#: lib/Items/BatteryDockItem.vala:246 lib/Items/BrightnessDockItem.vala:204
-#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:269
+#: lib/Items/BatteryDockItem.vala:199 lib/Items/BrightnessDockItem.vala:200
+#: lib/Items/ClockDockItem.vala:249 lib/Items/CpuDockItem.vala:155
 #: lib/Items/DigitalClockDockItem.vala:234
-#: lib/Items/DoNotDisturbDockItem.vala:714 lib/Items/EjectorDockItem.vala:284
-#: lib/Items/MprisDockItem.vala:784 lib/Items/NetworkDockItem.vala:497
-#: lib/Items/ScreenshotDockItem.vala:268 lib/Items/SessionDockItem.vala:122
-#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:403
-#: lib/Items/VolumeDockItem.vala:388 lib/Items/WeatherDockItem.vala:592
+#: lib/Items/DoNotDisturbDockItem.vala:231 lib/Items/EjectorDockItem.vala:205
+#: lib/Items/MprisDockItem.vala:488 lib/Items/NetworkDockItem.vala:302
+#: lib/Items/ScreenshotDockItem.vala:104 lib/Items/SessionDockItem.vala:122
+#: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:155
+#: lib/Items/VolumeDockItem.vala:275 lib/Items/WeatherDockItem.vala:588
 msgid "_Remove from Dock"
 msgstr "Aus dem Dock _entfernen"
 
@@ -180,16 +185,16 @@ msgstr "Uhr"
 msgid "_Copy Time"
 msgstr "_Zeit kopieren"
 
-#: lib/Items/CpuDockItem.vala:49
+#: lib/Items/CpuDockItem.vala:45
 msgid "System Monitor"
 msgstr "Systemmonitor"
 
-#: lib/Items/CpuDockItem.vala:223
+#: lib/Items/CpuDockItem.vala:114
 #, c-format
 msgid "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Disk: %d%%"
 msgstr "System: %d%% | CPU: %d%% | RAM: %d%% (%.1f / %.1f GB) | Datenträger: %d%%"
 
-#: lib/Items/CpuDockItem.vala:260
+#: lib/Items/CpuDockItem.vala:146
 msgid "_System Monitor..."
 msgstr "_Systemmonitor..."
 
@@ -218,67 +223,67 @@ msgstr "Docklets"
 msgid "Digital Clock"
 msgstr "Digitale Uhr"
 
-#: lib/Items/DoNotDisturbDockItem.vala:100
-#: lib/Items/DoNotDisturbDockItem.vala:693 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:47
+#: lib/Items/DoNotDisturbDockItem.vala:210 data/ui/preferences.ui:1946
 msgid "Do Not Disturb"
 msgstr "Nicht stören"
 
-#: lib/Items/DoNotDisturbDockItem.vala:261
+#: lib/Items/DoNotDisturbDockItem.vala:131
 msgid "Notifications: Silenced (Do Not Disturb)"
 msgstr "Benachrichtigungen: Stummgeschaltet (Nicht stören)"
 
-#: lib/Items/DoNotDisturbDockItem.vala:261
+#: lib/Items/DoNotDisturbDockItem.vala:131
 msgid "Notifications: Active"
 msgstr "Benachrichtigungen: Aktiv"
 
-#: lib/Items/DoNotDisturbDockItem.vala:700
+#: lib/Items/DoNotDisturbDockItem.vala:217
 msgid "Resume Notifications"
 msgstr "Benachrichtigungen fortsetzen"
 
-#: lib/Items/DoNotDisturbDockItem.vala:700
+#: lib/Items/DoNotDisturbDockItem.vala:217
 msgid "Silence Notifications"
 msgstr "Benachrichtigungen stummschalten"
 
-#: lib/Items/DoNotDisturbDockItem.vala:707
+#: lib/Items/DoNotDisturbDockItem.vala:224
 msgid "_Notification Settings..."
 msgstr "_Benachrichtigungseinstellungen..."
 
-#: lib/Items/EjectorDockItem.vala:48 data/ui/preferences.ui:2462
+#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2462
 msgid "Removable Drives"
 msgstr "Wechseldatenträger"
 
-#: lib/Items/EjectorDockItem.vala:146
+#: lib/Items/EjectorDockItem.vala:97
 #, c-format
 msgid "Removable Drives (%u mounted)"
 msgstr "Wechseldatenträger (%u eingehängt)"
 
-#: lib/Items/EjectorDockItem.vala:150
+#: lib/Items/EjectorDockItem.vala:101
 msgid "Removable Drives (None connected)"
 msgstr "Wechseldatenträger (Keine angeschlossen)"
 
-#: lib/Items/EjectorDockItem.vala:188 lib/Items/EjectorDockItem.vala:210
+#: lib/Items/EjectorDockItem.vala:130
 msgid "Safe to Remove"
 msgstr "Sicher zu entfernen"
 
-#: lib/Items/EjectorDockItem.vala:189
+#: lib/Items/EjectorDockItem.vala:131
 #, c-format
 msgid "Device '%s' has been safely unmounted."
 msgstr "Gerät '%s' wurde sicher ausgehängt."
 
-#: lib/Items/EjectorDockItem.vala:227 lib/Items/EjectorDockItem.vala:265
+#: lib/Items/EjectorDockItem.vala:147 lib/Items/EjectorDockItem.vala:186
 #, c-format
 msgid "Eject '%s'"
 msgstr "'%s' auswerfen"
 
-#: lib/Items/EjectorDockItem.vala:233 lib/Items/EjectorDockItem.vala:271
+#: lib/Items/EjectorDockItem.vala:153 lib/Items/EjectorDockItem.vala:192
 msgid "Eject All Devices"
 msgstr "Alle Geräte auswerfen"
 
-#: lib/Items/EjectorDockItem.vala:253
+#: lib/Items/EjectorDockItem.vala:173
 msgid "No removable devices connected"
 msgstr "Keine Wechseldatenträger verbunden"
 
-#: lib/Items/EjectorDockItem.vala:276
+#: lib/Items/EjectorDockItem.vala:197
 msgid "No Removable Devices"
 msgstr "Keine Wechseldatenträger"
 
@@ -329,96 +334,92 @@ msgstr "Spiele"
 msgid "Utilities"
 msgstr "Dienstprogramme"
 
-#: lib/Items/MprisDockItem.vala:64 lib/Items/MprisDockItem.vala:540
+#: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:258
 #: lib/Services/ApplicationIdentity.vala:3518 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "Medienplayer"
 
-#: lib/Items/MprisDockItem.vala:503 lib/Items/MprisDockItem.vala:734
+#: lib/Items/MprisDockItem.vala:221 lib/Items/MprisDockItem.vala:438
 msgid "Playing"
 msgstr "Wiedergabe"
 
-#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
+#: lib/Items/MprisDockItem.vala:222 lib/Items/MprisDockItem.vala:439
 msgid "Paused"
 msgstr "Pausiert"
 
-#: lib/Items/MprisDockItem.vala:504 lib/Items/MprisDockItem.vala:735
+#: lib/Items/MprisDockItem.vala:222 lib/Items/MprisDockItem.vala:439
 msgid "Stopped"
 msgstr "Gestoppt"
 
-#: lib/Items/MprisDockItem.vala:513
+#: lib/Items/MprisDockItem.vala:231
 #, c-format
 msgid "Media Player (%s)"
 msgstr "Medienplayer (%s)"
 
-#: lib/Items/MprisDockItem.vala:525
+#: lib/Items/MprisDockItem.vala:243
 msgid "Media Player (Inactive)"
 msgstr "Medienplayer (Inaktiv)"
 
-#: lib/Items/MprisDockItem.vala:769
+#: lib/Items/MprisDockItem.vala:473
 msgid "Play / _Pause"
 msgstr "Wiedergabe / _Pause"
 
-#: lib/Items/MprisDockItem.vala:773
+#: lib/Items/MprisDockItem.vala:477
 msgid "_Next Track"
 msgstr "_Nächster Titel"
 
-#: lib/Items/MprisDockItem.vala:777
+#: lib/Items/MprisDockItem.vala:481
 msgid "P_revious Track"
 msgstr "_Vorheriger Titel"
 
-#: lib/Items/NetworkDockItem.vala:51
+#: lib/Items/NetworkDockItem.vala:50
 msgid "Network"
 msgstr "Netzwerk"
 
-#: lib/Items/NetworkDockItem.vala:336
-msgid "Wired Connection"
-msgstr "LAN-Verbindung"
-
-#: lib/Items/NetworkDockItem.vala:351
+#: lib/Items/NetworkDockItem.vala:162
 #, c-format
 msgid "Wi-Fi: %s (%d%%) - %s"
 msgstr "Wi-Fi: %s (%d%%) - %s"
 
-#: lib/Items/NetworkDockItem.vala:353 lib/Items/NetworkDockItem.vala:459
+#: lib/Items/NetworkDockItem.vala:164 lib/Items/NetworkDockItem.vala:264
 #, c-format
 msgid "Wi-Fi: %s (%d%%)"
 msgstr "Wi-Fi: %s (%d%%)"
 
-#: lib/Items/NetworkDockItem.vala:371
+#: lib/Items/NetworkDockItem.vala:182
 #, c-format
 msgid "Ethernet: %s - %s"
 msgstr "Ethernet: %s - %s"
 
-#: lib/Items/NetworkDockItem.vala:371 lib/Items/NetworkDockItem.vala:373
-#: lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:182 lib/Items/NetworkDockItem.vala:184
+#: lib/Items/NetworkDockItem.vala:266
 msgid "Connected"
 msgstr "Verbunden"
 
-#: lib/Items/NetworkDockItem.vala:373 lib/Items/NetworkDockItem.vala:461
+#: lib/Items/NetworkDockItem.vala:184 lib/Items/NetworkDockItem.vala:266
 #, c-format
 msgid "Ethernet: %s"
 msgstr "Ethernet: %s"
 
-#: lib/Items/NetworkDockItem.vala:380 lib/Items/NetworkDockItem.vala:463
+#: lib/Items/NetworkDockItem.vala:191 lib/Items/NetworkDockItem.vala:268
 msgid "Network: Disconnected"
 msgstr "Netzwerk: Getrennt"
 
-#: lib/Items/NetworkDockItem.vala:471
+#: lib/Items/NetworkDockItem.vala:276
 #, c-format
 msgid "IP: %s"
 msgstr "IP: %s"
 
-#: lib/Items/NetworkDockItem.vala:477
+#: lib/Items/NetworkDockItem.vala:282
 #, c-format
 msgid "Gateway: %s"
 msgstr "Gateway: %s"
 
-#: lib/Items/NetworkDockItem.vala:485
+#: lib/Items/NetworkDockItem.vala:290
 msgid "Copy _IP Address"
 msgstr "_IP-Adresse kopieren"
 
-#: lib/Items/NetworkDockItem.vala:490
+#: lib/Items/NetworkDockItem.vala:295
 msgid "_Network Settings..."
 msgstr "_Netzwerkeinstellungen..."
 
@@ -548,19 +549,19 @@ msgstr "_Docklets..."
 msgid "Screenshot"
 msgstr "Bildschirmfoto"
 
-#: lib/Items/ScreenshotDockItem.vala:247
+#: lib/Items/ScreenshotDockItem.vala:83
 msgid "Capture Area / Rectangular..."
 msgstr "Bereich/Rechteck aufnehmen..."
 
-#: lib/Items/ScreenshotDockItem.vala:251
+#: lib/Items/ScreenshotDockItem.vala:87
 msgid "Capture Entire Screen"
 msgstr "Gesamten Bildschirm aufnehmen"
 
-#: lib/Items/ScreenshotDockItem.vala:255
+#: lib/Items/ScreenshotDockItem.vala:91
 msgid "Capture Active Window"
 msgstr "Aktives Fenster aufnehmen"
 
-#: lib/Items/ScreenshotDockItem.vala:261
+#: lib/Items/ScreenshotDockItem.vala:97
 msgid "Open Screenshots Folder"
 msgstr "Ordner für Bildschirmfotos öffnen"
 
@@ -608,59 +609,59 @@ msgstr "_Herunterfahren..."
 msgid "Session _Dialog..."
 msgstr "_Sitzungsdialog..."
 
-#: lib/Items/SessionDockItem.vala:405
+#: lib/Items/SessionDockItem.vala:174
 msgid "Reboot to UEFI / BIOS"
 msgstr "Neustart ins UEFI / BIOS"
 
-#: lib/Items/SessionDockItem.vala:405
+#: lib/Items/SessionDockItem.vala:174
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings?"
 msgstr "Möchten Sie den Computer wirklich neu starten und die UEFI-/BIOS-Firmware-Einstellungen öffnen?"
 
-#: lib/Items/SessionDockItem.vala:405 lib/Widgets/SessionWindow.vala:237
-#: lib/Widgets/SessionWindow.vala:406
+#: lib/Items/SessionDockItem.vala:174 lib/Widgets/SessionWindow.vala:235
+#: lib/Widgets/SessionWindow.vala:404
 msgid "UEFI / BIOS"
 msgstr "UEFI / BIOS"
 
-#: lib/Items/SessionDockItem.vala:438 lib/Widgets/SessionWindow.vala:184
-#: lib/Widgets/SessionWindow.vala:390
+#: lib/Items/SessionDockItem.vala:182 lib/Widgets/SessionWindow.vala:182
+#: lib/Widgets/SessionWindow.vala:388
 msgid "Log Out"
 msgstr "Abmelden"
 
-#: lib/Items/SessionDockItem.vala:438
+#: lib/Items/SessionDockItem.vala:182
 msgid "Are you sure you want to log out of this session?"
 msgstr "Möchten Sie sich wirklich von dieser Sitzung abmelden?"
 
-#: lib/Items/SessionDockItem.vala:491
+#: lib/Items/SessionDockItem.vala:190
 msgid "Restart System"
 msgstr "System neu starten"
 
-#: lib/Items/SessionDockItem.vala:491
+#: lib/Items/SessionDockItem.vala:190
 msgid "Are you sure you want to restart your computer?"
 msgstr "Möchten Sie Ihren Computer wirklich neu starten?"
 
-#: lib/Items/SessionDockItem.vala:491 lib/Widgets/SessionWindow.vala:229
-#: lib/Widgets/SessionWindow.vala:398
+#: lib/Items/SessionDockItem.vala:190 lib/Widgets/SessionWindow.vala:227
+#: lib/Widgets/SessionWindow.vala:396
 msgid "Restart"
 msgstr "Neustart"
 
-#: lib/Items/SessionDockItem.vala:533
+#: lib/Items/SessionDockItem.vala:198
 msgid "Shut Down System"
 msgstr "System herunterfahren"
 
-#: lib/Items/SessionDockItem.vala:533
+#: lib/Items/SessionDockItem.vala:198
 msgid "Are you sure you want to shut down your computer?"
 msgstr "Möchten Sie Ihren Computer wirklich herunterfahren?"
 
-#: lib/Items/SessionDockItem.vala:533 lib/Widgets/SessionWindow.vala:250
-#: lib/Widgets/SessionWindow.vala:414
+#: lib/Items/SessionDockItem.vala:198 lib/Widgets/SessionWindow.vala:248
+#: lib/Widgets/SessionWindow.vala:412
 msgid "Shut Down"
 msgstr "Herunterfahren"
 
-#: lib/Items/SessionDockItem.vala:588 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:261
-#: lib/Widgets/SessionWindow.vala:306 lib/Widgets/WeatherCityDialog.vala:162
+#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
+#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:259
+#: lib/Widgets/SessionWindow.vala:304 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -672,59 +673,59 @@ msgstr "Desktop anzeigen"
 msgid "_Show / Hide Desktop"
 msgstr "_Desktop anzeigen / ausblenden"
 
-#: lib/Items/TrashDockItem.vala:48
+#: lib/Items/TrashDockItem.vala:43
 msgid "Trash"
 msgstr "Papierkorb"
 
-#: lib/Items/TrashDockItem.vala:180
+#: lib/Items/TrashDockItem.vala:87
 msgid "Trash (Empty)"
 msgstr "Papierkorb (Leer)"
 
-#: lib/Items/TrashDockItem.vala:183
+#: lib/Items/TrashDockItem.vala:90
 msgid "Trash (1 item)"
 msgstr "Papierkorb (1 Element)"
 
-#: lib/Items/TrashDockItem.vala:186
+#: lib/Items/TrashDockItem.vala:93
 #, c-format
 msgid "Trash (%u items)"
 msgstr "Papierkorb (%u Elemente)"
 
-#: lib/Items/TrashDockItem.vala:391
+#: lib/Items/TrashDockItem.vala:143
 msgid "_Open Trash"
 msgstr "_Papierkorb öffnen"
 
-#: lib/Items/TrashDockItem.vala:395
+#: lib/Items/TrashDockItem.vala:147
 msgid "_Empty Trash"
 msgstr "_Papierkorb leeren"
 
-#: lib/Items/VolumeDockItem.vala:48
+#: lib/Items/VolumeDockItem.vala:45
 msgid "Volume"
 msgstr "Lautstärke"
 
-#: lib/Items/VolumeDockItem.vala:236
+#: lib/Items/VolumeDockItem.vala:171
 #, c-format
 msgid "Volume: %d%% (Muted)"
 msgstr "Lautstärke: %d%% (Stumm)"
 
-#: lib/Items/VolumeDockItem.vala:241
+#: lib/Items/VolumeDockItem.vala:176
 #, c-format
 msgid "Volume: %d%%"
 msgstr "Lautstärke: %d%%"
 
-#: lib/Items/VolumeDockItem.vala:371
+#: lib/Items/VolumeDockItem.vala:262
 msgid "Un_mute"
 msgstr "Ton _einschalten"
 
-#: lib/Items/VolumeDockItem.vala:371
+#: lib/Items/VolumeDockItem.vala:262
 msgid "_Mute"
 msgstr "_Stumm schalten"
 
-#: lib/Items/VolumeDockItem.vala:375
+#: lib/Items/VolumeDockItem.vala:266
 msgid "_Audio Settings..."
 msgstr "_Audioeinstellungen..."
 
 #: lib/Items/WeatherDockItem.vala:62 lib/Items/WeatherDockItem.vala:199
-#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:224 lib/Items/WeatherDockItem.vala:490
 msgid "Checking weather..."
 msgstr "Wetter wird geprüft..."
 
@@ -733,7 +734,7 @@ msgid "Weather"
 msgstr "Wetter"
 
 #: lib/Items/WeatherDockItem.vala:179 lib/Items/WeatherDockItem.vala:224
-#: lib/Items/WeatherDockItem.vala:493 lib/Widgets/WeatherWindow.vala:297
+#: lib/Items/WeatherDockItem.vala:490 lib/Widgets/WeatherWindow.vala:297
 msgid "Detecting location..."
 msgstr "Standort wird ermittelt..."
 
@@ -742,104 +743,104 @@ msgid "Updating weather..."
 msgstr "Wetter wird aktualisiert..."
 
 #: lib/Items/WeatherDockItem.vala:199 lib/Items/WeatherDockItem.vala:224
-#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:473
-#: lib/Items/WeatherDockItem.vala:493
+#: lib/Items/WeatherDockItem.vala:388 lib/Items/WeatherDockItem.vala:470
+#: lib/Items/WeatherDockItem.vala:490
 msgid "Offline"
 msgstr "Offline"
 
-#: lib/Items/WeatherDockItem.vala:355
+#: lib/Items/WeatherDockItem.vala:354
 msgid "Location not found"
 msgstr "Standort nicht gefunden"
 
-#: lib/Items/WeatherDockItem.vala:392 lib/Items/WeatherDockItem.vala:475
+#: lib/Items/WeatherDockItem.vala:390 lib/Items/WeatherDockItem.vala:472
 msgid "No internet connection"
 msgstr "Keine Internetverbindung"
 
-#: lib/Items/WeatherDockItem.vala:569
+#: lib/Items/WeatherDockItem.vala:565
 msgid "Refresh Weather"
 msgstr "Wetter aktualisieren"
 
-#: lib/Items/WeatherDockItem.vala:575
+#: lib/Items/WeatherDockItem.vala:571
 msgid "Set Location..."
 msgstr "Standort festlegen..."
 
-#: lib/Items/WeatherDockItem.vala:581
+#: lib/Items/WeatherDockItem.vala:577
 msgid "Switch to Fahrenheit (°F)"
 msgstr "Zu Fahrenheit (°F) wechseln"
 
-#: lib/Items/WeatherDockItem.vala:581
+#: lib/Items/WeatherDockItem.vala:577
 msgid "Switch to Celsius (°C)"
 msgstr "Zu Celsius (°C) wechseln"
 
-#: lib/Items/WeatherDockItem.vala:605
+#: lib/Items/WeatherDockItem.vala:601
 msgid "Clear sky"
 msgstr "Klarer Himmel"
 
-#: lib/Items/WeatherDockItem.vala:606
+#: lib/Items/WeatherDockItem.vala:602
 msgid "Mainly clear"
 msgstr "Überwiegend klar"
 
-#: lib/Items/WeatherDockItem.vala:607 lib/Items/WeatherDockItem.vala:633
+#: lib/Items/WeatherDockItem.vala:603 lib/Items/WeatherDockItem.vala:629
 msgid "Partly cloudy"
 msgstr "Teilweise bewölkt"
 
-#: lib/Items/WeatherDockItem.vala:608
+#: lib/Items/WeatherDockItem.vala:604
 msgid "Overcast"
 msgstr "Bedeckt"
 
-#: lib/Items/WeatherDockItem.vala:610
+#: lib/Items/WeatherDockItem.vala:606
 msgid "Foggy"
 msgstr "Nebelig"
 
-#: lib/Items/WeatherDockItem.vala:613
+#: lib/Items/WeatherDockItem.vala:609
 msgid "Drizzle"
 msgstr "Nieselregen"
 
-#: lib/Items/WeatherDockItem.vala:615
+#: lib/Items/WeatherDockItem.vala:611
 msgid "Freezing drizzle"
 msgstr "Gefrierender Nieselregen"
 
-#: lib/Items/WeatherDockItem.vala:617
+#: lib/Items/WeatherDockItem.vala:613
 msgid "Rain"
 msgstr "Regen"
 
-#: lib/Items/WeatherDockItem.vala:618
+#: lib/Items/WeatherDockItem.vala:614
 msgid "Heavy rain"
 msgstr "Starker Regen"
 
-#: lib/Items/WeatherDockItem.vala:620
+#: lib/Items/WeatherDockItem.vala:616
 msgid "Freezing rain"
 msgstr "Gefrierender Regen"
 
-#: lib/Items/WeatherDockItem.vala:622
+#: lib/Items/WeatherDockItem.vala:618
 msgid "Snow"
 msgstr "Schnee"
 
-#: lib/Items/WeatherDockItem.vala:623
+#: lib/Items/WeatherDockItem.vala:619
 msgid "Heavy snow"
 msgstr "Starker Schneefall"
 
-#: lib/Items/WeatherDockItem.vala:624
+#: lib/Items/WeatherDockItem.vala:620
 msgid "Snow grains"
 msgstr "Schneekörner"
 
-#: lib/Items/WeatherDockItem.vala:626
+#: lib/Items/WeatherDockItem.vala:622
 msgid "Rain showers"
 msgstr "Regenschauer"
 
-#: lib/Items/WeatherDockItem.vala:627
+#: lib/Items/WeatherDockItem.vala:623
 msgid "Violent rain showers"
 msgstr "Heftige Regenschauer"
 
-#: lib/Items/WeatherDockItem.vala:629
+#: lib/Items/WeatherDockItem.vala:625
 msgid "Snow showers"
 msgstr "Schneeschauer"
 
-#: lib/Items/WeatherDockItem.vala:630
+#: lib/Items/WeatherDockItem.vala:626
 msgid "Thunderstorm"
 msgstr "Gewitter"
 
-#: lib/Items/WeatherDockItem.vala:632
+#: lib/Items/WeatherDockItem.vala:628
 msgid "Thunderstorm with hail"
 msgstr "Gewitter mit Hagel"
 
@@ -847,7 +848,7 @@ msgstr "Gewitter mit Hagel"
 msgid "Recent Files"
 msgstr "Zuletzt verwendete Dateien"
 
-#: lib/Widgets/CalendarWindow.vala:63
+#: lib/Widgets/CalendarWindow.vala:59
 msgid "Calendar"
 msgstr "Kalender"
 
@@ -1388,28 +1389,28 @@ msgid ""
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "Möchten Sie das Theme '%s' wirklich löschen?\nEs wird aus ~/.local/share/wayplank/themes/ entfernt."
 
-#: lib/Widgets/PreferencesWindow.vala:1288 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1255 data/ui/preferences.ui:554
 msgid "Docklets Only"
 msgstr "Nur Docklets"
 
-#: lib/Widgets/PreferencesWindow.vala:1289 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1256 data/ui/preferences.ui:555
 msgid "Docklets Only (with fallback)"
 msgstr "Nur Docklets (mit Ausweichoption)"
 
-#: lib/Widgets/PreferencesWindow.vala:1290 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1257 data/ui/preferences.ui:556
 msgid "All Icons (integrated)"
 msgstr "Alle Symbole (integriert)"
 
-#: lib/Widgets/PreferencesWindow.vala:1291 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1258 data/ui/preferences.ui:557
 msgid "Dedicated Icon (on dock)"
 msgstr "Eigenes Symbol (im Dock)"
 
-#: lib/Widgets/PreferencesWindow.vala:1469
+#: lib/Widgets/PreferencesWindow.vala:1436
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "Überlauf-Scrollen aktiv: %dpx beibehalten"
 
-#: lib/Widgets/PreferencesWindow.vala:1472
+#: lib/Widgets/PreferencesWindow.vala:1439
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1419,12 +1420,12 @@ msgstr ""
 "Zielgröße der Symbole: %d Pixel.\n"
 "'Überlauf-Scrollen' ist unter Verhalten aktiviert: Symbole werden niemals verkleinert und das Dock scrollt flüssig mit dem Mausrad, wenn die Bildschirmfläche nicht ausreicht."
 
-#: lib/Widgets/PreferencesWindow.vala:1483
+#: lib/Widgets/PreferencesWindow.vala:1450
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ Durch Bildschirmgröße auf %dpx begrenzt (automatisch verkleinert)"
 
-#: lib/Widgets/PreferencesWindow.vala:1485
+#: lib/Widgets/PreferencesWindow.vala:1452
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1433,12 +1434,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ Symbolgröße auf %dpx eingestellt, aber durch den verfügbaren Bildschirmplatz auf %dpx begrenzt.\nDie Symbole werden automatisch verkleinert, damit sie auf den Bildschirm passen.\nUm größere Größen ohne Verkleinerung zu verwenden, aktivieren Sie 'Überlauf-Scrollen' im Bereich Verhalten."
 
-#: lib/Widgets/PreferencesWindow.vala:1493
+#: lib/Widgets/PreferencesWindow.vala:1460
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "Passt ohne Verkleinerung auf den Bildschirm (Grenze: %d Pixel)"
 
-#: lib/Widgets/PreferencesWindow.vala:1495
+#: lib/Widgets/PreferencesWindow.vala:1462
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1448,23 +1449,23 @@ msgstr ""
 "Zielgröße der Symbole: %d Pixel.\n"
 "Passt problemlos auf den Bildschirm (Kapazitätsgrenze: %d Pixel, bevor die automatische Verkleinerung aktiviert wird)."
 
-#: lib/Widgets/PreferencesWindow.vala:1724 data/ui/preferences.ui:232
+#: lib/Widgets/PreferencesWindow.vala:1691 data/ui/preferences.ui:232
 #: data/ui/preferences.ui:245
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "Dock automatisch auf dem Hauptbildschirm anzeigen; deaktivieren, um einen bestimmten Bildschirm auszuwählen"
 
-#: lib/Widgets/PreferencesWindow.vala:1725
+#: lib/Widgets/PreferencesWindow.vala:1692
 msgid "Not supported by this compositor"
 msgstr "Von diesem Compositor nicht unterstützt"
 
-#: lib/Widgets/PreferencesWindow.vala:1800 data/ui/preferences.ui:1448
+#: lib/Widgets/PreferencesWindow.vala:1767 data/ui/preferences.ui:1448
 #: data/ui/preferences.ui:1462
 msgid "Workspace filtering is not yet supported under Wayland"
 msgstr "Arbeitsbereichsfilterung wird unter Wayland noch nicht unterstützt"
 
-#: lib/Widgets/PreferencesWindow.vala:1809 data/ui/preferences.ui:849
+#: lib/Widgets/PreferencesWindow.vala:1774 data/ui/preferences.ui:849
 #: data/ui/preferences.ui:862
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
@@ -1472,7 +1473,7 @@ msgid ""
 "for fluid unhiding"
 msgstr "Erfordert das Berühren des Bildschirmrands (1 px), um das Dock anzuzeigen und versehentliche Auslöser zu vermeiden; deaktiviert erscheint das Dock bereits 10 px vor dem Rand"
 
-#: lib/Widgets/PreferencesWindow.vala:1813 data/ui/preferences.ui:876
+#: lib/Widgets/PreferencesWindow.vala:1778 data/ui/preferences.ui:876
 #: data/ui/preferences.ui:889
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
@@ -1481,7 +1482,7 @@ msgid ""
 "Reserve Screen Space"
 msgstr "Reserviert Bildschirmplatz entsprechend der Dock-Dicke (Leistenmodus), sodass maximierte Fenster das Dock nicht überlappen; beim Aktivieren werden Dock ausblenden und Symbol-Vergrößerung automatisch deaktiviert, und beim Aktivieren einer dieser Optionen wird Bildschirmplatz reservieren automatisch deaktiviert"
 
-#: lib/Widgets/PreferencesWindow.vala:1816 data/ui/preferences.ui:1008
+#: lib/Widgets/PreferencesWindow.vala:1781 data/ui/preferences.ui:1008
 #: data/ui/preferences.ui:1022
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
@@ -1489,8 +1490,8 @@ msgid ""
 "positioned immediately behind or above the dock"
 msgstr "Beginnt mit der Symbolvergrößerung, sobald sich der Mauszeiger dem Dock nähert, für ein flüssiges, magnetisches Gefühl; deaktivieren, um Mausklicks strikt an Fenster direkt hinter oder über dem Dock weiterzuleiten"
 
-#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:310
-#: lib/Widgets/SessionWindow.vala:356
+#: lib/Widgets/SessionWindow.vala:110 lib/Widgets/SessionWindow.vala:308
+#: lib/Widgets/SessionWindow.vala:354
 msgid "Session & Power"
 msgstr "Sitzung & Energie"
 
@@ -1498,116 +1499,116 @@ msgstr "Sitzung & Energie"
 msgid "Session &amp; Power"
 msgstr "Sitzung &amp; Energie"
 
-#: lib/Widgets/SessionWindow.vala:147
+#: lib/Widgets/SessionWindow.vala:145
 msgid "Logged in as"
 msgstr "Angemeldet als"
 
-#: lib/Widgets/SessionWindow.vala:170
+#: lib/Widgets/SessionWindow.vala:168
 msgid "Lock Screen"
 msgstr "Bildschirm sperren"
 
-#: lib/Widgets/SessionWindow.vala:170
+#: lib/Widgets/SessionWindow.vala:168
 msgid "Lock the current session"
 msgstr "Aktuelle Sitzung sperren"
 
-#: lib/Widgets/SessionWindow.vala:177
+#: lib/Widgets/SessionWindow.vala:175
 msgid "Switch User"
 msgstr "Benutzer wechseln"
 
-#: lib/Widgets/SessionWindow.vala:177
+#: lib/Widgets/SessionWindow.vala:175
 msgid "Switch to another user or login screen"
 msgstr "Zu einem anderen Benutzer oder zum Anmeldebildschirm wechseln"
 
-#: lib/Widgets/SessionWindow.vala:184
+#: lib/Widgets/SessionWindow.vala:182
 msgid "Log out of the current session"
 msgstr "Von der aktuellen Sitzung abmelden"
 
-#: lib/Widgets/SessionWindow.vala:190
+#: lib/Widgets/SessionWindow.vala:188
 msgid "Suspend"
 msgstr "Energie sparen"
 
-#: lib/Widgets/SessionWindow.vala:190
+#: lib/Widgets/SessionWindow.vala:188
 msgid "Put computer into low-power sleep mode"
 msgstr "Computer in den Energiesparmodus versetzen"
 
-#: lib/Widgets/SessionWindow.vala:199
+#: lib/Widgets/SessionWindow.vala:197
 msgid "Hibernate"
 msgstr "Ruhezustand"
 
-#: lib/Widgets/SessionWindow.vala:202
+#: lib/Widgets/SessionWindow.vala:200
 msgid "Save session to disk and power off"
 msgstr "Sitzung auf der Festplatte speichern und ausschalten"
 
-#: lib/Widgets/SessionWindow.vala:203
+#: lib/Widgets/SessionWindow.vala:201
 msgid ""
 "Hibernation is not available on this system (swap or kernel support missing)"
 msgstr "Der Ruhezustand ist auf diesem System nicht verfügbar (Swap- oder Kernel-Unterstützung fehlt)"
 
-#: lib/Widgets/SessionWindow.vala:215
+#: lib/Widgets/SessionWindow.vala:213
 msgid "Hybrid Sleep"
 msgstr "Hybrider Energiesparmodus"
 
-#: lib/Widgets/SessionWindow.vala:218
+#: lib/Widgets/SessionWindow.vala:216
 msgid "Save session to disk and put computer into low-power sleep mode"
 msgstr "Sitzung auf der Festplatte speichern und Computer in den Energiesparmodus versetzen"
 
-#: lib/Widgets/SessionWindow.vala:219
+#: lib/Widgets/SessionWindow.vala:217
 msgid ""
 "Hybrid Sleep is not available on this system (swap or kernel support missing)"
 msgstr "Der hybride Energiesparmodus ist auf diesem System nicht verfügbar (Swap- oder Kernel-Unterstützung fehlt)"
 
-#: lib/Widgets/SessionWindow.vala:229
+#: lib/Widgets/SessionWindow.vala:227
 msgid "Reboot the operating system"
 msgstr "Betriebssystem neu starten"
 
-#: lib/Widgets/SessionWindow.vala:240
+#: lib/Widgets/SessionWindow.vala:238
 msgid "Restart and enter the motherboard UEFI / BIOS firmware settings"
 msgstr "Neu starten und die UEFI-/BIOS-Firmware-Einstellungen des Mainboards öffnen"
 
-#: lib/Widgets/SessionWindow.vala:241
+#: lib/Widgets/SessionWindow.vala:239
 msgid "UEFI / BIOS firmware setup is not supported on this system"
 msgstr "Das Öffnen der UEFI-/BIOS-Firmware-Einstellungen wird auf diesem System nicht unterstützt"
 
-#: lib/Widgets/SessionWindow.vala:250
+#: lib/Widgets/SessionWindow.vala:248
 msgid "Power off the computer"
 msgstr "Computer ausschalten"
 
-#: lib/Widgets/SessionWindow.vala:383
+#: lib/Widgets/SessionWindow.vala:381
 msgid "Confirm Session Action"
 msgstr "Sitzungsaktion bestätigen"
 
-#: lib/Widgets/SessionWindow.vala:388
+#: lib/Widgets/SessionWindow.vala:386
 msgid "Log Out of Session?"
 msgstr "Von der Sitzung abmelden?"
 
-#: lib/Widgets/SessionWindow.vala:389
+#: lib/Widgets/SessionWindow.vala:387
 msgid "Are you sure you want to log out of your current session?"
 msgstr "Möchten Sie sich wirklich von Ihrer aktuellen Sitzung abmelden?"
 
-#: lib/Widgets/SessionWindow.vala:396
+#: lib/Widgets/SessionWindow.vala:394
 msgid "Restart System?"
 msgstr "System neu starten?"
 
-#: lib/Widgets/SessionWindow.vala:397
+#: lib/Widgets/SessionWindow.vala:395
 msgid ""
 "Are you sure you want to restart your computer? Unsaved changes will be lost."
 msgstr "Möchten Sie Ihren Computer wirklich neu starten? Nicht gespeicherte Änderungen gehen verloren."
 
-#: lib/Widgets/SessionWindow.vala:404
+#: lib/Widgets/SessionWindow.vala:402
 msgid "Reboot to UEFI / BIOS?"
 msgstr "Ins UEFI / BIOS neu starten?"
 
-#: lib/Widgets/SessionWindow.vala:405
+#: lib/Widgets/SessionWindow.vala:403
 msgid ""
 "Are you sure you want to restart your computer and enter the UEFI / BIOS "
 "firmware settings? Unsaved changes will be lost."
 msgstr "Möchten Sie den Computer wirklich neu starten und die UEFI-/BIOS-Firmware-Einstellungen öffnen? Nicht gespeicherte Änderungen gehen verloren."
 
-#: lib/Widgets/SessionWindow.vala:412
+#: lib/Widgets/SessionWindow.vala:410
 msgid "Shut Down Computer?"
 msgstr "Computer herunterfahren?"
 
-#: lib/Widgets/SessionWindow.vala:413
+#: lib/Widgets/SessionWindow.vala:411
 msgid ""
 "Are you sure you want to turn off your computer? Unsaved changes will be "
 "lost."
@@ -1650,7 +1651,7 @@ msgstr "°F (Fahrenheit)"
 msgid "Save & Apply"
 msgstr "Speichern & Anwenden"
 
-#: lib/Widgets/WeatherCityDialog.vala:426
+#: lib/Widgets/WeatherCityDialog.vala:424
 msgid "Location not found. Please choose from suggestions or leave blank."
 msgstr "Standort nicht gefunden. Bitte wählen Sie einen Vorschlag aus oder lassen Sie das Feld leer."
 
@@ -1703,11 +1704,11 @@ msgstr "Anwendung"
 msgid "Minimized"
 msgstr "Minimiert"
 
-#: src/Main.vala:152
+#: src/Main.vala:86
 msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank wurde ausschließlich für Wayland-Sitzungen entwickelt."
 
-#: src/Main.vala:154
+#: src/Main.vala:88
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - Nicht unterstützte Sitzung"
 

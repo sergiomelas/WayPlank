@@ -1,7 +1,7 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-14
+Date: 2026-11-15
 Milestone: V0.7.2 (Public Beta 3: 3-Zone Dichotomic HAL & Agnostic Boundary
            Translator Freeze — MOC-0.7.2-HAL-001)
 Author & Tester: Sergio Melas

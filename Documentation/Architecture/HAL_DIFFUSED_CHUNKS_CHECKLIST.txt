@@ -93,6 +93,18 @@ SECTION 1 — MOVE 1: SKELETON & ZERO-LOGIC DRIVER RELOCATION (COMPLETED)
 [x] [M1-09] BuildBin.sh & po/generate_translations.py wired to `hal/` & `vapi/*`;
             verified `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings)
 
+--- Move 1 Leftovers to Treat ---
+[ ] [M1-10] `BuildBin.sh` (L81):
+            Scope Vala source discovery to `hal/Interfaces`, `hal/Freedesktop`, and
+            `hal/Linux` instead of globbing all of `hal/` (so Linux builds will not
+            compile `hal/Windows/` when `v0.7.3` starts).
+[ ] [M1-11] `po/POTFILES.in` (L1-96):
+            Remove 18 stale relocated/deleted `lib/` paths (`lib/DBus/*`, `lib/DBusManager.vala`,
+            `lib/Services/{Environment*,KWin*,LabwcBackend,MutterBackend,SurfaceCoordinateService,
+            Unity,Window*}.vala`) and list active translatable sources (`FirstRunWindow.vala`,
+            `PinnedExpanderDockItem.vala`, `AppUsageService.vala`, `RecentFilesService.vala`,
+            `data/ui/preferences.ui`, `hal/**/*.vala`).
+
 ================================================================================
 SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             Northbound Translators (`hal/Interfaces/`):
@@ -257,6 +269,86 @@ SECTION 2 — MOVE 2: COMPOSITOR SHELL, INPUT REGION, THUMBNAILS & CAPABILITIES
             Run `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (0 errors, 0 warnings) and
             verify positioning, struts, tooltips, folder popups, window cards,
             poof animation, and `#34` click pass-through on KWin, Mutter, and Labwc.
+
+--- Move 2 Leftovers to Treat ---
+[ ] [M2-17] `lib/Widgets/DockWindow.vala` (L188-224, L257):
+            Add `public override void destroy ()` with idempotent signal disconnect and
+            `Hal.Shell.update_exclusive_zone (this, false, ...)` teardown. Currently
+            `tracked_monitor.notify["workarea"].connect (() => ...)` holds a strong ref
+            to `DockWindow` on `Gdk.Monitor` while cleanup is only in `~DockWindow()`,
+            leaking `DockWindow` and leaving `Hal.Windows.state_changed` / struts active
+            when `dock_window.destroy ()` is called.
+[ ] [M2-18] `lib/Widgets/PreferencesWindow.vala` (L934, L998, L1749) &
+            `lib/HideManager.vala` (L67-72):
+            Replace hardcoded `HideType.DODGE_MAXIMIZED` fallback at L934, L998, L1749
+            with `Hal.Capabilities.fallback_hide_mode`, and remove dead `plank_pid`
+            field in `HideManager.vala`.
+[ ] [M2-19] `lib/Widgets/PreferencesWindow.vala` (L930, L939, L979, L984, L1126) &
+            `lib/Widgets/DockWindow.vala` (L35):
+            Null-guard `widget.get_active_id ()` before `int.parse (...)` (prevents
+            `atoi(NULL)` `SIGSEGV` on out-of-range preference IDs), and break the strong
+            `DockController.window <-> DockWindow.controller` reference cycle on destroy.
+[ ] [M2-20] `lib/DockController.vala`, `lib/HideManager.vala` (L74),
+            `lib/DockRenderer.vala` (L29), `lib/PositionManager.vala` (L26),
+            `lib/DragManager.vala` (L28), `lib/Widgets/{FolderMenuWindow:31,WindowCardsWindow:36}.vala`,
+            & `hal/Freedesktop/Dbus/DockIpcServer.vala` (L49, L117, L180-192):
+            Make back-references to `DockController` / `IDockIpcTarget` `weak` across all
+            7 child objects and add `DockController.dispose_dock ()` (disconnecting
+            `ipc_elements_changed`, cancelling `DockIpcServer`'s `500ms` timer, and
+            destroying child popups deterministically on dock removal/shutdown).
+[ ] [M2-21] `hal/Interfaces/PlatformCapabilities.vala`, `hal/Freedesktop/WindowCapabilities.vala`
+            (L69), & `lib/HideManager.vala` (L26-52):
+            Move `public enum HideType` from `lib/HideManager.vala` into
+            `hal/Interfaces/PlatformCapabilities.vala` (with OS-agnostic doc comments) so
+            `hal/Interfaces/` and `hal/Freedesktop/` have zero upward type dependency on `lib/`.
+[ ] [M2-22] `hal/Freedesktop/KWin/KWinBridge.vala` (L458-480),
+            `hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c` (L527-554), &
+            `lib/Widgets/PoofWindow.vala` (L71-74):
+            Implement `WindowAction.MINIMIZE` (`"minimize"`) in `KWinBridge`
+            (`target.minimized = true`) and `wlr-toplevel-bridge.c`
+            (`zwlr_foreign_toplevel_handle_v1_set_minimized`) for 100% 3-compositor parity
+            with `MutterBackend`; in `PoofWindow` `construct`, set `resizable = false;
+            accept_focus = false; can_focus = false; focus_on_map = false;` + empty
+            `Cairo.Region ()` input shape so Poof never steals focus or swallows clicks.
+[ ] [M2-23] `lib/Widgets/PreferencesWindow.vala` (L1337-1338) &
+            `hal/Freedesktop/Mutter/MutterBackend.vala` (L1761-1793):
+            Guard `cb_system_menu_access.active_id != ""` alongside `!= null` before
+            `int.parse (...)` in `PreferencesWindow.system_menu_access_changed ()`; and
+            in `MutterBackend.ensure_extension_installed ()`, check
+            `schema.has_key ("disable-user-extensions")`,
+            `schema.has_key ("disabled-extensions")`, and
+            `schema.has_key ("enabled-extensions")` on `org.gnome.shell` before calling
+            `shell_settings.get_*` / `set_*` (`SIGTRAP` guard).
+[ ] [M2-24] `hal/Interfaces/PlatformCapabilities.vala` (L44),
+            `hal/Interfaces/IDockShell.vala` (L75),
+            `hal/Interfaces/IThumbnailProvider.vala` (L34),
+            `hal/Interfaces/Hal.vala` (L129-138),
+            `hal/Freedesktop/FreedesktopHalBootstrap.vala` (L313), &
+            `hal/Freedesktop/Shell/LayerShellDockShell.vala` (L147-153):
+            Add `public bool uses_shell_anchored_surfaces { get; set; default = false; }`
+            to `PlatformCapabilities` (populated in `FreedesktopHalBootstrap`, `false` on
+            `Win32Shell`); and add `public virtual void cleanup () {}` on `IDockShell` and
+            `IThumbnailProvider`, disconnecting `primary_monitor_changed` in
+            `LayerShellDockShell.cleanup ()` and invoking `shell_instance.cleanup ()` +
+            `thumbnails_instance.cleanup ()` inside `Hal.cleanup ()` so `v0.7.3`
+            `Win32Shell` deterministically calls `SHAppBarMessage(ABM_REMOVE)` on shutdown.
+[ ] [M2-25] `lib/DockController.vala` (L36-42, L128-157),
+            `lib/DockRenderer.vala` (L132-175), `lib/PositionManager.vala` (L50-94),
+            `lib/DragManager.vala` (L164-220), `lib/Drawing/Renderer.vala` (L29, L48-63),
+            `lib/Items/DockElement.vala` (L36), `lib/Items/DockContainer.vala`
+            (L28-33, L89-105, L391-393), `lib/Items/ApplicationDockItemProvider.vala` (L41-67),
+            `lib/Items/DefaultApplicationDockItemProvider.vala` (L117-131, L197-228, L699-761),
+            & `lib/Widgets/PreferencesWindow.vala` (L484-495, L502-512, L1576-1587, L1655-1666):
+            Make `DockElement.Container` `weak` (`L36`) with per-container `placeholder_item`;
+            add idempotent `cleanup ()` + `is_initialized` guards across `Renderer`/`DockRenderer`
+            (removing tick callback to break `Renderer <-> Gtk.Widget` strong cycle),
+            `PositionManager`, `DragManager`, `HideManager`, and `DockContainer` /
+            `ApplicationDockItemProvider` / `DefaultApplicationDockItemProvider`, calling them
+            in `DockController.dispose_dock ()` / `~DockController ()` BEFORE `prefs` (`L36`)
+            is finalized (plus `controller != null && controller.prefs != null` destructor
+            guards); in `PreferencesWindow`, null-guard `out id` / `out text` at `L484-495`
+            and cache `weak bound_controller` + `weak bound_screen` in `connect_signals ()`
+            so `controller_changed () -> disconnect_signals ()` unhooks the previous controller.
 
 ================================================================================
 SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
@@ -514,6 +606,213 @@ SECTION 3 — MOVE 3: IPC BUSES, TELEMETRY, DOCKLETS, C/VAPI & RUNTIME LIFECYCLE
             verify all 16 docklets, system dark/light theme flip, Unity badges,
             autostart toggle, and clean Quit / `--replace`.
 
+--- Move 3 Leftovers to Treat ---
+[ ] [M3-31] `BuildBin.sh` (L110) & `vapi/freedesktop/unix-compat.vapi` (L23):
+            Pass `-D HAVE_SYS_PRCTL_H` to `valac` on Linux in `BuildBin.sh` (currently
+            omitted while GCC receives `-Dsetproctitle(x)=`, turning
+            `Hal.Runtime.set_process_title ()` into a silent no-op).
+[ ] [M3-32] `src/Main.vala` (L80-86, L123-124, L135), `lib/Factories/AbstractMain.vala`
+            (L146, L501-504), & `hal/Interfaces/IPlatformRuntime.vala`:
+            Complete the 3 remaining sub-methods on `Hal.Runtime`:
+            1) `verify_supported_display (display, out string error_msg)` (removes
+               Wayland-only error dialog string hardcoded in `Main.vala:86`);
+            2) `get_self_launcher_id ()` (replaces hardcoded `"wayplank.desktop"` at `Main.vala:135`);
+            3) `get_system_data_dir ()` (replaces compile-time `Build.DATADIR` / relative
+               `"./share"` at `Main.vala:124` & `AbstractMain.vala:146,502`, which fails
+               when Windows autostart CWD is `C:\Windows\System32`).
+[ ] [M3-33] `lib/Factories/AbstractMain.vala` (L223, L1649-1655, L2057) &
+            `lib/gtk-compat.c` (L189-197):
+            1) `AbstractMain.vala:2057` (`show_guide`): replace `"file://" + html_path`
+               (invalid SMB URI `file://C:\Users\...` on Windows) with
+               `File.new_for_path (html_path).get_uri ()`.
+            2) `AbstractMain.vala:223`: replace `Build.DATADIR + "/locale"` (`Build.DATADIR`
+               is `#ifndef _WIN32`) with `Path.build_filename (Hal.Runtime.get_system_data_dir (), "locale")`.
+            3) `AbstractMain.vala:1649-1655` & `gtk-compat.c:189-197`: fall back to
+               `GLib.Intl.get_language_names ()` / `g_get_language_names ()` so Windows
+               MSVCRT `setlocale` (`"Italian_Italy.1252"`) resolves ISO language codes.
+[ ] [M3-34] `lib/Services/ThemeManager.vala` (L50-54), `lib/Drawing/Theme.vala`
+            (L675,685,720,722,727,746,751,762), & `lib/DockPreferences.vala`
+            (L573,582,939-940):
+            1) `ThemeManager.is_user_theme ()`: replace `Environment.get_home_dir () + "/"`
+               prefix check with `folder.has_prefix (Paths.HomeFolder)`.
+            2) `Theme.vala`: replace multi-segment `"plank/themes/%s"` in `File.get_child ()`
+               with `Path.build_filename` / chained `get_child`.
+            3) `DockPreferences.vala`: reject `"\\"` alongside `"/"` in theme/item name
+               path-traversal checks.
+[ ] [M3-35] `lib/Items/DoNotDisturbDockItem.vala` (L56), `lib/Items/DockItem.vala` (L257),
+            & 7 Docklets (`Battery`, `Clock`, `Cpu`, `DigitalClock`, `Mpris`, `Network`, `Volume`):
+            Disconnect `notify["IsAttached"]` in `DoNotDisturbDockItem.cleanup ()`, add an
+            idempotent `cleaned_up` guard across the 7 docklets so `cleanup ()` + `~dtor`
+            never double-disconnects `notify["IsAttached"]`, and call `stop_removal ()` in
+            `DockItem.cleanup ()`.
+[ ] [M3-36] `hal/Freedesktop/Dbus/DbusBroker.vala` (L35, L89-133),
+            `hal/Freedesktop/KWin/KWinTrashBridge.vala`, `hal/Interfaces/Hal.vala` (L137),
+            & 4 Upward `hal/ -> lib/Services/` Calls (`KWinBridge:640`, `MutterBackend:2013`,
+            `LabwcBackend:278-350`, `MprisDbusService:294`):
+            1) Protect `DbusBroker.sender_pid_cache` with a `GLib.Mutex`.
+            2) Redirect `KWinBridge`, `MutterBackend`, and `LabwcBackend` `/proc` &
+               `ApplicationDiscovery.get_process_*` calls to `LinuxProcessInspector` /
+               `Hal.Apps.inspect_process ()`, and remove the worker-thread call to
+               `ApplicationIdentity` inside `MprisDbusService.vala:294`.
+            3) Guard `Hal.shutdown ()` with `if (windows_instance != null) windows_instance.cleanup ()`
+               and add `KWinTrashBridge.cleanup_if_active ()`.
+[ ] [M3-37] `lib/Factories/AbstractMain.vala` (L324, L332-333, L337, L555, L688-700,
+            L2070, L2085-2097) & `lib/gtk-compat.c` (L197):
+            1) Swap `Hal.initialize ()` BEFORE `Paths.initialize (...)` at `AbstractMain.vala:332-333`;
+            2) Connect `activate_link` on `about_dlg` (L555) and every credit `Gtk.Label` in
+               `add_credit_group_to_grid` (L688-700) to `Hal.Runtime.open_uri (...)` (fixes
+               `<a href="https://...">` & `mailto:` links on Windows without `gvfs`);
+            3) Guard `schedule_dock_refresh ()` (L2085) with `if (is_shutting_down) return;`
+               and remove leftover `#if HAVE_DBUSMENU` log flag (L324);
+            4) Guard `#ifdef LC_MESSAGES` in `lib/gtk-compat.c:197` (`LC_MESSAGES` is not
+               defined in Windows `<locale.h>` MSVCRT/UCRT).
+[ ] [M3-38] `lib/DockRenderer.vala` (L168-174, L296-306, L463), `lib/DockController.vala`
+            (L725), & `hal/Interfaces/ISystemTelemetry.vala` (L290):
+            Connect `Hal.Bus.Notifications.show_launcher_badges_changed` in `DockRenderer`
+            to trigger `animated_draw ()`, null-guard `Gtk.Settings.get_default ()` at
+            L168-174 & L296-306, use `provider.item_for_uri (uri)` in
+            `DockController.ipc_get_hover_position ()` (L725), and invoke `callback (false, ...)`
+            in `NullEjectorProvider.eject_drive ()`.
+[ ] [M3-39] `hal/Interfaces/Hal.vala` (L129-138), `hal/Freedesktop/FreedesktopHalBootstrap.vala`
+            (L77-84, L140-147), `hal/Freedesktop/Dbus/DockIpcClient.vala`, &
+            `hal/Linux/LinuxAudioTelemetry.vala` (L48-52):
+            Order `Hal.cleanup ()` so `bus_instance.cleanup ()` (`DbusBroker.cleanup ()`)
+            executes LAST (`windows -> telemetry -> apps -> runtime -> bus`), add
+            `DockIpcClient.cleanup ()` and `_trash.stop_monitoring ()` in
+            `FreedesktopHalBootstrap`, and guard lazy init in `LinuxAudioTelemetry.probe_state_sync ()`
+            with a `static GLib.Mutex`.
+[ ] [M3-40] `lib/Items/WeatherDockItem.vala` (L398):
+            Format latitude/longitude in the Open-Meteo URL with `GLib.Ascii.formatd`
+            instead of `%.4f` so Win32 COM/Shell resets of thread `LC_NUMERIC` never emit
+            comma-decimals (`45,4642`).
+[ ] [M3-41] `lib/Services/Settings.vala` (L41, L49), `lib/Services/Utils.vala` (L42-50),
+            & `lib/Services/Preferences.vala` (L445, L630-705):
+            Delegate `Plank.Settings` constructors (`L41, L49`) to `create_settings (schema, path)`
+            in `Utils.vala`, use `Path.build_filename` in `Utils.vala:42-50`, null-guard
+            `backing_file.get_path ()` at `Preferences.vala:445`, and preserve `is_changed = true`
+            (with retry) if `backing_file.replace ()` hits a transient Windows sharing lock.
+[ ] [M3-42] `src/Main.vala` (L48-78), `lib/Factories/AbstractMain.vala` (L216, L256-289,
+            L368-395), & `hal/Interfaces/IPlatformRuntime.vala`:
+            Handle `--validate-latch <path>` early in `src/Main.vala` (before
+            `replace_running_instances` / `Gtk.init`, required by `v0.7.3`
+            `Win32PlatformRuntime.validate_keyfile_isolated` once `src/` is frozen); add
+            `uses_native_single_instance_ipc ()` / `try_forward_cli_to_running_instance ()`
+            / `remote_action_requested` on `IPlatformRuntime` for Session-D-Bus-free
+            Windows single-instance CLI forwarding; and sanitize `dock_name` /
+            `enabled-docks` against `^[A-Za-z_][A-Za-z0-9_-]*$` (excluding Win32 DOS stems).
+[ ] [M3-43] `lib/DockPreferences.vala` (L572-584, L936-941), `lib/PositionManager.vala`
+            (L126-143, L195-204), & `lib/Services/ThemeManager.vala` (L50-55):
+            Scope `/` and `\` path-traversal rejection in `DockPreferences` strictly to
+            `prop_name == "Theme"` (plus `.` and `..`, and `..` on `DockItems` at L582) so
+            valid `Monitor` identifiers (`\\.\DISPLAY1`, EDID `S24D300/350`) are never
+            rejected; use `last_index_of ("[")` and `last_index_of ("@")` in
+            `PositionManager.get_monitor_for_plug_name ()` (L195, L198); and guard
+            `!folder.equal (Paths.ThemeFolder) && !folder.has_prefix (Paths.ThemeFolder)`
+            in `ThemeManager.is_user_theme ()`.
+[ ] [M3-44] `lib/Drawing/Surface.vala` (L70-85, L157-160, L226-229),
+            `lib/Drawing/DrawingService.vala` (L599), &
+            `lib/Drawing/Theme.vala` (L109-115, L383, L435, L502):
+            Allocate in-RAM `Cairo.ImageSurface (ARGB32, ceil(w*sx), ceil(h*sy))` with
+            `set_device_scale (sx, sy)` inside `Surface.with_cairo_surface` and
+            `Surface.with_surface` instead of `Cairo.Surface.similar` (prevents allocating
+            thousands of Win32 kernel `HDC`+`HBITMAP` GDI objects across `SurfaceCache`
+            frames); null-guard `Gdk.pixbuf_get_from_surface` in `Surface`/`DrawingService`
+            and `Gtk.Settings.get_default ()` / `Gdk.Screen.get_default ()` in `Theme.vala`.
+[ ] [M3-45] `lib/Widgets/PreferencesWindow.vala` (L1404, L1408) & `lib/gtk-compat.c` (L92-110):
+            Format `pct` and `hl_pct` with `GLib.Ascii.formatd` inside `PreferencesWindow`
+            CSS `linear-gradient(...)` (prevents comma-decimal locales `54,3%` breaking
+            `GtkCssProvider`), and normalize `'-'` -> `'_'` (`zh-CN` -> `zh_CN`) in
+            `wayplank_match_embedded_lang ()` (`gtk-compat.c:100`).
+[ ] [M3-46] `hal/Freedesktop/Dbus/NotificationDbusService.vala` (L28-65, L181-188, L223),
+            `hal/Freedesktop/Dbus/DesktopThemeDbusService.vala` (L202-204),
+            `hal/Freedesktop/Dbus/LauncherEntryDbusService.vala` (L212-272, L296),
+            `lib/InternalConsts.vala`, & `lib/Items/ApplicationDockItemProvider.vala` (L383-385):
+            Remove upward `Plank.Settings` / `Logger.verbose` / `UNITY_UPDATE_THRESHOLD_*`
+            couplings from `hal/Freedesktop/Dbus/*` (purge `UNITY_*` from
+            `lib/InternalConsts.vala`), guard `schema.has_key ("show-banners")` and
+            `schema.has_key ("color-scheme")` before `g_settings_get_*` (`SIGTRAP` guard),
+            and normalize `"application://"` southbound inside `LauncherEntryDbusService`.
+[ ] [M3-47] `hal/Freedesktop/Xdg/FreedesktopEjectorProvider.vala` (L159-167) &
+            `hal/Freedesktop/Xdg/FreedesktopTrashProvider.vala` (L187, L202, L233, L353, L422):
+            Invoke `callback (false, ...)` when drive vanished in
+            `FreedesktopEjectorProvider.eject_drive ()`; escape `Path=` with
+            `Uri.escape_string (orig_path, "/", true)` in `.trashinfo` (`100%.pdf` restore
+            fix), reject `/` and `.`/`..` in `restore_item`/`delete_item_permanently`, and
+            use `File.new_for_path (trash_dir).get_uri ()` in `open_trash_ui ()`.
+[ ] [M3-48] `lib/Drawing/Theme.vala` (L680, L683), `lib/Services/ThemeManager.vala`
+            (L72-82, L153), `lib/Widgets/WeatherWindow.vala` (L434),
+            `lib/Widgets/HelpWindow.vala` (L71), `lib/Widgets/FirstRunWindow.vala`
+            (L97, L149, L159, L170), `lib/Factories/AbstractMain.vala`,
+            `hal/Linux/LinuxSessionPower.vala` (L365, L372), &
+            `hal/Linux/SysFs/BrightnessControl.vala` (L994):
+            Reword `/usr/share/...` doc comments in `Theme.vala:680,683` (`[M4-25]`
+            firewall compliance); strip `.theme` case-insensitively with null-safe
+            `get_basename ()` and reject `<>:"|?*`, trailing dots/spaces, and Win32 DOS
+            reserved names in `ThemeManager.is_safe_theme_name ()`; set
+            `Gtk.Window.set_default_icon (DrawingService.load_icon ("plank", 48, 48))` in
+            `AbstractMain`, map `"starred"` / `"preferences-system"` GResource fallbacks
+            for `FirstRunWindow` + `WeatherWindow:434`, and gate `FirstRunWindow:170`
+            (`GDK_BACKEND=x11` Wayland note) on `Hal.Capabilities.uses_shell_anchored_surfaces`;
+            and wrap `session_id`, `user`, and `dev` with `Shell.quote (...)` in
+            `LinuxSessionPower.vala:365,372` and `BrightnessControl.vala:994`.
+[ ] [M3-49] `hal/Freedesktop/Dbus/DockIpcServer.vala` (L145-147, L159-160, L169),
+            `hal/Freedesktop/Dbus/DesktopThemeDbusService.vala` (L54-63, L72-89),
+            `hal/Freedesktop/Dbus/NotificationDbusService.vala` (L184-188, L670-682),
+            `hal/Freedesktop/Xdg/FreedesktopTrashProvider.vala` (L166-167),
+            `hal/Linux/LinuxSessionPower.vala` (L172-180, L230-238), &
+            `hal/Linux/SysFs/BrightnessControl.vala` (L932, L960):
+            Sanitize non-`[A-Za-z0-9_]` chars (e.g. `'-'` in `dock-2`) to `'_'` in D-Bus
+            object-path segments and check `!object_path.has_suffix ("/" + safe_seg)` in
+            `DockIpcServer`; disconnect and null out `gnome_settings` / `gnome_notif_settings`
+            inside `DesktopThemeDbusService.cleanup ()` and `NotificationDbusService.cleanup ()`;
+            unescape `.trashinfo` `Path=` via `Uri.unescape_string` in
+            `FreedesktopTrashProvider.list_items ()` (`L167`); validate
+            `Variant.is_object_path (seat_path)` on `XDG_SEAT_PATH` in `LinuxSessionPower`;
+            and wrap `output.%s.brightness.%d` with `Shell.quote` in `BrightnessControl:932,960`.
+[ ] [M3-50] `lib/Items/ApplicationDockItemProvider.vala` (L384-385),
+            `lib/Items/ApplicationDockItem.vala` (L924-967),
+            `lib/Items/PlankDockItem.vala` (L33-46),
+            `lib/Items/BrightnessDockItem.vala` (L33-67),
+            `lib/PositionManager.vala` (L216-224, L237), &
+            `lib/Drawing/SurfaceCache.vala` (L140-158):
+            Implement `ILauncherBadgeClient.update_launcher_entry ()` and
+            `remove_launcher_entry ()` in `ApplicationDockItemProvider` (replacing the empty
+            `{}` stubs so `LauncherEntryDbusService` / `Win32` `ITaskbarList3` badge &
+            progress updates reach `ApplicationDockItem`, renaming `unity_dbusname` comments
+            to `badge_sender_id`); replace the static `PlankDockItem.instance` singleton with
+            per-dock `new PlankDockItem ()` (`Text: "WayPlank"`, `Icon: "wayplank;;plank"`);
+            route `BrightnessDockItem.get_brightness_icon_name ()` through mutex-protected,
+            null-safe `DrawingService.theme_has_icon ()`; extend `last_index_of ("[")` and
+            trailing `[...@...]` parsing to `PositionManager.vala:216-224,237`; and capture
+            `GLib.WeakRef` in `SurfaceCache`'s 5-minute timeout closure (`L140-158`).
+[ ] [M3-51] `data/plank.gresource.xml`, `lib/Drawing/DrawingService.vala`
+            (L49-50, L148-160, L435-438), `lib/Widgets/SessionWindow.vala`,
+            `lib/Widgets/FirstRunWindow.vala` (L149, L159),
+            `lib/Widgets/DockWindow.vala` (L1207),
+            `lib/Items/DoNotDisturbDockItem.vala` (L25-26, L130),
+            `lib/Items/NetworkDockItem.vala` (L186-195),
+            `lib/Items/PlaceholderDockItem.vala` (L39), &
+            `lib/Items/DockElement.vala` (L375-422):
+            Null-guard `Gdk.Screen.get_default ()` in `DrawingService.get_icon_theme ()` and
+            unwrap `EmblemedIcon` + `resource://` `FileIcon` in `get_icon_from_gicon ()`;
+            embed Zero-Adwaita SVG/Cairo fallbacks for `SessionWindow`'s 6 actions
+            (`system-lock-screen`, `system-users`, `system-log-out`, `system-suspend`,
+            `system-suspend-hibernate`, `system-reboot`), `DoNotDisturbDockItem` muted state,
+            `NetworkDockItem` offline state, and `FirstRunWindow`'s
+            `"preferences-system-symbolic"` / `"starred-symbolic"`; use `"list-add;;list-add-symbolic"`
+            in `PlaceholderDockItem:39` and `"help-browser;;help-contents"` in
+            `DockWindow:1207`; and in `DockElement.create_menu_item` /
+            `create_literal_menu_item` (`L375-422`), check `DrawingService.has_icon` (trying
+            `icon + "-symbolic"`) and fall back to an iconless `Gtk.MenuItem` instead of
+            stamping `application-default-icon.svg`.
+[ ] [M3-52] `lib/Factories/ItemFactory.vala` (L114) &
+            `lib/Factories/AbstractMain.vala` (L53-82, L206-211):
+            Update `ItemFactory.get_item_for_dock ()` (`L114`) to `return new PlankDockItem ();`
+            (matching `[M3-50]`'s public per-dock `PlankDockItem ()` constructor); and in
+            `AbstractMain.perform_clean_shutdown ()` (`L53-82`), destroy `preferences_dlg` /
+            `help_dlg` and call `dock.dispose_dock ()` on every dock (clearing `primary_dock`
+            and `docks`) BEFORE `Hal.cleanup ()` runs.
+
 ================================================================================
 SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREWALL
             Northbound Translators (`hal/Interfaces/`):
@@ -651,11 +950,279 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             TRANSLATOR:
               - Northbound: `Hal.Apps.is_launcher_uri()`, `Hal.Apps.load_launcher()`,
                 `Hal.Apps.launch_command()`, `Hal.Apps.get_default_app_for_role(TEXT_EDITOR)`.
-[ ] [M4-17] `lib/Widgets/IconChooserDialog.vala` (L231, L507-511) &
+[ ] [M4-17] `lib/Widgets/IconChooserDialog.vala` (L231, L429-573) &
             `lib/Drawing/DrawingService.vala` (L81, L242-245):
             Replace hardcoded `/var/lib/flatpak/...`, `/var/lib/snapd/...`, `/usr/...`
-            with `Hal.Apps.discover_launcher_dirs()`, and replace `has_prefix("/")` /
-            `has_prefix("~/")` with `Path.is_absolute()` + `Environment.get_home_dir()`.
+            with `Hal.Apps.discover_launcher_dirs()`, extract the 145-line `.desktop`
+            custom icon override writer/resetter (`apply_launcher_icon` &
+            `reset_launcher_icon`, L429-573) behind `Hal.Apps.apply_custom_launcher_icon()`
+            & `reset_custom_launcher_icon()`, and replace `has_prefix("/")` /
+            `has_prefix("~/")` with `Path.is_absolute()` + prefix-only home expansion
+            (avoiding `name.replace("~", ...)` at L242 which corrupts Windows `PROGRA~1`
+            8.3 short paths).
+
+--- Move 4 Additional Interactions Uncovered by Audit ---
+[ ] [M4-20] `hal/Interfaces/Hal.vala` & `hal/Freedesktop/FreedesktopHalBootstrap.vala`:
+            Add `extern IAppSystem? wayplank_hal_platform_early_apps ()` lazy pre-`Hal.initialize()`
+            hook for `Hal.Apps` (mirroring `Hal.Runtime`) because `Paths.initialize ()`
+            calls `Hal.Apps.get_extra_data_dirs ()` BEFORE `Hal.initialize ()` runs.
+[ ] [M4-21] `hal/Interfaces/IAppSystem.vala` — Complete `AppDescriptor`, `ProcessSnapshot`,
+            and `IAppSystem` fields/methods needed by all Core callers:
+            - `AppDescriptor`: include `alias_ids` (`Type=Link`/symlink targets),
+              `wm_classes_or_aumids` (both `StartupWMClass` & `X-GNOME-WMClass`),
+              `try_exec_satisfied`, `supports_files` (`%f`/`%F`), `supports_uris` (`%u`/`%U`),
+              `is_non_app_launcher`, `is_shown_in_current_desktop` (`OnlyShowIn`/`NotShowIn`),
+              `is_synthetic`, `has_custom_icon_override`, and `QuicklistAction` (`id`, `name`,
+              `icon_token`, `exec`).
+            - `ProcessSnapshot`: include `is_alive`, `exe_realpath`, and `int[] child_pids`
+              (alongside `child_cmdlines`), plus `inspect_process (pid, bool bypass_cache = false)`
+              and `is_process_alive (pid)` for live terminal child/grandchild PID ownership
+              (`ApplicationIdentity.vala:2004-2080, 3378`).
+            - Browser profile discovery: add `get_browser_local_state_paths (family)` for
+              `ApplicationIdentity.vala:2423-2426` + case-insensitive `/user data/` FD check
+              (`L3125`).
+            - Launcher helpers: include `resolve_launcher_uri`, `launcher_id_stem`
+              (collision-safe for dotted `aumid://` URIs in `ItemFactory.vala:728-746`),
+              `populate_category_folder` (`.directory` + Games/Utilities seeding in
+              `ItemFactory.vala:361-470`), `can_launcher_accept_uri` (cross-OS MIME vs Win32
+              `.ext` `ContentType` drop check in `ApplicationDockItem.vala:466-601`),
+              `is_synthetic_launcher` / `delete_synthetic_launcher`, and
+              `apply_custom_launcher_icon` / `reset_custom_launcher_icon`.
+[ ] [M4-22] `lib/Items/ApplicationDockItem.vala` (L30-40, L238, L299-316, L628-642, L729-900):
+            Extract `has_executable_launcher ()` `KeyFile` check (L299-316), the entire
+            170-line `parse_launcher ()` `[Desktop Entry]` / `[Desktop Action %s]` /
+            `[%s Shortcut Group]` + `GLib.dgettext` `KeyFile` parser (L729-900), and
+            `File.new_for_uri` assumptions for `aumid://` in `launch ()` (L238, L628-642)
+            into `Hal.Apps.load_launcher ()` / `Hal.Apps.launch_app ()`.
+[ ] [M4-23] `lib/Items/DefaultApplicationDockItemProvider.vala` (L1568-1588) &
+            `lib/Services/WindowManager.vala` (L163-169, L193):
+            Replace hardcoded `Paths.DataDirFolders -> "applications" -> app_id` in
+            `desktop_file_for_application_id ()` with `Hal.Apps.resolve_launcher_uri (app_id)`,
+            and replace `.has_suffix (".desktop")` + `File.new_for_uri (launcher_uri).get_basename ()`
+            in `WindowManager.vala` with `Hal.Apps.is_launcher_uri ()` & `launcher_id_stem ()`.
+[ ] [M4-24] `lib/Services/Matcher.vala` (L181-226, L242-267), `lib/Services/System.vala`
+            (L258, L269), `lib/Services/Utils.vala` (L44), & `lib/DragManager.vala` (L357-440):
+            Replace `Matcher.vala` `.desktop` `KeyFile` reads with `Hal.Apps.load_launcher ()`;
+            encapsulate unmounted GVFS volume mounting (`System.vala:258,269`) inside
+            `XdgAppSystem.launch_app ()`; move `#ifndef _WIN32` `Build.DATADIR` schema lookup
+            (`Utils.vala:44`) inside `LinuxPlatformRuntime.get_extra_schema_dirs ()`; and use
+            `Hal.Apps.is_launcher_uri ()` in `DragManager.vala:357-440`.
+[ ] [M4-25] `BuildBin.sh` (`[M4-18]` Firewall Regex Expansion) & Comment Cleanup
+            (`ApplicationIdentity.vala:3753,3781,3960`, `ApplicationDiscovery.vala:939`):
+            Reword `/proc/<pid>/cmdline` literals in doc comments so `/proc/` regex has zero
+            false positives, and extend `[M4-18]` forbidden regexes with:
+            `\bAppInfo\.|AppLaunchContext|KeyFileDesktop|"Desktop Entry"|"Desktop Action "|`
+            `\.desktop"|applications?://|Shell\.quote|xdg-open|has_prefix\s*\(\s*"~/|`
+            `XDG_CURRENT_DESKTOP|/var/lib/(snapd|flatpak)|/opt/google|/usr/(local/)?share|/tmp/\.mount_`.
+            (Keep `grep -rnE` strictly case-sensitive — NEVER `-i` — so `Cairo.SurfaceType.WIN32`
+            in `DockRenderer.vala:1925,1930` does not false-positive against `Win32`.)
+[ ] [M4-26] `hal/Interfaces/IAppSystem.vala` & `lib/Drawing/DrawingService.vala` (L63-140)
+            — Native Cross-OS Icon Hooks:
+            Add `load_native_icon (string icon_token, int size)`,
+            `has_native_icon (string icon_token)`, and `get_file_icon_token (GLib.File file)`
+            to `IAppSystem` (`null`/`false` pass-through on `XdgAppSystem`; extracts `.exe`/`.dll`
+            PE icons, `.lnk` `path,index`, `aumid://` UWP icons, and native Windows file/folder
+            icons via `SHIL_JUMBO` / `IShellItemImageFactory` on `Win32AppSystem` without
+            needing `shared-mime-info` or Adwaita).
+[ ] [M4-27] `hal/Interfaces/IBusBackend.vala` (`IAppMenuBus`), `hal/Interfaces/IAppSystem.vala`,
+            `hal/Freedesktop/Dbus/MprisDbusService.vala` (L294), & `lib/Items/MprisDockItem.vala`:
+            1) Expose `string[] query_ordered_window_profile_labels (int pid)` +
+               `signal void menu_changed (int pid)` on `IAppMenuBus` (matching Chrome's
+               per-window `:1.N` unique D-Bus connections in ascending bus-serial order).
+            2) Add `read_wrapper_script (raw_exe, out resolved_path, out script_body)`
+               (`ApplicationIdentity.vala:399-410, 750-1113`), `find_pid_by_app_hint (app_id)`
+               (`LabwcBackend.vala:263-354`), `signal void apps_changed ()`,
+               `set_extra_watched_directories (string[] folder_uris)`,
+               `invalidate_cache (string? uri = null)`, `unlocalized_name` on `AppDescriptor`,
+               and dead-PID cache eviction on window close (`ApplicationDiscovery`/`ApplicationIdentity`).
+            3) Pass `uint pid` on `MediaPlayerSnapshot` (`DbusBroker.resolve_sender_pid`) and
+               move `ApplicationIdentity.get_identity_for_pid_or_bus (...)` onto the GTK main
+               thread inside `MprisDockItem.apply_players_snapshot ()`.
+[ ] [M4-28] `lib/Factories/ItemFactory.vala` (L588-590, L746-760) &
+            `lib/Items/DockItem.vala` (L500-515, L752-755):
+            Include `migrate_legacy_plank_items ()` (`ItemFactory.vala:588-590`), `.dockitem`
+            filename collision suffixing (`-%d.dockitem` at `L746-760`), and `DockItem.is_valid ()`
+            (`L752-755`) via `Hal.Apps.launcher_exists ()` so pinned `aumid://` `.dockitem`
+            files are never auto-deleted on startup.
+[ ] [M4-29] `lib/Items/ApplicationDockItem.vala` (L694-741, L807-808),
+            `lib/Items/FileDockItem.vala` (L169-179, L230-239), &
+            `lib/Widgets/IconChooserDialog.vala` (L195-235, L454-456):
+            Null-guard `ContentType.from_mime_type (mime)` at `ApplicationDockItem.vala:807-808`
+            (returns `null` on Win32 for unregistered MIMEs -> `SIGSEGV`); honor `Prefs.CustomIcon`
+            in both `ApplicationDockItem.load_from_launcher ()` and `FileDockItem.load_from_launcher ()`
+            (regular files at L230-239 + `reset_custom_icon ()` L178); lock `DrawingService`
+            icon-theme mutex on `IconChooserDialog` `"icon-loader"` thread (L195-215), support
+            `resource://` in preview (L231), and record `X-WayPlank-Original-Icon=""` sentinel
+            for synthetic `wayplank-app-*` launchers (L454-456).
+[ ] [M4-30] `lib/DragManager.vala` (L389-426, L468-470), `lib/Services/System.vala` (L323),
+            `lib/Widgets/FolderMenuWindow.vala` (L659-660, L781, L976-1004), &
+            `lib/Widgets/DockWindow.vala` (L1235-1245):
+            Drop relative-CWD `File.new_for_commandline_arg` on unschemed plain text in
+            `DragManager` (`L392` Firefox `text/x-moz-url` title bug), keep `.url` `false`
+            in `is_launcher_uri` (case-insensitive `.down ().has_suffix (".url")` in `System.vala:323`),
+            bound `raw_bytes` -> `string` with `raw_len` (`L469`), normalize raw `.exe` drops
+             onto dock background on Windows into `.lnk` app pins, update `FolderMenuWindow:976`
+            quicklist parser call, and pass `{ file.get_uri () }` to `Hal.Apps.launch_app` in
+            `DockWindow.open_debug_file ()`.
+[ ] [M4-31] `lib/Services/ApplicationIdentity.vala` (Cross-OS Path, Extension, Runtime,
+            Terminal, Browser & PWA Parity):
+            Replace `last_index_of_char ('/')` and `.desktop` literal in `normalize ()`
+            (L1516-1527) plus all 14 `File.new_for_path (...).get_basename ()` calls on raw
+            argv tokens with `basename_any_slash ()` + `Hal.Apps.strip_launcher_extension ()`
+            / executable suffix stripping (`.exe`, `.lnk`, `.url`, `.msi`, `.bat`, `.cmd`,
+            `.ps1`, `.vbs`, `.pyw`, `.sh`, `.py`, `.run`, `.bin`); replace `has_prefix ("~/")`
+            (L273) and expand `%USERPROFILE%`/`%LOCALAPPDATA%`/`%APPDATA%`/`%PROGRAMFILES%`
+            via `Hal.Runtime.expand_path_variables ()`; normalize `\` -> `/` on browser
+            `--user-data-dir` / profile args (L295, L2271, L3632-3678); add Windows generic
+            runtimes/shells/terminals (`cmd`, `powershell`, `pwsh`, `pythonw`, `wscript`,
+            `cscript`, `mshta`, `conhost`, `openconsole`, `wt`, `windowsterminal`,
+            `explorer`, `applicationframehost`, `msiexec`) + `cmd /c` &
+            `powershell -Command/-File` unwrappers; support `_crx_` Chromium Win32 PWA
+            AUMIDs (L159, L1741) and ignore generic Win32 window classes
+            (`chrome_widgetwin_1`, `mozillawindowclass`) in `is_plain_browser_window` (L1757-1768).
+[ ] [M4-32] `lib/Services/ApplicationDiscovery.vala`, `lib/Services/RecentFilesService.vala`,
+            `lib/Services/WindowManager.vala`, `lib/Services/Matcher.vala`,
+            `lib/Services/Paths.vala` (L65), `lib/Services/System.vala` (L286-375), &
+            `src/Main.vala` (L135):
+            Remove `desktop_file_has_exec` `KeyFileDesktop` helper (`ApplicationDiscovery:612-634`);
+            key discovery & `best_launcher_uri_for_window` by `string uri` (`aumid://` +
+            `file://`) using `Hal.Apps.launcher_id_stem` / `launcher_exists`; route
+            `gc_synthetic_launchers` (L281-385) through `Hal.Apps` + `Paths.AppConfigFolder`;
+            strip path/extensions in `is_ignored_app` (`wayplank.exe`/`wayplank.lnk`) and
+            tokenize `exec_str` via `Hal.Runtime.parse_command_argv` (L1513); pass
+            `caption_hint` to `find_pid_by_app_hint (app_id, caption_hint)` in `LabwcBackend`
+            (preserving `+50` QEMU multi-VM caption scoring, zero `/proc` in `LabwcBackend:278`);
+            normalize `window.ApplicationId` in `WindowManager:171-180`; fix `aumid://` /
+            `#!` script / quoted path handling in `Matcher:240-368` and Win32 extensions /
+            wrappers in `RecentFilesService:54-221`; pass `app_launcher : ""` in `Main.vala:135`
+            -> `Hal.Apps.is_self_launcher` in `AbstractMain:501-504`; move
+            `extract_link_shortcut_url` / `load_keyfile_safe` out of `System.vala` into
+            `XdgAppSystem`; and reword firewall doc comments in `Paths.vala:65` &
+            `RecentFilesService.vala:24`.
+[ ] [M4-33] `lib/Items/FileDockItem.vala` (L370-408, L559-595),
+            `lib/Items/ApplicationDockItem.vala` (L47-52, L130-132, L262, L403-415, L976-978),
+            `lib/Items/DockItemProvider.vala` (L39-69),
+            `lib/Items/ApplicationDockItemProvider.vala` (L236-279, L304-313), &
+            `lib/Items/DefaultApplicationDockItemProvider.vala` (L168-185):
+            Delegate `copy_uris_into_directory` (`application://`, `chmod 0755`, `aumid://`
+            `.lnk` materialization) to `Hal.Apps.copy_launcher_to_directory ()` and guard
+            `if (!is_directory ()) { base.draw_icon (surface); return; }` in
+            `FileDockItem.draw_icon` (L375); delete all 4 dead `#if HAVE_DBUSMENU` /
+            `DbusmenuGtk` blocks in `ApplicationDockItem.vala` (+ add `Dbusmenu|HAVE_DBUSMENU`
+            to `[M4-18]` firewall) and use `Hal.Apps.launcher_id_stem` at L262; implement
+            case-insensitive `Hal.Apps.launcher_uris_match` & `Hal.Runtime.paths_equal` in
+            `DockItemProvider.uri_matches` (avoiding `.lnk` basename collisions on Windows)
+            and normalized URI matching in `ApplicationDockItemProvider` &
+            `DefaultApplicationDockItemProvider`.
+[ ] [M4-34] `lib/Factories/ItemFactory.vala` (L730, L744-747):
+            Include `Hal.Apps.launcher_exists (target_uri)` at `ItemFactory.vala:730`, and
+            harden `Hal.Apps.launcher_id_stem` for leading dotfiles (`.bashrc`), drive roots
+            (`C:\` -> `drive-C`, avoiding NTFS `C:.dockitem` ADS), `<>:"/\|?*`, trailing
+            dots/spaces, and Win32 DOS reserved names (`CON`, `PRN`, `AUX`, `NUL`,
+            `COM1..9`, `LPT1..9`).
+[ ] [M4-35] `lib/Drawing/DrawingService.vala` (L66-95, L121-136, L177-203, L315-347, L356-514),
+            `lib/Widgets/IconChooserDialog.vala` (L224-246, L346-355),
+            `lib/Widgets/FolderMenuWindow.vala` (L595-600, L633, L778-780),
+            `lib/Widgets/SessionWindow.vala`, & `lib/Widgets/FirstRunWindow.vala`:
+            Map `docklets/dnd.svg` (and `"audio-volume"`) in
+            `DrawingService.get_docklet_fallback_resource ()`; wire `Hal.Apps.load_native_icon`
+            into BOTH `load_icon ()` and `load_icon_for_scale ()`, verify image decodability
+            in `has_icon ()`, and query `Hal.Apps.get_file_icon_token` before `giowin32`
+            `GThemedIcon` in `get_icon_from_file ()`; in `IconChooserDialog`, render preview
+            via `DrawingService.load_icon` (L224-246) and use `add_pattern` instead of
+            `add_mime_type` (L346-355) so `GtkFileChooserNativeWin32` uses native COM
+            `IFileOpenDialog`; in `FolderMenuWindow`, hide `.directory` & `desktop.ini`
+            (L595, L778) and resolve subdirectory icons via `DrawingService.get_icon_from_file`
+            (L633); and route `SessionWindow` & `FirstRunWindow` icons through
+            `DrawingService.load_icon` for Zero-Adwaita `wayplank.exe`.
+[ ] [M4-36] `lib/DragManager.vala` (L271, L359, L383-390, L428-440, L463-468, L697, L1671-1687)
+            & `BuildBin.sh` (`[M4-25]` Firewall):
+            Move `"application/x-desktop"`, `"application/x-gnome-app-info"`,
+            `"application/x-kde-appmenu"` out of `DragManager.enable_drag_to ()` behind
+            `Hal.Apps.get_extra_drop_target_atoms ()` + `decode_native_drop_selection ()`
+            (`Win32AppSystem`: `"Shell IDList Array"` PIDL + `"UniformResourceLocatorW"`),
+            add `x-(desktop|gnome-app-info|kde-appmenu)` to `[M4-25]` firewall regex, handle
+            UTF-16LE/BE & UTF-8 BOMs at L359 & L463-468, match URI schemes case-insensitively
+            (`FILE://`, `HTTPS://`, `aumid://`), and null-guard `get_window ()` at L271.
+[ ] [M4-37] `lib/Services/ApplicationIdentity.vala` (L1640, L1656),
+            `lib/Services/RecentFilesService.vala` (L54-81), `lib/Services/Paths.vala` (L133),
+            `lib/Widgets/FolderMenuWindow.vala` (L145, L552, L919), &
+            `hal/Interfaces/IAppSystem.vala`:
+            Delegate OS-specific opener/sandbox wrapper stems (`xdg-open`, `gio`,
+            `kde-open*`, `kioclient*`, `exo-open`, `gtk-launch`, `flatpak`, `snap`,
+            `firejail`, `bwrap` vs Windows `rundll32`, `explorer`, `applicationframehost`,
+            `msiexec`) to `Hal.Apps.is_os_wrapper_binary (normalized_stem)` so
+            `ApplicationIdentity:1640,1656` and `RecentFilesService:54-81` contain zero
+            `"xdg-open"`/`"flatpak"`/`"snap"` literals; move user Flatpak dir `Paths.vala:133`
+            into `XdgAppSystem.get_extra_data_dirs ()` (`[M4-08]`); route
+            `FolderMenuWindow.vala:145` (`"application/x-desktop"`) through
+            `Hal.Apps.get_extra_drop_target_atoms ()` (`[M4-36]`); and fall back from
+            Adwaita-only `"go-previous-symbolic"` / `"go-next-symbolic"`
+            (`FolderMenuWindow.vala:552,919`) to `libgtk-3` built-in `"pan-start-symbolic"` /
+            `"pan-end-symbolic"` when absent from the active icon theme.
+[ ] [M4-38] `hal/Interfaces/IAppSystem.vala`, `hal/Interfaces/IBusBackend.vala` (`IAppMenuBus`),
+            `lib/Services/ApplicationIdentity.vala`, & `lib/Services/Matcher.vala`:
+            1) Add `bool is_launchable` on `AppDescriptor` (`exec_command != ""` on XDG;
+               `true` on Win32 `aumid://` & PIDL `.lnk` shortcuts),
+               `Gee.ArrayList<string> discover_installed_apps ()` (recursive Start Menu
+               `.lnk` + non-filesystem `aumid://` UWP Store apps on Win32; `.desktop` scan
+               on Freedesktop), and `string? extract_link_shortcut_url (string uri_or_path)`
+               on `IAppSystem`;
+            2) Refine `IAppMenuBus` (`[M4-27]`) so `AppMenuDbusService` enumerates
+               `/com/canonical/menu/<hex>` child object paths on Chrome's single `:1.N` UI
+               connection in ascending hex `uint64` order, accepts
+               `string[]? known_profile_labels = null` (`sub_id != 61` checkmark disambiguation),
+               and emits `signal void menu_changed (int pid, string menu_token)`;
+            3) Restrict `%` XDG field-code skipping (`ApplicationIdentity:418,583`,
+               `Matcher:278`) to 2-char `%<ch>` codes *after*
+               `Hal.Runtime.expand_path_variables ()` (preserving `"%USERPROFILE%\..."`);
+               strip `"org.mpris.MediaPlayer2."`/`.instance*` southbound in
+               `MprisDbusService` (`ApplicationIdentity:3484-3519`); normalize
+               `open_fd_targets` `\` -> `/` + case-insensitive `/sessions/session_` &
+               `/sessions/tabs_` (`L3084-3145`); keep `.sh`/`.py`/`.run`/`.bin` unstripped in
+               `normalize ()` (`soffice.bin` / `script_exts` 65,025-matrix invariant), check
+               raw `.has_suffix (".exe")` *before* `normalize ()` in `is_wine_window`
+               (`L2129-2130`), compare `Path.get_dirname` via `Hal.Runtime.paths_equal ()`
+               (`L982`), and iterate `parse_cmdline_argv` at `L4224`; in `Matcher.vala`,
+               replace `comm + ".desktop"` / `"org.kde."` / `"org.gnome."` (`L126-140`) with
+               `ApplicationDiscovery.is_ignored_app` + `Hal.Apps.resolve_launcher_uri`, add
+               `swmc.contains ("_crx_")` (`L265`), and use `Hal.Apps.read_wrapper_script ()`
+               at `L326-355`.
+[ ] [M4-39] `lib/Services/ApplicationDiscovery.vala` (L128-130, L160-162, L221-279, L1260,
+            L1308-1334, L1424-1458), `lib/Services/WindowManager.vala` (L46-54),
+            `lib/Factories/AbstractMain.vala` (L79-82), `lib/Services/System.vala`
+            (L149, L165, L240), `lib/Items/ApplicationDockItemProvider.vala` (L69-83),
+            `lib/Items/ApplicationDockItem.vala` (L542, L557, L569),
+            `lib/Items/FileDockItem.vala`, & `lib/Widgets/FolderMenuWindow.vala` (L182-206):
+            Reword `\.desktop"` comment at `ApplicationDiscovery.vala:1260`; use
+            `Hal.Apps.discover_installed_apps ()` (`L1308-1310, 1424-1458`), accept pinned
+            `aumid://` `.dockitem`s (`L1334`) without passing non-`file://` URIs through
+            `File.new_for_uri` (`GDummyFile` authority lowercasing at `L128-130, 160-162`),
+            and call `WindowManager.cleanup_if_active ()` +
+            `ApplicationDiscovery.cleanup_if_active ()` in `AbstractMain.perform_clean_shutdown ()`
+            before `Hal.cleanup ()`; route `System.launch_with_uris`/`launch_with_files`
+            (`L149,165,240`) via `app.get_uri ()` -> `Hal.Apps`, match `http(s)/ftp` schemes
+            case-insensitively in `ApplicationDockItem:542,557,569`, and use
+            `Hal.Apps.launcher_uris_match` in `ApplicationDockItemProvider.item_for_application_id`
+            (`L69-83`); in `FileDockItem`, preserve the 2×2 folder stack on Windows unless an
+            explicit custom folder icon exists, hide `.directory` & `desktop.ini` (`L726,862`)
+            without dropping duplicate-`display_name` siblings (`L871`), call
+            `enumerator.close (null)` across all 4 `FileEnumerator` loops (`L255,270,714,854`),
+            canonicalize `visited_set` (`L702-707`), and null-guard `OwnedFile`/`get_parent ()`
+            (`L509,833`); and decode native drop selection atoms in
+            `FolderMenuWindow.drag_data_received ()` (`L182-206`) via `DragManager` /
+            `Hal.Apps.decode_native_drop_selection ()`.
+[ ] [M4-40] `lib/Services/ApplicationIdentity.vala` (L2578-2582, L2937-2977),
+            `lib/Services/Matcher.vala` (L38, L68-101, L136-138), &
+            `lib/Factories/AbstractMain.vala` (L79-82):
+            Add `ApplicationIdentity.cleanup ()` (cancelling `120/300/650ms` browser-profile
+            follow-up timers & disconnecting `Hal.Bus.AppMenu.menu_changed`) and
+            `Matcher.cleanup_if_active ()` (cancelling `5s` `scan_timer_id` & disconnecting
+            `Hal.Windows.state_changed`) in `AbstractMain.perform_clean_shutdown ()` right
+            before `WindowManager.cleanup_if_active ()` / `ApplicationDiscovery.cleanup_if_active ()`
+            / `Hal.cleanup ()`; and pass resolved `desc.uri` in `Matcher.vala:136-138`
+            (`register_process_for_app`) so `[M4-39]`'s `Hal.Apps.launcher_uris_match`
+            compares URI-to-URI.
 
 --- 4C. Enable Automated HAL Purity Firewall & Qualify `FAT 0.7.2` ---
 [ ] [M4-18] `BuildBin.sh` — Enable Mandatory Pre-Compile HAL Purity Firewall on

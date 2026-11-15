@@ -1,0 +1,437 @@
+================================================================================
+WAYPLANK v0.7.2 — MOVES 1, 2 & 3 ISA-88 REMEDIATION & EXECUTION PROTOCOL
+================================================================================
+Maintainer / Author : Sergio Melas <sergiomelas@gmail.com>
+ISA-88 MOC Control  : MOC-0.7.2-HAL-001 (Moves 1-3 Closure Before Move 4 Start)
+Source Audit File   : Documentation/Architecture/HAL_DIFFUSED_CHUNKS_CHECKLIST.txt
+                      (Converged at Delta = 0 across 140/140 files, 65,218 lines)
+Branch / Baseline   : hal-v0.7.2 @ 90ecd59 (tag: backup/0.7.2-move-3)
+Target Checkpoint   : tag: backup/0.7.2-move-3b + build/wayplank_0.7.2_amd64.deb
+                      (100% Move 1-3 qualified BEFORE Move 4 begins)
+
+ISA-88 PROCEDURAL STATE MACHINE LEGEND (AI_RULES.md Section 2):
+  [  ]       Pending execution / verification
+  [ok]       Passed cleanly on first execution & verified
+  [ko]       Failed build or live qualification (defect opened)
+  [ko->test] Remediation implemented, awaiting build / human verification
+  [ko->ok]   Defect squashed & verified on re-test (indelible audit trail)
+
+================================================================================
+0. GOVERNANCE, CHANGE CLASSIFICATION & BUILD GATES (AI_RULES.md COMPLIANCE)
+================================================================================
+  1. Approval Gate (SOP Step 3):
+     Every Unit Procedure (Sub-Gate A -> Sub-Gate B -> Sub-Gate C) requires
+     explicit human maintainer approval (`[GA-APPROVAL]`, `[GB-APPROVAL]`,
+     `[GC-APPROVAL]`) BEFORE any source file is modified, and ends with a
+     verified non-interactive Debian package build:
+       WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh
+     (Zero compiler errors, zero compiler warnings; NEVER run ./BuildBin.sh alone.)
+
+  2. Canonical File Header & Translation Rules (SOP Sections 4.2 & 4.3):
+     - All core/HAL Vala & C files (`src/`, `lib/`, `hal/`, `include/`, `vapi/`)
+       preserve the canonical GPLv3 block with BOTH:
+         Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
+         Copyright (C) 2026 Sergio Melas
+       (plus merged community contributor lines where already present).
+     - `po/POTFILES.in` is synced in `[M1-11]`, while `po/wayplank.pot` and all
+       `po/*.po` catalogs are NEVER edited by hand and community strings in
+       `po/generate_translations.py` remain 100% untouched.
+     - Formal `FAT/*.txt` protocols are NEVER modified by the AI assistant.
+
+  3. Three-Tier HAL Change Classification (SOP Section 1.0):
+     - Tier 1 (Pure Core / UI / Build — HAL-Neutral):
+       Build scripts, manifests, Cairo surface types, CSS/URL float formatting,
+       theme/path validation, GResource icon fallbacks.
+     - Tier 2 (Core HAL-Consumer — Zero HAL Driver Modification):
+       Portable lifecycle, weak-ref teardown, startup/shutdown order, badge client
+       dispatch, and preference UI bindings consuming existing `Hal.*` contracts.
+     - Tier 3 (True HAL Modification — Zone 2 Contracts & Zone 3 Drivers):
+       Touches `hal/Interfaces/*`, `hal/Freedesktop/*`, or `hal/Linux/*`; backed
+       by the explicit 3-Compositor Contract Matrix (KWin / Mutter / Labwc) in
+       Section 2.2 below.
+
+================================================================================
+1. MASTER 33-ITEM ISA-88 SCOREBOARD (MOVES 1, 2 & 3 — ZERO ITEMS OMITTED)
+================================================================================
+  Section 1 (Move 1 Leftovers) :  2 items ([M1-10] .. [M1-11])
+  Section 2 (Move 2 Leftovers) :  9 items ([M2-17] .. [M2-25])
+  Section 3 (Move 3 Leftovers) : 22 items ([M3-31] .. [M3-52])
+  ------------------------------------------------------------------------------
+  TOTAL ITEMS GOVERNED         : 33 items (Note: multi-zone items [M2-23],
+                                 [M3-38], [M3-45], [M3-48], [M3-50] transition to
+                                 [ok] only when BOTH sub-gate halves complete).
+
+  State | ID      | Gate   | Tier   | Primary Scope & Verification Summary
+  ------+---------+--------+--------+----------------------------------------------
+  [  ]  | [M1-10] | Gate A | Tier 1 | BuildBin.sh: scope `find` to hal/{Interfaces,Freedesktop,Linux}
+  [  ]  | [M1-11] | Gate A | Tier 1 | po/POTFILES.in: purge 18 stale paths, add active hal/ & lib/ files
+  [  ]  | [M2-17] | Gate B | Tier 2 | DockWindow.destroy(): idempotent signal & strut teardown
+  [  ]  | [M2-18] | Gate B | Tier 2 | PreferencesWindow fallback_hide_mode; drop dead HideManager.plank_pid
+  [  ]  | [M2-19] | Gate B | Tier 2 | PreferencesWindow null-safe active_id; break DockController<->DockWindow cycle
+  [  ]  | [M2-20] | Gate B | Tier 2 | Weak DockController/IDockIpcTarget across 7 children + dispose_dock()
+  [  ]  | [M2-21] | Gate A | Tier 3 | Move `enum HideType` into hal/Interfaces/PlatformCapabilities.vala
+  [  ]  | [M2-22] | Gate A | Tier 3 | WindowAction.MINIMIZE on KWin & Labwc; PoofWindow focus/input region
+  [  ]  | [M2-23] | A -> B | Tier 3 | Gate A: Mutter org.gnome.shell has_key; Gate B: Prefs active_id != ""
+  [  ]  | [M2-24] | Gate A | Tier 3 | uses_shell_anchored_surfaces + IDockShell/IThumbnailProvider.cleanup()
+  [  ]  | [M2-25] | Gate B | Tier 2 | Weak DockElement.Container + idempotent cleanup() BEFORE prefs finalizes
+  [  ]  | [M3-31] | Gate A | Tier 1 | BuildBin.sh: probe /usr/include/sys/prctl.h -> -D HAVE_SYS_PRCTL_H
+  [  ]  | [M3-32] | Gate B | Tier 3 | Hal.Runtime: verify_supported_display, get_self_launcher_id, get_system_data_dir
+  [  ]  | [M3-33] | Gate B | Tier 2 | show_guide get_uri(), locale dir via Hal.Runtime, Win32 ISO language fallback
+  [  ]  | [M3-34] | Gate C | Tier 1 | ThemeManager.is_user_theme, Theme chained get_child, `\` traversal guard
+  [  ]  | [M3-35] | Gate B | Tier 2 | DoNotDisturb + 7 docklets idempotent cleaned_up guard; DockItem.stop_removal()
+  [  ]  | [M3-36] | Gate A | Tier 3 | DbusBroker mutex, LinuxProcessInspector (0 hal->lib calls), KWinTrashBridge cleanup
+  [  ]  | [M3-37] | Gate B | Tier 2 | Hal.initialize() BEFORE Paths.initialize(); About activate_link; #ifdef LC_MESSAGES
+  [  ]  | [M3-38] | A -> B | Tier 2 | Gate A: NullEjectorProvider cb; Gate B: DockRenderer badges/Gtk.Settings & hover URI
+  [  ]  | [M3-39] | Gate A | Tier 3 | Reverse Hal.cleanup() (bus LAST), DockIpcClient/Trash cleanup, Audio mutex
+  [  ]  | [M3-40] | Gate C | Tier 1 | WeatherDockItem: GLib.Ascii.formatd for Open-Meteo lat/lon URL
+  [  ]  | [M3-41] | Gate B | Tier 2 | Plank.Settings -> create_settings(); Utils Path.build_filename; Preferences lock retry
+  [  ]  | [M3-42] | Gate B | Tier 3 | Main.vala early --validate-latch; single-instance IPC hooks; dock_name sanitizer
+  [  ]  | [M3-43] | Gate C | Tier 1 | Scope `/` & `\` guard to Theme/DockItems (keep `\\.\DISPLAY1`); last_index_of("[")
+  [  ]  | [M3-44] | Gate C | Tier 1 | Cairo.ImageSurface + set_device_scale in Surface.vala (0 Win32 GDI leaks) + null guards
+  [  ]  | [M3-45] | B -> C | Tier 1 | Gate B: gtk-compat.c zh-CN->zh_CN; Gate C: PreferencesWindow CSS Ascii.formatd
+  [  ]  | [M3-46] | Gate A | Tier 3 | Purge upward Settings/Logger/UNITY_* from hal/Freedesktop/Dbus/*; schema.has_key
+  [  ]  | [M3-47] | Gate A | Tier 3 | FreedesktopEjector vanished cb; FreedesktopTrash escape, traversal & get_uri()
+  [  ]  | [M3-48] | A -> C | Tier 3 | Gate A: LinuxSessionPower/BrightnessControl Shell.quote; Gate C: Theme/FirstRun/Icons
+  [  ]  | [M3-49] | Gate A | Tier 3 | DockIpcServer `-`->`_` object path; Dbus GSettings cleanup; Trash unescape; seat_path
+  [  ]  | [M3-50] | B -> C | Tier 2 | Gate B: ILauncherBadgeClient, per-dock PlankDockItem, SurfaceCache WeakRef; Gate C: PositionManager
+  [  ]  | [M3-51] | Gate C | Tier 1 | Zero-Adwaita GResource/Cairo icons (SessionWindow, DND, Network, FirstRun, MenuItem)
+  [  ]  | [M3-52] | Gate B | Tier 2 | ItemFactory `new PlankDockItem()`; AbstractMain clean dock teardown BEFORE Hal.cleanup()
+
+================================================================================
+2. UNIT PROCEDURE A (SUB-GATE A): BUILD PLUMBING, ZONE 2 CONTRACTS & ZONE 3 DRIVERS
+================================================================================
+Goal: Achieve 100% downward-only compilation (`src/ + lib/` -> `hal/Interfaces/` ->
+`hal/Freedesktop/ + hal/Linux/`), zero upward `hal/ -> lib/` symbol calls, full
+3-compositor HAL action parity, thread-safe D-Bus/audio caches, and crash-proof
+GSettings/D-Bus object paths before touching Core lifecycle.
+
+2.0 Mandatory Human Approval Gate
+---------------------------------
+  [  ] [GA-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate A.
+
+2.1 Operations & Phases (Sub-Gate A)
+------------------------------------
+  [  ] [GA-01] `BuildBin.sh` ([M1-10], [M3-31]):
+       [  ] GA-01.1 Replace `find hal -name "*.vala"` with
+            `find hal/Interfaces hal/Freedesktop hal/Linux -name "*.vala"` so
+            `v0.7.3` `hal/Windows/*.vala` is never compiled on Linux builds.
+       [  ] GA-01.2 Probe `[ -f /usr/include/sys/prctl.h ]` and pass
+            `-D HAVE_SYS_PRCTL_H` to `valac` so `unix-compat.vapi` binds
+            `prctl(PR_SET_NAME)` cleanly.
+
+  [  ] [GA-02] `po/POTFILES.in` ([M1-11]):
+       [  ] GA-02.1 Remove the 18 deleted/relocated `lib/DBus/*` and `lib/Services/*` entries.
+       [  ] GA-02.2 Add active translatable UI/Core/HAL files (`FirstRunWindow.vala`,
+            `PinnedExpanderDockItem.vala`, `AppUsageService.vala`,
+            `RecentFilesService.vala`, `data/ui/preferences.ui`, `hal/**/*.vala`).
+            Verify `git diff po/*.po po/wayplank.pot` is empty.
+
+  [  ] [GA-03] Zone 2 Contracts & `Hal.cleanup ()` Reverse Order
+       (`hal/Interfaces/{PlatformCapabilities,IDockShell,IThumbnailProvider,
+       ISystemTelemetry,Hal}.vala` & `lib/HideManager.vala` —
+       [M2-21], [M2-24], [M3-36], [M3-38] NullEjector, [M3-39]):
+       [  ] GA-03.1 Move `public enum HideType` from `lib/HideManager.vala` into
+            `hal/Interfaces/PlatformCapabilities.vala` (exact enum values preserved).
+       [  ] GA-03.2 Add `public bool uses_shell_anchored_surfaces { get; set; default = false; }`
+            to `PlatformCapabilities`.
+       [  ] GA-03.3 Add `public virtual void cleanup () {}` on `IDockShell` and
+            `IThumbnailProvider`.
+       [  ] GA-03.4 Invoke `callback (false, ...)` in `NullEjectorProvider.eject_drive ()`.
+       [  ] GA-03.5 Order `Hal.cleanup ()` strictly as:
+            `shell -> thumbnails -> windows -> telemetry -> apps -> runtime -> bus`
+            (with `null` guards on all 7 instances so `DbusBroker` closes LAST).
+
+  [  ] [GA-04] `hal/Freedesktop/FreedesktopHalBootstrap.vala` &
+       `hal/Freedesktop/Shell/LayerShellDockShell.vala` ([M2-24], [M3-36], [M3-39]):
+       [  ] GA-04.1 Populate `caps.uses_shell_anchored_surfaces` in `FreedesktopHalBootstrap`.
+       [  ] GA-04.2 Disconnect monitor/screen signals inside `LayerShellDockShell.cleanup ()`.
+       [  ] GA-04.3 Call `_trash.stop_monitoring ()`, `KWinTrashBridge.cleanup_if_active ()`,
+            and `DockIpcClient.cleanup ()` during bootstrap teardown.
+
+  [  ] [GA-05] Compositor Drivers & `PoofWindow` Pass-Through
+       (`hal/Freedesktop/KWin/{KWinBridge,KWinTrashBridge}.vala`,
+       `hal/Freedesktop/Mutter/MutterBackend.vala`,
+       `hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c`, &
+       `lib/Widgets/PoofWindow.vala` — [M2-22], [M2-23] Mutter, [M3-36]):
+       [  ] GA-05.1 Handle `WindowAction.MINIMIZE` (`"minimize"`) in `KWinBridge.vala`
+            (`target.minimized = true`) and `wlr-toplevel-bridge.c`
+            (`zwlr_foreign_toplevel_handle_v1_set_minimized`).
+       [  ] GA-05.2 Set `resizable = false; accept_focus = false; can_focus = false;
+            focus_on_map = false;` + empty `Cairo.Region ()` input shape in `PoofWindow`.
+       [  ] GA-05.3 Guard `"disable-user-extensions"`, `"disabled-extensions"`, and
+            `"enabled-extensions"` with `schema.has_key (...)` in `MutterBackend`.
+       [  ] GA-05.4 Add static `cleanup_if_active ()` on `KWinTrashBridge`.
+
+  [  ] [GA-06] NEW `hal/Linux/ProcFs/LinuxProcessInspector.vala` & Zero Upward Calls
+       (`KWinBridge.vala`, `MutterBackend.vala`, `LabwcBackend.vala`,
+       `MprisDbusService.vala`, `MprisDockItem.vala` — [M3-36]):
+       [  ] GA-06.1 Create `hal/Linux/ProcFs/LinuxProcessInspector.vala` (canonical
+            WayPlank GPLv3 header) reading `/proc/<pid>/{cmdline,cwd,environ,exe}`.
+       [  ] GA-06.2 Switch `KWinBridge`, `MutterBackend`, and `LabwcBackend` from
+            `ApplicationDiscovery.get_process_*` to `LinuxProcessInspector.*`.
+       [  ] GA-06.3 Remove worker-thread `ApplicationIdentity` call in
+            `MprisDbusService.vala:294`, passing raw MPRIS candidate fields to
+            `MprisDockItem` on the GTK main thread.
+
+  [  ] [GA-07] Freedesktop D-Bus Drivers & Object-Path Hardening
+       (`hal/Freedesktop/Dbus/{DbusBroker,DockIpcServer,DockIpcClient,
+       NotificationDbusService,DesktopThemeDbusService,LauncherEntryDbusService}.vala`
+       & `lib/InternalConsts.vala` — [M3-36], [M3-39], [M3-46], [M3-49]):
+       [  ] GA-07.1 Protect `DbusBroker.sender_pid_cache` with a `GLib.Mutex`.
+       [  ] GA-07.2 Sanitize non-`[A-Za-z0-9_]` chars in `dock_name` (`dock-2` -> `dock_2`)
+            in `DockIpcServer` & `DockIpcClient` and check
+            `!object_path.has_suffix ("/" + safe_seg)` with leading `'/'`.
+       [  ] GA-07.3 Remove upward `Plank.Settings`, `Logger.verbose`, and
+            `UNITY_UPDATE_THRESHOLD_*` from `hal/Freedesktop/Dbus/*` (and drop unused
+            `UNITY_*` from `lib/InternalConsts.vala`); normalize `"application://"`
+            southbound inside `LauncherEntryDbusService`.
+       [  ] GA-07.4 Guard `schema.has_key ("show-banners")` and
+            `schema.has_key ("color-scheme")`, and disconnect + null out GSettings
+            instances inside `NotificationDbusService.cleanup ()` and
+            `DesktopThemeDbusService.cleanup ()`.
+
+  [  ] [GA-08] XDG Trash/Ejector & Linux SysFs/Power Hardening
+       (`hal/Freedesktop/Xdg/{FreedesktopEjectorProvider,FreedesktopTrashProvider}.vala`,
+       `hal/Linux/{LinuxAudioTelemetry,LinuxSessionPower}.vala`, &
+       `hal/Linux/SysFs/BrightnessControl.vala` — [M3-39], [M3-47], [M3-48] quotes, [M3-49]):
+       [  ] GA-08.1 Invoke `callback (false, ...)` on vanished drive in
+            `FreedesktopEjectorProvider.eject_drive ()`.
+       [  ] GA-08.2 Escape `.trashinfo` `Path=` via `Uri.escape_string (orig_path, "/", true)`,
+            unescape via `Uri.unescape_string` in `list_items ()`, reject `'/'`, `'\\'`,
+            `"."`, `".."` in `restore_item ()` / `delete_item_permanently ()`, and use
+            `File.new_for_path (trash_dir).get_uri ()` in `open_trash_ui ()`.
+       [  ] GA-08.3 Guard lazy backend init in `LinuxAudioTelemetry.probe_state_sync ()`
+            with a `static GLib.Mutex`.
+       [  ] GA-08.4 Validate `Variant.is_object_path (seat_path)` on `XDG_SEAT_PATH` and
+            wrap `session_id` / `user` with `Shell.quote (...)` in `LinuxSessionPower`.
+       [  ] GA-08.5 Wrap `dev` (`L994`) and `output.%s.brightness.%d` (`L932,960`) with
+            `Shell.quote (...)` in `BrightnessControl`.
+
+2.2 Mandatory 3-Compositor Contract Matrix for Sub-Gate A (SOP Section 1.0 Tier 3)
+----------------------------------------------------------------------------------
+  +---------------------------+------------------------+------------------------+------------------------+
+  | Contract / Surface Point  | KDE Plasma 6 (KWin)    | GNOME Shell (Mutter)   | Labwc (wlroots)        |
+  +---------------------------+------------------------+------------------------+------------------------+
+  | `WindowAction.MINIMIZE`   | `KWinBridge.vala` JS   | `MutterBackend.vala`   | `wlr-toplevel-bridge.c`|
+  | (`[M2-22]`)               | sets `w.minimized=true`| calls `win.minimize()` | calls `zwlr_..._set_   |
+  |                           | via KWin Scripting     | in bridge extension    | minimized(handle)`     |
+  +---------------------------+------------------------+------------------------+------------------------+
+  | `PoofWindow` Focus &      | `GtkLayerShell` OVERLAY| `PositionHover` D-Bus  | `GtkLayerShell` OVERLAY|
+  | Input Pass-Through        | + `KEYBOARD_MODE_NONE` | unmanaged/skip-taskbar | + `KEYBOARD_MODE_NONE` |
+  | (`[M2-22]`)               | + empty `Cairo.Region` | + `accept_focus=false` | + empty `Cairo.Region` |
+  |                           | -> 0 focus/click steal | + empty `Cairo.Region` | -> 0 focus/click steal |
+  +---------------------------+------------------------+------------------------+------------------------+
+  | `uses_shell_anchored_`    | `true` (GtkLayerShell  | `false` (Mutter bridge | `true` (GtkLayerShell  |
+  | `surfaces` (`[M2-24]`)    | anchors & exclusive    | `PositionDock` + synth | anchors & exclusive    |
+  |                           | zones active)          | `affectsStruts` actor) | zones active)          |
+  +---------------------------+------------------------+------------------------+------------------------+
+  | `org.gnome.shell` Schema  | Not queried (`KWin`    | Guarded by `has_key()` | Not queried (`Labwc`   |
+  | Safety (`[M2-23]`)        | backend active)        | -> 0 `SIGTRAP` risk    | backend active)        |
+  +---------------------------+------------------------+------------------------+------------------------+
+
+2.3 Sub-Gate A Qualification & Build Gate
+-----------------------------------------
+  [  ] [GA-VERIFY-01] Upward Leak Scan:
+       `grep -rn "ApplicationDiscovery\|ApplicationIdentity\|Plank\.Settings\|InternalConsts\|UNITY_UPDATE" hal/`
+       returns `0` matches.
+  [  ] [GA-BUILD] Non-Interactive Debian Package Build:
+       `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
+
+================================================================================
+3. UNIT PROCEDURE B (SUB-GATE B): BOOTSTRAP, TEARDOWN ORDER & WEAK-REF LIFECYCLE
+================================================================================
+Goal: Enforce deterministic startup (`Hal.initialize` BEFORE `Paths.initialize`) and
+crash-proof reverse shutdown (`DockController.dispose_dock` stopping all child
+managers/containers BEFORE `DockPreferences` finalizes and BEFORE `Hal.cleanup`),
+break every strong GObject reference cycle, and restore live LauncherEntry badges
+and multi-dock `PlankDockItem` support.
+
+3.0 Mandatory Human Approval Gate
+---------------------------------
+  [  ] [GB-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate B.
+
+3.1 Operations & Phases (Sub-Gate B)
+------------------------------------
+  [  ] [GB-01] Startup Bootstrap, CLI Latch & Single-Instance Runtime
+       (`src/Main.vala`, `lib/Factories/AbstractMain.vala`, `lib/gtk-compat.c`,
+       `hal/Interfaces/IPlatformRuntime.vala`, `hal/Linux/LinuxPlatformRuntime.vala`
+       — [M3-32], [M3-33], [M3-37], [M3-42], [M3-45] C locale):
+       [  ] GB-01.1 Handle `--validate-latch <path>` early in `src/Main.vala` BEFORE
+            `replace_running_instances` and `Gtk.init` (required once `src/` freezes).
+       [  ] GB-01.2 Complete `IPlatformRuntime` / `LinuxPlatformRuntime`:
+            `verify_supported_display`, `get_self_launcher_id`, `get_system_data_dir`,
+            `uses_native_single_instance_ipc`, `try_forward_cli_to_running_instance`,
+            `remote_action_requested`, and `sanitize_dock_name` (`^[A-Za-z_][A-Za-z0-9_-]*$`,
+            excluding Win32 DOS reserved stems).
+       [  ] GB-01.3 Swap `Hal.initialize ()` BEFORE `Paths.initialize (...)` in
+            `AbstractMain.vala:332-333`; replace `Build.DATADIR` / `"./share"` with
+            `Hal.Runtime.get_system_data_dir ()`; use `File.new_for_path (html_path).get_uri ()`
+            in `show_guide ()` (`L2057`).
+       [  ] GB-01.4 Connect `activate_link` on `about_dlg` (`L555`) and credit labels
+            (`L688-700`) to `Hal.Runtime.open_uri`; guard `schedule_dock_refresh ()`
+            with `if (is_shutting_down) return;`; remove `#if HAVE_DBUSMENU` (`L324`).
+       [  ] GB-01.5 Guard `#ifdef LC_MESSAGES` (`gtk-compat.c:197`), fall back to
+            `g_get_language_names ()`, and normalize `zh-CN` -> `zh_CN` (`L100`).
+
+  [  ] [GB-02] Settings & File-Lock Resilience
+       (`lib/Services/{Settings,Utils,Preferences}.vala` — [M3-41]):
+       [  ] GB-02.1 Delegate `Plank.Settings` constructors (`L41, L49`) to
+            `create_settings (schema, path)` and use `Path.build_filename` in `Utils.vala`.
+       [  ] GB-02.2 Null-guard `backing_file.get_path ()` at `Preferences.vala:445` and
+            preserve `is_changed = true` with bounded retry on transient replace locks.
+
+  [  ] [GB-03] Deterministic Weak-Ref Cycle Breaking & Shutdown Order
+       (`lib/DockController.vala`, `lib/Widgets/DockWindow.vala`, `lib/HideManager.vala`,
+       `lib/DockRenderer.vala`, `lib/Drawing/Renderer.vala`, `lib/PositionManager.vala`,
+       `lib/DragManager.vala`, `lib/Items/{DockElement,DockContainer,DockItem,
+       ApplicationDockItemProvider,DefaultApplicationDockItemProvider,
+       DoNotDisturbDockItem}.vala`, 7 Telemetry Docklets,
+       `lib/Widgets/{FolderMenuWindow,WindowCardsWindow,PreferencesWindow}.vala`,
+       `hal/Freedesktop/Dbus/DockIpcServer.vala`, & `lib/Factories/AbstractMain.vala`
+       — [M2-17], [M2-18], [M2-19], [M2-20], [M2-23] Prefs, [M2-25], [M3-35], [M3-38], [M3-52]):
+       [  ] GB-03.1 Make `controller` / `IDockIpcTarget` `weak` across all 7 children
+            (`HideManager`, `DockRenderer`, `PositionManager`, `DragManager`,
+            `FolderMenuWindow`, `WindowCardsWindow`, `DockIpcServer`) and make
+            `DockElement.Container` `weak` (`DockElement.vala:36`) with per-container
+            `placeholder_item`.
+       [  ] GB-03.2 Implement `DockWindow.destroy ()` (`[M2-17]`) with idempotent
+            disconnect of `tracked_monitor.notify["workarea"]` & `Hal.Windows.state_changed`,
+            `Hal.Shell.update_exclusive_zone (this, false, ...)`, and breaking
+            `window <-> controller`.
+       [  ] GB-03.3 Implement idempotent `cleanup ()` across `Renderer` (removing GTK
+            tick callback), `DockRenderer` (connecting/disconnecting
+            `show_launcher_badges_changed` + null-guarding `Gtk.Settings.get_default ()`),
+            `PositionManager`, `DragManager`, `HideManager` (dropping dead `plank_pid`),
+            `DockContainer`, `ApplicationDockItemProvider`,
+            `DefaultApplicationDockItemProvider`, `DockItem` (`stop_removal ()`),
+            `DoNotDisturbDockItem`, and the 7 telemetry docklets (`cleaned_up` guard).
+       [  ] GB-03.4 Implement `DockController.dispose_dock ()` invoking child `cleanup ()`
+            and `window.destroy ()` BEFORE `prefs` (`L36`) finalizes, plus defensive
+            `controller != null && controller.prefs != null` destructor guards; use
+            `provider.item_for_uri (uri)` in `ipc_get_hover_position ()` (`L725`).
+       [  ] GB-03.5 Update `AbstractMain.perform_clean_shutdown ()` (`L53-82`) to destroy
+            `preferences_dlg` / `help_dlg` and call `dock.dispose_dock ()` on every dock
+            BEFORE calling `Hal.cleanup ()`.
+       [  ] GB-03.6 Harden `PreferencesWindow`: use `Hal.Capabilities.fallback_hide_mode`
+            (`L934,998,1749`), guard `active_id != null && active_id != ""` before all
+            `int.parse (...)` calls, null-guard `out id` / `out text` (`L484-495`), and
+            cache `weak bound_controller` + `weak bound_screen` for clean signal unhook.
+
+  [  ] [GB-04] Launcher Badges, Per-Dock `PlankDockItem` & `SurfaceCache` WeakRef
+       (`lib/Items/{ApplicationDockItemProvider,ApplicationDockItem,PlankDockItem,
+       BrightnessDockItem}.vala`, `lib/Factories/ItemFactory.vala`,
+       `lib/Drawing/{DrawingService,SurfaceCache}.vala` — [M3-50], [M3-52]):
+       [  ] GB-04.1 Implement `ILauncherBadgeClient.update_launcher_entry ()` and
+            `remove_launcher_entry ()` in `ApplicationDockItemProvider:384-385`
+            (replacing empty `{}` stubs; rename `unity_dbusname` comments to
+            `badge_sender_id`).
+       [  ] GB-04.2 Replace static `PlankDockItem.instance` singleton with public
+            per-dock `PlankDockItem ()` (`Text = "WayPlank"`, `Icon = "wayplank;;plank"`)
+            and update `ItemFactory.vala:114` to `return new PlankDockItem ();`.
+       [  ] GB-04.3 Add mutex-protected, null-safe `DrawingService.theme_has_icon ()`
+            and use it in `BrightnessDockItem.get_brightness_icon_name ()`.
+       [  ] GB-04.4 Capture `GLib.WeakRef` inside `SurfaceCache`'s 5-minute timeout
+            closure (`SurfaceCache.vala:140-158`).
+
+3.2 Sub-Gate B Qualification & Build Gate
+-----------------------------------------
+  [  ] [GB-VERIFY-01] `--validate-latch` & Clean Shutdown Check:
+       Verify `--validate-latch` exit codes (`0` valid, `1` invalid) and verify `0`
+       `GLib-GObject-CRITICAL` / `SIGSEGV` messages on `SIGINT` teardown.
+  [  ] [GB-BUILD] Non-Interactive Debian Package Build:
+       `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
+
+================================================================================
+4. UNIT PROCEDURE C (SUB-GATE C): CAIRO GDI, PATH/MONITOR GUARDS, FLOATS & ICONS
+================================================================================
+Goal: Eliminate offscreen Win32 GDI handle exhaustion in `SurfaceCache`, guarantee
+locale-independent CSS/HTTP floats, protect Win32 monitor IDs (`\\.\DISPLAY1`) and
+EDID `[...@...]` tags while blocking path traversal, and embed Zero-Adwaita icon
+fallbacks so every dialog/docklet renders crisp icons even with zero system icon theme.
+
+4.0 Mandatory Human Approval Gate
+---------------------------------
+  [  ] [GC-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate C.
+
+4.1 Operations & Phases (Sub-Gate C)
+------------------------------------
+  [  ] [GC-01] In-RAM `Cairo.ImageSurface` & HiDPI Preservation
+       (`lib/Drawing/{Surface,DrawingService,Theme}.vala` — [M3-34], [M3-44], [M3-48]):
+       [  ] GC-01.1 Allocate `Cairo.ImageSurface (ARGB32, ceil(w*sx), ceil(h*sy))` with
+            `set_device_scale (sx, sy)` in `Surface.with_cairo_surface` and
+            `Surface.with_surface` instead of `Cairo.Surface.similar`.
+       [  ] GC-01.2 Null-guard `Gdk.pixbuf_get_from_surface` in `Surface` &
+            `DrawingService:599`, and null-guard `Gtk.Settings.get_default ()` /
+            `Gdk.Screen.get_default ()` in `Theme.vala`.
+       [  ] GC-01.3 Use chained `get_child` in `Theme.vala` and reword `/usr/share/...`
+            doc comments at `Theme.vala:680,683` for `[M4-25]` firewall compliance.
+
+  [  ] [GC-02] Path Traversal, User-Theme Detection & Monitor Plug-Name Parsing
+       (`lib/DockPreferences.vala`, `lib/Services/ThemeManager.vala`,
+       `lib/PositionManager.vala` — [M3-34], [M3-43], [M3-48], [M3-50]):
+       [  ] GC-02.1 Scope `'/'`, `'\\'`, `"."`, `".."` rejection in `DockPreferences`
+            strictly to `Theme` (and `".."` on `DockItems`), keeping `Monitor` values
+            like `\\.\DISPLAY1` and `S24D300/350` valid.
+       [  ] GC-02.2 Update `ThemeManager.is_user_theme ()` (`Paths.HomeFolder` &
+            `!Paths.ThemeFolder`) and `is_safe_theme_name ()` (case-insensitive `.theme`
+            strip, reject `<>:"|?*`, trailing dots/spaces, and Win32 DOS reserved names).
+       [  ] GC-02.3 Use `last_index_of ("[")` and `last_index_of ("@")` across
+            `PositionManager.vala:195-204,216-224,237`.
+
+  [  ] [GC-03] Locale-Independent Float Formatting
+       (`lib/Items/WeatherDockItem.vala` & `lib/Widgets/PreferencesWindow.vala`
+       — [M3-40], [M3-45]):
+       [  ] GC-03.1 Format Open-Meteo `latitude` / `longitude` (`WeatherDockItem:398`)
+            with `GLib.Ascii.formatd`.
+       [  ] GC-03.2 Format `GtkCssProvider` `linear-gradient(...)` percentages
+            (`PreferencesWindow:1404,1408`) with `GLib.Ascii.formatd`.
+
+  [  ] [GC-04] Zero-Adwaita Icon Resilience & `FirstRunWindow` Wayland Gate
+       (`data/plank.gresource.xml`, `data/icons/*`, `lib/Drawing/DrawingService.vala`,
+       `lib/Factories/AbstractMain.vala`, `lib/Widgets/{SessionWindow,FirstRunWindow,
+       WeatherWindow,HelpWindow,DockWindow}.vala`,
+       `lib/Items/{DoNotDisturbDockItem,NetworkDockItem,PlaceholderDockItem,DockElement}.vala`
+       — [M3-48], [M3-51]):
+       [  ] GC-04.1 Null-guard `Gdk.Screen.get_default ()` in `DrawingService.get_icon_theme ()`
+            and unwrap `EmblemedIcon` + `resource://` `FileIcon` in `get_icon_from_gicon ()`.
+       [  ] GC-04.2 Set `Gtk.Window.set_default_icon (DrawingService.load_icon ("plank", 48, 48))`
+            in `AbstractMain`.
+       [  ] GC-04.3 Embed GResource SVG fallbacks (used ONLY when absent from active
+            system icon theme) for `SessionWindow`'s 6 actions, `DoNotDisturb` muted,
+            `Network` offline, and `FirstRunWindow` / `WeatherWindow`
+            (`preferences-system-symbolic`, `starred-symbolic`).
+       [  ] GC-04.4 Use `"list-add;;list-add-symbolic"` in `PlaceholderDockItem:39`,
+            `"help-browser;;help-contents"` in `DockWindow:1207`, gate
+            `FirstRunWindow:170` on `Hal.Capabilities.uses_shell_anchored_surfaces`, and
+            fall back to an iconless `Gtk.MenuItem` in `DockElement.create_menu_item` /
+            `create_literal_menu_item` when an icon is missing.
+
+4.2 Sub-Gate C Qualification, Checklist Sync & Human Smoke Gate
+---------------------------------------------------------------
+  [  ] [GC-BUILD] Non-Interactive Debian Package Build:
+       `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
+  [  ] [GC-SYNC] Synchronize `HAL_DIFFUSED_CHUNKS_CHECKLIST.txt`:
+       Mark all `33` Move 1-3 items (`[M1-10..11]`, `[M2-17..25]`, `[M3-31..52]`) `[x]`
+       (`Section 1..3` open count = `0`; `Section 4` Move 4 = `40` `[ ]`).
+  [  ] [M123-SMOKE] EXCLUSIVE HUMAN MAINTAINER LIVE SMOKE QUALIFICATION:
+       Sergio Melas installs `build/wayplank_0.7.2_amd64.deb` (`sudo dpkg -i ...`)
+       and qualifies live behavior before Move 4 begins.
+  [  ] [M123-TAG] Upon Maintainer Sign-Off:
+       Commit Moves 1-3 closure, tag `backup/0.7.2-move-3b`, and archive `.deb` in
+       `/home/sergio/Others/WayPlank/_Debs/`.
+
+================================================================================
+5. SOP SECTION 1.4 ANTI-REGRESSION INVARIANT SIGN-OFF CHECKLIST
+================================================================================
+  [  ] [INV-01] Bug 0.2: Zero asynchronous `GLib.Timeout` presentation grabs added.
+  [  ] [INV-02] Bugs 7.15/7.16: Zero `transient_for` modal grabs on independent dialogs.
+  [  ] [INV-03] Bug 12.6: `KWinThumbnailService` BGRA `alpha = 255` byte-swap intact.
+  [  ] [INV-04] KDE Autostart: `X-KDE-DBUS-Restricted-Interfaces=...ScreenShot2` intact.
+  [  ] [INV-05] Issue #34: `apply_input_region` click pass-through intact (+ `PoofWindow`).
+  [  ] [INV-06] Zoom Mask: `AnticipateZoom` input-mask clamping untouched.
+  [  ] [INV-07] HiDPI Cache: `SurfaceCache` `device_scale` isolation preserved on `ImageSurface`.
+  [  ] [INV-08] Redline Slider: GTK3 `.marks-after` transparent teardrop SVG CSS intact.
+  [  ] [INV-09] Anti-Message-Rush: Zero D-Bus/IPC calls in `draw()` / motion / tick loops.
+  [  ] [INV-10] Mutter Struts: 3-way idempotence guard & `monGeo` anchor untouched.
+  [  ] [INV-11] Browser Profiles: Isolated `-P` / `--profile` / `--user-data-dir` / `--class` untouched.
+================================================================================

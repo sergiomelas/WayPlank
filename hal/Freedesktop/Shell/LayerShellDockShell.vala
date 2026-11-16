@@ -217,7 +217,7 @@ namespace Plank
 				GtkLayerShell.set_keyboard_mode (window, GtkLayerShell.KeyboardMode.NONE);
 				GtkLayerShell.set_namespace (window, ns);
 			} else {
-				window.set_type_hint (Gdk.WindowTypeHint.POPUP_MENU);
+				window.set_type_hint (Gdk.WindowTypeHint.UTILITY);
 				window.set_skip_taskbar_hint (true);
 				window.set_skip_pager_hint (true);
 				window.set_keep_above (true);
@@ -418,7 +418,7 @@ namespace Plank
 
 		public int resolve_tooltip_dock_thickness (int visual_thickness, int dock_window_span)
 		{
-			return GtkLayerShell.is_supported () ? visual_thickness + 40 : dock_window_span;
+			return visual_thickness + 40;
 		}
 
 		public void position_popup_surface (Gtk.Window window, PopupSurfaceKind kind,
@@ -442,8 +442,7 @@ namespace Plank
 					target_y = mon_y + mon_h - visual_thickness - gap - height + mutter_offset;
 					break;
 				case Gtk.PositionType.TOP:
-					int top_bar_offset = int.max (0, (monitor != null ? monitor.get_workarea ().y - monitor.get_geometry ().y : 0));
-					target_y = mon_y + top_bar_offset + visual_thickness + gap - mutter_offset;
+					target_y = mon_y + visual_thickness + gap - mutter_offset;
 					break;
 				case Gtk.PositionType.LEFT:
 					target_x = mon_x + visual_thickness + gap - mutter_offset;

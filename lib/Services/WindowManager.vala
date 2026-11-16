@@ -33,9 +33,19 @@ namespace Plank
 				instance = new WindowManager ();
 			return instance;
 		}
-		
+
+		public static void cleanup_if_active ()
+		{
+			if (instance != null) {
+				instance.cleanup ();
+				instance = null;
+			}
+		}
+
 		public signal void windows_refreshed ();
-		
+
+		bool cleaned_up = false;
+
 		WindowManager ()
 		{
 			matches_cache = new Gee.HashMap<string, Gee.ArrayList<WindowInfo>> ();
@@ -47,10 +57,18 @@ namespace Plank
 			ApplicationDiscovery.get_default ().changed.connect (refresh_windows);
 		}
 
-		~WindowManager ()
+		void cleanup ()
 		{
+			if (cleaned_up)
+				return;
+			cleaned_up = true;
 			Hal.Windows.state_changed.disconnect (refresh_windows);
 			ApplicationDiscovery.get_default ().changed.disconnect (refresh_windows);
+		}
+
+		~WindowManager ()
+		{
+			cleanup ();
 		}
 
 		Gee.ArrayList<WindowInfo> cached_windows;
@@ -162,10 +180,7 @@ namespace Plank
 		
 		static string normalize_id (string id)
 		{
-			var normalized = id.down ();
-			if (normalized.has_suffix (".desktop"))
-				normalized = normalized.substring (0, normalized.length - ".desktop".length);
-			return normalized;
+			return Hal.Apps.strip_launcher_extension (id).down ();
 		}
 		
 		static bool matches_app (WindowInfo window, string app_id)
@@ -190,7 +205,7 @@ namespace Plank
 				return matches_cache.get (launcher_uri);
 
 			var result = new Gee.ArrayList<WindowInfo> ();
-			var app_id = File.new_for_uri (launcher_uri).get_basename ();
+			var app_id = Hal.Apps.launcher_id_stem (launcher_uri);
 			var discovery = ApplicationDiscovery.get_default ();
 			var identity = identity_for_launcher (launcher_uri);
 			foreach (var window in cached_windows) {

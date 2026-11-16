@@ -146,13 +146,22 @@ namespace Plank
 
 		void setup_drag_dest ()
 		{
-			Gtk.TargetEntry te1 = { "text/uri-list", 0, 0 };
-			Gtk.TargetEntry te2 = { "application/x-desktop", 0, 0 };
-			Gtk.TargetEntry te3 = { "text/plain;charset=utf-8", 0, 0 };
-			Gtk.TargetEntry te4 = { "UTF8_STRING", 0, 0 };
-			Gtk.TargetEntry te5 = { "text/plain", 0, 0 };
+			string[] core_atoms = {
+				"text/uri-list",
+				"text/plain;charset=utf-8",
+				"UTF8_STRING",
+				"text/plain"
+			};
+			string[] extra_atoms = Hal.Apps.get_extra_drop_target_atoms ();
+			var entries = new Gtk.TargetEntry[core_atoms.length + extra_atoms.length];
+			int idx = 0;
+			foreach (unowned string atom in core_atoms)
+				entries[idx++] = { atom, 0, 0 };
+			foreach (unowned string atom in extra_atoms)
+				entries[idx++] = { atom, 0, 0 };
+
 			Gtk.drag_dest_set (this, Gtk.DestDefaults.MOTION | Gtk.DestDefaults.DROP,
-				{ te1, te2, te3, te4, te5 },
+				entries,
 				Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK);
 
 			drag_motion.connect ((context, x, y, time_) => {
@@ -190,12 +199,19 @@ namespace Plank
 				folder_drop_pending = false;
 
 				var uris = new Gee.ArrayList<string> ();
-				string[]? raw_uris = selection_data.get_uris ();
-				if (raw_uris != null && raw_uris.length > 0) {
-					foreach (unowned string s in raw_uris) {
-						var resolved = DragManager.resolve_drop_uri (s);
-						if (resolved != null && !uris.contains (resolved))
-							uris.add (resolved);
+				foreach (var native_uri in Hal.Apps.decode_native_drop_selection (selection_data)) {
+					var resolved = DragManager.resolve_drop_uri (native_uri);
+					if (resolved != null && !uris.contains (resolved))
+						uris.add (resolved);
+				}
+				if (uris.size == 0) {
+					string[]? raw_uris = selection_data.get_uris ();
+					if (raw_uris != null && raw_uris.length > 0) {
+						foreach (unowned string s in raw_uris) {
+							var resolved = DragManager.resolve_drop_uri (s);
+							if (resolved != null && !uris.contains (resolved))
+								uris.add (resolved);
+						}
 					}
 				}
 				if (uris.size == 0) {
@@ -559,7 +575,9 @@ namespace Plank
 				});
 
 				var back_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
-				var back_icon = new Gtk.Image.from_icon_name ("go-previous-symbolic", Gtk.IconSize.MENU);
+				string back_icon_name = DrawingService.theme_has_icon ("go-previous-symbolic")
+					? "go-previous-symbolic" : "pan-start-symbolic";
+				var back_icon = new Gtk.Image.from_icon_name (back_icon_name, Gtk.IconSize.MENU);
 				var back_lbl = new Gtk.Label (_("Back"));
 				back_lbl.get_style_context ().add_class ("folder-menu-label");
 				back_lbl.set_xalign (0.0f);
@@ -604,10 +622,12 @@ namespace Plank
 				while ((info = enumerator.next_file ()) != null) {
 					if (info.get_is_hidden ())
 						continue;
+					var name = info.get_name ();
+					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+						continue;
 					if (count++ >= FOLDER_MAX_FILE_COUNT)
 						break;
 
-					var name = info.get_name ();
 					var display_name = info.get_display_name () ?? name;
 					var child = current_dir.get_child (name);
 					var key = "%s_%s".printf (display_name.down (), child.get_uri ());
@@ -620,6 +640,7 @@ namespace Plank
 						file_map.set (key, child);
 					}
 				}
+				try { enumerator.close (null); } catch { }
 			} catch (Error e) {
 				debug ("FolderMenuWindow: Failed to enumerate '%s': %s", current_dir.get_path () ?? "", e.message);
 			}
@@ -660,13 +681,13 @@ namespace Plank
 				item_count++;
 			}
 
-			// Add Desktop Launchers and Files
+			// Add App Launchers and Files
 			foreach (var k in file_keys) {
 				var child = file_map.get (k);
 				var uri = child.get_uri ();
 				string icon, text;
 
-				if (uri.has_suffix (".desktop")) {
+				if (Hal.Apps.is_launcher_uri (uri)) {
 					ApplicationDockItem.parse_launcher (uri, out icon, out text);
 					if (text == null || text == "")
 						text = child.get_basename ();
@@ -788,10 +809,14 @@ namespace Plank
 					if (info.get_is_hidden ())
 						continue;
 					var name = info.get_name ();
-					if (name.has_suffix (".desktop")) {
-						total += WindowManager.get_default ().window_count_for_app (dir.get_child (name).get_uri ());
+					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+						continue;
+					var child_uri = dir.get_child (name).get_uri ();
+					if (Hal.Apps.is_launcher_uri (child_uri)) {
+						total += WindowManager.get_default ().window_count_for_app (child_uri);
 					}
 				}
+				try { enumerator.close (null); } catch { }
 			} catch { }
 			return total;
 		}
@@ -926,7 +951,9 @@ namespace Plank
 			}
 
 			if (is_folder) {
-				var arrow = new Gtk.Image.from_icon_name ("go-next-symbolic", Gtk.IconSize.MENU);
+				string next_icon_name = DrawingService.theme_has_icon ("go-next-symbolic")
+					? "go-next-symbolic" : "pan-end-symbolic";
+				var arrow = new Gtk.Image.from_icon_name (next_icon_name, Gtk.IconSize.MENU);
 				arrow.set_opacity (0.6);
 				box.pack_start (arrow, false, false, 0);
 			}
@@ -978,7 +1005,7 @@ namespace Plank
 				}
 			}
 
-			// 2. Desktop Actions & Shortcuts from .desktop file (e.g. "New Window", "New Incognito Window")
+			// 2. Quicklist Actions & Shortcuts from launcher metadata (e.g. "New Window", "New Incognito Window")
 			var actions = new Gee.ArrayList<string> ();
 			var actions_map = new Gee.HashMap<string, string> ();
 			var desktop_action_ids = new Gee.HashMap<string, string> ();
@@ -992,27 +1019,13 @@ namespace Plank
 				foreach (var s in actions) {
 					var values = actions_map.get (s).split (";;");
 					var action_id = desktop_action_ids.get (s);
+					var fallback_cmd = (values.length > 0) ? values[0] : "";
 					var item = DockElement.create_menu_item (s, values.length > 1 ? values[1] : "", true);
 					item.activate.connect (() => {
-						if (action_id != null) {
-							string? path = null;
-							if (uri.has_prefix ("file://"))
-								path = File.new_for_uri (uri).get_path ();
-							else
-								path = uri;
-							if (path != null) {
-								var desktop_info = new DesktopAppInfo.from_filename (path);
-								if (desktop_info != null) {
-									desktop_info.launch_action (action_id, System.get_default ().context);
-									close_menu (true);
-									return;
-								}
-							}
-						}
-						if (values.length > 0 && values[0] != "") {
-							try {
-								AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
-							} catch { }
+						if (action_id != null && action_id != "") {
+							Hal.Apps.launch_action (uri, action_id, fallback_cmd, System.get_default ().context);
+						} else if (fallback_cmd != "") {
+							Hal.Apps.launch_command (fallback_cmd, "", System.get_default ().context);
 						}
 						close_menu (true);
 					});

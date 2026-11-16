@@ -287,7 +287,8 @@ namespace Plank
 				return;
 			}
 
-			window_scale_factor = controller.window.get_window ().get_scale_factor ();
+			var gdk_win = controller.window.get_window ();
+			window_scale_factor = (gdk_win != null) ? gdk_win.get_scale_factor () : 1;
 			var drag_icon_size = (int) (1.2 * controller.position_manager.ZoomIconSize);
 			if (drag_icon_size % 2 == 1)
 				drag_icon_size++;
@@ -379,80 +380,31 @@ namespace Plank
 			if (cleaned.length == 0 || cleaned.has_prefix ("#"))
 				return null;
 
-			if (cleaned.has_prefix ("application://") || cleaned.has_prefix ("applications://") || cleaned.has_prefix ("applications:")) {
-				string desktop_id = cleaned;
-				if (desktop_id.has_prefix ("applications://"))
-					desktop_id = desktop_id.replace ("applications://", "");
-				else if (desktop_id.has_prefix ("application://"))
-					desktop_id = desktop_id.replace ("application://", "");
-				else if (desktop_id.has_prefix ("applications:"))
-					desktop_id = desktop_id.replace ("applications:", "");
-				desktop_id = desktop_id.strip ();
-				while (desktop_id.has_suffix ("/"))
-					desktop_id = desktop_id.slice (0, desktop_id.length - 1);
-
-				var app_info = new DesktopAppInfo (desktop_id);
-				if (app_info == null && !desktop_id.has_suffix (".desktop"))
-					app_info = new DesktopAppInfo (desktop_id + ".desktop");
-				if (app_info != null && app_info.get_filename () != null)
-					return File.new_for_path (app_info.get_filename ()).get_uri ();
+			string lower = cleaned.ascii_down ();
+			if (lower.has_prefix ("http://") || lower.has_prefix ("https://") || lower.has_prefix ("ftp://"))
 				return cleaned;
-			}
-
-			if (cleaned.has_prefix ("file://") || cleaned.has_prefix ("http://") || cleaned.has_prefix ("https://") || cleaned.has_prefix ("ftp://"))
-				return cleaned;
-
-			if (cleaned.has_prefix ("www."))
+			if (lower.has_prefix ("www."))
 				return "https://" + cleaned;
 
-			if (cleaned.has_prefix ("/"))
-				return File.new_for_path (cleaned).get_uri ();
-
-			var f = File.new_for_commandline_arg (cleaned);
-			if (f.query_exists ())
-				return f.get_uri ();
-
-			var app_info = new DesktopAppInfo (cleaned);
-			if (app_info == null && !cleaned.has_suffix (".desktop"))
-				app_info = new DesktopAppInfo (cleaned + ".desktop");
-			if (app_info != null && app_info.get_filename () != null)
-				return File.new_for_path (app_info.get_filename ()).get_uri ();
-
-			return null;
+			string resolved = Hal.Apps.resolve_launcher_uri (cleaned);
+			return (resolved != "") ? resolved : null;
 		}
 
 		public static bool is_desktop_launcher_uri (string uri)
 		{
-			string u = uri.strip ();
-
-			if (u.has_suffix (".desktop")
-				|| u.has_prefix ("application://")
-				|| u.has_prefix ("applications://")
-				|| u.has_prefix ("applications:")
-				|| u.has_prefix ("appstream://"))
-				return true;
-
-			if (u.has_prefix ("file://") || u.has_prefix ("/")) {
-				try {
-					var f = File.new_for_uri (u.has_prefix ("/") ? File.new_for_path (u).get_uri () : u);
-					var info = f.query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
-					var ct = info.get_content_type ();
-					if (ct != null && (ct == "application/x-desktop" || ct.contains ("desktop")))
-						return true;
-				} catch {}
-			}
-			return false;
+			return Hal.Apps.is_launcher_uri (uri);
 		}
 
 		public static bool is_directory_uri (string uri)
 		{
 			string u = uri.strip ();
-			if (u == "" || u.has_prefix ("http://") || u.has_prefix ("https://") || u.has_prefix ("ftp://"))
+			string lower = u.ascii_down ();
+			if (u == "" || lower.has_prefix ("http://") || lower.has_prefix ("https://") || lower.has_prefix ("ftp://"))
 				return false;
 			if (is_desktop_launcher_uri (u))
 				return false;
-			if (u.has_prefix ("file://") || u.has_prefix ("/")) {
-				var f = u.has_prefix ("/") ? File.new_for_path (u) : File.new_for_uri (u);
+			if (lower.has_prefix ("file://") || Path.is_absolute (u)) {
+				var f = Path.is_absolute (u) ? File.new_for_path (u) : File.new_for_uri (u);
 				return f.query_exists () && f.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY;
 			}
 			return false;
@@ -463,39 +415,77 @@ namespace Plank
 		{
 			if (drag_data_requested) {
 				drag_data = new Gee.ArrayList<string> ();
+
+				foreach (var native_uri in Hal.Apps.decode_native_drop_selection (selection_data)) {
+					var resolved = resolve_drop_uri (native_uri);
+					if (resolved != null && !drag_data.contains (resolved))
+						drag_data.add (resolved);
+				}
 				
-				string[]? raw_uris = selection_data.get_uris ();
-				if (raw_uris != null && raw_uris.length > 0) {
-					foreach (unowned string s in raw_uris) {
-						var resolved = resolve_drop_uri (s);
-						if (resolved != null && !drag_data.contains (resolved))
-							drag_data.add (resolved);
+				if (drag_data.size == 0) {
+					string[]? raw_uris = selection_data.get_uris ();
+					if (raw_uris != null && raw_uris.length > 0) {
+						foreach (unowned string s in raw_uris) {
+							var resolved = resolve_drop_uri (s);
+							if (resolved != null && !drag_data.contains (resolved))
+								drag_data.add (resolved);
+						}
 					}
 				}
 				
 				if (drag_data.size == 0) {
-					string? raw_text = selection_data.get_text ();
+					string target_name = selection_data.get_target ().name ();
+					bool is_moz_url = (target_name == "text/x-moz-url");
+					string? raw_text = is_moz_url ? null : selection_data.get_text ();
 					if (raw_text == null || raw_text.length == 0) {
 						unowned uint8[]? raw_bytes = selection_data.get_data ();
 						int raw_len = selection_data.get_length ();
-						if (raw_bytes != null && raw_len > 0) {
-							if (raw_len >= 2 && raw_bytes[1] == 0 && raw_bytes[0] != 0) {
+						if (raw_bytes != null && raw_len > 0 && raw_len <= 65536) {
+							if (raw_len >= 2 && raw_bytes[0] == 0xFF && raw_bytes[1] == 0xFE) {
+								try {
+									raw_text = GLib.convert ((string) (&raw_bytes[2]), raw_len - 2, "UTF-8", "UTF-16LE");
+								} catch {}
+							} else if (raw_len >= 2 && raw_bytes[0] == 0xFE && raw_bytes[1] == 0xFF) {
+								try {
+									raw_text = GLib.convert ((string) (&raw_bytes[2]), raw_len - 2, "UTF-8", "UTF-16BE");
+								} catch {}
+							} else if (raw_len >= 2 && raw_bytes[1] == 0 && raw_bytes[0] != 0) {
 								try {
 									raw_text = GLib.convert ((string) raw_bytes, raw_len, "UTF-8", "UTF-16LE");
 								} catch {}
-							}
-							if (raw_text == null || raw_text.length == 0) {
-								raw_text = (string?) raw_bytes;
+							} else {
+								int start = 0;
+								if (raw_len >= 3 && raw_bytes[0] == 0xEF && raw_bytes[1] == 0xBB && raw_bytes[2] == 0xBF)
+									start = 3;
+								int end = raw_len;
+								while (end > start && raw_bytes[end - 1] == 0)
+									end--;
+								if (end > start) {
+									var buf = new uint8[end - start + 1];
+									Memory.copy (buf, &raw_bytes[start], end - start);
+									buf[end - start] = 0;
+									raw_text = (string) buf;
+								}
 							}
 						}
 					}
 					
 					if (raw_text != null && raw_text.length > 0) {
+						if (raw_text.has_prefix ("\xEF\xBB\xBF"))
+							raw_text = raw_text.substring (3);
 						var lines = raw_text.split ("\n");
-						foreach (unowned string line in lines) {
-							var resolved = resolve_drop_uri (line);
-							if (resolved != null && !drag_data.contains (resolved))
-								drag_data.add (resolved);
+						if (is_moz_url) {
+							if (lines.length > 0) {
+								var resolved = resolve_drop_uri (lines[0]);
+								if (resolved != null && !drag_data.contains (resolved))
+									drag_data.add (resolved);
+							}
+						} else {
+							foreach (unowned string line in lines) {
+								var resolved = resolve_drop_uri (line);
+								if (resolved != null && !drag_data.contains (resolved))
+									drag_data.add (resolved);
+							}
 						}
 					}
 				}
@@ -583,11 +573,11 @@ namespace Plank
 			else if (all_directories && drop_was_directly_on_item && item is ApplicationDockItem && ((ApplicationDockItem) item).can_accept_directory () && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
 			}
-			// PRIORITY 1b: Direct drop of non-directory payloads (.desktop or files) onto an existing Folder (FileDockItem)
+			// PRIORITY 1b: Direct drop of non-directory payloads (app launchers or files) onto an existing Folder (FileDockItem)
 			else if (!all_directories && drop_was_directly_on_item && item is FileDockItem && item.can_accept_drop (drag_data)) {
 				handled = item.accept_drop (drag_data);
 			}
-			// PRIORITY 2: When payload consists of .desktop launchers or folders, PINNING HAS PRIORITY
+			// PRIORITY 2: When payload consists of app launchers or folders, PINNING HAS PRIORITY
 			else if (all_desktop || all_directories) {
 				unowned DefaultApplicationDockItemProvider? app_prov = controller.default_provider as DefaultApplicationDockItemProvider;
 				if (!controller.prefs.LockItems && app_prov != null) {
@@ -712,19 +702,18 @@ namespace Plank
 			if (!handled) {
 				foreach (string uri in drag_data) {
 					string u = uri.strip ();
+					string lower = u.ascii_down ();
 					string? target_url = null;
-					if (u.has_prefix ("http://") || u.has_prefix ("https://") || u.has_prefix ("ftp://"))
+					if (lower.has_prefix ("http://") || lower.has_prefix ("https://") || lower.has_prefix ("ftp://"))
 						target_url = u;
 					else if (!all_desktop && !all_directories)
 						target_url = System.extract_link_shortcut_url (u);
 
 					if (target_url != null) {
-						try {
-							AppInfo.launch_default_for_uri (target_url, null);
+						if (Hal.Runtime.open_uri (target_url, null))
 							handled = true;
-						} catch (Error e) {
-							warning ("Failed to open URL in default browser: %s", e.message);
-						}
+						else
+							warning ("Failed to open URL in default browser: %s", target_url);
 					}
 				}
 			}
@@ -1689,19 +1678,26 @@ namespace Plank
 
 		void enable_drag_to (DockWindow window)
 		{
-			Gtk.TargetEntry te1 = { "text/uri-list", 0, 0 };
-			Gtk.TargetEntry te2 = { "text/plank-uri-list", 0, 0 };
-			Gtk.TargetEntry te3 = { "application/x-desktop", 0, 0 };
-			Gtk.TargetEntry te4 = { "application/x-gnome-app-info", 0, 0 };
-			Gtk.TargetEntry te5 = { "application/x-kde-appmenu", 0, 0 };
-			Gtk.TargetEntry te6 = { "text/plain;charset=utf-8", 0, 0 };
-			Gtk.TargetEntry te7 = { "UTF8_STRING", 0, 0 };
-			Gtk.TargetEntry te8 = { "text/plain", 0, 0 };
-			Gtk.TargetEntry te9 = { "STRING", 0, 0 };
-			Gtk.TargetEntry te10 = { "text/x-moz-url", 0, 0 };
-			Gtk.TargetEntry te11 = { "text/html", 0, 0 };
+			string[] core_atoms = {
+				"text/uri-list",
+				"text/plank-uri-list",
+				"text/plain;charset=utf-8",
+				"UTF8_STRING",
+				"text/plain",
+				"STRING",
+				"text/x-moz-url",
+				"text/html"
+			};
+			string[] extra_atoms = Hal.Apps.get_extra_drop_target_atoms ();
+			var entries = new Gtk.TargetEntry[core_atoms.length + extra_atoms.length];
+			int idx = 0;
+			foreach (unowned string atom in core_atoms)
+				entries[idx++] = { atom, 0, 0 };
+			foreach (unowned string atom in extra_atoms)
+				entries[idx++] = { atom, 0, 0 };
+
 			Gtk.drag_dest_set (window, Gtk.DestDefaults.MOTION | Gtk.DestDefaults.DROP,
-				{te1, te2, te3, te4, te5, te6, te7, te8, te9, te10, te11},
+				entries,
 				Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK | Gdk.DragAction.ASK);
 		}
 		

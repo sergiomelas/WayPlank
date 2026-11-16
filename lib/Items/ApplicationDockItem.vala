@@ -21,49 +21,30 @@
 namespace Plank
 {
 	/**
-	 * A dock item for applications (with .desktop launchers).
+	 * A dock item for applications backed by OS-blind HAL launcher descriptors.
 	 */
 	public class ApplicationDockItem : DockItem
 	{
-		// for FDO Desktop Actions
-		// see http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#extra-actions
-		private const string DESKTOP_ACTION_KEY = "Actions";
-		private const string DESKTOP_ACTION_GROUP_NAME = "Desktop Action %s";
-		
-		// for the Unity static quicklists
-		// see https://wiki.edubuntu.org/Unity/LauncherAPI#Static_Quicklist_entries
-		private const string UNITY_QUICKLISTS_KEY = "X-Ayatana-Desktop-Shortcuts";
-		private const string UNITY_QUICKLISTS_SHORTCUT_GROUP_NAME = "%s Shortcut Group";
-		private const string UNITY_QUICKLISTS_TARGET_KEY = "TargetEnvironment";
-		private const string UNITY_QUICKLISTS_TARGET_VALUE = "Unity";
-		
-		private const string[] SUPPORTED_GETTEXT_DOMAINS_KEYS = {"X-Ubuntu-Gettext-Domain", "X-GNOME-Gettext-Domain"};
-		
 		/**
 		 * Signal fired when the item's 'keep in dock' menu item is pressed.
 		 */
 		public signal void pin_launcher ();
-		
-#if HAVE_DBUSMENU
-		/**
-		 * The dock item's quicklist-dbusmenu.
-		 */
-		DbusmenuGtk.Client? Quicklist { get; set; default = null; }
-#endif
-		
+
 		Gee.ArrayList<string> supported_mime_types;
 		Gee.ArrayList<string> actions;
 		Gee.HashMap<string, string> actions_map;
 		Gee.HashMap<string, string> desktop_action_ids;
 		public bool accepts_payload { get; private set; default = false; }
-		
+
 		public bool can_accept_any_drop ()
 		{
 			return (accepts_payload || is_web_browser () || (supported_mime_types != null && supported_mime_types.size > 0));
 		}
-		
+
 		string? badge_sender_id = null;
 		string base_launcher_text = "";
+		bool is_standalone_webapp = false;
+		bool has_web_category = false;
 		int prev_window_count = 0;
 		int browser_profile_reg_id = 0;
 		bool scanned_running = false;
@@ -74,7 +55,7 @@ namespace Plank
 		 * depend on the "Show Running" preference.
 		 */
 		public bool running_for_accordion { get; private set; default = false; }
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -82,7 +63,7 @@ namespace Plank
 		{
 			GLib.Object (Prefs: new DockItemPreferences.with_file (file));
 		}
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -90,7 +71,7 @@ namespace Plank
 		{
 			GLib.Object (Prefs: new DockItemPreferences.with_filename (filename));
 		}
-		
+
 		construct
 		{
 			supported_mime_types = new Gee.ArrayList<string> ();
@@ -100,12 +81,12 @@ namespace Plank
 			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
 			Prefs.notify["BrowserProfile"].connect (handle_browser_profile_changed);
-			
+
 			load_from_launcher ();
 			prev_window_count = WindowManager.get_default ().window_count_for_app (Launcher);
 			update_indicator (!Hal.Windows.has_state ());
 		}
-		
+
 		bool is_app_cleaned_up = false;
 
 		public override void cleanup ()
@@ -127,9 +108,6 @@ namespace Plank
 			actions = null;
 			actions_map = null;
 			desktop_action_ids = null;
-#if HAVE_DBUSMENU
-			Quicklist = null;
-#endif
 			base.cleanup ();
 		}
 
@@ -137,12 +115,12 @@ namespace Plank
 		{
 			cleanup ();
 		}
-		
+
 		public bool is_running ()
 		{
 			return Matcher.get_default ().is_launcher_running (Launcher);
 		}
-		
+
 		public bool is_window ()
 		{
 			return false;
@@ -171,7 +149,7 @@ namespace Plank
 				State &= ~ItemState.URGENT;
 			}
 		}
-		
+
 		public void refresh_indicator ()
 		{
 			update_indicator (false);
@@ -193,20 +171,20 @@ namespace Plank
 			running_for_accordion = (window_count > 0 || scanned_running);
 			if (scan_process && prev_running_for_accordion != running_for_accordion && provider != null)
 				provider.refresh_pinned_accordion ();
-			
+
 			var had_open_windows = (prev_window_count > 0);
 			prev_window_count = window_count;
-			
+
 			if (!show_running || !running)
 				Indicator = IndicatorState.NONE;
 			else
 				Indicator = (window_count > 1 ? IndicatorState.SINGLE_PLUS : IndicatorState.SINGLE);
-			
+
 			if (show_attention && window_manager.app_demands_attention (Launcher))
 				set_urgent (true);
 			else if ((State & ItemState.URGENT) != 0)
 				set_urgent (false);
-			
+
 			// CRITICAL ACTIVE STATE & GLOW TRACKING (DO NOT REMOVE):
 			// Keeps ItemState.ACTIVE, LastActive, and needs_redraw () synchronized with the compositor's
 			// active window state. This feeds DockRenderer.theme.draw_active_glow (), restoring the
@@ -230,14 +208,14 @@ namespace Plank
 
 			update_profile_tooltip_text ();
 		}
-		
+
 		void launch ()
 		{
 			// Explicit launch from the dock: feeds the Smart Pinned Accordion usage score
 			AppUsageService.get_default ().note_launch (Launcher);
-			System.get_default ().launch (File.new_for_uri (Prefs.Launcher));
+			Hal.Apps.launch_app (Prefs.Launcher, {}, System.get_default ().context);
 		}
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -249,7 +227,7 @@ namespace Plank
 					launch ();
 					return AnimationType.BOUNCE;
 				}
-			
+
 			if (button == PopupButton.LEFT) {
 				if ((mod & Gdk.ModifierType.SHIFT_MASK) != 0) {
 					string? cycle_uuid;
@@ -259,7 +237,7 @@ namespace Plank
 						return AnimationType.NONE;
 					}
 				}
-				var app_id = File.new_for_uri (Launcher).get_basename ();
+				var app_id = Hal.Apps.launcher_id_stem (Launcher);
 				unowned DefaultApplicationDockItemProvider? provider = (Container as DefaultApplicationDockItemProvider);
 				var click_behavior = (provider != null ? provider.Prefs.WindowClickBehavior : 0);
 				var restore_minimized = (provider == null || provider.Prefs.RestoreMinimizedWindows);
@@ -274,10 +252,10 @@ namespace Plank
 				launch ();
 				return AnimationType.BOUNCE;
 			}
-			
+
 			return AnimationType.NONE;
 		}
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -292,7 +270,7 @@ namespace Plank
 			}
 			return AnimationType.NONE;
 		}
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -300,25 +278,14 @@ namespace Plank
 		{
 			if (Launcher == "")
 				return false;
-			try {
-				string file_path = Launcher;
-				if (file_path.has_prefix ("file://"))
-					file_path = Filename.from_uri (file_path);
-				var kf = new KeyFile ();
-				if (System.load_keyfile_safe (kf, file_path, 0)) {
-					if (!kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC))
-						return false;
-					var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-					return exec_str != "";
-				}
-			} catch { }
-			return false;
+			var desc = Hal.Apps.load_launcher (Launcher);
+			return (desc != null && desc.is_launchable);
 		}
 
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
-			
+
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
 			if (windows.size > 0) {
 				if (windows.size > 1) {
@@ -348,43 +315,31 @@ namespace Plank
 					items.add (close_item);
 				}
 			}
-			
-			// Application Shortcuts & Desktop Actions (e.g. "New Window", "New Incognito Window")
+
+			// Application Shortcuts & Quicklist Actions (e.g. "New Window", "New Incognito Window")
 			if (!is_window ()) {
 				if (actions.size == 0 && Launcher != "") {
 					load_from_launcher ();
 				}
-				
+
 				if (actions.size > 0) {
 					if (items.size > 0)
 						items.add (new Gtk.SeparatorMenuItem ());
-					
+
 					foreach (var s in actions) {
 						var values = actions_map.get (s).split (";;");
 						var action_id = desktop_action_ids.get (s);
-						
+
 						var item = create_menu_item (s, values.length > 1 ? values[1] : "", true);
 						item.activate.connect (() => {
 							AppUsageService.get_default ().note_launch (Launcher);
-							if (action_id != null) {
-								string? path = null;
-								if (Launcher.has_prefix ("file://"))
-									path = File.new_for_uri (Launcher).get_path ();
-								else
-									path = Launcher;
-								if (path != null) {
-									var desktop_info = new DesktopAppInfo.from_filename (path);
-									if (desktop_info != null) {
-										desktop_info.launch_action (action_id, System.get_default ().context);
-										return;
-									}
-								}
+							string fallback_cmd = (values.length > 0) ? values[0] : "";
+							if (action_id != null && action_id != "") {
+								if (Hal.Apps.launch_action (Launcher, action_id, fallback_cmd, System.get_default ().context))
+									return;
 							}
-							if (values.length > 0 && values[0] != "") {
-								try {
-									AppInfo.create_from_commandline (values[0], null, AppInfoCreateFlags.NONE).launch (null, null);
-								} catch { }
-							}
+							if (fallback_cmd != "")
+								Hal.Apps.launch_command (fallback_cmd, "", System.get_default ().context);
 						});
 						items.add (item);
 					}
@@ -399,21 +354,7 @@ namespace Plank
 					}
 				}
 			}
-			
-#if HAVE_DBUSMENU
-			if (Quicklist != null) {
-				if (items.size > 0)
-					items.add (new Gtk.SeparatorMenuItem ());
-				
-				var dm_root = Quicklist.get_root ();
-				if (dm_root != null) {
-					Logger.verbose ("%i quicklist menuitems for %s", dm_root.get_children ().length (), Text);
-					foreach (var menuitem in dm_root.get_children ())
-						items.add (Quicklist.menuitem_get (menuitem));
-				}
-			}
-#endif
-			
+
 			if (items.size > 0)
 				items.add (new Gtk.SeparatorMenuItem ());
 
@@ -436,7 +377,7 @@ namespace Plank
 					items.add (keep_item);
 				}
 			}
-			
+
 			if (!is_window () && Launcher != "" && has_executable_launcher ()) {
 				var icon_item = create_menu_item (_("Change _Icon..."), "preferences-desktop-theme", true);
 				icon_item.activate.connect (() => {
@@ -444,10 +385,10 @@ namespace Plank
 				});
 				items.add (icon_item);
 			}
-			
+
 			return items;
 		}
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -455,7 +396,7 @@ namespace Plank
 		{
 			return _("Drop to open with %s").printf (Text);
 		}
-		
+
 		/**
 		 * Whether this application explicitly supports opening directories.
 		 */
@@ -475,18 +416,8 @@ namespace Plank
 		 */
 		public bool is_web_browser ()
 		{
-			// Web App shortcuts (e.g. Chrome Apps with --app=...) are standalone web apps, not general web browsers
-			try {
-				string launcher_path = Prefs.Launcher;
-				if (launcher_path.has_prefix ("file://"))
-					launcher_path = Filename.from_uri (launcher_path);
-				var app_info = new DesktopAppInfo.from_filename (launcher_path);
-				if (app_info != null) {
-					string cmd = app_info.get_commandline () ?? "";
-					if (cmd.contains ("--app="))
-						return false;
-				}
-			} catch {}
+			if (is_standalone_webapp)
+				return false;
 
 			if (supported_mime_types != null) {
 				foreach (var ct in supported_mime_types) {
@@ -511,19 +442,13 @@ namespace Plank
 					return true;
 			}
 
-			try {
-				string launcher_path = Prefs.Launcher;
-				if (launcher_path.has_prefix ("file://"))
-					launcher_path = Filename.from_uri (launcher_path);
-				var app_info = new DesktopAppInfo.from_filename (launcher_path);
-				if (app_info != null) {
-					var cats = app_info.get_categories ();
-					if (cats != null && cats.contains ("WebBrowser"))
-						return true;
-				}
-			} catch {}
+			return has_web_category;
+		}
 
-			return false;
+		static bool is_remote_web_uri (string uri)
+		{
+			string low = uri.ascii_down ();
+			return (low.has_prefix ("http://") || low.has_prefix ("https://") || low.has_prefix ("ftp://"));
 		}
 
 		/**
@@ -533,14 +458,14 @@ namespace Plank
 		{
 			if (uris == null || uris.size == 0 || is_window ())
 				return false;
-			
+
 			// Web browsers always accept web URLs and internet shortcuts
 			bool is_browser = is_web_browser ();
 			if (is_browser) {
 				bool all_web = true;
 				foreach (var uri in uris) {
-					if (!uri.has_prefix ("http://") && !uri.has_prefix ("https://") && !uri.has_prefix ("ftp://")) {
-						if (System.extract_link_shortcut_url (uri) == null) {
+					if (!is_remote_web_uri (uri)) {
+						if (Hal.Apps.extract_link_shortcut_url (uri) == null) {
 							all_web = false;
 							break;
 						}
@@ -554,9 +479,9 @@ namespace Plank
 			// require that every dropped item is a directory
 			if (supported_mime_types != null && supported_mime_types.size == 1 && supported_mime_types.contains ("inode/directory")) {
 				foreach (var uri in uris) {
-					if (uri.has_prefix ("http://") || uri.has_prefix ("https://") || uri.has_prefix ("ftp://"))
+					if (is_remote_web_uri (uri))
 						return false;
-					var f = uri.has_prefix ("/") ? File.new_for_path (uri) : File.new_for_uri (uri);
+					var f = Path.is_absolute (uri) ? File.new_for_path (uri) : File.new_for_uri (uri);
 					if (f.query_file_type (FileQueryInfoFlags.NONE, null) != FileType.DIRECTORY)
 						return false;
 				}
@@ -566,7 +491,7 @@ namespace Plank
 			// If application explicitly declares supported MIME types, strictly enforce them!
 			if (supported_mime_types != null && supported_mime_types.size > 0) {
 				foreach (var uri in uris) {
-					if (uri.has_prefix ("http://") || uri.has_prefix ("https://") || uri.has_prefix ("ftp://")) {
+					if (is_remote_web_uri (uri)) {
 						bool match_web = false;
 						foreach (var content_type in supported_mime_types) {
 							if (content_type.contains ("html") || content_type.contains ("http") || content_type.contains ("url")) {
@@ -577,19 +502,19 @@ namespace Plank
 						if (!match_web)
 							return false;
 					} else {
-						var file = uri.has_prefix ("/") ? File.new_for_path (uri) : File.new_for_uri (uri);
+						var file = Path.is_absolute (uri) ? File.new_for_path (uri) : File.new_for_uri (uri);
 						string? uri_content_type = null;
 						try {
 							var info = file.query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
 							uri_content_type = info.get_content_type ();
 						} catch {}
-						
+
 						// If empty 0-byte file (application/x-zerosize) or query failed, guess MIME from filename
 						if (uri_content_type == null || uri_content_type == "application/x-zerosize") {
 							bool uncertain;
 							uri_content_type = ContentType.guess (uri, null, out uncertain);
 						}
-						
+
 						if (uri_content_type == null)
 							return false;
 
@@ -607,13 +532,13 @@ namespace Plank
 				return true;
 			}
 
-			// Fallback: only if NO MIME types were specified in .desktop, allow if application declares payload support (%f, %F, %u, %U)
+			// Fallback: only if NO MIME types were specified in launcher metadata, allow if application declares payload support
 			if (accepts_payload)
 				return true;
-			
+
 			return false;
 		}
-		
+
 		/**
 		 * {@inheritDoc}
 		 */
@@ -621,34 +546,28 @@ namespace Plank
 		{
 			if (uris == null || uris.size == 0)
 				return false;
-			
+
 			trigger_bounce ();
-			
-			File? app_file = null;
-			if (Prefs.Launcher.has_prefix ("file://"))
-				app_file = File.new_for_uri (Prefs.Launcher);
-			else
-				app_file = File.new_for_path (Prefs.Launcher);
-			
+
 			var effective_uris = new Gee.ArrayList<string> ();
 			foreach (var u in uris) {
-				var link_url = System.extract_link_shortcut_url (u);
+				var link_url = Hal.Apps.extract_link_shortcut_url (u);
 				if (link_url != null)
 					effective_uris.add (link_url);
 				else
 					effective_uris.add (u);
 			}
 
-			System.get_default ().launch_with_uris (app_file, effective_uris.to_array ());
-			
+			Hal.Apps.launch_app (Prefs.Launcher, effective_uris.to_array (), System.get_default ().context);
+
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
 			if (windows.size > 0) {
 				Hal.Windows.perform_window_action (windows[0].Id, WindowAction.ACTIVATE);
 			}
-			
+
 			return true;
 		}
-		
+
 		void update_profile_tooltip_text ()
 		{
 			if (Prefs.Launcher == "")
@@ -695,11 +614,25 @@ namespace Plank
 		{
 			if (Prefs.Launcher == "")
 				return;
-			
-			string icon, text;
-			parse_launcher (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types, desktop_action_ids);
-			if (icon != null && icon != "")
-				Icon = icon;
+
+			string icon = "";
+			string text = "";
+			is_standalone_webapp = false;
+			has_web_category = false;
+			accepts_payload = false;
+
+			var desc = parse_launcher_descriptor (Prefs.Launcher, out icon, out text, actions, actions_map, supported_mime_types, desktop_action_ids);
+			if (desc != null) {
+				is_standalone_webapp = desc.exec_command.contains ("--app=") || desc.url_target != "";
+				has_web_category = desc.categories.contains ("WebBrowser");
+				accepts_payload = (desc.supports_files || desc.supports_uris);
+			}
+
+			string effective_icon = (Prefs.CustomIcon != "" && DrawingService.has_icon (Prefs.CustomIcon))
+				? Prefs.CustomIcon
+				: icon;
+			if (effective_icon != null && effective_icon != "")
+				Icon = effective_icon;
 			ForcePixbuf = null;
 			if (text != null && text != "") {
 				base_launcher_text = text;
@@ -708,219 +641,69 @@ namespace Plank
 
 			browser_profile_reg_id = ApplicationDiscovery.get_default ().update_item_browser_profile (browser_profile_reg_id, Prefs.Launcher, Prefs.BrowserProfile);
 			update_profile_tooltip_text ();
-
-			accepts_payload = false;
-			try {
-				string launcher_path = Prefs.Launcher;
-				if (launcher_path.has_prefix ("file://")) {
-					try {
-						launcher_path = Filename.from_uri (launcher_path);
-					} catch (Error e) {
-						var gfile = File.new_for_uri (launcher_path);
-						var p = gfile.get_path ();
-						if (p != null)
-							launcher_path = p;
-					}
-				}
-				var app_info = new DesktopAppInfo.from_filename (launcher_path);
-				if (app_info != null && (app_info.supports_files () || app_info.supports_uris ())) {
-					accepts_payload = true;
-				} else {
-					var kf = new KeyFile ();
-					if (System.load_keyfile_safe (kf, launcher_path, KeyFileFlags.NONE)) {
-						if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-							var exec_str = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC);
-							if (exec_str.contains ("%f") || exec_str.contains ("%F") || 
-							    exec_str.contains ("%u") || exec_str.contains ("%U")) {
-								accepts_payload = true;
-							}
-						}
-					}
-				}
-			} catch {}
 		}
-		
+
+		static AppDescriptor? parse_launcher_descriptor (string launcher, out string icon, out string text,
+			Gee.ArrayList<string>? actions = null, Gee.Map<string, string>? actions_map = null,
+			Gee.ArrayList<string>? mimes = null, Gee.Map<string, string>? desktop_action_ids = null)
+		{
+			icon = "";
+			text = "";
+
+			if (launcher == null || launcher == "")
+				return null;
+
+			var desc = Hal.Apps.load_launcher (launcher);
+			if (desc == null)
+				return null;
+
+			text = desc.display_name;
+			icon = desc.icon_token;
+
+			if (mimes != null) {
+				mimes.clear ();
+				foreach (var mime in desc.mime_types)
+					mimes.add (ContentType.from_mime_type (mime));
+			}
+
+			if (actions != null && actions_map != null) {
+				actions.clear ();
+				actions_map.clear ();
+				if (desktop_action_ids != null)
+					desktop_action_ids.clear ();
+
+				foreach (var qa in desc.quicklist_actions) {
+					if (qa.name == "")
+						continue;
+					actions.add (qa.name);
+					actions_map.set (qa.name, "%s;;%s".printf (qa.exec, qa.icon_token));
+					if (desktop_action_ids != null) {
+						if (qa.is_native_action && qa.id != "")
+							desktop_action_ids.set (qa.name, qa.id);
+						else
+							desktop_action_ids.unset (qa.name);
+					}
+				}
+			}
+
+			return desc;
+		}
+
 		/**
 		 * Parses a launcher to get the text, icon and actions.
 		 *
-		 * @param launcher the launcher file (.desktop file) to parse
-		 * @param icon the icon key from the launcher
-		 * @param text the text key from the launcher
+		 * @param launcher the launcher URI or path to parse
+		 * @param icon the icon token from the launcher
+		 * @param text the localized display name from the launcher
 		 * @param actions a list of all actions by name
 		 * @param actions_map a map of actions from name to exec;;icon
 		 * @param mimes a list of all supported mime types
 		 */
 		public static void parse_launcher (string launcher, out string icon, out string text, Gee.ArrayList<string>? actions = null, Gee.Map<string, string>? actions_map = null, Gee.ArrayList<string>? mimes = null, Gee.Map<string, string>? desktop_action_ids = null)
 		{
-			icon = "";
-			text = "";
-			
-			if (launcher == null || launcher == "")
-				return;
-			
-			string file_path = launcher;
-			if (launcher.has_prefix ("file://")) {
-				try {
-					file_path = Filename.from_uri (launcher);
-				} catch (Error e) {
-					var gfile = File.new_for_uri (launcher);
-					var p = gfile.get_path ();
-					if (p != null)
-						file_path = p;
-				}
-			}
-			
-			KeyFile file = new KeyFile ();
-			if (!System.load_keyfile_safe (file, file_path, 0)) {
-				critical ("%s: unable to parse desktop launcher", launcher);
-				return;
-			}
-			
-			try {
-				text = file.get_locale_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME);
-				
-				if (file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON))
-					icon = file.get_locale_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
-				
-				var type = file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE);
-				switch (type) {
-				default:
-				case KeyFileDesktop.TYPE_APPLICATION:
-					break;
-				case KeyFileDesktop.TYPE_DIRECTORY:
-					if (icon == "")
-						icon = "inode-directory";
-					return;
-				case KeyFileDesktop.TYPE_LINK:
-					if (icon == "")
-						icon = "text-html";
-					return;	
-				}
-			} catch (KeyFileError e) {
-				critical ("%s: %s", launcher, e.message);
-				return;
-			}
-			
-			try {
-				if (mimes != null && file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_MIME_TYPE)) {
-					var mimestrings = file.get_string_list (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_MIME_TYPE);
-					foreach (unowned string mime in mimestrings)
-						mimes.add (ContentType.from_mime_type (mime));
-				}
-				
-				string? textdomain = null;
-				foreach (unowned string domain_key in SUPPORTED_GETTEXT_DOMAINS_KEYS)
-					if (file.has_key (KeyFileDesktop.GROUP, domain_key)) {
-						textdomain = file.get_string (KeyFileDesktop.GROUP, domain_key);
-						break;
-					}
-				
-				// get FDO Desktop Actions
-				// see http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#extra-actions
-				// get the Unity static quicklists
-				// see https://wiki.edubuntu.org/Unity/LauncherAPI#Static Quicklist entries
-				if (actions != null && actions_map != null) {
-					actions.clear ();
-					actions_map.clear ();
-					if (desktop_action_ids != null)
-						desktop_action_ids.clear ();
-					
-					string[] keys = {DESKTOP_ACTION_KEY, UNITY_QUICKLISTS_KEY};
-					
-					foreach (unowned string key in keys) {
-						if (!file.has_key (KeyFileDesktop.GROUP, key))
-							continue;
-						
-						foreach (unowned string action in file.get_string_list (KeyFileDesktop.GROUP, key)) {
-							var group = DESKTOP_ACTION_GROUP_NAME.printf (action);
-							if (!file.has_group (group)) {
-								group = UNITY_QUICKLISTS_SHORTCUT_GROUP_NAME.printf (action);
-								if (!file.has_group (group))
-									continue;
-							}
-							
-							// check for TargetEnvironment
-							if (file.has_key (group, UNITY_QUICKLISTS_TARGET_KEY)) {
-								var target = file.get_string (group, UNITY_QUICKLISTS_TARGET_KEY);
-								if (target != UNITY_QUICKLISTS_TARGET_VALUE && target != "Plank")
-									continue;
-							}
-							
-							// check for NotShowIn
-							if (file.has_key (group, KeyFileDesktop.KEY_NOT_SHOW_IN)) {
-								var found = false;
-								
-								foreach (unowned string s in file.get_string_list (group, KeyFileDesktop.KEY_NOT_SHOW_IN))
-									if (s == "Plank") {
-										found = true;
-										break;
-									}
-								
-								if (found)
-									continue;
-							}
-							
-							// check for OnlyShowIn
-							if (file.has_key (group, KeyFileDesktop.KEY_ONLY_SHOW_IN)) {
-								var found = false;
-								
-								foreach (unowned string s in file.get_string_list (group, KeyFileDesktop.KEY_ONLY_SHOW_IN))
-									if (s == UNITY_QUICKLISTS_TARGET_VALUE || s == "Plank") {
-										found = true;
-										break;
-									}
-								
-								if (!found)
-									continue;
-							}
-							
-							var action_name = file.get_locale_string (group, KeyFileDesktop.KEY_NAME);
-							
-							var action_icon = "";
-							if (file.has_key (group, KeyFileDesktop.KEY_ICON))
-								action_icon = file.get_locale_string (group, KeyFileDesktop.KEY_ICON);
-							
-							var action_exec = "";
-							if (file.has_key (group, KeyFileDesktop.KEY_EXEC))
-								action_exec = file.get_string (group, KeyFileDesktop.KEY_EXEC);
-							
-							// apply given gettext-domain if available
-							if (textdomain != null)
-								action_name = GLib.dgettext (textdomain, action_name).dup ();
-							
-							actions.add (action_name);
-							actions_map.set (action_name, "%s;;%s".printf (action_exec, action_icon));
-							if (desktop_action_ids != null) {
-								if (key == DESKTOP_ACTION_KEY && group == DESKTOP_ACTION_GROUP_NAME.printf (action))
-									desktop_action_ids.set (action_name, action);
-								else
-									desktop_action_ids.unset (action_name);
-							}
-						}
-					}
-					
-					if (actions.size == 0 && file_path != "") {
-						var desktop_info = new DesktopAppInfo.from_filename (file_path);
-						if (desktop_info != null) {
-							foreach (unowned string act in desktop_info.list_actions ()) {
-								var act_name = desktop_info.get_action_name (act);
-								if (act_name != null && act_name != "") {
-									actions.add (act_name);
-									actions_map.set (act_name, ";;");
-									if (desktop_action_ids != null)
-										desktop_action_ids.set (act_name, act);
-								}
-							}
-						}
-					}
-				}
-			} catch (KeyFileError e) {
-				critical ("%s: %s", launcher, e.message);
-				return;
-			}
+			parse_launcher_descriptor (launcher, out icon, out text, actions, actions_map, mimes, desktop_action_ids);
 		}
-		
-		
+
 		/**
 		 * Get current remote badge/progress IPC sender identifier (`badge_sender_id`).
 		 *
@@ -930,7 +713,7 @@ namespace Plank
 		{
 			return badge_sender_id;
 		}
-		
+
 		/**
 		 * Whether this item provides remote badge/progress information worth showing.
 		 */
@@ -938,7 +721,7 @@ namespace Plank
 		{
 			return (ProgressVisible || CountVisible);
 		}
-		
+
 		/**
 		 * Update this item's remote badge/progress values based on normalized HAL state.
 		 */
@@ -960,23 +743,19 @@ namespace Plank
 			if (state.has_urgent)
 				set_urgent (state.urgent);
 		}
-		
+
 		/**
 		 * Reset this item's remote badge/progress values (`badge_sender_id`).
 		 */
 		public void unity_reset ()
 		{
 			badge_sender_id = null;
-			
+
 			Count = 0;
 			CountVisible = false;
 			Progress = 0.0;
 			ProgressVisible = false;
 			set_urgent (false);
-#if HAVE_DBUSMENU
-			Quicklist = null;
-#endif
 		}
-
 	}
 }

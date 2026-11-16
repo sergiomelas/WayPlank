@@ -26,49 +26,9 @@ namespace Plank
 	 */
 	public class ItemFactory : GLib.Object
 	{
-		const string[] FALLBACK_FILE_MANAGERS = {
-			"org.gnome.Nautilus.desktop",
-			"org.kde.dolphin.desktop",
-			"nemo.desktop",
-			"thunar.desktop",
-			"pcmanfm.desktop",
-			"org.xfce.FileManager.desktop"
-		};
-
-		const string[] FALLBACK_BROWSERS = {
-			"google-chrome.desktop",
-			"firefox.desktop",
-			"chromium-browser.desktop",
-			"chromium.desktop",
-			"brave-browser.desktop",
-			"microsoft-edge.desktop",
-			"org.gnome.Epiphany.desktop"
-		};
-
-		const string[] FALLBACK_TERMINALS = {
-			"org.gnome.Terminal.desktop",
-			"org.gnome.Ptyxis.desktop",
-			"ptyxis.desktop",
-			"org.kde.konsole.desktop",
-			"alacritty.desktop",
-			"kitty.desktop",
-			"xfce4-terminal.desktop",
-			"foot.desktop",
-			"terminator.desktop"
-		};
-
-		const string[] FALLBACK_EDITORS = {
-			"org.gnome.TextEditor.desktop",
-			"gedit.desktop",
-			"org.kde.kate.desktop",
-			"code.desktop",
-			"com.microsoft.VSCode.desktop",
-			"mousepad.desktop"
-		};
-
 		const string[] PRIORITY_INTERNET = {
 			"google-chrome", "firefox", "chromium-browser", "brave-browser",
-			"microsoft-edge", "thunderbird", "org.telegram.desktop", "discord", "signal-desktop"
+			"microsoft-edge", "thunderbird", "org.telegram", "discord", "signal-desktop"
 		};
 
 		const string[] PRIORITY_OFFICE = {
@@ -159,7 +119,7 @@ namespace Plank
 				warning ("Unknown or unsupported docklet '%s' in %s, skipping", launcher, file.get_basename ());
 				return null;
 			}
-			if (launcher.has_suffix (".desktop"))
+			if (Hal.Apps.is_launcher_uri (launcher))
 				return new ApplicationDockItem.with_dockitem_file (file);
 			return new FileDockItem.with_dockitem_file (file);
 		}
@@ -323,98 +283,6 @@ namespace Plank
 			return null;
 		}
 
-		bool make_dock_item_for_desktop_id (string id)
-		{
-			string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
-			var app_info = new DesktopAppInfo (desktop_id);
-			if (app_info == null)
-				return false;
-			
-			unowned string filename = app_info.get_filename ();
-			if (filename == null)
-				return false;
-			
-			try {
-				var uri = Filename.to_uri (filename);
-				return (make_dock_item (uri) != null);
-			} catch (ConvertError e) {
-				return false;
-			}
-		}
-
-		static bool categories_contain (string? categories, string[] search_tags)
-		{
-			if (categories == null || categories == "")
-				return false;
-			
-			foreach (unowned string tag in search_tags) {
-				if (categories.contains (tag))
-					return true;
-			}
-			return false;
-		}
-
-		void populate_folder (File folder, string icon_name, string[] priority_ids, string[] category_tags, int max_items = 6)
-		{
-			Paths.ensure_directory_exists (folder);
-
-			var dot_dir = folder.get_child (".directory");
-			if (!dot_dir.query_exists ()) {
-				try {
-					FileUtils.set_contents (dot_dir.get_path (), "[Desktop Entry]\nType=Directory\nIcon=%s\n".printf (icon_name));
-				} catch { }
-			}
-
-			try {
-				folder.set_attribute_string ("metadata::custom-icon-name", icon_name, FileQueryInfoFlags.NONE, null);
-			} catch { }
-
-			var added_files = new Gee.HashSet<string> ();
-
-			// 1. Check priority applications
-			foreach (unowned string id in priority_ids) {
-				if (added_files.size >= max_items)
-					break;
-				string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
-				var app = new DesktopAppInfo (desktop_id);
-				if (app != null && app.should_show ()) {
-					unowned string fn = app.get_filename ();
-					if (fn != null && !added_files.contains (fn)) {
-						var src = File.new_for_path (fn);
-						var dst = folder.get_child (src.get_basename ());
-						try {
-							src.copy (dst, FileCopyFlags.OVERWRITE, null, null);
-							added_files.add (fn);
-						} catch { }
-					}
-				}
-			}
-
-			// 2. Scan installed desktop apps for matching categories
-			if (added_files.size < max_items) {
-				var all = AppInfo.get_all ();
-				foreach (var info in all) {
-					if (added_files.size >= max_items)
-						break;
-					var d_info = info as DesktopAppInfo;
-					if (d_info == null || !d_info.should_show ())
-						continue;
-					unowned string fn = d_info.get_filename ();
-					if (fn == null || added_files.contains (fn))
-						continue;
-					unowned string cats = d_info.get_categories ();
-					if (categories_contain (cats, category_tags)) {
-						var src = File.new_for_path (fn);
-						var dst = folder.get_child (src.get_basename ());
-						try {
-							src.copy (dst, FileCopyFlags.OVERWRITE, null, null);
-							added_files.add (fn);
-						} catch { }
-					}
-				}
-			}
-		}
-
 		void make_default_folders ()
 		{
 			File folders_base = Paths.AppConfigFolder.get_child ("folders");
@@ -422,49 +290,36 @@ namespace Plank
 
 			// 1. Internet Folder
 			var internet_folder = folders_base.get_child ("Internet");
-			populate_folder (internet_folder, "applications-internet", PRIORITY_INTERNET, {
+			Hal.Apps.populate_category_folder (internet_folder, "applications-internet", PRIORITY_INTERNET, {
 				"WebBrowser", "Network", "Email", "Chat", "InstantMessaging", "IRCClient", "Feed"
 			});
 			make_dock_item (internet_folder.get_uri ());
 
 			// 2. Office & Productivity Folder
 			var office_folder = folders_base.get_child ("Office");
-			populate_folder (office_folder, "applications-office", PRIORITY_OFFICE, {
+			Hal.Apps.populate_category_folder (office_folder, "applications-office", PRIORITY_OFFICE, {
 				"Office", "Development", "IDE", "TextEditor", "WordProcessor", "Spreadsheet", "Calculator", "Viewer"
 			});
 			make_dock_item (office_folder.get_uri ());
 
 			// 3. Media & Creative Folder
 			var media_folder = folders_base.get_child ("Media");
-			populate_folder (media_folder, "applications-multimedia", PRIORITY_MEDIA, {
+			Hal.Apps.populate_category_folder (media_folder, "applications-multimedia", PRIORITY_MEDIA, {
 				"AudioVideo", "Audio", "Video", "Graphics", "Player", "Recorder", "Music"
 			});
 			make_dock_item (media_folder.get_uri ());
 
 			// 4. Games Folder (or Utilities fallback if no games exist)
 			var games_folder = folders_base.get_child ("Games");
-			populate_folder (games_folder, "applications-games", PRIORITY_GAMES, {
+			int game_count = Hal.Apps.populate_category_folder (games_folder, "applications-games", PRIORITY_GAMES, {
 				"Game", "Emulator"
 			});
-			
-			// Verify if Games folder received any app; if empty, create Utilities instead
-			bool has_game = false;
-			try {
-				var enum_games = games_folder.enumerate_children (FileAttribute.STANDARD_NAME, 0);
-				FileInfo? info;
-				while ((info = enum_games.next_file (null)) != null) {
-					if (info.get_name ().has_suffix (".desktop")) {
-						has_game = true;
-						break;
-					}
-				}
-			} catch { }
 
-			if (has_game) {
+			if (game_count > 0) {
 				make_dock_item (games_folder.get_uri ());
 			} else {
 				var utils_folder = folders_base.get_child ("Utilities");
-				populate_folder (utils_folder, "applications-utilities", { "org.gnome.DiskUtility", "gnome-system-monitor", "org.kde.ark", "file-roller" }, {
+				Hal.Apps.populate_category_folder (utils_folder, "applications-utilities", { "org.gnome.DiskUtility", "gnome-system-monitor", "org.kde.ark", "file-roller" }, {
 					"System", "Utility", "Archiving", "Settings", "FileManager"
 				});
 				make_dock_item (utils_folder.get_uri ());
@@ -483,47 +338,8 @@ namespace Plank
 
 		void make_default_pinned_apps ()
 		{
-			// 1. File Manager
-			bool fm_done = false;
-			var fm = AppInfo.get_default_for_type ("inode/directory", false);
-			if (fm != null && fm.get_id () != null)
-				fm_done = make_dock_item_for_desktop_id (fm.get_id ());
-			if (!fm_done) {
-				foreach (unowned string fallback_id in FALLBACK_FILE_MANAGERS) {
-					if (make_dock_item_for_desktop_id (fallback_id))
-						break;
-				}
-			}
-
-			// 2. Web Browser
-			bool browser_done = false;
-			var browser = AppInfo.get_default_for_type ("x-scheme-handler/http", false);
-			if (browser != null && browser.get_id () != null)
-				browser_done = make_dock_item_for_desktop_id (browser.get_id ());
-			if (!browser_done) {
-				foreach (unowned string fallback_id in FALLBACK_BROWSERS) {
-					if (make_dock_item_for_desktop_id (fallback_id))
-						break;
-				}
-			}
-
-			// 3. System Terminal
-			foreach (unowned string term_id in FALLBACK_TERMINALS) {
-				if (make_dock_item_for_desktop_id (term_id))
-					break;
-			}
-
-			// 4. Text Editor
-			bool editor_done = false;
-			var editor = AppInfo.get_default_for_type ("text/plain", false);
-			if (editor != null && editor.get_id () != null)
-				editor_done = make_dock_item_for_desktop_id (editor.get_id ());
-			if (!editor_done) {
-				foreach (unowned string fallback_id in FALLBACK_EDITORS) {
-					if (make_dock_item_for_desktop_id (fallback_id))
-						break;
-				}
-			}
+			foreach (var seed_uri in Hal.Apps.discover_default_seed_apps ())
+				make_dock_item (seed_uri);
 		}
 
 		static bool is_supported_docklet_uri (string launcher)
@@ -585,8 +401,7 @@ namespace Plank
 							continue;
 						}
 					} else {
-						var lf = File.new_for_uri (launcher);
-						if (!lf.query_exists ())
+						if (!Hal.Apps.launcher_exists (launcher) && !File.new_for_uri (launcher).query_exists ())
 							continue;
 					}
 
@@ -602,6 +417,7 @@ namespace Plank
 						migrated_count++;
 					}
 				}
+				try { enumerator.close (null); } catch { }
 			} catch (Error e) {
 				warning ("Error scanning legacy Plank launchers '%s': %s", legacy_launchers_dir.get_path () ?? "", e.message);
 			}
@@ -693,78 +509,56 @@ namespace Plank
 			}
 			
 			string target_uri = uri.strip ();
-			if (target_uri.has_prefix ("application://") || target_uri.has_prefix ("applications://") || target_uri.has_prefix ("applications:")) {
-				string desktop_id = target_uri;
-				if (desktop_id.has_prefix ("applications://"))
-					desktop_id = desktop_id.replace ("applications://", "");
-				else if (desktop_id.has_prefix ("application://"))
-					desktop_id = desktop_id.replace ("application://", "");
-				else if (desktop_id.has_prefix ("applications:"))
-					desktop_id = desktop_id.replace ("applications:", "");
-				desktop_id = desktop_id.strip ();
-				while (desktop_id.has_suffix ("/"))
-					desktop_id = desktop_id.slice (0, desktop_id.length - 1);
-				var app_info = new DesktopAppInfo (desktop_id);
-				if (app_info == null && !desktop_id.has_suffix (".desktop"))
-					app_info = new DesktopAppInfo (desktop_id + ".desktop");
-				if (app_info != null && app_info.get_filename () != null) {
-					target_uri = File.new_for_path (app_info.get_filename ()).get_uri ();
-				}
-			} else if (target_uri.has_prefix ("/")) {
-				target_uri = File.new_for_path (target_uri).get_uri ();
-			} else if (!target_uri.has_prefix ("file://") && !target_uri.has_prefix ("docklet://")) {
-				var f = File.new_for_commandline_arg (target_uri);
-				if (f.query_exists ()) {
-					target_uri = f.get_uri ();
-				} else {
-					var app_info = new DesktopAppInfo (target_uri);
-					if (app_info == null && !target_uri.has_suffix (".desktop"))
-						app_info = new DesktopAppInfo (target_uri + ".desktop");
-					if (app_info != null && app_info.get_filename () != null)
-						target_uri = File.new_for_path (app_info.get_filename ()).get_uri ();
-				}
+			bool is_docklet = target_uri.has_prefix ("docklet://");
+			if (!is_docklet) {
+				string resolved = Hal.Apps.resolve_launcher_uri (target_uri);
+				if (resolved != "")
+					target_uri = resolved;
 			}
 
-			var launcher_file = File.new_for_uri (target_uri);
-			bool is_docklet = target_uri.has_prefix ("docklet://");
-			bool is_valid = is_docklet || launcher_file.query_exists ();
-			string basename = is_docklet ? target_uri.replace ("docklet://", "") : (launcher_file.get_basename () ?? "unknown");
-			
+			bool is_valid = is_docklet || Hal.Apps.launcher_exists (target_uri) || File.new_for_uri (target_uri).query_exists ();
+			string launcher_base = is_docklet
+				? Hal.Apps.launcher_id_stem (target_uri.substring ("docklet://".length))
+				: Hal.Apps.launcher_id_stem (target_uri);
+
 			if (is_valid && target_dir != null) {
 				var file = new KeyFile ();
 				var group_name = typeof (DockItemPreferences).name ();
-				
+
 				file.set_string (group_name, "Launcher", target_uri);
 				file.set_string (group_name, "CustomIcon", "");
 				file.set_string (group_name, "BrowserProfile", "");
 				file.set_boolean (group_name, "KeepVisible", false);
-				
+
 				try {
-					// find a unique file name, based on the name of the launcher
-					var index_of_last_dot = basename.last_index_of (".");
-					var launcher_base = (index_of_last_dot >= 0 ? basename.slice (0, index_of_last_dot) : basename);
-					var dockitem = "%s.dockitem".printf (launcher_base);
-					var dockitem_file = target_dir.get_child (dockitem);
-					
-					// Reuse or update existing dock item to avoid duplicate files (KISS)
+					var dockitem_file = target_dir.get_child ("%s.dockitem".printf (launcher_base));
+
 					if (dockitem_file.query_exists ()) {
 						var existing_launcher = get_launcher_from_dockitem (dockitem_file);
 						if (existing_launcher != null && DockItemProvider.uri_matches (existing_launcher, target_uri)) {
 							debug ("Reusing existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
 							return dockitem_file;
 						}
-						debug ("Updating existing dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
-						var update_stream = new DataOutputStream (dockitem_file.replace (null, false, FileCreateFlags.NONE, null));
-						update_stream.put_string (file.to_data ());
-						update_stream.close ();
-						return dockitem_file;
+						if (existing_launcher != null && existing_launcher != "") {
+							for (int suffix = 2; suffix < 1000; suffix++) {
+								var candidate_file = target_dir.get_child ("%s-%d.dockitem".printf (launcher_base, suffix));
+								if (!candidate_file.query_exists ()) {
+									dockitem_file = candidate_file;
+									break;
+								}
+								var cand_launcher = get_launcher_from_dockitem (candidate_file);
+								if (cand_launcher != null && DockItemProvider.uri_matches (cand_launcher, target_uri)) {
+									debug ("Reusing existing dock item '%s' for launcher '%s'", candidate_file.get_path (), uri);
+									return candidate_file;
+								}
+							}
+						}
 					}
-					
-					// save the key file
+
 					var stream = new DataOutputStream (dockitem_file.replace (null, false, FileCreateFlags.NONE, null));
 					stream.put_string (file.to_data ());
 					stream.close ();
-					
+
 					debug ("Created dock item '%s' for launcher '%s'", dockitem_file.get_path (), uri);
 					return dockitem_file;
 				} catch { }

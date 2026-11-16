@@ -228,14 +228,12 @@ namespace Plank
 				return;
 			}
 
-			if (icon_name_or_path.has_prefix ("/") || icon_name_or_path.has_prefix ("file://")) {
-				try {
-					string path = icon_name_or_path;
-					if (path.has_prefix ("file://"))
-						path = Filename.from_uri (path);
-					var pix = new Gdk.Pixbuf.from_file_at_scale (path, 48, 48, true);
+			string lower = icon_name_or_path.ascii_down ();
+			if (lower.has_prefix ("resource://") || lower.has_prefix ("file://") || Path.is_absolute (icon_name_or_path)) {
+				if (DrawingService.has_icon (icon_name_or_path)) {
+					var pix = DrawingService.load_icon (icon_name_or_path, 48, 48);
 					preview_image.set_from_pixbuf (pix);
-				} catch {
+				} else {
 					preview_image.set_from_icon_name ("image-missing", Gtk.IconSize.DIALOG);
 				}
 			} else {
@@ -249,7 +247,7 @@ namespace Plank
 		{
 			all_theme_icons = new Gee.ArrayList<string> ();
 
-			var theme = Gtk.IconTheme.get_default ();
+			unowned Gtk.IconTheme theme = DrawingService.get_icon_theme ();
 			GLib.List<string> icons = theme.list_icons (null);
 
 			Gee.HashSet<string> seen = new Gee.HashSet<string> ();
@@ -348,10 +346,17 @@ namespace Plank
 			filter.add_mime_type ("image/x-icon");
 			filter.add_mime_type ("image/jpeg");
 			filter.add_pattern ("*.png");
+			filter.add_pattern ("*.PNG");
 			filter.add_pattern ("*.svg");
+			filter.add_pattern ("*.SVG");
 			filter.add_pattern ("*.ico");
+			filter.add_pattern ("*.ICO");
 			filter.add_pattern ("*.jpg");
+			filter.add_pattern ("*.JPG");
 			filter.add_pattern ("*.jpeg");
+			filter.add_pattern ("*.JPEG");
+			filter.add_pattern ("*.xpm");
+			filter.add_pattern ("*.XPM");
 			chooser.add_filter (filter);
 
 			var all_filter = new Gtk.FileFilter ();
@@ -428,147 +433,35 @@ namespace Plank
 
 		private static void apply_launcher_icon (ApplicationDockItem item, string new_icon)
 		{
-			if (item.Container == null)
-				return;
-			string launcher_uri = item.Prefs.Launcher;
-			if (launcher_uri == "" || !launcher_uri.has_prefix ("file://"))
+			if (item.Container == null || item.Prefs.Launcher == "")
 				return;
 
-			string src_path = File.new_for_uri (launcher_uri).get_path ();
-			if (src_path == null || !FileUtils.test (src_path, FileTest.EXISTS))
-				return;
-
-			string user_apps_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
-			DirUtils.create_with_parents (user_apps_dir, 0755);
-
-			string dest_path = Path.build_filename (user_apps_dir, Path.get_basename (src_path));
-			bool created_by_wayplank = !FileUtils.test (dest_path, FileTest.EXISTS);
-
-			try {
-				var kf = new KeyFile ();
-				kf.load_from_file (src_path, KeyFileFlags.KEEP_COMMENTS | KeyFileFlags.KEEP_TRANSLATIONS);
-				if (created_by_wayplank)
-					kf.set_boolean (KeyFileDesktop.GROUP, "X-WayPlank-Created", true);
-				if (!kf.has_key (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon")) {
-					try {
-						string orig_icon = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
-						if (orig_icon != null && orig_icon != "")
-							kf.set_string (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon", orig_icon);
-					} catch { }
-				}
-				try {
-					foreach (unowned string k in kf.get_keys (KeyFileDesktop.GROUP)) {
-						if (k.has_prefix ("Icon["))
-							kf.remove_key (KeyFileDesktop.GROUP, k);
-					}
-				} catch { }
-				kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON, new_icon);
-				kf.save_to_file (dest_path);
-
-				// Update launcher to point to the user desktop file
-				try {
-					item.Prefs.Launcher = Filename.to_uri (dest_path);
-				} catch (ConvertError e) {
-					warning ("Could not convert dest_path to uri: %s", e.message);
-				}
-				item.Icon = new_icon;
-				ApplicationDiscovery.get_default ().refresh_index_now ();
-			} catch (Error e) {
-				critical ("Could not save custom launcher desktop file: %s", e.message);
-			}
+			string updated_uri = Hal.Apps.apply_custom_launcher_icon (item.Prefs.Launcher, new_icon);
+			if (updated_uri != "")
+				item.Prefs.Launcher = updated_uri;
+			item.Prefs.CustomIcon = new_icon;
+			item.Icon = new_icon;
+			ApplicationDiscovery.get_default ().refresh_index_now ();
 		}
 
 		private static void reset_launcher_icon (ApplicationDockItem item)
 		{
-			if (item.Container == null)
-				return;
-			string launcher_uri = item.Prefs.Launcher;
-			if (launcher_uri == "" || !launcher_uri.has_prefix ("file://"))
+			if (item.Container == null || item.Prefs.Launcher == "")
 				return;
 
-			string cur_path = File.new_for_uri (launcher_uri).get_path ();
-			if (cur_path == null)
-				return;
+			string restored_icon;
+			string updated_uri = Hal.Apps.reset_custom_launcher_icon (item.Prefs.Launcher, out restored_icon);
+			item.Prefs.CustomIcon = "";
+			if (updated_uri != "")
+				item.Prefs.Launcher = updated_uri;
 
-			string basename = Path.get_basename (cur_path);
-			string user_apps_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
-			string user_desktop = Path.build_filename (user_apps_dir, basename);
-
-			string? sys_path = null;
-			foreach (unowned string data_dir in Environment.get_system_data_dirs ()) {
-				string candidate = Path.build_filename (data_dir, "applications", basename);
-				if (candidate != user_desktop && FileUtils.test (candidate, FileTest.EXISTS)) {
-					sys_path = candidate;
-					break;
-				}
+			if (restored_icon != "") {
+				item.Icon = restored_icon;
+			} else {
+				string icon, text;
+				ApplicationDockItem.parse_launcher (item.Prefs.Launcher, out icon, out text);
+				item.Icon = icon;
 			}
-			if (sys_path == null) {
-				string[] extra_dirs = {
-					Path.build_filename (Environment.get_user_data_dir (), "flatpak", "exports", "share", "applications"),
-					"/var/lib/flatpak/exports/share/applications",
-					"/var/lib/snapd/desktop/applications",
-					"/usr/local/share/applications",
-					"/usr/share/applications"
-				};
-				foreach (unowned string dir in extra_dirs) {
-					string candidate = Path.build_filename (dir, basename);
-					if (candidate != user_desktop && FileUtils.test (candidate, FileTest.EXISTS)) {
-						sys_path = candidate;
-						break;
-					}
-				}
-			}
-
-			bool can_unlink_user_override = false;
-			if (sys_path != null && FileUtils.test (user_desktop, FileTest.EXISTS)) {
-				try {
-					var ukf = new KeyFile ();
-					ukf.load_from_file (user_desktop, KeyFileFlags.NONE);
-					if (ukf.has_key (KeyFileDesktop.GROUP, "X-WayPlank-Created")
-						&& ukf.get_boolean (KeyFileDesktop.GROUP, "X-WayPlank-Created")) {
-						can_unlink_user_override = true;
-					}
-				} catch { }
-			}
-
-			if (sys_path != null && (!FileUtils.test (user_desktop, FileTest.EXISTS) || can_unlink_user_override)) {
-				if (FileUtils.test (user_desktop, FileTest.EXISTS)) {
-					FileUtils.unlink (user_desktop);
-				}
-
-				try {
-					item.Prefs.Launcher = Filename.to_uri (sys_path);
-				} catch (ConvertError e) {
-					warning ("Could not convert sys_path to uri: %s", e.message);
-				}
-			} else if (FileUtils.test (cur_path, FileTest.EXISTS)) {
-				// Pre-existing user .desktop (or user-only .desktop): preserve custom keys and restore original icon
-				try {
-					var kf = new KeyFile ();
-					kf.load_from_file (cur_path, KeyFileFlags.KEEP_COMMENTS | KeyFileFlags.KEEP_TRANSLATIONS);
-					string? restored_icon = null;
-					if (kf.has_key (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon")) {
-						restored_icon = kf.get_string (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon");
-						kf.remove_key (KeyFileDesktop.GROUP, "X-WayPlank-Original-Icon");
-					} else if (sys_path != null) {
-						try {
-							var skf = new KeyFile ();
-							skf.load_from_file (sys_path, KeyFileFlags.NONE);
-							if (skf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON))
-								restored_icon = skf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
-						} catch { }
-					}
-					if (restored_icon != null && restored_icon != "") {
-						kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON, restored_icon);
-						kf.save_to_file (cur_path);
-					}
-				} catch { }
-			}
-
-			// Reload icon from desktop file
-			string icon, text;
-			ApplicationDockItem.parse_launcher (item.Prefs.Launcher, out icon, out text);
-			item.Icon = icon;
 			ApplicationDiscovery.get_default ().refresh_index_now ();
 		}
 

@@ -71,7 +71,7 @@ namespace Plank
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v0712_bridge_2";
+		const string BRIDGE_GEN = "v072_bridge_1";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -244,7 +244,7 @@ const IFACE_XML = `
 
 export default class WayplankBridgeImpl {
     enable() {
-        this._bridgeGen = 'v0712_bridge_2';
+        this._bridgeGen = 'v072_bridge_1';
         this._lastDockOnPrimary = true;
         this._strutHealAttempted = false;
         this._signals = [];
@@ -584,6 +584,9 @@ export default class WayplankBridgeImpl {
         if (lowerTitle === 'wayplank' || role === 'dock' || type === Meta.WindowType.DOCK)
             return 'dock';
 
+        if (!win.mapped && lowerTitle === '' && role === '')
+            return 'unknown';
+
         // 3. Dialog Windows: Any remaining WayPlank-owned window (Preferences, FirstRunWindow,
         //    About WayPlank, Shortcuts/Help, Weather, Calendar, Session, Icon Chooser, Confirmations)
         return 'dialog';
@@ -764,8 +767,6 @@ export default class WayplankBridgeImpl {
         if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'hover')
             return false;
         try {
-            win.make_above();
-            win.stick();
             if (win.hide_from_window_list)
                 win.hide_from_window_list();
             if (win.demands_attention)
@@ -794,41 +795,37 @@ export default class WayplankBridgeImpl {
             }
 
             if (dockRect) {
-                const monGeo = (targetMon !== -1) ? global.display.get_monitor_geometry(targetMon) : global.display.get_monitor_geometry(global.display.get_primary_monitor());
-
+                const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
+                const monIdx = (targetMon !== -1) ? targetMon : pMon;
+                const monGeo = global.display.get_monitor_geometry(monIdx);
+                const topPanelHeight = (monIdx === pMon && Main.panel && Main.panel.height && Main.panel.visible !== false)
+                    ? Main.panel.height : 0;
                 const isHorizontal = dockRect.width >= dockRect.height;
-                const isVertical = dockRect.height > dockRect.width;
-
-                const isTop = isHorizontal && dockRect.y < monGeo.y + 120;
-                const isBottom = isHorizontal && (dockRect.y + dockRect.height) > (monGeo.y + monGeo.height - 120);
-                const isLeft = isVertical && dockRect.x < monGeo.x + 120;
-                const isRight = isVertical && (dockRect.x + dockRect.width) > (monGeo.x + monGeo.width - 120);
-
-                const tooltipH = (height && height > 0) ? height : 28;
-                const tooltipW = (width && width > 0) ? width : 70;
-
-                if (isTop) {
-                    targetY = Math.max(targetY, dockRect.y + dockRect.height + 6);
-                } else if (isBottom) {
-                    targetY = Math.min(targetY, dockRect.y - tooltipH - 6);
-                } else if (isLeft) {
-                    targetX = Math.max(targetX, dockRect.x + dockRect.width + 6);
-                } else if (isRight) {
-                    targetX = Math.min(targetX, dockRect.x - tooltipW - 6);
-                }
+                const isTop = (this._lastReservePosition === 2) ||
+                              (isHorizontal && dockRect.y <= monGeo.y + topPanelHeight + 12);
+                if (isTop && topPanelHeight > 0)
+                    targetY = y + topPanelHeight;
             }
+
+            win._wpHoverGeo = { x: targetX, y: targetY, width, height };
 
             const move = () => {
                 try {
                     if (!this._isWindowAlive(win) || this._classifyWindow(win) !== 'hover')
                         return;
-                    if (win.move_resize_frame) {
-                        const frameRect = win.get_frame_rect();
-                        const w = (width && width > 0) ? width : frameRect.width;
-                        const h = (height && height > 0) ? height : frameRect.height;
-                        win.move_resize_frame(true, targetX, targetY, w, h);
-                    } else if (win.move_frame) {
+                    win.make_above();
+                    win.stick();
+                    if (win.hide_from_window_list)
+                        win.hide_from_window_list();
+                    if (win.demands_attention)
+                        win.demands_attention = false;
+                    const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
+                    if (frameRect && frameRect.x === targetX && frameRect.y === targetY)
+                        return;
+                    if (win.move_frame) {
                         win.move_frame(true, targetX, targetY);
+                    } else if (win.move_resize_frame && frameRect) {
+                        win.move_resize_frame(true, targetX, targetY, frameRect.width, frameRect.height);
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move hover error:', e);
@@ -945,8 +942,9 @@ export default class WayplankBridgeImpl {
                     if (targetWin.hide_from_window_list)
                         targetWin.hide_from_window_list();
                 } catch (e) { }
-                if (this._lastHoverGeo) {
-                    const { x, y, width, height } = this._lastHoverGeo;
+                const hoverGeo = targetWin._wpHoverGeo || this._lastHoverGeo;
+                if (hoverGeo) {
+                    const { x, y, width, height } = hoverGeo;
                     this._applyHoverPosition(targetWin, x, y, width, height);
                 }
             } else if (kind === 'poof') {
@@ -1037,6 +1035,9 @@ export default class WayplankBridgeImpl {
                 // restore it once; the frame-equality guard in _applyDockPosition prevents loops.
                 const { x, y, width, height } = this._lastDockGeo;
                 this._applyDockPosition(win, x, y, width, height);
+            } else if (kind === 'hover' && win._wpHoverGeo) {
+                const { x, y, width, height } = win._wpHoverGeo;
+                this._applyHoverPosition(win, x, y, width, height);
             } else if (kind === 'other') {
                 this._notifyWindowsChanged();
             }
@@ -1046,6 +1047,12 @@ export default class WayplankBridgeImpl {
             if (currentKind === 'dock' && this._lastDockGeo) {
                 const { x, y, width, height } = this._lastDockGeo;
                 this._applyDockPosition(win, x, y, width, height);
+            } else if (currentKind === 'hover') {
+                const hoverGeo = win._wpHoverGeo || this._lastHoverGeo;
+                if (hoverGeo) {
+                    const { x, y, width, height } = hoverGeo;
+                    this._applyHoverPosition(win, x, y, width, height);
+                }
             } else if (currentKind === 'dialog') {
                 this._centerWindow(win);
             } else if (currentKind === 'other') {
@@ -1089,15 +1096,20 @@ export default class WayplankBridgeImpl {
 
     _findHoverWindow() {
         const actors = global.get_window_actors();
+        let unmappedMatch = null;
         for (let i = actors.length - 1; i >= 0; i--) {
             const actor = actors[i];
             if (!actor || (actor.is_destroyed && actor.is_destroyed()))
                 continue;
             const win = actor.meta_window;
-            if (win && !win.minimized && this._classifyWindow(win) === 'hover')
+            if (!win || win._wpUnmanaging || win.minimized || this._classifyWindow(win) !== 'hover')
+                continue;
+            if (win.mapped)
                 return win;
+            if (!unmappedMatch)
+                unmappedMatch = win;
         }
-        return null;
+        return unmappedMatch;
     }
 
     _findDockWindow() {
@@ -1447,7 +1459,6 @@ export default class WayplankBridgeImpl {
     // D-Bus Method: PositionDock
     PositionDock(x, y, width, height) {
         this._lastDockGeo = { x, y, width, height };
-        this._lastHoverGeo = null;
         try {
             const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
             const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
@@ -1856,21 +1867,80 @@ export default class WayplankBridgeImpl {
 					warning ("MutterBackend: failed to clean stale bridge implementations: %s", e.message);
 				}
 
-				if (code_changed && current_js != null) {
-					// Upgrade / code updated: reset error latch and cycle disable -> enable atomically.
-					// With the versioned loader, enable() imports impl-<new hash>.js -> new code goes live.
-					// (A one-time logout/login is still needed when the loader itself changes.)
-					if (ext_enable_timer_id > 0U) {
-						GLib.Source.remove (ext_enable_timer_id);
-						ext_enable_timer_id = 0U;
+				if (ext_enable_timer_id > 0U) {
+					GLib.Source.remove (ext_enable_timer_id);
+					ext_enable_timer_id = 0U;
+				}
+				activate_extension_in_shell (code_changed && current_js != null);
+			} catch (Error e) {
+				warning ("MutterBackend: failed to deploy extension: %s", e.message);
+			}
+		}
+
+		void activate_extension_in_shell (bool cycle_reload)
+		{
+			if (session_bus != null) {
+				try {
+					if (cycle_reload) {
+						session_bus.call_sync (
+							"org.gnome.Shell",
+							"/org/gnome/Shell",
+							"org.gnome.Shell.Extensions",
+							"DisableExtension",
+							new Variant ("(s)", EXTENSION_UUID),
+							null,
+							DBusCallFlags.NO_AUTO_START,
+							1500,
+							null
+						);
 					}
+					var res = session_bus.call_sync (
+						"org.gnome.Shell",
+						"/org/gnome/Shell",
+						"org.gnome.Shell.Extensions",
+						"EnableExtension",
+						new Variant ("(s)", EXTENSION_UUID),
+						new VariantType ("(b)"),
+						DBusCallFlags.NO_AUTO_START,
+						1500,
+						null
+					);
+					bool enabled_ok = false;
+					res.get ("(b)", out enabled_ok);
+					if (!enabled_ok && ext_enable_timer_id == 0U) {
+						ext_enable_timer_id = GLib.Timeout.add (150, () => {
+							ext_enable_timer_id = 0U;
+							if (session_bus != null && proxy == null) {
+								try {
+									session_bus.call_sync (
+										"org.gnome.Shell",
+										"/org/gnome/Shell",
+										"org.gnome.Shell.Extensions",
+										"EnableExtension",
+										new Variant ("(s)", EXTENSION_UUID),
+										null,
+										DBusCallFlags.NO_AUTO_START,
+										1500,
+										null
+									);
+								} catch (Error e) { }
+							}
+							return false;
+						});
+					}
+					return;
+				} catch (Error e) {
+					debug ("MutterBackend: direct Shell.Extensions D-Bus activation failed (%s), falling back to CLI", e.message);
+				}
+			}
+
+			try {
+				if (cycle_reload) {
 					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " >/dev/null 2>&1; gnome-extensions disable " + EXTENSION_UUID + " >/dev/null 2>&1; sleep 0.2; gnome-extensions enable " + EXTENSION_UUID + " >/dev/null 2>&1'");
 				} else {
 					Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " >/dev/null 2>&1; gnome-extensions enable " + EXTENSION_UUID + " >/dev/null 2>&1'");
 				}
-			} catch (Error e) {
-				warning ("MutterBackend: failed to deploy extension: %s", e.message);
-			}
+			} catch (Error e) { }
 		}
 
 		void connect_bridge ()
@@ -1913,9 +1983,7 @@ export default class WayplankBridgeImpl {
 						GLib.Source.remove (ext_enable_timer_id);
 						ext_enable_timer_id = 0U;
 					}
-					try {
-						Process.spawn_command_line_async ("sh -c 'gnome-extensions reset " + EXTENSION_UUID + " >/dev/null 2>&1; gnome-extensions disable " + EXTENSION_UUID + " >/dev/null 2>&1; sleep 0.2; gnome-extensions enable " + EXTENSION_UUID + " >/dev/null 2>&1'");
-					} catch (Error e) { }
+					activate_extension_in_shell (true);
 					return;
 				}
 				message ("MutterBackend: GnomeBridge verified live in GNOME Shell (gen=%s)", active_gen);

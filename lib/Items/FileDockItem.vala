@@ -147,7 +147,7 @@ namespace Plank
 			if (OwnedFile != null) {
 				try {
 					var info = new FileInfo ();
-					if (new_icon.has_prefix ("/") || new_icon.has_prefix ("file://")) {
+					if (Path.is_absolute (new_icon) || new_icon.has_prefix ("file://")) {
 						string uri = new_icon.has_prefix ("file://") ? new_icon : File.new_for_path (new_icon).get_uri ();
 						info.set_attribute_string ("metadata::custom-icon", uri);
 						info.set_attribute_string ("metadata::custom-icon-name", "");
@@ -262,24 +262,35 @@ namespace Plank
 					if (info.get_is_hidden ())
 						continue;
 					var name = info.get_name ();
-					if (name.has_suffix (".desktop")) {
-						contained_launchers.add (OwnedFile.get_child (name).get_uri ());
+					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+						continue;
+					var child_file = OwnedFile.get_child (name);
+					var child_uri = child_file.get_uri ();
+					if (Hal.Apps.is_launcher_uri (child_uri)) {
+						contained_launchers.add (child_uri);
 					} else if (info.get_file_type () == FileType.DIRECTORY) {
-						var sub_dir = OwnedFile.get_child (name);
 						try {
-							var sub_enum = sub_dir.enumerate_children (
+							var sub_enum = child_file.enumerate_children (
 								FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN,
 								FileQueryInfoFlags.NONE,
 								null
 							);
 							FileInfo? sub_info;
 							while ((sub_info = sub_enum.next_file (null)) != null) {
-								if (!sub_info.get_is_hidden () && sub_info.get_name ().has_suffix (".desktop"))
-									contained_launchers.add (sub_dir.get_child (sub_info.get_name ()).get_uri ());
+								if (sub_info.get_is_hidden ())
+									continue;
+								var sub_name = sub_info.get_name ();
+								if (sub_name == ".directory" || sub_name.ascii_down () == "desktop.ini")
+									continue;
+								var sub_uri = child_file.get_child (sub_name).get_uri ();
+								if (Hal.Apps.is_launcher_uri (sub_uri))
+									contained_launchers.add (sub_uri);
 							}
+							try { sub_enum.close (null); } catch { }
 						} catch { }
 					}
 				}
+				try { enumerator.close (null); } catch { }
 			} catch (Error e) {
 				debug ("FileDockItem: Failed to enumerate directory '%s': %s", OwnedFile.get_path () ?? "", e.message);
 			}
@@ -449,7 +460,7 @@ namespace Plank
 			get_files (OwnedFile).map_iterator ().foreach ((display_name, file) => {
 				string icon, text;
 				var uri = file.get_uri ();
-				if (uri.has_suffix (".desktop")) {
+				if (Hal.Apps.is_launcher_uri (uri)) {
 					ApplicationDockItem.parse_launcher (uri, out icon, out text);
 				} else {
 					icon = DrawingService.get_icon_from_file (file) ?? "";
@@ -542,6 +553,7 @@ namespace Plank
 					var child_name = info.get_name ();
 					copy_file_or_dir (src.get_child (child_name), dest.get_child (child_name));
 				}
+				try { enumerator.close (null); } catch { }
 			} else {
 				src.copy (dest, FileCopyFlags.OVERWRITE, null, null);
 			}
@@ -555,21 +567,22 @@ namespace Plank
 			bool any_copied = false;
 			foreach (var uri in uris) {
 				try {
+					if (Hal.Apps.is_launcher_uri (uri)) {
+						string resolved = Hal.Apps.resolve_launcher_uri (uri);
+						if (resolved == "")
+							resolved = uri;
+						File src_launcher = resolved.has_prefix ("file://")
+							? File.new_for_uri (resolved)
+							: (Path.is_absolute (resolved) ? File.new_for_path (resolved) : File.new_for_commandline_arg (resolved));
+						if (Hal.Apps.copy_launcher_to_directory (src_launcher, target_dir) != null)
+							any_copied = true;
+						continue;
+					}
+
 					File src;
-					if (uri.has_prefix ("application://")) {
-						var desktop_id = uri.replace ("application://", "").strip ();
-						while (desktop_id.has_suffix ("/"))
-							desktop_id = desktop_id.slice (0, desktop_id.length - 1);
-						var app_info = new DesktopAppInfo (desktop_id);
-						if (app_info == null && !desktop_id.has_suffix (".desktop"))
-							app_info = new DesktopAppInfo (desktop_id + ".desktop");
-						if (app_info != null && app_info.get_filename () != null)
-							src = File.new_for_path (app_info.get_filename ());
-						else
-							continue;
-					} else if (uri.has_prefix ("file://")) {
+					if (uri.has_prefix ("file://")) {
 						src = File.new_for_uri (uri);
-					} else if (uri.has_prefix ("/")) {
+					} else if (Path.is_absolute (uri)) {
 						src = File.new_for_path (uri);
 					} else {
 						src = File.new_for_commandline_arg (uri);
@@ -589,9 +602,6 @@ namespace Plank
 						continue;
 
 					copy_file_or_dir (src, dest);
-					if (basename.has_suffix (".desktop") && dest.get_path () != null) {
-						FileUtils.chmod (dest.get_path (), 0755);
-					}
 					any_copied = true;
 				} catch (Error e) {
 					warning ("Failed to copy '%s' into '%s': %s", uri, target_dir.get_path () ?? "", e.message);
@@ -701,9 +711,10 @@ namespace Plank
 
 			var dir_path = dir.get_path ();
 			if (dir_path != null) {
-				if (visited_set.contains (dir_path))
+				string canonical_dir = Hal.Runtime.canonicalize_path (dir_path);
+				if (visited_set.contains (canonical_dir))
 					return;
-				visited_set.add (dir_path);
+				visited_set.add (canonical_dir);
 			}
 
 			var menu_items = new Gee.HashMap<string, Gtk.MenuItem> ();
@@ -726,12 +737,15 @@ namespace Plank
 					if (info.get_is_hidden ())
 						continue;
 
+					var name = info.get_name ();
+					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+						continue;
+
 					if (count++ >= FOLDER_MAX_FILE_COUNT) {
 						critical ("There are way too many files (%u+) in '%s'.", FOLDER_MAX_FILE_COUNT, dir.get_path ());
 						break;
 					}
 
-					var name = info.get_name ();
 					var display_name = info.get_display_name () ?? name;
 					var child = dir.get_child (name);
 					var uri = child.get_uri ();
@@ -766,7 +780,7 @@ namespace Plank
 							});
 						}
 						sort_key = "0_" + display_name.down ();
-					} else if (uri.has_suffix (".desktop")) {
+					} else if (Hal.Apps.is_launcher_uri (uri)) {
 						string icon, text;
 						ApplicationDockItem.parse_launcher (uri, out icon, out text);
 						if (text == null || text == "")
@@ -795,6 +809,7 @@ namespace Plank
 					menu_items.set (unique_key, item);
 					keys.add (unique_key);
 				}
+				try { enumerator.close (null); } catch { }
 			} catch (Error e) {
 				debug ("Error enumerating folder '%s': %s", dir.get_path () ?? "", e.message);
 			}
@@ -861,15 +876,19 @@ namespace Plank
 				while ((info = enumerator.next_file ()) != null) {
 					if (info.get_is_hidden ())
 						continue;
-					
+
+					unowned string name = info.get_name ();
+					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+						continue;
+
 					if (count++ >= FOLDER_MAX_FILE_COUNT) {
 						critical ("There are way too many files (%u+) in '%s'.", FOLDER_MAX_FILE_COUNT, file.get_path ());
 						break;
 					}
-					
-					unowned string name = info.get_name ();
+
 					files.set (info.get_display_name () ?? name, file.get_child (name));
 				}
+				try { enumerator.close (null); } catch { }
 			} catch { }
 			
 			return files;

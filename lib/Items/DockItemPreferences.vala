@@ -80,7 +80,7 @@ namespace Plank
 		{
 			switch (prop) {
 			case "Launcher":
-				if (Launcher.has_prefix ("/"))
+				if (Path.is_absolute (Launcher))
 					try {
 						Launcher = Filename.to_uri (Launcher);
 					} catch (ConvertError e) {

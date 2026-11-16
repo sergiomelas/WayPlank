@@ -46,8 +46,6 @@ namespace Plank
 		Gtk.ScrolledWindow scrolled;
 
 		uint dismiss_timer_id = 0U;
-		uint pos_timer_1_id = 0U;
-		uint pos_timer_2_id = 0U;
 		bool pointer_inside = false;
 		Gtk.CssProvider? css_provider = null;
 		unowned Gdk.Screen? css_screen = null;
@@ -181,14 +179,22 @@ namespace Plank
 
 		void cancel_position_timers ()
 		{
-			if (pos_timer_1_id > 0U) {
-				GLib.Source.remove (pos_timer_1_id);
-				pos_timer_1_id = 0U;
-			}
-			if (pos_timer_2_id > 0U) {
-				GLib.Source.remove (pos_timer_2_id);
-				pos_timer_2_id = 0U;
-			}
+			Hal.Shell.cancel_popup_sync (this);
+		}
+
+		void schedule_popup_sync ()
+		{
+			if (TargetItem == null || !TargetItem.is_valid () || !get_visible ())
+				return;
+			var display = get_display ();
+			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
+			unowned PositionManager pm = controller.position_manager;
+			var val = pm.get_draw_value_for_item (TargetItem);
+			Hal.Shell.sync_popup_after_show (
+				this, PopupSurfaceKind.PREVIEW_CARDS, monitor, pm.Position,
+				(int) Math.round (val.center.x), (int) Math.round (val.center.y),
+				pm.get_visual_thickness_for_item (TargetItem), GAP
+			);
 		}
 
 		bool on_scroll (Gdk.EventScroll event)
@@ -262,6 +268,7 @@ namespace Plank
 			if (windows.size != cards_box.get_children ().length ()) {
 				populate_cards ();
 				update_position (true);
+				schedule_popup_sync ();
 			} else {
 				// Re-draw all cards to shift active cyan highlight
 				cards_box.queue_draw ();
@@ -349,25 +356,15 @@ namespace Plank
 			Hal.Shell.set_surface_monitor (this, monitor);
 
 			update_position (true);
-
-			pos_timer_1_id = GLib.Timeout.add (25, () => {
-				pos_timer_1_id = 0U;
-				if (get_visible () && TargetItem != null)
-					update_position (true);
-				return false;
-			});
-			pos_timer_2_id = GLib.Timeout.add (75, () => {
-				pos_timer_2_id = 0U;
-				if (get_visible () && TargetItem != null)
-					update_position (true);
-				return false;
-			});
+			schedule_popup_sync ();
 		}
 
 		public void close_cards ()
 		{
 			cancel_dismiss_timer ();
 			cancel_position_timers ();
+			has_last_pos = false;
+			pointer_inside = false;
 			hide ();
 			clear_cards ();
 			TargetItem = null;
@@ -513,6 +510,7 @@ namespace Plank
 							da_widget.queue_draw ();
 						if (self_win != null && self_win.get_visible ()) {
 							self_win.update_position (true);
+							self_win.schedule_popup_sync ();
 							self_win.cards_box.queue_draw ();
 							self_win.queue_draw ();
 						}
@@ -790,7 +788,12 @@ namespace Plank
 			int expected_w = 12 + sum_w + (n_cards > 1 ? (n_cards - 1) * 6 : 0);
 			if (expected_w > 980)
 				expected_w = 980;
-			int expected_h = max_card_h + 16;
+			int fallback_h = max_card_h + 12;
+
+			Gtk.Requisition req;
+			get_preferred_size (null, out req);
+			int width = req.width > 0 ? req.width : expected_w;
+			int height = req.height > 0 ? req.height : fallback_h;
 
 			var display = get_display ();
 			var monitor = (display != null) ? PositionManager.get_monitor_for_plug_name (display, controller.prefs.Monitor) : null;
@@ -802,25 +805,18 @@ namespace Plank
 			if (!force && has_last_pos
 				&& center_x == last_center_x
 				&& center_y == last_center_y
-				&& expected_w == last_pos_w
-				&& expected_h == last_pos_h
+				&& width == last_pos_w
+				&& height == last_pos_h
 				&& pm.Position == last_pos_edge
 				&& visual_thickness == last_thickness) {
 				return;
 			}
 
-			if (!has_last_pos || expected_w != last_pos_w || expected_h != last_pos_h)
-				resize (expected_w, expected_h);
-			Gtk.Requisition req;
-			get_preferred_size (null, out req);
-			int width = req.width >= expected_w ? req.width : expected_w;
-			int height = req.height >= expected_h ? req.height : expected_h;
-
 			has_last_pos = true;
 			last_center_x = center_x;
 			last_center_y = center_y;
-			last_pos_w = expected_w;
-			last_pos_h = expected_h;
+			last_pos_w = width;
+			last_pos_h = height;
 			last_pos_edge = pm.Position;
 			last_thickness = visual_thickness;
 

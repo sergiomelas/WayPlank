@@ -95,6 +95,7 @@ namespace Plank
 
 			SystemTheme.cleanup_if_active ();
 			AppUsageService.shutdown_if_active ();
+			WindowManager.cleanup_if_active ();
 			Hal.cleanup ();
 			GLib.Settings.sync ();
 		}
@@ -158,7 +159,7 @@ namespace Plank
 		 */
 		public string app_icon { get; construct; }
 		/**
-		 * The name of the launcher (.desktop file) for this program.
+		 * The name of the launcher file for this program.
 		 */
 		public string app_launcher { get; construct; }
 
@@ -530,6 +531,8 @@ namespace Plank
 		 */
 		public bool is_launcher_for_dock (string launcher)
 		{
+			if (Hal.Apps.is_self_launcher (launcher))
+				return true;
 			if (app_launcher == null || app_launcher == "")
 				return false;
 			return launcher.has_suffix (app_launcher);

@@ -87,36 +87,36 @@ ISA-88 PROCEDURAL STATE MACHINE LEGEND (AI_RULES.md Section 2):
   [  ]  | [M4-03] | Gate M4-C  | Tier 2 | Purify `ApplicationIdentity.vala` onto `AppDescriptor`, `ProcessSnapshot`, `Hal.Bus.AppMenu`, `parse_command_argv`
   [  ]  | [M4-04] | Gate M4-C  | Tier 2 | Purify `ApplicationDiscovery.vala` onto `Hal.Windows` & `Hal.Apps` (browser bins + synthetic launchers)
   [  ]  | [M4-05] | Gate M4-C  | Tier 2 | Purify `Matcher.vala` onto `Hal.Windows`, `Hal.Apps.scan_user_processes()`, & `parse_command_argv`
-  [  ]  | [M4-06] | Gate M4-B  | Tier 2 | Convert `System.vala` to pure Core facade delegating to `Hal.Apps`, `Hal.Telemetry.Ejector`, `Hal.Runtime`
-  [  ]  | [M4-07] | Gate M4-B  | Tier 2 | Purify `RecentFilesService.vala` (`Hal.Apps.get_recent_documents()`, `load_launcher`, `Path.is_absolute`)
-  [  ]  | [M4-08] | M4-A->M4-B | Tier 3 | Move `/var/lib/{snapd,flatpak}` & `/usr/{local/,}share/glib-2.0/schemas` behind `Hal.Apps` / `Hal.Runtime`
-  [  ]  | [M4-09] | Gate M4-B  | Tier 2 | Purify `ItemFactory.vala` (`DefaultAppRole`, `discover_default_seed_apps`, `resolve_launcher_uri`)
-  [  ]  | [M4-10] | Gate M4-B  | Tier 2 | Purify `ApplicationDockItem.vala` (`Hal.Windows`, `Hal.Apps.{load_launcher,launch_action,launch_command}`)
-  [  ]  | [M4-11] | Gate M4-B  | Tier 2 | Purify `ApplicationDockItemProvider.vala` (`Hal.Windows`, `is_self_launcher`, `strip_launcher_extension`)
-  [  ]  | [M4-12] | M4-A->M4-B | Tier 3 | `Hal.Runtime.canonicalize_path()` + `Hal.Apps.is_launcher_uri()` in `DockItemProvider.vala`
-  [  ]  | [M4-13] | Gate M4-B  | Tier 2 | `Hal.Apps.{launcher_exists,monitor_launcher}` + `Path.is_absolute()` in `DockItem*` & `AppUsageService`
-  [  ]  | [M4-14] | Gate M4-B  | Tier 2 | Purify `FileDockItem.vala` (`Hal.Apps.{is_launcher_uri,load_launcher}`, `Path.is_absolute()`)
-  [  ]  | [M4-15] | Gate M4-B  | Tier 2 | Purify `DragManager.vala` (`Hal.Apps.resolve_launcher_uri`, `Hal.Runtime.open_uri`, `Path.is_absolute()`)
-  [  ]  | [M4-16] | Gate M4-B  | Tier 2 | Purify `FolderMenuWindow.vala` & `DockWindow.vala` (`Hal.Apps` launcher & `TEXT_EDITOR` role)
-  [  ]  | [M4-17] | Gate M4-B  | Tier 2 | Purify `IconChooserDialog.vala` & `DrawingService.vala` (custom icon override + prefix-only `~/` expand)
+  [ok]  | [M4-06] | Gate M4-B  | Tier 2 | Convert `System.vala` to pure Core facade delegating to `Hal.Apps`, `Hal.Telemetry.Ejector`, `Hal.Runtime`
+  [ok]  | [M4-07] | Gate M4-B  | Tier 2 | Purify `RecentFilesService.vala` (`Hal.Apps.get_recent_documents()`, `load_launcher`, `Path.is_absolute`)
+  [ok]  | [M4-08] | M4-A->M4-B | Tier 3 | Move `/var/lib/{snapd,flatpak}` & `/usr/{local/,}share/glib-2.0/schemas` behind `Hal.Apps` / `Hal.Runtime`
+  [ok]  | [M4-09] | Gate M4-B  | Tier 2 | Purify `ItemFactory.vala` (`DefaultAppRole`, `discover_default_seed_apps`, `resolve_launcher_uri`)
+  [ok]  | [M4-10] | Gate M4-B  | Tier 2 | Purify `ApplicationDockItem.vala` (`Hal.Windows`, `Hal.Apps.{load_launcher,launch_action,launch_command}`)
+  [ok]  | [M4-11] | Gate M4-B  | Tier 2 | Purify `ApplicationDockItemProvider.vala` (`Hal.Windows`, `is_self_launcher`, `strip_launcher_extension`)
+  [ok]  | [M4-12] | M4-A->M4-B | Tier 3 | `Hal.Runtime.canonicalize_path()` + `Hal.Apps.is_launcher_uri()` in `DockItemProvider.vala`
+  [ok]  | [M4-13] | Gate M4-B  | Tier 2 | `Hal.Apps.{launcher_exists,monitor_launcher}` + `Path.is_absolute()` in `DockItem*` & `AppUsageService`
+  [ok]  | [M4-14] | Gate M4-B  | Tier 2 | Purify `FileDockItem.vala` (`Hal.Apps.{is_launcher_uri,load_launcher}`, `Path.is_absolute()`)
+  [ok]  | [M4-15] | Gate M4-B  | Tier 2 | Purify `DragManager.vala` (`Hal.Apps.resolve_launcher_uri`, `Hal.Runtime.open_uri`, `Path.is_absolute()`)
+  [ok]  | [M4-16] | Gate M4-B  | Tier 2 | Purify `FolderMenuWindow.vala` & `DockWindow.vala` (`Hal.Apps` launcher & `TEXT_EDITOR` role)
+  [ok]  | [M4-17] | Gate M4-B  | Tier 2 | Purify `IconChooserDialog.vala` & `DrawingService.vala` (custom icon override + prefix-only `~/` expand)
   [  ]  | [M4-18] | Gate M4-C  | Tier 1 | Enable mandatory pre-compile Dual-Zone HAL Purity Firewall in `BuildBin.sh` (`Zone 1` + `Zone 2`)
   [  ]  | [M4-19] | Gate M4-C  | Tier 2 | Run 65,025-case Identity Regression Matrix + hand off for full 3-compositor `FAT 0.7.2` qualification
   [ok]  | [M4-20] | Gate M4-A  | Tier 3 | `wayplank_hal_platform_early_apps()` lazy pre-`Hal.initialize()` hook for `Paths.initialize()`
   [ok]  | [M4-21] | Gate M4-A  | Tier 3 | Complete `AppDescriptor`, `ProcessSnapshot` (`is_alive`, `exe_realpath`, `child_pids`), `QuicklistAction`, MIME/category APIs
-  [  ]  | [M4-22] | Gate M4-B  | Tier 2 | Extract 170-line `parse_launcher()` & `has_executable_launcher()` + `aumid://`-safe `launch()` in `ApplicationDockItem`
-  [  ]  | [M4-23] | Gate M4-B  | Tier 2 | Purify `DefaultApplicationDockItemProvider:1568` & `WindowManager:163,193` onto `Hal.Apps`
+  [ok]  | [M4-22] | Gate M4-B  | Tier 2 | Extract 170-line `parse_launcher()` & `has_executable_launcher()` + `aumid://`-safe `launch()` in `ApplicationDockItem`
+  [ok]  | [M4-23] | Gate M4-B  | Tier 2 | Purify `DefaultApplicationDockItemProvider:1568` & `WindowManager:163,193` onto `Hal.Apps`
   [  ]  | [M4-24] | M4-A/B/C   | Tier 3 | GVFS mount in `XdgAppSystem`, `Build.DATADIR` schema in `LinuxPlatformRuntime`, `DragManager` & `Matcher` KeyFile purge
   [  ]  | [M4-25] | Gate M4-C  | Tier 1 | Expand case-sensitive `BuildBin.sh` Firewall regex + reword `/proc/<pid>/cmdline` doc comments
-  [  ]  | [M4-26] | M4-A->M4-B | Tier 3 | Native cross-OS icon hooks (`load_native_icon`, `has_native_icon`, `get_file_icon_token`) in `IAppSystem` & `DrawingService`
+  [ok]  | [M4-26] | M4-A->M4-B | Tier 3 | Native cross-OS icon hooks (`load_native_icon`, `has_native_icon`, `get_file_icon_token`) in `IAppSystem` & `DrawingService`
   [  ]  | [M4-27] | M4-A/B/C   | Tier 3 | Ordered `IAppMenuBus` labels, `read_wrapper_script`, `find_pid_by_app_hint`, `MprisDbusService` `pid`, dead-PID eviction
-  [  ]  | [M4-28] | Gate M4-B  | Tier 2 | `ItemFactory.migrate_legacy_plank_items`, `-%d.dockitem` collision suffix, `DockItem.is_valid` `aumid://` safety
-  [  ]  | [M4-29] | Gate M4-B  | Tier 1 | Null-guard `ContentType.from_mime_type`, `Prefs.CustomIcon` parity, `IconChooserDialog` mutex/`resource://`/sentinel
-  [  ]  | [M4-30] | Gate M4-B  | Tier 2 | `DragManager` `x-moz-url` plain-text guard, `.url` check, bounded `raw_bytes`, `.exe`->`.lnk` hook, `open_debug_file`
+  [ok]  | [M4-28] | Gate M4-B  | Tier 2 | `ItemFactory.migrate_legacy_plank_items`, `-%d.dockitem` collision suffix, `DockItem.is_valid` `aumid://` safety
+  [ok]  | [M4-29] | Gate M4-B  | Tier 1 | Null-guard `ContentType.from_mime_type`, `Prefs.CustomIcon` parity, `IconChooserDialog` mutex/`resource://`/sentinel
+  [ok]  | [M4-30] | Gate M4-B  | Tier 2 | `DragManager` `x-moz-url` plain-text guard, `.url` check, bounded `raw_bytes`, `.exe`->`.lnk` hook, `open_debug_file`
   [  ]  | [M4-31] | Gate M4-C  | Tier 2 | `ApplicationIdentity` cross-OS slashes, suffixes, `%VAR%` expand, Win32 runtimes/terminals, `_crx_` AUMIDs
   [  ]  | [M4-32] | M4-A/B/C   | Tier 3 | `LabwcBackend` `caption_hint` (+50 QEMU), URI-keyed discovery/GC, `Main`/`AbstractMain` self-launcher, `Matcher`/`Recent`
-  [  ]  | [M4-33] | M4-A->M4-B | Tier 3 | `copy_launcher_to_directory`, delete 4 `#if HAVE_DBUSMENU` blocks, `launcher_uris_match` & `paths_equal`
-  [  ]  | [M4-34] | M4-A->M4-B | Tier 3 | Harden `launcher_id_stem` (dotfiles, `C:\`->`drive-C`, `<>:"/\|?*`, DOS `CON`/`NUL`/`COM1..9`) + `ItemFactory:730`
-  [  ]  | [M4-35] | Gate M4-B  | Tier 1 | `DrawingService` (`dnd.svg`/`audio-volume`, native icons, decode check), `IconChooserDialog` `add_pattern`, `desktop.ini` hide
+  [ok]  | [M4-33] | M4-A->M4-B | Tier 3 | `copy_launcher_to_directory`, delete 4 `#if HAVE_DBUSMENU` blocks, `launcher_uris_match` & `paths_equal`
+  [ok]  | [M4-34] | M4-A->M4-B | Tier 3 | Harden `launcher_id_stem` (dotfiles, `C:\`->`drive-C`, `<>:"/\|?*`, DOS `CON`/`NUL`/`COM1..9`) + `ItemFactory:730`
+  [ok]  | [M4-35] | Gate M4-B  | Tier 1 | `DrawingService` (`dnd.svg`/`audio-volume`, native icons, decode check), `IconChooserDialog` `add_pattern`, `desktop.ini` hide
   [  ]  | [M4-36] | M4-A/B/C   | Tier 3 | Move `application/x-desktop` DnD atoms behind `Hal.Apps`, UTF-16 BOM & case-insensitive URI schemes, Firewall regex
   [  ]  | [M4-37] | M4-A/B/C   | Tier 3 | `Hal.Apps.is_os_wrapper_binary()`, user Flatpak dir in `XdgAppSystem`, `FolderMenuWindow` `pan-start/end-symbolic` fallback
   [  ]  | [M4-38] | M4-A->M4-C | Tier 3 | `is_launchable`, `discover_installed_apps`, `extract_link_shortcut_url`, `/com/canonical/menu/<hex>` order, `.exe`/`soffice.bin`
@@ -443,62 +443,62 @@ atom literals (while keeping `HelpWindow.vala:111` community-translated UI text
 
 3.0C Mandatory Human Approval Gate (SOP Step 3 — STOP & WAIT)
 -------------------------------------------------------------
-  [  ] [M4B-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate M4-B.
+  [ok] [M4B-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate M4-B.
 
 3.1 Operations & Phases (Sub-Gate M4-B)
 ---------------------------------------
-  [  ] [M4B-01] Core Paths, Utils, System, RecentFiles, AppUsage, WindowManager,
+  [ok] [M4B-01] Core Paths, Utils, System, RecentFiles, AppUsage, WindowManager,
        Main & AbstractMain (`[M4-06..08]`, `[M4-13]`, `[M4-23..24]`, `[M4-27]`,
        `[M4-30]`, `[M4-32]`, `[M4-37]`, `[M4-39]`):
-       [  ] M4B-01.1 Purify `Paths.vala` & `Utils.vala` (`Hal.Apps.get_extra_data_dirs()`,
+       [ok] M4B-01.1 Purify `Paths.vala` & `Utils.vala` (`Hal.Apps.get_extra_data_dirs()`,
             `Hal.Runtime.get_extra_schema_dirs()`, reword firewall comments).
-       [  ] M4B-01.2 Convert `System.vala` into a pure Core facade delegating to
+       [ok] M4B-01.2 Convert `System.vala` into a pure Core facade delegating to
             `Hal.Apps`, `Hal.Telemetry.Ejector`, and `Hal.Runtime` (preserving
             case-insensitive `.url` handling).
-       [  ] M4B-01.3 Purify `RecentFilesService.vala` (`Hal.Apps.get_recent_documents()`,
+       [ok] M4B-01.3 Purify `RecentFilesService.vala` (`Hal.Apps.get_recent_documents()`,
             `Hal.Apps.is_os_wrapper_binary()`, `Hal.Runtime.parse_command_argv()`,
             `Path.is_absolute()`) and `AppUsageService.vala` (`Path.is_absolute()`).
-       [  ] M4B-01.4 Purify `WindowManager.vala` (`Hal.Apps.{resolve_launcher_uri,
+       [ok] M4B-01.4 Purify `WindowManager.vala` (`Hal.Apps.{resolve_launcher_uri,
             is_launcher_uri,launcher_id_stem}` + `cleanup_if_active()`),
             `MprisDockItem.vala` (GTK main-thread `pid`/bus identity lookup),
             `src/Main.vala` (`app_launcher : ""`), and `AbstractMain.vala`
             (`Hal.Apps.is_self_launcher` + `WindowManager`/`ApplicationDiscovery`
             teardown before `Hal.cleanup()`).
 
-  [  ] [M4B-02] Core Factories, DockItems & Providers (`[M4-09..14]`, `[M4-22..23]`,
+  [ok] [M4B-02] Core Factories, DockItems & Providers (`[M4-09..14]`, `[M4-22..23]`,
        `[M4-28..29]`, `[M4-33..34]`, `[M4-39]`):
-       [  ] M4B-02.1 Purify `ItemFactory.vala` (`DefaultAppRole`, `discover_default_seed_apps`,
+       [ok] M4B-02.1 Purify `ItemFactory.vala` (`DefaultAppRole`, `discover_default_seed_apps`,
             `populate_category_folder`, `migrate_legacy_plank_items`, `launcher_id_stem`,
             `-%d.dockitem` collision suffixing, `launcher_exists`).
-       [  ] M4B-02.2 Purify `ApplicationDockItem.vala`: delete all 4 dead
+       [ok] M4B-02.2 Purify `ApplicationDockItem.vala`: delete all 4 dead
             `#if HAVE_DBUSMENU` blocks, replace 170-line `parse_launcher()` &
             `has_executable_launcher()` with `Hal.Apps.load_launcher()`, route
             window/launch/drop actions through `Hal.Windows` & `Hal.Apps`,
             null-guard `ContentType.from_mime_type`, honor `Prefs.CustomIcon`, and
             match `http(s)/ftp` schemes case-insensitively.
-       [  ] M4B-02.3 Purify `DockItem.vala`, `DockItemPreferences.vala`,
+       [ok] M4B-02.3 Purify `DockItem.vala`, `DockItemPreferences.vala`,
             `DockItemProvider.vala`, `ApplicationDockItemProvider.vala`, and
             `DefaultApplicationDockItemProvider.vala` (`launcher_exists`,
             `monitor_launcher`, `canonicalize_path`, `paths_equal`,
             `launcher_uris_match`, `is_self_launcher`, `strip_launcher_extension`,
             `resolve_launcher_uri`).
-       [  ] M4B-02.4 Purify `FileDockItem.vala` (`is_launcher_uri`, `load_launcher`,
+       [ok] M4B-02.4 Purify `FileDockItem.vala` (`is_launcher_uri`, `load_launcher`,
             `copy_launcher_to_directory`, `Prefs.CustomIcon`, 2x2 folder stack
             preservation, `.directory`/`desktop.ini` hiding, `enumerator.close`,
             canonicalized `visited_set`, null-safe `OwnedFile`/`get_parent()`).
 
-  [  ] [M4B-03] Core DragManager, DrawingService & Widgets (`[M4-15..17]`,
+  [ok] [M4B-03] Core DragManager, DrawingService & Widgets (`[M4-15..17]`,
        `[M4-24]`, `[M4-26]`, `[M4-29..30]`, `[M4-35..37]`, `[M4-39]`):
-       [  ] M4B-03.1 Purify `DragManager.vala` (`Hal.Apps.get_extra_drop_target_atoms()`,
+       [ok] M4B-03.1 Purify `DragManager.vala` (`Hal.Apps.get_extra_drop_target_atoms()`,
             `decode_native_drop_selection()`, `resolve_launcher_uri`, `is_launcher_uri`,
             UTF-16LE/BE & UTF-8 BOM stripping, case-insensitive URI schemes,
             Firefox `text/x-moz-url` plain-text guard, bounded `raw_bytes`,
             null-safe `get_window()`).
-       [  ] M4B-03.2 Purify `DrawingService.vala` (prefix-only `~/` home expansion
+       [ok] M4B-03.2 Purify `DrawingService.vala` (prefix-only `~/` home expansion
             preserving Windows `PROGRA~1`, `Hal.Apps.{load_native_icon,has_native_icon,
             get_file_icon_token}`, `"audio-volume"`/`docklets/dnd.svg` fallback,
             decodability check in `has_icon()`).
-       [  ] M4B-03.3 Purify `IconChooserDialog.vala` (`discover_launcher_dirs`,
+       [ok] M4B-03.3 Purify `IconChooserDialog.vala` (`discover_launcher_dirs`,
             `apply/reset_custom_launcher_icon`, `DrawingService` mutex & `load_icon`
             preview, `add_pattern`), `FolderMenuWindow.vala` (`Hal.Apps` quicklist/launch/drop
             atoms, `desktop.ini`/`.directory` hiding, `pan-start/end-symbolic`
@@ -507,11 +507,11 @@ atom literals (while keeping `HelpWindow.vala:111` community-translated UI text
 
 3.2 Sub-Gate M4-B Build, Leak Check & Audit Checkpoint
 ------------------------------------------------------
-  [  ] [M4B-LEAK-CHECK] Verify only the 3 Identity Engine files (`ApplicationIdentity`,
+  [ok] [M4B-LEAK-CHECK] Verify only the 3 Identity Engine files (`ApplicationIdentity`,
        `ApplicationDiscovery`, `Matcher`) remain in the Zone 1 Firewall scan (`16/19`
        Move-4 files = `0` leaks).
-  [  ] [M4B-BUILD] `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
-  [  ] [M4B-AUDIT] Maintainer smoke check, `.deb` archive & local commit checkpoint.
+  [ok] [M4B-BUILD] `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
+  [ok] [M4B-AUDIT] Maintainer 3-compositor live smoke check (`KWin` + `Mutter` + `Labwc` `3/3 OK`, including Mutter `v072_bridge_1` `move_frame` popup positioning, direct `org.gnome.Shell.Extensions` D-Bus activation avoiding 25s portal timeout, and uniform `44px` tooltip clearance), `.deb` archive & local commit checkpoint (`tag: backup/0.7.2-move-4b`).
 
 ================================================================================
 4. UNIT PROCEDURE M4-C (SUB-GATE M4-C): IDENTITY ENGINE PURIFICATION & FIREWALL

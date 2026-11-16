@@ -121,14 +121,14 @@ namespace Plank
 		}
 
 		/**
-		 * Stable usage key of a launcher: the basename of its .desktop file, so scores
+		 * Stable usage key of a launcher: the basename or stem of its launcher URI, so scores
 		 * survive a launcher being moved or re-pinned.
 		 */
 		public static string key_for (string launcher)
 		{
 			if (launcher.has_prefix ("file://"))
 				return File.new_for_uri (launcher).get_basename () ?? launcher;
-			if (launcher.has_prefix ("/"))
+			if (Path.is_absolute (launcher))
 				return Path.get_basename (launcher);
 			return launcher;
 		}

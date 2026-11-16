@@ -507,14 +507,11 @@ namespace Plank
 				return;
 			}
 			
-			try {
-				var launcher_file = File.new_for_uri (launcher);
-				launcher_exists = launcher_file.query_exists ();
-				launcher_file_monitor = launcher_file.monitor_file (FileMonitorFlags.WATCH_MOVES);
+			var launcher_file = File.new_for_uri (launcher);
+			launcher_exists = Hal.Apps.launcher_exists (launcher) || launcher_file.query_exists ();
+			launcher_file_monitor = Hal.Apps.monitor_launcher (launcher_file);
+			if (launcher_file_monitor != null)
 				launcher_file_monitor.changed.connect (launcher_file_changed);
-			} catch {
-				warning ("Unable to watch the launcher file '%s'", launcher);
-			}
 		}
 		
 		void launcher_file_monitor_stop ()

@@ -39,13 +39,10 @@ namespace Plank
 	{
 		if (custom_schema_source == null) {
 			var default_source = GLib.SettingsSchemaSource.get_default ();
-			string sys_data_dir = Hal.Runtime.get_system_data_dir ();
-			string[] candidate_dirs = {
-				Path.build_filename (Environment.get_current_dir (), "data", "glib-2.0", "schemas"),
-				Path.build_filename (sys_data_dir, "glib-2.0", "schemas"),
-				Path.build_filename ("/usr", "local", "share", "glib-2.0", "schemas"),
-				Path.build_filename ("/usr", "share", "glib-2.0", "schemas")
-			};
+			var candidate_dirs = new Gee.ArrayList<string> ();
+			candidate_dirs.add (Path.build_filename (Environment.get_current_dir (), "data", "glib-2.0", "schemas"));
+			foreach (unowned string extra_dir in Hal.Runtime.get_extra_schema_dirs ())
+				candidate_dirs.add (extra_dir);
 
 			GLib.SettingsSchemaSource? legacy_fallback = null;
 			foreach (var dir in candidate_dirs) {

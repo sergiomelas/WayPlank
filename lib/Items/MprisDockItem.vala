@@ -270,7 +270,8 @@ namespace Plank
 
 			var live_ids = new Gee.HashSet<string> ();
 			foreach (var p in players) {
-				p.identity = ApplicationIdentity.get_identity_for_pid_or_bus (p.owner_pid, p.player_id, p.identity);
+				string seed_identity = p.identity.strip () != "" ? p.identity : p.fallback_app_name;
+				p.identity = ApplicationIdentity.get_identity_for_pid_or_bus (p.owner_pid, "", seed_identity);
 				live_ids.add (p.player_id);
 			}
 

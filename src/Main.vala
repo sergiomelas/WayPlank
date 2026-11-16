@@ -235,7 +235,7 @@ namespace Plank
         print ("  Drop file on app icon         Open the dropped file directly with that application\n");
         print ("  Drop web URL on browser       Drop http:// or https:// URL onto browser to open in new tab\n");
         print ("  Hover over icon during DND    Spring-loaded hover (500ms) raises window to foreground\n");
-        print ("  Drop .desktop / folder        Pin a new application or folder drawer to the dock\n\n");
+        print ("  Drop app launcher / folder    Pin a new application or folder drawer to the dock\n\n");
         print ("DOCK CONTROLS & THEMES:\n");
         print ("  Right Click -> Change Icon    Choose system icon or custom image for launcher or folder\n");
         print ("  Right Click -> Shortcuts      Open interactive Shortcuts & Gestures window directly\n");

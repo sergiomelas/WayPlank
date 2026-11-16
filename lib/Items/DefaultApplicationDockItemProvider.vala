@@ -1580,26 +1580,12 @@ namespace Plank
 				return;
 			}
 
-			// Find the corresponding .desktop file in the system to create the icon on the fly
-			var desktop_file = desktop_file_for_application_id (app_id);
-			if (desktop_file != null) {
-				var new_item = new TransientDockItem.with_launcher (desktop_file.get_uri ());
+			// Resolve the corresponding launcher URI via HAL to create the transient icon on the fly
+			string resolved_uri = Hal.Apps.resolve_launcher_uri (app_id);
+			if (resolved_uri != "") {
+				var new_item = new TransientDockItem.with_launcher (resolved_uri);
 				add (new_item);
 			}
-		}
-
-		private File? desktop_file_for_application_id (string app_id)
-		{
-			foreach (var folder in Paths.DataDirFolders) {
-				var applications_folder = folder.get_child ("applications");
-				if (!applications_folder.query_exists ())
-					continue;
-
-				var desktop_file = applications_folder.get_child (app_id);
-				if (desktop_file.query_exists ())
-					return desktop_file;
-			}
-			return null;
 		}
 
 		void handle_setting_changed ()

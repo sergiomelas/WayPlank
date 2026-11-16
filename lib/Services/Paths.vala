@@ -62,7 +62,7 @@ namespace Plank
 		public static File CacheHomeFolder { get; protected set; }
 		
 		/**
-		 * /usr/local/share/:/usr/share/
+		 * System and platform application data folders
 		 */
 		public static Gee.ArrayList<File> DataDirFolders { get; protected set; }
 		
@@ -127,16 +127,14 @@ namespace Plank
 					dirs.add (File.new_for_path (path));
 				}
 			}
-			string[] extra_xdg_dirs = {
-				"/var/lib/snapd/desktop",
-				"/var/lib/flatpak/exports/share",
-				Path.build_filename (Environment.get_user_data_dir (), "flatpak", "exports", "share")
-			};
-			foreach (unowned string extra in extra_xdg_dirs) {
-				var clean = Path.build_filename (extra);
-				if (!seen_dir_paths.contains (clean) && FileUtils.test (extra, FileTest.IS_DIR)) {
+			foreach (var extra_file in Hal.Apps.get_extra_data_dirs ()) {
+				string? extra_path = extra_file.get_path ();
+				if (extra_path == null)
+					continue;
+				var clean = Path.build_filename (extra_path);
+				if (!seen_dir_paths.contains (clean) && FileUtils.test (extra_path, FileTest.IS_DIR)) {
 					seen_dir_paths.add (clean);
-					dirs.add (File.new_for_path (extra));
+					dirs.add (extra_file);
 				}
 			}
 			DataDirFolders = dirs;

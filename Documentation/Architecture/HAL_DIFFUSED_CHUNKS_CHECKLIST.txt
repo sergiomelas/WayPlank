@@ -91,8 +91,8 @@ COMPLETE REPOSITORY ACCOUNTING (Baseline 112 Files -> 140/140 Converged Files):
      - CHECK: 87 + 13 + 43 = 143 files (`Pass 4 Delta = 0` new leaks across all 6 shards!)
   C. Total Discrete Translator & Convergence Items:
      - Moves 1–3 + Remediation (`Sections 1–3`)          : 100% `[x]` / `33/33 [ok]`
-     - Move 4 (`Section 4`, `[M4-01]` .. `[M4-40]`)      :  40 items (`Sub-Gate M4-A`
-       `[M4-01, 02, 20, 21]` `3/3` live-verified at `backup/0.7.2-move-4a`; governed by
+     - Move 4 (`Section 4`, `[M4-01]` .. `[M4-40]`)      :  40 items (`Sub-Gates M4-A & M4-B`
+       `24/40` items `3/3` live-verified at `backup/0.7.2-move-4b`; `Sub-Gate M4-C` next, governed by
        `HAL_DIFFUSED_CHUNKS_CHECKLIST - M4 - Implementation.txt`)
 
 ALL SUBTLE & INDIRECT CROSS-OS TRAPS CAUGHT BY FULL ITERATIVE RESCAN:
@@ -949,12 +949,12 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             TRANSLATOR:
               - Northbound: `Hal.Windows`, `Hal.Apps.scan_user_processes()`,
                 `Hal.Runtime.parse_command_argv()`, and `Path.is_absolute()`.
-[ ] [M4-06] `lib/Services/System.vala` (L38-459):
+[x] [M4-06] `lib/Services/System.vala` (L38-459):
             Convert `System` into a 100% pure Core facade delegating URI opening,
             launcher execution, mount lookup, and utility opening to `Hal.Apps`,
             `Hal.Telemetry.Ejector`, and `Hal.Runtime` (zero `DesktopAppInfo`,
             zero `VolumeMonitor`, zero `xdg-open`, zero `XdgSessionDesktop`).
-[ ] [M4-07] `lib/Services/RecentFilesService.vala` (L72, L95-126, L161-209, L293-298):
+[x] [M4-07] `lib/Services/RecentFilesService.vala` (L72, L95-126, L161-209, L293-298):
             Replace `DesktopAppInfo`, `Gtk.RecentManager`, `Shell.parse_argv`, and
             `has_prefix("/")`.
             TRANSLATOR:
@@ -962,20 +962,20 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
                 `Hal.Apps.launch_app()`, `Hal.Runtime.parse_command_argv()`, `Path.is_absolute()`.
               - Southbound: `Gtk.RecentManager` (`recently-used.xbel`) on Freedesktop;
                 `%APPDATA%\Microsoft\Windows\Recent\*.lnk` (`IShellLinkW`) on Windows.
-[ ] [M4-08] `lib/Services/Paths.vala` (L131-133) & `lib/Services/Utils.vala` (L44-46):
+[x] [M4-08] `lib/Services/Paths.vala` (L131-133) & `lib/Services/Utils.vala` (L44-46):
             Move `/var/lib/snapd/desktop`, `/var/lib/flatpak/exports/share`,
             `Build.DATADIR + "/glib-2.0/schemas"`, and `/usr/{local/,}share/glib-2.0/schemas`.
             TRANSLATOR:
               - Northbound: `Hal.Apps.get_extra_data_dirs()` &
                 `Hal.Runtime.get_extra_schema_dirs()`.
-[ ] [M4-09] `lib/Factories/ItemFactory.vala` (L30-82, L162, L328-520, L707-722):
+[x] [M4-09] `lib/Factories/ItemFactory.vala` (L30-82, L162, L328-520, L707-722):
             Move Linux `.desktop` candidate ID tables, `DesktopAppInfo`, `AppInfo.*`,
             and L713 `has_prefix("/")`.
             TRANSLATOR:
               - Northbound: `Hal.Apps.get_default_app_for_role(FILE_MANAGER / BROWSER /
                 TERMINAL / TEXT_EDITOR)`, `Hal.Apps.discover_default_seed_apps()`,
                 `Hal.Apps.resolve_launcher_uri()`, and `Path.is_absolute()`.
-[ ] [M4-10] `lib/Items/ApplicationDockItem.vala` (L100-143, L258-385, L483, L518,
+[x] [M4-10] `lib/Items/ApplicationDockItem.vala` (L100-143, L258-385, L483, L518,
             L559, L580, L646, L725, L903):
             Replace `WindowControl.*`, `DesktopAppInfo`, `AppInfo.create_from_commandline`,
             and L559/580 `has_prefix("/")`.
@@ -983,18 +983,18 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
               - Northbound: `Hal.Windows.perform_window_action(...)`,
                 `Hal.Apps.load_launcher()`, `Hal.Apps.launch_action()`,
                 `Hal.Apps.launch_command()`, and `Path.is_absolute()`.
-[ ] [M4-11] `lib/Items/ApplicationDockItemProvider.vala` (L78, L202-242):
+[x] [M4-11] `lib/Items/ApplicationDockItemProvider.vala` (L78, L202-242):
             Replace `WindowControl.get_windows()`, `Posix.getpid()`, and hardcoded
             `"wayplank.desktop"` / `".desktop"` checks.
             TRANSLATOR:
               - Northbound: `Hal.Windows.get_windows()`, `Hal.Runtime.get_current_pid()`,
                 `Hal.Apps.is_self_launcher()`, `Hal.Apps.strip_launcher_extension()`.
-[ ] [M4-12] `lib/Items/DockItemProvider.vala` (L49-50, L57-62):
+[x] [M4-12] `lib/Items/DockItemProvider.vala` (L49-50, L57-62):
             Replace `Posix.realpath`, `.desktop` suffix check, and `has_prefix("/")`.
             TRANSLATOR:
               - Northbound: `Hal.Runtime.canonicalize_path()`,
                 `Hal.Apps.is_launcher_uri()`, and `Path.is_absolute()`.
-[ ] [M4-13] `lib/Items/DockItem.vala` (L508), `lib/Items/DockItemPreferences.vala` (L83),
+[x] [M4-13] `lib/Items/DockItem.vala` (L508), `lib/Items/DockItemPreferences.vala` (L83),
             & `lib/Services/AppUsageService.vala` (L131):
             Purify launcher URI existence/monitoring and replace Unix `has_prefix("/")`
             with `Path.is_absolute()`.
@@ -1002,25 +1002,25 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
               - Northbound: `Hal.Apps.launcher_exists(uri)` / `monitor_launcher(uri)`
                 (supports both `file://` `.desktop`/`.lnk` and Windows `aumid://` Store
                 apps!) + `Path.is_absolute()`.
-[ ] [M4-14] `lib/Items/FileDockItem.vala` (L150, L265, L277, L452, L563-572, L592, L769):
+[x] [M4-14] `lib/Items/FileDockItem.vala` (L150, L265, L277, L452, L563-572, L592, L769):
             Replace `DesktopAppInfo`, `.desktop` checks, and `has_prefix("/")`.
             TRANSLATOR:
               - Northbound: `Hal.Apps.is_launcher_uri()`, `Hal.Apps.load_launcher()`,
                 and `Path.is_absolute()`.
-[ ] [M4-15] `lib/DragManager.vala` (L378-439, L707):
+[x] [M4-15] `lib/DragManager.vala` (L378-439, L707):
             Replace `DesktopAppInfo`, `.desktop` checks, `AppInfo.launch_default_for_uri`,
             and `has_prefix("/")`.
             TRANSLATOR:
               - Northbound: `Hal.Apps.resolve_launcher_uri()`, `Hal.Runtime.open_uri()`,
                 and `Path.is_absolute()`.
-[ ] [M4-16] `lib/Widgets/FolderMenuWindow.vala` (L678, L800, L1013, L1023) &
+[x] [M4-16] `lib/Widgets/FolderMenuWindow.vala` (L678, L800, L1013, L1023) &
             `lib/Widgets/DockWindow.vala` (L1351):
             Replace `DesktopAppInfo`, `AppInfo.create_from_commandline`, and
             `AppInfo.get_default_for_type("text/plain")`.
             TRANSLATOR:
               - Northbound: `Hal.Apps.is_launcher_uri()`, `Hal.Apps.load_launcher()`,
                 `Hal.Apps.launch_command()`, `Hal.Apps.get_default_app_for_role(TEXT_EDITOR)`.
-[ ] [M4-17] `lib/Widgets/IconChooserDialog.vala` (L231, L429-573) &
+[x] [M4-17] `lib/Widgets/IconChooserDialog.vala` (L231, L429-573) &
             `lib/Drawing/DrawingService.vala` (L81, L242-245):
             Replace hardcoded `/var/lib/flatpak/...`, `/var/lib/snapd/...`, `/usr/...`
             with `Hal.Apps.discover_launcher_dirs()`, extract the 145-line `.desktop`
@@ -1058,13 +1058,13 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
               `.ext` `ContentType` drop check in `ApplicationDockItem.vala:466-601`),
               `is_synthetic_launcher` / `delete_synthetic_launcher`, and
               `apply_custom_launcher_icon` / `reset_custom_launcher_icon`.
-[ ] [M4-22] `lib/Items/ApplicationDockItem.vala` (L30-40, L238, L299-316, L628-642, L729-900):
+[x] [M4-22] `lib/Items/ApplicationDockItem.vala` (L30-40, L238, L299-316, L628-642, L729-900):
             Extract `has_executable_launcher ()` `KeyFile` check (L299-316), the entire
             170-line `parse_launcher ()` `[Desktop Entry]` / `[Desktop Action %s]` /
             `[%s Shortcut Group]` + `GLib.dgettext` `KeyFile` parser (L729-900), and
             `File.new_for_uri` assumptions for `aumid://` in `launch ()` (L238, L628-642)
             into `Hal.Apps.load_launcher ()` / `Hal.Apps.launch_app ()`.
-[ ] [M4-23] `lib/Items/DefaultApplicationDockItemProvider.vala` (L1568-1588) &
+[x] [M4-23] `lib/Items/DefaultApplicationDockItemProvider.vala` (L1568-1588) &
             `lib/Services/WindowManager.vala` (L163-169, L193):
             Replace hardcoded `Paths.DataDirFolders -> "applications" -> app_id` in
             `desktop_file_for_application_id ()` with `Hal.Apps.resolve_launcher_uri (app_id)`,
@@ -1086,7 +1086,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             `XDG_CURRENT_DESKTOP|/var/lib/(snapd|flatpak)|/opt/google|/usr/(local/)?share|/tmp/\.mount_`.
             (Keep `grep -rnE` strictly case-sensitive — NEVER `-i` — so `Cairo.SurfaceType.WIN32`
             in `DockRenderer.vala:1925,1930` does not false-positive against `Win32`.)
-[ ] [M4-26] `hal/Interfaces/IAppSystem.vala` & `lib/Drawing/DrawingService.vala` (L63-140)
+[x] [M4-26] `hal/Interfaces/IAppSystem.vala` & `lib/Drawing/DrawingService.vala` (L63-140)
             — Native Cross-OS Icon Hooks:
             Add `load_native_icon (string icon_token, int size)`,
             `has_native_icon (string icon_token)`, and `get_file_icon_token (GLib.File file)`
@@ -1108,13 +1108,13 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             3) Pass `uint pid` on `MediaPlayerSnapshot` (`DbusBroker.resolve_sender_pid`) and
                move `ApplicationIdentity.get_identity_for_pid_or_bus (...)` onto the GTK main
                thread inside `MprisDockItem.apply_players_snapshot ()`.
-[ ] [M4-28] `lib/Factories/ItemFactory.vala` (L588-590, L746-760) &
+[x] [M4-28] `lib/Factories/ItemFactory.vala` (L588-590, L746-760) &
             `lib/Items/DockItem.vala` (L500-515, L752-755):
             Include `migrate_legacy_plank_items ()` (`ItemFactory.vala:588-590`), `.dockitem`
             filename collision suffixing (`-%d.dockitem` at `L746-760`), and `DockItem.is_valid ()`
             (`L752-755`) via `Hal.Apps.launcher_exists ()` so pinned `aumid://` `.dockitem`
             files are never auto-deleted on startup.
-[ ] [M4-29] `lib/Items/ApplicationDockItem.vala` (L694-741, L807-808),
+[x] [M4-29] `lib/Items/ApplicationDockItem.vala` (L694-741, L807-808),
             `lib/Items/FileDockItem.vala` (L169-179, L230-239), &
             `lib/Widgets/IconChooserDialog.vala` (L195-235, L454-456):
             Null-guard `ContentType.from_mime_type (mime)` at `ApplicationDockItem.vala:807-808`
@@ -1124,7 +1124,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             icon-theme mutex on `IconChooserDialog` `"icon-loader"` thread (L195-215), support
             `resource://` in preview (L231), and record `X-WayPlank-Original-Icon=""` sentinel
             for synthetic `wayplank-app-*` launchers (L454-456).
-[ ] [M4-30] `lib/DragManager.vala` (L389-426, L468-470), `lib/Services/System.vala` (L323),
+[x] [M4-30] `lib/DragManager.vala` (L389-426, L468-470), `lib/Services/System.vala` (L323),
             `lib/Widgets/FolderMenuWindow.vala` (L659-660, L781, L976-1004), &
             `lib/Widgets/DockWindow.vala` (L1235-1245):
             Drop relative-CWD `File.new_for_commandline_arg` on unschemed plain text in
@@ -1169,7 +1169,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             `extract_link_shortcut_url` / `load_keyfile_safe` out of `System.vala` into
             `XdgAppSystem`; and reword firewall doc comments in `Paths.vala:65` &
             `RecentFilesService.vala:24`.
-[ ] [M4-33] `lib/Items/FileDockItem.vala` (L370-408, L559-595),
+[x] [M4-33] `lib/Items/FileDockItem.vala` (L370-408, L559-595),
             `lib/Items/ApplicationDockItem.vala` (L47-52, L130-132, L262, L403-415, L976-978),
             `lib/Items/DockItemProvider.vala` (L39-69),
             `lib/Items/ApplicationDockItemProvider.vala` (L236-279, L304-313), &
@@ -1184,13 +1184,13 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             `DockItemProvider.uri_matches` (avoiding `.lnk` basename collisions on Windows)
             and normalized URI matching in `ApplicationDockItemProvider` &
             `DefaultApplicationDockItemProvider`.
-[ ] [M4-34] `lib/Factories/ItemFactory.vala` (L730, L744-747):
+[x] [M4-34] `lib/Factories/ItemFactory.vala` (L730, L744-747):
             Include `Hal.Apps.launcher_exists (target_uri)` at `ItemFactory.vala:730`, and
             harden `Hal.Apps.launcher_id_stem` for leading dotfiles (`.bashrc`), drive roots
             (`C:\` -> `drive-C`, avoiding NTFS `C:.dockitem` ADS), `<>:"/\|?*`, trailing
             dots/spaces, and Win32 DOS reserved names (`CON`, `PRN`, `AUX`, `NUL`,
             `COM1..9`, `LPT1..9`).
-[ ] [M4-35] `lib/Drawing/DrawingService.vala` (L66-95, L121-136, L177-203, L315-347, L356-514),
+[x] [M4-35] `lib/Drawing/DrawingService.vala` (L66-95, L121-136, L177-203, L315-347, L356-514),
             `lib/Widgets/IconChooserDialog.vala` (L224-246, L346-355),
             `lib/Widgets/FolderMenuWindow.vala` (L595-600, L633, L778-780),
             `lib/Widgets/SessionWindow.vala`, & `lib/Widgets/FirstRunWindow.vala`:

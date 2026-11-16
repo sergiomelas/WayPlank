@@ -87,8 +87,9 @@ namespace Plank
 					continue;
 
 				unowned string launcher = appitem.Launcher;
+				string stripped_id = Hal.Apps.strip_launcher_extension (app_id).down ();
 				// Check for both exact match and binary name matching within the launcher path
-				if (launcher != "" && (launcher.contains (app_id) || launcher.down ().contains (app_id.replace (".desktop", "").down ())))
+				if (launcher != "" && (launcher.contains (app_id) || (stripped_id != "" && launcher.down ().contains (stripped_id))))
 					return appitem;
 			}
 
@@ -230,7 +231,7 @@ namespace Plank
 				if (app_id == "wayplank" || app_id == "plank" ||
 				    res_class == "wayplank" || res_class == "plank" ||
 				    res_name == "wayplank" || res_name == "plank" ||
-				    desk_name == "wayplank.desktop" || desk_name == "plank.desktop" || desk_name == "wayplank" || desk_name == "plank" ||
+				    Hal.Apps.is_self_launcher (desk_name) || desk_name == "wayplank" || desk_name == "plank" ||
 				    caption == "wayplank" || caption == "wayplank-hover" || caption == "wayplank-poof" ||
 				    caption == "wayplank-folder-menu" || caption == "wayplank-hover-cards")
 					continue;
@@ -251,8 +252,7 @@ namespace Plank
 					continue;
 
 				// Never add Wayplank or Plank as a transient dock item
-				var base_name = desktop_file.get_basename ().down ();
-				if (base_name == "wayplank.desktop" || base_name == "plank.desktop")
+				if (Hal.Apps.is_self_launcher (desktop_file.get_uri ()))
 					continue;
 
 				var uri = desktop_file.get_uri ();

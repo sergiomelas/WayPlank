@@ -877,8 +877,13 @@ namespace Plank
 
 			string? pa = uri_or_path_to_local_path (uri_a);
 			string? pb = uri_or_path_to_local_path (uri_b);
-			if (pa != null && pb != null)
-				return Hal.Runtime.paths_equal (pa, pb);
+			if (pa != null && pb != null) {
+				if (Hal.Runtime.paths_equal (pa, pb))
+					return true;
+				if (pa.down ().has_suffix (".desktop") && pb.down ().has_suffix (".desktop")
+					&& Path.get_basename (pa) == Path.get_basename (pb))
+					return true;
+			}
 
 			return false;
 		}
@@ -1402,6 +1407,8 @@ namespace Plank
 					break;
 				string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
 				var app = new DesktopAppInfo (desktop_id);
+				if (app == null && !id.has_suffix (".desktop"))
+					app = new DesktopAppInfo (desktop_id + ".desktop");
 				if (app != null && app.should_show ()) {
 					unowned string? fn = app.get_filename ();
 					if (fn != null && !added_files.contains (fn)) {

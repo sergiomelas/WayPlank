@@ -96,6 +96,10 @@ namespace Plank
 		 */
 		public static string? get_icon_from_file (File file)
 		{
+			var hal_tok = Hal.Apps.get_file_icon_token (file);
+			if (hal_tok != null && hal_tok != "" && has_icon (hal_tok))
+				return hal_tok;
+
 			try {
 				var info = file.query_info (FileAttribute.STANDARD_ICON + ","
 					+ FILE_ATTRIBUTE_CUSTOM_ICON_NAME + "," + FILE_ATTRIBUTE_CUSTOM_ICON + ","
@@ -112,7 +116,7 @@ namespace Plank
 				unowned string custom_icon = info.get_attribute_string (FILE_ATTRIBUTE_CUSTOM_ICON);
 				if (custom_icon != null && custom_icon != "") {
 					string? path = null;
-					if (custom_icon.has_prefix ("file://") || custom_icon.has_prefix ("/"))
+					if (custom_icon.ascii_down ().has_prefix ("file://") || Path.is_absolute (custom_icon))
 						path = custom_icon;
 					else
 						path = file.get_child (custom_icon).get_path ();
@@ -152,7 +156,19 @@ namespace Plank
 				if (name == null || name == "")
 					continue;
 
-				if (try_get_icon_file (name) != null)
+				var icon_file = try_get_icon_file (name);
+				if (icon_file != null) {
+					var f_path = icon_file.get_path ();
+					if (f_path != null) {
+						int w, h;
+						if (Gdk.Pixbuf.get_file_info (f_path, out w, out h) != null)
+							return true;
+					} else {
+						return true;
+					}
+				}
+
+				if (Hal.Apps.has_native_icon (name))
 					return true;
 
 				icon_theme_mutex.lock ();
@@ -237,6 +253,10 @@ namespace Plank
 				pbuf = load_pixbuf (name, int.max (width, height));
 				if (pbuf != null)
 					break;
+
+				pbuf = Hal.Apps.load_native_icon (name, int.max (width, height));
+				if (pbuf != null)
+					break;
 				
 				if (name != DEFAULT_ICON)
 					message ("Could not find icon '%s'", name);
@@ -291,20 +311,19 @@ namespace Plank
 		public static File? try_get_icon_file (string name)
 		{
 			File? file = null;
-			var name_down = name.down ();			
-			
-			if (name_down.has_prefix ("resource://"))
+			var name_down = name.down ();
+
+			if (name_down.has_prefix ("resource://") || name_down.has_prefix ("file://")) {
 				file = File.new_for_uri (name);
-			else if (name_down.has_prefix ("file://"))
-				file = File.new_for_uri (name);
-			else if (name.has_prefix ("~/"))
-				file = File.new_for_path (name.replace ("~", Environment.get_home_dir ()));
-			else if (Path.is_absolute (name))
-				file = File.new_for_path (name);
-			
+			} else {
+				string expanded = Hal.Runtime.expand_path_variables (name);
+				if (Path.is_absolute (expanded))
+					file = File.new_for_path (expanded);
+			}
+
 			if (file != null && file.query_exists ())
 				return file;
-			
+
 			return null;
 		}
 		
@@ -395,6 +414,18 @@ namespace Plank
 				surface = load_surface (name, int.max (width, height) / scale, scale);
 				if (surface != null)
 					break;
+
+				var native_pbuf = Hal.Apps.load_native_icon (name, int.max (width, height));
+				if (native_pbuf != null) {
+					var scaled = (width != -1 && height != -1 && (width != native_pbuf.width || height != native_pbuf.height))
+						? ar_scale (native_pbuf, width, height) : native_pbuf;
+					surface = new Cairo.ImageSurface (Cairo.Format.ARGB32, width, height);
+					var cr = new Cairo.Context (surface);
+					Gdk.cairo_set_source_pixbuf (cr, scaled, (width - scaled.width) / 2, (height - scaled.height) / 2);
+					cr.paint ();
+					surface.set_device_scale (scale, scale);
+					break;
+				}
 				
 				if (name != DEFAULT_ICON)
 					message ("Could not find icon '%s'", name);
@@ -483,6 +514,7 @@ namespace Plank
 				case "audio-volume-high-danger":
 				case "xfce4-mixer-volume-very-high":
 					return Plank.G_RESOURCE_PATH + "/docklets/volume-overamplified.svg";
+				case "audio-volume":
 				case "audio-volume-high":
 				case "stock_volume-max":
 					return Plank.G_RESOURCE_PATH + "/docklets/volume-high.svg";

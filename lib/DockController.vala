@@ -242,9 +242,10 @@ namespace Plank
 			// Update the calculated dimensions and map the window on Wayland
 			position_manager.update (renderer.theme);
 			window.update_size_and_position ();
-			window.show_all ();
-			Hal.Shell.present_dock_after_show (window);
-			window.queue_draw ();
+			if (window.get_visible ()) {
+				Hal.Shell.present_dock_after_show (window);
+				window.queue_draw ();
+			}
 
 			// Geometry and theme are known now: let the Smart Pinned Accordion decide
 			if (app_provider != null)
@@ -904,9 +905,9 @@ namespace Plank
 			if (renderer != null)
 				renderer.reset_buffers ();
 			hide_manager.wake_up ();
-			window.show_all ();
-			Hal.Shell.present_dock_after_show (window);
-			if (renderer != null)
+			if (window.get_visible ())
+				Hal.Shell.present_dock_after_show (window);
+			if (renderer != null && window.get_visible ())
 				renderer.animated_draw ();
 		}
 

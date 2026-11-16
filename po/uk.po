@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 18:56+0100\n"
-"PO-Revision-Date: 2026-11-15 18:56+0100\n"
+"POT-Creation-Date: 2026-11-16 01:05+0100\n"
+"PO-Revision-Date: 2026-11-16 01:05+0100\n"
 "Last-Translator: Michailo Buchko <mixabuchko@gmail.com>\n"
 "Language-Team: Ukrainian <uk@li.org>\n"
 "Language: uk\n"
@@ -41,75 +41,75 @@ msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank розроблено виключно для сеансів Wayland."
 
 #: lib/DockPreferences.vala:391 lib/DockPreferences.vala:401
-#: lib/Factories/AbstractMain.vala:1604
+#: lib/Factories/AbstractMain.vala:1607
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Усі параметри (latch-state.ini пошкоджено)"
 
-#: lib/Factories/AbstractMain.vala:552
+#: lib/Factories/AbstractMain.vala:555
 msgid "About WayPlank"
 msgstr "Про WayPlank"
 
-#: lib/Factories/AbstractMain.vala:579
+#: lib/Factories/AbstractMain.vala:582
 msgid "Fully supported compositors: none"
 msgstr "Повністю підтримувані композитори: немає"
 
-#: lib/Factories/AbstractMain.vala:580
+#: lib/Factories/AbstractMain.vala:583
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "Повністю підтримувані композитори: %s"
 
-#: lib/Factories/AbstractMain.vala:583
+#: lib/Factories/AbstractMain.vala:586
 msgid "Partially supported compositors: none"
 msgstr "Частково підтримувані композитори: немає"
 
-#: lib/Factories/AbstractMain.vala:584
+#: lib/Factories/AbstractMain.vala:587
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "Частково підтримувані композитори: %s"
 
-#: lib/Factories/AbstractMain.vala:588
+#: lib/Factories/AbstractMain.vala:591
 msgid "Website"
 msgstr "Вебсайт"
 
-#: lib/Factories/AbstractMain.vala:602 src/Main.vala:188
+#: lib/Factories/AbstractMain.vala:605 src/Main.vala:188
 msgid "translator-credits"
 msgstr "Michailo Buchko <mixabuchko@gmail.com>"
 
-#: lib/Factories/AbstractMain.vala:1595 lib/Factories/AbstractMain.vala:1605
+#: lib/Factories/AbstractMain.vala:1598 lib/Factories/AbstractMain.vala:1608
 msgid "Defaulting partially to default config for:"
 msgstr "Часткове скидання до типової конфігурації для:"
 
-#: lib/Factories/AbstractMain.vala:1597 lib/Factories/AbstractMain.vala:1601
+#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1604
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "Відхилено пошкоджений або недійсний елемент dockitem:"
 
-#: lib/Factories/AbstractMain.vala:1624 lib/Factories/AbstractMain.vala:1627
+#: lib/Factories/AbstractMain.vala:1627 lib/Factories/AbstractMain.vala:1630
 msgid "Load environment failed"
 msgstr "Помилка завантаження середовища"
 
-#: lib/Items/ApplicationDockItem.vala:334 lib/Widgets/FolderMenuWindow.vala:962
+#: lib/Items/ApplicationDockItem.vala:301 lib/Widgets/FolderMenuWindow.vala:989
 msgid "Close _All"
 msgstr "Закрити _всі"
 
-#: lib/Items/ApplicationDockItem.vala:343 lib/Widgets/FolderMenuWindow.vala:972
+#: lib/Items/ApplicationDockItem.vala:310 lib/Widgets/FolderMenuWindow.vala:999
 msgid "_Close"
 msgstr "_Закрити"
 
-#: lib/Items/ApplicationDockItem.vala:425 lib/Items/FileDockItem.vala:671
-#: lib/Items/FileDockItem.vala:815
+#: lib/Items/ApplicationDockItem.vala:366 lib/Items/FileDockItem.vala:681
+#: lib/Items/FileDockItem.vala:830
 msgid "_Keep in Dock"
 msgstr "_Залишити в доку"
 
-#: lib/Items/ApplicationDockItem.vala:431
+#: lib/Items/ApplicationDockItem.vala:372
 msgid "Keep Always _Visible"
 msgstr "Завжди _видима"
 
-#: lib/Items/ApplicationDockItem.vala:441 lib/Items/FileDockItem.vala:689
-#: lib/Items/FileDockItem.vala:839
+#: lib/Items/ApplicationDockItem.vala:382 lib/Items/FileDockItem.vala:699
+#: lib/Items/FileDockItem.vala:854
 msgid "Change _Icon..."
 msgstr "Змінити _піктограму..."
 
-#: lib/Items/ApplicationDockItem.vala:456
+#: lib/Items/ApplicationDockItem.vala:397
 #, c-format
 msgid "Drop to open with %s"
 msgstr "Відпустіть, щоб відкрити в %s"
@@ -126,7 +126,7 @@ msgstr "Розряджається"
 msgid "Not charging"
 msgstr "Не заряджається"
 
-#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:920
 msgid "Unknown"
 msgstr "Невідомо"
 
@@ -157,7 +157,7 @@ msgstr "Параметри _живлення..."
 #: lib/Items/ClockDockItem.vala:257 lib/Items/CpuDockItem.vala:163
 #: lib/Items/DigitalClockDockItem.vala:242
 #: lib/Items/DoNotDisturbDockItem.vala:238 lib/Items/EjectorDockItem.vala:212
-#: lib/Items/MprisDockItem.vala:498 lib/Items/NetworkDockItem.vala:310
+#: lib/Items/MprisDockItem.vala:499 lib/Items/NetworkDockItem.vala:310
 #: lib/Items/ScreenshotDockItem.vala:104 lib/Items/SessionDockItem.vala:122
 #: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:155
 #: lib/Items/VolumeDockItem.vala:283 lib/Items/WeatherDockItem.vala:592
@@ -300,50 +300,50 @@ msgstr "Знімні пристрої не підключено"
 msgid "No Removable Devices"
 msgstr "Немає знімних пристроїв"
 
-#: lib/Items/FileDockItem.vala:515
+#: lib/Items/FileDockItem.vala:526
 #, c-format
 msgid "Drop to copy into %s"
 msgstr "Відпустіть, щоб скопіювати до %s"
 
-#: lib/Items/FileDockItem.vala:656 lib/Widgets/FolderMenuWindow.vala:530
-#: lib/Widgets/FolderMenuWindow.vala:769
+#: lib/Items/FileDockItem.vala:666 lib/Widgets/FolderMenuWindow.vala:546
+#: lib/Widgets/FolderMenuWindow.vala:790
 msgid "Empty Folder"
 msgstr "Порожня тека"
 
-#: lib/Items/FileDockItem.vala:683
+#: lib/Items/FileDockItem.vala:693
 msgid "_Open in File Browser"
 msgstr "_Відкрити у файловому менеджері"
 
-#: lib/Items/FileDockItem.vala:751
+#: lib/Items/FileDockItem.vala:765
 msgid "Empty"
 msgstr "Порожньо"
 
-#: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1033
+#: lib/Items/FileDockItem.vala:842 lib/Widgets/FolderMenuWindow.vala:1046
 #: lib/Widgets/PreferencesWindow.vala:735
 msgid "_Open"
 msgstr "_Відкрити"
 
-#: lib/Items/FileDockItem.vala:831
+#: lib/Items/FileDockItem.vala:846
 msgid "Open Containing _Folder"
 msgstr "Відкрити _теку з файлом"
 
-#: lib/Items/FileDockItem.vala:885
+#: lib/Items/FileDockItem.vala:904
 msgid "Internet"
 msgstr "Інтернет"
 
-#: lib/Items/FileDockItem.vala:887
+#: lib/Items/FileDockItem.vala:906
 msgid "Office"
 msgstr "Офіс"
 
-#: lib/Items/FileDockItem.vala:889
+#: lib/Items/FileDockItem.vala:908
 msgid "Media"
 msgstr "Мультимедіа"
 
-#: lib/Items/FileDockItem.vala:891
+#: lib/Items/FileDockItem.vala:910
 msgid "Games"
 msgstr "Ігри"
 
-#: lib/Items/FileDockItem.vala:893
+#: lib/Items/FileDockItem.vala:912
 msgid "Utilities"
 msgstr "Утиліти"
 
@@ -352,15 +352,15 @@ msgstr "Утиліти"
 msgid "Media Player"
 msgstr "Медіапрогравач"
 
-#: lib/Items/MprisDockItem.vala:229 lib/Items/MprisDockItem.vala:448
+#: lib/Items/MprisDockItem.vala:229 lib/Items/MprisDockItem.vala:449
 msgid "Playing"
 msgstr "Відтворюється"
 
-#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:449
+#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:450
 msgid "Paused"
 msgstr "Призупинено"
 
-#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:449
+#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:450
 msgid "Stopped"
 msgstr "Зупинено"
 
@@ -373,15 +373,15 @@ msgstr "Медіапрогравач (%s)"
 msgid "Media Player (Inactive)"
 msgstr "Медіапрогравач (неактивний)"
 
-#: lib/Items/MprisDockItem.vala:483
+#: lib/Items/MprisDockItem.vala:484
 msgid "Play / _Pause"
 msgstr "Відтворити / _Пауза"
 
-#: lib/Items/MprisDockItem.vala:487
+#: lib/Items/MprisDockItem.vala:488
 msgid "_Next Track"
 msgstr "_Наступна доріжка"
 
-#: lib/Items/MprisDockItem.vala:491
+#: lib/Items/MprisDockItem.vala:492
 msgid "P_revious Track"
 msgstr "_Попередня доріжка"
 
@@ -449,7 +449,7 @@ msgid "Report a _Bug Online..."
 msgstr "Повідомити про _помилку в мережі..."
 
 #: lib/Items/PlankDockItem.vala:73 lib/Items/PreferencesDockItem.vala:168
-#: lib/Widgets/DockWindow.vala:1240
+#: lib/Widgets/DockWindow.vala:1242
 msgid "_Shortcuts & Gestures..."
 msgstr "_Скорочення та жести..."
 
@@ -530,7 +530,7 @@ msgid "_About"
 msgstr "_Про програму"
 
 #: lib/Items/PlankDockItem.vala:153 lib/Items/PreferencesDockItem.vala:187
-#: lib/Widgets/DockWindow.vala:1252
+#: lib/Widgets/DockWindow.vala:1254
 msgid "_Quit"
 msgstr "_Завершити"
 
@@ -538,7 +538,7 @@ msgstr "_Завершити"
 msgid "Preferences"
 msgstr "Параметри"
 
-#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1246
+#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1248
 msgid "_Preferences..."
 msgstr "_Параметри..."
 
@@ -673,7 +673,7 @@ msgid "Shut Down"
 msgstr "Вимкнути"
 
 #: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:262
+#: lib/Widgets/IconChooserDialog.vala:339 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Скасувати"
@@ -857,7 +857,7 @@ msgstr "Гроза"
 msgid "Thunderstorm with hail"
 msgstr "Гроза з градом"
 
-#: lib/Services/RecentFilesService.vala:272
+#: lib/Services/RecentFilesService.vala:43
 msgid "Recent Files"
 msgstr "Нещодавні файли"
 
@@ -877,35 +877,35 @@ msgstr "Запущено"
 msgid "Docklet"
 msgstr "Докліт"
 
-#: lib/Widgets/DockWindow.vala:1290 lib/Widgets/DockWindow.vala:1332
+#: lib/Widgets/DockWindow.vala:1284 lib/Widgets/DockWindow.vala:1326
 msgid "Developer _Tools"
 msgstr "_Засоби розробника"
 
-#: lib/Widgets/DockWindow.vala:1297
+#: lib/Widgets/DockWindow.vala:1291
 msgid "Open config folder"
 msgstr "Відкрити теку конфігурації"
 
-#: lib/Widgets/DockWindow.vala:1306
+#: lib/Widgets/DockWindow.vala:1300
 msgid "Open current theme file"
 msgstr "Відкрити файл поточної теми"
 
-#: lib/Widgets/DockWindow.vala:1313
+#: lib/Widgets/DockWindow.vala:1307
 msgid "Print app usage ranking"
 msgstr "Вивести рейтинг використання програм"
 
-#: lib/Widgets/DockWindow.vala:1339
+#: lib/Widgets/DockWindow.vala:1333
 msgid "Print info to stdout"
 msgstr "Вивести інформацію в stdout"
 
-#: lib/Widgets/DockWindow.vala:1349
+#: lib/Widgets/DockWindow.vala:1343
 msgid "Open dockitem file"
 msgstr "Відкрити файл dockitem"
 
-#: lib/Widgets/DockWindow.vala:1358
+#: lib/Widgets/DockWindow.vala:1352
 msgid "Open launcher file"
 msgstr "Відкрити файл запускача"
 
-#: lib/Widgets/DockWindow.vala:1365
+#: lib/Widgets/DockWindow.vala:1359
 msgid "Print usage score"
 msgstr "Вивести оцінку використання"
 
@@ -982,16 +982,16 @@ msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "Ви можете будь-коли змінити або налаштувати будь-яку функцію в Параметрах WayPlank."
 
-#: lib/Widgets/FolderMenuWindow.vala:563
+#: lib/Widgets/FolderMenuWindow.vala:581
 msgid "Back"
 msgstr "Назад"
 
-#: lib/Widgets/FolderMenuWindow.vala:924
+#: lib/Widgets/FolderMenuWindow.vala:949
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr "Програма запущена (вікон: %d)"
 
-#: lib/Widgets/FolderMenuWindow.vala:1026
+#: lib/Widgets/FolderMenuWindow.vala:1039
 msgid "_New Window"
 msgstr "_Нове вікно"
 
@@ -1327,19 +1327,19 @@ msgstr "Повернутися до початкової піктограми з
 msgid "Apply"
 msgstr "Застосувати"
 
-#: lib/Widgets/IconChooserDialog.vala:337
+#: lib/Widgets/IconChooserDialog.vala:335
 msgid "Select Icon File"
 msgstr "Виберіть файл піктограми"
 
-#: lib/Widgets/IconChooserDialog.vala:340
+#: lib/Widgets/IconChooserDialog.vala:338
 msgid "Select"
 msgstr "Вибрати"
 
-#: lib/Widgets/IconChooserDialog.vala:345
+#: lib/Widgets/IconChooserDialog.vala:343
 msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "Файли зображень (*.png, *.svg, *.ico, *.jpg)"
 
-#: lib/Widgets/IconChooserDialog.vala:358
+#: lib/Widgets/IconChooserDialog.vala:363
 #: lib/Widgets/PreferencesWindow.vala:753
 msgid "All Files"
 msgstr "Усі файли"
@@ -1705,11 +1705,11 @@ msgstr "Відчувається як %d%s"
 msgid "No forecast data available"
 msgstr "Немає даних прогнозу"
 
-#: lib/Widgets/WindowCardsWindow.vala:490
+#: lib/Widgets/WindowCardsWindow.vala:487
 msgid "Application"
 msgstr "Програма"
 
-#: lib/Widgets/WindowCardsWindow.vala:623
+#: lib/Widgets/WindowCardsWindow.vala:621
 msgid "Minimized"
 msgstr "Згорнуто"
 

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 18:56+0100\n"
-"PO-Revision-Date: 2026-11-15 18:56+0100\n"
+"POT-Creation-Date: 2026-11-16 01:05+0100\n"
+"PO-Revision-Date: 2026-11-16 01:05+0100\n"
 "Last-Translator: Renate Schwiedernoch <renate.schwiedernoch@gmail.com>\n"
 "Language-Team: German <de@li.org>\n"
 "Language: de\n"
@@ -40,75 +40,75 @@ msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank wurde ausschließlich für Wayland-Sitzungen entwickelt."
 
 #: lib/DockPreferences.vala:391 lib/DockPreferences.vala:401
-#: lib/Factories/AbstractMain.vala:1604
+#: lib/Factories/AbstractMain.vala:1607
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Alle Einstellungen (latch-state.ini beschädigt)"
 
-#: lib/Factories/AbstractMain.vala:552
+#: lib/Factories/AbstractMain.vala:555
 msgid "About WayPlank"
 msgstr "Über WayPlank"
 
-#: lib/Factories/AbstractMain.vala:579
+#: lib/Factories/AbstractMain.vala:582
 msgid "Fully supported compositors: none"
 msgstr "Vollständig unterstützte Compositoren: keine"
 
-#: lib/Factories/AbstractMain.vala:580
+#: lib/Factories/AbstractMain.vala:583
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "Vollständig unterstützte Compositoren: %s"
 
-#: lib/Factories/AbstractMain.vala:583
+#: lib/Factories/AbstractMain.vala:586
 msgid "Partially supported compositors: none"
 msgstr "Teilweise unterstützte Compositoren: keine"
 
-#: lib/Factories/AbstractMain.vala:584
+#: lib/Factories/AbstractMain.vala:587
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "Teilweise unterstützte Compositoren: %s"
 
-#: lib/Factories/AbstractMain.vala:588
+#: lib/Factories/AbstractMain.vala:591
 msgid "Website"
 msgstr "Webseite"
 
-#: lib/Factories/AbstractMain.vala:602 src/Main.vala:188
+#: lib/Factories/AbstractMain.vala:605 src/Main.vala:188
 msgid "translator-credits"
 msgstr "Renate Schwiedernoch <renate.schwiedernoch@gmail.com>"
 
-#: lib/Factories/AbstractMain.vala:1595 lib/Factories/AbstractMain.vala:1605
+#: lib/Factories/AbstractMain.vala:1598 lib/Factories/AbstractMain.vala:1608
 msgid "Defaulting partially to default config for:"
 msgstr "Teilweises Zurücksetzen auf die Standardkonfiguration für:"
 
-#: lib/Factories/AbstractMain.vala:1597 lib/Factories/AbstractMain.vala:1601
+#: lib/Factories/AbstractMain.vala:1600 lib/Factories/AbstractMain.vala:1604
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "Beschädigtes oder ungültiges Dockitem verworfen:"
 
-#: lib/Factories/AbstractMain.vala:1624 lib/Factories/AbstractMain.vala:1627
+#: lib/Factories/AbstractMain.vala:1627 lib/Factories/AbstractMain.vala:1630
 msgid "Load environment failed"
 msgstr "Laden der Umgebung fehlgeschlagen"
 
-#: lib/Items/ApplicationDockItem.vala:334 lib/Widgets/FolderMenuWindow.vala:962
+#: lib/Items/ApplicationDockItem.vala:301 lib/Widgets/FolderMenuWindow.vala:989
 msgid "Close _All"
 msgstr "_Alle schließen"
 
-#: lib/Items/ApplicationDockItem.vala:343 lib/Widgets/FolderMenuWindow.vala:972
+#: lib/Items/ApplicationDockItem.vala:310 lib/Widgets/FolderMenuWindow.vala:999
 msgid "_Close"
 msgstr "_Schließen"
 
-#: lib/Items/ApplicationDockItem.vala:425 lib/Items/FileDockItem.vala:671
-#: lib/Items/FileDockItem.vala:815
+#: lib/Items/ApplicationDockItem.vala:366 lib/Items/FileDockItem.vala:681
+#: lib/Items/FileDockItem.vala:830
 msgid "_Keep in Dock"
 msgstr "Im Dock _behalten"
 
-#: lib/Items/ApplicationDockItem.vala:431
+#: lib/Items/ApplicationDockItem.vala:372
 msgid "Keep Always _Visible"
 msgstr "Immer _sichtbar halten"
 
-#: lib/Items/ApplicationDockItem.vala:441 lib/Items/FileDockItem.vala:689
-#: lib/Items/FileDockItem.vala:839
+#: lib/Items/ApplicationDockItem.vala:382 lib/Items/FileDockItem.vala:699
+#: lib/Items/FileDockItem.vala:854
 msgid "Change _Icon..."
 msgstr "_Symbol ändern..."
 
-#: lib/Items/ApplicationDockItem.vala:456
+#: lib/Items/ApplicationDockItem.vala:397
 #, c-format
 msgid "Drop to open with %s"
 msgstr "Ablegen, um mit %s zu öffnen"
@@ -125,7 +125,7 @@ msgstr "Wird entladen"
 msgid "Not charging"
 msgstr "Lädt nicht"
 
-#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:901
+#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:920
 msgid "Unknown"
 msgstr "Unbekannt"
 
@@ -156,7 +156,7 @@ msgstr "_Energieeinstellungen..."
 #: lib/Items/ClockDockItem.vala:257 lib/Items/CpuDockItem.vala:163
 #: lib/Items/DigitalClockDockItem.vala:242
 #: lib/Items/DoNotDisturbDockItem.vala:238 lib/Items/EjectorDockItem.vala:212
-#: lib/Items/MprisDockItem.vala:498 lib/Items/NetworkDockItem.vala:310
+#: lib/Items/MprisDockItem.vala:499 lib/Items/NetworkDockItem.vala:310
 #: lib/Items/ScreenshotDockItem.vala:104 lib/Items/SessionDockItem.vala:122
 #: lib/Items/ShowDesktopDockItem.vala:76 lib/Items/TrashDockItem.vala:155
 #: lib/Items/VolumeDockItem.vala:283 lib/Items/WeatherDockItem.vala:592
@@ -299,50 +299,50 @@ msgstr "Keine Wechseldatenträger verbunden"
 msgid "No Removable Devices"
 msgstr "Keine Wechseldatenträger"
 
-#: lib/Items/FileDockItem.vala:515
+#: lib/Items/FileDockItem.vala:526
 #, c-format
 msgid "Drop to copy into %s"
 msgstr "Ablegen, um nach %s zu kopieren"
 
-#: lib/Items/FileDockItem.vala:656 lib/Widgets/FolderMenuWindow.vala:530
-#: lib/Widgets/FolderMenuWindow.vala:769
+#: lib/Items/FileDockItem.vala:666 lib/Widgets/FolderMenuWindow.vala:546
+#: lib/Widgets/FolderMenuWindow.vala:790
 msgid "Empty Folder"
 msgstr "Leerer Ordner"
 
-#: lib/Items/FileDockItem.vala:683
+#: lib/Items/FileDockItem.vala:693
 msgid "_Open in File Browser"
 msgstr "Im Dateimanager _öffnen"
 
-#: lib/Items/FileDockItem.vala:751
+#: lib/Items/FileDockItem.vala:765
 msgid "Empty"
 msgstr "Leer"
 
-#: lib/Items/FileDockItem.vala:827 lib/Widgets/FolderMenuWindow.vala:1033
+#: lib/Items/FileDockItem.vala:842 lib/Widgets/FolderMenuWindow.vala:1046
 #: lib/Widgets/PreferencesWindow.vala:735
 msgid "_Open"
 msgstr "_Öffnen"
 
-#: lib/Items/FileDockItem.vala:831
+#: lib/Items/FileDockItem.vala:846
 msgid "Open Containing _Folder"
 msgstr "Beinhaltenden _Ordner öffnen"
 
-#: lib/Items/FileDockItem.vala:885
+#: lib/Items/FileDockItem.vala:904
 msgid "Internet"
 msgstr "Internet"
 
-#: lib/Items/FileDockItem.vala:887
+#: lib/Items/FileDockItem.vala:906
 msgid "Office"
 msgstr "Büro"
 
-#: lib/Items/FileDockItem.vala:889
+#: lib/Items/FileDockItem.vala:908
 msgid "Media"
 msgstr "Medien"
 
-#: lib/Items/FileDockItem.vala:891
+#: lib/Items/FileDockItem.vala:910
 msgid "Games"
 msgstr "Spiele"
 
-#: lib/Items/FileDockItem.vala:893
+#: lib/Items/FileDockItem.vala:912
 msgid "Utilities"
 msgstr "Dienstprogramme"
 
@@ -351,15 +351,15 @@ msgstr "Dienstprogramme"
 msgid "Media Player"
 msgstr "Medienplayer"
 
-#: lib/Items/MprisDockItem.vala:229 lib/Items/MprisDockItem.vala:448
+#: lib/Items/MprisDockItem.vala:229 lib/Items/MprisDockItem.vala:449
 msgid "Playing"
 msgstr "Wiedergabe"
 
-#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:449
+#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:450
 msgid "Paused"
 msgstr "Pausiert"
 
-#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:449
+#: lib/Items/MprisDockItem.vala:230 lib/Items/MprisDockItem.vala:450
 msgid "Stopped"
 msgstr "Gestoppt"
 
@@ -372,15 +372,15 @@ msgstr "Medienplayer (%s)"
 msgid "Media Player (Inactive)"
 msgstr "Medienplayer (Inaktiv)"
 
-#: lib/Items/MprisDockItem.vala:483
+#: lib/Items/MprisDockItem.vala:484
 msgid "Play / _Pause"
 msgstr "Wiedergabe / _Pause"
 
-#: lib/Items/MprisDockItem.vala:487
+#: lib/Items/MprisDockItem.vala:488
 msgid "_Next Track"
 msgstr "_Nächster Titel"
 
-#: lib/Items/MprisDockItem.vala:491
+#: lib/Items/MprisDockItem.vala:492
 msgid "P_revious Track"
 msgstr "_Vorheriger Titel"
 
@@ -448,7 +448,7 @@ msgid "Report a _Bug Online..."
 msgstr "_Fehler online melden..."
 
 #: lib/Items/PlankDockItem.vala:73 lib/Items/PreferencesDockItem.vala:168
-#: lib/Widgets/DockWindow.vala:1240
+#: lib/Widgets/DockWindow.vala:1242
 msgid "_Shortcuts & Gestures..."
 msgstr "_Tastenkürzel & Gesten..."
 
@@ -529,7 +529,7 @@ msgid "_About"
 msgstr "_Über"
 
 #: lib/Items/PlankDockItem.vala:153 lib/Items/PreferencesDockItem.vala:187
-#: lib/Widgets/DockWindow.vala:1252
+#: lib/Widgets/DockWindow.vala:1254
 msgid "_Quit"
 msgstr "_Beenden"
 
@@ -537,7 +537,7 @@ msgstr "_Beenden"
 msgid "Preferences"
 msgstr "Einstellungen"
 
-#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1246
+#: lib/Items/PreferencesDockItem.vala:148 lib/Widgets/DockWindow.vala:1248
 msgid "_Preferences..."
 msgstr "_Einstellungen..."
 
@@ -672,7 +672,7 @@ msgid "Shut Down"
 msgstr "Herunterfahren"
 
 #: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:341 lib/Widgets/SessionWindow.vala:262
+#: lib/Widgets/IconChooserDialog.vala:339 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -856,7 +856,7 @@ msgstr "Gewitter"
 msgid "Thunderstorm with hail"
 msgstr "Gewitter mit Hagel"
 
-#: lib/Services/RecentFilesService.vala:272
+#: lib/Services/RecentFilesService.vala:43
 msgid "Recent Files"
 msgstr "Zuletzt verwendete Dateien"
 
@@ -876,35 +876,35 @@ msgstr "Aktiv"
 msgid "Docklet"
 msgstr "Docklet"
 
-#: lib/Widgets/DockWindow.vala:1290 lib/Widgets/DockWindow.vala:1332
+#: lib/Widgets/DockWindow.vala:1284 lib/Widgets/DockWindow.vala:1326
 msgid "Developer _Tools"
 msgstr "Entwickler_werkzeuge"
 
-#: lib/Widgets/DockWindow.vala:1297
+#: lib/Widgets/DockWindow.vala:1291
 msgid "Open config folder"
 msgstr "Konfigurationsordner öffnen"
 
-#: lib/Widgets/DockWindow.vala:1306
+#: lib/Widgets/DockWindow.vala:1300
 msgid "Open current theme file"
 msgstr "Aktuelle Theme-Datei öffnen"
 
-#: lib/Widgets/DockWindow.vala:1313
+#: lib/Widgets/DockWindow.vala:1307
 msgid "Print app usage ranking"
 msgstr "App-Nutzungsranking ausgeben"
 
-#: lib/Widgets/DockWindow.vala:1339
+#: lib/Widgets/DockWindow.vala:1333
 msgid "Print info to stdout"
 msgstr "Informationen auf stdout ausgeben"
 
-#: lib/Widgets/DockWindow.vala:1349
+#: lib/Widgets/DockWindow.vala:1343
 msgid "Open dockitem file"
 msgstr "Dockitem-Datei öffnen"
 
-#: lib/Widgets/DockWindow.vala:1358
+#: lib/Widgets/DockWindow.vala:1352
 msgid "Open launcher file"
 msgstr "Starterdatei öffnen"
 
-#: lib/Widgets/DockWindow.vala:1365
+#: lib/Widgets/DockWindow.vala:1359
 msgid "Print usage score"
 msgstr "Nutzungswert ausgeben"
 
@@ -981,16 +981,16 @@ msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "Sie können jede Funktion jederzeit in den WayPlank-Einstellungen wechseln oder anpassen."
 
-#: lib/Widgets/FolderMenuWindow.vala:563
+#: lib/Widgets/FolderMenuWindow.vala:581
 msgid "Back"
 msgstr "Zurück"
 
-#: lib/Widgets/FolderMenuWindow.vala:924
+#: lib/Widgets/FolderMenuWindow.vala:949
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr "Anwendung läuft (%d Fenster)"
 
-#: lib/Widgets/FolderMenuWindow.vala:1026
+#: lib/Widgets/FolderMenuWindow.vala:1039
 msgid "_New Window"
 msgstr "_Neues Fenster"
 
@@ -1326,19 +1326,19 @@ msgstr "Zum ursprünglichen Standardsymbol zurückkehren"
 msgid "Apply"
 msgstr "Anwenden"
 
-#: lib/Widgets/IconChooserDialog.vala:337
+#: lib/Widgets/IconChooserDialog.vala:335
 msgid "Select Icon File"
 msgstr "Symboldatei auswählen"
 
-#: lib/Widgets/IconChooserDialog.vala:340
+#: lib/Widgets/IconChooserDialog.vala:338
 msgid "Select"
 msgstr "Auswählen"
 
-#: lib/Widgets/IconChooserDialog.vala:345
+#: lib/Widgets/IconChooserDialog.vala:343
 msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "Bilddateien (*.png, *.svg, *.ico, *.jpg)"
 
-#: lib/Widgets/IconChooserDialog.vala:358
+#: lib/Widgets/IconChooserDialog.vala:363
 #: lib/Widgets/PreferencesWindow.vala:753
 msgid "All Files"
 msgstr "Alle Dateien"
@@ -1708,11 +1708,11 @@ msgstr "Gefühlt %d%s"
 msgid "No forecast data available"
 msgstr "Keine Vorhersagedaten verfügbar"
 
-#: lib/Widgets/WindowCardsWindow.vala:490
+#: lib/Widgets/WindowCardsWindow.vala:487
 msgid "Application"
 msgstr "Anwendung"
 
-#: lib/Widgets/WindowCardsWindow.vala:623
+#: lib/Widgets/WindowCardsWindow.vala:621
 msgid "Minimized"
 msgstr "Minimiert"
 

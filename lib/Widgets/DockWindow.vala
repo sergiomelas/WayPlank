@@ -844,6 +844,11 @@ namespace Plank
 				|| controller.drag_manager.ExternalDragActive)
 				return;
 
+			if (menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible ()) {
+				controller.hover.hide ();
+				return;
+			}
+
 			string? tooltip_text = format_hovered_tooltip_text ();
 			if (tooltip_text == null || tooltip_text == "") {
 				controller.hover.hide ();
@@ -860,9 +865,6 @@ namespace Plank
 				controller.position_manager.get_visual_thickness (), dock_span);
 			var monitor = PositionManager.get_monitor_for_plug_name (get_display (), controller.prefs.Monitor);
 			hover.show_at (x, y, controller.position_manager.Position, dock_thickness, monitor);
-
-			if (menu_is_visible () || controller.folder_menu.get_visible () || controller.window_cards.get_visible ())
-				hover.hide ();
 		}
 
 		void on_hovered_item_text_changed ()
@@ -1266,17 +1268,9 @@ namespace Plank
 				return;
 			}
 
-			try {
-				var text_app = AppInfo.get_default_for_type ("text/plain", false);
-				if (text_app != null) {
-					var list = new GLib.List<File> ();
-					list.append (file);
-					if (text_app.launch (list, System.get_default ().context))
-						return;
-				}
-			} catch (Error e) {
-				warning ("Failed to open '%s' with text/plain handler: %s", file.get_uri (), e.message);
-			}
+			string editor_launcher = Hal.Apps.get_default_app_for_role (DefaultAppRole.TEXT_EDITOR);
+			if (editor_launcher != "" && Hal.Apps.launch_app (editor_launcher, { file.get_uri () }, System.get_default ().context))
+				return;
 
 			System.get_default ().open (file);
 		}

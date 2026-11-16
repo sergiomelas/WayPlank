@@ -46,26 +46,12 @@ namespace Plank
 			if (uri1.has_prefix ("docklet://") || uri2.has_prefix ("docklet://"))
 				return uri1 == uri2;
 
-			var f1 = uri1.has_prefix ("/") ? File.new_for_path (uri1) : File.new_for_uri (uri1);
-			var f2 = uri2.has_prefix ("/") ? File.new_for_path (uri2) : File.new_for_uri (uri2);
-			if (f1.equal (f2))
+			if (Hal.Apps.launcher_uris_match (uri1, uri2))
 				return true;
 
-			string? p1 = f1.get_path ();
-			string? p2 = f2.get_path ();
-			if (p1 != null && p2 != null) {
-				string? r1 = Posix.realpath (p1);
-				string? r2 = Posix.realpath (p2);
-				if (r1 != null && r2 != null && r1 == r2)
-					return true;
-
-				if (p1.has_suffix (".desktop") && p2.has_suffix (".desktop")) {
-					if (Path.get_basename (p1) == Path.get_basename (p2))
-						return true;
-				}
-			}
-
-			return false;
+			var f1 = Path.is_absolute (uri1) ? File.new_for_path (uri1) : File.new_for_uri (uri1);
+			var f2 = Path.is_absolute (uri2) ? File.new_for_path (uri2) : File.new_for_uri (uri2);
+			return f1.equal (f2);
 		}
 
 		/**

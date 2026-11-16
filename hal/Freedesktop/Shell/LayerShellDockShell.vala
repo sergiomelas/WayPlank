@@ -170,6 +170,7 @@ namespace Plank
 
 		public void init_dock_surface (Gtk.Window window)
 		{
+			window.set_focus_on_map (false);
 			if (GtkLayerShell.is_supported ()) {
 				GtkLayerShell.init_for_window (window);
 				GtkLayerShell.set_layer (window, GtkLayerShell.Layer.TOP);
@@ -375,10 +376,12 @@ namespace Plank
 			}
 
 			if (ready) {
-				window.show_all ();
-				window.stick ();
-				if (!GtkLayerShell.is_supported ())
-					window.present ();
+				if (!window.get_visible ()) {
+					window.show_all ();
+					window.stick ();
+					if (!GtkLayerShell.is_supported ())
+						window.present ();
+				}
 				window.queue_draw ();
 			} else if (!GtkLayerShell.is_supported () && window.get_visible ()) {
 				window.hide ();

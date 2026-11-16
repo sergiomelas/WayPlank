@@ -29,19 +29,15 @@ namespace Plank
 
 		public static unowned System get_default ()
 		{
-			if (instance == null) {
-				var display = Gdk.Display.get_default ();
-				instance = new System (display != null ? display.get_app_launch_context () : new AppLaunchContext ());
-			}
+			if (instance == null)
+				instance = new System ();
 
 			return instance;
 		}
 
-		public AppLaunchContext context { get; construct; }
-
-		public System (AppLaunchContext context)
+		public System ()
 		{
-			Object (context: context);
+			Object ();
 		}
 
 		/**
@@ -105,7 +101,8 @@ namespace Plank
 			}
 
 			string launcher_uri = app.get_uri ();
-			if (!Hal.Apps.launch_app (launcher_uri, uris, context))
+			ApplicationIdentity.note_launcher_invocation (launcher_uri);
+			if (!Hal.Apps.launch_app (launcher_uri, uris))
 				warning ("Failed to launch '%s'", launcher_uri);
 		}
 

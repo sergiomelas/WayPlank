@@ -467,7 +467,7 @@ Prerequisite Gate:
   `[M123-SMOKE]` live test is qualified by Sergio Melas, and `backup/0.7.2-move-3b`
   is committed and tagged.
 
-  [  ] [M123-TO-M4] Execute Move 4 (`[M4-01]` .. `[M4-40]` — 40 items in
+  [ok] [M123-TO-M4] Execute Move 4 (`[M4-01]` .. `[M4-40]` — 40 items in
        `Documentation/Architecture/HAL_DIFFUSED_CHUNKS_CHECKLIST.txt` Section 4):
        Move all remaining diffused OS / Freedesktop / XDG / POSIX chunks out of
        `lib/` and `src/` into the `hal/` tree (`hal/Freedesktop/` & `hal/Linux/`)

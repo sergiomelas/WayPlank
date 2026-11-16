@@ -129,9 +129,11 @@ namespace Plank
 		public void commit_dock_geometry (Gtk.Window window, Gdk.Rectangle win_rect)
 		{
 			window.move (win_rect.x, win_rect.y);
-			window.show_all ();
-			window.stick ();
-			window.present ();
+			if (!window.get_visible ()) {
+				window.show_all ();
+				window.stick ();
+				window.present ();
+			}
 			window.queue_draw ();
 		}
 

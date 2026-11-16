@@ -91,9 +91,10 @@ COMPLETE REPOSITORY ACCOUNTING (Baseline 112 Files -> 140/140 Converged Files):
      - CHECK: 87 + 13 + 43 = 143 files (`Pass 4 Delta = 0` new leaks across all 6 shards!)
   C. Total Discrete Translator & Convergence Items:
      - Moves 1–3 + Remediation (`Sections 1–3`)          : 100% `[x]` / `33/33 [ok]`
-     - Move 4 (`Section 4`, `[M4-01]` .. `[M4-40]`)      :  40 items (`Sub-Gates M4-A & M4-B`
-       `24/40` items `3/3` live-verified at `backup/0.7.2-move-4b`; `Sub-Gate M4-C` next, governed by
-       `HAL_DIFFUSED_CHUNKS_CHECKLIST - M4 - Implementation.txt`)
+     - Move 4 (`Section 4`, `[M4-01]` .. `[M4-40]`)      : 100% `[x]` / `40/40 [ok]`
+       (`Sub-Gates M4-A, M4-B & M4-C` implemented, Dual-Zone HAL Purity Firewall `GREEN`,
+       65,025-case Identity Matrix `100.0% PASS` at `backup/0.7.2-move-4`; ready for
+       formal human `FAT 0.7.2` qualification across `399` tests)
 
 ALL SUBTLE & INDIRECT CROSS-OS TRAPS CAUGHT BY FULL ITERATIVE RESCAN:
   01. `hal/Interfaces/WindowBackend.vala` (L34): leaks `DBusConnection` inside
@@ -923,7 +924,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             on Windows while supporting POSIX shell quoting on Freedesktop).
 
 --- 4B. Purify Identity Engine, Launchers, Paths & Cross-OS URI/Path Checks ---
-[ ] [M4-03] `lib/Services/ApplicationIdentity.vala` (L60, L107-143, L406, L754-759,
+[x] [M4-03] `lib/Services/ApplicationIdentity.vala` (L60, L107-143, L406, L754-759,
             L1120, L1863-1867, L2010, L2114, L2309-2312, L2596-3015, L3116-3124,
             L3378, L3543, plus L133,468,555,982,1022 `has_prefix("/")`):
             Replace `/proc/<pid>/*`, `Posix.realpath`/`stat`, `.desktop` `KeyFile` I/O,
@@ -934,7 +935,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
                 `Hal.Bus.AppMenu`, `Hal.Runtime.parse_command_argv()`, and
                 `Path.is_absolute()`. The 6-Layer mathematical solver $S(I, W) \in [0..124]$
                 remains 100% pure portable Core!
-[ ] [M4-04] `lib/Services/ApplicationDiscovery.vala` (L89, L223, L252-342, L502,
+[x] [M4-04] `lib/Services/ApplicationDiscovery.vala` (L89, L223, L252-342, L502,
             L568-593, L646, L697, L857-902, L949-1003, L1050, L1358-1542):
             Replace `WindowControl.*`, `/proc/<pid>/*`, `Shell.parse_argv`/`quote`,
             hardcoded `/usr/bin/google-chrome-stable` & `/opt/google/chrome/google-chrome`,
@@ -943,7 +944,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
               - Northbound: `Hal.Windows`, `Hal.Apps.inspect_process()`,
                 `Hal.Apps.find_installed_browser_binary()`, and
                 `Hal.Apps.synthesize_fallback_launcher()`.
-[ ] [M4-05] `lib/Services/Matcher.vala` (L66-132, L251, L287-302, L345):
+[x] [M4-05] `lib/Services/Matcher.vala` (L66-132, L251, L287-302, L345):
             Replace `WindowControl.*`, `/proc` scan, `Posix.getuid`/`stat`,
             `Shell.parse_argv`, and `has_prefix("/")`.
             TRANSLATOR:
@@ -1070,14 +1071,14 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             `desktop_file_for_application_id ()` with `Hal.Apps.resolve_launcher_uri (app_id)`,
             and replace `.has_suffix (".desktop")` + `File.new_for_uri (launcher_uri).get_basename ()`
             in `WindowManager.vala` with `Hal.Apps.is_launcher_uri ()` & `launcher_id_stem ()`.
-[ ] [M4-24] `lib/Services/Matcher.vala` (L181-226, L242-267), `lib/Services/System.vala`
+[x] [M4-24] `lib/Services/Matcher.vala` (L181-226, L242-267), `lib/Services/System.vala`
             (L258, L269), `lib/Services/Utils.vala` (L44), & `lib/DragManager.vala` (L357-440):
             Replace `Matcher.vala` `.desktop` `KeyFile` reads with `Hal.Apps.load_launcher ()`;
             encapsulate unmounted GVFS volume mounting (`System.vala:258,269`) inside
             `XdgAppSystem.launch_app ()`; move `#ifndef _WIN32` `Build.DATADIR` schema lookup
             (`Utils.vala:44`) inside `LinuxPlatformRuntime.get_extra_schema_dirs ()`; and use
             `Hal.Apps.is_launcher_uri ()` in `DragManager.vala:357-440`.
-[ ] [M4-25] `BuildBin.sh` (`[M4-18]` Firewall Regex Expansion) & Comment Cleanup
+[x] [M4-25] `BuildBin.sh` (`[M4-18]` Firewall Regex Expansion) & Comment Cleanup
             (`ApplicationIdentity.vala:3753,3781,3960`, `ApplicationDiscovery.vala:939`):
             Reword `/proc/<pid>/cmdline` literals in doc comments so `/proc/` regex has zero
             false positives, and extend `[M4-18]` forbidden regexes with:
@@ -1094,7 +1095,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             PE icons, `.lnk` `path,index`, `aumid://` UWP icons, and native Windows file/folder
             icons via `SHIL_JUMBO` / `IShellItemImageFactory` on `Win32AppSystem` without
             needing `shared-mime-info` or Adwaita).
-[ ] [M4-27] `hal/Interfaces/IBusBackend.vala` (`IAppMenuBus`), `hal/Interfaces/IAppSystem.vala`,
+[x] [M4-27] `hal/Interfaces/IBusBackend.vala` (`IAppMenuBus`), `hal/Interfaces/IAppSystem.vala`,
             `hal/Freedesktop/Dbus/MprisDbusService.vala` (L294), & `lib/Items/MprisDockItem.vala`:
             1) Expose `string[] query_ordered_window_profile_labels (int pid)` +
                `signal void menu_changed (int pid)` on `IAppMenuBus` (matching Chrome's
@@ -1134,7 +1135,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
              onto dock background on Windows into `.lnk` app pins, update `FolderMenuWindow:976`
             quicklist parser call, and pass `{ file.get_uri () }` to `Hal.Apps.launch_app` in
             `DockWindow.open_debug_file ()`.
-[ ] [M4-31] `lib/Services/ApplicationIdentity.vala` (Cross-OS Path, Extension, Runtime,
+[x] [M4-31] `lib/Services/ApplicationIdentity.vala` (Cross-OS Path, Extension, Runtime,
             Terminal, Browser & PWA Parity):
             Replace `last_index_of_char ('/')` and `.desktop` literal in `normalize ()`
             (L1516-1527) plus all 14 `File.new_for_path (...).get_basename ()` calls on raw
@@ -1150,7 +1151,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             `powershell -Command/-File` unwrappers; support `_crx_` Chromium Win32 PWA
             AUMIDs (L159, L1741) and ignore generic Win32 window classes
             (`chrome_widgetwin_1`, `mozillawindowclass`) in `is_plain_browser_window` (L1757-1768).
-[ ] [M4-32] `lib/Services/ApplicationDiscovery.vala`, `lib/Services/RecentFilesService.vala`,
+[x] [M4-32] `lib/Services/ApplicationDiscovery.vala`, `lib/Services/RecentFilesService.vala`,
             `lib/Services/WindowManager.vala`, `lib/Services/Matcher.vala`,
             `lib/Services/Paths.vala` (L65), `lib/Services/System.vala` (L286-375), &
             `src/Main.vala` (L135):
@@ -1205,7 +1206,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             (L595, L778) and resolve subdirectory icons via `DrawingService.get_icon_from_file`
             (L633); and route `SessionWindow` & `FirstRunWindow` icons through
             `DrawingService.load_icon` for Zero-Adwaita `wayplank.exe`.
-[ ] [M4-36] `lib/DragManager.vala` (L271, L359, L383-390, L428-440, L463-468, L697, L1671-1687)
+[x] [M4-36] `lib/DragManager.vala` (L271, L359, L383-390, L428-440, L463-468, L697, L1671-1687)
             & `BuildBin.sh` (`[M4-25]` Firewall):
             Move `"application/x-desktop"`, `"application/x-gnome-app-info"`,
             `"application/x-kde-appmenu"` out of `DragManager.enable_drag_to ()` behind
@@ -1214,7 +1215,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             add `x-(desktop|gnome-app-info|kde-appmenu)` to `[M4-25]` firewall regex, handle
             UTF-16LE/BE & UTF-8 BOMs at L359 & L463-468, match URI schemes case-insensitively
             (`FILE://`, `HTTPS://`, `aumid://`), and null-guard `get_window ()` at L271.
-[ ] [M4-37] `lib/Services/ApplicationIdentity.vala` (L1640, L1656),
+[x] [M4-37] `lib/Services/ApplicationIdentity.vala` (L1640, L1656),
             `lib/Services/RecentFilesService.vala` (L54-81), `lib/Services/Paths.vala` (L133),
             `lib/Widgets/FolderMenuWindow.vala` (L145, L552, L919), &
             `hal/Interfaces/IAppSystem.vala`:
@@ -1230,7 +1231,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             Adwaita-only `"go-previous-symbolic"` / `"go-next-symbolic"`
             (`FolderMenuWindow.vala:552,919`) to `libgtk-3` built-in `"pan-start-symbolic"` /
             `"pan-end-symbolic"` when absent from the active icon theme.
-[ ] [M4-38] `hal/Interfaces/IAppSystem.vala`, `hal/Interfaces/IBusBackend.vala` (`IAppMenuBus`),
+[x] [M4-38] `hal/Interfaces/IAppSystem.vala`, `hal/Interfaces/IBusBackend.vala` (`IAppMenuBus`),
             `lib/Services/ApplicationIdentity.vala`, & `lib/Services/Matcher.vala`:
             1) Add `bool is_launchable` on `AppDescriptor` (`exec_command != ""` on XDG;
                `true` on Win32 `aumid://` & PIDL `.lnk` shortcuts),
@@ -1258,7 +1259,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
                `ApplicationDiscovery.is_ignored_app` + `Hal.Apps.resolve_launcher_uri`, add
                `swmc.contains ("_crx_")` (`L265`), and use `Hal.Apps.read_wrapper_script ()`
                at `L326-355`.
-[ ] [M4-39] `lib/Services/ApplicationDiscovery.vala` (L128-130, L160-162, L221-279, L1260,
+[x] [M4-39] `lib/Services/ApplicationDiscovery.vala` (L128-130, L160-162, L221-279, L1260,
             L1308-1334, L1424-1458), `lib/Services/WindowManager.vala` (L46-54),
             `lib/Factories/AbstractMain.vala` (L79-82), `lib/Services/System.vala`
             (L149, L165, L240), `lib/Items/ApplicationDockItemProvider.vala` (L69-83),
@@ -1282,12 +1283,12 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             (`L509,833`); and decode native drop selection atoms in
             `FolderMenuWindow.drag_data_received ()` (`L182-206`) via `DragManager` /
             `Hal.Apps.decode_native_drop_selection ()`.
-[ ] [M4-40] `lib/Services/ApplicationIdentity.vala` (L2578-2582, L2937-2977),
+[x] [M4-40] `lib/Services/ApplicationIdentity.vala` (L2578-2582, L2937-2977),
             `lib/Services/Matcher.vala` (L38, L68-101, L136-138), &
             `lib/Factories/AbstractMain.vala` (L79-82):
-            Add `ApplicationIdentity.cleanup ()` (cancelling `120/300/650ms` browser-profile
-            follow-up timers & disconnecting `Hal.Bus.AppMenu.menu_changed`) and
-            `Matcher.cleanup_if_active ()` (cancelling `5s` `scan_timer_id` & disconnecting
+            Add `ApplicationIdentity.cleanup ()` (disarming zero-timer `inotify`
+            `IAppSystem.set_browser_session_watch` & disconnecting `Hal.Bus.AppMenu.menu_changed`)
+            and `Matcher.cleanup_if_active ()` (cancelling `5s` `scan_timer_id` & disconnecting
             `Hal.Windows.state_changed`) in `AbstractMain.perform_clean_shutdown ()` right
             before `WindowManager.cleanup_if_active ()` / `ApplicationDiscovery.cleanup_if_active ()`
             / `Hal.cleanup ()`; and pass resolved `desc.uri` in `Matcher.vala:136-138`
@@ -1295,7 +1296,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
             compares URI-to-URI.
 
 --- 4C. Enable Automated HAL Purity Firewall & Qualify `FAT 0.7.2` ---
-[ ] [M4-18] `BuildBin.sh` — Enable Mandatory Pre-Compile HAL Purity Firewall on
+[x] [M4-18] `BuildBin.sh` — Enable Mandatory Pre-Compile HAL Purity Firewall on
             BOTH `src/ + lib/` AND `hal/Interfaces/ + vapi/core/`:
             Fail build immediately if `grep -rnE` finds ANY forbidden symbol:
               1) Inside `src/`, `lib/`, `hal/Interfaces/`, or `vapi/core/`:
@@ -1308,7 +1309,7 @@ SECTION 4 — MOVE 4: APP LAUNCHERS, PROCESS SNAPSHOTS, PATH/ARGV PURITY & FIREW
                  `KWin|MutterBackend|LabwcBackend|WlrBridge|SurfaceCoordinateService|`
                  `BrightnessControl|XdgSession|environment_is_session_|Shell\.parse_argv|`
                  `has_prefix\s*\(\s*"/"|Win32|HWND`
-[ ] [M4-19] Run Identity Engine Automated 65,025-Case Regression Matrix + Full
+[x] [M4-19] Run Identity Engine Automated 65,025-Case Regression Matrix + Full
             3-Compositor ISA-88 `FAT 0.7.2` Qualification across KDE Plasma 6
             (KWin), GNOME Shell (Mutter), and Labwc (`0 [ko]`), synchronize and
             close Master Audit Suite gates `[DOC-02]` & `[DOC-03]`, and freeze
@@ -1354,7 +1355,13 @@ SECTION 6 — MASTER MOC-0.7.2-HAL-001 FINAL SIGN-OFF CHECKLIST
                  100% closed (`33/33 [ok]`, `backup/0.7.2-move-3b`).
 [ ] [CLOSE-M4]   Move 4 + Companion Unit Procedure 2 (`M4 - Implementation`)
                  100% closed (`40/40 [ok]`, Dual-Zone Firewall `GREEN`, 65,025-case
-                 Identity Matrix `PASS`, `backup/0.7.2-move-4`).
+                 Identity Matrix `PASS`, `backup/0.7.2-move-4`, `[M4C-SMOKE]` qualified).
+[x] [FAT-AUDIT-SYNC] Reconcile all defects discovered & remediated during Moves 1–4
+                 (`CHANGELOG_v0.7.2.md` & unit procedures) into `[ko->test]` entries with
+                 `Bug:` / `Remediation:` in `FAT/2026-11-15 FAT 0.7.2.txt` (`37 [ko->test]`
+                 across `399` tests) prior to formal FAT.
+[x] [GIT-REPLAY] Replay preserved `backup/0.7.2-move-*` tags into sequential per-gate
+                 commits on `hal-v0.7.2` prior to formal `FAT 0.7.2` qualification.
 [ ] [CLOSE-MOC]  All 3 `MOC-0.7.2-HAL-001` Audit Documents (`[DOC-01..03]`) 100%
                  synchronized & closed, 3-compositor `FAT 0.7.2` signed off by
                  Sergio Melas (`0 [ko]`), `hal/Interfaces/` frozen for `v0.7.3`.

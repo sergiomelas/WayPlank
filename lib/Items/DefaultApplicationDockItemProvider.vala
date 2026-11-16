@@ -550,6 +550,32 @@ namespace Plank
 			if (pinned.size == 0)
 				return hidden;
 
+			var usage = AppUsageService.get_default ();
+			if (Prefs.PinnedAccordionMode == DockPreferences.PINNED_ACCORDION_TOP_N) {
+				int top_n = Prefs.PinnedAccordionCount;
+				if (pinned.size <= top_n)
+					return hidden;
+
+				var ranked = new Gee.ArrayList<ApplicationDockItem> ();
+				ranked.add_all (pinned);
+				ranked.sort ((a, b) => {
+					var score_a = usage.get_score (a.Launcher);
+					var score_b = usage.get_score (b.Launcher);
+					int64 bucket_a = (int64) Math.round (score_a / AppUsageService.TIE_EPSILON);
+					int64 bucket_b = (int64) Math.round (score_b / AppUsageService.TIE_EPSILON);
+					if (bucket_a != bucket_b)
+						return (bucket_a > bucket_b) ? -1 : 1;
+					return pinned.index_of (a) - pinned.index_of (b);
+				});
+
+				for (int i = top_n; i < ranked.size; i++) {
+					var app = ranked.get (i);
+					if (!is_pinned_app_always_visible (app))
+						hidden.add (app);
+				}
+				return hidden;
+			}
+
 			var candidates = new Gee.ArrayList<ApplicationDockItem> ();
 			int always_visible = 0;
 			foreach (var app in pinned) {
@@ -559,36 +585,30 @@ namespace Plank
 					candidates.add (app);
 			}
 
-			int habitual;
-			if (Prefs.PinnedAccordionMode == DockPreferences.PINNED_ACCORDION_TOP_N) {
-				habitual = Prefs.PinnedAccordionCount;
-			} else {
-				if (dock == null)
-					return hidden;
-				double capacity = dock.position_manager.get_preferred_slot_capacity ();
-				// Geometry not ready yet (startup): show everything, we are re-run afterwards
-				if (capacity < 0.0)
-					return hidden;
+			if (dock == null)
+				return hidden;
+			double capacity = dock.position_manager.get_preferred_slot_capacity ();
+			// Geometry not ready yet (startup): show everything, we are re-run afterwards
+			if (capacity < 0.0)
+				return hidden;
 
-				// Slots taken by everything which is not a pinned app (+0.5 for the expander).
-				// Separators are counted structurally so that the result does not depend on
-				// the separator clean-up pass.
-				double used = 0.5 + always_visible;
-				foreach (var element in internal_elements) {
-					if (is_pinned_app_element (element) || element is PinnedExpanderDockItem)
-						continue;
-					if (element is SeparatorDockItem)
-						used += 0.5;
-					else if (element.IsAttached)
-						used += 1.0;
-				}
-				habitual = int.max (1, (int) Math.floor (capacity - used));
+			// Slots taken by everything which is not a pinned app (+0.5 for the expander).
+			// Separators are counted structurally so that the result does not depend on
+			// the separator clean-up pass.
+			double used = 0.5 + always_visible;
+			foreach (var element in internal_elements) {
+				if (is_pinned_app_element (element) || element is PinnedExpanderDockItem)
+					continue;
+				if (element is SeparatorDockItem)
+					used += 0.5;
+				else if (element.IsAttached)
+					used += 1.0;
 			}
+			int habitual = int.max (1, (int) Math.floor (capacity - used));
 
 			if (candidates.size <= habitual)
 				return hidden;
 
-			var usage = AppUsageService.get_default ();
 			candidates.sort ((a, b) => {
 				var score_a = usage.get_score (a.Launcher);
 				var score_b = usage.get_score (b.Launcher);

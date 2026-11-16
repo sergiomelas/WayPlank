@@ -77,61 +77,10 @@ namespace Plank
 			items.add (new Gtk.SeparatorMenuItem ());
 			
 			unowned DockController? controller = get_dock ();
-			if (controller != null) {
-				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
-				if (default_provider != null) {
-					var docklets_item = create_menu_item (_("_Docklets"), "system-run", true);
-					var docklets_menu = new Gtk.Menu ();
-					DockletMenuEntry[] docklets = {
-						{ _("_Trash"), "docklet://trash" },
-						{ _("_Analog Clock"), "docklet://clock" },
-						{ _("_Digital Clock"), "docklet://digital-clock" },
-						{ _("_Battery"), "docklet://battery" },
-						{ _("_CPU / RAM Monitor"), "docklet://cpu" },
-						{ _("_Show Desktop"), "docklet://desktop" },
-						{ _("_Media Player"), "docklet://mpris" },
-						{ _("_Volume Control"), "docklet://volume" },
-						{ _("_Screenshot"), "docklet://screenshot" },
-						{ _("_Session / Power"), "docklet://session" },
-						{ _("_Screen Brightness"), "docklet://brightness" },
-						{ _("_Removable Drives"), "docklet://ejector" },
-						{ _("_Weather Forecast"), "docklet://weather" },
-						{ _("_Network / Wi-Fi"), "docklet://network" },
-						{ _("_Do Not Disturb"), "docklet://dnd" }
-					};
-					foreach (var d in docklets) {
-						var d_uri = d.uri;
-						var c_item = new Gtk.CheckMenuItem.with_mnemonic (d.label);
-						c_item.active = (default_provider.item_for_uri (d_uri) != null);
-						c_item.toggled.connect (() => {
-							if (c_item.active) {
-								if (default_provider.item_for_uri (d_uri) == null)
-									default_provider.add_item_with_uri (d_uri);
-							} else {
-								var to_remove = new Gee.ArrayList<DockItem> ();
-								foreach (var el in default_provider.Elements) {
-									unowned DockItem? dock_item = el as DockItem;
-									if (dock_item == null)
-										continue;
-									if (dock_item.Launcher == d_uri || (d_uri == "docklet://trash" && dock_item is TrashDockItem))
-										to_remove.add (dock_item);
-								}
-								foreach (var di in to_remove) {
-									if (default_provider.Elements.contains (di))
-										default_provider.remove (di);
-									di.delete ();
-								}
-							}
-							default_provider.refresh_separators ();
-						});
-						docklets_menu.add (c_item);
-					}
-					
-					docklets_menu.show_all ();
-					docklets_item.set_submenu (docklets_menu);
-					items.add (docklets_item);
-					items.add (new Gtk.SeparatorMenuItem ());
-				}
+			var docklets_item = PreferencesDockItem.create_docklets_submenu_item (controller);
+			if (docklets_item != null) {
+				items.add (docklets_item);
+				items.add (new Gtk.SeparatorMenuItem ());
 			}
 			
 			item = create_menu_item (_("_Preferences"), "preferences-system", true);

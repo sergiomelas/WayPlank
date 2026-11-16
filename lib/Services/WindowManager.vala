@@ -135,6 +135,7 @@ namespace Plank
 					ApplicationIdentity.on_window_opened (w, false, total, idx);
 				}
 			}
+			ApplicationIdentity.resolve_unresolved_browser_windows ();
 		}
 
 		static bool is_same_non_geometry_state (Gee.ArrayList<WindowInfo>? prev, Gee.ArrayList<WindowInfo> next)

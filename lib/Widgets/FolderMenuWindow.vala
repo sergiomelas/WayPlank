@@ -1023,9 +1023,9 @@ namespace Plank
 					var item = DockElement.create_menu_item (s, values.length > 1 ? values[1] : "", true);
 					item.activate.connect (() => {
 						if (action_id != null && action_id != "") {
-							Hal.Apps.launch_action (uri, action_id, fallback_cmd, System.get_default ().context);
+							Hal.Apps.launch_action (uri, action_id, fallback_cmd);
 						} else if (fallback_cmd != "") {
-							Hal.Apps.launch_command (fallback_cmd, "", System.get_default ().context);
+							Hal.Apps.launch_command (fallback_cmd);
 						}
 						close_menu (true);
 					});

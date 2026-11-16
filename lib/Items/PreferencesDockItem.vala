@@ -75,6 +75,122 @@ namespace Plank
 			return AnimationType.NONE;
 		}
 
+		class DockletsSubmenuBatcher : GLib.Object
+		{
+			GLib.WeakRef menu_ref;
+			GLib.WeakRef controller_ref;
+			bool applied = false;
+			bool root_hooked = false;
+
+			public DockletsSubmenuBatcher (Gtk.Menu submenu, DockController controller)
+			{
+				menu_ref = GLib.WeakRef (submenu);
+				controller_ref = GLib.WeakRef (controller);
+			}
+
+			public void on_item_parent_set (Gtk.Widget item, Gtk.Widget? old_parent)
+			{
+				if (root_hooked)
+					return;
+				unowned Gtk.Menu? root_menu = item.get_parent () as Gtk.Menu;
+				if (root_menu != null) {
+					root_hooked = true;
+					root_menu.hide.connect (apply);
+				}
+			}
+
+			public void apply ()
+			{
+				if (applied)
+					return;
+				applied = true;
+				var submenu = menu_ref.get () as Gtk.Menu;
+				var controller = controller_ref.get () as DockController;
+				if (submenu == null || controller == null)
+					return;
+				PreferencesDockItem.apply_docklets_submenu_changes (submenu, controller);
+			}
+		}
+
+		static bool on_docklet_check_button_release (Gtk.Widget widget, Gdk.EventButton event)
+		{
+			if (event.button == Gdk.BUTTON_PRIMARY || event.button == Gdk.BUTTON_SECONDARY) {
+				unowned Gtk.CheckMenuItem? check = widget as Gtk.CheckMenuItem;
+				if (check != null)
+					check.active = !check.active;
+				return Gdk.EVENT_STOP;
+			}
+			return Gdk.EVENT_PROPAGATE;
+		}
+
+		static bool on_docklet_menu_key_press (Gtk.Widget widget, Gdk.EventKey event)
+		{
+			if (event.keyval == Gdk.Key.space || event.keyval == Gdk.Key.Return || event.keyval == Gdk.Key.KP_Enter) {
+				unowned Gtk.Menu? m = widget as Gtk.Menu;
+				unowned Gtk.CheckMenuItem? check = (m != null) ? (m.get_selected_item () as Gtk.CheckMenuItem) : null;
+				if (check != null) {
+					check.active = !check.active;
+					return Gdk.EVENT_STOP;
+				}
+			}
+			return Gdk.EVENT_PROPAGATE;
+		}
+
+		internal static void apply_docklets_submenu_changes (Gtk.Menu docklets_menu, DockController controller)
+		{
+			unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+			if (default_provider == null)
+				return;
+
+			bool changed = false;
+			foreach (var child in docklets_menu.get_children ()) {
+				unowned Gtk.CheckMenuItem? check = child as Gtk.CheckMenuItem;
+				if (check == null)
+					continue;
+				unowned string? d_uri = check.get_data<string> ("wayplank-docklet-uri");
+				if (d_uri == null || d_uri == "")
+					continue;
+
+				bool exists = (default_provider.item_for_uri (d_uri) != null);
+				if (check.active && !exists) {
+					if (default_provider.add_item_with_uri (d_uri))
+						changed = true;
+				} else if (!check.active && exists) {
+					var to_remove = new Gee.ArrayList<DockItem> ();
+					foreach (var el in default_provider.Elements) {
+						unowned DockItem? item = el as DockItem;
+						if (item == null)
+							continue;
+						if (DockItemProvider.uri_matches (item.Launcher, d_uri) || (d_uri == "docklet://trash" && item is TrashDockItem))
+							to_remove.add (item);
+					}
+					foreach (var di in to_remove) {
+						if (default_provider.Elements.contains (di))
+							default_provider.remove (di);
+						di.delete ();
+						changed = true;
+					}
+				}
+			}
+
+			if (!changed)
+				return;
+
+			default_provider.refresh_separators ();
+			if (controller.renderer != null && controller.renderer.theme != null) {
+				controller.update_items ();
+				controller.position_manager.update (controller.renderer.theme);
+				controller.renderer.reset_buffers ();
+				controller.renderer.animated_draw ();
+				controller.schedule_serialize_item_positions ();
+				if (controller.window != null) {
+					controller.window.update_size_and_position ();
+					controller.window.update_icon_regions ();
+					controller.window.set_input_mask ();
+				}
+			}
+		}
+
 		public static Gtk.MenuItem? create_docklets_submenu_item (DockController? controller)
 		{
 			if (controller == null)
@@ -103,32 +219,17 @@ namespace Plank
 				{ _("_Do Not Disturb"), "docklet://dnd" }
 			};
 			foreach (var d in docklets) {
-				var d_uri = d.uri;
 				var c_item = new Gtk.CheckMenuItem.with_mnemonic (d.label);
-				c_item.active = (default_provider.item_for_uri (d_uri) != null);
-				c_item.toggled.connect (() => {
-					if (c_item.active) {
-						if (default_provider.item_for_uri (d_uri) == null)
-							default_provider.add_item_with_uri (d_uri);
-					} else {
-						var to_remove = new Gee.ArrayList<DockItem> ();
-						foreach (var el in default_provider.Elements) {
-							unowned DockItem? item = el as DockItem;
-							if (item == null)
-								continue;
-							if (item.Launcher == d_uri || (d_uri == "docklet://trash" && item is TrashDockItem))
-								to_remove.add (item);
-						}
-						foreach (var di in to_remove) {
-							if (default_provider.Elements.contains (di))
-								default_provider.remove (di);
-							di.delete ();
-						}
-					}
-					default_provider.refresh_separators ();
-				});
+				c_item.active = (default_provider.item_for_uri (d.uri) != null);
+				c_item.set_data_full ("wayplank-docklet-uri", d.uri.dup (), GLib.g_free);
+				c_item.button_release_event.connect (on_docklet_check_button_release);
 				docklets_menu.add (c_item);
 			}
+			docklets_menu.key_press_event.connect (on_docklet_menu_key_press);
+
+			var batcher = new DockletsSubmenuBatcher (docklets_menu, controller);
+			docklets_item.set_data<DockletsSubmenuBatcher> ("wayplank-docklets-batcher", batcher);
+			docklets_item.parent_set.connect (batcher.on_item_parent_set);
 
 			docklets_menu.show_all ();
 			docklets_item.set_submenu (docklets_menu);

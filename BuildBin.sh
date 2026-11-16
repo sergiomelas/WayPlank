@@ -43,6 +43,15 @@ trap cleanup_build_artifacts EXIT
 mkdir -p "$OUT_DIR"
 rm -f "${OUT_DIR}/wayplank"
 
+echo "🛡️ Verifying Dual-Zone HAL Purity Firewall (Zone 1 Core + Zone 2 HAL Interfaces)..."
+HAL_FIREWALL_REGEX='GtkLayerShell|GdkWayland|GdkX11|GdkWin32|Posix\.|GLib\.Unix|UnixFDList|UnixInputStream|sys/prctl\.h|unistd\.h|DesktopAppInfo|GDesktopAppInfo|VolumeMonitor|RecentManager|show_uri|\[DBus|DBusConnection|DBusProxy|DBusManager|DBusClient|BusType\.|Bus\.(get|own_name|watch_name)|UnityClient|IPortalThemeBus|/proc/|/sys/|/dev/i2c|trash://|WindowControl|WindowCapabilities|\bWindowBackend\b|KWin|MutterBackend|LabwcBackend|WlrBridge|SurfaceCoordinateService|BrightnessControl|XdgSession|environment_is_session_|Shell\.parse_argv|has_prefix\s*\(\s*"/"|Win32|HWND|\bAppInfo\.|AppLaunchContext|KeyFileDesktop|"Desktop Entry"|"Desktop Action "|\.desktop"|applications?://|Shell\.quote|xdg-open|has_prefix\s*\(\s*"~/|XDG_CURRENT_DESKTOP|/var/lib/(snapd|flatpak)|/opt/google|/usr/(local/)?share|/tmp/\.mount_|Dbusmenu|HAVE_DBUSMENU|x-(desktop|gnome-app-info|kde-appmenu)'
+if FIREWALL_HITS="$(grep -rnE --exclude="resources.c" "$HAL_FIREWALL_REGEX" "${BASE_DIR}/src" "${BASE_DIR}/lib" "${BASE_DIR}/hal/Interfaces" "${BASE_DIR}/vapi/core" || true)" && [ -n "$FIREWALL_HITS" ]; then
+    echo "❌ HAL PURITY FIREWALL VIOLATION DETECTED:"
+    echo "$FIREWALL_HITS"
+    exit 1
+fi
+echo "   ✅ Dual-Zone HAL Purity Firewall GREEN (0 leaks across src/, lib/, hal/Interfaces/, vapi/core/)."
+
 echo "🌍 Generating and compiling embedded localization dictionaries..."
 python3 "${BASE_DIR}/po/generate_translations.py"
 rm -rf "${BASE_DIR}/data/locale"

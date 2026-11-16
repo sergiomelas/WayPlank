@@ -21,11 +21,10 @@
 namespace Plank
 {
 	/**
-	 * Wayland-native process matcher.
+	 * Agnostic fallback process matcher used when no compositor window backend state is active.
 	 */
 	public class Matcher : GLib.Object
 	{
-
 		public signal void active_window_changed (string? old_win_id, string? new_win_id);
 		public signal void window_opened (string win_id);
 		public signal void window_closed (string win_id);
@@ -44,6 +43,14 @@ namespace Plank
 			return matcher;
 		}
 
+		public static void cleanup_if_active ()
+		{
+			if (matcher != null) {
+				matcher.cleanup ();
+				matcher = null;
+			}
+		}
+
 		// CRITICAL GOBJECT LIFECYCLE INITIALIZATION:
 		// These collections MUST be initialized inline at field declaration.
 		// In GObject/Vala, the 'construct {}' block executes BEFORE the 'Matcher ()'
@@ -53,23 +60,34 @@ namespace Plank
 		Gee.HashSet<string> active_apps = new Gee.HashSet<string> ();
 		Gee.HashSet<int> known_pids = new Gee.HashSet<int> ();
 		bool initial_scan_done = false;
+		bool is_cleaned_up = false;
+		uint scan_timer_id = 0U;
 
 		private Matcher ()
 		{
 		}
 
-		uint scan_timer_id = 0U;
+		static void schedule_scan_timer (Matcher target)
+		{
+			if (target.scan_timer_id > 0U)
+				return;
+			GLib.WeakRef weak_self = GLib.WeakRef (target);
+			target.scan_timer_id = GLib.Timeout.add_seconds (5, () => {
+				var self = (Matcher?) weak_self.get ();
+				if (self == null || self.is_cleaned_up)
+					return GLib.Source.REMOVE;
+				if (!Hal.Windows.has_state ())
+					self.scan_running_applications ();
+				return GLib.Source.CONTINUE;
+			});
+		}
 
 		construct
 		{
-			// Only scan /proc if no compositor window-control is providing live state
+			// Only scan user processes if no compositor window backend is providing live state
 			if (!Hal.Windows.has_state ()) {
 				scan_running_applications ();
-				scan_timer_id = GLib.Timeout.add_seconds (5, () => {
-					if (!Hal.Windows.has_state ())
-						scan_running_applications ();
-					return true;
-				});
+				schedule_scan_timer (this);
 			}
 
 			Hal.Windows.state_changed.connect (on_window_control_state_changed);
@@ -77,294 +95,253 @@ namespace Plank
 
 		void on_window_control_state_changed ()
 		{
+			if (is_cleaned_up)
+				return;
 			if (Hal.Windows.has_state () && scan_timer_id > 0U) {
 				GLib.Source.remove (scan_timer_id);
 				scan_timer_id = 0U;
 			} else if (!Hal.Windows.has_state () && scan_timer_id == 0U) {
 				scan_running_applications ();
-				scan_timer_id = GLib.Timeout.add_seconds (5, () => {
-					if (!Hal.Windows.has_state ())
-						scan_running_applications ();
-					return true;
-				});
+				schedule_scan_timer (this);
 			}
 		}
 
-		~Matcher ()
+		public void cleanup ()
 		{
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
 			Hal.Windows.state_changed.disconnect (on_window_control_state_changed);
 			if (scan_timer_id > 0U) {
 				GLib.Source.remove (scan_timer_id);
 				scan_timer_id = 0U;
 			}
-			matcher = null;
+		}
+
+		~Matcher ()
+		{
+			cleanup ();
+			if (matcher == this)
+				matcher = null;
+		}
+
+		static string basename_any_slash (string raw)
+		{
+			string s = raw.replace ("\\", "/");
+			while (s.length > 1 && s.has_suffix ("/"))
+				s = s.substring (0, s.length - 1);
+			int idx = s.last_index_of_char ('/');
+			return idx >= 0 ? s.substring (idx + 1) : s;
+		}
+
+		private string resolve_trackable_launcher_uri (string comm)
+		{
+			string resolved = Hal.Apps.resolve_launcher_uri (comm);
+			if (resolved == "")
+				resolved = Hal.Apps.resolve_launcher_uri (comm.down ());
+			if (resolved == "") {
+				var df = ApplicationDiscovery.get_default ().desktop_file_for_id (comm);
+				if (df != null)
+					resolved = df.get_uri ();
+			}
+			if (resolved == "")
+				return "";
+
+			var desc = Hal.Apps.load_launcher (resolved);
+			if (desc == null || desc.is_non_app_launcher || desc.is_nodisplay || desc.is_hidden)
+				return "";
+
+			string low_id = desc.base_id.down ();
+			foreach (var cat in desc.categories) {
+				if (cat == "Core" || cat == "System" || cat == "Settings") {
+					if (low_id.contains ("kded") || low_id.contains ("kwallet") || low_id.contains ("at-spi"))
+						return "";
+				}
+			}
+
+			return desc.uri != "" ? desc.uri : resolved;
 		}
 
 		private void scan_running_applications ()
 		{
-			try {
-				var dir = GLib.Dir.open ("/proc", 0);
-				string? name = null;
-				Gee.HashSet<int> current_pids = new Gee.HashSet<int> ();
-				var my_uid = Posix.getuid ();
+			var snapshots = Hal.Apps.scan_user_processes ();
+			var current_pids = new Gee.HashSet<int> ();
 
-				while ((name = dir.read_name ()) != null) {
-					int pid = int.parse (name);
-					if (pid <= 0)
-						continue;
+			foreach (var snap in snapshots) {
+				if (snap.pid <= 0 || !snap.uid_matches_self)
+					continue;
 
-					Posix.Stat st;
-					if (Posix.stat ("/proc/%s".printf (name), out st) != 0 || st.st_uid != my_uid)
-						continue;
-
-					current_pids.add (pid);
-					if (!initial_scan_done || !known_pids.contains (pid)) {
-						string comm_path = "/proc/%s/comm".printf (name);
-						string comm = "";
-						if (GLib.FileUtils.get_contents (comm_path, out comm)) {
-							comm = comm.strip ();
-							if (comm != "" && comm != "wayplank") {
-								// Check common desktop file ID patterns generically
-								string[] possible_ids = {
-									comm + ".desktop",
-									"org.kde." + comm + ".desktop",
-									"org.gnome." + comm + ".desktop",
-									comm.down () + ".desktop"
-								};
-
-								foreach (var id in possible_ids) {
-									if (desktop_file_exists_in_system (id)) {
-										register_process_for_app (id, pid);
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
-
-				// Remove PIDs that no longer exist in /proc
-				foreach (var app_id in app_pids.keys.to_array ()) {
-					var pids = app_pids.get (app_id);
-					var dead_pids = new Gee.HashSet<int> ();
-					foreach (var pid in pids) {
-						if (!current_pids.contains (pid)) {
-							dead_pids.add (pid);
-						}
-					}
-					foreach (var dead in dead_pids) {
-						unregister_process_for_app (app_id, dead);
-					}
-				}
-
-				bool pids_changed = !initial_scan_done || (current_pids.size != known_pids.size);
-				if (!pids_changed) {
-					foreach (var pid in current_pids) {
-						if (!known_pids.contains (pid)) {
-							pids_changed = true;
-							break;
-						}
-					}
-				}
-
-				if (pids_changed) {
-					known_pids.clear ();
-					known_pids.add_all (current_pids);
-					initial_scan_done = true;
-					processes_changed ();
-				}
-			} catch (Error e) {
-				warning ("Errors during Process Scan: %s", e.message);
-			}
-		}
-
-		private bool desktop_file_exists_in_system (string app_id)
-		{
-			var search_dirs = new Gee.ArrayList<File> ();
-			search_dirs.add (Paths.DataHomeFolder.get_child ("applications"));
-			foreach (var folder in Paths.DataDirFolders) {
-				search_dirs.add (folder.get_child ("applications"));
-			}
-
-			foreach (var app_dir in search_dirs) {
-				var desktop_file = app_dir.get_child (app_id);
-				if (desktop_file.query_exists ()) {
-					// Filter system daemons, KDED/KWallet services, and hidden apps
-					try {
-						var key_file = new GLib.KeyFile ();
-						key_file.load_from_file (desktop_file.get_path (), GLib.KeyFileFlags.NONE);
-						
-						if (key_file.has_key ("Desktop Entry", "NoDisplay") && key_file.get_boolean ("Desktop Entry", "NoDisplay"))
-							return false;
-						if (key_file.has_key ("Desktop Entry", "Hidden") && key_file.get_boolean ("Desktop Entry", "Hidden"))
-							return false;
-							
-						string[] categories = {};
-						if (key_file.has_key ("Desktop Entry", "Categories"))
-							categories = key_file.get_string_list ("Desktop Entry", "Categories");
-							
-						// Discard system services or pure daemons without user categories
-						bool is_service = false;
-						foreach (var cat in categories) {
-							if (cat == "Core" || cat == "System" || cat == "Settings") {
-								// Check whether it is a valid settings app or a pure service
-								if (app_id.contains ("kded") || app_id.contains ("kwallet") || app_id.contains ("at-spi")) {
-									is_service = true;
-								}
-							}
-						}
-						if (is_service)
-							return false;
-
-						return true;
-					} catch (Error e) {
-						return true; // Fallback if parsing fails but the file exists
+				current_pids.add (snap.pid);
+				if (!initial_scan_done || !known_pids.contains (snap.pid)) {
+					string comm = snap.executable_comm.strip ();
+					if (comm != "" && !Hal.Apps.is_self_launcher (comm) && !ApplicationDiscovery.is_ignored_app (comm)) {
+						string app_uri = resolve_trackable_launcher_uri (comm);
+						if (app_uri != "")
+							register_process_for_app (app_uri, snap.pid);
 					}
 				}
 			}
-			return false;
+
+			// Remove PIDs that are no longer alive
+			foreach (var app_id in app_pids.keys.to_array ()) {
+				var pids = app_pids.get (app_id);
+				var dead_pids = new Gee.HashSet<int> ();
+				foreach (var pid in pids) {
+					if (!current_pids.contains (pid))
+						dead_pids.add (pid);
+				}
+				foreach (var dead in dead_pids)
+					unregister_process_for_app (app_id, dead);
+			}
+
+			bool pids_changed = !initial_scan_done || (current_pids.size != known_pids.size);
+			if (!pids_changed) {
+				foreach (var pid in current_pids) {
+					if (!known_pids.contains (pid)) {
+						pids_changed = true;
+						break;
+					}
+				}
+			}
+
+			if (pids_changed) {
+				known_pids.clear ();
+				known_pids.add_all (current_pids);
+				initial_scan_done = true;
+				processes_changed ();
+			}
 		}
 
 		public Gee.ArrayList<string> active_launchers ()
 		{
 			var list = new Gee.ArrayList<string> ();
-			foreach (var app in active_apps) {
+			foreach (var app in active_apps)
 				list.add (app);
-			}
 			return list;
 		}
 
 		public bool is_launcher_running (string launcher_uri)
 		{
-			try {
-				var launcher_file = File.new_for_uri (launcher_uri);
-				var launcher_name = launcher_file.get_basename ().down ();
-				var keyfile = new KeyFile ();
-				keyfile.load_from_file (launcher_file.get_path (), KeyFileFlags.NONE);
+			if (launcher_uri == "")
+				return false;
 
-				var candidates = new Gee.ArrayList<string> ();
-				candidates.add (launcher_name);
+			var desc = Hal.Apps.load_launcher (launcher_uri);
+			if (desc == null)
+				return false;
 
-				var exec = keyfile.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-				string[] parts;
-				try {
-					GLib.Shell.parse_argv (exec, out parts);
-				} catch (Error e) {
-					parts = exec.split (" ");
+			var swmc = desc.startup_wm_class_or_aumid.strip ().down ();
+			if (swmc.has_prefix ("crx_") || swmc.contains ("_crx_"))
+				return false;
+
+			var candidates = new Gee.ArrayList<string> ();
+			if (desc.base_id != "")
+				candidates.add (desc.base_id.down ());
+			string stem = Hal.Apps.launcher_id_stem (launcher_uri).down ();
+			if (stem != "" && !candidates.contains (stem))
+				candidates.add (stem);
+
+			var exec = desc.exec_command.strip ();
+			string[] parts = exec != "" ? Hal.Runtime.parse_command_argv (exec) : new string[] {};
+			if (parts.length == 0 && exec != "")
+				parts = exec.split (" ");
+
+			if (parts.length > 0) {
+				var executable = Hal.Runtime.expand_path_variables (parts[0]).replace ("\"", "").replace ("'", "");
+				if (executable != "") {
+					string exe_base = basename_any_slash (executable).down ();
+					if (exe_base != "" && !candidates.contains (exe_base))
+						candidates.add (exe_base);
+					add_script_candidates (executable, candidates, 0);
 				}
-				if (parts.length > 0) {
-					var executable = parts[0].replace ("\"", "").replace ("'", "");
-					if (executable != "") {
-						candidates.add (File.new_for_path (executable).get_basename ().down ());
-						add_script_candidates (executable, candidates, 0);
-					}
-				}
+			}
 
-				if (keyfile.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
-					var swmc = keyfile.get_string (KeyFileDesktop.GROUP, "StartupWMClass").strip ().down ();
-					if (swmc.has_prefix ("crx_"))
-						return false;
+			string? specific_arg = null;
+			for (int i = 1; i < parts.length; i++) {
+				var p = Hal.Runtime.expand_path_variables (parts[i]).strip ().replace ("\"", "").replace ("'", "");
+				if (p.has_prefix ("--app-id=") || p.has_prefix ("--app="))
+					return false;
+				if (p.has_prefix ("--profile-directory=")) {
+					specific_arg = p.slice (20, p.length).down ();
+					break;
 				}
-
-				string? specific_arg = null;
-				for (int i = 1; i < parts.length; i++) {
-					var p = parts[i].strip ().replace ("\"", "").replace ("'", "");
-					if (p.has_prefix ("--app-id=") || p.has_prefix ("--app="))
-						return false;
-					if (p.has_prefix ("--profile-directory=")) {
-						specific_arg = p.slice (20, p.length).down ();
+				bool is_field_code = (p.length == 2 && p[0] == '%');
+				if (p != "" && !p.has_prefix ("-") && !is_field_code) {
+					var basename = basename_any_slash (p).down ();
+					if (basename != "" && basename != ".") {
+						specific_arg = basename;
 						break;
 					}
-					if (p != "" && !p.has_prefix ("-") && !p.has_prefix ("%")) {
-						var basename = File.new_for_path (p).get_basename ().down ();
-						if (basename != "" && basename != ".") {
-							specific_arg = basename;
-							break;
-						}
-					}
+				}
+			}
+
+			var snapshots = Hal.Apps.scan_user_processes ();
+			foreach (var snap in snapshots) {
+				if (snap.pid <= 0 || !snap.uid_matches_self)
+					continue;
+
+				var comm = snap.executable_comm.strip ().down ();
+				var cmdline_down = snap.full_cmdline.down ();
+
+				if (specific_arg != null && specific_arg != "") {
+					if (cmdline_down.contains (specific_arg))
+						return true;
+					continue;
 				}
 
-				var my_uid = Posix.getuid ();
-				var dir = GLib.Dir.open ("/proc", 0);
-				string? name = null;
-				while ((name = dir.read_name ()) != null) {
-					int pid = int.parse (name);
-					if (pid <= 0)
-						continue;
-
-					Posix.Stat st;
-					if (Posix.stat ("/proc/%s".printf (name), out st) != 0 || st.st_uid != my_uid)
-						continue;
-
-					string comm = "";
-					string cmdline = "";
-					GLib.FileUtils.get_contents ("/proc/%s/comm".printf (name), out comm);
-					GLib.FileUtils.get_contents ("/proc/%s/cmdline".printf (name), out cmdline);
-					comm = comm.strip ().down ();
-					var cmdline_down = cmdline.replace ("\0", " ").down ();
-
-					if (specific_arg != null && specific_arg != "") {
-						if (cmdline_down.contains (specific_arg))
-							return true;
-						continue;
-					}
-
-					var argv0 = cmdline_down.split (" ")[0];
-					var bin_name = File.new_for_path (argv0).get_basename ();
-					foreach (var candidate in candidates) {
-						if (candidate != "" && (comm == candidate || bin_name == candidate || (comm.length >= 15 && candidate.has_prefix (comm))))
-							return true;
-					}
+				string argv0 = snap.cmdline_argv.length > 0
+					? snap.cmdline_argv[0].down ()
+					: cmdline_down.split (" ")[0];
+				var bin_name = basename_any_slash (argv0);
+				foreach (var candidate in candidates) {
+					if (candidate != "" && (comm == candidate || bin_name == candidate || (comm.length >= 15 && candidate.has_prefix (comm))))
+						return true;
 				}
-			} catch (Error e) {
-				debug ("Unable to match launcher process '%s': %s", launcher_uri, e.message);
 			}
 
 			return false;
 		}
 
-		void add_script_candidates (string script_path, Gee.ArrayList<string> candidates, int depth)
+		void add_script_candidates (string script_exe, Gee.ArrayList<string> candidates, int depth)
 		{
-			if (depth >= 4 || !File.new_for_path (script_path).query_exists ())
+			if (depth >= 4 || script_exe == "")
 				return;
 
-			string script = "";
-			try {
-				if (!GLib.FileUtils.get_contents (script_path, out script) || !script.has_prefix ("#!"))
-					return;
-			} catch (FileError e) {
-				debug ("Unable to read launcher script '%s': %s", script_path, e.message);
+			string resolved_path = "";
+			string script = Hal.Apps.read_wrapper_script (script_exe, out resolved_path);
+			if (script == "" || resolved_path == "" || !script.has_prefix ("#!"))
 				return;
-			}
 
-			var script_dir = File.new_for_path (script_path).get_parent ();
+			var script_dir = File.new_for_path (resolved_path).get_parent ();
 			foreach (var token in script.split (" ")) {
 				var path = token.strip ().replace ("\"", "").replace ("'", "").replace ("\n", "");
-				if (path.has_prefix ("$HERE/"))
-					path = script_dir.get_child (path.substring (6)).get_path ();
-				if (!path.has_prefix ("/"))
+				if (path.has_prefix ("$HERE/") && script_dir != null) {
+					string? joined = script_dir.get_child (path.substring (6)).get_path ();
+					if (joined != null)
+						path = joined;
+				}
+				if (!Path.is_absolute (path))
 					continue;
 
-				var candidate = File.new_for_path (path).get_basename ().down ();
-				if (candidate == null || candidate == "")
+				var candidate = basename_any_slash (path).down ();
+				if (candidate == "")
 					continue;
 
-				candidates.add (candidate);
+				if (!candidates.contains (candidate))
+					candidates.add (candidate);
 				add_script_candidates (path, candidates, depth + 1);
 			}
 		}
 
 		public string? app_for_uri (string uri)
 		{
-			string launcher;
+			if (!uri.has_prefix ("file://"))
+				return uri != "" ? uri : null;
 			try {
-				launcher = Filename.from_uri (uri);
+				return Filename.from_uri (uri);
 			} catch (ConvertError e) {
 				warning (e.message);
 				return null;
 			}
-
-			return launcher;
 		}
 
 		public void set_favorites (Gee.ArrayList<string> favs)
@@ -374,14 +351,12 @@ namespace Plank
 
 		public void register_process_for_app (string app_id, int pid)
 		{
-			if (!app_pids.has_key (app_id)) {
+			if (!app_pids.has_key (app_id))
 				app_pids.set (app_id, new Gee.HashSet<int> ());
-			}
 			app_pids.get (app_id).add (pid);
 
-			if (active_apps.add (app_id)) {
+			if (active_apps.add (app_id))
 				application_opened (app_id);
-			}
 		}
 
 		public void unregister_process_for_app (string app_id, int pid)
@@ -391,9 +366,8 @@ namespace Plank
 				pids.remove (pid);
 				if (pids.size == 0) {
 					app_pids.unset (app_id);
-					if (active_apps.remove (app_id)) {
+					if (active_apps.remove (app_id))
 						application_closed (app_id);
-					}
 				}
 			}
 		}

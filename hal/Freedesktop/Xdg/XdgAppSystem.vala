@@ -145,6 +145,9 @@ namespace Plank
 
 		Gee.HashMap<string, CachedLauncher> launcher_cache = new Gee.HashMap<string, CachedLauncher> ();
 		Gee.ArrayList<FileMonitor> dir_monitors = new Gee.ArrayList<FileMonitor> ();
+		Gee.ArrayList<FileMonitor> browser_session_monitors = new Gee.ArrayList<FileMonitor> ();
+		Gee.HashSet<string> watched_browser_session_dirs = new Gee.HashSet<string> ();
+		bool browser_session_watch_active = false;
 		Gee.ArrayList<string> extra_watched_uris = new Gee.ArrayList<string> ();
 		uint debounce_timer_id = 0U;
 
@@ -444,8 +447,11 @@ namespace Plank
 			string effective_path = local_path;
 			string dtype = "Application";
 			try {
-				if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE))
+				if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE)) {
 					dtype = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE).strip ();
+					if (dtype == KeyFileDesktop.TYPE_APPLICATION)
+						desc.has_explicit_app_type = true;
+				}
 
 				if (dtype == KeyFileDesktop.TYPE_LINK) {
 					string link_target = "";
@@ -468,6 +474,8 @@ namespace Plank
 							dtype = KeyFileDesktop.TYPE_APPLICATION;
 							if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE))
 								dtype = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE).strip ();
+							if (dtype == KeyFileDesktop.TYPE_APPLICATION)
+								desc.has_explicit_app_type = true;
 						} else {
 							desc.is_non_app_launcher = true;
 						}
@@ -1135,8 +1143,15 @@ namespace Plank
 			}
 		}
 
-		public bool launch_app (string launcher_uri, string[] uris, GLib.AppLaunchContext? context = null)
+		static GLib.AppLaunchContext get_display_launch_context ()
 		{
+			var display = Gdk.Display.get_default ();
+			return display != null ? display.get_app_launch_context () : new GLib.AppLaunchContext ();
+		}
+
+		public bool launch_app (string launcher_uri, string[] uris)
+		{
+			var context = get_display_launch_context ();
 			if (launcher_uri == null || launcher_uri.strip () == "") {
 				bool ok = false;
 				foreach (unowned string u in uris) {
@@ -1231,8 +1246,9 @@ namespace Plank
 			}
 		}
 
-		public bool launch_action (string launcher_uri, string action_id, string fallback_exec = "", GLib.AppLaunchContext? context = null)
+		public bool launch_action (string launcher_uri, string action_id, string fallback_exec = "")
 		{
+			var context = get_display_launch_context ();
 			if (action_id != "" && launcher_uri != "") {
 				string? path = uri_or_path_to_local_path (launcher_uri);
 				if (path == null) {
@@ -1248,12 +1264,13 @@ namespace Plank
 				}
 			}
 			if (fallback_exec != "")
-				return launch_command (fallback_exec, "", context);
+				return launch_command (fallback_exec, "");
 			return false;
 		}
 
-		public bool launch_command (string cmdline, string working_dir = "", GLib.AppLaunchContext? context = null)
+		public bool launch_command (string cmdline, string working_dir = "")
 		{
+			var context = get_display_launch_context ();
 			string clean = cmdline.strip ();
 			if (clean == "")
 				return false;
@@ -1480,7 +1497,7 @@ namespace Plank
 			string eff_name = app_name;
 			string eff_exec = exec_cmd;
 
-			if (preserve_existing_fields && FileUtils.test (file_path, FileTest.EXISTS)) {
+			if (FileUtils.test (file_path, FileTest.EXISTS)) {
 				try {
 					var existing_kf = new KeyFile ();
 					if (existing_kf.load_from_file (file_path, KeyFileFlags.NONE)) {
@@ -1489,7 +1506,7 @@ namespace Plank
 							if (ex.contains (" "))
 								eff_exec = ex;
 						}
-						if (existing_kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
+						if (preserve_existing_fields && existing_kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
 							string en = existing_kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
 							if (en != "")
 								eff_name = en;
@@ -1840,18 +1857,104 @@ namespace Plank
 			return list.to_array ();
 		}
 
+		void cancel_browser_session_monitors ()
+		{
+			foreach (var mon in browser_session_monitors)
+				mon.cancel ();
+			browser_session_monitors.clear ();
+			watched_browser_session_dirs.clear ();
+			browser_session_watch_active = false;
+		}
+
+		static void attach_browser_session_dir_monitor (XdgAppSystem target, string dir_path, int level)
+		{
+			if (dir_path == "" || target.watched_browser_session_dirs.contains (dir_path))
+				return;
+			if (!FileUtils.test (dir_path, FileTest.IS_DIR))
+				return;
+			try {
+				var mon = File.new_for_path (dir_path).monitor_directory (FileMonitorFlags.NONE, null);
+				target.watched_browser_session_dirs.add (dir_path);
+				target.browser_session_monitors.add (mon);
+				GLib.WeakRef weak_self = GLib.WeakRef (target);
+				mon.changed.connect ((f, other, ev) => {
+					var self = (XdgAppSystem?) weak_self.get ();
+					if (self == null || !self.browser_session_watch_active)
+						return;
+					string? p = f.get_path ();
+					if (p == null || p == "")
+						return;
+					string bname = Path.get_basename (p);
+					string bdown = bname.down ();
+					if (level == 0) {
+						if (bname == "Local State") {
+							self.browser_sessions_changed ();
+						} else if (bdown == "default" || bdown.has_prefix ("profile ")) {
+							attach_browser_session_dir_monitor (self, p, 1);
+							attach_browser_session_dir_monitor (self, Path.build_filename (p, "Sessions"), 2);
+							attach_browser_session_dir_monitor (self, Path.build_filename (p, "Sessions_Encrypted"), 2);
+							self.browser_sessions_changed ();
+						}
+					} else if (level == 1) {
+						if (bdown == "sessions" || bdown == "sessions_encrypted") {
+							attach_browser_session_dir_monitor (self, p, 2);
+							self.browser_sessions_changed ();
+						}
+					} else {
+						if (bdown.has_prefix ("session_"))
+							self.browser_sessions_changed ();
+					}
+				});
+			} catch { }
+		}
+
+		public void set_browser_session_watch (BrowserFamily family, bool active)
+		{
+			if (!active) {
+				if (browser_session_watch_active)
+					cancel_browser_session_monitors ();
+				return;
+			}
+			if (browser_session_watch_active)
+				return;
+
+			browser_session_watch_active = true;
+			foreach (unowned string ls_path in get_browser_local_state_paths (family)) {
+				string user_data_dir = Path.get_dirname (ls_path);
+				if (!FileUtils.test (user_data_dir, FileTest.IS_DIR))
+					continue;
+				attach_browser_session_dir_monitor (this, user_data_dir, 0);
+				try {
+					var d = Dir.open (user_data_dir, 0);
+					unowned string? entry = null;
+					while ((entry = d.read_name ()) != null) {
+						string edown = entry.down ();
+						if (edown == "default" || edown.has_prefix ("profile ")) {
+							string prof_dir = Path.build_filename (user_data_dir, entry);
+							attach_browser_session_dir_monitor (this, prof_dir, 1);
+							attach_browser_session_dir_monitor (this, Path.build_filename (prof_dir, "Sessions"), 2);
+							attach_browser_session_dir_monitor (this, Path.build_filename (prof_dir, "Sessions_Encrypted"), 2);
+						}
+					}
+				} catch { }
+			}
+		}
+
 		public bool is_os_wrapper_binary (string exe_basename)
 		{
 			string b = Path.get_basename (exe_basename).down ();
 			return (b == "env" || b == "sh" || b == "bash" || b == "dash" || b == "zsh"
-				|| b == "ksh" || b == "fish" || b == "flatpak" || b == "snap"
-				|| b == "bwrap" || b == "steam-runtime-launch-client" || b == "pressure-vessel-wrap"
+				|| b == "ksh" || b == "fish" || b == "flatpak" || b == "flatpak-spawn" || b == "snap"
+				|| b == "firejail" || b == "bwrap" || b == "xdg-open" || b == "gio"
+				|| b == "kde-open" || b == "kde-open5" || b == "kioclient" || b == "kioclient5"
+				|| b == "exo-open" || b == "gtk-launch"
+				|| b == "steam-runtime-launch-client" || b == "pressure-vessel-wrap"
 				|| b.has_prefix ("ld-linux"));
 		}
 
-		public string read_wrapper_script (string exe_or_path)
+		public string read_wrapper_script (string exe_or_path, out string resolved_path)
 		{
-			string resolved_path = "";
+			resolved_path = "";
 			if (exe_or_path.contains ("/")) {
 				if (FileUtils.test (exe_or_path, FileTest.IS_REGULAR))
 					resolved_path = exe_or_path;
@@ -1864,26 +1967,35 @@ namespace Plank
 				return "";
 
 			Posix.Stat st;
-			if (Posix.stat (resolved_path, out st) != 0 || st.st_size <= 0 || st.st_size > 16384)
+			if (Posix.stat (resolved_path, out st) != 0 || st.st_size <= 2 || st.st_size > 16384) {
+				resolved_path = "";
 				return "";
+			}
 
 			try {
 				uint8[] raw;
-				if (!FileUtils.get_data (resolved_path, out raw) || raw.length < 4)
+				if (!FileUtils.get_data (resolved_path, out raw) || raw.length < 3) {
+					resolved_path = "";
 					return "";
+				}
 
 				int check_len = int.min (raw.length, 512);
 				for (int i = 0; i < check_len; i++) {
-					if (raw[i] == 0)
+					if (raw[i] == 0) {
+						resolved_path = "";
 						return "";
+					}
 				}
 
 				string content = (string) raw;
-				if (!content.has_prefix ("#!") && !resolved_path.down ().has_suffix (".sh"))
+				if (!content.has_prefix ("#!") && !resolved_path.down ().has_suffix (".sh")) {
+					resolved_path = "";
 					return "";
+				}
 
 				return content;
 			} catch {
+				resolved_path = "";
 				return "";
 			}
 		}
@@ -2257,6 +2369,7 @@ namespace Plank
 				GLib.Source.remove (debounce_timer_id);
 				debounce_timer_id = 0U;
 			}
+			cancel_browser_session_monitors ();
 			cancel_directory_monitors ();
 			launcher_cache.clear ();
 			LinuxProcessInspector.clear_all_caches ();

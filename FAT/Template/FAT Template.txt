@@ -288,10 +288,14 @@ SESSION 1: GNOME (Mutter Backend)
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [  ] 6.12 Docklet Right-Click Context Menu Consistency:
+   [  ] 6.12 Docklet Right-Click Context Menu Consistency & Multi-Choice 'Docklets' Submenu:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
+        - Verify the right-click 'Docklets' submenu stays open across multiple
+          checkbox toggles (mouse click or Space/Enter) and applies all
+          checked/unchecked docklets and animations in one single batch upon
+          closing the menu.
    [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -335,7 +339,7 @@ SESSION 1: GNOME (Mutter Backend)
         - Preferences dialog opens centered without glitch.
         - Preferences, Help, and About dialogs raise immediately to foreground
           over other windows (Wayland focus bypass).
-   [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works while Preferences retains active window focus
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
    [  ] 7.4 Icon Size Slider Resiliency:
         Real-time slider resizing works smoothly across all values (24px to
@@ -345,7 +349,7 @@ SESSION 1: GNOME (Mutter Backend)
         - Verify Default (adaptive dark/light GTK+), stock themes
           (Arian/IFtiger Dark & Light, Transparent), and legacy
           ~/.local/share/plank/themes switch live without restart.
-   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
+   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly while Preferences retains active window focus (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays; cold start on
         fractional scaling (e.g. 4K@1.5x).
@@ -936,10 +940,14 @@ SESSION 2: KDE PLASMA (KWin Backend)
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [  ] 6.12 Docklet Right-Click Context Menu Consistency:
+   [  ] 6.12 Docklet Right-Click Context Menu Consistency & Multi-Choice 'Docklets' Submenu:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
+        - Verify the right-click 'Docklets' submenu stays open across multiple
+          checkbox toggles (mouse click or Space/Enter) and applies all
+          checked/unchecked docklets and animations in one single batch upon
+          closing the menu.
    [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -984,7 +992,8 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Preferences, Help, and About dialogs raise immediately to foreground
           over other windows (Wayland focus bypass).
    [  ] 7.2 Position on Screen & KDE Plasma 6 Dynamic Floating Top Panel:
-        - Bottom, Left, Right edge anchoring works cleanly.
+        - Bottom, Left, Right edge anchoring works cleanly while Preferences
+          retains active window focus across edge changes.
         - Position: Top on KDE Plasma 6 Wayland:
           * In unmaximized / desktop state with Plasma floating panel enabled,
             panel dynamically floats downward with curved corners and shadow.
@@ -1004,7 +1013,7 @@ SESSION 2: KDE PLASMA (KWin Backend)
         - Verify Default (adaptive dark/light GTK+), stock themes
           (Arian/IFtiger Dark & Light, Transparent), and legacy
           ~/.local/share/plank/themes switch live without restart.
-   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
+   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly while Preferences retains active window focus (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays; cold start on
         fractional scaling (e.g. 4K@1.5x).
@@ -1596,10 +1605,14 @@ SESSION 3: LABWC (wlroots Backend)
           humidity, wind, localized 3-day cards (linking to Yr.no), °C/°F
           badge, city search (WeatherCityDialog) with IP geolocation fallback,
           and crisp GResource SVG icons on any icon theme.
-   [  ] 6.12 Docklet Right-Click Context Menu Consistency:
+   [  ] 6.12 Docklet Right-Click Context Menu Consistency & Multi-Choice 'Docklets' Submenu:
         - Verify docklets (Trash, CPU, Clock, Desktop, Digital Clock,
           MPRIS, Battery, Volume, Screenshot, Session, Ejector,
           Brightness, Weather, Network) show clean, focused context menus.
+        - Verify the right-click 'Docklets' submenu stays open across multiple
+          checkbox toggles (mouse click or Space/Enter) and applies all
+          checked/unchecked docklets and animations in one single batch upon
+          closing the menu.
    [  ] 6.13 Network & Wi-Fi Docklet (docklet://network):
         - Verify live Wi-Fi (5 signal icons + % badge), Ethernet, and Offline
           states, SSID/IP tooltip, left-click Network Settings, middle-click
@@ -1643,7 +1656,7 @@ SESSION 3: LABWC (wlroots Backend)
         - Preferences dialog opens centered without glitch.
         - Preferences, Help, and About dialogs raise immediately to foreground
           over other windows (Wayland focus bypass).
-   [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works
+   [  ] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring works while Preferences retains active window focus
    [  ] 7.3 Alignment: Start, Center, End, Fill alignment works
    [  ] 7.4 Icon Size Slider Resiliency:
         Real-time slider resizing works smoothly across all values (24px to
@@ -1653,7 +1666,7 @@ SESSION 3: LABWC (wlroots Backend)
         - Verify Default (adaptive dark/light GTK+), stock themes
           (Arian/IFtiger Dark & Light, Transparent), and legacy
           ~/.local/share/plank/themes switch live without restart.
-   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
+   [  ] 7.6 Multi-Monitor: Output monitor selector & On Primary Display work correctly while Preferences retains active window focus (Honest UI disabled on Labwc with tooltip "Not supported by this compositor")
    [  ] 7.7 HiDPI & Fractional Scaling:
         Move dock/windows between 100% and 125%/150% displays; cold start on
         fractional scaling (e.g. 4K@1.5x).

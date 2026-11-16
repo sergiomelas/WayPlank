@@ -22,7 +22,7 @@
 namespace Plank
 {
 	/**
-	 * Desktop-entry identity and matching utilities shared by all backends.
+	 * OS-agnostic launcher identity and deterministic window-matching engine.
 	 */
 	public class ApplicationIdentity : GLib.Object
 	{
@@ -41,8 +41,6 @@ namespace Plank
 		static Gee.HashMap<string, string>? window_locked_display_names;
 		static Gee.HashMap<string, int64?>? window_open_time_us;
 		static Gee.HashMap<int, string>? newest_window_for_pid;
-		static Gee.HashMap<int, string>? pid_to_dbus_sender;
-		static Gee.HashMap<string, int>? dbus_sender_to_pid;
 		static Gee.HashMap<string, int>? unresolved_browser_windows;
 		static Gee.ArrayList<string>? open_browser_window_order;
 		static Gee.HashMap<string, int>? open_browser_window_pids;
@@ -54,10 +52,13 @@ namespace Plank
 		static Gee.HashMap<string, int>? open_terminal_window_pids;
 		static Gee.HashMap<string, string>? profile_dir_to_name;
 		static Gee.HashMap<string, string>? profile_label_to_dir;
+		static string pending_launched_profile = "";
+		static int64 pending_launched_time_us = 0;
 		static string last_used_profile_dir = "";
 		static string first_known_profile_dir = "";
 		static int64 local_state_last_load_us = 0;
-		static uint dbusmenu_signal_sub_id = 0;
+		static ulong appmenu_signal_id = 0UL;
+		static ulong browser_session_signal_id = 0UL;
 		string app_name = "";
 		string alnum_app_name = "";
 		string base_id = "";
@@ -91,191 +92,170 @@ namespace Plank
 		{
 			return primary_tokens;
 		}
-		
+
+		private static string basename_any_slash (string? raw)
+		{
+			if (raw == null || raw == "")
+				return "";
+			string s = raw.strip ();
+			while (s.length > 1 && (s.has_suffix ("/") || s.has_suffix ("\\")))
+				s = s.substring (0, s.length - 1);
+			int fwd = s.last_index_of_char ('/');
+			int back = s.last_index_of_char ('\\');
+			int sep = int.max (fwd, back);
+			if (sep >= 0) {
+				if (sep + 1 < s.length)
+					return s.substring (sep + 1);
+				return "/";
+			}
+			return s;
+		}
+
+		private static string extract_crx_id_from_token (string norm_tok)
+		{
+			if (norm_tok.has_prefix ("crx_"))
+				return norm_tok.substring (4);
+			int crx_pos = norm_tok.index_of ("_crx_");
+			if (crx_pos >= 0 && crx_pos + 5 < norm_tok.length) {
+				string tail = norm_tok.substring (crx_pos + 5);
+				int bang = tail.index_of_char ('!');
+				if (bang > 0)
+					tail = tail.substring (0, bang);
+				int dash = tail.index_of_char ('-');
+				if (dash > 0)
+					tail = tail.substring (0, dash);
+				return tail;
+			}
+			return "";
+		}
+
 		public ApplicationIdentity (File desktop_file)
 		{
 			this.desktop_file = desktop_file;
 			this.desktop_uri = desktop_file.get_uri ();
-			base_id = normalize (desktop_file.get_basename ());
+			init_from_launcher (this.desktop_uri, desktop_file.get_basename ());
+		}
+
+		public ApplicationIdentity.from_uri (string launcher_uri)
+		{
+			string clean = launcher_uri.strip ();
+			if (clean.down ().has_prefix ("file://")) {
+				this.desktop_file = File.new_for_uri (clean);
+				this.desktop_uri = this.desktop_file.get_uri ();
+				init_from_launcher (this.desktop_uri, this.desktop_file.get_basename ());
+			} else {
+				this.desktop_uri = clean;
+				this.desktop_file = File.new_for_uri (clean);
+				init_from_launcher (this.desktop_uri, Hal.Apps.launcher_id_stem (clean));
+			}
+		}
+
+		private void init_from_launcher (string uri, string? raw_basename)
+		{
+			base_id = normalize (raw_basename ?? basename_any_slash (uri));
 			this.normalized_id = base_id;
 			add_token (base_id);
 			primary_tokens.add (base_id);
-			var path = desktop_file.get_path ();
-			if (path == null)
+
+			var desc = Hal.Apps.load_launcher (uri);
+			if (desc == null)
 				return;
-			if (GLib.FileUtils.test (path, GLib.FileTest.IS_SYMLINK)) {
-				string? real_target = Posix.realpath (path);
-				if (real_target != null && real_target != "") {
-					var real_base = GLib.Path.get_basename (real_target);
-					if (real_base.down ().has_suffix (".desktop")) {
-						var norm_real = normalize (real_base);
-						if (norm_real != "") {
-							add_token (norm_real);
-							primary_tokens.add (norm_real);
-						}
+
+			foreach (var alias in desc.alias_ids) {
+				var norm_alias = normalize (alias);
+				if (norm_alias != "") {
+					add_token (norm_alias);
+					primary_tokens.add (norm_alias);
+				}
+			}
+
+			if (desc.is_non_app_launcher)
+				is_non_app_desktop = true;
+
+			if (desc.startup_wm_class_or_aumid != "") {
+				var swmc = desc.startup_wm_class_or_aumid;
+				add_token (swmc);
+				add_token_variants (swmc);
+				var norm_swmc = normalize (swmc);
+				if (norm_swmc != "") {
+					has_startup_wm_class = true;
+					primary_tokens.add (norm_swmc);
+					var crx_id = extract_crx_id_from_token (norm_swmc);
+					if (crx_id.length >= 3) {
+						pwa_id = crx_id;
+						is_chromium_webapp = true;
+						add_token (crx_id);
+						primary_tokens.add (crx_id);
+						argument_tokens.add (crx_id);
+					} else {
+						startup_wm_classes.add (norm_swmc);
 					}
 				}
 			}
-			try {
-				var key_file = new KeyFile ();
-				key_file.load_from_file (path, KeyFileFlags.NONE);
-				if (key_file.has_key (KeyFileDesktop.GROUP, "Type")) {
-					var dtype = key_file.get_string (KeyFileDesktop.GROUP, "Type").strip ();
-					if (dtype == "Link") {
-						string link_target = "";
-						if (key_file.has_key (KeyFileDesktop.GROUP, "URL"))
-							link_target = key_file.get_string (KeyFileDesktop.GROUP, "URL").strip ();
-						else if (key_file.has_key (KeyFileDesktop.GROUP, "URL[$e]"))
-							link_target = key_file.get_string (KeyFileDesktop.GROUP, "URL[$e]").strip ();
-						string resolved_desktop = "";
-						if (link_target.has_prefix ("file://")) {
-							try { resolved_desktop = GLib.Filename.from_uri (link_target); } catch { }
-						} else if (link_target.has_prefix ("/")) {
-							resolved_desktop = link_target;
-						}
-						if (resolved_desktop != "" && resolved_desktop.down ().has_suffix (".desktop") && GLib.FileUtils.test (resolved_desktop, GLib.FileTest.EXISTS)) {
-							var norm_linked = normalize (GLib.Path.get_basename (resolved_desktop));
-							if (norm_linked != "") {
-								add_token (norm_linked);
-								primary_tokens.add (norm_linked);
-							}
-							key_file = new KeyFile ();
-							key_file.load_from_file (resolved_desktop, KeyFileFlags.NONE);
-						} else {
-							is_non_app_desktop = true;
-						}
-					} else if (dtype != "" && dtype != "Application") {
-						is_non_app_desktop = true;
-					}
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
-					var swmc = key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass");
-					add_token (swmc);
-					add_token_variants (swmc);
-					var norm_swmc = normalize (swmc);
-					if (norm_swmc != "") {
-						has_startup_wm_class = true;
-						primary_tokens.add (norm_swmc);
-						if (norm_swmc.has_prefix ("crx_")) {
-							var crx_id = norm_swmc.substring (4);
-							if (crx_id.length >= 3) {
-								pwa_id = crx_id;
-								is_chromium_webapp = true;
-								add_token (crx_id);
-								primary_tokens.add (crx_id);
-								argument_tokens.add (crx_id);
-							}
-						} else {
-							startup_wm_classes.add (norm_swmc);
-						}
-					}
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, "X-GNOME-WMClass")) {
-					var gmc = key_file.get_string (KeyFileDesktop.GROUP, "X-GNOME-WMClass");
-					add_token (gmc);
-					add_token_variants (gmc);
-					var norm_gmc = normalize (gmc);
-					if (norm_gmc != "") {
-						primary_tokens.add (norm_gmc);
-						startup_wm_classes.add (norm_gmc);
-					}
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, "NoDisplay")) {
-					try { is_nodisplay_desktop = key_file.get_boolean (KeyFileDesktop.GROUP, "NoDisplay"); } catch { }
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, "Terminal")) {
-					try { is_terminal_app = key_file.get_boolean (KeyFileDesktop.GROUP, "Terminal"); } catch { }
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, "Path")) {
-					raw_path_dir = expand_shell_path (key_file.get_string (KeyFileDesktop.GROUP, "Path").strip ());
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
-					var raw_name = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
-					if (raw_name != "") {
-						app_name = raw_name.down ();
-						alnum_app_name = to_alnum_lower (raw_name);
-						add_token (app_name);
-						add_token_variants (raw_name);
-					}
-				}
-				bool has_desktop_url_key = false;
-				string desktop_url_val = "";
-				if (key_file.has_key (KeyFileDesktop.GROUP, "URL"))
-					desktop_url_val = key_file.get_string (KeyFileDesktop.GROUP, "URL").strip ().down ();
-				else if (key_file.has_key (KeyFileDesktop.GROUP, "URL[$e]"))
-					desktop_url_val = key_file.get_string (KeyFileDesktop.GROUP, "URL[$e]").strip ().down ();
-				if (desktop_url_val.has_prefix ("http://") || desktop_url_val.has_prefix ("https://"))
-					has_desktop_url_key = true;
 
-				if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-					var command = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-					if (command != "") {
-						has_exec = true;
-						parse_exec_command (command, has_desktop_url_key);
-					} else if (has_desktop_url_key && !has_startup_wm_class) {
-						is_browser_url_bookmark = true;
-					}
-				} else if (has_desktop_url_key && !has_startup_wm_class) {
-					is_browser_url_bookmark = true;
+			foreach (var gmc in desc.wm_classes_or_aumids) {
+				if (gmc == "" || gmc == desc.startup_wm_class_or_aumid)
+					continue;
+				add_token (gmc);
+				add_token_variants (gmc);
+				var norm_gmc = normalize (gmc);
+				if (norm_gmc != "") {
+					primary_tokens.add (norm_gmc);
+					startup_wm_classes.add (norm_gmc);
 				}
-				if (has_wine_executable && raw_path_dir != "") {
-					var clean_path = raw_path_dir.replace ("\\", "/");
-					while (clean_path.length > 1 && clean_path.has_suffix ("/"))
-						clean_path = clean_path.substring (0, clean_path.length - 1);
-					var path_leaf = File.new_for_path (clean_path).get_basename ().down ();
-					if (path_leaf.length >= 3 && !is_generic_argument_stopword (path_leaf) && !is_wine_path_stopword (path_leaf)) {
-						if (wine_path_token == "")
-							wine_path_token = path_leaf;
-						if (!argument_tokens.contains (path_leaf))
-							argument_tokens.add (path_leaf);
-					}
+			}
+
+			is_nodisplay_desktop = desc.is_nodisplay;
+			is_terminal_app = desc.is_terminal;
+			raw_path_dir = desc.working_dir;
+
+			var raw_name = desc.unlocalized_name != "" ? desc.unlocalized_name : desc.display_name;
+			if (raw_name != "") {
+				app_name = raw_name.down ();
+				alnum_app_name = to_alnum_lower (raw_name);
+				add_token (app_name);
+				add_token_variants (raw_name);
+			}
+
+			bool has_desktop_url_key = false;
+			string desktop_url_val = desc.url_target.down ();
+			if (desktop_url_val.has_prefix ("http://") || desktop_url_val.has_prefix ("https://"))
+				has_desktop_url_key = true;
+
+			if (desc.browser_profile != "" && detected_browser_profile == "")
+				detected_browser_profile = desc.browser_profile;
+
+			if (desc.exec_command != "") {
+				has_exec = true;
+				parse_exec_command (desc.exec_command, has_desktop_url_key);
+			} else if (has_desktop_url_key && !has_startup_wm_class) {
+				is_browser_url_bookmark = true;
+			} else if (desc.is_launchable) {
+				has_exec = true;
+			}
+
+			if (has_wine_executable && raw_path_dir != "") {
+				var clean_path = raw_path_dir.replace ("\\", "/");
+				while (clean_path.length > 1 && clean_path.has_suffix ("/"))
+					clean_path = clean_path.substring (0, clean_path.length - 1);
+				var path_leaf = basename_any_slash (clean_path).down ();
+				if (path_leaf.length >= 3 && !is_generic_argument_stopword (path_leaf) && !is_wine_path_stopword (path_leaf)) {
+					if (wine_path_token == "")
+						wine_path_token = path_leaf;
+					if (!argument_tokens.contains (path_leaf))
+						argument_tokens.add (path_leaf);
 				}
-			} catch (Error e) {
-				debug ("Unable to read desktop identity '%s': %s", desktop_file.get_path (), e.message);
 			}
 		}
 
 		private static string expand_shell_path (string raw, Gee.HashMap<string, string>? vars = null)
 		{
-			string s = raw.strip ();
-			if (vars != null && vars.size > 0 && s.contains ("$")) {
-				var sorted_keys = new Gee.ArrayList<string> ();
-				sorted_keys.add_all (vars.keys);
-				sorted_keys.sort ((a, b) => {
-					if (a.length != b.length)
-						return b.length - a.length;
-					return strcmp (a, b);
-				});
-				foreach (var k in sorted_keys) {
-					var val = vars.get (k) ?? "";
-					s = s.replace ("${" + k + "}", val);
-					s = s.replace ("$" + k, val);
-				}
-			}
-			string home = GLib.Environment.get_home_dir ();
-			string user = GLib.Environment.get_user_name ();
-			string cfg = GLib.Environment.get_user_config_dir ();
-			string data = GLib.Environment.get_user_data_dir ();
-			if (cfg != "") {
-				if (home != "")
-					s = s.replace ("${XDG_CONFIG_HOME:-$HOME/.config}", cfg).replace ("${XDG_CONFIG_HOME:-${HOME}/.config}", cfg);
-				s = s.replace ("${XDG_CONFIG_HOME}", cfg).replace ("$XDG_CONFIG_HOME", cfg);
-			}
-			if (data != "") {
-				if (home != "")
-					s = s.replace ("${XDG_DATA_HOME:-$HOME/.local/share}", data).replace ("${XDG_DATA_HOME:-${HOME}/.local/share}", data);
-				s = s.replace ("${XDG_DATA_HOME}", data).replace ("$XDG_DATA_HOME", data);
-			}
-			if (home != "") {
-				s = s.replace ("${HOME}", home).replace ("$HOME", home);
-				if (s == "~")
-					s = home;
-				else if (s.has_prefix ("~/"))
-					s = home + s.substring (1);
-			}
-			if (user != "")
-				s = s.replace ("${USER}", user).replace ("$USER", user);
-			return s;
+			return Hal.Runtime.expand_path_variables (raw, vars);
+		}
+
+		private static bool is_xdg_field_code (string tok)
+		{
+			return tok == "%" || (tok.has_prefix ("%") && tok.length == 2);
 		}
 
 		private static bool is_incognito_switch (string flag_down)
@@ -292,6 +272,7 @@ namespace Plank
 			if (clean == "" || clean == "$@" || clean == "$*" || clean == "$1")
 				return;
 			if (kind == "user-data-dir" || kind == "profile-arg") {
+				clean = clean.replace ("\\", "/");
 				while (clean.length > 1 && clean.has_suffix ("/"))
 					clean = clean.substring (0, clean.length - 1);
 			}
@@ -328,7 +309,7 @@ namespace Plank
 				return;
 
 			var raw_exe = unwrap_tokens.get (0);
-			var exe_name = File.new_for_path (raw_exe).get_basename ();
+			var exe_name = basename_any_slash (raw_exe);
 			var norm_exe = normalize (exe_name);
 
 			if (norm_exe == "exo-open" && command.down ().contains ("terminalemulator")) {
@@ -364,7 +345,7 @@ namespace Plank
 						}
 						continue;
 					}
-					if (t_tok == "-e" || t_tok == "--command" || t_tok == "-x" || t_tok == "--") {
+					if (t_tok == "-e" || t_tok == "--command" || t_tok == "-x" || t_tok == "--" || t_down == "nt" || t_down == "new-tab") {
 						if (ti + 1 < unwrap_arr.length)
 							collect_unwrapped_cmd_tokens (unwrap_arr, ti + 1, term_hosted);
 						break;
@@ -399,14 +380,10 @@ namespace Plank
 			if (!is_browser_binary (exe_name) &&
 			    (raw_exe.down ().has_suffix (".sh") || !is_generic_runtime_binary (exe_name)) &&
 			    (!is_terminal_emulator_binary (exe_name) || norm_exe == "uxterm")) {
-				string? script_target = null;
-				if (GLib.FileUtils.test (raw_exe, GLib.FileTest.IS_REGULAR)) {
-					script_target = raw_exe;
-				} else if (exe_name != "") {
-					script_target = GLib.Environment.find_program_in_path (raw_exe);
-				}
-				if (script_target != null) {
-					inspect_script_file (script_target, ref has_isolated_browser_flag, ref has_positional_url);
+				string resolved_script_path = "";
+				string script_body = Hal.Apps.read_wrapper_script (raw_exe, out resolved_script_path);
+				if (script_body != "" && resolved_script_path != "") {
+					inspect_script_content (resolved_script_path, script_body, ref has_isolated_browser_flag, ref has_positional_url);
 				}
 			}
 
@@ -415,8 +392,10 @@ namespace Plank
 
 			for (int i = 1; i < unwrap_tokens.size; i++) {
 				var part = unwrap_tokens.get (i).strip ().replace ("\"", "").replace ("'", "");
-				if (part == "" || part.has_prefix ("%") || part.has_prefix ("@"))
+				if (part == "" || is_xdg_field_code (part) || part.has_prefix ("@"))
 					continue;
+				if (part.contains ("%"))
+					part = expand_shell_path (part);
 
 				var part_down = part.down ();
 				if (part_down.has_prefix ("http://") || part_down.has_prefix ("https://")) {
@@ -465,7 +444,7 @@ namespace Plank
 								primary_tokens.add (ext_id);
 							}
 						} else {
-							if (!app_url.contains ("://") && app_url.contains (".") && !app_url.has_prefix ("/"))
+							if (!app_url.contains ("://") && app_url.contains (".") && !GLib.Path.is_absolute (app_url))
 								app_url = "https://" + app_url;
 							if (app_url.has_prefix ("http://") || app_url.has_prefix ("https://"))
 								extract_web_app_host (app_url);
@@ -552,7 +531,7 @@ namespace Plank
 										continue;
 									}
 								}
-								var norm_url = (!val.contains ("://") && val.contains (".") && !val.has_prefix ("/")) ? ("https://" + val) : val;
+								var norm_url = (!val.contains ("://") && val.contains (".") && !GLib.Path.is_absolute (val)) ? ("https://" + val) : val;
 								if (norm_url.has_prefix ("http://") || norm_url.has_prefix ("https://")) {
 									extract_web_app_host (norm_url);
 									continue;
@@ -583,7 +562,7 @@ namespace Plank
 					var slash_part = part.replace ("\\", "/");
 					while (slash_part.contains ("//"))
 						slash_part = slash_part.replace ("//", "/");
-					var target_name = File.new_for_path (slash_part).get_basename ().down ();
+					var target_name = basename_any_slash (slash_part).down ();
 					if (has_wine_executable && slash_part.contains ("/")) {
 						string[] segs = slash_part.split ("/");
 						for (int si = 0; si < segs.length - 1; si++) {
@@ -619,7 +598,7 @@ namespace Plank
 				}
 			}
 
-			// Fallback profile extraction from Chromium PWA desktop basename (e.g. chrome-<pwa_id>-Profile_5.desktop)
+			// Fallback profile extraction from Chromium PWA launcher stem (e.g. chrome-<pwa_id>-Profile_5)
 			if (pwa_id != "" && detected_browser_profile == "" && base_id != "") {
 				var pwa_marker = pwa_id + "-";
 				var marker_idx = base_id.index_of (pwa_marker);
@@ -747,30 +726,10 @@ namespace Plank
 			web_app_brand = extract_url_brand (host_part);
 		}
 
-		private void inspect_script_file (string script_path, ref bool has_isolated_browser_flag, ref bool has_positional_url)
+		private void inspect_script_content (string script_path, string content, ref bool has_isolated_browser_flag, ref bool has_positional_url)
 		{
-			try {
-				// Fast stat check: never read ELF binaries or files > 16KB into memory
-				Posix.Stat st;
-				if (Posix.stat (script_path, out st) != 0 || st.st_size <= 2 || st.st_size > 16384)
-					return;
-
-				string content;
-				if (!GLib.FileUtils.get_contents (script_path, out content))
-					return;
-
-				// Limit scanning to launcher wrapper scripts (< 16KB, e.g. devecostudio.sh / idea.sh / /usr/games/quake2)
-				if (content.length > 16384)
-					return;
-
-				// Fast check: accept any #! shebang or .sh wrapper without binary NUL bytes
-				int check_len = int.min (content.length, 512);
-				for (int bi = 0; bi < check_len; bi++) {
-					if (content.data[bi] == 0)
-						return;
-				}
-				if (!content.has_prefix ("#!") && !script_path.down ().has_suffix (".sh"))
-					return;
+			if (content.length == 0 || content.length > 16384)
+				return;
 
 				var script_vars = new Gee.HashMap<string, string> ();
 				string[] raw_lines = content.split ("\n");
@@ -825,7 +784,7 @@ namespace Plank
 								var exp_wp = expand_shell_path (rhs, script_vars).replace ("\\", "/");
 								while (exp_wp.length > 1 && exp_wp.has_suffix ("/"))
 									exp_wp = exp_wp.substring (0, exp_wp.length - 1);
-								var wp_leaf = File.new_for_path (exp_wp).get_basename ().down ();
+								var wp_leaf = basename_any_slash (exp_wp).down ();
 								if (wp_leaf != "" && wp_leaf != ".wine" && wp_leaf.length >= 3 && !is_generic_argument_stopword (wp_leaf)) {
 									has_wine_executable = true;
 									if (wine_prefix_token == "")
@@ -865,7 +824,7 @@ namespace Plank
 					var script_tokens = unwrap_command_string (line);
 					if (script_tokens.size > 0) {
 						var raw_first = expand_shell_path (script_tokens.get (0), script_vars).strip ();
-						var inner_exe = File.new_for_path (raw_first).get_basename ();
+						var inner_exe = basename_any_slash (raw_first);
 						if (is_terminal_emulator_binary (inner_exe)) {
 							var norm_term = normalize (inner_exe);
 							bool found_e_flag = false;
@@ -893,7 +852,7 @@ namespace Plank
 									}
 									continue;
 								}
-								if (t_tok == "-e" || t_tok == "--command" || t_tok == "-x" || t_tok == "--") {
+								if (t_tok == "-e" || t_tok == "--command" || t_tok == "-x" || t_tok == "--" || t_down == "nt" || t_down == "new-tab") {
 									found_e_flag = true;
 									for (int tj = ti + 1; tj < script_tokens.size; tj++) {
 										var exp_cmd = expand_shell_path (script_tokens.get (tj), script_vars).strip ().replace ("\"", "").replace ("'", "");
@@ -912,7 +871,7 @@ namespace Plank
 											if (sub_hosted.size > 0)
 												break;
 										}
-										var cmd_base = File.new_for_path (exp_cmd).get_basename ();
+										var cmd_base = basename_any_slash (exp_cmd);
 										if (is_interactive_shell_binary (cmd_base) || cmd_base == "env" || cmd_base == "exec" || cmd_base == "sudo")
 											continue;
 										if (!cmd_base.contains ("$") && !is_shell_script_utility (cmd_base)) {
@@ -958,7 +917,7 @@ namespace Plank
 										ti++;
 										continue;
 									}
-									var cmd_base = File.new_for_path (t_tok).get_basename ();
+									var cmd_base = basename_any_slash (t_tok);
 									if (is_interactive_shell_binary (cmd_base) || cmd_base == "env" || cmd_base == "exec" || cmd_base == "sudo") {
 										ti++;
 										continue;
@@ -979,7 +938,7 @@ namespace Plank
 							    norm_inner == "wine64-preloader" || norm_inner == "umu-run" || norm_inner == "proton" ||
 							    norm_inner == "java" || norm_inner == "javaw" || norm_inner == "python" || norm_inner == "python3");
 							string script_dir = GLib.Path.get_dirname (script_path);
-							bool same_dir_target = (raw_first.has_prefix ("/") && GLib.Path.get_dirname (raw_first) == script_dir);
+							bool same_dir_target = (GLib.Path.is_absolute (raw_first) && Hal.Runtime.paths_equal (GLib.Path.get_dirname (raw_first), script_dir));
 							if (line_has_exec || is_browser_binary (inner_exe) || is_wine_or_runtime || same_dir_target ||
 							    (base_id != "" && norm_inner.length >= 3 && (base_id.contains (norm_inner) || norm_inner.contains (base_id)))) {
 								add_executable_token (inner_exe);
@@ -1019,7 +978,7 @@ namespace Plank
 								var next_url = expand_shell_path (script_tokens.get (i + 1), script_vars).strip ().replace ("\"", "").replace ("'", "").down ();
 								if (next_url != "" && !next_url.has_prefix ("-")) {
 									is_chromium_webapp = true;
-									if (!next_url.contains ("://") && next_url.contains (".") && !next_url.has_prefix ("/"))
+									if (!next_url.contains ("://") && next_url.contains (".") && !GLib.Path.is_absolute (next_url))
 										next_url = "https://" + next_url;
 									if (next_url.has_prefix ("http://") || next_url.has_prefix ("https://"))
 										extract_web_app_host (next_url);
@@ -1109,18 +1068,17 @@ namespace Plank
 						}
 					}
 				}
-			} catch (Error e) { }
 		}
 
 		private Gee.ArrayList<string> unwrap_command_string (string command_line)
 		{
 			var result = new Gee.ArrayList<string> ();
-			string[] parts;
-			try {
-				GLib.Shell.parse_argv (command_line.strip (), out parts);
-			} catch (Error e) {
-				parts = command_line.strip ().split (" ");
-			}
+			string clean_cmd = command_line.strip ();
+			if (clean_cmd == "")
+				return result;
+			string[] parts = Hal.Runtime.parse_command_argv (clean_cmd);
+			if (parts.length == 0)
+				parts = clean_cmd.split (" ");
 			if (parts.length == 0)
 				return result;
 
@@ -1133,9 +1091,10 @@ namespace Plank
 					idx++;
 					continue;
 				}
-				var base_p = File.new_for_path (p).get_basename ().down ();
+				var base_p = basename_any_slash (p).down ();
+				var stem_p = normalize (base_p);
 
-				// 1. Recursive unwrap for sh -c "..." or bash -c "..." (supporting ; / && / || compound commands)
+				// 1. Recursive unwrap for sh -c "...", cmd /c "...", or powershell -Command/-File "..."
 				if (base_p == "sh" || base_p == "bash" || base_p == "dash" || base_p == "zsh") {
 					if (idx + 1 < parts.length && (parts[idx + 1] == "-c" || parts[idx + 1] == "-lc")) {
 						if (idx + 2 < parts.length) {
@@ -1148,7 +1107,7 @@ namespace Plank
 										continue;
 									var sub_unwrapped = unwrap_command_string (sub_stmt);
 									if (sub_unwrapped.size > 0) {
-										var cand_exe = File.new_for_path (sub_unwrapped.get (0)).get_basename ().down ();
+										var cand_exe = basename_any_slash (sub_unwrapped.get (0)).down ();
 										if (cand_exe != "" && !is_shell_script_utility (cand_exe))
 											return sub_unwrapped;
 									}
@@ -1158,6 +1117,32 @@ namespace Plank
 						}
 					}
 					idx++;
+					continue;
+				}
+
+				if (stem_p == "cmd") {
+					if (idx + 2 < parts.length) {
+						string sw = parts[idx + 1].down ();
+						if (sw == "/c" || sw == "/k")
+							return unwrap_command_string (parts[idx + 2]);
+					}
+					idx++;
+					continue;
+				}
+
+				if (stem_p == "powershell" || stem_p == "pwsh") {
+					int pi = idx + 1;
+					while (pi < parts.length && parts[pi].has_prefix ("-")) {
+						string pflag = parts[pi].down ();
+						if ((pflag == "-command" || pflag == "-c" || pflag == "-file" || pflag == "-f") && pi + 1 < parts.length)
+							return unwrap_command_string (parts[pi + 1]);
+						if ((pflag == "-executionpolicy" || pflag == "-ep" || pflag == "-windowstyle" || pflag == "-w") && pi + 1 < parts.length) {
+							pi += 2;
+							continue;
+						}
+						pi++;
+					}
+					idx = pi;
 					continue;
 				}
 
@@ -1173,7 +1158,7 @@ namespace Plank
 						var wp_val = expand_shell_path (p.substring ("wineprefix=".length).strip ().replace ("\"", "").replace ("'", "")).replace ("\\", "/");
 						while (wp_val.length > 1 && wp_val.has_suffix ("/"))
 							wp_val = wp_val.substring (0, wp_val.length - 1);
-						var wp_leaf = File.new_for_path (wp_val).get_basename ().down ();
+						var wp_leaf = basename_any_slash (wp_val).down ();
 						if (wp_leaf != "" && wp_leaf != ".wine" && wp_leaf.length >= 3 && !is_generic_argument_stopword (wp_leaf)) {
 							has_wine_executable = true;
 							if (wine_prefix_token == "")
@@ -1268,9 +1253,9 @@ namespace Plank
 			if (norm == "" || norm == "sh" || norm == "bash" || norm == "env" || is_shell_script_utility (norm))
 				return;
 
-			// Strip wrapper script extensions (.sh, .py, .run, .bin) so e.g. devecostudio.sh -> devecostudio
+			// Strip wrapper script extensions (.sh, .py, .run, .bin, .bat, .cmd, .ps1, .vbs, .pyw) so e.g. devecostudio.sh -> devecostudio
 			string script_stem = "";
-			string[] script_exts = { ".sh", ".py", ".run", ".bin" };
+			string[] script_exts = { ".sh", ".py", ".run", ".bin", ".bat", ".cmd", ".ps1", ".vbs", ".pyw" };
 			foreach (unowned string ext in script_exts) {
 				if (norm.has_suffix (ext)) {
 					var candidate = norm.substring (0, norm.length - ext.length);
@@ -1505,27 +1490,25 @@ namespace Plank
 				return true;
 			return false;
 		}
-		
+
 		void add_token (string? value)
 		{
 			if (value == null || value.strip () == "")
 				return;
 			tokens.add (normalize (value));
 		}
-		
+
 		public static string normalize (string? value)
 		{
 			if (value == null || value == "")
 				return "";
-			var normalized = value.strip ().down ();
-			if (normalized.has_suffix (".desktop"))
-				normalized = normalized.substring (0, normalized.length - ".desktop".length);
-			var slash = normalized.last_index_of_char ('/');
-			if (slash >= 0)
-				normalized = normalized.substring (slash + 1);
+			var normalized = basename_any_slash (value.strip ().down ());
+			normalized = Hal.Apps.strip_launcher_extension (normalized).down ();
+			if (normalized.length > 4 && (normalized.has_suffix (".exe") || normalized.has_suffix (".lnk") || normalized.has_suffix (".msi")))
+				normalized = normalized.substring (0, normalized.length - 4);
 			return normalized;
 		}
-		
+
 		private static bool is_chromium_browser_binary (string exe_name)
 		{
 			var n = normalize (exe_name);
@@ -1560,7 +1543,7 @@ namespace Plank
 				return "";
 			if (n == "chrome" || n.has_prefix ("google-chrome") || n.has_prefix ("com.google.chrome"))
 				return "google-chrome";
-			if (n == "chromium" || n == "chromium-browser" || n.has_prefix ("org.chromium.chromium") ||
+			if (n == "chromium" || n.has_prefix ("chromium-browser") || n.has_prefix ("org.chromium.chromium") ||
 			    n == "io.github.ungoogled_software.ungoogled_chromium")
 				return "chromium";
 			if (n == "brave" || n.has_prefix ("brave-browser") || n.has_prefix ("com.brave.browser"))
@@ -1627,33 +1610,37 @@ namespace Plank
 		private static bool is_generic_runtime_binary (string exe_name)
 		{
 			var n = normalize (exe_name);
-			if (is_browser_binary (n) || n.has_prefix ("qemu-") ||
-			    n.has_suffix (".sh") || n.has_suffix (".py") || n.has_suffix (".run") || n.has_suffix (".bin"))
+			if (is_browser_binary (n) || Hal.Apps.is_os_wrapper_binary (n) || n.has_prefix ("qemu-") ||
+			    n.has_suffix (".sh") || n.has_suffix (".py") || n.has_suffix (".run") || n.has_suffix (".bin") ||
+			    n.has_suffix (".bat") || n.has_suffix (".cmd") || n.has_suffix (".ps1") || n.has_suffix (".vbs") || n.has_suffix (".pyw"))
 				return true;
 			return n == "sh" || n == "bash" || n == "dash" || n == "zsh" || n == "fish" || n == "env" ||
-			       n == "java" || n == "javaw" || n == "python" || n == "python2" || n == "python3" ||
+			       n == "cmd" || n == "powershell" || n == "pwsh" ||
+			       n == "java" || n == "javaw" || n == "python" || n == "python2" || n == "python3" || n == "pythonw" ||
 			       n == "perl" || n == "ruby" || n == "node" || n == "nodejs" || n == "deno" || n == "bun" ||
 			       n == "php" || n == "lua" || n == "wish" || n == "tclsh" ||
+			       n == "wscript" || n == "cscript" || n == "mshta" ||
 			       n == "mono" || n == "dotnet" || n == "electron" ||
 			       n == "wine" || n == "wine64" || n == "wine-preloader" || n == "wine64-preloader" ||
 			       n == "dosbox" || n == "scummvm" || n == "retroarch" ||
-			       n == "flatpak" || n == "snap" || n == "xdg-open" || n == "gio" ||
-			       n == "kde-open" || n == "kde-open5" || n == "kioclient" || n == "kioclient5" ||
-			       n == "exo-open" || n == "gtk-launch" || n == "rundll32" ||
+			       n == "rundll32" || n == "explorer" || n == "applicationframehost" || n == "msiexec" ||
+			       n == "conhost" || n == "openconsole" ||
 			       n == "qemu" || n == "steam" || n == "lutris" || n == "heroic";
 		}
 
 		private static bool is_generic_script_stem (string stem)
 		{
 			var n = normalize (stem);
-			if (is_common_stopword (n) || is_common_path_stopword (n) || is_shell_script_utility (n))
+			if (is_common_stopword (n) || is_common_path_stopword (n) || is_shell_script_utility (n) || Hal.Apps.is_os_wrapper_binary (n))
 				return true;
 			return n == "sh" || n == "bash" || n == "dash" || n == "zsh" || n == "fish" || n == "env" ||
-			       n == "java" || n == "javaw" || n == "python" || n == "python2" || n == "python3" ||
+			       n == "cmd" || n == "powershell" || n == "pwsh" ||
+			       n == "java" || n == "javaw" || n == "python" || n == "python2" || n == "python3" || n == "pythonw" ||
 			       n == "perl" || n == "ruby" || n == "node" || n == "nodejs" || n == "deno" || n == "bun" ||
 			       n == "php" || n == "lua" || n == "wish" || n == "tclsh" || n == "mono" || n == "dotnet" ||
-			       n == "electron" || n == "wine" || n == "wine64" || n == "flatpak" || n == "snap" ||
-			       n == "xdg-open" || n == "gio" || n == "start" || n == "starter" || n == "startup" ||
+			       n == "wscript" || n == "cscript" || n == "mshta" ||
+			       n == "electron" || n == "wine" || n == "wine64" ||
+			       n == "start" || n == "starter" || n == "startup" ||
 			       n == "launch" || n == "launcher" || n == "wrapper" || n == "setup" || n == "init" ||
 			       n == "install" || n == "installer" || n == "uninstall" || n == "update" ||
 			       n == "updater" || n == "bootstrap" || n == "entry" || n == "entrypoint" ||
@@ -1738,7 +1725,7 @@ namespace Plank
 				var norm = normalize (wid);
 				if (norm == "" || is_browser_binary (norm))
 					continue;
-				if (norm.has_prefix ("crx_") || norm.contains ("__") ||
+				if (norm.has_prefix ("crx_") || norm.contains ("_crx_") || norm.contains ("__") ||
 				    norm.has_prefix ("chrome-") || norm.has_prefix ("chromium-") ||
 				    norm.has_prefix ("brave-") || norm.has_prefix ("msedge-") ||
 				    norm.has_prefix ("vivaldi-"))
@@ -1759,7 +1746,7 @@ namespace Plank
 				if (wid == null || wid == "")
 					continue;
 				var norm = normalize (wid);
-				if (norm == "")
+				if (norm == "" || norm == "chrome_widgetwin_1" || norm == "chrome_widgetwin_0" || norm == "mozillawindowclass")
 					continue;
 				if (!is_browser_binary (norm))
 					return false;
@@ -1788,7 +1775,8 @@ namespace Plank
 			       n == "xterm" || n == "uxterm" || n == "urxvt" || n == "rxvt" ||
 			       n == "sakura" || n == "guake" || n == "yakuake" || n == "qterminal" ||
 			       n == "lxterminal" || n == "terminology" || n == "st" || n == "hyper" ||
-			       n == "tabby" || n == "ghostty" || n == "rio" || n == "warp-terminal";
+			       n == "tabby" || n == "ghostty" || n == "rio" || n == "warp-terminal" ||
+			       n == "wt" || n == "windowsterminal" || n == "openconsole" || n == "conhost";
 		}
 
 		public bool is_terminal_emulator_launcher ()
@@ -1832,42 +1820,29 @@ namespace Plank
 			var n = normalize (exe_name);
 			if (n.has_prefix ("-"))
 				n = n.substring (1);
-			return n == "sh" || n == "bash" || n == "zsh" || n == "fish" || n == "dash" || n == "csh" || n == "tcsh" || n == "ksh";
+			return n == "sh" || n == "bash" || n == "zsh" || n == "fish" || n == "dash" ||
+			       n == "csh" || n == "tcsh" || n == "ksh" || n == "cmd" || n == "powershell" || n == "pwsh";
 		}
 
 		private static bool is_bare_interactive_shell_argv (string[] c_argv)
 		{
 			if (c_argv.length == 0)
 				return false;
-			var c_bin = File.new_for_path (c_argv[0]).get_basename ().down ();
+			var c_bin = basename_any_slash (c_argv[0]).down ();
 			if (!is_interactive_shell_binary (c_bin))
 				return false;
 			for (int i = 1; i < c_argv.length; i++) {
 				var arg = c_argv[i].strip ();
 				if (arg == "")
 					continue;
-				if (arg == "-c" || arg == "-lc" || arg == "-ic" || arg.has_prefix ("-c"))
+				var arg_down = arg.down ();
+				if (arg == "-c" || arg == "-lc" || arg == "-ic" || arg.has_prefix ("-c") ||
+				    arg_down == "/c" || arg_down == "/k" || arg_down == "-command" || arg_down == "-file")
 					return false;
 				if (!arg.has_prefix ("-"))
 					return false;
 			}
 			return true;
-		}
-
-		private static string read_proc_children_raw (int pid)
-		{
-			if (pid <= 0)
-				return "";
-			string children_raw = "";
-			try {
-				if (GLib.FileUtils.get_contents ("/proc/%d/task/%d/children".printf (pid, pid), out children_raw) && children_raw.strip () != "")
-					return children_raw.strip ();
-			} catch { }
-			try {
-				if (GLib.FileUtils.get_contents ("/proc/%d/children".printf (pid), out children_raw) && children_raw.strip () != "")
-					return children_raw.strip ();
-			} catch { }
-			return "";
 		}
 
 		private static void collect_unwrapped_cmd_tokens (string[] argv, int start_idx, Gee.HashSet<string> out_tokens)
@@ -1881,7 +1856,8 @@ namespace Plank
 					idx++;
 					continue;
 				}
-				var base_p = File.new_for_path (p).get_basename ().down ();
+				var base_p = basename_any_slash (p).down ();
+				var stem_p = normalize (base_p);
 				if (base_p == "sh" || base_p == "bash" || base_p == "dash" || base_p == "zsh") {
 					if (idx + 1 < argv.length && (argv[idx + 1] == "-c" || argv[idx + 1] == "-lc")) {
 						if (idx + 2 < argv.length) {
@@ -1891,6 +1867,32 @@ namespace Plank
 						}
 					}
 					idx++;
+					continue;
+				}
+				if (stem_p == "cmd") {
+					if (idx + 2 < argv.length) {
+						string sw = argv[idx + 1].down ();
+						if (sw == "/c" || sw == "/k") {
+							var sub_argv = parse_cmdline_argv (argv[idx + 2]);
+							collect_unwrapped_cmd_tokens (sub_argv, 0, out_tokens);
+							return;
+						}
+					}
+					idx++;
+					continue;
+				}
+				if (stem_p == "powershell" || stem_p == "pwsh") {
+					int pi = idx + 1;
+					while (pi < argv.length && argv[pi].has_prefix ("-")) {
+						string pflag = argv[pi].down ();
+						if ((pflag == "-command" || pflag == "-c" || pflag == "-file" || pflag == "-f") && pi + 1 < argv.length) {
+							var sub_argv = parse_cmdline_argv (argv[pi + 1]);
+							collect_unwrapped_cmd_tokens (sub_argv, 0, out_tokens);
+							return;
+						}
+						pi++;
+					}
+					idx = pi;
 					continue;
 				}
 				if (base_p == "env" || base_p == "exec" || (p.contains ("=") && !p.has_prefix ("-"))) {
@@ -1918,7 +1920,7 @@ namespace Plank
 							var arg_p = argv[j].strip ().replace ("\"", "").replace ("'", "");
 							if (arg_p == "" || arg_p.has_prefix ("-"))
 								continue;
-							var arg_base = File.new_for_path (arg_p).get_basename ().down ();
+							var arg_base = basename_any_slash (arg_p).down ();
 							if (arg_base.length >= 3 && !is_generic_argument_stopword (arg_base)) {
 								out_tokens.add (arg_base);
 								var adot = arg_base.last_index_of_char ('.');
@@ -1946,7 +1948,7 @@ namespace Plank
 			if (window.Cmdline != "") {
 				var argv = parse_cmdline_argv (window.Cmdline);
 				if (argv.length > 0) {
-					var term_bin = normalize (File.new_for_path (argv[0]).get_basename ());
+					var term_bin = normalize (basename_any_slash (argv[0]));
 					bool can_use_cmdline = (window.Pid <= 0 || window.Id == "" ||
 						(terminal_cmdline_owner_wid.has_key (window.Pid) && terminal_cmdline_owner_wid.get (window.Pid) == window.Id) ||
 						(!terminal_cmdline_owner_wid.has_key (window.Pid) && !terminal_cmdline_consumed_pids.contains (window.Pid)));
@@ -1954,7 +1956,8 @@ namespace Plank
 					if (can_use_cmdline) {
 						for (int i = 1; i < argv.length; i++) {
 							var tok = argv[i].strip ();
-							if (tok == "-e" || tok == "--command" || tok == "-x" || tok == "--") {
+							var tok_down = tok.down ();
+							if (tok == "-e" || tok == "--command" || tok == "-x" || tok == "--" || tok_down == "nt" || tok_down == "new-tab") {
 								if (i + 1 < argv.length)
 									collect_unwrapped_cmd_tokens (argv, i + 1, hosted);
 								break;
@@ -1998,7 +2001,7 @@ namespace Plank
 				}
 			}
 
-			// Multi-window / single-process & child process ownership inspection
+			// Multi-window / single-process & child process ownership inspection:
 			// ALWAYS run child PID ownership binding even when Step 1 matched hosted tokens for W1,
 			// so W1 claims its own child PID in terminal_child_pid_owner_wid and a subsequent plain terminal W2 never steals it!
 			if (window.Pid > 0) {
@@ -2007,7 +2010,7 @@ namespace Plank
 					var stale_cpids = new Gee.ArrayList<int> ();
 					foreach (var entry in terminal_child_pid_owner_wid.entries) {
 						if (entry.value == window.Id) {
-							if (GLib.FileUtils.test ("/proc/%d".printf (entry.key), GLib.FileTest.EXISTS)) {
+							if (Hal.Apps.is_process_alive (entry.key)) {
 								owned_cpid = entry.key;
 								break;
 							} else {
@@ -2020,32 +2023,32 @@ namespace Plank
 				}
 
 				if (owned_cpid <= 0) {
-					string children_raw = read_proc_children_raw (window.Pid);
-					if (children_raw != "") {
-						foreach (var cpid_str in children_raw.split (" ")) {
-							int cpid = int.parse (cpid_str.strip ());
-							if (cpid <= 0)
-								continue;
-							if (window.Id != "" && terminal_child_pid_owner_wid.has_key (cpid) &&
-							    terminal_child_pid_owner_wid.get (cpid) != window.Id)
-								continue;
-							var c_cmd = ApplicationDiscovery.get_process_cmdline (cpid);
-							if (c_cmd == "")
-								continue;
-							var c_argv = parse_cmdline_argv (c_cmd);
-							if (c_argv.length == 0)
-								continue;
-							var c_bin = File.new_for_path (c_argv[0]).get_basename ().down ();
-							// Skip pre-execve forked child that still reports the terminal emulator binary
-							if (is_terminal_emulator_binary (c_bin)) {
-								ApplicationDiscovery.invalidate_process_cmdline (cpid);
-								continue;
-							}
-							if (window.Id != "")
-								terminal_child_pid_owner_wid.set (cpid, window.Id);
-							owned_cpid = cpid;
-							break;
+					var snap = Hal.Apps.inspect_process (window.Pid, true);
+					for (int ci = 0; ci < snap.child_pids.length; ci++) {
+						int cpid = snap.child_pids[ci];
+						if (cpid <= 0)
+							continue;
+						if (window.Id != "" && terminal_child_pid_owner_wid.has_key (cpid) &&
+						    terminal_child_pid_owner_wid.get (cpid) != window.Id)
+							continue;
+						string c_cmd = (ci < snap.child_cmdlines.length && snap.child_cmdlines[ci] != "")
+							? snap.child_cmdlines[ci]
+							: ApplicationDiscovery.get_process_cmdline (cpid);
+						if (c_cmd == "")
+							continue;
+						var c_argv = parse_cmdline_argv (c_cmd);
+						if (c_argv.length == 0)
+							continue;
+						var c_bin = basename_any_slash (c_argv[0]).down ();
+						// Skip pre-execve forked child that still reports the terminal emulator binary
+						if (is_terminal_emulator_binary (c_bin)) {
+							ApplicationDiscovery.invalidate_process_cmdline (cpid);
+							continue;
 						}
+						if (window.Id != "")
+							terminal_child_pid_owner_wid.set (cpid, window.Id);
+						owned_cpid = cpid;
+						break;
 					}
 				}
 
@@ -2056,21 +2059,21 @@ namespace Plank
 						if (c_argv.length > 0 && !is_bare_interactive_shell_argv (c_argv)) {
 							collect_unwrapped_cmd_tokens (c_argv, 0, hosted);
 							if (hosted.size == 0) {
-								string sub_children = read_proc_children_raw (owned_cpid);
-								if (sub_children != "") {
-									foreach (var gpid_str in sub_children.split (" ")) {
-										int gpid = int.parse (gpid_str.strip ());
-										if (gpid <= 0)
-											continue;
-										var g_cmd = ApplicationDiscovery.get_process_cmdline (gpid);
-										if (g_cmd == "")
-											continue;
-										var g_argv = parse_cmdline_argv (g_cmd);
-										if (g_argv.length > 0 && !is_bare_interactive_shell_argv (g_argv)) {
-											collect_unwrapped_cmd_tokens (g_argv, 0, hosted);
-											if (hosted.size > 0)
-												break;
-										}
+								var child_snap = Hal.Apps.inspect_process (owned_cpid, true);
+								for (int gi = 0; gi < child_snap.child_pids.length; gi++) {
+									int gpid = child_snap.child_pids[gi];
+									if (gpid <= 0)
+										continue;
+									string g_cmd = (gi < child_snap.child_cmdlines.length && child_snap.child_cmdlines[gi] != "")
+										? child_snap.child_cmdlines[gi]
+										: ApplicationDiscovery.get_process_cmdline (gpid);
+									if (g_cmd == "")
+										continue;
+									var g_argv = parse_cmdline_argv (g_cmd);
+									if (g_argv.length > 0 && !is_bare_interactive_shell_argv (g_argv)) {
+										collect_unwrapped_cmd_tokens (g_argv, 0, hosted);
+										if (hosted.size > 0)
+											break;
 									}
 								}
 							}
@@ -2110,24 +2113,25 @@ namespace Plank
 				pid_cwd_cache = new Gee.HashMap<int, string> ();
 			if (pid_cwd_cache.has_key (pid))
 				return pid_cwd_cache.get (pid);
-			try {
-				string? cwd = GLib.FileUtils.read_link ("/proc/%d/cwd".printf (pid));
-				if (cwd != null && cwd != "") {
-					var res = cwd.replace ("\\", "/").down ();
-					if (pid_cwd_cache.size > 512)
-						pid_cwd_cache.clear ();
-					pid_cwd_cache.set (pid, res);
-					return res;
-				}
-			} catch { }
+			var snap = Hal.Apps.inspect_process (pid, false);
+			if (snap.working_dir != "") {
+				var res = snap.working_dir.replace ("\\", "/").down ();
+				if (pid_cwd_cache.size > 512)
+					pid_cwd_cache.clear ();
+				pid_cwd_cache.set (pid, res);
+				return res;
+			}
 			return "";
 		}
 
 		private static bool is_wine_window (WindowInfo window)
 		{
 			if (window.Executable != "") {
+				var raw_exec = basename_any_slash (window.Executable).down ();
+				if (raw_exec.has_suffix (".exe") || raw_exec.has_suffix (".lnk"))
+					return true;
 				var ne = normalize (window.Executable);
-				if (ne == "wine" || ne == "wine64" || ne == "wine-preloader" || ne == "wine64-preloader" || ne == "wineserver" || ne.has_suffix (".exe") || ne.has_suffix (".lnk"))
+				if (ne == "wine" || ne == "wine64" || ne == "wine-preloader" || ne == "wine64-preloader" || ne == "wineserver")
 					return true;
 			}
 			var win_ids = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
@@ -2267,7 +2271,7 @@ namespace Plank
 
 		public static string normalize_profile_token (string raw)
 		{
-			string s = expand_shell_path (raw).strip ().replace ("\"", "").replace ("'", "").down ();
+			string s = expand_shell_path (raw).strip ().replace ("\"", "").replace ("'", "").replace ("\\", "/").down ();
 			while (s.length > 1 && s.has_suffix ("/"))
 				s = s.substring (0, s.length - 1);
 			return s.replace (" ", "_");
@@ -2420,10 +2424,8 @@ namespace Plank
 			last_used_profile_dir = "";
 			first_known_profile_dir = "";
 
-			string cfg = GLib.Environment.get_user_config_dir ();
-			if (cfg == "")
-				return;
-			parse_local_state_file (GLib.Path.build_filename (cfg, "google-chrome/Local State"));
+			foreach (unowned string ls_path in Hal.Apps.get_browser_local_state_paths (BrowserFamily.CHROME))
+				parse_local_state_file (ls_path);
 		}
 
 		private static string get_fallback_default_profile ()
@@ -2483,12 +2485,18 @@ namespace Plank
 
 		private static string extract_cmdline_profile_dir (string cmdline)
 		{
-			if (cmdline.strip () == "")
+			string clean_cmd = cmdline.strip ();
+			if (clean_cmd == "")
 				return "";
-			var argv = parse_cmdline_argv (cmdline);
+			string cmd_down = clean_cmd.down ();
+			if (cmd_down.contains ("--app-id=") || cmd_down.contains ("--app="))
+				return "";
+			var argv = parse_cmdline_argv (clean_cmd);
 			for (int i = 0; i < argv.length; i++) {
 				string tok = argv[i].strip ().replace ("\"", "").replace ("'", "");
 				string tok_down = tok.down ();
+				if (tok_down == "--app-id" || tok_down == "--app" || tok_down == "-app")
+					return "";
 				if (tok_down.has_prefix ("--profile-directory=")) {
 					string val = tok.substring ("--profile-directory=".length).strip ();
 					if (val.down () == "profile" && i + 1 < argv.length) {
@@ -2511,8 +2519,6 @@ namespace Plank
 			return "";
 		}
 
-		static Gee.HashSet<string>? dead_dbus_senders;
-
 		private static void ensure_browser_tracking_maps ()
 		{
 			if (window_browser_profiles == null)
@@ -2525,12 +2531,6 @@ namespace Plank
 				window_open_time_us = new Gee.HashMap<string, int64?> ();
 			if (newest_window_for_pid == null)
 				newest_window_for_pid = new Gee.HashMap<int, string> ();
-			if (pid_to_dbus_sender == null)
-				pid_to_dbus_sender = new Gee.HashMap<int, string> ();
-			if (dbus_sender_to_pid == null)
-				dbus_sender_to_pid = new Gee.HashMap<string, int> ();
-			if (dead_dbus_senders == null)
-				dead_dbus_senders = new Gee.HashSet<string> ();
 			if (unresolved_browser_windows == null)
 				unresolved_browser_windows = new Gee.HashMap<string, int> ();
 			if (open_browser_window_order == null)
@@ -2549,6 +2549,58 @@ namespace Plank
 				terminal_child_pid_owner_wid = new Gee.HashMap<int, string> ();
 			if (open_terminal_window_pids == null)
 				open_terminal_window_pids = new Gee.HashMap<string, int> ();
+		}
+
+		public static void cleanup ()
+		{
+			if (appmenu_signal_id != 0UL) {
+				Hal.Bus.AppMenu.disconnect (appmenu_signal_id);
+				appmenu_signal_id = 0UL;
+			}
+			if (browser_session_signal_id != 0UL) {
+				Hal.Apps.disconnect (browser_session_signal_id);
+				browser_session_signal_id = 0UL;
+			}
+			Hal.Apps.set_browser_session_watch (BrowserFamily.CHROME, false);
+			pending_launched_profile = "";
+			pending_launched_time_us = 0;
+			if (pid_cwd_cache != null) {
+				pid_cwd_cache.clear ();
+				pid_cwd_cache = null;
+			}
+			if (window_browser_profiles != null)
+				window_browser_profiles.clear ();
+			if (window_locked_launcher_uris != null)
+				window_locked_launcher_uris.clear ();
+			if (window_locked_display_names != null)
+				window_locked_display_names.clear ();
+			if (window_open_time_us != null)
+				window_open_time_us.clear ();
+			if (newest_window_for_pid != null)
+				newest_window_for_pid.clear ();
+			if (unresolved_browser_windows != null)
+				unresolved_browser_windows.clear ();
+			if (open_browser_window_order != null)
+				open_browser_window_order.clear ();
+			if (open_browser_window_pids != null)
+				open_browser_window_pids.clear ();
+			if (ever_seen_browser_pids != null)
+				ever_seen_browser_pids.clear ();
+			if (multi_window_browser_pids != null)
+				multi_window_browser_pids.clear ();
+			if (terminal_cmdline_owner_wid != null)
+				terminal_cmdline_owner_wid.clear ();
+			if (terminal_cmdline_consumed_pids != null)
+				terminal_cmdline_consumed_pids.clear ();
+			if (terminal_child_pid_owner_wid != null)
+				terminal_child_pid_owner_wid.clear ();
+			if (open_terminal_window_pids != null)
+				open_terminal_window_pids.clear ();
+			if (profile_dir_to_name != null)
+				profile_dir_to_name.clear ();
+			if (profile_label_to_dir != null)
+				profile_label_to_dir.clear ();
+			local_state_last_load_us = 0;
 		}
 
 		public static void invalidate_locked_launcher_uris ()
@@ -2578,216 +2630,82 @@ namespace Plank
 		public static void init_browser_profile_tracking ()
 		{
 			ensure_browser_tracking_maps ();
-			ensure_dbusmenu_listener ();
+			ensure_appmenu_listener ();
 		}
 
-		private static int resolve_pid_for_dbus_sender (string sender_name)
+		private static void ensure_appmenu_listener ()
 		{
-			if (sender_name == "")
-				return 0;
-			ensure_browser_tracking_maps ();
-			if (dbus_sender_to_pid.has_key (sender_name)) {
-				int cached = dbus_sender_to_pid.get (sender_name);
-				return cached > 0 ? cached : 0;
+			if (appmenu_signal_id == 0UL)
+				appmenu_signal_id = Hal.Bus.AppMenu.menu_changed.connect (on_appmenu_changed);
+			if (browser_session_signal_id == 0UL)
+				browser_session_signal_id = Hal.Apps.browser_sessions_changed.connect (on_browser_sessions_changed);
+		}
+
+		private static void sync_browser_session_watch ()
+		{
+			bool active = (unresolved_browser_windows != null && unresolved_browser_windows.size > 0);
+			Hal.Apps.set_browser_session_watch (BrowserFamily.CHROME, active);
+		}
+
+		public static void note_launcher_invocation (string launcher_uri)
+		{
+			if (launcher_uri == "")
+				return;
+			var disc = ApplicationDiscovery.get_default ();
+			var id_obj = disc.identity_for_launcher (launcher_uri);
+			if (id_obj == null || !id_obj.is_browser_launcher () || id_obj.is_web_app ())
+				return;
+			string hint = disc.get_launcher_profile_hint (launcher_uri);
+			string eff = id_obj.get_effective_browser_profile (hint);
+			if (eff != "") {
+				pending_launched_profile = eff;
+				pending_launched_time_us = GLib.get_monotonic_time ();
 			}
-			if (dbus_sender_to_pid.size > 4096)
-				dbus_sender_to_pid.clear ();
-			try {
-				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION);
-				var res = bus.call_sync (
-					"org.freedesktop.DBus",
-					"/org/freedesktop/DBus",
-					"org.freedesktop.DBus",
-					"GetConnectionUnixProcessID",
-					new GLib.Variant ("(s)", sender_name),
-					new GLib.VariantType ("(u)"),
-					GLib.DBusCallFlags.NONE,
-					50,
-					null
-				);
-				uint upid = 0;
-				res.get ("(u)", out upid);
-				if (upid > 0) {
-					int pid = (int) upid;
-					dbus_sender_to_pid.set (sender_name, pid);
-					return pid;
-				}
-			} catch (Error e) { }
-			dbus_sender_to_pid.set (sender_name, -1);
-			return 0;
 		}
 
-		private static int parse_dbus_unique_conn_serial (string name)
+		private static string[] get_known_profile_labels ()
 		{
-			if (!name.has_prefix (":1."))
-				return int.MAX;
-			return int.parse (name.substring (3));
+			ensure_chrome_local_state_loaded ();
+			if (profile_label_to_dir == null || profile_label_to_dir.size == 0)
+				return {};
+			var list = new Gee.ArrayList<string> ();
+			foreach (var k in profile_label_to_dir.keys)
+				list.add (k);
+			return list.to_array ();
 		}
 
-		private static string resolve_dbus_dest_for_pid (int pid)
+		private static string map_checked_label_to_profile_dir (string checked_label)
+		{
+			if (checked_label == "")
+				return "";
+			ensure_chrome_local_state_loaded ();
+			if (profile_label_to_dir != null) {
+				string ldown = checked_label.down ();
+				if (profile_label_to_dir.has_key (ldown))
+					return profile_label_to_dir.get (ldown);
+				string lnorm = normalize_profile_token (checked_label);
+				if (profile_label_to_dir.has_key (lnorm))
+					return profile_label_to_dir.get (lnorm);
+			}
+			return checked_label;
+		}
+
+		private static string query_chrome_current_appmenu_profile (int pid)
 		{
 			if (pid <= 0)
 				return "";
-			ensure_browser_tracking_maps ();
-			if (pid_to_dbus_sender.has_key (pid)) {
-				string cached_dest = pid_to_dbus_sender.get (pid);
-				if (cached_dest != null && cached_dest != "" && !dead_dbus_senders.contains (cached_dest))
-					return cached_dest;
-				pid_to_dbus_sender.unset (pid);
-			}
-
-			try {
-				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION);
-				var names_res = bus.call_sync (
-					"org.freedesktop.DBus",
-					"/org/freedesktop/DBus",
-					"org.freedesktop.DBus",
-					"ListNames",
-					null,
-					new GLib.VariantType ("(as)"),
-					GLib.DBusCallFlags.NONE,
-					100,
-					null
-				);
-				string[] names = names_res.get_child_value (0).get_strv ();
-				var matching_conns = new Gee.ArrayList<string> ();
-				for (int i = 0; i < names.length; i++) {
-					unowned string n = names[i];
-					if (!n.has_prefix (":1.") || dead_dbus_senders.contains (n))
-						continue;
-					int npid = resolve_pid_for_dbus_sender (n);
-					if (npid == pid)
-						matching_conns.add (n);
-				}
-				// Sort in ASCENDING connection serial order (:1.699 before :1.701..:1.705):
-				// Chromium creates its main UI thread D-Bus connection FIRST at startup, whereas higher-numbered
-				// connections belong to worker/portal/audio threads that may not dispatch D-Bus calls.
-				matching_conns.sort ((a, b) => {
-					int sa = parse_dbus_unique_conn_serial (a);
-					int sb = parse_dbus_unique_conn_serial (b);
-					return (sa < sb) ? -1 : ((sa > sb) ? 1 : 0);
-				});
-				int max_probe = int.min (matching_conns.size, 2);
-				for (int idx = 0; idx < max_probe; idx++) {
-					string n = matching_conns[idx];
-					try {
-						var intro = bus.call_sync (
-							n,
-							"/com/canonical/menu",
-							"org.freedesktop.DBus.Introspectable",
-							"Introspect",
-							null,
-							new GLib.VariantType ("(s)"),
-							GLib.DBusCallFlags.NONE,
-							60,
-							null
-						);
-						string xml;
-						intro.get ("(s)", out xml);
-						if (xml.contains ("<node name=")) {
-							pid_to_dbus_sender.set (pid, n);
-							return n;
-						}
-					} catch (Error e) {
-						if (idx > 0)
-							dead_dbus_senders.add (n);
-					}
-				}
-			} catch (Error e) { }
-			return "";
+			var labels = Hal.Bus.AppMenu.query_ordered_window_profile_labels (pid, get_known_profile_labels ());
+			if (labels.size == 0)
+				return "";
+			return map_checked_label_to_profile_dir (labels[labels.size - 1]);
 		}
 
-		private static void ensure_dbusmenu_listener ()
+		private static string query_chrome_appmenu_profile_at_token (int pid, string menu_token)
 		{
-			if (dbusmenu_signal_sub_id > 0)
-				return;
-			try {
-				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION);
-				dbusmenu_signal_sub_id = bus.signal_subscribe (
-					null,
-					"com.canonical.dbusmenu",
-					"LayoutUpdated",
-					null,
-					null,
-					GLib.DBusSignalFlags.NONE,
-					on_dbusmenu_layout_updated
-				);
-			} catch (Error e) { }
-		}
-
-		private static Gee.ArrayList<string> list_all_chrome_menu_paths (int pid, string? explicit_dest = null)
-		{
-			var result = new Gee.ArrayList<string> ();
-			if (pid <= 0)
-				return result;
-			string dest = (explicit_dest != null && explicit_dest != "") ? explicit_dest : resolve_dbus_dest_for_pid (pid);
-			if (dest == "")
-				return result;
-			try {
-				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION);
-				var intro_res = bus.call_sync (
-					dest,
-					"/com/canonical/menu",
-					"org.freedesktop.DBus.Introspectable",
-					"Introspect",
-					null,
-					new GLib.VariantType ("(s)"),
-					GLib.DBusCallFlags.NONE,
-					80,
-					null
-				);
-				string xml;
-				intro_res.get ("(s)", out xml);
-
-				int search_pos = 0;
-				while (search_pos < xml.length) {
-					int node_idx = xml.index_of ("<node name=\"", search_pos);
-					if (node_idx < 0)
-						break;
-					int q_start = node_idx + 12;
-					int q_end = xml.index_of_char ('"', q_start);
-					if (q_end <= q_start)
-						break;
-					string node_name = xml.substring (q_start, q_end - q_start);
-					search_pos = q_end + 1;
-					if (node_name == "")
-						continue;
-					uint64 node_num = 0;
-					if (!uint64.try_parse (node_name, out node_num, null, 16) || node_num == 0)
-						continue;
-					string path = "/com/canonical/menu/" + node_name;
-					if (!result.contains (path))
-						result.add (path);
-				}
-
-				result.sort ((a, b) => {
-					uint64 na = 0;
-					uint64 nb = 0;
-					uint64.try_parse (a.substring ("/com/canonical/menu/".length), out na, null, 16);
-					uint64.try_parse (b.substring ("/com/canonical/menu/".length), out nb, null, 16);
-					if (na < nb) return -1;
-					if (na > nb) return 1;
-					return 0;
-				});
-			} catch (Error e) {
-				if (pid_to_dbus_sender != null && pid_to_dbus_sender.has_key (pid) && pid_to_dbus_sender.get (pid) == dest)
-					pid_to_dbus_sender.unset (pid);
-			}
-			return result;
-		}
-
-		private static string query_chrome_current_dbus_profile (int pid, string? explicit_dest = null)
-		{
-			var all_menus = list_all_chrome_menu_paths (pid, explicit_dest);
-			for (int i = all_menus.size - 1; i >= 0; i--) {
-				string? menu_path = all_menus[i];
-				if (menu_path == null || menu_path == "")
-					continue;
-				string? prof = query_chrome_dbus_profile_at_path (pid, menu_path, explicit_dest);
-				if (prof != null && prof != "")
-					return prof;
-			}
-			return "";
+			if (pid <= 0 || menu_token == "")
+				return "";
+			string checked_label = Hal.Bus.AppMenu.query_profile_label_at_token (pid, menu_token, get_known_profile_labels ());
+			return map_checked_label_to_profile_dir (checked_label);
 		}
 
 		private static string find_unassigned_fd_profile_for_pid (int pid, string exclude_wid)
@@ -2795,7 +2713,7 @@ namespace Plank
 			if (pid <= 0)
 				return "";
 			ensure_browser_tracking_maps ();
-			var fd_profs = extract_open_chrome_profiles_from_proc_fds (pid, "");
+			var fd_profs = extract_open_chrome_profiles_from_process_fds (pid, "");
 			if (fd_profs.size == 0)
 				return "";
 
@@ -2846,7 +2764,7 @@ namespace Plank
 		}
 
 		private static string resolve_profile_for_window (string wid, int pid, string cmdline, bool allow_cmdline_fallback,
-			string? explicit_dest = null, string? signal_menu_path = null, out bool is_authoritative = null)
+			string? signal_menu_token = null, out bool is_authoritative = null)
 		{
 			is_authoritative = false;
 			if (pid <= 0)
@@ -2874,27 +2792,27 @@ namespace Plank
 			}
 
 			string unassigned_fd = find_unassigned_fd_profile_for_pid (pid, wid);
-			string dbus_prof = "";
-			if (signal_menu_path != null && signal_menu_path != "")
-				dbus_prof = query_chrome_dbus_profile_at_path (pid, signal_menu_path, explicit_dest);
-			if (dbus_prof == "")
-				dbus_prof = query_chrome_current_dbus_profile (pid, explicit_dest);
+			string menu_prof = "";
+			if (signal_menu_token != null && signal_menu_token != "")
+				menu_prof = query_chrome_appmenu_profile_at_token (pid, signal_menu_token);
+			if (menu_prof == "")
+				menu_prof = query_chrome_current_appmenu_profile (pid);
 
 			if (other_open_count > 0) {
 				if (unassigned_fd != "") {
 					is_authoritative = true;
 					return unassigned_fd;
 				}
-				if (dbus_prof != "" && !is_profile_assigned_to_other_window (pid, wid, dbus_prof)) {
+				if (menu_prof != "" && !is_profile_assigned_to_other_window (pid, wid, menu_prof)) {
 					is_authoritative = true;
-					return dbus_prof;
+					return menu_prof;
 				}
 				return "";
 			}
 
-			if (dbus_prof != "") {
+			if (menu_prof != "") {
 				is_authoritative = true;
-				return dbus_prof;
+				return menu_prof;
 			}
 			if (unassigned_fd != "") {
 				is_authoritative = true;
@@ -2903,21 +2821,25 @@ namespace Plank
 			return "";
 		}
 
-		private static bool refresh_recent_window_for_pid (int pid, string? explicit_dest = null, string? signal_menu_path = null)
+		private static bool try_resolve_pending_browser_window (string wid, int pid, string? signal_menu_token = null, bool allow_settled_fallback = false)
 		{
-			if (pid <= 0)
+			if (pid <= 0 || wid == "")
 				return false;
 			ensure_browser_tracking_maps ();
-
-			string? wid = newest_window_for_pid.has_key (pid) ? newest_window_for_pid.get (pid) : null;
-			if (wid == null || wid == "" || !open_browser_window_pids.has_key (wid))
-				return false;
-
-			if (!unresolved_browser_windows.has_key (wid))
+			if (!open_browser_window_pids.has_key (wid) || !unresolved_browser_windows.has_key (wid))
 				return false;
 
 			bool is_auth = false;
-			string resolved = resolve_profile_for_window (wid, pid, "", false, explicit_dest, signal_menu_path, out is_auth);
+			string resolved = resolve_profile_for_window (wid, pid, "", false, signal_menu_token, out is_auth);
+			if (resolved == "" && allow_settled_fallback) {
+				int64 opened_us = (window_open_time_us != null && window_open_time_us.has_key (wid)) ? window_open_time_us.get (wid) : 0;
+				if (opened_us > 0 && (GLib.get_monotonic_time () - opened_us) >= 3500000LL) {
+					local_state_last_load_us = 0;
+					resolved = get_fallback_default_profile ();
+					if (resolved != "")
+						is_auth = true;
+				}
+			}
 			if (resolved == "")
 				return false;
 
@@ -2931,161 +2853,68 @@ namespace Plank
 				window_locked_display_names.unset (wid);
 				return true;
 			}
-			return false;
+			return is_auth && !window_locked_launcher_uris.has_key (wid);
 		}
 
-		private static void schedule_browser_profile_followup (int pid)
+		private static bool refresh_recent_window_for_pid (int pid, string? signal_menu_token = null)
 		{
 			if (pid <= 0)
-				return;
-			GLib.Timeout.add (120, () => {
-				if (refresh_recent_window_for_pid (pid))
-					WindowManager.get_default ().on_browser_profile_resolved ();
 				return false;
-			});
-			GLib.Timeout.add (300, () => {
-				if (refresh_recent_window_for_pid (pid))
-					WindowManager.get_default ().on_browser_profile_resolved ();
-				return false;
-			});
-			GLib.Timeout.add (650, () => {
-				bool changed = refresh_recent_window_for_pid (pid);
-				if (newest_window_for_pid != null && newest_window_for_pid.has_key (pid)) {
-					string wid = newest_window_for_pid.get (pid);
-					if (open_browser_window_pids != null && open_browser_window_pids.has_key (wid)) {
-						if (window_browser_profiles == null || !window_browser_profiles.has_key (wid) || window_browser_profiles.get (wid) == "") {
-							string fb = find_unassigned_fd_profile_for_pid (pid, wid);
-							if (fb == "")
-								fb = query_chrome_current_dbus_profile (pid);
-							if (fb == "")
-								fb = get_fallback_default_profile ();
-							if (fb != "") {
-								window_browser_profiles.set (wid, fb);
-								window_locked_launcher_uris.unset (wid);
-								window_locked_display_names.unset (wid);
-								changed = true;
-							}
-						}
-						if (unresolved_browser_windows != null)
-							unresolved_browser_windows.unset (wid);
-					}
-				}
-				if (changed)
-					WindowManager.get_default ().on_browser_profile_resolved ();
-				return false;
-			});
-		}
-
-		private static void on_dbusmenu_layout_updated (GLib.DBusConnection conn, string? sender_name,
-			string object_path, string interface_name, string signal_name, GLib.Variant parameters)
-		{
-			if (sender_name == null || sender_name == "" || !object_path.has_prefix ("/com/canonical/menu/"))
-				return;
 			ensure_browser_tracking_maps ();
 
-			int sender_pid = resolve_pid_for_dbus_sender (sender_name);
+			string? wid = newest_window_for_pid.has_key (pid) ? newest_window_for_pid.get (pid) : null;
+			if (wid == null || wid == "" || !open_browser_window_pids.has_key (wid))
+				return false;
+
+			bool changed = try_resolve_pending_browser_window (wid, pid, signal_menu_token, false);
+			sync_browser_session_watch ();
+			return changed;
+		}
+
+		private static void on_browser_sessions_changed ()
+		{
+			ensure_browser_tracking_maps ();
+			if (unresolved_browser_windows == null || unresolved_browser_windows.size == 0) {
+				sync_browser_session_watch ();
+				return;
+			}
+			local_state_last_load_us = 0;
+			var pending_wids = new Gee.ArrayList<string> ();
+			pending_wids.add_all (unresolved_browser_windows.keys);
+			bool any_changed = false;
+			foreach (var wid in pending_wids) {
+				if (!unresolved_browser_windows.has_key (wid))
+					continue;
+				int pid = unresolved_browser_windows.get (wid);
+				if (try_resolve_pending_browser_window (wid, pid, null, true))
+					any_changed = true;
+			}
+			sync_browser_session_watch ();
+			if (any_changed)
+				WindowManager.get_default ().on_browser_profile_resolved ();
+		}
+
+		private static void on_appmenu_changed (int sender_pid, string menu_token)
+		{
 			if (sender_pid <= 0)
 				return;
-			pid_to_dbus_sender.set (sender_pid, sender_name);
+			ensure_browser_tracking_maps ();
 
 			if (!open_browser_window_pids.values.contains (sender_pid) && !ever_seen_browser_pids.contains (sender_pid))
 				return;
 
-			if (refresh_recent_window_for_pid (sender_pid, sender_name, object_path))
+			if (refresh_recent_window_for_pid (sender_pid, menu_token))
 				WindowManager.get_default ().on_browser_profile_resolved ();
-		}
-
-		private static string query_chrome_dbus_profile_at_path (int pid, string menu_path, string? explicit_dest = null)
-		{
-			if (pid <= 0 || menu_path == "")
-				return "";
-			string dest = (explicit_dest != null && explicit_dest != "") ? explicit_dest : resolve_dbus_dest_for_pid (pid);
-			if (dest == "")
-				return "";
-			try {
-				var bus = GLib.Bus.get_sync (GLib.BusType.SESSION);
-				string[] prop_names = { "label", "toggle-type", "toggle-state" };
-				var res = bus.call_sync (
-					dest,
-					menu_path,
-					"com.canonical.dbusmenu",
-					"GetLayout",
-					new GLib.Variant ("(ii^as)", 0, -1, prop_names),
-					new GLib.VariantType ("(u(ia{sv}av))"),
-					GLib.DBusCallFlags.NONE,
-					80,
-					null
-				);
-				uint rev;
-				GLib.Variant root_item;
-				res.get ("(u@(ia{sv}av))", out rev, out root_item);
-
-				int root_id;
-				GLib.Variant root_props;
-				GLib.VariantIter top_children;
-				root_item.get ("(i@a{sv}av)", out root_id, out root_props, out top_children);
-
-				ensure_chrome_local_state_loaded ();
-				GLib.Variant? sub_var = null;
-				while (top_children.next ("v", out sub_var)) {
-					if (sub_var == null)
-						continue;
-					int sub_id;
-					GLib.Variant sub_props;
-					GLib.VariantIter item_iter;
-					sub_var.get ("(i@a{sv}av)", out sub_id, out sub_props, out item_iter);
-
-					bool has_profile_checkmarks = (sub_id == 61);
-					string checked_label = "";
-					GLib.Variant? child_var = null;
-					while (item_iter.next ("v", out child_var)) {
-						if (child_var == null)
-							continue;
-						int cid;
-						GLib.Variant cprops;
-						GLib.VariantIter dummy_iter;
-						child_var.get ("(i@a{sv}av)", out cid, out cprops, out dummy_iter);
-						string? ttype = null;
-						cprops.lookup ("toggle-type", "s", out ttype);
-						if (ttype == "checkmark") {
-							string? lbl = null;
-							cprops.lookup ("label", "s", out lbl);
-							string clean_lbl = (lbl != null) ? lbl.strip ().replace ("_", "") : "";
-							if (clean_lbl != "" && profile_label_to_dir != null) {
-								string ldown = clean_lbl.down ();
-								string lnorm = normalize_profile_token (clean_lbl);
-								if (profile_label_to_dir.has_key (ldown) || profile_label_to_dir.has_key (lnorm))
-									has_profile_checkmarks = true;
-							}
-							int tstate = 0;
-							cprops.lookup ("toggle-state", "i", out tstate);
-							if (tstate == 1 && clean_lbl != "")
-								checked_label = clean_lbl;
-						}
-					}
-					if (has_profile_checkmarks && checked_label != "") {
-						if (profile_label_to_dir != null) {
-							string ldown = checked_label.down ();
-							if (profile_label_to_dir.has_key (ldown))
-								return profile_label_to_dir.get (ldown);
-							string lnorm = normalize_profile_token (checked_label);
-							if (profile_label_to_dir.has_key (lnorm))
-								return profile_label_to_dir.get (lnorm);
-						}
-						return checked_label;
-					}
-				}
-			} catch (Error e) { }
-			return "";
 		}
 
 		private static int64 extract_session_file_timestamp (string rest)
 		{
-			int idx = rest.index_of ("/Sessions/Session_");
-			int prefix_len = "/Sessions/Session_".length;
+			string rest_down = rest.down ();
+			int idx = rest_down.index_of ("/sessions/session_");
+			int prefix_len = "/sessions/session_".length;
 			if (idx < 0) {
-				idx = rest.index_of ("/Sessions/Tabs_");
-				prefix_len = "/Sessions/Tabs_".length;
+				idx = rest_down.index_of ("/sessions_encrypted/session_");
+				prefix_len = "/sessions_encrypted/session_".length;
 			}
 			if (idx < 0)
 				return -1;
@@ -3103,7 +2932,7 @@ namespace Plank
 			return int64.parse (sb.str);
 		}
 
-		private static Gee.ArrayList<string> extract_open_chrome_profiles_from_proc_fds (int pid, string first_cmd_prof)
+		private static Gee.ArrayList<string> extract_open_chrome_profiles_from_process_fds (int pid, string first_cmd_prof)
 		{
 			var result = new Gee.ArrayList<string> ();
 			if (first_cmd_prof != "")
@@ -3111,61 +2940,63 @@ namespace Plank
 			if (pid <= 0)
 				return result;
 
-			try {
-				ensure_chrome_local_state_loaded ();
-				string fd_dir_path = "/proc/%d/fd".printf (pid);
-				var dir = GLib.Dir.open (fd_dir_path, 0);
-				var session_prof_ts = new Gee.HashMap<string, int64?> ();
-				string? name = null;
-				while ((name = dir.read_name ()) != null) {
-					int fd_num = int.parse (name);
-					if (fd_num <= 0)
-						continue;
-					string link_target = GLib.FileUtils.read_link (GLib.Path.build_filename (fd_dir_path, name));
-					int marker_idx = link_target.index_of ("/google-chrome/");
-					int marker_len = "/google-chrome/".length;
-					if (marker_idx < 0) {
-						marker_idx = link_target.index_of ("/chromium/");
-						marker_len = "/chromium/".length;
-					}
-					if (marker_idx < 0)
-						continue;
-					string rest = link_target.substring (marker_idx + marker_len);
-					int slash = rest.index_of_char ('/');
-					if (slash <= 0)
-						continue;
-					string sub = rest.substring (0, slash);
-					if (sub == "Default" || sub.has_prefix ("Profile ")) {
-						int64 ts = extract_session_file_timestamp (rest);
-						if (ts >= 0) {
-							int64 prev_ts = session_prof_ts.has_key (sub) ? session_prof_ts.get (sub) : -1;
-							if (prev_ts < 0 || (ts > 0 && ts < prev_ts))
-								session_prof_ts.set (sub, ts);
-						}
+			ensure_chrome_local_state_loaded ();
+			var snap = Hal.Apps.inspect_process (pid, true);
+			var session_prof_ts = new Gee.HashMap<string, int64?> ();
+
+			foreach (unowned string raw_target in snap.open_fd_targets) {
+				if (raw_target == null || raw_target == "")
+					continue;
+				string link_target = raw_target.replace ("\\", "/");
+				string target_down = link_target.down ();
+				int marker_idx = target_down.index_of ("/google-chrome/");
+				int marker_len = "/google-chrome/".length;
+				if (marker_idx < 0) {
+					marker_idx = target_down.index_of ("/chromium/");
+					marker_len = "/chromium/".length;
+				}
+				if (marker_idx < 0) {
+					marker_idx = target_down.index_of ("/user data/");
+					marker_len = "/user data/".length;
+				}
+				if (marker_idx < 0)
+					continue;
+				string rest = link_target.substring (marker_idx + marker_len);
+				int slash = rest.index_of_char ('/');
+				if (slash <= 0)
+					continue;
+				string sub = rest.substring (0, slash);
+				string sub_down = sub.down ();
+				if (sub_down == "default" || sub_down.has_prefix ("profile ")) {
+					int64 ts = extract_session_file_timestamp (rest);
+					if (ts >= 0) {
+						int64 prev_ts = session_prof_ts.has_key (sub) ? session_prof_ts.get (sub) : -1;
+						if (prev_ts < 0 || (ts > 0 && ts < prev_ts))
+							session_prof_ts.set (sub, ts);
 					}
 				}
+			}
 
-				var sorted_profs = new Gee.ArrayList<string> ();
-				foreach (var k in session_prof_ts.keys)
-					sorted_profs.add (k);
-				sorted_profs.sort ((a, b) => {
-					int64 ta = session_prof_ts.get (a);
-					int64 tb = session_prof_ts.get (b);
-					return (ta < tb) ? -1 : ((ta > tb) ? 1 : 0);
-				});
+			var sorted_profs = new Gee.ArrayList<string> ();
+			foreach (var k in session_prof_ts.keys)
+				sorted_profs.add (k);
+			sorted_profs.sort ((a, b) => {
+				int64 ta = session_prof_ts.get (a);
+				int64 tb = session_prof_ts.get (b);
+				return (ta < tb) ? -1 : ((ta > tb) ? 1 : 0);
+			});
 
-				foreach (var p in sorted_profs) {
-					bool already = false;
-					foreach (var existing in result) {
-						if (profiles_match (existing, p)) {
-							already = true;
-							break;
-						}
+			foreach (var p in sorted_profs) {
+				bool already = false;
+				foreach (var existing in result) {
+					if (profiles_match (existing, p)) {
+						already = true;
+						break;
 					}
-					if (!already)
-						result.add (p);
 				}
-			} catch (Error e) { }
+				if (!already)
+					result.add (p);
+			}
 			return result;
 		}
 
@@ -3178,7 +3009,6 @@ namespace Plank
 				if (w.Id == "" || w.Pid <= 0)
 					continue;
 				if (has_explicit_webapp_window_id (w)) {
-					ever_seen_browser_pids.add (w.Pid);
 					if (!open_browser_window_order.contains (w.Id))
 						open_browser_window_order.add (w.Id);
 					open_browser_window_pids.set (w.Id, w.Pid);
@@ -3206,39 +3036,61 @@ namespace Plank
 				if (group.size >= 2)
 					multi_window_browser_pids.add (pid);
 
-				string dbus_prof = query_chrome_current_dbus_profile (pid);
+				string menu_prof = query_chrome_current_appmenu_profile (pid);
 				string cmd_prof = extract_cmdline_profile_dir (group[0].Cmdline);
-				var fd_profs = extract_open_chrome_profiles_from_proc_fds (pid, cmd_prof);
+				var fd_profs = extract_open_chrome_profiles_from_process_fds (pid, "");
+				if (fd_profs.size == 0 && cmd_prof != "")
+					fd_profs.add (cmd_prof);
 
 				if (group.size == 1) {
 					var w0 = group[0];
-					string resolved = dbus_prof;
+					string resolved = menu_prof;
 					if (resolved == "" && fd_profs.size > 0)
 						resolved = fd_profs[0];
 					if (resolved == "")
 						resolved = cmd_prof != "" ? cmd_prof : get_fallback_default_profile ();
 					window_browser_profiles.set (w0.Id, resolved);
 				} else if (group.size >= 2) {
+					var ordered_group = new Gee.ArrayList<WindowInfo> ();
+					ordered_group.add_all (group);
+					bool all_numeric_ids = true;
+					foreach (var wi in ordered_group) {
+						uint64 parsed_seq = 0;
+						if (!uint64.try_parse (wi.Id, out parsed_seq)) {
+							all_numeric_ids = false;
+							break;
+						}
+					}
+					if (all_numeric_ids) {
+						ordered_group.sort ((a, b) => {
+							uint64 sa = 0;
+							uint64 sb = 0;
+							uint64.try_parse (a.Id, out sa);
+							uint64.try_parse (b.Id, out sb);
+							return (sa < sb) ? -1 : ((sa > sb) ? 1 : 0);
+						});
+					}
+
 					string active_wid = "";
-					if (dbus_prof != "") {
-						foreach (var wi in group) {
+					if (menu_prof != "") {
+						foreach (var wi in ordered_group) {
 							if (wi.Active) {
-								window_browser_profiles.set (wi.Id, dbus_prof);
+								window_browser_profiles.set (wi.Id, menu_prof);
 								active_wid = wi.Id;
 								break;
 							}
 						}
 					}
 					int fd_idx = 0;
-					for (int i = 0; i < group.size; i++) {
-						var wi = group[i];
+					for (int i = 0; i < ordered_group.size; i++) {
+						var wi = ordered_group[i];
 						if (wi.Id == active_wid)
 							continue;
-						while (fd_idx < fd_profs.size && active_wid != "" && profiles_match (fd_profs[fd_idx], dbus_prof))
+						while (fd_idx < fd_profs.size && active_wid != "" && profiles_match (fd_profs[fd_idx], menu_prof))
 							fd_idx++;
 						string assigned_prof = (fd_idx < fd_profs.size)
 							? fd_profs[fd_idx++]
-							: (fd_profs.size > 0 ? fd_profs[fd_profs.size - 1] : (dbus_prof != "" ? dbus_prof : get_fallback_default_profile ()));
+							: (fd_profs.size > 0 ? fd_profs[fd_profs.size - 1] : (menu_prof != "" ? menu_prof : get_fallback_default_profile ()));
 						window_browser_profiles.set (wi.Id, assigned_prof);
 					}
 				}
@@ -3258,7 +3110,6 @@ namespace Plank
 			if (window.Id == "" || window.Pid <= 0)
 				return;
 			if (has_explicit_webapp_window_id (window)) {
-				ever_seen_browser_pids.add (window.Pid);
 				if (!open_browser_window_pids.has_key (window.Id)) {
 					open_browser_window_order.add (window.Id);
 					open_browser_window_pids.set (window.Id, window.Pid);
@@ -3278,13 +3129,17 @@ namespace Plank
 			ever_seen_browser_pids.add (window.Pid);
 
 			int existing_for_pid = 0;
+			int existing_webapps_for_pid = 0;
 			foreach (var wid in open_browser_window_order) {
 				if (open_browser_window_pids.has_key (wid) && open_browser_window_pids.get (wid) == window.Pid) {
 					if (!window_browser_profiles.has_key (wid) || window_browser_profiles.get (wid) != "__webapp__")
 						existing_for_pid++;
+					else
+						existing_webapps_for_pid++;
 				}
 			}
-			if (!is_brand_new_browser_pid || existing_for_pid > 0 || same_pid_browser_count > 1)
+			int effective_same_pid_browser_count = int.max (1, same_pid_browser_count - existing_webapps_for_pid);
+			if (!is_brand_new_browser_pid || existing_for_pid > 0 || effective_same_pid_browser_count > 1)
 				multi_window_browser_pids.add (window.Pid);
 
 			open_browser_window_order.add (window.Id);
@@ -3293,31 +3148,42 @@ namespace Plank
 			window_open_time_us.set (window.Id, GLib.get_monotonic_time ());
 			newest_window_for_pid.set (window.Pid, window.Id);
 
-			bool allow_cmdline = is_brand_new_browser_pid && existing_for_pid == 0 && same_pid_browser_count <= 1;
+			bool allow_cmdline = is_brand_new_browser_pid && existing_for_pid == 0 && effective_same_pid_browser_count <= 1;
 			bool is_auth = false;
-			string prof = resolve_profile_for_window (window.Id, window.Pid, window.Cmdline, allow_cmdline, null, null, out is_auth);
+			string prof = resolve_profile_for_window (window.Id, window.Pid, window.Cmdline, allow_cmdline, null, out is_auth);
 			if (prof != "") {
 				window_browser_profiles.set (window.Id, prof);
 				if (is_auth)
 					unresolved_browser_windows.unset (window.Id);
+				if (pending_launched_profile != "" && profiles_match (pending_launched_profile, prof)) {
+					pending_launched_profile = "";
+					pending_launched_time_us = 0;
+				}
+			} else if (pending_launched_profile != "") {
+				int64 now_us = GLib.get_monotonic_time ();
+				if ((now_us - pending_launched_time_us) <= 10000000LL)
+					window_browser_profiles.set (window.Id, pending_launched_profile);
+				pending_launched_profile = "";
+				pending_launched_time_us = 0;
 			}
 
 			get_locked_window_launcher_uri (window);
-			if (unresolved_browser_windows.has_key (window.Id))
-				schedule_browser_profile_followup (window.Pid);
+			sync_browser_session_watch ();
 		}
 
 		public static void resolve_unresolved_browser_windows ()
 		{
 			if (unresolved_browser_windows == null || unresolved_browser_windows.size == 0)
 				return;
-			var pending_pids = new Gee.HashSet<int> ();
-			foreach (int p in unresolved_browser_windows.values) {
-				if (p > 0)
-					pending_pids.add (p);
+			var pending_wids = new Gee.ArrayList<string> ();
+			pending_wids.add_all (unresolved_browser_windows.keys);
+			foreach (var wid in pending_wids) {
+				if (!unresolved_browser_windows.has_key (wid))
+					continue;
+				int pid = unresolved_browser_windows.get (wid);
+				try_resolve_pending_browser_window (wid, pid, null, true);
 			}
-			foreach (int p in pending_pids)
-				refresh_recent_window_for_pid (p);
+			sync_browser_session_watch ();
 		}
 
 		public static void on_window_closed (string window_id)
@@ -3342,6 +3208,7 @@ namespace Plank
 				newest_window_for_pid.unset (closed_pid);
 			if (unresolved_browser_windows != null)
 				unresolved_browser_windows.unset (window_id);
+			sync_browser_session_watch ();
 			if (open_browser_window_order != null)
 				open_browser_window_order.remove (window_id);
 			if (open_browser_window_pids != null)
@@ -3361,8 +3228,11 @@ namespace Plank
 						multi_window_browser_pids.remove (closed_pid);
 					if (ever_seen_browser_pids != null)
 						ever_seen_browser_pids.remove (closed_pid);
-					if (pid_to_dbus_sender != null)
-						pid_to_dbus_sender.unset (closed_pid);
+					if (!Hal.Apps.is_process_alive (closed_pid)) {
+						if (pid_cwd_cache != null)
+							pid_cwd_cache.unset (closed_pid);
+						ApplicationDiscovery.invalidate_process_cmdline (closed_pid);
+					}
 				}
 			}
 			if (terminal_cmdline_owner_wid != null) {
@@ -3375,8 +3245,13 @@ namespace Plank
 					terminal_cmdline_owner_wid.unset (p);
 			}
 			if (closed_term_pid > 0 && open_terminal_window_pids != null && !open_terminal_window_pids.values.contains (closed_term_pid)) {
-				if (!GLib.FileUtils.test ("/proc/%d".printf (closed_term_pid), GLib.FileTest.EXISTS) && terminal_cmdline_consumed_pids != null)
-					terminal_cmdline_consumed_pids.remove (closed_term_pid);
+				if (!Hal.Apps.is_process_alive (closed_term_pid)) {
+					if (terminal_cmdline_consumed_pids != null)
+						terminal_cmdline_consumed_pids.remove (closed_term_pid);
+					if (pid_cwd_cache != null)
+						pid_cwd_cache.unset (closed_term_pid);
+					ApplicationDiscovery.invalidate_process_cmdline (closed_term_pid);
+				}
 			}
 			if (terminal_child_pid_owner_wid != null) {
 				var child_pids_to_remove = new Gee.ArrayList<int> ();
@@ -3384,8 +3259,11 @@ namespace Plank
 					if (entry.value == window_id)
 						child_pids_to_remove.add (entry.key);
 				}
-				foreach (int cp in child_pids_to_remove)
+				foreach (int cp in child_pids_to_remove) {
 					terminal_child_pid_owner_wid.unset (cp);
+					if (!Hal.Apps.is_process_alive (cp))
+						ApplicationDiscovery.invalidate_process_cmdline (cp);
+				}
 			}
 		}
 
@@ -3415,7 +3293,7 @@ namespace Plank
 		}
 
 		/**
-		 * GLOBAL SINGLE SOURCE OF TRUTH: Identifies a window ONCE and locks its canonical .desktop URI
+		 * GLOBAL SINGLE SOURCE OF TRUTH: Identifies a window ONCE and locks its canonical launcher URI
 		 * for the entire lifetime of window.Id until on_window_closed(window.Id).
 		 */
 		public static string get_locked_window_launcher_uri (WindowInfo window)
@@ -3433,11 +3311,8 @@ namespace Plank
 					return cached_uri;
 			}
 
-			var desktop_file = ApplicationDiscovery.get_default ().compute_best_desktop_file_for_window (window);
-			if (desktop_file == null)
-				return "";
-			string? uri = desktop_file.get_uri ();
-			if (uri != null && uri != "") {
+			string uri = ApplicationDiscovery.get_default ().compute_best_launcher_uri_for_window (window);
+			if (uri != "") {
 				bool can_lock = true;
 				if (is_plain_browser && is_window_profile_pending (window))
 					can_lock = false;
@@ -3507,9 +3382,10 @@ namespace Plank
 			}
 			if (raw_identity.strip () != "")
 				return raw_identity.strip ();
-			string clean = bus_name.has_prefix ("org.mpris.MediaPlayer2.")
-				? bus_name.substring ("org.mpris.MediaPlayer2.".length)
-				: bus_name;
+			string clean = bus_name.strip ();
+			int last_dot = clean.last_index_of_char ('.');
+			if (last_dot >= 0 && last_dot + 1 < clean.length && !clean.substring (last_dot).has_prefix (".instance"))
+				clean = clean.substring (last_dot + 1);
 			int idx = clean.index_of (".instance");
 			if (idx > 0)
 				clean = clean.substring (0, idx);
@@ -3536,14 +3412,13 @@ namespace Plank
 
 		private static string[] parse_cmdline_argv (string cmdline)
 		{
-			if (cmdline.strip () == "")
+			string clean = cmdline.strip ();
+			if (clean == "")
 				return {};
-			string[] argv;
-			try {
-				if (GLib.Shell.parse_argv (cmdline.strip (), out argv))
-					return argv;
-			} catch (Error e) { }
-			return cmdline.strip ().split (" ");
+			string[] argv = Hal.Runtime.parse_command_argv (clean);
+			if (argv.length > 0)
+				return argv;
+			return clean.split (" ");
 		}
 
 		private static bool window_is_incognito (WindowInfo window)
@@ -3593,13 +3468,13 @@ namespace Plank
 			if (target == "")
 				return false;
 
-			string win_dbus_prof = get_window_browser_profile (window);
-			if (win_dbus_prof != "") {
+			string win_menu_prof = get_window_browser_profile (window);
+			if (win_menu_prof != "") {
 				if (kind == "profile-dir")
-					return profiles_match (win_dbus_prof, target);
+					return profiles_match (win_menu_prof, target);
 				if (kind == "user-agent") {
 					string cmd_prof = extract_cmdline_profile_dir (window.Cmdline);
-					if (cmd_prof != "" && !profiles_match (win_dbus_prof, cmd_prof))
+					if (cmd_prof != "" && !profiles_match (win_menu_prof, cmd_prof))
 						return false;
 				}
 			}
@@ -3629,6 +3504,8 @@ namespace Plank
 						if (next_tok != "" && !next_tok.has_prefix ("-"))
 							v = v + " " + next_tok;
 					}
+					if (k.contains ("user-data-dir") || k.contains ("profile"))
+						v = v.replace ("\\", "/");
 					while (v.length > 1 && v.has_suffix ("/"))
 						v = v.substring (0, v.length - 1);
 					if (k.contains ("user-data-dir") || k.contains ("profile-directory") || k == "--profile" || k == "-profile")
@@ -3648,6 +3525,8 @@ namespace Plank
 
 				if (i + 1 < win_argv.length) {
 					string nv = win_argv[i + 1].strip ().replace ("\"", "").replace ("'", "").down ();
+					if (tok_down.contains ("user-data-dir") || tok_down.contains ("profile") || tok == "-P")
+						nv = nv.replace ("\\", "/");
 					while (nv.length > 1 && nv.has_suffix ("/"))
 						nv = nv.substring (0, nv.length - 1);
 					if (tok_down == "--user-data-dir" || tok_down == "--profile-directory" || tok == "-P" || tok == "--ProfileManager" || tok_down == "--profile" || tok_down == "-profile")
@@ -3673,14 +3552,14 @@ namespace Plank
 
 		private static bool window_matches_profile_hint (WindowInfo window, string[] win_argv, string profile_hint)
 		{
-			string clean = expand_shell_path (profile_hint).strip ().replace ("\"", "").replace ("'", "").down ();
+			string clean = expand_shell_path (profile_hint).strip ().replace ("\"", "").replace ("'", "").replace ("\\", "/").down ();
 			while (clean.length > 1 && clean.has_suffix ("/"))
 				clean = clean.substring (0, clean.length - 1);
 			if (clean == "")
 				return false;
-			string win_dbus_prof = get_window_browser_profile (window);
-			if (win_dbus_prof != "")
-				return profiles_match (win_dbus_prof, clean);
+			string win_menu_prof = get_window_browser_profile (window);
+			if (win_menu_prof != "")
+				return profiles_match (win_menu_prof, clean);
 			if (window_matches_browser_arg (window, win_argv, "profile-dir=" + clean) ||
 			    window_matches_browser_arg (window, win_argv, "user-data-dir=" + clean) ||
 			    window_matches_browser_arg (window, win_argv, "profile-arg=" + clean) ||
@@ -3750,7 +3629,7 @@ namespace Plank
 			string eff_profile = get_effective_browser_profile (browser_profile_hint);
 
 			// Strict PWA Isolation: Single-process browsers (Chrome/Chromium/Brave/Edge) share a single
-			// master PID and /proc/<pid>/cmdline across all open browser and PWA windows.
+			// master PID and process command line across all open browser and PWA windows.
 			// Therefore, a launcher with an explicit pwa_id (--app-id or StartupWMClass=crx_) MUST match
 			// strictly against the window's own compositor identifiers, never via shared Cmdline or plain browser tabs.
 			if (pwa_id != "") {
@@ -3778,7 +3657,7 @@ namespace Plank
 
 			// Strict Standalone Web-App URL Isolation (--app=http(s)://...):
 			// Match against compositor window identifiers (Wayland chrome-<host>__* or XWayland instance),
-			// or chromeless standalone web-app windows (never plain browser tabs or shared /proc/<pid>/cmdline).
+			// or chromeless standalone web-app windows (never plain browser tabs or shared process command line).
 			if (web_app_host != "") {
 				if (is_plain_browser_window (window))
 					return 0;
@@ -3821,7 +3700,7 @@ namespace Plank
 							continue;
 						var norm_wid = normalize (wid);
 						if (executable_tokens.contains (norm_wid) ||
-						    (is_chromium_webapp && (norm_wid.has_prefix ("crx_") || norm_wid.has_prefix ("chrome-")))) {
+						    (is_chromium_webapp && (norm_wid.has_prefix ("crx_") || norm_wid.contains ("_crx_") || norm_wid.has_prefix ("chrome-")))) {
 							browser_matches = true;
 							break;
 						}
@@ -3850,8 +3729,8 @@ namespace Plank
 				return 0;
 			}
 
-			// Check if the window directly matches this desktop entry's primary identity
-			// (DesktopFileName, ApplicationId, ResourceClass, or ResourceName matching desktop basename or StartupWMClass)
+			// Check if the window directly matches this launcher entry's primary identity
+			// (DesktopFileName, ApplicationId, ResourceClass, or ResourceName matching launcher stem or StartupWMClass)
 			bool primary_identity_matched = false;
 			var primary_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceClass, window.ResourceName };
 			foreach (var val in primary_values) {
@@ -3916,7 +3795,7 @@ namespace Plank
 				return 0;
 			}
 
-			// Plain browser & browser profile launchers (e.g. google-chrome.desktop, Chrome.sh, chrome-private.sh, winchrome-syensqo.sh)
+			// Plain browser & browser profile launchers (e.g. Chrome, Chrome.sh, chrome-private.sh, winchrome-syensqo.sh)
 			// must NEVER match standalone PWA / --app=URL windows sharing the master browser PID.
 			if (has_browser_executable && !is_web_app ()) {
 				if (has_explicit_webapp_window_id (window))
@@ -3953,11 +3832,11 @@ namespace Plank
 						return 0;
 					}
 
-					string win_dbus_prof = get_window_browser_profile (window);
-					if (win_dbus_prof != "" && eff_profile != "")
-						return profiles_match (eff_profile, win_dbus_prof) ? (primary_identity_matched ? 120 : 118) : 0;
+					string win_menu_prof = get_window_browser_profile (window);
+					if (win_menu_prof != "" && eff_profile != "")
+						return profiles_match (eff_profile, win_menu_prof) ? (primary_identity_matched ? 120 : 118) : 0;
 
-					// Never fall back to shared /proc/<pid>/cmdline on a multi-window browser PID while profile is still pending
+					// Never fall back to shared process command line on a multi-window browser PID while profile is still pending
 					if (window.Pid > 0 && multi_window_browser_pids != null && multi_window_browser_pids.contains (window.Pid))
 						return 0;
 
@@ -4097,7 +3976,7 @@ namespace Plank
 
 			// If this launcher requires specific arguments that were NOT found in the window,
 			// it must NEVER hijack generic instances or different instances of the application
-			// (unless the window specifically identified itself via exact desktop file id).
+			// (unless the window specifically identified itself via exact launcher stem).
 			bool exact_desktop_id_matched = false;
 			var desktop_id_values = new string?[] { window.DesktopFileName, window.ApplicationId, window.ResourceName };
 			foreach (var val in desktop_id_values) {
@@ -4144,7 +4023,7 @@ namespace Plank
 				var normalized = normalize (value);
 				if (normalized == "")
 					continue;
-				// Primary exact token match (exact .desktop basename, exact StartupWMClass, unwrapped binary)
+				// Primary exact token match (exact launcher stem, exact StartupWMClass, unwrapped binary)
 				if (primary_tokens.contains (normalized))
 					best = int.max (best, scores[i]);
 				else if (tokens.contains (normalized))
@@ -4205,14 +4084,15 @@ namespace Plank
 						first_arg = cmdline;
 				}
 				if (first_arg != "") {
-					var bin_name = File.new_for_path (first_arg).get_basename ().down ();
+					var bin_name = basename_any_slash (first_arg).down ();
+					var bin_norm = normalize (bin_name);
 					if (bin_name != "") {
-						if (executable_tokens.contains (bin_name)) {
+						if (executable_tokens.contains (bin_name) || (bin_norm != "" && executable_tokens.contains (bin_norm))) {
 							best = int.max (best, 85);
 						} else {
-							var first_dash = bin_name.index_of_char ('-');
+							var first_dash = bin_norm.index_of_char ('-');
 							if (first_dash > 0) {
-								var prefix = bin_name.substring (0, first_dash);
+								var prefix = bin_norm.substring (0, first_dash);
 								if (executable_tokens.contains (prefix))
 									best = int.max (best, 80);
 							}
@@ -4220,19 +4100,19 @@ namespace Plank
 					}
 				}
 				if (executable_tokens.size > 0 && best < 85) {
-					var cmdline_down = cmdline.down ();
-					string[] cmd_tokens = cmdline_down.split (" ");
+					string[] cmd_tokens = parse_cmdline_argv (cmdline);
 					foreach (var token in cmd_tokens) {
-						var tok = token.strip ().replace ("\"", "").replace ("'", "");
+						var tok = token.strip ().replace ("\"", "").replace ("'", "").down ();
 						if (tok == "" || tok.has_prefix ("-"))
 							continue;
-						var base_exe = File.new_for_path (tok).get_basename ();
-						if (executable_tokens.contains (base_exe)) {
+						var base_exe = basename_any_slash (tok);
+						var norm_base_exe = normalize (base_exe);
+						if (executable_tokens.contains (base_exe) || (norm_base_exe != "" && executable_tokens.contains (norm_base_exe))) {
 							best = int.max (best, 85);
 							break;
 						}
-						if (base_exe.has_suffix ("-bin")) {
-							var stripped = base_exe.substring (0, base_exe.length - 4);
+						if (norm_base_exe.has_suffix ("-bin")) {
+							var stripped = norm_base_exe.substring (0, norm_base_exe.length - 4);
 							if (executable_tokens.contains (stripped)) {
 								best = int.max (best, 85);
 								break;
@@ -4247,15 +4127,15 @@ namespace Plank
 			}
 
 			// Enforce StartupWMClass disjointness when a terminal emulator wrapper sets a distinct ResourceClass
-			// (e.g. UXTerm sets ResourceClass="UXTerm" and ResourceName="xterm", so debian-xterm.desktop with StartupWMClass=XTerm
-			// must not tie with debian-uxterm.desktop with StartupWMClass=UXTerm).
+			// (e.g. UXTerm sets ResourceClass="UXTerm" and ResourceName="xterm", so XTerm with StartupWMClass=XTerm
+			// must not tie with UXTerm with StartupWMClass=UXTerm).
 			if (is_terminal_emulator_launcher () && startup_wm_classes.size > 0 && window.ResourceClass != "") {
 				var norm_rc = normalize (window.ResourceClass);
 				if (norm_rc != "" && !startup_wm_classes.contains (norm_rc) && best > 75)
 					best = 75;
 			}
 
-			// Match window Caption (Title) against desktop Name or tokens with strict word-boundary matching
+			// Match window Caption (Title) against launcher Name or tokens with strict word-boundary matching
 			if (window.Caption != "") {
 				var caption_down = window.Caption.down ();
 				if (app_name != "" && app_name.length >= 3 && !is_common_stopword (app_name) && contains_word (caption_down, app_name)) {

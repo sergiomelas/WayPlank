@@ -57,7 +57,7 @@ namespace Plank
 				string target_uri = c.uri;
 				string captured_launcher = launcher_uri;
 				sub_item.activate.connect (() => {
-					bool launched = Hal.Apps.launch_app (captured_launcher, { target_uri }, System.get_default ().context);
+					bool launched = Hal.Apps.launch_app (captured_launcher, { target_uri });
 					if (!launched)
 						System.get_default ().open_uri (target_uri);
 					if (on_activated != null)

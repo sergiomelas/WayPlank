@@ -22,20 +22,22 @@
 namespace Plank
 {
 	/**
-	 * Discovers applications from desktop entries and compositor window state.
+	 * Discovers applications from launcher catalogs and compositor window state.
 	 */
 	public class ApplicationDiscovery : GLib.Object
 	{
 		static ApplicationDiscovery? instance;
 		static Gee.HashMap<int, string>? pid_cmdline_cache;
 		static Gee.HashMap<int, string>? pid_comm_cache;
-		static Gee.HashMap<string, bool>? desktop_exec_cache;
 		public signal void changed ();
 		Gee.ArrayList<File> indexed_desktop_files;
+		Gee.ArrayList<string> indexed_launcher_uris;
 		Gee.HashMap<string, ApplicationIdentity> identities;
 		Gee.HashMap<string, ApplicationIdentity> uri_identities;
 		Gee.HashMap<string, ApplicationIdentity> raw_uri_identities;
 		Gee.HashMap<string, File> desktop_files_by_norm_id;
+		Gee.HashMap<string, string> launcher_uris_by_norm_id;
+		Gee.HashMap<string, string> synth_signature_cache;
 		Gee.ArrayList<ApplicationIdentity> web_app_identities;
 		Gee.ArrayList<ApplicationIdentity> specialized_exec_identities;
 		Gee.HashSet<string> suppressed_nodisplay_tokens;
@@ -54,23 +56,87 @@ namespace Plank
 		uint debounce_timer_id = 0U;
 		uint change_timer_id = 0U;
 		uint gc_timer_id = 0U;
+		bool is_cleaned_up = false;
 		bool initial_gc_done = false;
 		int last_gc_window_count = -1;
-		
+
 		public static unowned ApplicationDiscovery get_default ()
 		{
 			if (instance == null)
 				instance = new ApplicationDiscovery ();
 			return instance;
 		}
-		
+
+		public static void cleanup_if_active ()
+		{
+			if (instance != null) {
+				instance.cleanup_instance ();
+				instance = null;
+			}
+			if (pid_cmdline_cache != null) {
+				pid_cmdline_cache.clear ();
+				pid_cmdline_cache = null;
+			}
+			if (pid_comm_cache != null) {
+				pid_comm_cache.clear ();
+				pid_comm_cache = null;
+			}
+		}
+
+		static string canonicalize_launcher_uri (string raw_uri_or_path)
+		{
+			string clean = raw_uri_or_path.strip ();
+			if (clean == "")
+				return "";
+			if (clean.down ().has_prefix ("file://"))
+				return File.new_for_uri (clean).get_uri ();
+			if (clean.contains ("://"))
+				return clean;
+			return File.new_for_path (clean).get_uri ();
+		}
+
+		static string launcher_key_for_uri (string canonical_uri)
+		{
+			if (canonical_uri.down ().has_prefix ("file://")) {
+				string? bname = File.new_for_uri (canonical_uri).get_basename ();
+				if (bname != null && bname != "")
+					return bname;
+			}
+			return canonical_uri;
+		}
+
+		static string basename_any_slash (string raw)
+		{
+			string s = raw.strip ();
+			while (s.length > 1 && (s.has_suffix ("/") || s.has_suffix ("\\")))
+				s = s.substring (0, s.length - 1);
+			int fwd = s.last_index_of_char ('/');
+			int back = s.last_index_of_char ('\\');
+			int sep = int.max (fwd, back);
+			if (sep >= 0 && sep + 1 < s.length)
+				return s.substring (sep + 1);
+			return s;
+		}
+
+		static string quote_arg_if_needed (string arg)
+		{
+			if (arg == "")
+				return "\"\"";
+			if (!arg.contains (" ") && !arg.contains ("\t") && !arg.contains ("\"") && !arg.contains ("'"))
+				return arg;
+			return "\"" + arg.replace ("\\", "\\\\").replace ("\"", "\\\"") + "\"";
+		}
+
 		ApplicationDiscovery ()
 		{
 			indexed_desktop_files = new Gee.ArrayList<File> ();
+			indexed_launcher_uris = new Gee.ArrayList<string> ();
 			identities = new Gee.HashMap<string, ApplicationIdentity> ();
 			uri_identities = new Gee.HashMap<string, ApplicationIdentity> ();
 			raw_uri_identities = new Gee.HashMap<string, ApplicationIdentity> ();
 			desktop_files_by_norm_id = new Gee.HashMap<string, File> ();
+			launcher_uris_by_norm_id = new Gee.HashMap<string, string> ();
+			synth_signature_cache = new Gee.HashMap<string, string> ();
 			web_app_identities = new Gee.ArrayList<ApplicationIdentity> ();
 			specialized_exec_identities = new Gee.ArrayList<ApplicationIdentity> ();
 			suppressed_nodisplay_tokens = new Gee.HashSet<string> ();
@@ -86,7 +152,8 @@ namespace Plank
 			refresh_desktop_index ();
 			ensure_folder_monitors ();
 
-			Hal.Windows.state_changed.connect (on_window_control_state_changed);
+			Hal.Windows.state_changed.connect (on_windows_state_changed);
+			Hal.Apps.apps_changed.connect (on_hal_apps_changed);
 		}
 
 		bool recompute_effective_profile_hints ()
@@ -123,12 +190,7 @@ namespace Plank
 			}
 
 			string prev_uri = item_profile_uris.get (reg_id) ?? "";
-			string canonical_uri = "";
-			if (launcher_uri != "") {
-				canonical_uri = launcher_uri.contains ("://")
-					? File.new_for_uri (launcher_uri).get_uri ()
-					: File.new_for_path (launcher_uri).get_uri ();
-			}
+			string canonical_uri = canonicalize_launcher_uri (launcher_uri);
 			var clean = profile.strip ();
 
 			if (prev_uri != "" && prev_uri != canonical_uri)
@@ -157,9 +219,9 @@ namespace Plank
 		{
 			if (launcher_uri == "")
 				return;
-			var canonical_uri = launcher_uri.contains ("://")
-				? File.new_for_uri (launcher_uri).get_uri ()
-				: File.new_for_path (launcher_uri).get_uri ();
+			var canonical_uri = canonicalize_launcher_uri (launcher_uri);
+			if (canonical_uri == "")
+				return;
 			var clean = profile.strip ();
 			if (clean != "")
 				disk_profile_hints.set (canonical_uri, clean);
@@ -172,13 +234,32 @@ namespace Plank
 			}
 		}
 
+		public string get_launcher_profile_hint (string launcher_uri)
+		{
+			if (launcher_uri == "")
+				return "";
+			var canonical_uri = canonicalize_launcher_uri (launcher_uri);
+			if (canonical_uri == "")
+				return "";
+			return launcher_profile_hints.get (canonical_uri) ?? "";
+		}
+
 		void rebuild_fast_indexes ()
 		{
 			desktop_files_by_norm_id.clear ();
+			launcher_uris_by_norm_id.clear ();
 			foreach (var file in indexed_desktop_files) {
 				var norm = ApplicationIdentity.normalize (file.get_basename ());
 				if (norm != "" && !desktop_files_by_norm_id.has_key (norm))
 					desktop_files_by_norm_id.set (norm, file);
+				if (norm != "" && !launcher_uris_by_norm_id.has_key (norm))
+					launcher_uris_by_norm_id.set (norm, file.get_uri ());
+			}
+			foreach (var u in indexed_launcher_uris) {
+				var id_obj = uri_identities.get (u);
+				var norm = id_obj != null ? id_obj.normalized_id : ApplicationIdentity.normalize (Hal.Apps.launcher_id_stem (u));
+				if (norm != "" && !launcher_uris_by_norm_id.has_key (norm))
+					launcher_uris_by_norm_id.set (norm, u);
 			}
 
 			web_app_identities.clear ();
@@ -195,10 +276,12 @@ namespace Plank
 
 		void ensure_folder_monitors ()
 		{
+			var extra_uris = new Gee.ArrayList<string> ();
 			foreach (var folder in application_folders ()) {
 				if (!folder.query_exists ())
 					continue;
 				var f_uri = folder.get_uri ();
+				extra_uris.add (f_uri);
 				if (monitored_folder_uris.contains (f_uri))
 					continue;
 				try {
@@ -210,46 +293,85 @@ namespace Plank
 					debug ("Unable to monitor folder '%s': %s", folder.get_path (), e.message);
 				}
 			}
+			Hal.Apps.set_extra_watched_directories (extra_uris.to_array ());
 		}
 
 		public void refresh_index_now ()
 		{
+			Hal.Apps.invalidate_cache ();
 			ensure_folder_monitors ();
 			refresh_desktop_index (true);
 		}
 
-		~ApplicationDiscovery ()
+		void cleanup_instance ()
 		{
-			Hal.Windows.state_changed.disconnect (on_window_control_state_changed);
-			if (debounce_timer_id > 0U)
+			if (is_cleaned_up)
+				return;
+			is_cleaned_up = true;
+
+			Hal.Windows.state_changed.disconnect (on_windows_state_changed);
+			Hal.Apps.apps_changed.disconnect (on_hal_apps_changed);
+			if (debounce_timer_id > 0U) {
 				Source.remove (debounce_timer_id);
-			if (change_timer_id > 0U)
+				debounce_timer_id = 0U;
+			}
+			if (change_timer_id > 0U) {
 				Source.remove (change_timer_id);
-			if (gc_timer_id > 0U)
+				change_timer_id = 0U;
+			}
+			if (gc_timer_id > 0U) {
 				Source.remove (gc_timer_id);
+				gc_timer_id = 0U;
+			}
 			foreach (var monitor in folder_monitors) {
 				monitor.changed.disconnect (on_folder_changed);
 				monitor.cancel ();
 			}
 			folder_monitors.clear ();
+			monitored_folder_uris.clear ();
 		}
 
-		void on_folder_changed (File file, File? other_file, FileMonitorEvent event_type)
+		~ApplicationDiscovery ()
 		{
-			if (debounce_timer_id > 0U)
-				Source.remove (debounce_timer_id);
-			debounce_timer_id = Timeout.add (300, () => {
-				debounce_timer_id = 0U;
-				uri_identities.clear ();
-				raw_uri_identities.clear ();
-				refresh_desktop_index ();
+			cleanup_instance ();
+		}
+
+		static void arm_debounce_timer (ApplicationDiscovery target)
+		{
+			if (target.debounce_timer_id > 0U) {
+				Source.remove (target.debounce_timer_id);
+				target.debounce_timer_id = 0U;
+			}
+			GLib.WeakRef weak_self = GLib.WeakRef (target);
+			target.debounce_timer_id = Timeout.add (300, () => {
+				var self = (ApplicationDiscovery?) weak_self.get ();
+				if (self == null || self.is_cleaned_up)
+					return false;
+				self.debounce_timer_id = 0U;
+				self.uri_identities.clear ();
+				self.raw_uri_identities.clear ();
+				self.refresh_desktop_index ();
 				return false;
 			});
 		}
 
-		void on_window_control_state_changed ()
+		void on_hal_apps_changed ()
 		{
-			if (!Hal.Windows.has_state ())
+			if (is_cleaned_up)
+				return;
+			arm_debounce_timer (this);
+		}
+
+		void on_folder_changed (File file, File? other_file, FileMonitorEvent event_type)
+		{
+			if (is_cleaned_up)
+				return;
+			arm_debounce_timer (this);
+		}
+
+		void on_windows_state_changed ()
+		{
+			if (is_cleaned_up || !Hal.Windows.has_state ())
 				return;
 			int cur_count = Hal.Windows.get_windows ().size;
 			bool should_gc = (!initial_gc_done || (last_gc_window_count >= 0 && cur_count < last_gc_window_count));
@@ -258,22 +380,30 @@ namespace Plank
 				return;
 			if (gc_timer_id > 0U)
 				return;
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
 			gc_timer_id = Timeout.add (50, () => {
-				gc_timer_id = 0U;
-				if (gc_synthetic_launchers ())
-					changed ();
+				var self = (ApplicationDiscovery?) weak_self.get ();
+				if (self == null || self.is_cleaned_up)
+					return false;
+				self.gc_timer_id = 0U;
+				if (self.gc_synthetic_launchers ())
+					self.changed ();
 				return false;
 			});
 		}
 
 		void schedule_changed ()
 		{
-			if (change_timer_id > 0U)
+			if (is_cleaned_up || change_timer_id > 0U)
 				return;
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
 			change_timer_id = Timeout.add (50, () => {
-				change_timer_id = 0U;
-				gc_synthetic_launchers ();
-				changed ();
+				var self = (ApplicationDiscovery?) weak_self.get ();
+				if (self == null || self.is_cleaned_up)
+					return false;
+				self.change_timer_id = 0U;
+				self.gc_synthetic_launchers ();
+				self.changed ();
 				return false;
 			});
 		}
@@ -286,7 +416,7 @@ namespace Plank
 			if (initial_gc_done) {
 				bool has_synth_in_ram = false;
 				foreach (var k in identities.keys) {
-					if (k.has_prefix ("wayplank-app-")) {
+					if (Hal.Apps.is_synthetic_launcher (k)) {
 						has_synth_in_ram = true;
 						break;
 					}
@@ -296,12 +426,16 @@ namespace Plank
 			}
 			initial_gc_done = true;
 
-			var user_app_dir = Paths.DataHomeFolder.get_child ("applications");
+			var launcher_dirs = Hal.Apps.discover_launcher_dirs ();
+			if (launcher_dirs.size == 0)
+				return false;
+			var user_app_dir = launcher_dirs[0];
 			if (!user_app_dir.query_exists ())
 				return false;
 
-			var pinned_ids = new Gee.HashSet<string> ();
-			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
+			var pinned_synth_stems = new Gee.HashSet<string> ();
+			var pinned_synth_uris = new Gee.HashSet<string> ();
+			var dock_config_dir = Paths.AppConfigFolder;
 			if (dock_config_dir.query_exists ()) {
 				try {
 					var d_enum = dock_config_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
@@ -319,16 +453,16 @@ namespace Plank
 								kf.load_from_file (item_file.get_path (), KeyFileFlags.NONE);
 								if (kf.has_key ("PlankDockItemPreferences", "Launcher")) {
 									var uri = kf.get_string ("PlankDockItemPreferences", "Launcher");
-									if (uri != null && uri.contains ("wayplank-app-")) {
-										var target = File.new_for_uri (uri);
-										var bname = target.get_basename ();
-										if (bname != null)
-											pinned_ids.add (bname);
+									if (uri != null && Hal.Apps.is_synthetic_launcher (uri)) {
+										pinned_synth_stems.add (Hal.Apps.launcher_id_stem (uri));
+										pinned_synth_uris.add (canonicalize_launcher_uri (uri));
 									}
 								}
 							} catch { }
 						}
+						try { l_enum.close (null); } catch { }
 					}
+					try { d_enum.close (null); } catch { }
 				} catch { }
 			}
 
@@ -339,13 +473,16 @@ namespace Plank
 				FileInfo? info = null;
 				while ((info = enumerator.next_file ()) != null) {
 					var bname = info.get_name ();
-					if (!bname.has_prefix ("wayplank-app-") || !bname.has_suffix (".desktop"))
+					if (!Hal.Apps.is_synthetic_launcher (bname))
 						continue;
-					if (pinned_ids.contains (bname))
-						continue;
-
 					var synth_file = user_app_dir.get_child (bname);
 					var synth_uri = synth_file.get_uri ();
+					if (!Hal.Apps.is_launcher_uri (synth_uri))
+						continue;
+					var stem = Hal.Apps.launcher_id_stem (bname);
+					if (pinned_synth_stems.contains (stem) || pinned_synth_uris.contains (synth_uri))
+						continue;
+
 					if (pinned_launcher_uris.contains (synth_uri)
 						|| dock_drawer_file_uris.contains (synth_uri)
 						|| drawer_file_uris.contains (synth_uri)
@@ -366,24 +503,25 @@ namespace Plank
 
 					if (!has_open_window) {
 						identities.unset (bname);
-						uri_identities.unset (synth_file.get_uri ());
-						raw_uri_identities.unset (synth_file.get_uri ());
+						uri_identities.unset (synth_uri);
+						raw_uri_identities.unset (synth_uri);
+						synth_signature_cache.unset (stem);
+						indexed_launcher_uris.remove (synth_uri);
 						for (int i = indexed_desktop_files.size - 1; i >= 0; i--) {
 							if (indexed_desktop_files[i].get_basename () == bname)
 								indexed_desktop_files.remove_at (i);
 						}
-						if (desktop_exec_cache != null && synth_file.get_path () != null)
-							desktop_exec_cache.unset (synth_file.get_path ());
-						try { synth_file.delete (); } catch { }
+						Hal.Apps.delete_synthetic_launcher (synth_uri);
 						removed_any = true;
 					}
 				}
+				try { enumerator.close (null); } catch { }
 			} catch { }
 			if (removed_any)
 				rebuild_fast_indexes ();
 			return removed_any;
 		}
-		
+
 		public int effective_match_score (ApplicationIdentity identity, WindowInfo window)
 		{
 			string? profile_hint = identity.desktop_uri != "" ? launcher_profile_hints.get (identity.desktop_uri) : null;
@@ -474,6 +612,14 @@ namespace Plank
 			return 1;
 		}
 
+		private bool is_unpinned_synthetic_browser_profile (ApplicationIdentity id_obj)
+		{
+			return id_obj.is_nodisplay_desktop
+				&& id_obj.detected_browser_profile != ""
+				&& Hal.Apps.is_synthetic_launcher (id_obj.desktop_uri != "" ? id_obj.desktop_uri : id_obj.normalized_id)
+				&& (id_obj.desktop_uri == "" || !pinned_launcher_uris.contains (id_obj.desktop_uri));
+		}
+
 		private bool has_specialized_or_terminal_override (WindowInfo window, ApplicationIdentity? exclude = null)
 		{
 			foreach (var spec in specialized_exec_identities) {
@@ -504,14 +650,47 @@ namespace Plank
 					result.add (window);
 			return result;
 		}
-		
-		public File? desktop_file_for_id (string app_id)
+
+		public string launcher_uri_for_id (string app_id)
 		{
-			if (app_id.has_prefix ("file://")) {
+			if (app_id.down ().has_prefix ("file://")) {
+				var canon = canonicalize_launcher_uri (app_id);
+				var cached_id = uri_identities.get (canon);
+				if (cached_id != null)
+					return cached_id.desktop_uri;
+				return Hal.Apps.launcher_exists (canon) ? canon : "";
+			}
+			if (app_id.contains ("://")) {
 				var cached_id = uri_identities.get (app_id);
 				if (cached_id != null)
+					return cached_id.desktop_uri;
+				return Hal.Apps.launcher_exists (app_id) ? app_id : "";
+			}
+			var normalized = ApplicationIdentity.normalize (app_id);
+			if (normalized == "")
+				return "";
+			var exact = launcher_uris_by_norm_id.get (normalized);
+			if (exact != null && exact != "")
+				return exact;
+
+			var first_dash = normalized.index_of_char ('-');
+			if (first_dash > 0) {
+				var prefix = normalized.substring (0, first_dash);
+				var pref_uri = launcher_uris_by_norm_id.get (prefix);
+				if (pref_uri != null && pref_uri != "")
+					return pref_uri;
+			}
+			return "";
+		}
+
+		public File? desktop_file_for_id (string app_id)
+		{
+			if (app_id.down ().has_prefix ("file://")) {
+				var canon = canonicalize_launcher_uri (app_id);
+				var cached_id = uri_identities.get (canon);
+				if (cached_id != null)
 					return cached_id.desktop_file;
-				var uri_file = File.new_for_uri (app_id);
+				var uri_file = File.new_for_uri (canon);
 				return uri_file.query_exists () ? uri_file : null;
 			}
 			var normalized = ApplicationIdentity.normalize (app_id);
@@ -521,7 +700,7 @@ namespace Plank
 			if (exact != null)
 				return exact;
 
-			// Prefix fallback: e.g. qemu-system-x86_64 matches qemu.desktop
+			// Prefix fallback: e.g. qemu-system-x86_64 matches base launcher stem
 			var first_dash = normalized.index_of_char ('-');
 			if (first_dash > 0) {
 				var prefix = normalized.substring (0, first_dash);
@@ -537,7 +716,10 @@ namespace Plank
 		{
 			if (app_id == null || app_id == "")
 				return false;
-			var lower = app_id.down ().strip ();
+			var lower = basename_any_slash (app_id).down ().strip ();
+			lower = Hal.Apps.strip_launcher_extension (lower).down ();
+			if (lower.has_suffix (".exe") || lower.has_suffix (".lnk"))
+				lower = lower.substring (0, lower.length - 4);
 			return lower.contains ("xwaylandvideobridge")
 				|| lower == "wayplank"
 				|| lower == "wayplank-hover"
@@ -565,72 +747,34 @@ namespace Plank
 
 		private static string resolve_appimage_cmdline (int pid, string cmdline)
 		{
-			if (pid <= 0 || !cmdline.contains ("/tmp/.mount_"))
+			if (pid <= 0 || cmdline == "")
 				return cmdline;
-			try {
-				uint8[] data;
-				if (FileUtils.get_data ("/proc/%d/environ".printf (pid), out data)) {
-					int start = 0;
-					for (int i = 0; i < data.length; i++) {
-						if (data[i] == 0) {
-							if (i > start) {
-								char[] buf = new char[i - start + 1];
-								Memory.copy (buf, (uint8*) data + start, i - start);
-								buf[i - start] = 0;
-								string entry = (string) buf;
-								if (entry.has_prefix ("APPIMAGE=")) {
-									var appimage_path = entry.substring ("APPIMAGE=".length).strip ();
-									if (appimage_path != "" && FileUtils.test (appimage_path, FileTest.EXISTS)) {
-										string quoted_app = appimage_path.contains (" ") ? "\"%s\"".printf (appimage_path) : appimage_path;
-										try {
-											string[] parsed_argv;
-											if (Shell.parse_argv (cmdline, out parsed_argv) && parsed_argv.length > 1) {
-												var sb = new StringBuilder (quoted_app);
-												for (int a = 1; a < parsed_argv.length; a++) {
-													sb.append_c (' ');
-													string arg = parsed_argv[a];
-													if (arg == "" || arg.contains (" ") || arg.contains ("\"") || arg.contains ("'"))
-														sb.append (Shell.quote (arg));
-													else
-														sb.append (arg);
-												}
-												return sb.str;
-											}
-										} catch { }
-										return quoted_app;
-									}
-								}
-							}
-							start = i + 1;
-						}
-					}
+			var snap = Hal.Apps.inspect_process (pid, false);
+			var appimage_path = snap.env_appimage.strip ();
+			if (appimage_path == "" || !FileUtils.test (appimage_path, FileTest.EXISTS))
+				return cmdline;
+			if (cmdline.has_prefix (appimage_path) || cmdline.has_prefix ("\"" + appimage_path + "\""))
+				return cmdline;
+
+			string quoted_app = quote_arg_if_needed (appimage_path);
+			string[] parsed_argv = Hal.Runtime.parse_command_argv (cmdline);
+			if (parsed_argv.length > 1) {
+				var sb = new StringBuilder (quoted_app);
+				for (int a = 1; a < parsed_argv.length; a++) {
+					sb.append_c (' ');
+					sb.append (quote_arg_if_needed (parsed_argv[a]));
 				}
-			} catch { }
-			return cmdline;
+				return sb.str;
+			}
+			return quoted_app;
 		}
 
-		private static bool desktop_file_has_exec (File file)
+		private static bool launcher_uri_is_launchable (string uri)
 		{
-			try {
-				var path = file.get_path ();
-				if (path == null)
-					return false;
-				if (desktop_exec_cache == null)
-					desktop_exec_cache = new Gee.HashMap<string, bool> ();
-				if (desktop_exec_cache.has_key (path))
-					return desktop_exec_cache.get (path);
-				bool has_exec = false;
-				var kf = new KeyFile ();
-				if (kf.load_from_file (path, KeyFileFlags.NONE)) {
-					if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-						var exec_val = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-						has_exec = (exec_val != "");
-					}
-				}
-				desktop_exec_cache.set (path, has_exec);
-				return has_exec;
-			} catch { }
-			return false;
+			if (uri == "")
+				return false;
+			var desc = Hal.Apps.load_launcher (uri);
+			return desc != null && desc.is_launchable;
 		}
 
 		public static string get_process_cmdline (int pid)
@@ -641,41 +785,14 @@ namespace Plank
 				pid_cmdline_cache = new Gee.HashMap<int, string> ();
 			if (pid_cmdline_cache.has_key (pid))
 				return pid_cmdline_cache.get (pid);
-			try {
-				uint8[] data;
-				if (FileUtils.get_data ("/proc/%d/cmdline".printf (pid), out data)) {
-					var builder = new StringBuilder ();
-					int start = 0;
-					for (int i = 0; i < data.length; i++) {
-						if (data[i] == 0) {
-							if (i > start) {
-								char[] buf = new char[i - start + 1];
-								Memory.copy (buf, (uint8*) data + start, i - start);
-								buf[i - start] = 0;
-								string arg = (string) buf;
-								if (builder.len > 0)
-									builder.append_c (' ');
-								if (arg.contains (" ") || arg.contains ("\t")) {
-									builder.append_c ('"');
-									builder.append (arg);
-									builder.append_c ('"');
-								} else {
-									builder.append (arg);
-								}
-							}
-							start = i + 1;
-						}
-					}
-					var res = builder.str;
-					if (res != "") {
-						if (pid_cmdline_cache.size > 512)
-							pid_cmdline_cache.clear ();
-						pid_cmdline_cache.set (pid, res);
-					}
-					return res;
-				}
-			} catch { }
-			return "";
+			var snap = Hal.Apps.inspect_process (pid, false);
+			var res = snap.full_cmdline;
+			if (res != "") {
+				if (pid_cmdline_cache.size > 512)
+					pid_cmdline_cache.clear ();
+				pid_cmdline_cache.set (pid, res);
+			}
+			return res;
 		}
 
 		public static void invalidate_process_cmdline (int pid)
@@ -697,38 +814,44 @@ namespace Plank
 				pid_comm_cache = new Gee.HashMap<int, string> ();
 			if (pid_comm_cache.has_key (pid))
 				return pid_comm_cache.get (pid);
-			try {
-				string comm = "";
-				if (FileUtils.get_contents ("/proc/%d/comm".printf (pid), out comm)) {
-					var res = comm.strip ();
-					if (res != "") {
-						if (pid_comm_cache.size > 512)
-							pid_comm_cache.clear ();
-						pid_comm_cache.set (pid, res);
-					}
-					return res;
-				}
-			} catch { }
-			return "";
+			var snap = Hal.Apps.inspect_process (pid, false);
+			var res = snap.executable_comm.strip ();
+			if (res != "") {
+				if (pid_comm_cache.size > 512)
+					pid_comm_cache.clear ();
+				pid_comm_cache.set (pid, res);
+			}
+			return res;
 		}
 
-		public File? best_desktop_file_for_window (WindowInfo window)
+		public string best_launcher_uri_for_window (WindowInfo window)
 		{
 			if (window.Id != "") {
 				string locked_uri = ApplicationIdentity.get_locked_window_launcher_uri (window);
 				if (locked_uri != "")
-					return File.new_for_uri (locked_uri);
+					return locked_uri;
 			}
-			return compute_best_desktop_file_for_window (window);
+			return compute_best_launcher_uri_for_window (window);
 		}
 
-		public File? compute_best_desktop_file_for_window (WindowInfo window)
+		public File? best_desktop_file_for_window (WindowInfo window)
+		{
+			string uri = best_launcher_uri_for_window (window);
+			if (uri == "")
+				return null;
+			var id_obj = uri_identities.get (uri);
+			if (id_obj != null)
+				return id_obj.desktop_file;
+			return File.new_for_uri (uri);
+		}
+
+		public string compute_best_launcher_uri_for_window (WindowInfo window)
 		{
 			if (is_ignored_app (window.ApplicationId)
 				|| is_ignored_app (window.ResourceClass)
 				|| is_ignored_app (window.ResourceName)
 				|| is_ignored_app (window.DesktopFileName))
-				return null;
+				return "";
 
 			bool matched_exec_less_desktop = false;
 			bool is_plain_browser = ApplicationIdentity.is_plain_browser_window (window) && !ApplicationIdentity.has_explicit_webapp_window_id (window);
@@ -737,41 +860,41 @@ namespace Plank
 				: "";
 			bool has_specialized_override = has_specialized_or_terminal_override (window) || (win_browser_prof != "");
 
-			// Fast path: Exact desktop file or application ID match with authoritative score
+			// Fast path: Exact launcher ID or application ID match with authoritative score
 			if (!has_specialized_override && window.DesktopFileName != "") {
-				var canonical_file = desktop_file_for_id (window.DesktopFileName);
-				if (canonical_file != null) {
-					var cid = canonical_file.get_basename () ?? "";
-					var c_id_obj = identities.get (cid);
-					if (c_id_obj != null ? c_id_obj.has_exec : desktop_file_has_exec (canonical_file)) {
+				var canonical_uri = launcher_uri_for_id (window.DesktopFileName);
+				if (canonical_uri != "") {
+					var cid = launcher_key_for_uri (canonical_uri);
+					var c_id_obj = identities.get (cid) ?? uri_identities.get (canonical_uri);
+					if (c_id_obj != null ? c_id_obj.has_exec : launcher_uri_is_launchable (canonical_uri)) {
 						if (c_id_obj != null && !c_id_obj.is_specialized () && effective_match_score (c_id_obj, window) > 0)
-							return canonical_file;
+							return canonical_uri;
 					} else {
 						matched_exec_less_desktop = true;
 					}
 				}
 			}
 			if (!has_specialized_override && window.ApplicationId != "") {
-				var direct_app_file = desktop_file_for_id (window.ApplicationId);
-				if (direct_app_file != null) {
-					var id = direct_app_file.get_basename () ?? "";
-					var d_id_obj = identities.get (id);
-					if (d_id_obj != null ? d_id_obj.has_exec : desktop_file_has_exec (direct_app_file)) {
+				var direct_app_uri = launcher_uri_for_id (window.ApplicationId);
+				if (direct_app_uri != "") {
+					var id = launcher_key_for_uri (direct_app_uri);
+					var d_id_obj = identities.get (id) ?? uri_identities.get (direct_app_uri);
+					if (d_id_obj != null ? d_id_obj.has_exec : launcher_uri_is_launchable (direct_app_uri)) {
 						if (d_id_obj != null && !d_id_obj.is_specialized () && effective_match_score (d_id_obj, window) >= 70)
-							return direct_app_file;
+							return direct_app_uri;
 					} else {
 						matched_exec_less_desktop = true;
 					}
 				}
 			}
 			if (!has_specialized_override && window.ResourceClass != "") {
-				var direct_class_file = desktop_file_for_id (window.ResourceClass);
-				if (direct_class_file != null) {
-					var id = direct_class_file.get_basename () ?? "";
-					var cl_id_obj = identities.get (id);
-					if (cl_id_obj != null ? cl_id_obj.has_exec : desktop_file_has_exec (direct_class_file)) {
+				var direct_class_uri = launcher_uri_for_id (window.ResourceClass);
+				if (direct_class_uri != "") {
+					var id = launcher_key_for_uri (direct_class_uri);
+					var cl_id_obj = identities.get (id) ?? uri_identities.get (direct_class_uri);
+					if (cl_id_obj != null ? cl_id_obj.has_exec : launcher_uri_is_launchable (direct_class_uri)) {
 						if (cl_id_obj != null && !cl_id_obj.is_specialized () && effective_match_score (cl_id_obj, window) >= 70)
-							return direct_class_file;
+							return direct_class_uri;
 					} else {
 						matched_exec_less_desktop = true;
 					}
@@ -790,6 +913,8 @@ namespace Plank
 					matched_exec_less_desktop = true;
 					continue;
 				}
+				if (score > 118 && is_unpinned_synthetic_browser_profile (entry.value))
+					score = 118;
 				var rank = launcher_priority_rank_for_identity (entry.value);
 				if (score > best_score || (score == best_score && rank > best_rank)) {
 					best_score = score;
@@ -802,22 +927,37 @@ namespace Plank
 			if (win_browser_prof != "" && ApplicationIdentity.is_google_chrome_window (window) && !ApplicationIdentity.is_window_profile_pending (window) && best_score < 118) {
 				var prof_file = synthesize_browser_profile_desktop_file (window, win_browser_prof);
 				if (prof_file != null)
-					return prof_file;
+					return prof_file.get_uri ();
 			}
 
 			if (best_id != null && best_score >= 50) {
-				if (best_id.has_prefix ("wayplank-app-") && !is_plain_browser && best_score < 124 && (window.Pid > 0 || window.Cmdline != ""))
-					return synthesize_fallback_desktop_file (window, matched_exec_less_desktop);
-				return best_identity != null ? best_identity.desktop_file : desktop_file_for_id (best_id);
+				if (Hal.Apps.is_synthetic_launcher (best_id) && !is_plain_browser && best_score < 124 && (window.Pid > 0 || window.Cmdline != "")) {
+					var synth = synthesize_fallback_desktop_file (window, matched_exec_less_desktop);
+					return synth != null ? synth.get_uri () : "";
+				}
+				return best_identity != null ? best_identity.desktop_uri : launcher_uri_for_id (best_id);
 			}
 
-			// Synthesize a fallback launcher for standalone CLI / AppImage / VM GUI windows
-			// lacking an installed .desktop file, while strictly suppressing non-normal dialogs
-			// and helpers whose system .desktop entry declares XDG NoDisplay=true with Exec=.
-			if (!is_suppressed_nodisplay_window (window))
-				return synthesize_fallback_desktop_file (window, matched_exec_less_desktop);
+			// Synthesize a fallback launcher for standalone CLI / portable / VM GUI windows
+			// lacking an installed launcher entry, while strictly suppressing non-normal dialogs
+			// and background helpers whose system launcher entry declares NoDisplay=true with Exec.
+			if (!is_suppressed_nodisplay_window (window)) {
+				var synth = synthesize_fallback_desktop_file (window, matched_exec_less_desktop);
+				return synth != null ? synth.get_uri () : "";
+			}
 
-			return null;
+			return "";
+		}
+
+		public File? compute_best_desktop_file_for_window (WindowInfo window)
+		{
+			string uri = compute_best_launcher_uri_for_window (window);
+			if (uri == "")
+				return null;
+			var id_obj = uri_identities.get (uri);
+			if (id_obj != null)
+				return id_obj.desktop_file;
+			return File.new_for_uri (uri);
 		}
 
 		public static string sanitize_name_for_app (string raw_name, string fallback_id)
@@ -844,6 +984,26 @@ namespace Plank
 			return clean_safe_name;
 		}
 
+		private void register_synthesized_launcher (File synth_file, string stem, string signature)
+		{
+			var id = synth_file.get_basename () ?? synth_file.get_uri ();
+			bool unchanged = (synth_signature_cache.get (stem) == signature) && identities.has_key (id);
+			if (!unchanged) {
+				synth_signature_cache.set (stem, signature);
+				var synth_identity = new ApplicationIdentity (synth_file);
+				bool exists_in_index = identities.has_key (id);
+				identities.set (id, synth_identity);
+				uri_identities.set (synth_identity.desktop_uri, synth_identity);
+				raw_uri_identities.set (synth_identity.desktop_uri, synth_identity);
+				if (!exists_in_index)
+					indexed_desktop_files.add (synth_file);
+				if (!indexed_launcher_uris.contains (synth_identity.desktop_uri))
+					indexed_launcher_uris.add (synth_identity.desktop_uri);
+				rebuild_fast_indexes ();
+				last_window_signature = "";
+			}
+		}
+
 		private File? synthesize_browser_profile_desktop_file (WindowInfo window, string profile_dir)
 		{
 			if (profile_dir == "")
@@ -859,15 +1019,9 @@ namespace Plank
 			if (app_name == "")
 				app_name = "Google Chrome (%s)".printf (profile_dir);
 
-			string exec_bin = "/usr/bin/google-chrome-stable";
-			if (!FileUtils.test (exec_bin, FileTest.IS_EXECUTABLE)) {
-				if (FileUtils.test ("/opt/google/chrome/google-chrome", FileTest.IS_EXECUTABLE))
-					exec_bin = "/opt/google/chrome/google-chrome";
-				else if (window.Executable != "" && FileUtils.test (window.Executable, FileTest.IS_EXECUTABLE))
-					exec_bin = window.Executable;
-				else
-					exec_bin = "google-chrome";
-			}
+			string exec_bin = Hal.Apps.find_installed_browser_binary (BrowserFamily.CHROME, window.Executable);
+			if (exec_bin == "")
+				exec_bin = "google-chrome";
 
 			string prof_arg = profile_dir.contains (" ")
 				? "\"--profile-directory=%s\"".printf (profile_dir)
@@ -877,54 +1031,16 @@ namespace Plank
 			string prof_slug = sanitize_name_for_app (profile_dir, "profile");
 			string clean_safe_name = "%s-%s".printf (sanitize_name_for_app (norm_id, "google-chrome"), prof_slug);
 
-			var user_app_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
-			var dir = File.new_for_path (user_app_dir);
-			try {
-				if (!dir.query_exists ())
-					dir.make_directory_with_parents ();
-			} catch { }
-
-			var file_path = Path.build_filename (user_app_dir, "wayplank-app-%s.desktop".printf (clean_safe_name));
-			var synth_file = File.new_for_path (file_path);
-
 			string icon_name = norm_id.has_prefix ("google-chrome") ? "google-chrome" : resolve_fallback_icon (window, norm_id);
 			var wm_class = window.ResourceClass != "" ? window.ResourceClass : "Google-chrome";
-			string content = "[Desktop Entry]\nType=Application\nName=%s\nStartupWMClass=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
-				app_name, wm_class, exec_cmd, icon_name
-			);
 
-			string existing_content = "";
-			bool content_unchanged = false;
-			if (FileUtils.test (file_path, FileTest.EXISTS)) {
-				try {
-					if (FileUtils.get_contents (file_path, out existing_content) && existing_content == content)
-						content_unchanged = true;
-				} catch { }
-			}
+			var synth_file = Hal.Apps.synthesize_fallback_launcher (clean_safe_name, app_name, exec_cmd, icon_name, wm_class, false);
+			if (synth_file == null)
+				return null;
 
-			try {
-				if (!content_unchanged) {
-					FileUtils.set_contents (file_path, content);
-					if (desktop_exec_cache != null)
-						desktop_exec_cache.unset (file_path);
-				}
-				var id = synth_file.get_basename ();
-				if (!content_unchanged || !identities.has_key (id)) {
-					var synth_identity = new ApplicationIdentity (synth_file);
-					bool exists_in_index = identities.has_key (id);
-					identities.set (id, synth_identity);
-					uri_identities.set (synth_identity.desktop_uri, synth_identity);
-					raw_uri_identities.set (synth_identity.desktop_uri, synth_identity);
-					if (!exists_in_index)
-						indexed_desktop_files.add (synth_file);
-					rebuild_fast_indexes ();
-					last_window_signature = "";
-				}
-				return synth_file;
-			} catch (Error e) {
-				debug ("Unable to create synthetic browser profile launcher: %s", e.message);
-			}
-			return null;
+			string sig = "%s|%s|%s|%s".printf (app_name, exec_cmd, icon_name, wm_class);
+			register_synthesized_launcher (synth_file, Hal.Apps.launcher_id_stem (clean_safe_name), sig);
+			return synth_file;
 		}
 
 		private File? synthesize_fallback_desktop_file (WindowInfo window, bool instance_isolated = false)
@@ -941,7 +1057,7 @@ namespace Plank
 			if (app_name == "")
 				app_name = raw_id;
 
-			// Retrieve full command line from /proc/<pid>/cmdline or window.Cmdline (resolving AppImage FUSE mounts)
+			// Retrieve full command line from live process snapshot or window.Cmdline (resolving portable AppImage mounts)
 			var exec_cmd = resolve_appimage_cmdline (window.Pid, get_process_cmdline (window.Pid));
 			if (exec_cmd == "")
 				exec_cmd = window.Cmdline != "" ? resolve_appimage_cmdline (window.Pid, window.Cmdline) : (window.Executable != "" ? window.Executable : raw_id);
@@ -951,105 +1067,35 @@ namespace Plank
 				? sanitize_name_for_app (app_name, norm_id)
 				: sanitize_name_for_app (norm_id, norm_id);
 
-			var user_app_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
-			var dir = File.new_for_path (user_app_dir);
-			try {
-				if (!dir.query_exists ())
-					dir.make_directory_with_parents ();
-			} catch { }
-
-			var file_path = Path.build_filename (user_app_dir, "wayplank-app-%s.desktop".printf (clean_safe_name));
-			var synth_file = File.new_for_path (file_path);
-
-			// Find an icon from icon theme matching norm_id or resource_name, else generic executable
 			var icon_name = resolve_fallback_icon (window, norm_id);
+			var wm_class = per_instance ? "" : (window.ResourceClass != "" ? window.ResourceClass : raw_id);
 
-			if (synth_file.query_exists ()) {
-				try {
-					var existing_kf = new KeyFile ();
-					if (existing_kf.load_from_file (file_path, KeyFileFlags.NONE)) {
-						if (!exec_cmd.contains (" ") && existing_kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-							var existing_exec = existing_kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-							if (existing_exec.contains (" "))
-								exec_cmd = existing_exec;
-						}
-						if (!per_instance && existing_kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
-							var existing_name = existing_kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
-							if (existing_name != "")
-								app_name = existing_name;
-						}
-					}
-				} catch { }
-			}
+			var synth_file = Hal.Apps.synthesize_fallback_launcher (clean_safe_name, app_name, exec_cmd, icon_name, wm_class, !per_instance);
+			if (synth_file == null)
+				return null;
 
-			string content;
-			if (per_instance) {
-				content = "[Desktop Entry]\nType=Application\nName=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
-					app_name, exec_cmd, icon_name
-				);
-			} else {
-				var wm_class = window.ResourceClass != "" ? window.ResourceClass : raw_id;
-				content = "[Desktop Entry]\nType=Application\nName=%s\nStartupWMClass=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
-					app_name, wm_class, exec_cmd, icon_name
-				);
-			}
-
-			string existing_content = "";
-			bool content_unchanged = false;
-			if (FileUtils.test (file_path, FileTest.EXISTS)) {
-				try {
-					if (FileUtils.get_contents (file_path, out existing_content) && existing_content == content)
-						content_unchanged = true;
-				} catch { }
-			}
-
-			try {
-				if (!content_unchanged) {
-					FileUtils.set_contents (file_path, content);
-					if (desktop_exec_cache != null)
-						desktop_exec_cache.unset (file_path);
-				}
-				var id = synth_file.get_basename ();
-				if (!content_unchanged || !identities.has_key (id)) {
-					var synth_identity = new ApplicationIdentity (synth_file);
-					bool exists_in_index = identities.has_key (id);
-					identities.set (id, synth_identity);
-					uri_identities.set (synth_identity.desktop_uri, synth_identity);
-					raw_uri_identities.set (synth_identity.desktop_uri, synth_identity);
-					if (!exists_in_index)
-						indexed_desktop_files.add (synth_file);
-					rebuild_fast_indexes ();
-					last_window_signature = "";
-				}
-				return synth_file;
-			} catch (Error e) {
-				debug ("Unable to create synthetic launcher: %s", e.message);
-			}
-			return null;
+			string sig = "%s|%s|%s|%s|%d".printf (app_name, exec_cmd, icon_name, wm_class, per_instance ? 1 : 0);
+			register_synthesized_launcher (synth_file, Hal.Apps.launcher_id_stem (clean_safe_name), sig);
+			return synth_file;
 		}
 
 		private string resolve_fallback_icon (WindowInfo window, string norm_id)
 		{
-			if (Gdk.Screen.get_default () == null)
-				return "application-x-executable";
-			unowned Gtk.IconTheme? theme = Gtk.IconTheme.get_default ();
-			if (theme == null)
-				return "application-x-executable";
-			if (window.ResourceClass != "" && theme.has_icon (window.ResourceClass))
+			if (window.ResourceClass != "" && Hal.Apps.has_native_icon (window.ResourceClass))
 				return window.ResourceClass;
-			if (window.ResourceName != "" && theme.has_icon (window.ResourceName))
+			if (window.ResourceName != "" && Hal.Apps.has_native_icon (window.ResourceName))
 				return window.ResourceName;
-			if (theme.has_icon (norm_id))
+			if (Hal.Apps.has_native_icon (norm_id))
 				return norm_id;
 			var first_dash = norm_id.index_of_char ('-');
 			if (first_dash > 0) {
 				var prefix = norm_id.substring (0, first_dash);
-				if (theme.has_icon (prefix))
+				if (Hal.Apps.has_native_icon (prefix))
 					return prefix;
 			}
 			return "application-x-executable";
 		}
-		
+
 		public string[] active_launcher_ids ()
 		{
 			var windows = Hal.Windows.get_windows ();
@@ -1072,8 +1118,7 @@ namespace Plank
 				if (window.Id != "") {
 					string locked_uri = ApplicationIdentity.get_locked_window_launcher_uri (window);
 					if (locked_uri != "") {
-						var locked_file = File.new_for_uri (locked_uri);
-						var locked_bname = locked_file.get_basename () ?? locked_uri;
+						var locked_bname = launcher_key_for_uri (locked_uri);
 						best_by_window.set (window.Id, identities.has_key (locked_bname) ? locked_bname : locked_uri);
 						score_by_window.set (window.Id, 120);
 						continue;
@@ -1082,13 +1127,13 @@ namespace Plank
 
 				bool has_specialized_override = has_specialized_or_terminal_override (window);
 
-				// Fast path: Exact desktop file or application ID match with authoritative score
+				// Fast path: Exact launcher entry or application ID match with authoritative score
 				if (!has_specialized_override && window.DesktopFileName != "") {
-					var canonical_file = desktop_file_for_id (window.DesktopFileName);
-					if (canonical_file != null) {
-						var cid = canonical_file.get_basename () ?? "";
-						var c_id_obj = identities.get (cid);
-						if (c_id_obj != null ? c_id_obj.has_exec : desktop_file_has_exec (canonical_file)) {
+					var canonical_uri = launcher_uri_for_id (window.DesktopFileName);
+					if (canonical_uri != "") {
+						var cid = launcher_key_for_uri (canonical_uri);
+						var c_id_obj = identities.get (cid) ?? uri_identities.get (canonical_uri);
+						if (c_id_obj != null ? c_id_obj.has_exec : launcher_uri_is_launchable (canonical_uri)) {
 							if (c_id_obj != null && !c_id_obj.is_specialized () && effective_match_score (c_id_obj, window) > 0) {
 								best_by_window.set (window.Id, cid);
 								score_by_window.set (window.Id, 100);
@@ -1150,24 +1195,29 @@ namespace Plank
 			cached_active_ids = result.to_array ();
 			return cached_active_ids;
 		}
-		
+
 		public ApplicationIdentity? identity_for_launcher (string launcher_uri)
 		{
 			var raw_cached = raw_uri_identities.get (launcher_uri);
 			if (raw_cached != null)
 				return raw_cached;
 
-			var file = launcher_uri.contains ("://") ? File.new_for_uri (launcher_uri) : File.new_for_path (launcher_uri);
-			var canonical_uri = file.get_uri ();
+			var canonical_uri = canonicalize_launcher_uri (launcher_uri);
+			if (canonical_uri == "")
+				return null;
+
 			var uri_cached = uri_identities.get (canonical_uri);
 			if (uri_cached != null) {
 				raw_uri_identities.set (launcher_uri, uri_cached);
 				return uri_cached;
 			}
 
-			if (!file.query_exists ()) {
-				var missing_id = file.get_basename ();
-				if (missing_id != null && identities.has_key (missing_id)) {
+			bool is_local_file = canonical_uri.down ().has_prefix ("file://");
+			File? file = is_local_file ? File.new_for_uri (canonical_uri) : null;
+
+			if (!Hal.Apps.launcher_exists (canonical_uri)) {
+				var missing_id = launcher_key_for_uri (canonical_uri);
+				if (missing_id != "" && identities.has_key (missing_id)) {
 					var fallback_id = identities.get (missing_id);
 					raw_uri_identities.set (launcher_uri, fallback_id);
 					return fallback_id;
@@ -1175,31 +1225,38 @@ namespace Plank
 				return null;
 			}
 
-			var identity = new ApplicationIdentity (file);
+			var identity = file != null
+				? new ApplicationIdentity (file)
+				: new ApplicationIdentity.from_uri (canonical_uri);
 			foreach (var existing in identities.values) {
 				identity.inherit_sibling_wm_classes (existing);
 				existing.inherit_sibling_wm_classes (identity);
 			}
 			uri_identities.set (canonical_uri, identity);
 			raw_uri_identities.set (launcher_uri, identity);
-			var id = file.get_basename ();
-			if (id != null && !identities.has_key (id))
+			var id = launcher_key_for_uri (canonical_uri);
+			if (id != "" && !identities.has_key (id))
 				identities.set (id, identity);
 			else if (!identities.has_key (canonical_uri))
 				identities.set (canonical_uri, identity);
-			bool in_indexed = false;
-			foreach (var f in indexed_desktop_files) {
-				if (f.equal (file)) {
-					in_indexed = true;
-					break;
+
+			if (!indexed_launcher_uris.contains (canonical_uri))
+				indexed_launcher_uris.add (canonical_uri);
+			if (file != null) {
+				bool in_indexed = false;
+				foreach (var f in indexed_desktop_files) {
+					if (f.equal (file)) {
+						in_indexed = true;
+						break;
+					}
 				}
+				if (!in_indexed)
+					indexed_desktop_files.add (file);
 			}
-			if (!in_indexed)
-				indexed_desktop_files.add (file);
 			rebuild_fast_indexes ();
 			return identity;
 		}
-		
+
 		public bool is_best_launcher_for_window (string launcher_uri, WindowInfo window)
 		{
 			if (is_ignored_app (window.ApplicationId)
@@ -1262,7 +1319,7 @@ namespace Plank
 			// Reverse Canonical Guard:
 			// Prevent unrelated non-canonical / folder / profile launchers (score < 115) from hijacking
 			// a window whose compositor DesktopFileName or ApplicationId canonically belongs to a different application,
-			// while explicitly permitting alias launchers that invoke the same dedicated binary (e.g. "Visual Studio Code.desktop" <-> "code.desktop").
+			// while explicitly permitting alias launchers that invoke the same dedicated binary (e.g. VS Code alias launchers).
 			if (my_score < 115) {
 				string[] canonical_candidates = { window.DesktopFileName, window.ApplicationId };
 				foreach (unowned string cand in canonical_candidates) {
@@ -1289,7 +1346,10 @@ namespace Plank
 					continue;
 				if (!my_identity.is_specialized () && !other.is_specialized () && my_identity.shares_application_with (other))
 					continue;
-				if (effective_match_score (other, window) > my_score) {
+				var other_score = effective_match_score (other, window);
+				if (other_score > 118 && is_unpinned_synthetic_browser_profile (other))
+					other_score = 118;
+				if (other_score > my_score) {
 					if (!other.has_exec)
 						continue;
 					return false;
@@ -1297,7 +1357,7 @@ namespace Plank
 			}
 			return true;
 		}
-		
+
 		private static void add_unique_folder (Gee.ArrayList<File> list, File folder)
 		{
 			foreach (var f in list) {
@@ -1307,18 +1367,23 @@ namespace Plank
 			list.add (folder);
 		}
 
-		Gee.ArrayList<File> application_folders (Gee.HashSet<string>? drawer_uris_out = null, Gee.ArrayList<File>? pinned_files_out = null, Gee.HashSet<string>? dock_drawer_uris_out = null)
+		private static void add_unique_uri (Gee.ArrayList<string> list, string uri)
+		{
+			if (uri != "" && !list.contains (uri))
+				list.add (uri);
+		}
+
+		Gee.ArrayList<File> application_folders (Gee.HashSet<string>? drawer_uris_out = null, Gee.ArrayList<string>? pinned_uris_out = null, Gee.HashSet<string>? dock_drawer_uris_out = null)
 		{
 			var folders = new Gee.ArrayList<File> ();
-			folders.add (Paths.DataHomeFolder.get_child ("applications"));
-			foreach (var folder in Paths.DataDirFolders)
-				folders.add (folder.get_child ("applications"));
+			foreach (var folder in Hal.Apps.discover_launcher_dirs ())
+				add_unique_folder (folders, folder);
 
-			if (pinned_files_out != null)
+			if (pinned_uris_out != null)
 				disk_profile_hints.clear ();
 
-			// Discover any drawer / folder launchers (and 1st-level subfolders) and pinned .desktop files configured on any dock first
-			var dock_config_dir = Paths.ConfigHomeFolder.get_child ("wayplank");
+			// Discover any drawer / folder launchers (and 1st-level subfolders) and pinned app launchers configured on any dock first
+			var dock_config_dir = Paths.AppConfigFolder;
 			if (dock_config_dir.query_exists ()) {
 				try {
 					var d_enum = dock_config_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
@@ -1336,7 +1401,7 @@ namespace Plank
 								key_file.load_from_file (item_file.get_path (), KeyFileFlags.NONE);
 								if (key_file.has_key ("PlankDockItemPreferences", "Launcher")) {
 									var uri = key_file.get_string ("PlankDockItemPreferences", "Launcher");
-									if (uri != null && uri.has_prefix ("file://")) {
+									if (uri != null && uri.down ().has_prefix ("file://")) {
 										var target = File.new_for_uri (uri);
 										if (target.query_exists ()) {
 											var ftype = target.query_file_type (FileQueryInfoFlags.NONE);
@@ -1359,21 +1424,35 @@ namespace Plank
 																dock_drawer_uris_out.add (sub_dir.get_uri ());
 														}
 													}
+													try { sub_enum.close (null); } catch { }
 												} catch { }
-											} else if (ftype == FileType.REGULAR && uri.down ().has_suffix (".desktop") && pinned_files_out != null) {
-												add_unique_folder (pinned_files_out, target);
+											} else if (ftype == FileType.REGULAR && Hal.Apps.is_launcher_uri (target.get_uri ()) && pinned_uris_out != null) {
+												string canon_uri = target.get_uri ();
+												add_unique_uri (pinned_uris_out, canon_uri);
 												if (key_file.has_key ("PlankDockItemPreferences", "BrowserProfile")) {
 													var bp = key_file.get_string ("PlankDockItemPreferences", "BrowserProfile").strip ();
 													if (bp != "")
-														disk_profile_hints.set (target.get_uri (), bp);
+														disk_profile_hints.set (canon_uri, bp);
 												}
+											}
+										}
+									} else if (uri != null && uri != "" && !uri.down ().has_prefix ("docklet://") && pinned_uris_out != null) {
+										string canon_uri = canonicalize_launcher_uri (uri);
+										if (canon_uri != "" && Hal.Apps.launcher_exists (canon_uri)) {
+											add_unique_uri (pinned_uris_out, canon_uri);
+											if (key_file.has_key ("PlankDockItemPreferences", "BrowserProfile")) {
+												var bp = key_file.get_string ("PlankDockItemPreferences", "BrowserProfile").strip ();
+												if (bp != "")
+													disk_profile_hints.set (canon_uri, bp);
 											}
 										}
 									}
 								}
 							} catch (Error e) { }
 						}
+						try { l_enum.close (null); } catch { }
 					}
+					try { d_enum.close (null); } catch { }
 				} catch (Error e) { }
 			}
 
@@ -1387,45 +1466,46 @@ namespace Plank
 				}
 			}
 
-			if (pinned_files_out != null)
+			if (pinned_uris_out != null)
 				recompute_effective_profile_hints ();
 
 			return folders;
 		}
-		
-		Gee.ArrayList<File> desktop_files ()
+
+		Gee.ArrayList<string> discover_all_launcher_uris (out Gee.ArrayList<File> files_out)
 		{
-			var result = new Gee.ArrayList<File> ();
+			files_out = new Gee.ArrayList<File> ();
+			var uris = new Gee.ArrayList<string> ();
 			var seen_ids = new Gee.HashSet<string> ();
 			var seen_uris = new Gee.HashSet<string> ();
 			var drawer_uris = new Gee.HashSet<string> ();
 			var dock_drawer_uris = new Gee.HashSet<string> ();
-			var pinned_files = new Gee.ArrayList<File> ();
+			var pinned_uris = new Gee.ArrayList<string> ();
 			var next_suppressed = new Gee.HashSet<string> ();
 			var next_pinned_uris = new Gee.HashSet<string> ();
 			var next_dock_drawer_file_uris = new Gee.HashSet<string> ();
 			var next_drawer_file_uris = new Gee.HashSet<string> ();
-			var folders = application_folders (drawer_uris, pinned_files, dock_drawer_uris);
-			var self_id = ApplicationIdentity.normalize (Paths.AppName + ".desktop");
+			var folders = application_folders (drawer_uris, pinned_uris, dock_drawer_uris);
 
-			// 1. Index pinned dock .desktop launchers first so pinned entries win tie-breaks even if NoDisplay=true
-			foreach (var pfile in pinned_files) {
-				var p_uri = pfile.get_uri ();
+			// 1. Index pinned dock launchers first so pinned entries win tie-breaks even if NoDisplay=true
+			foreach (var p_uri in pinned_uris) {
 				next_pinned_uris.add (p_uri);
 				if (seen_uris.contains (p_uri))
 					continue;
-				var bname = pfile.get_basename () ?? "";
-				var id = ApplicationIdentity.normalize (bname);
-				if (id == self_id || id == "wayplank.desktop" || id == "plank.desktop")
+				var key_name = launcher_key_for_uri (p_uri);
+				var id = ApplicationIdentity.normalize (key_name);
+				if (Hal.Apps.is_self_launcher (p_uri) || Hal.Apps.is_self_launcher (key_name))
 					continue;
-				if (!is_visible_application (pfile, null, true))
+				if (!is_visible_application (p_uri, null, true))
 					continue;
 				seen_uris.add (p_uri);
 				seen_ids.add (id);
-				result.add (pfile);
+				uris.add (p_uri);
+				if (p_uri.down ().has_prefix ("file://"))
+					files_out.add (File.new_for_uri (p_uri));
 			}
 
-			// 2. Index standard XDG application folders and user folder-menu drawers
+			// 2. Index standard application launcher folders and user folder-menu drawers
 			foreach (var folder in folders) {
 				if (!folder.query_exists ())
 					continue;
@@ -1434,138 +1514,125 @@ namespace Plank
 				bool is_dock_drawer = dock_drawer_uris.contains (f_uri);
 				try {
 					var enumerator = folder.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
-					FileInfo info;
+					FileInfo? info = null;
 					while ((info = enumerator.next_file ()) != null) {
-						if (!info.get_name ().has_suffix (".desktop"))
-							continue;
-						var file = folder.get_child (info.get_name ());
+						var child_name = info.get_name ();
+						var file = folder.get_child (child_name);
 						var file_uri = file.get_uri ();
+						if (!Hal.Apps.is_launcher_uri (file_uri))
+							continue;
 						if (is_drawer)
 							next_drawer_file_uris.add (file_uri);
 						if (is_dock_drawer)
 							next_dock_drawer_file_uris.add (file_uri);
 						if (seen_uris.contains (file_uri))
 							continue;
-						var id = ApplicationIdentity.normalize (info.get_name ());
-						if (id == self_id || id == "wayplank.desktop" || id == "plank.desktop")
+						var id = ApplicationIdentity.normalize (child_name);
+						if (Hal.Apps.is_self_launcher (child_name))
 							continue;
 						if (!is_drawer && seen_ids.contains (id))
 							continue;
-						if (!is_visible_application (file, is_drawer ? null : next_suppressed, is_drawer))
+						if (!is_visible_application (file_uri, is_drawer ? null : next_suppressed, is_drawer))
 							continue;
 						seen_uris.add (file_uri);
 						seen_ids.add (id);
-						result.add (file);
+						uris.add (file_uri);
+						files_out.add (file);
 					}
+					try { enumerator.close (null); } catch { }
 				} catch (Error e) {
 					debug ("Unable to enumerate application folder '%s': %s", folder.get_path (), e.message);
 				}
 			}
+
+			// 3. Index any non-filesystem native platform apps (e.g. Store AUMIDs) returned by Hal.Apps
+			foreach (var desc in Hal.Apps.discover_installed_apps (true)) {
+				if (desc.uri == "" || desc.uri.down ().has_prefix ("file://") || seen_uris.contains (desc.uri))
+					continue;
+				if (Hal.Apps.is_self_launcher (desc.uri))
+					continue;
+				var id = ApplicationIdentity.normalize (desc.base_id != "" ? desc.base_id : Hal.Apps.launcher_id_stem (desc.uri));
+				if (seen_ids.contains (id))
+					continue;
+				if (!is_visible_application (desc.uri, next_suppressed, false))
+					continue;
+				seen_uris.add (desc.uri);
+				seen_ids.add (id);
+				uris.add (desc.uri);
+			}
+
 			pinned_launcher_uris = next_pinned_uris;
 			dock_drawer_file_uris = next_dock_drawer_file_uris;
 			drawer_file_uris = next_drawer_file_uris;
 			suppressed_nodisplay_tokens = next_suppressed;
-			return result;
+			return uris;
 		}
 
-		bool is_visible_application (File file, Gee.HashSet<string>? suppressed_out = null, bool ignore_visibility_filters = false)
+		bool is_visible_application (string uri_or_path, Gee.HashSet<string>? suppressed_out = null, bool ignore_visibility_filters = false)
 		{
-			try {
-				var bname = file.get_basename () ?? "";
-				if (is_ignored_app (bname))
-					return false;
-
-				var key_file = new KeyFile ();
-				key_file.load_from_file (file.get_path (), KeyFileFlags.NONE);
-				if (!key_file.has_key (KeyFileDesktop.GROUP, "Type")
-					|| key_file.get_string (KeyFileDesktop.GROUP, "Type") != "Application")
-					return false;
-				if (key_file.has_key (KeyFileDesktop.GROUP, "Hidden")
-					&& key_file.get_boolean (KeyFileDesktop.GROUP, "Hidden"))
-					return false;
-
-				if (ignore_visibility_filters)
-					return true;
-
-				if (key_file.has_key (KeyFileDesktop.GROUP, "NoDisplay")
-					&& key_file.get_boolean (KeyFileDesktop.GROUP, "NoDisplay")) {
-					bool is_webapp_entry = false;
-					if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
-						var swmc_raw = key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass").down ().strip ();
-						if (swmc_raw.has_prefix ("crx_") ||
-						    ((swmc_raw.has_prefix ("chrome-") || swmc_raw.has_prefix ("brave-") || swmc_raw.has_prefix ("msedge-")) &&
-						     !ApplicationIdentity.is_browser_binary (swmc_raw)))
-							is_webapp_entry = true;
-					}
-					if (!is_webapp_entry && key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-						var exec_raw = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).down ();
-						if (exec_raw.contains ("--app-id=") || exec_raw.contains ("--app="))
-							is_webapp_entry = true;
-					}
-					if (!is_webapp_entry && !bname.has_prefix ("wayplank-app-") && desktop_file_has_exec (file)) {
-						if (suppressed_out != null) {
-							var norm_base = ApplicationIdentity.normalize (bname);
-							if (norm_base != "")
-								suppressed_out.add (norm_base);
-							if (key_file.has_key (KeyFileDesktop.GROUP, "StartupWMClass")) {
-								var swmc = ApplicationIdentity.normalize (key_file.get_string (KeyFileDesktop.GROUP, "StartupWMClass"));
-								if (swmc != "")
-									suppressed_out.add (swmc);
-							}
-							if (key_file.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC)) {
-								var exec_str = key_file.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_EXEC).strip ();
-								if (exec_str != "") {
-									var first_tok = exec_str.split (" ")[0].replace ("\"", "");
-									var bin_name = ApplicationIdentity.normalize (Path.get_basename (first_tok));
-									if (bin_name != "" && (norm_base == bin_name || norm_base.has_suffix ("." + bin_name)))
-										suppressed_out.add (bin_name);
-								}
-							}
-						}
-						return false;
-					}
-				}
-
-				var desktop = GLib.Environment.get_variable ("XDG_CURRENT_DESKTOP") ?? "";
-				if (key_file.has_key (KeyFileDesktop.GROUP, "OnlyShowIn")) {
-					var allowed = key_file.get_string_list (KeyFileDesktop.GROUP, "OnlyShowIn");
-					bool matches = false;
-					foreach (var name in allowed)
-						if (desktop.down ().contains (name.down ()))
-							matches = true;
-					if (!matches)
-						return false;
-				}
-				if (key_file.has_key (KeyFileDesktop.GROUP, "NotShowIn"))
-					foreach (var name in key_file.get_string_list (KeyFileDesktop.GROUP, "NotShowIn"))
-						if (desktop.down ().contains (name.down ()))
-							return false;
-
-				if (key_file.has_key (KeyFileDesktop.GROUP, "TryExec")) {
-					var try_exec = key_file.get_string (KeyFileDesktop.GROUP, "TryExec").strip ();
-					if (try_exec != "" && File.new_for_path (try_exec).query_exists () == false
-						&& GLib.Environment.find_program_in_path (try_exec) == null)
-						return false;
-				}
-				return true;
-			} catch (Error e) {
+			var bname = launcher_key_for_uri (canonicalize_launcher_uri (uri_or_path));
+			if (is_ignored_app (bname))
 				return false;
+
+			var desc = Hal.Apps.load_launcher (uri_or_path);
+			if (desc == null || !desc.has_explicit_app_type || desc.is_non_app_launcher || desc.is_hidden)
+				return false;
+
+			if (ignore_visibility_filters)
+				return true;
+
+			if (desc.is_nodisplay) {
+				bool is_webapp_entry = false;
+				if (desc.startup_wm_class_or_aumid != "") {
+					var swmc_raw = desc.startup_wm_class_or_aumid.down ().strip ();
+					if (swmc_raw.has_prefix ("crx_") || swmc_raw.contains ("_crx_") ||
+					    ((swmc_raw.has_prefix ("chrome-") || swmc_raw.has_prefix ("brave-") || swmc_raw.has_prefix ("msedge-")) &&
+					     !ApplicationIdentity.is_browser_binary (swmc_raw)))
+						is_webapp_entry = true;
+				}
+				if (!is_webapp_entry && desc.exec_command != "") {
+					var exec_raw = desc.exec_command.down ();
+					if (exec_raw.contains ("--app-id=") || exec_raw.contains ("--app="))
+						is_webapp_entry = true;
+				}
+				if (!is_webapp_entry && !desc.is_synthetic && desc.is_launchable) {
+					if (suppressed_out != null) {
+						var norm_base = ApplicationIdentity.normalize (bname);
+						if (norm_base != "")
+							suppressed_out.add (norm_base);
+						if (desc.startup_wm_class_or_aumid != "") {
+							var swmc = ApplicationIdentity.normalize (desc.startup_wm_class_or_aumid);
+							if (swmc != "")
+								suppressed_out.add (swmc);
+						}
+						if (desc.exec_command != "") {
+							string[] argv = Hal.Runtime.parse_command_argv (desc.exec_command);
+							string first_tok = argv.length > 0 ? argv[0] : desc.exec_command.split (" ")[0].replace ("\"", "");
+							var bin_name = ApplicationIdentity.normalize (basename_any_slash (first_tok));
+							if (bin_name != "" && (norm_base == bin_name || norm_base.has_suffix ("." + bin_name)))
+								suppressed_out.add (bin_name);
+						}
+					}
+					return false;
+				}
 			}
+
+			if (!desc.is_shown_in_current_desktop)
+				return false;
+			if (!desc.try_exec_satisfied)
+				return false;
+
+			return true;
 		}
 
 		void refresh_desktop_index (bool force = false)
 		{
-			var next = desktop_files ();
-			var changed_index = (next.size != indexed_desktop_files.size);
+			Gee.ArrayList<File> next_files;
+			var next_uris = discover_all_launcher_uris (out next_files);
+			var changed_index = (next_uris.size != indexed_launcher_uris.size);
 			if (!changed_index) {
-				foreach (var file in next) {
-					bool found = false;
-					foreach (var old_file in indexed_desktop_files)
-						if (old_file.equal (file)) {
-							found = true;
-							break;
-						}
-					if (!found) {
+				foreach (var u in next_uris) {
+					if (!indexed_launcher_uris.contains (u)) {
 						changed_index = true;
 						break;
 					}
@@ -1573,14 +1640,16 @@ namespace Plank
 			}
 			if (!force && !changed_index && uri_identities.size > 0)
 				return;
+
 			var new_identities = new Gee.HashMap<string, ApplicationIdentity> ();
 			var identity_list = new Gee.ArrayList<ApplicationIdentity> ();
 			uri_identities.clear ();
 			raw_uri_identities.clear ();
-			foreach (var file in next) {
-				var id = file.get_basename () ?? file.get_uri ();
-				var f_uri = file.get_uri ();
-				var identity = new ApplicationIdentity (file);
+			foreach (var f_uri in next_uris) {
+				var id = launcher_key_for_uri (f_uri);
+				var identity = f_uri.down ().has_prefix ("file://")
+					? new ApplicationIdentity (File.new_for_uri (f_uri))
+					: new ApplicationIdentity.from_uri (f_uri);
 				identity_list.add (identity);
 				uri_identities.set (f_uri, identity);
 				raw_uri_identities.set (f_uri, identity);
@@ -1607,10 +1676,9 @@ namespace Plank
 					}
 				}
 			}
-			if (desktop_exec_cache != null)
-				desktop_exec_cache.clear ();
 			identities = new_identities;
-			indexed_desktop_files = next;
+			indexed_desktop_files = next_files;
+			indexed_launcher_uris = next_uris;
 			rebuild_fast_indexes ();
 			last_window_signature = "";
 			changed ();

@@ -213,7 +213,8 @@ namespace Plank
 		{
 			// Explicit launch from the dock: feeds the Smart Pinned Accordion usage score
 			AppUsageService.get_default ().note_launch (Launcher);
-			Hal.Apps.launch_app (Prefs.Launcher, {}, System.get_default ().context);
+			ApplicationIdentity.note_launcher_invocation (Prefs.Launcher);
+			Hal.Apps.launch_app (Prefs.Launcher, {});
 		}
 
 		/**
@@ -335,11 +336,11 @@ namespace Plank
 							AppUsageService.get_default ().note_launch (Launcher);
 							string fallback_cmd = (values.length > 0) ? values[0] : "";
 							if (action_id != null && action_id != "") {
-								if (Hal.Apps.launch_action (Launcher, action_id, fallback_cmd, System.get_default ().context))
+								if (Hal.Apps.launch_action (Launcher, action_id, fallback_cmd))
 									return;
 							}
 							if (fallback_cmd != "")
-								Hal.Apps.launch_command (fallback_cmd, "", System.get_default ().context);
+								Hal.Apps.launch_command (fallback_cmd);
 						});
 						items.add (item);
 					}
@@ -558,7 +559,8 @@ namespace Plank
 					effective_uris.add (u);
 			}
 
-			Hal.Apps.launch_app (Prefs.Launcher, effective_uris.to_array (), System.get_default ().context);
+			ApplicationIdentity.note_launcher_invocation (Prefs.Launcher);
+			Hal.Apps.launch_app (Prefs.Launcher, effective_uris.to_array ());
 
 			var windows = WindowManager.get_default ().matching_windows (Launcher);
 			if (windows.size > 0) {

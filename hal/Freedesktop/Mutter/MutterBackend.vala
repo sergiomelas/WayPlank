@@ -71,7 +71,7 @@ namespace Plank
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v072_bridge_1";
+		const string BRIDGE_GEN = "v072_bridge_2";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -244,7 +244,7 @@ const IFACE_XML = `
 
 export default class WayplankBridgeImpl {
     enable() {
-        this._bridgeGen = 'v072_bridge_1';
+        this._bridgeGen = 'v072_bridge_2';
         this._lastDockOnPrimary = true;
         this._strutHealAttempted = false;
         this._signals = [];
@@ -397,7 +397,7 @@ export default class WayplankBridgeImpl {
             this._lmSignals.push(Main.layoutManager.connect('monitors-changed', () => {
                 const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 0;
                 if (nMonitors > 0 && this._lastDockGeo) {
-                    const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
+                    const pMon = this._getSafePrimaryMonitor(nMonitors);
                     let targetMon = -1;
                     if (this._lastDockOnPrimary !== false) {
                         targetMon = pMon;
@@ -412,7 +412,7 @@ export default class WayplankBridgeImpl {
                                 break;
                             }
                         }
-                        if (targetMon === -1)
+                        if (targetMon < 0 || targetMon >= nMonitors)
                             targetMon = pMon;
                     }
                     if (targetMon >= 0 && targetMon < nMonitors) {
@@ -519,13 +519,7 @@ export default class WayplankBridgeImpl {
         }
 
         for (const [win, sigs] of this._windowSignals.entries()) {
-            if (win && win._wpFirstFrameId) {
-                const act = win.get_compositor_private ? win.get_compositor_private() : null;
-                if (act) {
-                    try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
-                }
-                win._wpFirstFrameId = 0;
-            }
+            this._cancelPendingFirstFrame(win);
             for (const id of sigs) {
                 try { win.disconnect(id); } catch (e) { }
             }
@@ -601,12 +595,60 @@ export default class WayplankBridgeImpl {
         return true;
     }
 
+    _getSafePrimaryMonitor(nMonitors) {
+        if (nMonitors <= 0)
+            return -1;
+        const pMon = (global.display && global.display.get_primary_monitor)
+            ? global.display.get_primary_monitor() : 0;
+        return (pMon >= 0 && pMon < nMonitors) ? pMon : 0;
+    }
+
+    _ensureWindowStickyAbove(win) {
+        if (!win || win._wpUnmanaging)
+            return;
+        const isAbove = Boolean(win.above || (win.is_above && win.is_above()));
+        if (!isAbove && win.make_above)
+            win.make_above();
+        const isAllWs = Boolean(win.on_all_workspaces || (win.is_on_all_workspaces && win.is_on_all_workspaces()));
+        if (!isAllWs && win.stick)
+            win.stick();
+    }
+
+    _cancelPendingFirstFrame(win) {
+        if (!win)
+            return;
+        if (win._wpFirstFrameId) {
+            const act = win.get_compositor_private ? win.get_compositor_private() : null;
+            if (act) {
+                try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
+            }
+            win._wpFirstFrameId = 0;
+        }
+        if (win._wpLaterId) {
+            const laterId = win._wpLaterId;
+            win._wpLaterId = 0;
+            try {
+                if (global.compositor && typeof global.compositor.get_laters === 'function')
+                    global.compositor.get_laters().remove(laterId);
+                else if (Meta.later_remove)
+                    Meta.later_remove(laterId);
+            } catch (e) { }
+        }
+        if (win._wpIdleId) {
+            const idleId = win._wpIdleId;
+            win._wpIdleId = 0;
+            try { GLib.Source.remove(idleId); } catch (e) { }
+        }
+    }
+
     _centerWindow(win) {
         if (!this._isWindowAlive(win) || win._wayplankCentered) return false;
         try {
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+            if (nMonitors <= 0) return false;
             let monitor = win.get_monitor ? win.get_monitor() : -1;
-            if (monitor === -1 || monitor === null || monitor === undefined) {
-                monitor = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
+            if (monitor === null || monitor === undefined || monitor < 0 || monitor >= nMonitors) {
+                monitor = this._getSafePrimaryMonitor(nMonitors);
             }
             const monGeo = global.display.get_monitor_geometry(monitor);
             if (!monGeo) return false;
@@ -615,10 +657,15 @@ export default class WayplankBridgeImpl {
                 return false;
             const x = monGeo.x + Math.max(0, Math.round((monGeo.width - frameRect.width) / 2));
             const y = monGeo.y + Math.max(0, Math.round((monGeo.height - frameRect.height) / 2));
-            if (win.move_frame) {
-                win.move_frame(false, x, y);
-            } else if (win.move_resize_frame) {
-                win.move_resize_frame(false, x, y, frameRect.width, frameRect.height);
+            win._wpApplyingGeometry = true;
+            try {
+                if (win.move_frame) {
+                    win.move_frame(false, x, y);
+                } else if (win.move_resize_frame) {
+                    win.move_resize_frame(false, x, y, frameRect.width, frameRect.height);
+                }
+            } finally {
+                win._wpApplyingGeometry = false;
             }
             win._wayplankCentered = true;
             return true;
@@ -628,21 +675,42 @@ export default class WayplankBridgeImpl {
         }
     }
 
-    // Runs fn once on the window actor's first frame. Keeps at most ONE pending handler per
-    // window (a 'first-frame' handler connected on an already-shown window never fires, so
-    // connecting one per positioning call would accumulate handlers forever).
+    // Runs fn once after the window actor's first frame, deferred to Mutter's BEFORE_REDRAW
+    // (before-update) phase so fn NEVER executes while compositor->priv->frame_in_progress == TRUE
+    // inside meta_window_actor_after_paint() (Mutter 51 assertion in compositor.c:498).
     _onFirstFrame(win, fn) {
+        this._cancelPendingFirstFrame(win);
         const act = win.get_compositor_private ? win.get_compositor_private() : null;
         if (!act || !act.connect)
             return;
-        if (win._wpFirstFrameId) {
-            try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
-            win._wpFirstFrameId = 0;
-        }
         win._wpFirstFrameId = act.connect('first-frame', () => {
-            try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
-            win._wpFirstFrameId = 0;
-            fn();
+            if (win._wpFirstFrameId) {
+                try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
+                win._wpFirstFrameId = 0;
+            }
+            if (!win || win._wpUnmanaging)
+                return;
+            const runDeferred = () => {
+                win._wpLaterId = 0;
+                win._wpIdleId = 0;
+                if (!win || win._wpUnmanaging)
+                    return GLib.SOURCE_REMOVE;
+                fn();
+                return GLib.SOURCE_REMOVE;
+            };
+            try {
+                if (global.compositor && typeof global.compositor.get_laters === 'function') {
+                    win._wpLaterId = global.compositor.get_laters().add(
+                        Meta.LaterType.BEFORE_REDRAW, runDeferred);
+                    return;
+                }
+                if (Meta.later_add) {
+                    win._wpLaterId = Meta.later_add(
+                        Meta.LaterType.BEFORE_REDRAW, runDeferred);
+                    return;
+                }
+            } catch (e) { }
+            win._wpIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, runDeferred);
         });
     }
 
@@ -651,9 +719,13 @@ export default class WayplankBridgeImpl {
     // Never read ws.get_work_area_for_monitor(i), which recalculates asynchronously on BEFORE_REDRAW
     // and includes WayPlank's own strut or third-party docks (e.g. ubuntu-dock).
     _baseWorkArea(i) {
-        const g = global.display.get_monitor_geometry(i);
-        const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
-        const topPanelHeight = (i === pMon && Main.panel && Main.panel.height && Main.panel.visible !== false)
+        const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+        if (nMonitors <= 0)
+            return { x: 0, y: 0, width: 1920, height: 1080 };
+        const pMon = this._getSafePrimaryMonitor(nMonitors);
+        const monIdx = (i >= 0 && i < nMonitors) ? i : pMon;
+        const g = global.display.get_monitor_geometry(monIdx);
+        const topPanelHeight = (monIdx === pMon && Main.panel && Main.panel.height && Main.panel.visible !== false)
             ? Main.panel.height : 0;
         return {
             x: g.x,
@@ -667,13 +739,14 @@ export default class WayplankBridgeImpl {
         if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'dock')
             return false;
         try {
-            win.make_above();
-            win.stick();
             if (win.hide_from_window_list)
                 win.hide_from_window_list();
 
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+            if (nMonitors <= 0)
+                return false;
+
             let targetMon = -1;
-            const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
             const cx = x + Math.floor(width / 2);
             const cy = y + Math.floor(height / 2);
 
@@ -685,14 +758,14 @@ export default class WayplankBridgeImpl {
                     break;
                 }
             }
-            if (targetMon === -1) {
-                targetMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
+            const pMon = this._getSafePrimaryMonitor(nMonitors);
+            if (targetMon < 0 || targetMon >= nMonitors) {
+                targetMon = pMon;
             }
 
             // Rule 9 (Strut Purity): Anchor dock placement strictly to physical monitor geometry (monGeo).
             // Window coordinates must NEVER be calculated relative to dynamic work_area (wa), which shrinks
             // when reserving space and recalculates asynchronously in Mutter.
-            const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
             const monGeo = global.display.get_monitor_geometry(targetMon);
             const isPrimary = (targetMon === pMon);
             this._lastDockOnPrimary = isPrimary;
@@ -735,16 +808,24 @@ export default class WayplankBridgeImpl {
                 try {
                     if (!this._isWindowAlive(win) || this._classifyWindow(win) !== 'dock')
                         return;
+                    this._ensureWindowStickyAbove(win);
+                    if (win.hide_from_window_list)
+                        win.hide_from_window_list();
                     const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
                     if (frameRect && frameRect.x === targetX && frameRect.y === targetY &&
                         frameRect.width === width && frameRect.height === height) {
                         return;
                     }
-                    if (win.move_frame) {
-                        win.move_frame(true, targetX, targetY);
-                    }
-                    if (win.move_resize_frame) {
-                        win.move_resize_frame(true, targetX, targetY, width, height);
+                    win._wpApplyingGeometry = true;
+                    try {
+                        if (win.move_frame) {
+                            win.move_frame(true, targetX, targetY);
+                        }
+                        if (win.move_resize_frame) {
+                            win.move_resize_frame(true, targetX, targetY, width, height);
+                        }
+                    } finally {
+                        win._wpApplyingGeometry = false;
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move dock error:', e);
@@ -772,13 +853,16 @@ export default class WayplankBridgeImpl {
             if (win.demands_attention)
                 win.demands_attention = false;
 
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+            if (nMonitors <= 0)
+                return false;
+
             let targetX = x;
             let targetY = y;
             const dockWin = this._findDockWindow();
             const dockRect = this._lastDockGeo || (dockWin ? dockWin.get_frame_rect() : null);
 
             let targetMon = -1;
-            const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
             const cx = x + Math.floor((width > 0 ? width : 60) / 2);
             const cy = y + Math.floor((height > 0 ? height : 28) / 2);
 
@@ -791,12 +875,14 @@ export default class WayplankBridgeImpl {
                 }
             }
             if (targetMon === -1 && dockWin && dockWin.get_monitor) {
-                targetMon = dockWin.get_monitor();
+                const dm = dockWin.get_monitor();
+                if (dm >= 0 && dm < nMonitors)
+                    targetMon = dm;
             }
 
             if (dockRect) {
-                const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
-                const monIdx = (targetMon !== -1) ? targetMon : pMon;
+                const pMon = this._getSafePrimaryMonitor(nMonitors);
+                const monIdx = (targetMon >= 0 && targetMon < nMonitors) ? targetMon : pMon;
                 const monGeo = global.display.get_monitor_geometry(monIdx);
                 const topPanelHeight = (monIdx === pMon && Main.panel && Main.panel.height && Main.panel.visible !== false)
                     ? Main.panel.height : 0;
@@ -813,8 +899,7 @@ export default class WayplankBridgeImpl {
                 try {
                     if (!this._isWindowAlive(win) || this._classifyWindow(win) !== 'hover')
                         return;
-                    win.make_above();
-                    win.stick();
+                    this._ensureWindowStickyAbove(win);
                     if (win.hide_from_window_list)
                         win.hide_from_window_list();
                     if (win.demands_attention)
@@ -822,10 +907,15 @@ export default class WayplankBridgeImpl {
                     const frameRect = win.get_frame_rect ? win.get_frame_rect() : null;
                     if (frameRect && frameRect.x === targetX && frameRect.y === targetY)
                         return;
-                    if (win.move_frame) {
-                        win.move_frame(true, targetX, targetY);
-                    } else if (win.move_resize_frame && frameRect) {
-                        win.move_resize_frame(true, targetX, targetY, frameRect.width, frameRect.height);
+                    win._wpApplyingGeometry = true;
+                    try {
+                        if (win.move_frame) {
+                            win.move_frame(true, targetX, targetY);
+                        } else if (win.move_resize_frame && frameRect) {
+                            win.move_resize_frame(true, targetX, targetY, frameRect.width, frameRect.height);
+                        }
+                    } finally {
+                        win._wpApplyingGeometry = false;
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move hover error:', e);
@@ -848,16 +938,17 @@ export default class WayplankBridgeImpl {
         if (!win || win._wpUnmanaging)
             return false;
         try {
-            win.make_above();
-            win.stick();
             if (win.hide_from_window_list)
                 win.hide_from_window_list();
             if (win.demands_attention)
                 win.demands_attention = false;
             win._wayplankCentered = true;
 
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+            if (nMonitors <= 0)
+                return false;
+
             let targetMon = -1;
-            const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
             const cx = x + Math.floor((width > 0 ? width : 64) / 2);
             const cy = y + Math.floor((height > 0 ? height : 64) / 2);
 
@@ -874,7 +965,7 @@ export default class WayplankBridgeImpl {
             let targetY = y;
             const dockWin = this._findDockWindow();
             const dockRect = this._lastDockGeo || (dockWin && dockWin.get_frame_rect ? dockWin.get_frame_rect() : null);
-            if (dockRect && targetMon !== -1) {
+            if (dockRect && targetMon >= 0 && targetMon < nMonitors) {
                 const monGeo = global.display.get_monitor_geometry(targetMon);
                 const isHorizontal = dockRect.width >= dockRect.height;
                 const isTop = isHorizontal && dockRect.y < monGeo.y + 120;
@@ -889,11 +980,21 @@ export default class WayplankBridgeImpl {
                 try {
                     if (!this._isWindowAlive(win))
                         return;
-                    if (win.move_frame) {
-                        win.move_frame(true, targetX, targetY);
-                    }
-                    if (win.move_resize_frame) {
-                        win.move_resize_frame(true, targetX, targetY, width, height);
+                    this._ensureWindowStickyAbove(win);
+                    if (win.hide_from_window_list)
+                        win.hide_from_window_list();
+                    if (win.demands_attention)
+                        win.demands_attention = false;
+                    win._wpApplyingGeometry = true;
+                    try {
+                        if (win.move_frame) {
+                            win.move_frame(true, targetX, targetY);
+                        }
+                        if (win.move_resize_frame) {
+                            win.move_resize_frame(true, targetX, targetY, width, height);
+                        }
+                    } finally {
+                        win._wpApplyingGeometry = false;
                     }
                 } catch (e) {
                     console.error('[WayplankBridge] move poof error:', e);
@@ -927,14 +1028,20 @@ export default class WayplankBridgeImpl {
             }
             if (kind === 'dock') {
                 try {
-                    targetWin.make_above();
-                    targetWin.stick();
                     if (targetWin.hide_from_window_list)
                         targetWin.hide_from_window_list();
                 } catch (e) { }
                 if (this._lastDockGeo) {
                     const { x, y, width, height } = this._lastDockGeo;
                     this._applyDockPosition(targetWin, x, y, width, height);
+                } else if (targetWin.mapped) {
+                    try { this._ensureWindowStickyAbove(targetWin); } catch (e) { }
+                } else {
+                    this._onFirstFrame(targetWin, () => {
+                        if (this._isWindowAlive(targetWin) && this._classifyWindow(targetWin) === 'dock') {
+                            try { this._ensureWindowStickyAbove(targetWin); } catch (e) { }
+                        }
+                    });
                 }
             } else if (kind === 'hover') {
                 try {
@@ -961,13 +1068,16 @@ export default class WayplankBridgeImpl {
             } else if (kind === 'dialog') {
                 try {
                     targetWin.demands_attention = false;
-                    targetWin.activate(global.get_current_time());
                 } catch (e) { }
                 if (targetWin.mapped) {
+                    try { targetWin.activate(global.get_current_time()); } catch (e) { }
                     this._centerWindow(targetWin);
                 } else {
                     this._onFirstFrame(targetWin, () => {
-                        this._centerWindow(targetWin);
+                        if (this._isWindowAlive(targetWin)) {
+                            try { targetWin.activate(global.get_current_time()); } catch (e) { }
+                            this._centerWindow(targetWin);
+                        }
                     });
                 }
             }
@@ -980,13 +1090,7 @@ export default class WayplankBridgeImpl {
         sigs.push(win.connect('unmanaged', () => {
             const cls = this._classifyWindow(win);
             win._wpUnmanaging = true;
-            if (win._wpFirstFrameId) {
-                const act = win.get_compositor_private ? win.get_compositor_private() : null;
-                if (act) {
-                    try { act.disconnect(win._wpFirstFrameId); } catch (e) { }
-                }
-                win._wpFirstFrameId = 0;
-            }
+            this._cancelPendingFirstFrame(win);
             if (this._minMap && winId)
                 this._minMap.delete(winId);
             if (this._desktopRestoredWindows && winId)
@@ -1029,6 +1133,8 @@ export default class WayplankBridgeImpl {
             this._notifyWindowsChanged();
         }));
         sigs.push(win.connect('position-changed', () => {
+            if (win._wpApplyingGeometry || win._wpUnmanaging)
+                return;
             const kind = this._classifyWindow(win);
             if (kind === 'dock' && this._lastDockGeo) {
                 // Mutter may displace the dock (work-area re-constraint when our strut is applied):
@@ -1043,6 +1149,8 @@ export default class WayplankBridgeImpl {
             }
         }));
         sigs.push(win.connect('size-changed', () => {
+            if (win._wpApplyingGeometry || win._wpUnmanaging)
+                return;
             const currentKind = this._classifyWindow(win);
             if (currentKind === 'dock' && this._lastDockGeo) {
                 const { x, y, width, height } = this._lastDockGeo;
@@ -1370,7 +1478,7 @@ export default class WayplankBridgeImpl {
     // itself inside the space it reserved (no workarea feedback loop / no jump on toggle).
     GetMonitorWorkAreas() {
         try {
-            const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
             const res = [];
             for (let i = 0; i < nMonitors; i++) {
                 const g = global.display.get_monitor_geometry(i);
@@ -1451,8 +1559,11 @@ export default class WayplankBridgeImpl {
 
     // D-Bus Method: GetPrimaryMonitor
     GetPrimaryMonitor() {
-        const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
-        const geo = (global.display && global.display.get_monitor_geometry) ? global.display.get_monitor_geometry(pMon) : { x: 0, y: 0, width: 1920, height: 1080 };
+        const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+        const pMon = this._getSafePrimaryMonitor(nMonitors);
+        const geo = (pMon >= 0 && global.display && global.display.get_monitor_geometry)
+            ? global.display.get_monitor_geometry(pMon)
+            : { x: 0, y: 0, width: 1920, height: 1080 };
         return JSON.stringify({ x: geo.x, y: geo.y, width: geo.width, height: geo.height });
     }
 
@@ -1460,21 +1571,23 @@ export default class WayplankBridgeImpl {
     PositionDock(x, y, width, height) {
         this._lastDockGeo = { x, y, width, height };
         try {
-            const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 1;
-            const pMon = (global.display && global.display.get_primary_monitor) ? global.display.get_primary_monitor() : 0;
-            const cx = x + Math.floor(width / 2);
-            const cy = y + Math.floor(height / 2);
-            let mon = -1;
-            for (let i = 0; i < nMonitors; i++) {
-                const geo = global.display.get_monitor_geometry(i);
-                if (cx >= geo.x && cx < geo.x + geo.width &&
-                    cy >= geo.y && cy < geo.y + geo.height) {
-                    mon = i;
-                    break;
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
+            if (nMonitors > 0) {
+                const pMon = this._getSafePrimaryMonitor(nMonitors);
+                const cx = x + Math.floor(width / 2);
+                const cy = y + Math.floor(height / 2);
+                let mon = -1;
+                for (let i = 0; i < nMonitors; i++) {
+                    const geo = global.display.get_monitor_geometry(i);
+                    if (cx >= geo.x && cx < geo.x + geo.width &&
+                        cy >= geo.y && cy < geo.y + geo.height) {
+                        mon = i;
+                        break;
+                    }
                 }
+                if (mon !== -1)
+                    this._lastDockOnPrimary = (mon === pMon);
             }
-            if (mon !== -1)
-                this._lastDockOnPrimary = (mon === pMon);
         } catch (e) { }
 
         const win = this._findDockWindow();
@@ -1634,7 +1747,10 @@ export default class WayplankBridgeImpl {
                 (win.is_fullscreen && win.is_fullscreen()) ||
                 (win.get_maximized && win.get_maximized() !== 0))
                 return;
+            const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
             const targetMon = this._strutRect.mon;
+            if (targetMon < 0 || targetMon >= nMonitors)
+                return;
             if (!win.get_monitor || win.get_monitor() !== targetMon)
                 return;
             const monGeo = global.display.get_monitor_geometry(targetMon);

@@ -685,6 +685,8 @@ namespace Plank
 				} else if (type == typeof (int) || type.is_enum ()) {
 					int v = 0;
 					@get (prop_name, out v);
+					if (prop_name == "IconSize" && v >= MIN_ICON_SIZE && v <= MAX_ICON_SIZE && (v % 2) != 0)
+						v -= 1;
 					kf.set_integer ("DockPreferences", prop_name, v);
 				} else if (type == typeof (uint)) {
 					uint v = 0U;

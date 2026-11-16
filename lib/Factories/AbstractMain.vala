@@ -95,7 +95,10 @@ namespace Plank
 
 			SystemTheme.cleanup_if_active ();
 			AppUsageService.shutdown_if_active ();
+			ApplicationIdentity.cleanup ();
+			Matcher.cleanup_if_active ();
 			WindowManager.cleanup_if_active ();
+			ApplicationDiscovery.cleanup_if_active ();
 			Hal.cleanup ();
 			GLib.Settings.sync ();
 		}

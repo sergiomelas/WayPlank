@@ -84,9 +84,9 @@ ISA-88 PROCEDURAL STATE MACHINE LEGEND (AI_RULES.md Section 2):
   ------+---------+------------+--------+------------------------------------------
   [ok]  | [M4-01] | Gate M4-A  | Tier 3 | Define pure `IAppSystem.vala` (`AppDescriptor`, `ProcessSnapshot`, `RecentDocInfo`) + `IAppMenuBus`
   [ok]  | [M4-02] | Gate M4-A  | Tier 3 | Implement `XdgAppSystem`, `LinuxProcessInspector`, & `AppMenuDbusService` drivers
-  [  ]  | [M4-03] | Gate M4-C  | Tier 2 | Purify `ApplicationIdentity.vala` onto `AppDescriptor`, `ProcessSnapshot`, `Hal.Bus.AppMenu`, `parse_command_argv`
-  [  ]  | [M4-04] | Gate M4-C  | Tier 2 | Purify `ApplicationDiscovery.vala` onto `Hal.Windows` & `Hal.Apps` (browser bins + synthetic launchers)
-  [  ]  | [M4-05] | Gate M4-C  | Tier 2 | Purify `Matcher.vala` onto `Hal.Windows`, `Hal.Apps.scan_user_processes()`, & `parse_command_argv`
+  [ok]  | [M4-03] | Gate M4-C  | Tier 2 | Purify `ApplicationIdentity.vala` onto `AppDescriptor`, `ProcessSnapshot`, `Hal.Bus.AppMenu`, `parse_command_argv`
+  [ok]  | [M4-04] | Gate M4-C  | Tier 2 | Purify `ApplicationDiscovery.vala` onto `Hal.Windows` & `Hal.Apps` (browser bins + synthetic launchers)
+  [ok]  | [M4-05] | Gate M4-C  | Tier 2 | Purify `Matcher.vala` onto `Hal.Windows`, `Hal.Apps.scan_user_processes()`, & `parse_command_argv`
   [ok]  | [M4-06] | Gate M4-B  | Tier 2 | Convert `System.vala` to pure Core facade delegating to `Hal.Apps`, `Hal.Telemetry.Ejector`, `Hal.Runtime`
   [ok]  | [M4-07] | Gate M4-B  | Tier 2 | Purify `RecentFilesService.vala` (`Hal.Apps.get_recent_documents()`, `load_launcher`, `Path.is_absolute`)
   [ok]  | [M4-08] | M4-A->M4-B | Tier 3 | Move `/var/lib/{snapd,flatpak}` & `/usr/{local/,}share/glib-2.0/schemas` behind `Hal.Apps` / `Hal.Runtime`
@@ -99,29 +99,29 @@ ISA-88 PROCEDURAL STATE MACHINE LEGEND (AI_RULES.md Section 2):
   [ok]  | [M4-15] | Gate M4-B  | Tier 2 | Purify `DragManager.vala` (`Hal.Apps.resolve_launcher_uri`, `Hal.Runtime.open_uri`, `Path.is_absolute()`)
   [ok]  | [M4-16] | Gate M4-B  | Tier 2 | Purify `FolderMenuWindow.vala` & `DockWindow.vala` (`Hal.Apps` launcher & `TEXT_EDITOR` role)
   [ok]  | [M4-17] | Gate M4-B  | Tier 2 | Purify `IconChooserDialog.vala` & `DrawingService.vala` (custom icon override + prefix-only `~/` expand)
-  [  ]  | [M4-18] | Gate M4-C  | Tier 1 | Enable mandatory pre-compile Dual-Zone HAL Purity Firewall in `BuildBin.sh` (`Zone 1` + `Zone 2`)
-  [  ]  | [M4-19] | Gate M4-C  | Tier 2 | Run 65,025-case Identity Regression Matrix + hand off for full 3-compositor `FAT 0.7.2` qualification
+  [ok]  | [M4-18] | Gate M4-C  | Tier 1 | Enable mandatory pre-compile Dual-Zone HAL Purity Firewall in `BuildBin.sh` (`Zone 1` + `Zone 2`)
+  [ok]  | [M4-19] | Gate M4-C  | Tier 2 | Run 65,025-case Identity Regression Matrix + hand off for full 3-compositor `FAT 0.7.2` qualification
   [ok]  | [M4-20] | Gate M4-A  | Tier 3 | `wayplank_hal_platform_early_apps()` lazy pre-`Hal.initialize()` hook for `Paths.initialize()`
   [ok]  | [M4-21] | Gate M4-A  | Tier 3 | Complete `AppDescriptor`, `ProcessSnapshot` (`is_alive`, `exe_realpath`, `child_pids`), `QuicklistAction`, MIME/category APIs
   [ok]  | [M4-22] | Gate M4-B  | Tier 2 | Extract 170-line `parse_launcher()` & `has_executable_launcher()` + `aumid://`-safe `launch()` in `ApplicationDockItem`
   [ok]  | [M4-23] | Gate M4-B  | Tier 2 | Purify `DefaultApplicationDockItemProvider:1568` & `WindowManager:163,193` onto `Hal.Apps`
-  [  ]  | [M4-24] | M4-A/B/C   | Tier 3 | GVFS mount in `XdgAppSystem`, `Build.DATADIR` schema in `LinuxPlatformRuntime`, `DragManager` & `Matcher` KeyFile purge
-  [  ]  | [M4-25] | Gate M4-C  | Tier 1 | Expand case-sensitive `BuildBin.sh` Firewall regex + reword `/proc/<pid>/cmdline` doc comments
+  [ok]  | [M4-24] | M4-A/B/C   | Tier 3 | GVFS mount in `XdgAppSystem`, `Build.DATADIR` schema in `LinuxPlatformRuntime`, `DragManager` & `Matcher` KeyFile purge
+  [ok]  | [M4-25] | Gate M4-C  | Tier 1 | Expand case-sensitive `BuildBin.sh` Firewall regex + reword `/proc/<pid>/cmdline` doc comments
   [ok]  | [M4-26] | M4-A->M4-B | Tier 3 | Native cross-OS icon hooks (`load_native_icon`, `has_native_icon`, `get_file_icon_token`) in `IAppSystem` & `DrawingService`
-  [  ]  | [M4-27] | M4-A/B/C   | Tier 3 | Ordered `IAppMenuBus` labels, `read_wrapper_script`, `find_pid_by_app_hint`, `MprisDbusService` `pid`, dead-PID eviction
+  [ok]  | [M4-27] | M4-A/B/C   | Tier 3 | Ordered `IAppMenuBus` labels, `read_wrapper_script`, `find_pid_by_app_hint`, `MprisDbusService` `pid`, dead-PID eviction
   [ok]  | [M4-28] | Gate M4-B  | Tier 2 | `ItemFactory.migrate_legacy_plank_items`, `-%d.dockitem` collision suffix, `DockItem.is_valid` `aumid://` safety
   [ok]  | [M4-29] | Gate M4-B  | Tier 1 | Null-guard `ContentType.from_mime_type`, `Prefs.CustomIcon` parity, `IconChooserDialog` mutex/`resource://`/sentinel
   [ok]  | [M4-30] | Gate M4-B  | Tier 2 | `DragManager` `x-moz-url` plain-text guard, `.url` check, bounded `raw_bytes`, `.exe`->`.lnk` hook, `open_debug_file`
-  [  ]  | [M4-31] | Gate M4-C  | Tier 2 | `ApplicationIdentity` cross-OS slashes, suffixes, `%VAR%` expand, Win32 runtimes/terminals, `_crx_` AUMIDs
-  [  ]  | [M4-32] | M4-A/B/C   | Tier 3 | `LabwcBackend` `caption_hint` (+50 QEMU), URI-keyed discovery/GC, `Main`/`AbstractMain` self-launcher, `Matcher`/`Recent`
+  [ok]  | [M4-31] | Gate M4-C  | Tier 2 | `ApplicationIdentity` cross-OS slashes, suffixes, `%VAR%` expand, Win32 runtimes/terminals, `_crx_` AUMIDs
+  [ok]  | [M4-32] | M4-A/B/C   | Tier 3 | `LabwcBackend` `caption_hint` (+50 QEMU), URI-keyed discovery/GC, `Main`/`AbstractMain` self-launcher, `Matcher`/`Recent`
   [ok]  | [M4-33] | M4-A->M4-B | Tier 3 | `copy_launcher_to_directory`, delete 4 `#if HAVE_DBUSMENU` blocks, `launcher_uris_match` & `paths_equal`
   [ok]  | [M4-34] | M4-A->M4-B | Tier 3 | Harden `launcher_id_stem` (dotfiles, `C:\`->`drive-C`, `<>:"/\|?*`, DOS `CON`/`NUL`/`COM1..9`) + `ItemFactory:730`
   [ok]  | [M4-35] | Gate M4-B  | Tier 1 | `DrawingService` (`dnd.svg`/`audio-volume`, native icons, decode check), `IconChooserDialog` `add_pattern`, `desktop.ini` hide
-  [  ]  | [M4-36] | M4-A/B/C   | Tier 3 | Move `application/x-desktop` DnD atoms behind `Hal.Apps`, UTF-16 BOM & case-insensitive URI schemes, Firewall regex
-  [  ]  | [M4-37] | M4-A/B/C   | Tier 3 | `Hal.Apps.is_os_wrapper_binary()`, user Flatpak dir in `XdgAppSystem`, `FolderMenuWindow` `pan-start/end-symbolic` fallback
-  [  ]  | [M4-38] | M4-A->M4-C | Tier 3 | `is_launchable`, `discover_installed_apps`, `extract_link_shortcut_url`, `/com/canonical/menu/<hex>` order, `.exe`/`soffice.bin`
-  [  ]  | [M4-39] | M4-B->M4-C | Tier 2 | Teardown `WindowManager`/`ApplicationDiscovery` before `Hal.cleanup()`, `FileDockItem` 2x2 stack/`enumerator.close`, `aumid://`
-  [  ]  | [M4-40] | Gate M4-C  | Tier 2 | `ApplicationIdentity.cleanup()` & `Matcher.cleanup_if_active()` in `AbstractMain` + `Matcher:136` `desc.uri` registration
+  [ok]  | [M4-36] | M4-A/B/C   | Tier 3 | Move `application/x-desktop` DnD atoms behind `Hal.Apps`, UTF-16 BOM & case-insensitive URI schemes, Firewall regex
+  [ok]  | [M4-37] | M4-A/B/C   | Tier 3 | `Hal.Apps.is_os_wrapper_binary()`, user Flatpak dir in `XdgAppSystem`, `FolderMenuWindow` `pan-start/end-symbolic` fallback
+  [ok]  | [M4-38] | M4-A->M4-C | Tier 3 | `is_launchable`, `discover_installed_apps`, `extract_link_shortcut_url`, `/com/canonical/menu/<hex>` order, `.exe`/`soffice.bin`
+  [ok]  | [M4-39] | M4-B->M4-C | Tier 2 | Teardown `WindowManager`/`ApplicationDiscovery` before `Hal.cleanup()`, `FileDockItem` 2x2 stack/`enumerator.close`, `aumid://`
+  [ok]  | [M4-40] | Gate M4-C  | Tier 2 | `ApplicationIdentity.cleanup()` & `Matcher.cleanup_if_active()` in `AbstractMain` + `Matcher:136` `desc.uri` registration
 
 ================================================================================
 2. UNIT PROCEDURE M4-A (SUB-GATE M4-A): ZONE 2 CONTRACTS & ZONE 3 DRIVERS
@@ -526,93 +526,102 @@ off for formal 3-compositor `FAT 0.7.2` qualification.
 
 4.0 Mandatory Human Approval Gate
 ---------------------------------
-  [  ] [M4C-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate M4-C.
+  [ok] [M4C-APPROVAL] Maintainer explicit approval granted to execute Sub-Gate M4-C.
 
 4.1 Operations & Phases (Sub-Gate M4-C)
 ---------------------------------------
-  [  ] [M4C-01] Purify `lib/Services/ApplicationIdentity.vala` (`[M4-03]`,
+  [ok] [M4C-01] Purify `lib/Services/ApplicationIdentity.vala` (`[M4-03]`,
        `[M4-25]`, `[M4-27]`, `[M4-31]`, `[M4-37]`, `[M4-38]`, `[M4-40]`):
-       [  ] M4C-01.1 Replace all direct `.desktop` `KeyFile`, `/proc/<pid>/*`,
+       [ok] M4C-01.1 Replace all direct `.desktop` `KeyFile`, `/proc/<pid>/*`,
             `Posix.realpath`/`stat`, and `com.canonical.dbusmenu` (`id=61`) D-Bus
             code with `Hal.Apps` (`AppDescriptor`, `ProcessSnapshot`,
             `read_wrapper_script`, `get_browser_local_state_paths`,
             `is_os_wrapper_binary`) and `Hal.Bus.AppMenu`
             (`query_ordered_window_profile_labels`, `menu_changed`).
-       [  ] M4C-01.2 Replace `Shell.parse_argv` with `Hal.Runtime.parse_command_argv()`,
+       [ok] M4C-01.2 Replace `Shell.parse_argv` with `Hal.Runtime.parse_command_argv()`,
             `has_prefix("/")` with `Path.is_absolute()`, `has_prefix("~/")` with
             `Hal.Runtime.expand_path_variables()`, and `last_index_of_char('/')` /
             `File.new_for_path(...).get_basename()` on raw argv tokens with
             `basename_any_slash()` + cross-OS suffix rules (keeping `.sh`/`.py`/
             `.run`/`.bin` unstripped in `normalize()` for `soffice.bin` & checking
             raw `.exe` before `normalize()` in `is_wine_window`).
-       [  ] M4C-01.3 Add Win32 generic runtimes/terminals (`cmd /c`, `powershell`),
+       [ok] M4C-01.3 Add Win32 generic runtimes/terminals (`cmd /c`, `powershell`),
             `_crx_` Chromium PWA AUMIDs, generic Win32 window classes
             (`chrome_widgetwin_1`, `mozillawindowclass`), `open_fd_targets` `\`->`/`
-            normalization, dead-PID cache eviction, and `ApplicationIdentity.cleanup()`
-            (cancelling `120/300/650ms` follow-up timers & disconnecting `AppMenu`).
+            normalization, dead-PID cache eviction, zero-timer event-driven
+            `IAppSystem.set_browser_session_watch` / `browser_sessions_changed`
+            (`inotify` `GFileMonitor` replacing all `GLib.Timeout.add` polling),
+            and `ApplicationIdentity.cleanup()` disconnecting `AppMenu` & session watch.
 
-  [  ] [M4C-02] Purify `lib/Services/ApplicationDiscovery.vala`, `Matcher.vala`, &
+  [ok] [M4C-02] Purify `lib/Services/ApplicationDiscovery.vala`, `Matcher.vala`, &
        `AbstractMain.vala` (`[M4-04]`, `[M4-05]`, `[M4-24]`, `[M4-25]`, `[M4-27]`,
        `[M4-32]`, `[M4-38..40]`):
-       [  ] M4C-02.1 Purify `ApplicationDiscovery.vala`: key discovery &
+       [ok] M4C-02.1 Purify `ApplicationDiscovery.vala`: key discovery &
             `best_launcher_uri_for_window` by `string uri` (`file://` + `aumid://`
             without `GDummyFile` authority lowercasing), route installed app scan,
             browser binary lookup, synthetic launcher synthesis/GC, and process
             cache invalidation through `Hal.Apps` + `Hal.Windows`.
-       [  ] M4C-02.2 Purify `Matcher.vala`: replace `WindowControl.*`, `/proc`
+       [ok] M4C-02.2 Purify `Matcher.vala`: replace `WindowControl.*`, `/proc`
             scan, `Posix.getuid`/`stat`, `.desktop` `KeyFile`, `Shell.parse_argv`,
             and `comm + ".desktop"`/`"org.kde."` literals with `Hal.Windows`,
             `Hal.Apps.{scan_user_processes,load_launcher,resolve_launcher_uri,
             read_wrapper_script}`, `Hal.Runtime.parse_command_argv()`, `_crx_`
             guard, `desc.uri` registration (`L136`), and `Matcher.cleanup_if_active()`.
-       [  ] M4C-02.3 Wire `ApplicationIdentity.cleanup()` and
+       [ok] M4C-02.3 Wire `ApplicationIdentity.cleanup()` and
             `Matcher.cleanup_if_active()` in `AbstractMain.perform_clean_shutdown()`
             right before `WindowManager.cleanup_if_active()` /
             `ApplicationDiscovery.cleanup_if_active()` / `Hal.cleanup()`.
 
-  [  ] [M4C-03] Activate Pre-Compile Dual-Zone HAL Purity Firewall in `BuildBin.sh`
+  [ok] [M4C-03] Activate Pre-Compile Dual-Zone HAL Purity Firewall in `BuildBin.sh`
        (`[M4-18]`, `[M4-25]`, `[M4-33]`, `[M4-36]`):
-       [  ] M4C-03.1 Enforce mandatory case-sensitive `grep -rnE` gate in
+       [ok] M4C-03.1 Enforce mandatory case-sensitive `grep -rnE` gate in
             `BuildBin.sh` BEFORE `valac` runs across `src/`, `lib/`,
             `hal/Interfaces/`, and `vapi/core/` covering all `[M4-18]` + `[M4-25]`
             + `\bWindowBackend\b` + `Dbusmenu|HAVE_DBUSMENU` +
             `x-(desktop|gnome-app-info|kde-appmenu)` patterns (failing the build
             with exit `1` on any violation).
-       [  ] M4C-03.2 Synchronize `HAL_DIFFUSED_CHUNKS_CHECKLIST.txt` (`40/40` Move-4
+       [ok] M4C-03.2 Synchronize `HAL_DIFFUSED_CHUNKS_CHECKLIST.txt` (`40/40` Move-4
             items `[x]`), `Architecture/README.md`, and `CHANGELOG_v0.7.2.md`.
 
 4.2 Sub-Gate M4-C Verification, 65,025-Case Regression Matrix & Final Gate
 --------------------------------------------------------------------------
-  [  ] [M4C-FIREWALL] Dual-Zone HAL Purity Firewall returns **0 matches** (`GREEN`)
+  [ok] [M4C-FIREWALL] Dual-Zone HAL Purity Firewall returns **0 matches** (`GREEN`)
        across `src/`, `lib/`, `hal/Interfaces/`, and `vapi/core/`.
-  [  ] [M4C-MATRIX] Automated 65,025-Case Identity Engine Regression Matrix passes
-       at **100.0% (`0` mismatches)** (`[M4-19]`).
-  [  ] [M4C-BUILD] `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
+  [ok] [M4C-MATRIX] Automated 65,025-Case Identity Engine Regression Matrix passes
+       at **100.0% (`0` mismatches, SHA-256 `34ee1719...`)** (`[M4-19]`).
+  [ok] [M4C-BUILD] `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` exits `0` (`0` errors, `0` warnings).
   [  ] [M4C-SMOKE] EXCLUSIVE HUMAN MAINTAINER LIVE SMOKE & `FAT 0.7.2` HANDOFF:
        Sergio Melas installs `build/wayplank_0.7.2_amd64.deb`, verifies live
        behavior, archives `Post Move 4` `.deb` & `.zip` backup, commits/tags
        `backup/0.7.2-move-4` locally, and executes formal 3-compositor ISA-88
-       `FAT 0.7.2` qualification (`FAT/2026-11-15 FAT 0.7.2.txt`).
+       `FAT 0.7.2` qualification (`FAT/2026-11-15 FAT 0.7.2.txt`, `399` tests).
+  [ok] [M4C-FAT-AUDIT-SYNC] Reconcile all Move 1–4 migration defects (`M123` + `M4`
+       including Mutter `v072_bridge_1`/`v072_bridge_2`, `1.11` zero-timer `inotify`,
+       `6.9`, `6.12`, `6.14`, `7.2`, `7.5`, `7.6`, `7.17`, `9.9`, `14.1`, & `14.2`)
+       into `[ko->test]` entries with cause & resolution in `FAT/2026-11-15 FAT 0.7.2.txt`
+       (`37 [ko->test]` across `399` tests) before formal FAT execution.
+  [ok] [M4C-GIT-REPLAY] Replay preserved `backup/0.7.2-move-4a` / `4b` / `4` tags into
+       sequential per-sub-gate commits on `hal-v0.7.2` prior to formal `FAT 0.7.2`.
 
 ================================================================================
 5. SOP SECTION 1.4 ANTI-REGRESSION INVARIANT SIGN-OFF CHECKLIST (MOVE 4)
 ================================================================================
-  [  ] [M4-INV-01] Issue #6: Word-boundary title matching & generic noun stopwords intact.
-  [  ] [M4-INV-02] Issues #9/#20/#30: Browser family & multi-profile isolation (`-P`,
+  [ok] [M4-INV-01] Issue #6: Word-boundary title matching & generic noun stopwords intact.
+  [ok] [M4-INV-02] Issues #9/#20/#30: Browser family & multi-profile isolation (`-P`,
                    `--profile`, `--user-data-dir`, `--class`, `id=61`, `Local State`) intact.
-  [  ] [M4-INV-03] Issue #14: CLI QEMU multi-VM synthesis, `+50` caption hint & GC intact.
-  [  ] [M4-INV-04] PR #15: Flatpak `@@` delimiters, `--command=`, `X-Flatpak` & `-bin` intact.
-  [  ] [M4-INV-05] Issue #16: CLI GUI (`Obsidian`), `APPIMAGE=` FUSE & `NoDisplay` gate intact.
-  [  ] [M4-INV-06] v0.6.2.1 Rule: System startup scripts (`google-chrome`, `firefox`,
+  [ok] [M4-INV-03] Issue #14: CLI QEMU multi-VM synthesis, `+50` caption hint & GC intact.
+  [ok] [M4-INV-04] PR #15: Flatpak `@@` delimiters, `--command=`, `X-Flatpak` & `-bin` intact.
+  [ok] [M4-INV-05] Issue #16: CLI GUI (`Obsidian`), `APPIMAGE=` FUSE & `NoDisplay` gate intact.
+  [ok] [M4-INV-06] v0.6.2.1 Rule: System startup scripts (`google-chrome`, `firefox`,
                    `scilab`, `quake2`) never read as user `.sh` wrappers.
-  [  ] [M4-INV-07] FAT 1.11: Sibling co-illumination (`VSCode`, `MATLAB`) & suite separation
+  [ok] [M4-INV-07] FAT 1.11: Sibling co-illumination (`VSCode`, `MATLAB`) & suite separation
                    (`LibreOffice Writer` != `Calc`, `soffice.bin`, `Quake 2` mods) intact.
-  [  ] [M4-INV-08] Terminal & Wine/VMware Containers: `konsole -e` / `gnome-terminal --`
+  [ok] [M4-INV-08] Terminal & Wine/VMware Containers: `konsole -e` / `gnome-terminal --`
                    (`118 >= 115`) & Wine/PlayOnLinux/Bottles (`116..120`) intact.
-  [  ] [M4-INV-09] Issues #19/#25/#26/#33: Recent files jump-list, custom folder drawer
+  [ok] [M4-INV-09] Issues #19/#25/#26/#33: Recent files jump-list, custom folder drawer
                    icons (`Prefs.CustomIcon` + 2x2 stack), frecency accordion, and
                    `/usr/local/share/glib-2.0/schemas` priority intact.
-  [  ] [M4-INV-10] Bugs 0.1/0.2/7.15/7.16/12.6 & #34: Zero async presentation grabs, zero
+  [ok] [M4-INV-10] Bugs 0.1/0.2/7.15/7.16/12.6 & #34: Zero async presentation grabs, zero
                    `transient_for` lockups, static `WeakRef` owned timers, and click
                    pass-through input masks intact.
 ================================================================================

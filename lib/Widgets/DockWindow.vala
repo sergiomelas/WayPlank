@@ -114,6 +114,7 @@ namespace Plank
 
 			accept_focus = false;
 			can_focus = false;
+			focus_on_map = false;
 
 			add_events (Gdk.EventMask.BUTTON_PRESS_MASK |
 						Gdk.EventMask.BUTTON_RELEASE_MASK |
@@ -1269,7 +1270,7 @@ namespace Plank
 			}
 
 			string editor_launcher = Hal.Apps.get_default_app_for_role (DefaultAppRole.TEXT_EDITOR);
-			if (editor_launcher != "" && Hal.Apps.launch_app (editor_launcher, { file.get_uri () }, System.get_default ().context))
+			if (editor_launcher != "" && Hal.Apps.launch_app (editor_launcher, { file.get_uri () }))
 				return;
 
 			System.get_default ().open (file);

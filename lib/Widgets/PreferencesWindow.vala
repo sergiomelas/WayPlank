@@ -257,6 +257,7 @@ namespace Plank
 		
 		bool updating_docklets = false;
 		bool updating_monitors = false;
+		bool in_monitor_ui_action = false;
 		bool signals_connected = false;
 		string previous_monitor = "";
 		
@@ -559,7 +560,8 @@ namespace Plank
 				sw_lock_items.set_active (prefs.LockItems);
 				break;
 			case "Monitor":
-				rebuild_monitor_list ();
+				if (!in_monitor_ui_action)
+					rebuild_monitor_list ();
 				update_icon_size_feedback ();
 				break;
 			case "Offset":
@@ -940,12 +942,26 @@ namespace Plank
 				cb_hidemode.active_id = ((int) Hal.Capabilities.fallback_hide_mode).to_string ();
 		}
 		
+		void retain_preferences_focus (Gtk.Widget? preferred_widget = null)
+		{
+			if (is_destroyed || !get_visible ())
+				return;
+			if (preferred_widget != null && preferred_widget.get_visible () && preferred_widget.sensitive)
+				preferred_widget.grab_focus ();
+			uint32 ev_time = Gtk.get_current_event_time ();
+			if (ev_time != Gdk.CURRENT_TIME)
+				present_with_time (ev_time);
+			else
+				present ();
+		}
+
 		void position_changed (Gtk.ComboBox widget)
 		{
 			var active_id = widget.get_active_id ();
 			if (active_id == null || active_id == "")
 				return;
 			prefs.Position = (Gtk.PositionType) int.parse (active_id);
+			retain_preferences_focus (widget);
 		}
 		
 		void update_alignment_sensitivity ()
@@ -1030,80 +1046,86 @@ namespace Plank
 		{
 			if (updating_monitors)
 				return;
-			var is_primary = ((Gtk.Switch) widget).get_active ();
-			var display = get_display ();
-			var names = Plank.PositionManager.get_monitor_plug_names (display);
+			in_monitor_ui_action = true;
+			try {
+				var is_primary = ((Gtk.Switch) widget).get_active ();
+				var display = get_display ();
+				var names = Plank.PositionManager.get_monitor_plug_names (display);
 
-			if (is_primary) {
-				if (prefs.Monitor != "") {
-					previous_monitor = prefs.Monitor;
-					if (controller != null)
-						controller.last_explicit_monitor = prefs.Monitor;
-				}
-				prefs.Monitor = "";
-				updating_monitors = true;
-				var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
-				for (int i = 0; i < display.get_n_monitors (); i++) {
-					if (display.get_monitor (i) == primary_mon) {
-						cb_display_plug.set_active (i);
-						break;
+				if (is_primary) {
+					if (prefs.Monitor != "") {
+						previous_monitor = prefs.Monitor;
+						if (controller != null)
+							controller.last_explicit_monitor = prefs.Monitor;
 					}
-				}
-				cb_display_plug.sensitive = false;
-				updating_monitors = false;
-				update_icon_size_feedback ();
-			} else {
-				cb_display_plug.sensitive = true;
-				string target_name = "";
-				if (previous_monitor != "") {
-					target_name = previous_monitor;
-				} else if (controller != null && controller.last_explicit_monitor != "") {
-					target_name = controller.last_explicit_monitor;
-				}
+					prefs.Monitor = "";
+					updating_monitors = true;
+					var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
+					for (int i = 0; i < display.get_n_monitors (); i++) {
+						if (display.get_monitor (i) == primary_mon) {
+							cb_display_plug.set_active (i);
+							break;
+						}
+					}
+					cb_display_plug.sensitive = false;
+					updating_monitors = false;
+					update_icon_size_feedback ();
+				} else {
+					cb_display_plug.sensitive = true;
+					string target_name = "";
+					if (previous_monitor != "") {
+						target_name = previous_monitor;
+					} else if (controller != null && controller.last_explicit_monitor != "") {
+						target_name = controller.last_explicit_monitor;
+					}
 
-				int target_pos = -1;
-				if (target_name != "") {
-					var target_mon = Plank.PositionManager.get_monitor_for_plug_name (display, target_name);
-					if (target_mon != null) {
+					int target_pos = -1;
+					if (target_name != "") {
+						var target_mon = Plank.PositionManager.get_monitor_for_plug_name (display, target_name);
+						if (target_mon != null) {
+							for (int i = 0; i < display.get_n_monitors (); i++) {
+								if (display.get_monitor (i) == target_mon) {
+									target_pos = i;
+									break;
+								}
+							}
+						}
+					}
+
+					// If previous monitor was not found or no longer exists,
+					// pick the first monitor that is NOT the primary monitor!
+					if (target_pos < 0) {
+						var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
 						for (int i = 0; i < display.get_n_monitors (); i++) {
-							if (display.get_monitor (i) == target_mon) {
+							if (display.get_monitor (i) != primary_mon) {
 								target_pos = i;
 								break;
 							}
 						}
 					}
-				}
 
-				// If previous monitor was not found or no longer exists,
-				// pick the first monitor that is NOT the primary monitor!
-				if (target_pos < 0) {
-					var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
-					for (int i = 0; i < display.get_n_monitors (); i++) {
-						if (display.get_monitor (i) != primary_mon) {
-							target_pos = i;
-							break;
-						}
+					if (target_pos < 0 && names.length > 0)
+						target_pos = 0;
+
+					if (target_pos >= 0 && target_pos < names.length) {
+						updating_monitors = true;
+						cb_display_plug.set_active (target_pos);
+						prefs.Monitor = names[target_pos];
+						previous_monitor = names[target_pos];
+						if (controller != null)
+							controller.last_explicit_monitor = names[target_pos];
+						updating_monitors = false;
+					} else {
+						var active_text = cb_display_plug.get_active_text ();
+						if (active_text != null && active_text != "")
+							prefs.Monitor = active_text;
 					}
+					update_icon_size_feedback ();
 				}
-
-				if (target_pos < 0 && names.length > 0)
-					target_pos = 0;
-
-				if (target_pos >= 0 && target_pos < names.length) {
-					updating_monitors = true;
-					cb_display_plug.set_active (target_pos);
-					prefs.Monitor = names[target_pos];
-					previous_monitor = names[target_pos];
-					if (controller != null)
-						controller.last_explicit_monitor = names[target_pos];
-					updating_monitors = false;
-				} else {
-					var active_text = cb_display_plug.get_active_text ();
-					if (active_text != null && active_text != "")
-						prefs.Monitor = active_text;
-				}
-				update_icon_size_feedback ();
+			} finally {
+				in_monitor_ui_action = false;
 			}
+			retain_preferences_focus (sw_primary_display);
 		}
 		
 		void workspace_only_toggled (GLib.Object widget, ParamSpec param)
@@ -1340,7 +1362,11 @@ namespace Plank
 		
 		void iconsize_changed (Gtk.Adjustment adj)
 		{
-			prefs.IconSize = (int) adj.value;
+			int even_val = (((int) Math.round (adj.value / 2.0)) * 2).clamp (DockPreferences.MIN_ICON_SIZE, DockPreferences.MAX_ICON_SIZE);
+			if ((int) adj.value != even_val)
+				adj.value = even_val;
+			if (prefs.IconSize != even_val)
+				prefs.IconSize = even_val;
 			update_icon_size_feedback ();
 		}
 
@@ -1514,15 +1540,21 @@ namespace Plank
 				return;
 			var text = ((Gtk.ComboBoxText) widget).get_active_text ();
 			if (text != null && text != "") {
-				previous_monitor = text;
-				if (controller != null)
-					controller.last_explicit_monitor = text;
-				prefs.Monitor = text;
-				updating_monitors = true;
-				sw_primary_display.set_active (false);
-				cb_display_plug.sensitive = true;
-				updating_monitors = false;
-				update_icon_size_feedback ();
+				in_monitor_ui_action = true;
+				try {
+					previous_monitor = text;
+					if (controller != null)
+						controller.last_explicit_monitor = text;
+					prefs.Monitor = text;
+					updating_monitors = true;
+					sw_primary_display.set_active (false);
+					cb_display_plug.sensitive = true;
+					updating_monitors = false;
+					update_icon_size_feedback ();
+				} finally {
+					in_monitor_ui_action = false;
+				}
+				retain_preferences_focus (cb_display_plug);
 			}
 		}
 		
@@ -1703,6 +1735,7 @@ namespace Plank
 		
 		void rebuild_monitor_list ()
 		{
+			bool plug_had_focus = (get_focus () != null && (get_focus () == cb_display_plug || get_focus ().is_ancestor (cb_display_plug)));
 			updating_monitors = true;
 			cb_display_plug.remove_all ();
 			
@@ -1753,6 +1786,12 @@ namespace Plank
 				sw_primary_display.set_active (false);
 				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = true;
+			}
+			if (plug_had_focus) {
+				if (cb_display_plug.sensitive)
+					cb_display_plug.grab_focus ();
+				else if (sw_primary_display.sensitive)
+					sw_primary_display.grab_focus ();
 			}
 			
 			updating_monitors = false;

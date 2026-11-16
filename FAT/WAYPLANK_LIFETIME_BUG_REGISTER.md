@@ -20,11 +20,117 @@
   - **Tests Passed on First Run / Baseline**: **2,550** `[ok]`
   - **Unique Functional Bugs Squashed**: **100** `[ko->ok]` (`+12` unique `[ko->ok]` in `v0.7.1` / `v0.7.1.2` across `39` compositor test verifications)
   - **Total Compositor Test Verifications**: **192** `[ko->ok]` (`+39` `[ko->ok]` in `v0.7.1` / `v0.7.1.2`)
-  - **Open FAT Regressions Remaining (`2026-11-15` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` Initialized on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); active `v0.7.2` qualification at `394` test definitions across Sections `0`–`14` in [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt): `302 [ok]` baseline + `1 [ko->ok]` on `6.9` KWin + `5 [ko->test]` on `0.1` & `0.2` KWin & `14.1` + `84 [  ]` pending + `2 [NA]` + `0 [ko]`)
+  - **Open FAT Regressions Remaining (`2026-11-16` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` Qualification Ready on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); active `v0.7.2` qualification at `399` test definitions across Sections `0`–`14` in [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt): `168 [ok]` Phase B.1 baseline + `1 [ko->ok]` on `6.9` KWin + `37 [ko->test]` on `0.1`, `0.2`, `0.3` Mutter, `1.11`, `6.9` Mutter/Labwc, `6.12`, `6.14`, `7.2`, `7.5`, `7.6`, `7.17`, `9.9` Mutter, `14.1`, & `14.2` + `191 [  ]` Phase B.2 & Section 14 pending + `2 [NA]` + `0 [ko]`)
 * **GRAND TOTAL ACROSS LIFETIME**:
-  - **Total Milestones**: **17 Releases** (`v0.7.1.2` Public Beta 2 Hotfix)
+  - **Total Milestones**: **17 Releases** (`v0.7.1.2` Public Beta 2 Hotfix; `v0.7.2` Public Beta 3 in qualification)
   - **Total Unique Functional & Architectural Bugs Squashed**: **134** `[ko->ok]`
   - **Total Multi-Compositor Verification Instances**: **226** `[ko->ok]`
+
+---
+
+## 🧭 ISA-88 Qualification SOP, Management of Change (MOC) & FAT State Machine (Contributor Guide)
+
+To guarantee zero silent regressions across Wayland compositors and operating-system backends, all code contributions, bug remediations, and architectural refactorings in WayPlank are governed by a formal **ISA-88 Factory Acceptance Test (FAT)** and **Management of Change (MOC)** protocol.
+
+### 1. Seven-Step Engineering & Contribution SOP
+
+Every non-trivial bugfix, feature, or refactoring follows seven sequential gates:
+
+1. **Forensic Audit & Anti-Regression Cross-Check:** Inspect call graphs, IPC buses, and compositor interactions *before* modifying code. Cross-check [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`Changelogs/`](../Changelogs/), and this Lifetime Bug Register to guarantee every historic fix invariant remains intact.
+2. **Three-Tier HAL Change Classification & Plan:** Classify every change honestly under [`Documentation/Architecture/README.md`](../Documentation/Architecture/README.md):
+   - **Tier 1 — Pure Core / UI (`Zone 1`, HAL-Neutral):** Themes, rendering math, localization, animations, and pure Vala models with zero compositor or OS dependency.
+   - **Tier 2 — Core HAL-Consumer (`Zone 1` consuming `Zone 2`):** Portable logic consuming existing `Hal.*` contracts (`hal/Interfaces/`) with **zero driver edits**; verify contract data availability and graceful degradation across **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, and **`Labwc` (`wlroots`)**.
+   - **Tier 3 — True HAL / Bus / OS Driver Modification (`Zone 2` Contracts or `Zone 3` Drivers):** Touches `hal/Interfaces/*`, `hal/Freedesktop/*`, `hal/Linux/*`, or `hal/Windows/*`; requires an explicit **3-Compositor Contract Matrix** (`KWin` + `Mutter` + `Labwc`) before implementation.
+3. **Maintainer Approval Gate:** Present the file-level change plan, HAL tier classification, and affected `FAT` test IDs before landing structural changes.
+4. **Layered Implementation & Zone Purity:** Implement in strict discrete layers (`Zone 3` Drivers $\rightarrow$ `Zone 2` Boundary Translators $\rightarrow$ `Zone 1` Agnostic Core/UI). Never leak compositor conditionals, raw D-Bus proxies, POSIX headers, or OS paths (`/proc`, `/sys`, `.desktop`) into `Zone 1` (`src/`, `lib/`, `vapi/core/`).
+5. **Atomic Packaging & Firewall Build Gate (`Gate 1`):** Build exclusively via the non-interactive full-package builder (never raw partial binary builds):
+   ```bash
+   WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh
+   ```
+   Every build must pass the automated **Dual-Zone HAL Purity Firewall** (`0` leaks across `Zone 1` & `Zone 2`), compile with **zero warnings and zero errors**, embed all GResource/schema/localization assets atomically, and preserve community-contributed translations in `po/generate_translations.py`.
+6. **Live Multi-Compositor Human Test Gate (`Gate 2`):** Live interactive verification on target compositors (**GNOME `Mutter`**, **KDE Plasma 6 `KWin`**, **`Labwc`**). Automated unit tests or matrix oracles qualify code to *enter* the Test Gate (`[  ]` or `[ko->test]`), **never** to bypass human sign-off.
+7. **4-Way Atomic Documentation Synchronization:** Synchronize the active `FAT/YYYY-MM-DD FAT X.X.X.txt`, [`FAT/Template/FAT Template.txt`](Template/FAT%20Template.txt), this `WAYPLANK_LIFETIME_BUG_REGISTER.md`, and [`README.md`](../README.md) in the same atomic closeout step.
+
+---
+
+### 2. Management of Change (MOC) Governance for Structural Refactorings
+
+Large architectural migrations (such as `MOC-0.7.2-HAL-001` extracting the 3-Zone Dichotomic HAL) execute under a formal **MOC Control Number** split into sequential **Moves / Sub-Gates** (`Move 1` $\rightarrow$ `Move 2` $\rightarrow$ `Move 3` $\rightarrow$ `Move 4`):
+
+- **Per-Move Checkpoints & Parity Oracles:** Each Move requires an clean `.deb` build, automated boundary verification (e.g. Dual-Zone HAL Purity Firewall + 65,025-case Identity Engine SHA-256 Regression Matrix), live 3-compositor smoke verification, and an immutable Git checkpoint tag (`backup/X.Y.Z-move-N`) before the next Move begins.
+- **Mandatory MOC Test Invalidation Rule:** Whenever an MOC Move or contributor PR modifies code, contracts, or shared dependencies backing a previously qualified test point:
+  - Any **`[ok]`** test point touching the modified subsystem **MUST immediately reset to `[  ]`** (`[ok] -> [  ]`).
+  - Any **`[ko->ok]`** or **`[ko->imp]`** test point within the active milestone whose code is modified again **MUST immediately transition to `[ko->test]`** (`{[ko->ok], [ko->imp]} -> [ko->test]`), mandating a fresh human re-test while preserving the milestone's indelible `ko->` defect trail.
+
+---
+
+### 3. The Dual-Phase ISA-88 FAT Finite State Machine (7 Canonical States)
+
+Every test item in `FAT/*.txt` occupies exactly one of **7 canonical states**, governed by two strict gates (**Gate 1: Engineering Build Gate** vs. **Gate 2: Human Live Compositor Test Gate**):
+
+| Token | State Name | Gate Owner | Meaning & Governance Rule |
+| :---: | :--- | :---: | :--- |
+| **`[  ]`** | **Pending Test Gate** | Enters via Gate 1 | Open / unverified test point (new milestone feature, or prior `[ok]` baseline invalidated by code / MOC modification). |
+| **`[ok]`** | **Qualified Clean** | **Human Only (Gate 2)** | Passed live human compositor testing cleanly (`[  ] -> [ok]`), or consolidated untouched from the prior release (`Phase B.1`). |
+| **`[ko]`** | **Non-Conformance (Open)** | **Human / Audit** | Defect detected (`[  ] -> [ko]`, live regression `[ok] -> [ko]`, or rejected remediation `[ko->test] -> [ko]`). |
+| **`[ko->test]`** | **Pending Re-Test Gate** | Enters via Gate 1 | Remediation built & packaged (`BuildDeb.sh`), awaiting live human compositor re-test (`Gate 2`). Never skipped. |
+| **`[ko->ok]`** | **Defect Squashed** | **Human Only (Gate 2)** | Remediation verified live on re-test (`[ko->test] -> [ko->ok]`). **Indelible for the entire milestone** (never overwritten as `[ok]`). |
+| **`[ko->imp]`** | **Verified (Minor Polish)** | **Human Only (Gate 2)** | Core defect resolved on re-test (`[ko->test] -> [ko->imp]`), minor non-blocking UX/code polish noted; follow-up code re-enters `[ko->test]`. |
+| **`[NA]`** | **Protocol Limitation** | **Maintainer** | Structural compositor/OS protocol ceiling (e.g. `zwlr_foreign_toplevel` urgency on `Labwc`) or formally deferred scope. |
+
+#### Phase A — Intra-Milestone & Active MOC State Diagram
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "[  ] Pending Test Gate" as PENDING
+    state "[ok] Qualified Clean" as OK
+    state "[ko] Defect Open" as KO
+    state "[ko->test] Pending Re-Test Gate" as KOTEST
+    state "[ko->ok] Defect Squashed" as KOOK
+    state "[ko->imp] Verified (Minor Polish)" as KOIMP
+    state "[NA] Protocol Limitation" as NA
+
+    [*] --> PENDING : New Feature or Phase B.2 MOC Reset
+    [*] --> OK : Phase B.1 Untouched Baseline
+    [*] --> NA : Compositor Protocol Ceiling
+
+    PENDING --> OK : Gate 2 Human Test PASS
+    PENDING --> KO : Gate 2 Human Test FAIL
+
+    OK --> PENDING : Gate 1 Code or MOC Modification
+    OK --> KO : Live Regression Detected
+
+    KO --> KOTEST : Gate 1 Fix Built (BuildDeb.sh)
+
+    KOTEST --> KOOK : Gate 2 Human Re-Test PASS
+    KOTEST --> KOIMP : Gate 2 Re-Test PASS (Polish Queued)
+    KOTEST --> KO : Gate 2 Human Re-Test FAIL
+
+    KOOK --> KOTEST : Gate 1 Subsequent Code/MOC Touch
+    KOIMP --> KOTEST : Gate 1 Polish Fix Built (BuildDeb.sh)
+
+    NA --> PENDING : Compositor Protocol Support Added
+```
+
+#### Phase B — Inter-Milestone Release Transition Matrix (`Release N` $\longrightarrow$ `Release N+1`)
+
+When cutting the formal FAT protocol for a new milestone, every prior test point transitions by strict deterministic rules:
+
+1. **Phase B.1 — Untouched Baseline Consolidation (`Zero Code/Contract Touch`):**
+   $$\{\text{[ok]}, \text{[ko->ok]}\}_{\text{previous}} \xrightarrow{\text{Zero Code / HAL / Bus Touch}} \mathbf{\text{[ok]}}_{\text{new}}$$
+2. **Phase B.2 — MOC / Regression Risk Reset Guard (`Code Touched or Any Doubt`):**
+   $$\{\text{[ok]}, \text{[ko->ok]}\}_{\text{previous}} \xrightarrow{\text{Code / HAL / Bus Touched or Doubt}} \mathbf{\text{[  ]}}_{\text{new}}$$
+3. **Phase B.3 — Unresolved, Polish & Protocol-Limitation Carry-Over:**
+   - $\text{[ko]}_{\text{previous}} \longrightarrow \mathbf{\text{[ko]}}_{\text{new}}$ *(or $\mathbf{\text{[ko->test]}}_{\text{new}}$ once remediated — never silently reset to `[  ]`)*
+   - $\{\text{[ko->test]}, \text{[ko->imp]}\}_{\text{previous}} \longrightarrow \mathbf{\text{[ko->test]}}_{\text{new}}$ *(must clear live human Re-Test Gate)*
+   - $\text{[NA]}_{\text{previous}} \longrightarrow \mathbf{\text{[NA]}}_{\text{new}}$ *(unless protocol support was added $\longrightarrow \mathbf{\text{[  ]}}_{\text{new}}$)*
+
+#### Phase C — Exclusive Maintainer Sign-Off & Release Closeout Invariant
+
+- **Exclusive Human Sign-Off:** Contributors and automated tools may prepare code and enter Gate 1 states (`[  ]`, `[ko->test]`), but **only the human maintainer** executes Gate 2 live compositor qualification and certifies `[ok]`, `[ko->ok]`, or `[ko->imp]`.
+- **Release Closeout Gate:** No milestone release can be frozen while any test point remains unverified:
+  $$\text{Count}(\text{[  ]}) = 0 \;\land\; \text{Count}(\text{[ko->test]}) = 0$$
 
 ---
 
@@ -216,4 +322,4 @@
 10. [`FAT/2026-11-01 FAT 0.6.2.3.txt`](2026-11-01%20FAT%200.6.2.3.txt) — Covers `v0.6.2.3` (370 tests, Round 3: Window Cards, Dynamic System Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity, Native Peer Stacking, 4-Position System Menu Access, Do Not Disturb Docklet, 7×2 Balanced Preferences Grid, KDE Plasma 6 Multi-Monitor Floating Panel Tracking, Layer-Shell Input Passthrough, Fullscreen Auto-Hide & `0px` Edge Passthrough [Issue #10], Reserve Screen Space / Panel Mode [Issue #9], Show Desktop Persistence [Issue #13], Workspace Switch Visibility [Issue #11], Cold-Start Fractional Scaling [Issue #5], & Multi-VM Instance Tracking with Garbage Collection [Issue #14] on GNOME, KDE Plasma, Labwc)
 11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 — Concluded & Frozen: 379 tests defined, 359/377 applicable passed — `95.2% PASS`: 317 `[ok]` baseline + 42 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 18 `[ko]` open defect instances formally transferred to `v0.7.1`)
 12. [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt) — Covers `v0.7.1` / `v0.7.1.2` (Public Beta 2 + Hotfix — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 336 `[ok]` consolidated baseline + 39 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)
-13. [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — In Progress on `hal-v0.7.2`, `MOC-0.7.2-HAL-001`: 394 tests defined across Sections `0`–`14`, including `14.1`–`14.5` 3-Zone Dichotomic HAL & Translator Qualification; `302 [ok]` Phase B.1 baseline + `1 [ko->ok]` on `6.9` KWin + `5 [ko->test]` on `0.1` & `0.2` KWin & `14.1` Cold/Hot-Start Compositor State Isolation + `84 [  ]` pending + `2 [NA]` + `0 [ko]`)
+13. [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — In Progress on `hal-v0.7.2`, `MOC-0.7.2-HAL-001`: 399 tests defined across Sections `0`–`14`, including `14.1`–`14.5` 3-Zone Dichotomic HAL & Translator Qualification; `168 [ok]` Phase B.1 baseline + `1 [ko->ok]` on `6.9` KWin + `37 [ko->test]` on `0.1`, `0.2`, `0.3` Mutter, `1.11`, `6.9` Mutter/Labwc, `6.12`, `6.14`, `7.2`, `7.5`, `7.6`, `7.17`, `9.9` Mutter, `14.1`, & `14.2` + `191 [  ]` pending + `2 [NA]` + `0 [ko]`)

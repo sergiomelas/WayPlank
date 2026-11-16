@@ -87,6 +87,7 @@ namespace Plank
 		public bool supports_uris = false;
 		public bool is_nodisplay = false;
 		public bool is_hidden = false;
+		public bool has_explicit_app_type = false;
 		public bool is_non_app_launcher = false;
 		public bool is_shown_in_current_desktop = true;
 		public bool is_terminal = false;
@@ -135,6 +136,7 @@ namespace Plank
 	public interface IAppSystem : GLib.Object
 	{
 		public signal void apps_changed ();
+		public signal void browser_sessions_changed ();
 
 		public abstract Gee.ArrayList<GLib.File> get_extra_data_dirs ();
 		public abstract Gee.ArrayList<GLib.File> discover_launcher_dirs ();
@@ -154,9 +156,9 @@ namespace Plank
 		public abstract string? extract_link_shortcut_url (string uri_or_path);
 		public abstract bool can_launcher_accept_uri (string launcher_uri, string candidate_uri);
 
-		public abstract bool launch_app (string launcher_uri, string[] uris, GLib.AppLaunchContext? context = null);
-		public abstract bool launch_action (string launcher_uri, string action_id, string fallback_exec = "", GLib.AppLaunchContext? context = null);
-		public abstract bool launch_command (string cmdline, string working_dir = "", GLib.AppLaunchContext? context = null);
+		public abstract bool launch_app (string launcher_uri, string[] uris);
+		public abstract bool launch_action (string launcher_uri, string action_id, string fallback_exec = "");
+		public abstract bool launch_command (string cmdline, string working_dir = "");
 
 		public abstract string get_default_app_for_role (DefaultAppRole role);
 		public abstract Gee.ArrayList<string> discover_default_seed_apps ();
@@ -172,8 +174,9 @@ namespace Plank
 
 		public abstract string find_installed_browser_binary (BrowserFamily family, string fallback_executable = "");
 		public abstract string[] get_browser_local_state_paths (BrowserFamily family);
+		public abstract void set_browser_session_watch (BrowserFamily family, bool active);
 		public abstract bool is_os_wrapper_binary (string exe_basename);
-		public abstract string read_wrapper_script (string exe_or_path);
+		public abstract string read_wrapper_script (string exe_or_path, out string resolved_path);
 
 		public abstract ProcessSnapshot inspect_process (int pid, bool include_children_and_fds = false);
 		public abstract bool is_process_alive (int pid);
@@ -212,9 +215,9 @@ namespace Plank
 		public string? extract_link_shortcut_url (string uri_or_path) { return null; }
 		public bool can_launcher_accept_uri (string launcher_uri, string candidate_uri) { return false; }
 
-		public bool launch_app (string launcher_uri, string[] uris, GLib.AppLaunchContext? context = null) { return false; }
-		public bool launch_action (string launcher_uri, string action_id, string fallback_exec = "", GLib.AppLaunchContext? context = null) { return false; }
-		public bool launch_command (string cmdline, string working_dir = "", GLib.AppLaunchContext? context = null) { return false; }
+		public bool launch_app (string launcher_uri, string[] uris) { return false; }
+		public bool launch_action (string launcher_uri, string action_id, string fallback_exec = "") { return false; }
+		public bool launch_command (string cmdline, string working_dir = "") { return false; }
 
 		public string get_default_app_for_role (DefaultAppRole role) { return ""; }
 		public Gee.ArrayList<string> discover_default_seed_apps () { return new Gee.ArrayList<string> (); }
@@ -234,8 +237,13 @@ namespace Plank
 
 		public string find_installed_browser_binary (BrowserFamily family, string fallback_executable = "") { return fallback_executable; }
 		public string[] get_browser_local_state_paths (BrowserFamily family) { return {}; }
+		public void set_browser_session_watch (BrowserFamily family, bool active) {}
 		public bool is_os_wrapper_binary (string exe_basename) { return false; }
-		public string read_wrapper_script (string exe_or_path) { return ""; }
+		public string read_wrapper_script (string exe_or_path, out string resolved_path)
+		{
+			resolved_path = "";
+			return "";
+		}
 
 		public ProcessSnapshot inspect_process (int pid, bool include_children_and_fds = false) { return new ProcessSnapshot (); }
 		public bool is_process_alive (int pid) { return false; }

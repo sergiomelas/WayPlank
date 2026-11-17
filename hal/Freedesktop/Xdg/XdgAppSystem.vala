@@ -1657,6 +1657,336 @@ namespace Plank
 			}
 		}
 
+		static string extract_primary_exec_path (string exec_cmd)
+		{
+			string clean = exec_cmd.strip ();
+			if (clean == "")
+				return "";
+
+			try {
+				string[] argv;
+				if (Shell.parse_argv (clean, out argv) && argv.length > 0) {
+					for (int i = 0; i < argv.length; i++) {
+						string tok = argv[i].strip ();
+						if (tok == "" || tok.has_prefix ("-"))
+							continue;
+						if (tok.contains ("=") && !tok.has_prefix ("/"))
+							continue;
+						if (tok == "env" || tok == "exec" || tok == "nohup" || tok == "setsid"
+							|| tok == "firejail" || tok == "gamemoderun" || tok == "prime-run")
+							continue;
+						if ((tok == "sh" || tok == "bash" || tok == "dash" || tok == "zsh"
+							|| tok == "/bin/sh" || tok == "/bin/bash" || tok == "/usr/bin/sh" || tok == "/usr/bin/bash")
+							&& i + 2 < argv.length && argv[i + 1] == "-c") {
+							return extract_primary_exec_path (argv[i + 2]);
+						}
+						return tok;
+					}
+				}
+			} catch { }
+
+			return clean.split (" ")[0].replace ("\"", "").replace ("'", "");
+		}
+
+		static string strip_portable_bundle_stem (string raw_name)
+		{
+			string s = Path.get_basename (raw_name).down ().strip ();
+			string[] exts = { ".appimage", ".run", ".bin", ".sh", ".py", ".exe" };
+			foreach (unowned string ext in exts) {
+				if (s.has_suffix (ext) && s.length > ext.length) {
+					s = s.substring (0, s.length - ext.length);
+					break;
+				}
+			}
+			string[] arches = {
+				"-x86_64", "_x86_64", "-x64", "_x64", "-amd64", "_amd64",
+				"-linux", "_linux", "-i386", "_i386", "-arm64", "_arm64", "-aarch64", "_aarch64"
+			};
+			foreach (unowned string arch in arches) {
+				if (s.has_suffix (arch) && s.length > arch.length) {
+					s = s.substring (0, s.length - arch.length);
+					break;
+				}
+			}
+			try {
+				var ver_re = new GLib.Regex ("[-_vV]+[0-9]+(\\.[0-9]+)*.*$");
+				string stripped = ver_re.replace_literal (s, -1, 0, "");
+				if (stripped.length >= 2)
+					s = stripped;
+			} catch { }
+			return s;
+		}
+
+		static string detect_bundle_image_extension (string src_path, uint8[] data)
+		{
+			if (data.length >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+				return ".png";
+
+			string low = src_path.down ();
+			int head_len = int.min (data.length, 512);
+			if (head_len > 4) {
+				char[] head_buf = new char[head_len + 1];
+				Memory.copy (head_buf, data, head_len);
+				head_buf[head_len] = 0;
+				string head_str = ((string) head_buf).down ();
+				if (head_str.contains ("<svg"))
+					return ".svg";
+				if (head_str.contains ("/* xpm"))
+					return ".xpm";
+			}
+
+			if (low.has_suffix (".svg"))
+				return ".svg";
+			if (low.has_suffix (".png"))
+				return ".png";
+			if (low.has_suffix (".xpm"))
+				return ".xpm";
+			return "";
+		}
+
+		static string safe_bundle_icon_target (string mount_real, string candidate)
+		{
+			if (!FileUtils.test (candidate, FileTest.EXISTS))
+				return "";
+			string? real = Posix.realpath (candidate);
+			if (real == null || real == "")
+				return "";
+			if (real != mount_real && !real.has_prefix (mount_real + "/"))
+				return "";
+			if (!FileUtils.test (real, FileTest.IS_REGULAR))
+				return "";
+			return real;
+		}
+
+		static string find_bundle_mount_icon_source (string mount_dir)
+		{
+			string? mount_real = Posix.realpath (mount_dir);
+			if (mount_real == null || mount_real == "" || !FileUtils.test (mount_real, FileTest.IS_DIR))
+				return "";
+
+			string dir_icon = safe_bundle_icon_target (mount_real, Path.build_filename (mount_real, ".DirIcon"));
+			if (dir_icon != "")
+				return dir_icon;
+
+			string desktop_icon_name = "";
+			try {
+				var d = Dir.open (mount_real, 0);
+				unowned string? entry = null;
+				while ((entry = d.read_name ()) != null) {
+					if (!entry.down ().has_suffix (".desktop"))
+						continue;
+					string dp = Path.build_filename (mount_real, entry);
+					var kf = new KeyFile ();
+					if (load_keyfile_safe (kf, dp, KeyFileFlags.NONE) && kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON)) {
+						desktop_icon_name = kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON).strip ();
+						if (desktop_icon_name != "")
+							break;
+					}
+				}
+			} catch { }
+
+			string[] exts = { "", ".svg", ".png", ".xpm" };
+			string[] subdirs = {
+				"",
+				"usr/share/icons/hicolor/scalable/apps",
+				"usr/share/icons/hicolor/512x512/apps",
+				"usr/share/icons/hicolor/256x256/apps",
+				"usr/share/icons/hicolor/128x128/apps",
+				"usr/share/icons/hicolor/64x64/apps",
+				"usr/share/icons/hicolor/48x48/apps",
+				"usr/share/pixmaps"
+			};
+
+			if (desktop_icon_name != "" && !desktop_icon_name.contains ("/")) {
+				foreach (unowned string sub in subdirs) {
+					foreach (unowned string ext in exts) {
+						string cand = (sub == "")
+							? Path.build_filename (mount_real, desktop_icon_name + ext)
+							: Path.build_filename (mount_real, sub, desktop_icon_name + ext);
+						string resolved = safe_bundle_icon_target (mount_real, cand);
+						if (resolved != "")
+							return resolved;
+					}
+				}
+			}
+
+			try {
+				var d2 = Dir.open (mount_real, 0);
+				unowned string? entry2 = null;
+				while ((entry2 = d2.read_name ()) != null) {
+					string low2 = entry2.down ();
+					if (low2.has_suffix (".svg") || low2.has_suffix (".png") || low2.has_suffix (".xpm")) {
+						string resolved = safe_bundle_icon_target (mount_real, Path.build_filename (mount_real, entry2));
+						if (resolved != "")
+							return resolved;
+					}
+				}
+			} catch { }
+
+			return "";
+		}
+
+		static string extract_mount_root_prefix (string raw_path)
+		{
+			int idx = raw_path.index_of ("/tmp/.mount_");
+			if (idx < 0)
+				return "";
+			string tail = raw_path.substring (idx + "/tmp/".length);
+			int slash = tail.index_of_char ('/');
+			string mount_name = (slash > 0) ? tail.substring (0, slash) : tail;
+			if (mount_name == "" || mount_name.contains (".."))
+				return "";
+			string full = Path.build_filename ("/tmp", mount_name);
+			return FileUtils.test (full, FileTest.IS_DIR) ? full : "";
+		}
+
+		static string persist_synthetic_bundle_icon (string clean_stem, string src_icon_path)
+		{
+			try {
+				uint8[] data;
+				if (!FileUtils.get_data (src_icon_path, out data) || data.length < 8 || data.length > 4 * 1024 * 1024)
+					return "";
+
+				string ext = detect_bundle_image_extension (src_icon_path, data);
+				if (ext == "")
+					return "";
+
+				string icon_dir = Path.build_filename (Environment.get_user_data_dir (), "wayplank", "synthetic-icons");
+				DirUtils.create_with_parents (icon_dir, 0755);
+
+				string[] all_exts = { ".svg", ".png", ".xpm" };
+				foreach (unowned string old_ext in all_exts) {
+					if (old_ext != ext) {
+						string stale = Path.build_filename (icon_dir, "wayplank-app-%s%s".printf (clean_stem, old_ext));
+						if (FileUtils.test (stale, FileTest.EXISTS))
+							FileUtils.unlink (stale);
+					}
+				}
+
+				string dst_path = Path.build_filename (icon_dir, "wayplank-app-%s%s".printf (clean_stem, ext));
+				FileUtils.set_data (dst_path, data);
+				return dst_path;
+			} catch {
+				return "";
+			}
+		}
+
+		static void delete_synthetic_bundle_icons (string clean_stem)
+		{
+			if (clean_stem == "")
+				return;
+			string icon_dir = Path.build_filename (Environment.get_user_data_dir (), "wayplank", "synthetic-icons");
+			string[] all_exts = { ".svg", ".png", ".xpm" };
+			foreach (unowned string ext in all_exts) {
+				string p = Path.build_filename (icon_dir, "wayplank-app-%s%s".printf (clean_stem, ext));
+				if (FileUtils.test (p, FileTest.EXISTS))
+					FileUtils.unlink (p);
+			}
+		}
+
+		static string resolve_portable_bundle_icon (string clean_stem, string exec_cmd)
+		{
+			string exec_path = extract_primary_exec_path (exec_cmd);
+			string exec_base = exec_path != "" ? Path.get_basename (exec_path).down () : "";
+			string exec_stem = exec_path != "" ? strip_portable_bundle_stem (exec_path) : clean_stem;
+
+			string mount_dir = extract_mount_root_prefix (exec_path);
+
+			if (mount_dir == "" && exec_path != "") {
+				var my_uid = Posix.getuid ();
+				try {
+					var proc_dir = Dir.open ("/proc", 0);
+					unowned string? entry = null;
+					while ((entry = proc_dir.read_name ()) != null) {
+						int pid = int.parse (entry);
+						if (pid <= 0)
+							continue;
+						Posix.Stat st;
+						if (Posix.stat ("/proc/%s".printf (entry), out st) != 0 || st.st_uid != my_uid)
+							continue;
+						var snap = LinuxProcessInspector.inspect_process (pid, false);
+						if (!snap.is_alive)
+							continue;
+						bool matched_proc = false;
+						if (snap.env_appimage != "") {
+							if (snap.env_appimage == exec_path || Path.get_basename (snap.env_appimage).down () == exec_base)
+								matched_proc = true;
+						}
+						if (!matched_proc && exec_stem.length >= 3 && snap.exe_realpath.has_prefix ("/tmp/.mount_")) {
+							string exe_b = strip_portable_bundle_stem (snap.exe_realpath);
+							if (exe_b == exec_stem || exe_b == clean_stem)
+								matched_proc = true;
+						}
+						if (matched_proc) {
+							mount_dir = extract_mount_root_prefix (snap.exe_realpath);
+							if (mount_dir == "")
+								mount_dir = extract_mount_root_prefix (snap.working_dir);
+							if (mount_dir == "")
+								mount_dir = extract_mount_root_prefix (snap.full_cmdline);
+							if (mount_dir != "")
+								break;
+						}
+					}
+				} catch { }
+			}
+
+			if (mount_dir == "" && exec_stem.length >= 3) {
+				try {
+					var tmp_dir = Dir.open ("/tmp", 0);
+					unowned string? t_entry = null;
+					while ((t_entry = tmp_dir.read_name ()) != null) {
+						if (!t_entry.has_prefix (".mount_"))
+							continue;
+						string m_tail = t_entry.substring (".mount_".length).down ();
+						if (m_tail.has_prefix (exec_stem) || (clean_stem.length >= 3 && m_tail.has_prefix (clean_stem))) {
+							string cand_mount = Path.build_filename ("/tmp", t_entry);
+							if (FileUtils.test (cand_mount, FileTest.IS_DIR)) {
+								mount_dir = cand_mount;
+								break;
+							}
+						}
+					}
+				} catch { }
+			}
+
+			if (mount_dir != "") {
+				string src_icon = find_bundle_mount_icon_source (mount_dir);
+				if (src_icon != "") {
+					string persisted = persist_synthetic_bundle_icon (clean_stem, src_icon);
+					if (persisted != "")
+						return persisted;
+				}
+			}
+
+			string icon_dir = Path.build_filename (Environment.get_user_data_dir (), "wayplank", "synthetic-icons");
+			string[] cached_exts = { ".svg", ".png", ".xpm" };
+			foreach (unowned string ext in cached_exts) {
+				string cached = Path.build_filename (icon_dir, "wayplank-app-%s%s".printf (clean_stem, ext));
+				if (FileUtils.test (cached, FileTest.IS_REGULAR))
+					return cached;
+			}
+
+			if (exec_path.has_prefix ("/") && !exec_path.has_prefix ("/usr/") && !exec_path.has_prefix ("/bin/")) {
+				string install_dir = Path.get_dirname (exec_path);
+				string adj_icon = find_bundle_mount_icon_source (install_dir);
+				if (adj_icon != "")
+					return adj_icon;
+			}
+
+			string[] pixmap_stems = { exec_stem, clean_stem };
+			foreach (unowned string p_stem in pixmap_stems) {
+				if (p_stem == "")
+					continue;
+				foreach (unowned string ext in cached_exts) {
+					string pix = Path.build_filename ("/usr/share/pixmaps", p_stem + ext);
+					if (FileUtils.test (pix, FileTest.IS_REGULAR))
+						return pix;
+				}
+			}
+
+			return "";
+		}
+
 		public GLib.File? synthesize_fallback_launcher (string safe_stem, string app_name, string exec_cmd,
 			string icon_token, string wm_class_or_aumid = "", bool preserve_existing_fields = false)
 		{
@@ -1672,6 +2002,7 @@ namespace Plank
 
 			string eff_name = app_name;
 			string eff_exec = exec_cmd;
+			string existing_icon = "";
 
 			if (FileUtils.test (file_path, FileTest.EXISTS)) {
 				try {
@@ -1687,18 +2018,36 @@ namespace Plank
 							if (en != "")
 								eff_name = en;
 						}
+						if (existing_kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON))
+							existing_icon = existing_kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON).strip ();
 					}
 				} catch { }
 			}
 
+			string eff_icon = icon_token.strip ();
+			bool needs_bundle_probe = (eff_icon == "" || eff_icon == "application-x-executable"
+				|| (!Path.is_absolute (eff_icon) && !has_native_icon (eff_icon)));
+			if (needs_bundle_probe) {
+				string bundle_icon = resolve_portable_bundle_icon (clean_stem, eff_exec);
+				if (bundle_icon != "") {
+					eff_icon = bundle_icon;
+				} else if (existing_icon != "" && existing_icon != "application-x-executable"
+					&& ((Path.is_absolute (existing_icon) && FileUtils.test (existing_icon, FileTest.EXISTS))
+						|| (!Path.is_absolute (existing_icon) && has_native_icon (existing_icon)))) {
+					eff_icon = existing_icon;
+				}
+			}
+			if (eff_icon == "")
+				eff_icon = "application-x-executable";
+
 			string content;
 			if (wm_class_or_aumid != "") {
 				content = "[Desktop Entry]\nType=Application\nName=%s\nStartupWMClass=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
-					eff_name, wm_class_or_aumid, eff_exec, icon_token
+					eff_name, wm_class_or_aumid, eff_exec, eff_icon
 				);
 			} else {
 				content = "[Desktop Entry]\nType=Application\nName=%s\nExec=%s\nIcon=%s\nTerminal=false\nNoDisplay=true\n".printf (
-					eff_name, eff_exec, icon_token
+					eff_name, eff_exec, eff_icon
 				);
 			}
 
@@ -1736,8 +2085,12 @@ namespace Plank
 			string? local = uri_or_path_to_local_path (launcher_uri);
 			if (local == null || !FileUtils.test (local, FileTest.EXISTS))
 				return false;
+			string stem = strip_launcher_extension (Path.get_basename (local));
+			if (stem.has_prefix ("wayplank-app-"))
+				stem = stem.substring ("wayplank-app-".length);
 			if (FileUtils.unlink (local) == 0) {
 				launcher_cache.unset (local);
+				delete_synthetic_bundle_icons (stem);
 				return true;
 			}
 			return false;

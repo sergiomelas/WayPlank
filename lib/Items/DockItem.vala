@@ -461,6 +461,7 @@ namespace Plank
 				State &= ~ItemState.INVALID;
 				
 				stop_removal ();
+				load_from_launcher ();
 				break;
 			case FileMonitorEvent.RENAMED:
 				if (other == null)
@@ -485,6 +486,7 @@ namespace Plank
 				State &= ~ItemState.INVALID;
 				
 				stop_removal ();
+				load_from_launcher ();
 				break;
 
 			default:

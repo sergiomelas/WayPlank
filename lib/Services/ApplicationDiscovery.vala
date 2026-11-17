@@ -1033,14 +1033,16 @@ namespace Plank
 			string prof_slug = sanitize_name_for_app (profile_dir, "profile");
 			string clean_safe_name = "%s-%s".printf (sanitize_name_for_app (norm_id, "google-chrome"), prof_slug);
 
-			string icon_name = norm_id.has_prefix ("google-chrome") ? "google-chrome" : resolve_fallback_icon (window, norm_id);
+			string icon_name = norm_id.has_prefix ("google-chrome") ? "google-chrome" : resolve_fallback_icon (window, norm_id, exec_cmd);
 			var wm_class = window.ResourceClass != "" ? window.ResourceClass : "Google-chrome";
 
 			var synth_file = Hal.Apps.synthesize_fallback_launcher (clean_safe_name, app_name, exec_cmd, icon_name, wm_class, false);
 			if (synth_file == null)
 				return null;
 
-			string sig = "%s|%s|%s|%s".printf (app_name, exec_cmd, icon_name, wm_class);
+			var synth_desc = Hal.Apps.load_launcher (synth_file.get_uri ());
+			string eff_icon = (synth_desc != null && synth_desc.icon_token != "") ? synth_desc.icon_token : icon_name;
+			string sig = "%s|%s|%s|%s".printf (app_name, exec_cmd, eff_icon, wm_class);
 			register_synthesized_launcher (synth_file, Hal.Apps.launcher_id_stem (clean_safe_name), sig);
 			return synth_file;
 		}
@@ -1069,24 +1071,55 @@ namespace Plank
 				? sanitize_name_for_app (app_name, norm_id)
 				: sanitize_name_for_app (norm_id, norm_id);
 
-			var icon_name = resolve_fallback_icon (window, norm_id);
+			var icon_name = resolve_fallback_icon (window, norm_id, exec_cmd);
 			var wm_class = per_instance ? "" : (window.ResourceClass != "" ? window.ResourceClass : raw_id);
 
 			var synth_file = Hal.Apps.synthesize_fallback_launcher (clean_safe_name, app_name, exec_cmd, icon_name, wm_class, !per_instance);
 			if (synth_file == null)
 				return null;
 
-			string sig = "%s|%s|%s|%s|%d".printf (app_name, exec_cmd, icon_name, wm_class, per_instance ? 1 : 0);
+			var synth_desc = Hal.Apps.load_launcher (synth_file.get_uri ());
+			string eff_icon = (synth_desc != null && synth_desc.icon_token != "") ? synth_desc.icon_token : icon_name;
+			string sig = "%s|%s|%s|%s|%d".printf (app_name, exec_cmd, eff_icon, wm_class, per_instance ? 1 : 0);
 			register_synthesized_launcher (synth_file, Hal.Apps.launcher_id_stem (clean_safe_name), sig);
 			return synth_file;
 		}
 
-		private string resolve_fallback_icon (WindowInfo window, string norm_id)
+		private static string extract_primary_command_token (string exec_cmd)
 		{
-			if (window.ResourceClass != "" && Hal.Apps.has_native_icon (window.ResourceClass))
-				return window.ResourceClass;
-			if (window.ResourceName != "" && Hal.Apps.has_native_icon (window.ResourceName))
-				return window.ResourceName;
+			if (exec_cmd == "")
+				return "";
+			string[] argv = Hal.Runtime.parse_command_argv (exec_cmd);
+			for (int i = 0; i < argv.length; i++) {
+				string tok = argv[i].strip ();
+				if (tok == "" || tok.has_prefix ("-"))
+					continue;
+				if (tok.contains ("=") && !Path.is_absolute (tok))
+					continue;
+				string base_tok = basename_any_slash (tok);
+				if (Hal.Apps.is_os_wrapper_binary (base_tok))
+					continue;
+				return tok;
+			}
+			return argv.length > 0 ? argv[0].strip () : "";
+		}
+
+		private string resolve_fallback_icon (WindowInfo window, string norm_id, string exec_cmd = "")
+		{
+			if (window.ResourceClass != "") {
+				if (Hal.Apps.has_native_icon (window.ResourceClass))
+					return window.ResourceClass;
+				string rc_low = window.ResourceClass.down ();
+				if (Hal.Apps.has_native_icon (rc_low))
+					return rc_low;
+			}
+			if (window.ResourceName != "") {
+				if (Hal.Apps.has_native_icon (window.ResourceName))
+					return window.ResourceName;
+				string rn_low = window.ResourceName.down ();
+				if (Hal.Apps.has_native_icon (rn_low))
+					return rn_low;
+			}
 			if (Hal.Apps.has_native_icon (norm_id))
 				return norm_id;
 			var first_dash = norm_id.index_of_char ('-');
@@ -1095,6 +1128,44 @@ namespace Plank
 				if (Hal.Apps.has_native_icon (prefix))
 					return prefix;
 			}
+
+			if (window.Executable != "") {
+				string exe_base = basename_any_slash (window.Executable).strip ();
+				if (exe_base != "" && !Hal.Apps.is_os_wrapper_binary (exe_base)) {
+					if (Hal.Apps.has_native_icon (exe_base))
+						return exe_base;
+					string exe_low = exe_base.down ();
+					if (Hal.Apps.has_native_icon (exe_low))
+						return exe_low;
+					string exe_stem = ApplicationIdentity.clean_executable_stem (exe_base);
+					if (exe_stem != "" && Hal.Apps.has_native_icon (exe_stem))
+						return exe_stem;
+				}
+			}
+
+			string cmd_tok = extract_primary_command_token (exec_cmd);
+			if (cmd_tok != "") {
+				string cmd_base = basename_any_slash (cmd_tok).strip ();
+				if (cmd_base != "") {
+					if (Hal.Apps.has_native_icon (cmd_base))
+						return cmd_base;
+					string cmd_low = cmd_base.down ();
+					if (Hal.Apps.has_native_icon (cmd_low))
+						return cmd_low;
+					string cmd_stem = ApplicationIdentity.clean_executable_stem (cmd_base);
+					if (cmd_stem != "") {
+						if (Hal.Apps.has_native_icon (cmd_stem))
+							return cmd_stem;
+						int cmd_dash = cmd_stem.index_of_char ('-');
+						if (cmd_dash > 0) {
+							string cmd_pref = cmd_stem.substring (0, cmd_dash);
+							if (Hal.Apps.has_native_icon (cmd_pref))
+								return cmd_pref;
+						}
+					}
+				}
+			}
+
 			return "application-x-executable";
 		}
 

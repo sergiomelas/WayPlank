@@ -1247,6 +1247,49 @@ namespace Plank
 			primary_tokens.add (bin_token);
 		}
 
+		public static string clean_executable_stem (string raw_name)
+		{
+			var norm = normalize (basename_any_slash (raw_name));
+			if (norm == "")
+				return "";
+
+			string[] bundle_exts = {
+				".appimage", ".flatpak", ".snap", ".sh", ".py", ".run", ".bin",
+				".bat", ".cmd", ".ps1", ".vbs", ".pyw", ".exe", ".msi", ".jar", ".asar"
+			};
+			foreach (unowned string ext in bundle_exts) {
+				if (norm.has_suffix (ext) && norm.length > ext.length) {
+					var candidate = norm.substring (0, norm.length - ext.length);
+					if (candidate.length >= 2)
+						norm = candidate;
+					break;
+				}
+			}
+
+			if (norm.has_suffix ("-bin") && norm.length > 4)
+				norm = norm.substring (0, norm.length - 4);
+
+			string[] arches = {
+				"-x86_64", "_x86_64", "-x64", "_x64", "-amd64", "_amd64",
+				"-linux", "_linux", "-i386", "_i386", "-arm64", "_arm64", "-aarch64", "_aarch64"
+			};
+			foreach (unowned string arch in arches) {
+				if (norm.has_suffix (arch) && norm.length > arch.length) {
+					norm = norm.substring (0, norm.length - arch.length);
+					break;
+				}
+			}
+
+			try {
+				var ver_regex = new GLib.Regex ("[-_vV]+[0-9]+(\\.[0-9]+)*.*$");
+				var clean_name = ver_regex.replace_literal (norm, -1, 0, "");
+				if (clean_name != "" && clean_name.length >= 2)
+					norm = clean_name;
+			} catch (Error e) { }
+
+			return norm;
+		}
+
 		private void add_executable_token (string raw_name)
 		{
 			var norm = normalize (raw_name);

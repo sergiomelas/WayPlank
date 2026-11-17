@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-17 01:22+0100\n"
-"PO-Revision-Date: 2026-11-17 01:22+0100\n"
+"POT-Creation-Date: 2026-11-17 10:37+0100\n"
+"PO-Revision-Date: 2026-11-17 10:37+0100\n"
 "Last-Translator: Sergio Melas <sergiomelas@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "Language: es\n"
@@ -347,7 +347,7 @@ msgid "Utilities"
 msgstr "Utilidades"
 
 #: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:266
-#: lib/Services/ApplicationIdentity.vala:3394 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3437 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "Reproductor multimedia"
 

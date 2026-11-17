@@ -1,20 +1,20 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-15
+Date: 2026-11-17
 Milestone: V0.7.2 (Public Beta 3: 3-Zone Dichotomic HAL & Agnostic Boundary
            Translator Freeze — MOC-0.7.2-HAL-001)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
-  - KDE PLASMA (KWin Backend): [IN PROGRESS - MOVE 4]
-      116 [ok] | 16 [ko->ok] | 0 [ko->test] | 1 [  ] | 0 [NA] | 0 [ko]
-  - GNOME (Mutter Backend): [IN PROGRESS - MOVE 4]
-      76 [ok] | 9 [ko->ok] | 9 [ko->test] | 40 [  ] | 0 [NA] | 0 [ko]
-  - LABWC (wlroots Backend): [IN PROGRESS - MOVE 4]
+  - KDE PLASMA (KWin Backend): [PASSED - 100.0% QUALIFIED]
+      117 [ok] | 16 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko]
+  - GNOME (Mutter Backend): [PASSED - 100.0% QUALIFIED]
+      115 [ok] | 19 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko]
+  - LABWC (wlroots Backend): [IN PROGRESS - MOVE 5]
       75 [ok] | 9 [ko->ok] | 7 [ko->test] | 39 [  ] | 2 [NA] | 0 [ko]
   - TOTAL SCOREBOARD:
-      399 Tests Defined | 267 [ok] Passed | 34 [ko->ok] Squashed |
-      16 [ko->test] Remediations | 80 Pending [  ] |
+      399 Tests Defined | 307 [ok] Passed | 44 [ko->ok] Squashed |
+      7 [ko->test] Remediations | 39 Pending [  ] |
       2 [NA] Limitations | 0 Open Defects ([ko])
 
 Test Status Legend (ISA-88 Qualification Standard):
@@ -29,8 +29,8 @@ Test Status Legend (ISA-88 Qualification Standard):
   - [NA]        : Not Applicable / Deferred (Compositor protocol limitation)
 
 ================================================================================
-SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
-  Score: 76 [ok] | 9 [ko->ok] | 9 [ko->test] | 40 [  ] | 0 [NA] | 0 OPEN
+SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
+  Score: 115 [ok] | 19 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 OPEN
 ================================================================================
 
 0. Crashes during test
@@ -71,7 +71,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           into static helpers with zero implicit strong 'self' capture), and added
           multi-type integer/double/boolean Variant guards in
           LauncherEntryDbusService.vala.
-   [ko->test] 0.3 Crash (gnome-shell SIGABRT in Mutter 51
+   [ko->ok] 0.3 Crash (gnome-shell SIGABRT in Mutter 51
         '!priv->frame_in_progress') on Monitor Cable Hot-Unplug & Session
         Restart:
         - Unplug and reconnect an external monitor cable (e.g. DisplayPort /
@@ -107,14 +107,14 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
    [ok] 1.3 Drag & Drop Rearranging: Drag icon along dock to reorder
         - In Free Mode, dragging an app past Trash strictly clamps before
           Trash; Trash is never displaced.
-   [  ] 1.4 Pin via External Drag & Drop:
+   [ok] 1.4 Pin via External Drag & Drop:
         Drag .desktop / app from menu/files onto dock
-   [  ] 1.5 Drag-Off Removal (Poof):
+   [ok] 1.5 Drag-Off Removal (Poof):
         - Drag pinned icon away from dock -> poof animation.
         - Drag a running pinned app off dock (or onto Trash): poof
           animation plays, app unpins and moves to running transient
           section BEFORE Trash (never past Trash or into trash zone).
-   [  ] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
+   [ok] 1.6 Drag & Drop Onto Icon: Drag compatible file onto app icon to open it
         - Verified 0-byte files (application/x-zerosize filename fallback),
           payloads with %F/%U, bounce feedback and window activation.
         - Verified dropping an incompatible file onto an icon cleanly rejects
@@ -124,7 +124,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           and locked items (Preferences, Separator, Trash) abort drag cleanly.
         - Verify dragging apps across the Pinned/Unpinned divider pins or
           unpins them without crossing into Folders, Docklets, or Trash.
-   [  ] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
+   [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click toggles non-modal dark folder popup anchored 4px from
           icon with 60 FPS zoom following, subfolder back-navigation, and
           450ms crossing grace.
@@ -148,7 +148,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           (including automatic fallback if custom theme icon is missing).
         - Verify empty folders show a default folder icon and dropping a
           folder anywhere on the dock pins it as a drawer.
-   [ko->test] 1.11 Running Indicator Dots for Folder Items, Drawer Rows,
+   [ko->ok] 1.11 Running Indicator Dots for Folder Items, Drawer Rows,
         Wrapper/PWA/Sibling Parity & Folder DnD:
         - Verify running apps inside a folder show 1 or 2 dots on the folder
           dock icon and per-row dots inside the open popup without clipping.
@@ -202,12 +202,12 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           cycles open windows, and row right-click menu stays open cleanly
           without 'Keep in Dock'.
 2. WINDOW MANAGEMENT & RUNNING STATES
-   [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
+   [ok] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [ok] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
-   [  ] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
+   [ok] 2.3 Left Click (Single Window - Toggle Minimize/Restore):
         Click running app icon -> activates & brings to front; click already
         active window -> minimizes
-   [  ] 2.4 Left Click (Multiple Windows Focus Cycling):
+   [ok] 2.4 Left Click (Multiple Windows Focus Cycling):
         When 2+ windows are open, left-clicking app icon cycles focus directly
         through open instances using 'activate' (NEVER minimizes the currently
         focused window in between cycles)
@@ -222,10 +222,10 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           untranslated <pre>/<code>/.mermaid blocks.
         - Right-click on ANY item or dock background includes
           '_Shortcuts & Gestures...', '_Preferences...', and '_Quit'.
-   [  ] 2.7 Attention / Urgent State:
+   [ok] 2.7 Attention / Urgent State:
         Window requesting attention -> bounce/pulse effect using test_urgency.py
         in FAT folder
-   [  ] 2.8 Close All (Multiple Windows):
+   [ok] 2.8 Close All (Multiple Windows):
         Right-click app with 2+ windows -> "Close All" closes all instances
    [ok] 2.9 Window List Selection:
         Right-click app with 2+ windows -> click window title in list brings
@@ -236,7 +236,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
    [ok] 2.11 Fullscreen Window Inhibit:
         Fullscreen app or video (F11 / MPV) -> dock stays hidden and never
         steals input
-   [  ] 2.12 Sandbox & Complex Launcher Matching:
+   [ok] 2.12 Sandbox & Complex Launcher Matching:
         Launch Flatpak/Snap, Firejail, or shell wrapper app -> shows running
         indicator dot on pinned launcher (no duplicate icons)
    [ok] 2.13 (Cross-Compositor) Non-ASCII / UTF-8 Window Titles & Indicators:
@@ -244,7 +244,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         (e.g. 'è, é, à, ò', emoji, or non-Latin script) -> dock indicators and
         window list remain intact, no JSON parse errors
         or vanished indicators
-   [ko->test] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
+   [ko->ok] 2.14 Application Identity, Chromium PWA & Word-Boundary Matching:
         - Launch Chromium/Chrome PWAs (including multiple PWAs under the same
           browser profile) alongside native/Flatpak apps: verify each spawns
           its own isolated icon and running count.
@@ -256,7 +256,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - Remediation: MOC Rev 2.1 (Bidirectional B2<->B3 Web-App Symmetry):
           evaluated has_direct_owner (>= 118) symmetrically before the
           pwa_app_id zero-score guard in ApplicationDiscovery.vala.
-   [  ] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding
+   [ko->ok] 2.15 CLI-Launched GUI Apps, Virtual Machines, Multi-VM & Zero-Hardcoding
         Dialog Masking (Issues #14, #16):
         - Run '"FAT/Test Files/Qemu/run_test_vm.sh" 1' and '2': verify two
           independent dock icons ('QEMU (VM-Alpha)' and 'QEMU (VM-Beta)') with
@@ -266,15 +266,22 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           changes, and cleans up on close if unpinned.
         - Run 'zenity --info --text="Test"': verify zero dock icon and zero
           synthetic '.desktop' file created.
+        - Bug: Unindexed portable AppImage/.run launchers (e.g. Viber.desktop ->
+          viber.AppImage) lost their icon on Wayland (ResourceName == ""),
+          synthesizing Icon=application-x-executable.
+        - Remediation: MOC Rev 2.2 (Dichotomic Fallback Icon & Bundle
+          Persistence): added Zone 1 clean_executable_stem() lookup across
+          Executable/exec_cmd and Zone 3 /tmp/.mount_* .DirIcon persistence + GC
+          in XdgAppSystem.vala.
 3. HIDE & DODGE MODES
    [ok] 3.1 None: Dock permanently visible, never hides
    [ok] 3.2 Autohide: Hidden by default, reveals when cursor touches screen edge
-   [  ] 3.3 Intellihide (Intelligent):
+   [ok] 3.3 Intellihide (Intelligent):
         Window overlaps dock -> hides; moves away -> reveals
-   [  ] 3.4 Dodge Active: Hides only if focused active window overlaps dock
-   [  ] 3.5 Dodge Maximized: Hides only when a window is maximized
-   [  ] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
-   [  ] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
+   [ok] 3.4 Dodge Active: Hides only if focused active window overlaps dock
+   [ok] 3.5 Dodge Maximized: Hides only when a window is maximized
+   [ok] 3.6 Window Dodge: Hides if any window (active or inactive) overlaps dock
+   [ok] 3.7 Pressure / Hover Reveal & Preferences Switch Tooltips:
         - With Hide Dock enabled, verify 'Pressure Reveal' OFF gives a 10px
           hover reveal zone and ON enforces a 1px edge pressure barrier.
         - Verify switches and 'Click Behavior' options across Preferences
@@ -283,13 +290,13 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - If dock closes (e.g. intellihide) and reopens before delay expires,
           drawer remains open.
         - Timer cancels upon cursor re-entry.
-   [  ] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click
+   [ok] 3.9 Direct Unmaximized-to-Fullscreen Auto-Hide & 0px Edge Click
         Passthrough (Issue #10):
         - Run 'python3 "FAT/Test Files/Testers/test_fullscreen.py"' and press
           F11 from unmaximized window: verify dock hides across all HideModes
           (including 'None') and 100% of 0px edge clicks reach the tester; Esc
           restores dock.
-   [  ] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot
+   [ok] 3.10 Reserve Screen Space / Panel Mode, SR Flip-Flop & Reboot
         Persistence (Issues #9, #17):
         - Verify 'Reserve Screen Space', 'Hide Dock', and 'Icon Zoom' remain
           100% clickable (never greyed out) in Preferences -> Behaviour.
@@ -311,12 +318,12 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         Adding or removing dynamic workspaces on the fly -> handled without
         stale lookups or crashes
 5. TOOLTIPS & HOVER VISUALS
-   [  ] 5.1 Tooltip Placement:
+   [ok] 5.1 Tooltip Placement:
         Hover each item -> centered tooltip with correct arrow
    [ok] 5.2 No Flickering:
         Fast mouse movement -> smooth tooltip transitions, no stuck popups
    [ok] 5.3 Icon Zoom (if enabled): Smooth parabolic magnification under mouse
-   [  ] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
+   [ok] 5.4 Layer-Shell Surface Isolation, Dynamic Input Mask & Click Passthrough:
         - Hovering dock or tooltips never steals active window focus; full
           dock width responds with zero dead zones.
         - With 'Anticipate Icon Zoom' OFF (or Zoom OFF), clicks immediately
@@ -331,7 +338,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - Master Preferences anchor tooltip dynamically displays directional
           arrow (▸ / ◂) indicating the docklet accordion expansion state.
 6. DOCKLETS & SPECIAL ITEMS (v0.5.2 FOCUS)
-   [  ] 6.1 Show Desktop Docklet, Global Shortcut (Super + D) & Desktop
+   [ok] 6.1 Show Desktop Docklet, Global Shortcut (Super + D) & Desktop
         Edit/Overview Mode:
         - Prerequisite on stock GNOME (if Super+D is unassigned):
           gsettings set org.gnome.desktop.wm.keybindings show-desktop "['<Super>d']"
@@ -340,16 +347,16 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           while keeping dock visible and interactive on the desktop surface;
           desktop-initiated Overview/Edit Mode passes through without conflict.
         - Second trigger restores all previously minimized windows.
-   [  ] 6.2 Trash Docklet:
+   [ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
-   [  ] 6.3 External Trash Sync:
+   [ok] 6.3 External Trash Sync:
         Empty/fill trash from external file manager (Nautilus) -> icon updates
         state via D-Bus
-   [  ] 6.4 Screenshot Docklet:
+   [ok] 6.4 Screenshot Docklet:
         Click triggers rectangular selection (stationary animation,
         AnimationType.NONE - no mid-air leap); context menu triggers
         area/full/window/folder
-   [  ] 6.5 Session & Power Docklet (docklet://session):
+   [ok] 6.5 Session & Power Docklet (docklet://session):
         - Left-click opens Centered Session Dialog (SessionWindow).
         - Verify 6 action buttons (Lock, Switch User, Logout, Suspend, Restart,
           Shutdown).
@@ -379,7 +386,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           render properly from binary.
         - Verify zero file pollution in /usr/share/icons/hicolor/ (only
           wayplank.svg/plank.svg installed).
-   [ko->test] 6.9 Drive Ejector Docklet (docklet://ejector):
+   [ko->ok] 6.9 Drive Ejector Docklet (docklet://ejector):
         - Displays removable drive icon with orange gradient fallback.
         - Badge counter displays number of mounted removable drives/volumes.
         - Left-click: safely unmounts/ejects (if 1 device) or opens device
@@ -398,11 +405,11 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           null-coalesced toast strings in NotificationDbusService.vala, and
           added an idempotent 'cleaned_up' async callback guard in
           EjectorDockItem.vala.
-   [  ] 6.10a Screen Brightness - Standalone Laptop Internal Display (Fast-Path):
+   [ok] 6.10a Screen Brightness - Standalone Laptop Internal Display (Fast-Path):
         - Verify direct internal panel (/sys/class/backlight) control with %
           badge, 5% mouse-wheel steps, left-click presets (25/50/75/100%), and
           real-time sync with physical Fn keys.
-   [  ] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
+   [ok] 6.10b Screen Brightness - Multi-Monitor Synchronization & External
         Displays (DDC/CI):
         - Verify 'brightnessctl set 40%', physical Fn keys, wheel steps, and
           presets synchronize internal panel and external monitors cleanly via
@@ -471,7 +478,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - Verify compact top badges (~34% icon height) show crisp units (°C/°F
           on Weather, % on CPU/Battery/Volume/Network/Brightness, plain
           integers on Ejector/unread) across all icon sizes and zoom.
-   [  ] 6.18 Do Not Disturb Docklet (docklet://dnd):
+   [ok] 6.18 Do Not Disturb Docklet (docklet://dnd):
         - Verify left-click toggles notification mute (bell <-> muted icon),
           syncs bidirectionally with desktop DND state, and suppresses
           'FAT/Test Files/Testers/test_notification.py' banners when active.
@@ -481,7 +488,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - Preferences dialog opens centered without glitch.
         - Preferences, Help, and About dialogs raise immediately to foreground
           over other windows (Wayland focus bypass).
-   [ko->test] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring
+   [ko->ok] 7.2 Position on Screen: Bottom, Top, Left, Right edge anchoring
         works while Preferences retains active window focus (focus_on_map=false,
         initial-only show/present in LayerShellDockShell.commit_dock_geometry &
         PreferencesWindow.retain_preferences_focus)
@@ -503,7 +510,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           in Theme.vala and switched Drawing.Surface backing buffers to portable
           in-RAM 'Cairo.ImageSurface' while strictly preserving 'set_device_scale'
           HiDPI cache isolation in SurfaceCache.
-   [ko->test] 7.6 Multi-Monitor: Output monitor selector & On Primary Display
+   [ko->ok] 7.6 Multi-Monitor: Output monitor selector & On Primary Display
         work correctly while Preferences retains active window focus without
         DockWindow stealing focus on remap/geometry commit (Honest UI disabled
         on Labwc with tooltip "Not supported by this compositor")
@@ -598,19 +605,19 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           rejection for out-of-range ('99999') and non-integer values in
           'Test environments.sh'.
 8. MULTI MONITOR VALIDATION MATRIX
-   [  ] 8.1 Cross-Compositor FAT Validation Matrix:
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
 9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY
-   [  ] 9.1 Sleep & Resume Wakeup:
+   [ok] 9.1 Sleep & Resume Wakeup:
         Suspend machine -> resume from sleep; compositor remains responsive
-   [  ] 9.2 Monitor Hotplug / Cable Reconnect:
+   [ok] 9.2 Monitor Hotplug / Cable Reconnect:
         Screen layout storm absorbed by debouncer
    [ok] 9.3 Rapid Geometry Storm:
         Rapidly move/maximize/restore windows -> updates throttled smoothly
    [ok] 9.4 Single Script Instance:
         Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
         exactly ONE script instance alive
-   [  ] 9.5 Process Lifecycle (--replace / kill):
+   [ok] 9.5 Process Lifecycle (--replace / kill):
         Restart dock via 'wayplank --replace' -> cleanly takes over
    [ko->ok] 9.6 Signal Disconnect Safety:
         Opening and closing Preferences multiple times leaves no dangling
@@ -630,7 +637,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
          Rapid burst of window title changes or fast open/close cycle ->
         absorbed
          by 50ms debouncer without CPU spikes, JSON thrashing, or UI stutter
-   [ko->test] 9.9 GNOME Shell Crash Safety Mode Auto-Recovery & Extension:
+   [ko->ok] 9.9 GNOME Shell Crash Safety Mode Auto-Recovery & Extension:
         - Verify MutterBackend detects GNOME Safety Mode
           ('disable-user-extensions = true') on startup, re-enables
           'wayplank-bridge@wayplank.org', and anchors dock cleanly.
@@ -642,7 +649,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           direct non-auto-start 'org.gnome.Shell.Extensions' D-Bus calls
           ('DisableExtension' / 'EnableExtension' with 'DBusCallFlags.NO_AUTO_START'),
           retaining the CLI path strictly as a fallback.
-   [  ] 9.10 Screen Lock / Unlock, Idle, DPMS Sleep/Wake Self-Healing & Live
+   [ok] 9.10 Screen Lock / Unlock, Idle, DPMS Sleep/Wake Self-Healing & Live
         Upgrade Reload (Issue #18):
         - Lock screen (Super + L), trigger DPMS monitor sleep/wake or output
           reconnect, and unlock: verify dock restores visibility, anchoring,
@@ -728,7 +735,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           application's window to the foreground
         - Operator can release cursor directly inside target application's
           workspace
-   [  ] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
+   [ok] 11.3 FreeDesktop Color-Scheme Portal Synchronization:
         - D-Bus listener on org.freedesktop.portal.Settings for color-scheme
           key changes
         - Dock dynamically refreshes adaptive Gtk+ theme colors instantaneously
@@ -763,7 +770,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           (e.g. --app=URL vs --app-id= PWA) left duplicate pinned icons.
         - Remediation: MOC Rev 2.1 (Deduplicate-to-Last-Pinned): replaced
           equivalent pinned sibling in place via launchers_share_runtime_identity().
-   [  ] 11.8 Clean Drag-Off Removal, VSync 3-Beat Unpin Pipeline & Destruction
+   [ok] 11.8 Clean Drag-Off Removal, VSync 3-Beat Unpin Pipeline & Destruction
         Animation:
         - Drag pinned icon off dock (or right-click -> uncheck 'Keep in
           Dock'): verify slot holds in place, plays Unpin Effect 0..7 at
@@ -783,7 +790,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - Right-clicking compatible applications in dock displays 'Recent
           Documents' submenu powered by FreeDesktop Gtk.RecentManager
         - Selecting a recent document opens it directly in target application
-   [  ] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
+   [ok] 12.3 Multi-Window Cairo Preview Cards Across Compositors:
         - Left-click on app icon with 2+ open windows displays floating Cairo
           preview cards with live window thumbnails.
         - Dynamic bounds recalculation operates cleanly across KWin, Mutter,
@@ -792,7 +799,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
         - 450ms exit zone crossing mask prevents premature dismissal when moving
           cursor from dock icon towards popup cards.
         - Cached coordinates & zero-allocation draw_item ensure 60 FPS zoom.
-   [  ] 12.4 Window Activation & Selection from Card:
+   [ok] 12.4 Window Activation & Selection from Card:
         - Clicking a window card brings corresponding window forward and gives
           it focus
         - Middle-click or close button on card closes target window instance
@@ -843,7 +850,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           9 Launch, 8 Focused App, and 9 Unpin effects across edges, HiDPI,
           and all 8 languages.
 14. 3-ZONE DICHOTOMIC HAL & TRANSLATOR QUALIFICATION (v0.7.2 FOCUS)
-   [ko->test] 14.1 Cold-Start & Hot-Start (.deb / --replace) Compositor State
+   [ko->ok] 14.1 Cold-Start & Hot-Start (.deb / --replace) Compositor State
         Isolation & Accordion Divisor Integrity
         (IWindowBackend.is_compositor_managed):
         - Cold start and hot restart ('sudo dpkg -i build/wayplank_0.7.2_amd64.deb'
@@ -866,7 +873,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           ApplicationDockItem, and DefaultApplicationDockItemProvider restrict /proc
           fallback strictly to non-compositor-managed sessions, plus a one-shot 250ms
           JS startup retry and 600ms host verification reload guard in KWinBridge.vala.
-   [ko->test] 14.2 Zone 2 IDockShell Surface, Strut, Popup & #34 Input-Region
+   [ko->ok] 14.2 Zone 2 IDockShell Surface, Strut, Popup & #34 Input-Region
         Translator Parity:
         - Verify DockWindow anchoring (Bottom/Top/Left/Right), Panel Mode
           exclusive-zone / strut reservation, #34 AnticipateZoom input-region
@@ -886,7 +893,7 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           removed redundant unconditional 'show_all()' calls in DockController,
           and unified 'LayerShellDockShell.resolve_tooltip_dock_thickness()' to
           'visual_thickness + 40' (44px) across KWin, Mutter, and Labwc.
-   [  ] 14.3 Zone 2 IWindowBackend, IThumbnailProvider & PlatformCapabilities
+   [ok] 14.3 Zone 2 IWindowBackend, IThumbnailProvider & PlatformCapabilities
         Translator Parity:
         - Verify window enumeration, running/active/urgent indicators,
           WindowAction dispatch (ACTIVATE, MINIMIZE, MAXIMIZE, RESTORE, CLOSE),
@@ -894,33 +901,33 @@ SESSION 1: GNOME (Mutter Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           live RGBA window preview thumbnails (Hal.Thumbnails), and capability-
           driven Preferences UI sensitivity (Hal.Caps) operate cleanly through
           Zone 2 translators.
-   [  ] 14.4 Zone 2 IBusBackend, ISystemTelemetry & IPlatformRuntime
+   [ok] 14.4 Zone 2 IBusBackend, ISystemTelemetry & IPlatformRuntime
         Docklet/Portal Translator Parity:
         - Verify all 14 docklets + Trash (Volume, Brightness, Battery, System
           Pressure CPU/RAM/Disk, Network, Weather, MPRIS, DND, Screenshot,
           Session & Power, Drive Ejector, Clocks, Show Desktop), FreeDesktop
           color-scheme portal sync, and single-instance / autostart lifecycle
           operate cleanly through Zone 2 bus, telemetry, and runtime translators.
-   [  ] 14.5 Zone 2 IAppSystem & Cross-OS Application Identity Translator Parity:
+   [ok] 14.5 Zone 2 IAppSystem & Cross-OS Application Identity Translator Parity:
         - Verify 6-layer ApplicationIdentity window-to-launcher matching,
           Chrome/Brave/Firefox multi-profile & PWA isolation (#20, #30), CLI VM
           & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
           drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
 ================================================================================
-SESSION 1 RESULT: IN PROGRESS (GNOME / Mutter Backend)
+SESSION 1 RESULT: PASSED (GNOME / Mutter Backend)
 ================================================================================
-  * Tests: 134 | Passed: 76 [ok] | Squashed: 9 [ko->ok] (0.1, 0.2, 6.12, 6.14,
-    7.5, 7.17, 9.6, 11.1, 11.7)
-  * Remediations: 9 [ko->test] (0.3, 1.11, 2.14, 6.9, 7.2, 7.6, 9.9, 14.1, 14.2)
-    | Pending: 40 [  ]
+  * Tests: 134 | Passed: 115 [ok] | Squashed: 19 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 9.9, 11.1, 11.7,
+    14.1, 14.2)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
   * Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Compliance: IN PROGRESS — 63.4% (85/134 Qualified, 49 Pending)
+  * Compliance: 100.0% PASSED (134/134 Qualified, 0 Pending)
 ================================================================================
 
 ================================================================================
-SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
-  Score: 116 [ok] | 16 [ko->ok] | 0 [ko->test] | 1 [  ] | 0 [NA] | 0 OPEN
+SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
+  Score: 117 [ok] | 16 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 OPEN
 ================================================================================
 
 0. Crashes during test
@@ -1470,7 +1477,7 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           rejection for out-of-range ('99999') and non-integer values in
           'Test environments.sh'.
 8. MULTI MONITOR VALIDATION MATRIX
-   [  ] 8.1 Cross-Compositor FAT Validation Matrix:
+   [ok] 8.1 Cross-Compositor FAT Validation Matrix:
         move to all screens and all edges
 9. SYSTEM RESUME, HOTPLUG & EVENT FLOOD RESILIENCY
    [ok] 9.1 Sleep & Resume Wakeup:
@@ -1779,17 +1786,17 @@ SESSION 2: KDE PLASMA (KWin Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
           drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
 ================================================================================
-SESSION 2 RESULT: IN PROGRESS (KDE PLASMA / KWin Backend)
+SESSION 2 RESULT: PASSED (KDE PLASMA / KWin Backend)
 ================================================================================
-  * Tests: 133 | Passed: 116 [ok] | Squashed: 16 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+  * Tests: 133 | Passed: 117 [ok] | Squashed: 16 [ko->ok] (0.1, 0.2, 1.11, 2.14,
     6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
-  * Remediations: 0 [ko->test] | Pending: 1 [  ]
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
   * Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Compliance: IN PROGRESS — 99.2% (132/133 Qualified, 1 Pending)
+  * Compliance: 100.0% PASSED (133/133 Qualified, 0 Pending)
 ================================================================================
 
 ================================================================================
-SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS - MOVE 4 QUALIFICATION]
+SESSION 3: LABWC (wlroots Backend) - [IN PROGRESS - MOVE 5 QUALIFICATION]
   Score: 75 [ok] | 9 [ko->ok] | 7 [ko->test] | 39 [  ] | 2 [NA] | 0 OPEN
 ================================================================================
 

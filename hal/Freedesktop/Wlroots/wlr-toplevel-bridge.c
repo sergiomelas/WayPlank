@@ -41,6 +41,7 @@ typedef struct {
     gboolean fullscreen;
     gboolean has_parent;
     int minimized_sequence;
+    GPtrArray *outputs; /* struct wl_output * entered (output_enter/leave) */
 } WlrToplevel;
 
 static struct wl_display *wl_display_conn = NULL;
@@ -112,13 +113,36 @@ handle_toplevel_app_id (void *data, struct zwlr_foreign_toplevel_handle_v1 *hand
 static void
 handle_toplevel_output_enter (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, struct wl_output *output)
 {
-    (void)data; (void)handle; (void)output;
+    (void)handle;
+    WlrToplevel *t = (WlrToplevel *)data;
+    if (!t || !output) return;
+    if (!t->outputs)
+        t->outputs = g_ptr_array_new ();
+    for (guint i = 0; i < t->outputs->len; i++) {
+        if (g_ptr_array_index (t->outputs, i) == output)
+            return;
+    }
+    g_ptr_array_add (t->outputs, output);
 }
 
 static void
 handle_toplevel_output_leave (void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, struct wl_output *output)
 {
-    (void)data; (void)handle; (void)output;
+    (void)handle;
+    WlrToplevel *t = (WlrToplevel *)data;
+    if (!t || !output || !t->outputs) return;
+    g_ptr_array_remove (t->outputs, output);
+}
+
+static void
+free_toplevel (WlrToplevel *t)
+{
+    if (!t) return;
+    g_free (t->title);
+    g_free (t->app_id);
+    if (t->outputs)
+        g_ptr_array_free (t->outputs, TRUE);
+    g_free (t);
 }
 
 static void
@@ -181,9 +205,7 @@ handle_toplevel_closed (void *data, struct zwlr_foreign_toplevel_handle_v1 *hand
             }
         }
         toplevel_list = g_list_remove (toplevel_list, t);
-        g_free (t->title);
-        g_free (t->app_id);
-        g_free (t);
+        free_toplevel (t);
     }
     if (handle) {
         zwlr_foreign_toplevel_handle_v1_destroy (handle);
@@ -319,9 +341,7 @@ wlr_toplevel_bridge_cleanup (void)
         if (t->handle) {
             zwlr_foreign_toplevel_handle_v1_destroy (t->handle);
         }
-        g_free (t->title);
-        g_free (t->app_id);
-        g_free (t);
+        free_toplevel (t);
     }
     g_list_free (toplevel_list);
     toplevel_list = NULL;
@@ -582,13 +602,52 @@ wlr_toplevel_bridge_active_window_intersects (int x, int y, int width, int heigh
     return FALSE;
 }
 
+/*
+ * wlr-foreign-toplevel exposes no window coordinates, only the outputs a
+ * toplevel is on (HAL_BUSES.md §3.6 "active-output approximation"). Resolve
+ * the dock's output from the global dock rect so maximized/fullscreen windows
+ * on another monitor never hide the dock. Unknown output info keeps the
+ * previous behaviour (window counted).
+ */
+static struct wl_output *
+resolve_dock_output (int x, int y, int width, int height)
+{
+#ifdef GDK_WINDOWING_WAYLAND
+    if (width <= 0 || height <= 0)
+        return NULL;
+    GdkDisplay *display = gdk_display_get_default ();
+    if (!display || !GDK_IS_WAYLAND_DISPLAY (display))
+        return NULL;
+    GdkMonitor *monitor = gdk_display_get_monitor_at_point (display, x + width / 2, y + height / 2);
+    if (!monitor)
+        return NULL;
+    return gdk_wayland_monitor_get_wl_output (monitor);
+#else
+    (void)x; (void)y; (void)width; (void)height;
+    return NULL;
+#endif
+}
+
+static gboolean
+toplevel_on_output (WlrToplevel *t, struct wl_output *output)
+{
+    if (!output || !t->outputs || t->outputs->len == 0)
+        return TRUE;
+    for (guint i = 0; i < t->outputs->len; i++) {
+        if (g_ptr_array_index (t->outputs, i) == output)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 gboolean
 wlr_toplevel_bridge_maximized_window_intersects (int x, int y, int width, int height)
 {
-    (void)x; (void)y; (void)width; (void)height;
+    struct wl_output *dock_output = resolve_dock_output (x, y, width, height);
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
-        if (t->active && !t->minimized && (t->maximized || t->fullscreen) && !is_wayplank_toplevel (t)) {
+        if (t->active && !t->minimized && (t->maximized || t->fullscreen) && !is_wayplank_toplevel (t)
+            && toplevel_on_output (t, dock_output)) {
             return TRUE;
         }
     }
@@ -598,10 +657,11 @@ wlr_toplevel_bridge_maximized_window_intersects (int x, int y, int width, int he
 gboolean
 wlr_toplevel_bridge_fullscreen_window_intersects (int x, int y, int width, int height)
 {
-    (void)x; (void)y; (void)width; (void)height;
+    struct wl_output *dock_output = resolve_dock_output (x, y, width, height);
     for (GList *l = toplevel_list; l != NULL; l = l->next) {
         WlrToplevel *t = (WlrToplevel *)l->data;
-        if (t->active && !t->minimized && t->fullscreen && !is_wayplank_toplevel (t)) {
+        if (t->active && !t->minimized && t->fullscreen && !is_wayplank_toplevel (t)
+            && toplevel_on_output (t, dock_output)) {
             return TRUE;
         }
     }

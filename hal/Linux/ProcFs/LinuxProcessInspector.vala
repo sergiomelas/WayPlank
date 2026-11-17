@@ -31,6 +31,10 @@ namespace Plank
 		static Gee.HashMap<int, string>? pid_comm_cache = null;
 		static Gee.HashMap<int, string>? pid_cwd_cache = null;
 		static Gee.HashMap<int, string>? pid_exe_cache = null;
+		// Per-PID cached ProcessSnapshot (APPLICATION_IDENTITY_ENGINE.md §2.3) for
+		// include_children_and_fds == false; children/fd snapshots stay live.
+		static Gee.HashMap<int, ProcessSnapshot>? pid_snapshot_cache = null;
+		const int MAX_PID_CACHE_ENTRIES = 512;
 
 		public static bool is_process_alive (int pid)
 		{
@@ -131,6 +135,8 @@ namespace Plank
 				pid_cwd_cache.unset (pid);
 			if (pid_exe_cache != null)
 				pid_exe_cache.unset (pid);
+			if (pid_snapshot_cache != null)
+				pid_snapshot_cache.unset (pid);
 			cache_mutex.unlock ();
 		}
 
@@ -145,6 +151,8 @@ namespace Plank
 				pid_cwd_cache.clear ();
 			if (pid_exe_cache != null)
 				pid_exe_cache.clear ();
+			if (pid_snapshot_cache != null)
+				pid_snapshot_cache.clear ();
 			cache_mutex.unlock ();
 		}
 
@@ -331,10 +339,30 @@ namespace Plank
 
 		public static ProcessSnapshot inspect_process (int pid, bool include_children_and_fds = false)
 		{
+			if (pid <= 0) {
+				var empty = new ProcessSnapshot ();
+				empty.pid = pid;
+				return empty;
+			}
+
+			if (!include_children_and_fds) {
+				ProcessSnapshot? cached = null;
+				cache_mutex.lock ();
+				if (pid_snapshot_cache != null)
+					cached = pid_snapshot_cache.get (pid);
+				cache_mutex.unlock ();
+				if (cached != null) {
+					if (is_process_alive (pid))
+						return cached;
+					invalidate_process_cmdline (pid);
+					var dead = new ProcessSnapshot ();
+					dead.pid = pid;
+					return dead;
+				}
+			}
+
 			var snap = new ProcessSnapshot ();
 			snap.pid = pid;
-			if (pid <= 0)
-				return snap;
 
 			Posix.Stat st;
 			if (Posix.stat ("/proc/%d".printf (pid), out st) != 0)
@@ -377,6 +405,14 @@ namespace Plank
 					c_cmds[i] = get_process_cmdline (snap.child_pids[i]);
 				snap.child_cmdlines = c_cmds;
 				snap.open_fd_targets = read_open_fd_targets (pid);
+			} else if (snap.full_cmdline != "") {
+				cache_mutex.lock ();
+				if (pid_snapshot_cache == null)
+					pid_snapshot_cache = new Gee.HashMap<int, ProcessSnapshot> ();
+				if (pid_snapshot_cache.size > MAX_PID_CACHE_ENTRIES)
+					pid_snapshot_cache.clear ();
+				pid_snapshot_cache.set (pid, snap);
+				cache_mutex.unlock ();
 			}
 
 			return snap;

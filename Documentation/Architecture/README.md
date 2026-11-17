@@ -2,9 +2,9 @@
 
 > **Canonical Top-Level Engineering Blueprint for the Unified Multi-Compositor & Multi-OS WayPlank Codebase**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.5`** (`2026-11-16` • `MOC-0.7.2-HAL-001` — Moves 1–4 100% Implemented, Dual-Zone HAL Purity Firewall `GREEN` [`0` leaks], 65,025-Case Identity Matrix `100.0% PASS` at `backup/0.7.2-move-4`, Pending Formal `FAT 0.7.2` Qualification)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.5`** (`2026-11-16` • `MOC-0.7.2-HAL-001` — Moves 1–4 100% Implemented, Dual-Zone HAL Purity Firewall `GREEN` [`0` leaks], 65,025-Case Identity Matrix `100.0% PASS` at `backup/0.7.2-move-4`, `FAT 0.7.2` `100.0%` Qualified [`394/394`] on `2026-11-17`)  
 > **Unified Brand & Executables:** **WayPlank** (`build/wayplank` on Linux / BSD • `build/wayplank.exe` on Windows `7 ⟷ 11+`)  
-> **Active Public Baseline (`main`):** `v0.7.1.2` (Public Beta 2 Hotfix — `100.0%` FAT Qualified across KDE Plasma 6, GNOME Shell & Labwc)  
+> **Active Public Baseline (`main`):** `v0.7.2` (Public Beta 3 — `100.0%` FAT Qualified — `394/394` Applicable across KDE Plasma 6, GNOME Shell & Labwc; previous baseline `v0.7.1.2` at `375/375`)  
 > **Staged Consolidation Gate:** **`v0.7.2` (Public Beta 3 — Agnostic Boundary Translator & Linux HAL/Bus Freeze)** $\longrightarrow$ **`v0.7.3` (Public Beta 4 — Native `hal/Windows/` Southbound Driver Plug-In)**  
 > **Quick Links:** [Repository Root `README.md`](../../README.md) • [User Guide (`USER_GUIDE.md`)](../USER_GUIDE.md) • [Historic Archive (`Historic/`)](../Historic/README.md) • [Contributing (`CONTRIBUTING.md`)](../../CONTRIBUTING.md) • [Lifetime Bug Register](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
 

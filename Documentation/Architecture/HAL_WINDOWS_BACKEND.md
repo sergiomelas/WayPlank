@@ -7,7 +7,7 @@
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
 > **ISA-88 Document Control & MOC:** `DOC-ARCH-WIN-005` • **Revision `2.0`** (`MOC-0.7.2-HAL-001` — `WindowsHalBootstrap`, Agnostic Translator Alignment, `IDesktopThemeBus`, `ITrashProvider` / `IEjectorProvider` GVFS Elimination & `\`-Safe `CommandLineToArgvW`)  
 > **Companion Master Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [Repository `README.md`](../../README.md) • [CONTRIBUTING.md](../../CONTRIBUTING.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Shell Translator)* • [HAL_BUSES.md](HAL_BUSES.md) *(IPC & System Bus Translator)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator & 6-Layer Identity Engine)* • [USER_GUIDE.md](../USER_GUIDE.md)  
-> **Status:** Staged Two-Beta Execution Plan — **`v0.7.2` (Public Beta 3): Agnostic Boundary Translator & Linux Freeze** $\longrightarrow$ **`v0.7.3` (Public Beta 4): Native `hal/Windows/` Driver Plug-In & `wayplank.exe`** (Active Public Linux Baseline: `v0.7.1.2` Public Beta 2 Hotfix)  
+> **Status:** Staged Two-Beta Execution Plan — **`v0.7.2` (Public Beta 3): Agnostic Boundary Translator & Linux Freeze** $\longrightarrow$ **`v0.7.3` (Public Beta 4): Native `hal/Windows/` Driver Plug-In & `wayplank.exe`** (Active Public Linux Baseline: `v0.7.2` Public Beta 3 — `100.0%` FAT Qualified `394/394`)  
 
 ---
 

@@ -34,7 +34,7 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
    - Subscribes to `org.kde.PlasmaShell.editMode` on D-Bus in `KWinBridge.vala` so entering KDE Plasma 6 Edit Mode lets `showingDesktop=true` pass through undisturbed while temporarily hiding WayPlank via `fullscreen_window_intersects ()`, whereas `Super + D` outside Edit Mode continues to keep WayPlank visible (`showDesktop(false)` + `toggle_desktop ()`); extends the same `Super + D` vs `Main.overview` separation to GNOME Shell (`MutterBackend.vala`).
 8. **Complete Remediation of All `v0.7.0` Audit Issues & `v0.7.1.2` Burn-In Hotfixes (`#19`–`#30`, `#32`–`#35` $\rightarrow$ `0 [ko]` Open Defects)**:
    - Remediates and qualifies all 18 `[ko]` compositor test instances transferred from `v0.7.0` (`#20`–`#23`, verified `[ko->ok]` in `FAT 0.7.1`) plus the `v0.7.1.2` burn-in hotfix pass (`#30`, `#32`, `#33`, `#34`, `#35` across `FAT 2.14, 3.10, 5.4, 6.12, 7.17`), `FAT 6.1` (`1 [ko->ok]` KDE #27), `522/522` in-RAM localized strings across all 8 languages (`zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk`, `en`), and the stability/performance passes (`S1`–`S12`, including the `SurfaceCache` `GDestroyNotify` closure fix codified as `AI_RULES.md` Rule #14).
-   - Updates [`FAT/2026-11-10 FAT 0.7.1.txt`](../FAT/2026-11-10%20FAT%200.7.1.txt) to **100.0% Multi-Compositor Qualification (`375/375` Applicable Passed: `336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` Open Defects)**.
+   - Updates [`FAT/2026-11-13 FAT 0.7.1.txt`](../FAT/2026-11-13%20FAT%200.7.1.txt) to **100.0% Multi-Compositor Qualification (`375/375` Applicable Passed: `336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` Open Defects)**.
 
 ---
 
@@ -199,7 +199,7 @@ Following the formal conclusion and freeze of **Public Beta 1 (`v0.7.0`, [`FAT/2
 
 ---
 
-## 7. 🧪 Public Beta 2 (`v0.7.1.2`) Factory Acceptance Testing Status (`FAT/2026-11-10 FAT 0.7.1.txt`)
+## 7. 🧪 Public Beta 2 (`v0.7.1.2`) Factory Acceptance Testing Status (`FAT/2026-11-13 FAT 0.7.1.txt`)
 
 - **377 Total Qualification Test Points Defined — 100.0% Multi-Compositor Qualified (`375/375` Applicable Passed: `336 [ok]` Consolidated Baseline, `39 [ko->ok]` Squashed, `0 [ko->test]`, `0 [  ]` Open, `2 [NA]`, `0 [ko]` Open Defects)**:
   - **Session 1 (GNOME Shell / Mutter)**: `126` tests | `113 [ok]` | `13 [ko->ok]` (`1.9, 1.11, 2.7, 2.14, 3.10, 5.4, 6.12, 6.14, 7.9, 7.11, 7.17, 10.4, 12.4`) | `0 [ko->test]` | `0 [  ]` | `0 [NA]` | `0 [ko]` (`100.0% Qualified`)

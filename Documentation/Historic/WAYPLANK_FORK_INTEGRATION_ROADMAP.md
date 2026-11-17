@@ -212,7 +212,7 @@ Every phase was validated against our standard **Multi-Compositor FAT Matrix** (
    - **Session 1 (GNOME Shell / Mutter)**: 128 tests in `v0.7.0` (108 `[ok]` + 14 `[ko->ok]` + 6 `[ko]`) | 95.3% PASS $\rightarrow$ 129 tests in `v0.7.1` (`116 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` | `0 [ko]`)
    - **Session 2 (KDE Plasma 6 / KWin)**: 126 tests in `v0.7.0` (106 `[ok]` + 14 `[ko->ok]` + 6 `[ko]`) | 95.2% PASS $\rightarrow$ 127 tests in `v0.7.1` (`114 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` | `0 [ko]`)
    - **Session 3 (Labwc / wlroots)**: 125 tests in `v0.7.0` (103 `[ok]` + 14 `[ko->ok]` + 2 `[NA]` + 6 `[ko]`) | 95.1% PASS $\rightarrow$ 126 tests in `v0.7.1` (`111 [ok]` + `1 [ko->ok]` + `6 [ko->test]` + `6 [  ]` + `2 [NA]` | `0 [ko]`)
-   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt` $\rightarrow$ `FAT/2026-11-10 FAT 0.7.1.txt`)**: 379 Tests Defined in `v0.7.0` (`359/377` Applicable Passed = `95.2% PASS`, with 18 open `[ko]` transferred to `v0.7.1`) $\rightarrow$ 377 Tests Defined in `v0.7.1` (`375/375` Applicable Passed = `100.0% PASS`: `344 [ok]` baseline + `31 [ko->ok]` squashed + `2 [NA]` + `0 [ko]` open defects).
+   - **Total Verification (`FAT/2026-11-05 FAT 0.7.0.txt` $\rightarrow$ `FAT/2026-11-13 FAT 0.7.1.txt`)**: 379 Tests Defined in `v0.7.0` (`359/377` Applicable Passed = `95.2% PASS`, with 18 open `[ko]` transferred to `v0.7.1`) $\rightarrow$ 377 Tests Defined in `v0.7.1` (`375/375` Applicable Passed = `100.0% PASS`: `344 [ok]` baseline + `31 [ko->ok]` squashed + `2 [NA]` + `0 [ko]` open defects).
 
 ---
 

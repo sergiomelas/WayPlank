@@ -247,7 +247,7 @@ In `PreferencesWindow.vala`, `ensure_docklet_icon()` was updated to parse priori
 | `README.md` | Updated release badge to v0.6.1, streamlined changelog recap (strictly under 4 lines), and documented new fallback asset scale. |
 | `Documentation/wayplank_x11_to_wayland_report_en.md` | Added Section 17 documenting multi-monitor brightness sync, Global System Pressure algorithm, docklet icon standardization, drag & drop payload delivery, theme switching icon resiliency, folder menu geometry stabilization, adaptive dynamic Gtk+ theme engine, pressure reveal calibration, and dynamic Show Unpinned refresh. |
 | `Documentation/USER_GUIDE.md` | Documented the adaptive dynamic Gtk+ theme engine, comprehensive Plank theme directories search paths, and calibrated Pressure Reveal semantics. |
-| `FAT/2026-10-15 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors, including Section 3.7 Pressure Reveal, Section 7.5 theme tests, and Section 7.14 Show Unpinned dynamic refresh tests. |
+| `FAT/2026-10-13 FAT 0.6.1.txt` | Created the Factory Acceptance Test protocol for v0.6.1 covering all new features and regressions across all 3 compositors, including Section 3.7 Pressure Reveal, Section 7.5 theme tests, and Section 7.14 Show Unpinned dynamic refresh tests. |
 
 ---
 

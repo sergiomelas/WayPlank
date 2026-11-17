@@ -693,8 +693,15 @@ namespace Plank
 					handled = item.accept_drop (drag_data);
 				}
 			}
-			// PRIORITY 5: Non-desktop regular files dropped on empty dock space (strictly rejecting incompatible drops on an icon per FAT 11.6)
-			if (!handled && !drop_was_directly_on_item && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
+			// PRIORITY 5: Regular files dropped on empty dock space (excluding URL link shortcuts, strictly rejecting incompatible drops on an icon per FAT 11.6)
+			bool any_link_shortcut = false;
+			foreach (string raw_u in drag_data) {
+				if (System.extract_link_shortcut_url (raw_u.strip ()) != null) {
+					any_link_shortcut = true;
+					break;
+				}
+			}
+			if (!handled && !any_link_shortcut && !drop_was_directly_on_item && !controller.prefs.LockItems && provider != null && provider.can_accept_drop (drag_data)) {
 				handled = provider.accept_drop (drag_data);
 			}
 

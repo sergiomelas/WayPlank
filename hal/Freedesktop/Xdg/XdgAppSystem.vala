@@ -850,20 +850,34 @@ namespace Plank
 			if (u == "")
 				return false;
 
-			if (u.down ().has_suffix (".desktop")
-				|| u.has_prefix ("application://")
+			string low = u.down ();
+			if (low.has_suffix (".url"))
+				return false;
+
+			if (u.has_prefix ("application://")
 				|| u.has_prefix ("applications://")
 				|| u.has_prefix ("applications:")
-				|| u.has_prefix ("appstream://"))
+				|| u.has_prefix ("appstream://")) {
+				var desc = load_launcher (u);
+				return (desc == null || !desc.is_non_app_launcher);
+			}
+
+			if (low.has_suffix (".desktop")) {
+				var desc = load_launcher (u);
+				if (desc != null && desc.is_non_app_launcher)
+					return false;
 				return true;
+			}
 
 			if (u.has_prefix ("file://") || u.has_prefix ("/")) {
 				try {
 					var f = u.has_prefix ("/") ? File.new_for_path (u) : File.new_for_uri (u);
 					var info = f.query_info (FileAttribute.STANDARD_CONTENT_TYPE, FileQueryInfoFlags.NONE);
 					unowned string? ct = info.get_content_type ();
-					if (ct != null && (ct == "application/x-desktop" || ct.contains ("desktop")))
-						return true;
+					if (ct != null && (ct == "application/x-desktop" || ct.contains ("desktop"))) {
+						var desc = load_launcher (u);
+						return (desc == null || !desc.is_non_app_launcher);
+					}
 				} catch { }
 			}
 			return false;
@@ -1149,6 +1163,163 @@ namespace Plank
 			return display != null ? display.get_app_launch_context () : new GLib.AppLaunchContext ();
 		}
 
+		static string strip_xdg_field_codes (string cmd)
+		{
+			string[] codes = { "%f", "%F", "%u", "%U", "%d", "%D", "%n", "%N", "%i", "%c", "%k", "%v", "%m" };
+			string res = cmd;
+			foreach (unowned string code in codes)
+				res = res.replace (code, "");
+			return res.strip ();
+		}
+
+		static bool script_forwards_positional_args (string script_body)
+		{
+			foreach (unowned string raw_line in script_body.split ("\n")) {
+				string s = raw_line.strip ();
+				if (s == "" || s.has_prefix ("#"))
+					continue;
+				if (s.contains ("$@") || s.contains ("$*") || s.contains ("$1")
+					|| s.contains ("${@") || s.contains ("${*") || s.contains ("${1"))
+					return true;
+			}
+			return false;
+		}
+
+		static bool is_non_exec_script_statement (string s)
+		{
+			string[] prefixes = {
+				"echo ", "echo\t", "echo\"", "echo'", "printf ", "sleep ",
+				"mkdir ", "rm ", "touch ", "killall ", "pkill ", "set ",
+				"if ", "then", "else", "elif ", "fi", "for ", "while ", "do", "done", "case ", "esac"
+			};
+			if (s == "echo" || s == "true" || s == "false" || s == "exit" || s.has_prefix ("exit "))
+				return true;
+			foreach (unowned string p in prefixes) {
+				if (s.has_prefix (p))
+					return true;
+			}
+			return false;
+		}
+
+		string try_build_forwarded_exec_command (string launcher_path, string[] uris, out string out_workdir)
+		{
+			out_workdir = "";
+			var desc = load_launcher (launcher_path);
+			if (desc == null || desc.exec_command.strip () == "")
+				return "";
+
+			string raw_exec = desc.exec_command.strip ();
+			out_workdir = desc.working_dir;
+			bool exec_has_field_code = raw_exec.contains ("%u") || raw_exec.contains ("%U")
+				|| raw_exec.contains ("%f") || raw_exec.contains ("%F");
+
+			string[] argv = Hal.Runtime.parse_command_argv (strip_xdg_field_codes (raw_exec));
+			int exe_idx = 0;
+			while (exe_idx < argv.length) {
+				string tok = argv[exe_idx];
+				if (tok == "env") {
+					exe_idx++;
+					continue;
+				}
+				if (!tok.has_prefix ("-") && tok.contains ("=")) {
+					exe_idx++;
+					continue;
+				}
+				break;
+			}
+
+			string base_cmd = "";
+			var env_exports = new Gee.ArrayList<string> ();
+
+			if (exe_idx < argv.length && argv[exe_idx].down ().has_suffix (".sh")) {
+				string script_path = Hal.Runtime.expand_path_variables (argv[exe_idx]);
+				if (!Path.is_absolute (script_path) && out_workdir != "")
+					script_path = Path.build_filename (out_workdir, script_path);
+
+				try {
+					var sf = File.new_for_path (script_path);
+					if (sf.query_exists ()) {
+						var sinfo = sf.query_info (FileAttribute.STANDARD_SIZE, FileQueryInfoFlags.NONE);
+						if (sinfo.get_size () > 0 && sinfo.get_size () < 16384) {
+							uint8[] bytes;
+							if (sf.load_contents (null, out bytes, null)) {
+								string body = (string) bytes;
+								if (script_forwards_positional_args (body)) {
+									if (exec_has_field_code)
+										return "";
+									base_cmd = strip_xdg_field_codes (raw_exec);
+								} else {
+									string primary_line = "";
+									foreach (unowned string raw_line in body.split ("\n")) {
+										string s = raw_line.strip ();
+										if (s == "" || s.has_prefix ("#"))
+											continue;
+										if (s.has_prefix ("cd ")) {
+											string dir_tok = s.substring (3).strip ();
+											if (dir_tok.length >= 2 && ((dir_tok.has_prefix ("\"") && dir_tok.has_suffix ("\""))
+												|| (dir_tok.has_prefix ("'") && dir_tok.has_suffix ("'"))))
+												dir_tok = dir_tok.substring (1, dir_tok.length - 2);
+											if (out_workdir == "" && dir_tok != "")
+												out_workdir = Hal.Runtime.expand_path_variables (dir_tok);
+											continue;
+										}
+										if (s.has_prefix ("export ")) {
+											string exp_val = s.substring (7).strip ();
+											if (exp_val.contains ("="))
+												env_exports.add (exp_val);
+											continue;
+										}
+										if (is_non_exec_script_statement (s))
+											continue;
+										primary_line = s;
+									}
+									if (primary_line != "") {
+										if (primary_line.has_prefix ("exec "))
+											primary_line = primary_line.substring (5).strip ();
+										while (primary_line.has_suffix ("&") || primary_line.has_suffix (";"))
+											primary_line = primary_line.substring (0, primary_line.length - 1).strip ();
+										base_cmd = primary_line;
+									}
+								}
+							}
+						}
+					}
+				} catch { }
+			} else if (!exec_has_field_code) {
+				base_cmd = strip_xdg_field_codes (raw_exec);
+			}
+
+			if (base_cmd == "")
+				return "";
+
+			var sb = new StringBuilder ();
+			if (env_exports.size > 0) {
+				sb.append ("env ");
+				foreach (var exp in env_exports) {
+					sb.append (exp);
+					sb.append_c (' ');
+				}
+			}
+			sb.append (base_cmd);
+
+			for (int i = exe_idx + 1; i < argv.length && argv[exe_idx].down ().has_suffix (".sh") && base_cmd != strip_xdg_field_codes (raw_exec); i++) {
+				sb.append_c (' ');
+				sb.append (Shell.quote (argv[i]));
+			}
+
+			foreach (unowned string u in uris) {
+				string arg = u;
+				if (u.has_prefix ("file://")) {
+					string? local_p = File.new_for_uri (u).get_path ();
+					if (local_p != null && local_p != "")
+						arg = local_p;
+				}
+				sb.append_c (' ');
+				sb.append (Shell.quote (arg));
+			}
+			return sb.str;
+		}
+
 		public bool launch_app (string launcher_uri, string[] uris)
 		{
 			var context = get_display_launch_context ();
@@ -1199,6 +1370,11 @@ namespace Plank
 			try {
 				if (uris.length == 0)
 					return info.launch (null, context);
+
+				string fwd_workdir;
+				string forwarded_cmd = try_build_forwarded_exec_command (launcher_path, uris, out fwd_workdir);
+				if (forwarded_cmd != "")
+					return launch_command (forwarded_cmd, fwd_workdir);
 
 				var uri_list = new GLib.List<string> ();
 				var file_list = new GLib.List<File> ();

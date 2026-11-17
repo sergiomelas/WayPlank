@@ -134,6 +134,25 @@ namespace Plank
 			return null;
 		}
 
+		public unowned ApplicationDockItem? find_equivalent_pinned_item (string uri)
+		{
+			if (uri == "" || uri.has_prefix ("docklet://") || !Hal.Apps.is_launcher_uri (uri))
+				return null;
+
+			var discovery = ApplicationDiscovery.get_default ();
+			foreach (var element in internal_elements) {
+				unowned ApplicationDockItem? appitem = (element as ApplicationDockItem);
+				if (appitem == null || (appitem is TransientDockItem))
+					continue;
+				if (appitem.Launcher == "" || appitem.Launcher.has_prefix ("docklet://"))
+					continue;
+				string? item_prof = (appitem.Prefs != null) ? appitem.Prefs.BrowserProfile : null;
+				if (discovery.launchers_share_runtime_identity (uri, appitem.Launcher, null, item_prof))
+					return appitem;
+			}
+			return null;
+		}
+
 		public override bool add_item_with_uri (string uri, DockItem? target = null)
 		{
 			if (uri == null || uri == "")
@@ -155,11 +174,15 @@ namespace Plank
 						unowned DockItem? pinned = item_for_uri (uri);
 						if (target != null && pinned != null && target != pinned && internal_elements.contains (target))
 							move_to (pinned, target);
+						ApplicationDiscovery.get_default ().refresh_index_now ();
+						sync_compositor_windows ();
 						return true;
 					}
 				}
 				return false;
 			}
+
+			unowned ApplicationDockItem? equiv_pinned = find_equivalent_pinned_item (uri);
 
 			delay_items_monitor ();
 
@@ -176,8 +199,23 @@ namespace Plank
 				return false;
 			}
 
-			add (item, target);
+			if (equiv_pinned != null && internal_elements.contains (equiv_pinned)) {
+				DockItem old_item = equiv_pinned;
+				string old_dockitem_name = old_item.DockItemFilename;
+				replace (item, old_item);
+				if (target != null && target != item && target != old_item && internal_elements.contains (target))
+					move_to (item, target);
+				if (old_dockitem_name != "" && old_dockitem_name != item.DockItemFilename)
+					old_item.delete ();
+			} else {
+				add (item, target);
+			}
+
 			resume_items_monitor ();
+			ApplicationDiscovery.get_default ().refresh_index_now ();
+			sync_compositor_windows ();
+			if (item is ApplicationDockItem)
+				((ApplicationDockItem) item).refresh_indicator ();
 			return true;
 		}
 

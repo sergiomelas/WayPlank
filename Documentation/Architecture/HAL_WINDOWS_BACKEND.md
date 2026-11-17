@@ -262,6 +262,11 @@ flowchart TD
     JUMBO --> MATCH["Zone 1 ApplicationIdentity Solver S(I, W) in [0..124]"];
 ```
 
+- **Southbound `Win32AppSystem` Parity with [`APPLICATION_IDENTITY_ENGINE.md`](APPLICATION_IDENTITY_ENGINE.md) `Revision 2.1`:**
+  1. **`is_launcher_uri(uri)` (`§1.2`):** Returns `true` strictly for executable shortcuts (`.lnk` whose target is not a directory/URL, and `aumid://`), and **`false`** for `[InternetShortcut]` `.url` files (`extract_link_shortcut_url(uri)` extracts `[InternetShortcut] URL=`).
+  2. **`launch_app(launcher_uri, uris)` (`§2.2 Step 2.5`):** Appends `CommandLineToArgvW`-quoted `uris` when `.lnk` `IShellLinkW::GetArguments()` lacks positional placeholders or invokes a user `.bat`/`.cmd` wrapper lacking `%*` / `%1`.
+  3. **Zero Core Divergence (`§2.5.2` & `§3.5.2`):** Zone 1 bidirectional Class B2 (`--app-id=`) $\leftrightarrow$ Class B3 (`--app=URL`) identity and **Deduplicate-to-Last-Pinned** dock pinning execute identically on Windows with zero driver-side special cases.
+
 ---
 
 ## 🧩 6. Monolithic 16-Docklet Portability Matrix (Via `ISystemTelemetry` & `IBusBackend`)

@@ -550,8 +550,6 @@ namespace Plank
 				return score;
 			if (ApplicationIdentity.is_plain_browser_window (window))
 				return 0;
-			if (score <= 0 && identity.pwa_app_id != "")
-				return 0;
 
 			if (score == 119) {
 				foreach (var other in web_app_identities) {
@@ -574,18 +572,22 @@ namespace Plank
 				int other_score = other.match_score (window, other_hint);
 				if (other_score == 119)
 					other_score = 120;
-				if (other_score >= 120) {
+				if (other_score >= 118) {
 					has_direct_owner = true;
 					if (identity.matches_web_app_identity (other)) {
 						matches_direct_owner = true;
-						if (other_score > direct_owner_score)
-							direct_owner_score = other_score;
+						int promoted_score = int.max (120, other_score);
+						if (promoted_score > direct_owner_score)
+							direct_owner_score = promoted_score;
 					}
 				}
 			}
 
 			if (has_direct_owner)
 				return matches_direct_owner ? int.max (score, direct_owner_score) : 0;
+
+			if (score <= 0 && identity.pwa_app_id != "")
+				return 0;
 
 			if (score >= 120)
 				return score;
@@ -1255,6 +1257,36 @@ namespace Plank
 			}
 			rebuild_fast_indexes ();
 			return identity;
+		}
+
+		public bool launchers_share_runtime_identity (string uri_a, string uri_b,
+			string? profile_hint_a = null, string? profile_hint_b = null)
+		{
+			if (uri_a == "" || uri_b == "")
+				return false;
+			if (uri_a.has_prefix ("docklet://") || uri_b.has_prefix ("docklet://"))
+				return (uri_a == uri_b);
+			if (Hal.Apps.launcher_uris_match (uri_a, uri_b))
+				return true;
+
+			var id_a = identity_for_launcher (uri_a);
+			var id_b = identity_for_launcher (uri_b);
+			if (id_a == null || id_b == null)
+				return false;
+
+			string eff_a = id_a.get_effective_browser_profile (profile_hint_a);
+			string eff_b = id_b.get_effective_browser_profile (profile_hint_b);
+
+			if (id_a.is_web_app () && id_b.is_web_app ()) {
+				if (eff_a != "" && eff_b != "" && !ApplicationIdentity.profiles_match (eff_a, eff_b))
+					return false;
+				return id_a.matches_web_app_identity (id_b);
+			}
+
+			if (!id_a.is_specialized () && !id_b.is_specialized () && eff_a == "" && eff_b == "")
+				return id_a.shares_application_with (id_b);
+
+			return false;
 		}
 
 		public bool is_best_launcher_for_window (string launcher_uri, WindowInfo window)

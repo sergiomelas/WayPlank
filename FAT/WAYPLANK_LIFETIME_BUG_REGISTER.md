@@ -2,10 +2,10 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.1.2` Public Beta 2 Hotfix — 100.0% Multi-Compositor Qualified)  
-> **Period:** 2026-09-19 to 2026-11-14  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.1.2` 100.0% Qualified • `v0.7.2` Public Beta 3 In Qualification: KDE Plasma 6 `99.2%` [`132/133`], Overall `301/397` [`75.8%`], `0 [ko]`)  
+> **Period:** 2026-09-19 to 2026-11-17  
 > **Standard:** ISA-88 Qualification Standard  
-> **Master HAL Specifications:** [Documentation/Architecture/README.md](../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../Documentation/Architecture/HAL_COMPOSITORS.md) & [HAL_BUSES.md](../Documentation/Architecture/HAL_BUSES.md)
+> **Master HAL Specifications:** [Documentation/Architecture/README.md](../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](../Documentation/Architecture/HAL_BUSES.md), [APPLICATION_IDENTITY_ENGINE.md](../Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md) & [HAL_WINDOWS_BACKEND.md](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
 
 ---
 
@@ -20,11 +20,11 @@
   - **Tests Passed on First Run / Baseline**: **2,550** `[ok]`
   - **Unique Functional Bugs Squashed**: **100** `[ko->ok]` (`+12` unique `[ko->ok]` in `v0.7.1` / `v0.7.1.2` across `39` compositor test verifications)
   - **Total Compositor Test Verifications**: **192** `[ko->ok]` (`+39` `[ko->ok]` in `v0.7.1` / `v0.7.1.2`)
-  - **Open FAT Regressions Remaining (`2026-11-16` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` Qualification Ready on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); active `v0.7.2` qualification at `399` test definitions across Sections `0`–`14` in [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt): `168 [ok]` Phase B.1 baseline + `1 [ko->ok]` on `6.9` KWin + `37 [ko->test]` on `0.1`, `0.2`, `0.3` Mutter, `1.11`, `6.9` Mutter/Labwc, `6.12`, `6.14`, `7.2`, `7.5`, `7.6`, `7.17`, `9.9` Mutter, `14.1`, & `14.2` + `191 [  ]` Phase B.2 & Section 14 pending + `2 [NA]` + `0 [ko]`)
+  - **Open FAT Regressions Remaining (`2026-11-17` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` Live Qualification In Progress on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); active `v0.7.2` qualification at `399` test definitions / `397` applicable in [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt): **KDE Plasma 6 `KWin` at `132/133` (`99.2%` — `116 [ok]` + `16 [ko->ok]`, `0 [ko->test]`, only `8.1` Cross-Compositor Matrix pending)**, **GNOME `Mutter` at `85/134` (`63.4%` — `76 [ok]` + `9 [ko->ok]`, `9 [ko->test]`, `40 [  ]`)**, **`Labwc` at `84/130` (`64.6%` — `75 [ok]` + `9 [ko->ok]`, `7 [ko->test]`, `39 [  ]`, `2 [NA]`)** = **`301/397` (`75.8%`) Qualified (`267 [ok]` + `34 [ko->ok]`), `16 [ko->test]`, `80 [  ]`, `2 [NA]`, `0 [ko]`**)
 * **GRAND TOTAL ACROSS LIFETIME**:
-  - **Total Milestones**: **17 Releases** (`v0.7.1.2` Public Beta 2 Hotfix; `v0.7.2` Public Beta 3 in qualification)
-  - **Total Unique Functional & Architectural Bugs Squashed**: **134** `[ko->ok]`
-  - **Total Multi-Compositor Verification Instances**: **226** `[ko->ok]`
+  - **Total Milestones**: **18 Releases** (`v0.7.1.2` Public Beta 2 Hotfix; `v0.7.2` Public Beta 3 in live qualification)
+  - **Total Unique Functional & Architectural Bugs Squashed**: **150** `[ko->ok]` (`134` through `v0.7.1.2` + `16` unique `[ko->ok]` verified on KWin in `v0.7.2`)
+  - **Total Multi-Compositor Verification Instances**: **260** `[ko->ok]` (`226` through `v0.7.1.2` + `34` `[ko->ok]` verifications so far in `v0.7.2`)
 
 ---
 
@@ -156,8 +156,9 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 | **`v0.6.2.3`** | 2026-11-01 | Previews, Stacks, Comm. | 370 | 27 | 0 |
 | **`v0.7.0`** | 2026-11-06 | Public Beta 1 (Concluded) | 379 | 15 | 4 `ko`** |
 | **`v0.7.1.2`** | 2026-11-14 | Public Beta 2 + Hotfix (100% Pass) | 377 | `12 [ko->ok] (39 inst.)` | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **11 Multi-Comp. Releases** | **2,793** | **100** | **0** |
-| **TOTAL** | **All Eras** | **17 Milestone Releases** | **2,793** | **134** | **0** |
+| **`v0.7.2`** | 2026-11-17 | Public Beta 3 — 3-Zone HAL Freeze *(In Progress: KWin 99.2%)* | 399 | `16 [ko->ok] (34 inst. so far)` | 0 (`16 ko->test`, `80 [  ]`) |
+| **ERA 2 SUB** | **Formal FAT** | **12 Multi-Comp. Releases** | **3,192** | **116** | **0** |
+| **TOTAL** | **All Eras** | **18 Milestone Releases** | **3,192** | **150** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects logged were remediated and qualified in `v0.5.1`.*  
 *\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1.2`: `FAT/2026-11-05 FAT 0.7.0.txt` concluded at `359/377` (`95.2%`); all 18 transferred `[ko]` instances plus all `v0.7.1` / `v0.7.1.2` burn-in hotfixes achieved `100.0%` qualification (`375/375` applicable: `336 [ok]` + `39 [ko->ok]` + `2 [NA]` + `0 [ko]`) in `FAT/2026-11-13 FAT 0.7.1.txt`.*
@@ -172,6 +173,14 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 | **KDE Plasma 6 (KWin Backend)** | 63 | 32.8% | `112 [ok]` + `14 [ko->ok]` / `0 [ko]` (`126/126 = 100.0% Qualified`) |
 | **Labwc (wlroots Backend)** | 51 | 26.6% | `111 [ok]` + `12 [ko->ok]` + `2 [NA]` / `0 [ko]` (`123/123 = 100.0% Qualified`) |
 | **TOTAL COMPOSITOR VERIFICATIONS** | **192 Squashed** | **100%** | **`336 [ok]` + `39 [ko->ok]` + `2 [NA]` / `0 [ko]` (`375/375 = 100.0%`)** |
+
+---
+
+## 🟢 Remediated & Qualified Defects (`[ko->ok]`) in `v0.7.2` (`MOC-0.7.2-HAL-001` — Live Qualification In Progress)
+
+1. **Multi-Dock CLI `GVariantDict` Heap Safety, `SurfaceCache` Static `WeakRef` & `Matcher` Shutdown Ownership (`FAT 0.1, 0.2, 9.6` `[ko->ok]` ×3)**: Changed `AbstractMain` `--name` lookup from borrowed `"&s"` to owned `"s"` (`FAT 0.1`), replaced raw dangling pointer capture in `SurfaceCache` 300s maintenance with `GLib.WeakRef` plus `LauncherEntryDbusService` `int32`/`int64` `Variant` compatibility (`FAT 0.2`), and transferred `Matcher` singleton ownership prior to `cleanup()` (`var inst = (owned) matcher;`) eliminating `!object_already_finalized` double-`unref` on `SIGINT` teardown (`FAT 9.6`).
+2. **Zero-Timer `inotify` Chrome Profile Attribution, Bidirectional `--app=URL` ↔ `--app-id=` Symmetry & Deduplicate-to-Last-Pinned (`FAT 1.11, 2.14` `[ko->ok]` KWin; `FAT 11.1, 11.7` `[ko->ok]` ×3 — `MOC Rev 2.1`)**: Replaced browser FD polling timers with `0ms` launch-intent attribution + kernel `GFileMonitor` (`inotify`) session watching (`FAT 1.11`), made Class B2 (`--app-id=`) ↔ Class B3 (`--app=URL`) web-app co-matching symmetric (`>= 118` before `pwa_app_id` zero-score guard, `FAT 2.14`), replaced equivalent pinned siblings in place on dock drop (`launchers_share_runtime_identity`, `FAT 11.7`), and excluded `Type=Link`/`.url` shortcuts from `is_launcher_uri()` while unwrapping `.sh` / `%U`-less wrappers in `XdgAppSystem.launch_app()` for remote URL drops (`FAT 11.1`).
+3. **3-Zone HAL UI, Docklet, Theme & Persistence Remediations (`FAT 6.9, 7.2, 7.6, 14.1, 14.2` `[ko->ok]` KWin; `FAT 6.12, 6.14, 7.5, 7.17` `[ko->ok]` ×3; `FAT 0.3, 9.9` `[ko->test]` Mutter)**: Fixed `GVariantBuilder` `"as"` toast crash on `EjectorDockItem` (`FAT 6.9`), multi-choice persistent `_Docklets` submenu batching (`FAT 6.12`), stable `Top-N` frecency ranking in `PinnedAccordion` (`FAT 6.14`), `PreferencesWindow` focus retention across edge/monitor switches (`FAT 7.2, 7.6`), portable `Cairo.ImageSurface` + `TopRoundness` notification (`FAT 7.5`), debounced `IconSize` scale disk flush (`FAT 7.17`), frame-0 `is_compositor_managed` accordion divisor integrity (`FAT 14.1`), unified `44px` tooltip clearance + Mutter `v072_bridge_2` `BEFORE_REDRAW` hotplug safety (`FAT 0.3, 9.9, 14.2`).
 
 ---
 
@@ -322,4 +331,4 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 10. [`FAT/2026-11-01 FAT 0.6.2.3.txt`](2026-11-01%20FAT%200.6.2.3.txt) — Covers `v0.6.2.3` (370 tests, Round 3: Window Cards, Dynamic System Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity, Native Peer Stacking, 4-Position System Menu Access, Do Not Disturb Docklet, 7×2 Balanced Preferences Grid, KDE Plasma 6 Multi-Monitor Floating Panel Tracking, Layer-Shell Input Passthrough, Fullscreen Auto-Hide & `0px` Edge Passthrough [Issue #10], Reserve Screen Space / Panel Mode [Issue #9], Show Desktop Persistence [Issue #13], Workspace Switch Visibility [Issue #11], Cold-Start Fractional Scaling [Issue #5], & Multi-VM Instance Tracking with Garbage Collection [Issue #14] on GNOME, KDE Plasma, Labwc)
 11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 — Concluded & Frozen: 379 tests defined, 359/377 applicable passed — `95.2% PASS`: 317 `[ok]` baseline + 42 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 18 `[ko]` open defect instances formally transferred to `v0.7.1`)
 12. [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt) — Covers `v0.7.1` / `v0.7.1.2` (Public Beta 2 + Hotfix — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 336 `[ok]` consolidated baseline + 39 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)
-13. [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — In Progress on `hal-v0.7.2`, `MOC-0.7.2-HAL-001`: 399 tests defined across Sections `0`–`14`, including `14.1`–`14.5` 3-Zone Dichotomic HAL & Translator Qualification; `168 [ok]` Phase B.1 baseline + `1 [ko->ok]` on `6.9` KWin + `37 [ko->test]` on `0.1`, `0.2`, `0.3` Mutter, `1.11`, `6.9` Mutter/Labwc, `6.12`, `6.14`, `7.2`, `7.5`, `7.6`, `7.17`, `9.9` Mutter, `14.1`, & `14.2` + `191 [  ]` pending + `2 [NA]` + `0 [ko]`)
+13. [`FAT/2026-11-15 FAT 0.7.2.txt`](2026-11-15%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — Live Qualification In Progress on `hal-v0.7.2`, `MOC-0.7.2-HAL-001`: 399 tests defined / 397 applicable across Sections `0`–`14`; **KDE Plasma 6 `KWin` at `132/133` [`99.2%` — only `8.1` Cross-Compositor Matrix pending]**, **GNOME `Mutter` at `85/134` [`63.4%`]**, **`Labwc` at `84/130` [`64.6%`]** = **`301/397` [`75.8%`] Qualified [`267 [ok]` + `34 [ko->ok]`], `16 [ko->test]`, `80 [  ]`, `2 [NA]`, `0 [ko]`**)

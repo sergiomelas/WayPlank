@@ -46,8 +46,8 @@ namespace Plank
 		public static void cleanup_if_active ()
 		{
 			if (matcher != null) {
-				matcher.cleanup ();
-				matcher = null;
+				var inst = (owned) matcher;
+				inst.cleanup ();
 			}
 		}
 
@@ -121,8 +121,6 @@ namespace Plank
 		~Matcher ()
 		{
 			cleanup ();
-			if (matcher == this)
-				matcher = null;
 		}
 
 		static string basename_any_slash (string raw)

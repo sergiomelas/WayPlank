@@ -228,9 +228,19 @@ namespace Plank
 			return get_default ().backend != null && get_default ().backend.position_dock (x, y, width, height);
 		}
 
+		public static bool position_dock_for (string dock_key, int x, int y, int width, int height)
+		{
+			return get_default ().backend != null && get_default ().backend.position_dock_for (dock_key, x, y, width, height);
+		}
+
 		public static bool position_hover (int x, int y, int width, int height)
 		{
 			return get_default ().backend != null && get_default ().backend.position_hover (x, y, width, height);
+		}
+
+		public static bool position_hover_for (int pid, int x, int y, int width, int height)
+		{
+			return get_default ().backend != null && get_default ().backend.position_hover_for (pid, x, y, width, height);
 		}
 
 		public static bool position_poof (int x, int y, int width, int height)
@@ -238,10 +248,29 @@ namespace Plank
 			return get_default ().backend != null && get_default ().backend.position_poof (x, y, width, height);
 		}
 
+		public static bool position_poof_for (int pid, int x, int y, int width, int height)
+		{
+			return get_default ().backend != null && get_default ().backend.position_poof_for (pid, x, y, width, height);
+		}
+
 		public static void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position)
 		{
 			if (get_default ().backend != null) {
 				get_default ().backend.set_reserve_space (enabled, thickness, position);
+			}
+		}
+
+		public static void set_reserve_space_for (string dock_key, bool enabled, int thickness, Gtk.PositionType position)
+		{
+			if (get_default ().backend != null) {
+				get_default ().backend.set_reserve_space_for (dock_key, enabled, thickness, position);
+			}
+		}
+
+		public static void release_dock_surface (string dock_key)
+		{
+			if (get_default ().backend != null) {
+				get_default ().backend.release_dock_surface (dock_key);
 			}
 		}
 

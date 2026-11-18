@@ -1,21 +1,22 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-17
+Date: 2026-11-18
 Milestone: V0.7.2 (Public Beta 3: 3-Zone Dichotomic HAL & Agnostic Boundary
            Translator Freeze — MOC-0.7.2-HAL-001)
 Author & Tester: Sergio Melas
 Compositor Validation Status & Qualification Scoreboard:
   - KDE PLASMA (KWin Backend): [PASSED - 100.0% QUALIFIED]
-      117 [ok] | 16 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko]
+      114 [ok] | 20 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko]
   - GNOME (Mutter Backend): [PASSED - 100.0% QUALIFIED]
-      115 [ok] | 19 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko]
+      113 [ok] | 22 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 [ko]
   - LABWC (wlroots Backend): [PASSED - 100.0% QUALIFIED]
-      111 [ok] | 16 [ko->ok] | 0 [ko->test] | 0 [  ] | 5 [NA] | 0 [ko]
+      111 [ok] | 17 [ko->ok] | 0 [ko->test] | 0 [  ] | 5 [NA] | 0 [ko]
   - TOTAL SCOREBOARD:
-      399 Tests Defined | 394 Applicable | 343 [ok] Passed |
-      51 [ko->ok] Squashed (19 unique) | 0 [ko->test] | 0 Pending [  ] |
-      5 [NA] Limitations | 0 Open Defects ([ko]) -> 100.0% QUALIFIED
+      402 Tests Defined | 397 Applicable | 338 [ok] Passed |
+      59 [ko->ok] Squashed (24 unique) | 0 [ko->test] Remediations |
+      0 Pending [  ] | 5 [NA] Limitations | 0 Open Defects ([ko])
+      STATUS: 100.0% MULTI-COMPOSITOR QUALIFIED (397/397 APPLICABLE PASSED)
 
 Test Status Legend (ISA-88 Qualification Standard):
   - [ok]        : Compliant / Passed (Verified in v0.7.1.2 & graduated to v0.7.2
@@ -30,7 +31,7 @@ Test Status Legend (ISA-88 Qualification Standard):
 
 ================================================================================
 SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
-  Score: 115 [ok] | 19 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 OPEN
+  Score: 113 [ok] | 22 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 OPEN
 ================================================================================
 
 0. Crashes during test
@@ -360,10 +361,18 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
    [ok] 6.3 External Trash Sync:
         Empty/fill trash from external file manager (Nautilus) -> icon updates
         state via D-Bus
-   [ok] 6.4 Screenshot Docklet:
+   [ko->ok] 6.4 Screenshot Docklet:
         Click triggers rectangular selection (stationary animation,
         AnimationType.NONE - no mid-air leap); context menu triggers
         area/full/window/folder
+        - Bug: Stock GNOME 42-51 has no legacy 'gnome-screenshot' CLI, and when
+          'xdg-desktop-portal' stayed bound to a prior KDE/GTK session backend,
+          'org.freedesktop.portal.Screenshot' failed with 'No such interface
+          org.freedesktop.impl.portal.Screenshot'.
+        - Remediation: Added 'TakeScreenshot' ('v072_bridge_4') in
+          MutterBackend.vala invoking GNOME Shell's built-in
+          'Main.screenshotUI.open()' and 'Shell.Screenshot' directly from
+          FreedesktopScreenshotProvider.vala.
    [ok] 6.5 Session & Power Docklet (docklet://session):
         - Left-click opens Centered Session Dialog (SessionWindow).
         - Verify 6 action buttons (Lock, Switch User, Logout, Suspend, Restart,
@@ -446,7 +455,8 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
           Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
           '«|' separator-expander (PinnedExpanderDockItem) with pure manual
           'Click to Expand/Compress' mode (independent DockletsExpanded &
-          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini),
+          PinnedExpanded latch persistence in
+          ~/.config/wayplank/latch-state.ini),
           symmetric 2-phase slot/vertical expand-collapse animation, 3-phase
           drag-and-drop temporary expansion and post-drop re-masking, and GNOME
           shell-app-usage frecency ranking while keeping running/urgent apps
@@ -588,14 +598,14 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
           then close Preferences: verify all 43 DockPreferences keys + 7
-          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
-          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
-          across restarts even after dconf reset.
-        - Run '"FAT/Test Files/Environment/Test environments.sh"' across
-          Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
-          CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
-          subprocess fallback, per-key validation, and 'Load environment failed'
-          startup popup listing defaulted keys/items.
+          LatchState keys + MultiDock slot keys are flushed to unified
+          ~/.config/wayplank/latch-state.ini and restored 100% across restarts
+          (with zero-warning migration from v0.7.1 profiles).
+        - Run '"FAT/Test Files/Environment/Test environments.sh"' across all 9
+          profiles (v0.7.1 baseline + Corrupted, Partial, OutOfRange,
+          InvalidTypesAndPaths, CorruptedDockItems, MultiDockInvalid,
+          MultiDockValid, EmptyProfile): verify RAM-only fault defaulting
+          leaves disk files 100% untouched and shows 'Load environment failed'.
         - Bug: Dragging the continuous 'Icon Size' Gtk.Scale slider in
           PreferencesWindow.iconsize_changed() (PreferencesWindow.vala) could
           assign an odd pixel integer (e.g. '47') to 'prefs.IconSize', firing
@@ -625,8 +635,18 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
    [ok] 9.4 Single Script Instance:
         Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
         exactly ONE script instance alive
-   [ok] 9.5 Process Lifecycle (--replace / kill):
-        Restart dock via 'wayplank --replace' -> cleanly takes over
+   [ko->ok] 9.5 Process Lifecycle (--replace / kill) & Multi-Dock Coexistence:
+        - Restart dock via 'wayplank --replace' -> cleanly takes over.
+        - Launch 2 simultaneous docks ('wayplank' + 'wayplank -n dock-2') on
+          distinct edges -> independent positioning, struts, and clean teardown.
+        - Bug: GnomeBridge stored a single global '_lastDockGeo'/'_strutActor'
+          and '_findDockWindow()' returned the first dock window regardless of
+          PID/slot (plus '_classifyWindow' only matched 'net.launchpad.plank',
+          not 'net.launchpad.plank.<dock>'), causing 'dock-2' to overwrite and
+          displace 'dock1'.
+        - Remediation: Scoped GnomeBridge ('v072_bridge_3') to per-dock entries
+          ('pid:slot') with independent geometry, struts, 'ReleaseDock' teardown,
+          per-PID hover/poof lookup, and 'net.launchpad.plank.*' matching.
    [ko->ok] 9.6 Signal Disconnect Safety:
         Opening and closing Preferences multiple times leaves no dangling
         callbacks or memory leaks
@@ -924,20 +944,155 @@ SESSION 1: GNOME (Mutter Backend) - [PASSED - 100.0% QUALIFIED]
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
         - MOC 2026-11-17: per-PID ProcessSnapshot cache (spec §2.3, Labwc CPU)
           -> mandatory retest.
+   [ko->ok] 14.6 Multi-Dock Engine (dock1..dock4), Empty-Dock Lifecycle,
+        Cross-Dock Drag/Pinning, Zone-Matched Accordion Unfold & Folder UX:
+        - Verify single-process Multi-Dock ('Open Dock...', 'Close This Dock'
+          preserving config, 'Delete This Dock...' wiping config; 'dock1'
+          undeletable/unclosable with 'dock1'-only WayPlank icon, 'dock1'-only
+          unpinned running apps ('TransientDockItem'), and auto-restored
+          WayPlank icon if 'dock1' is emptied; emptying 'dock2'..'dock4'
+          automatically deletes & wipes that dock ('Enabled=null'); Preferences
+          top '<Dock> - [Screen X - ]<Position>' dropdown selector switches
+          active dock live on 2+ docks; 2D '(Screen, Edge)' collision gray-out
+          in 'Position', 'Screen', and 'On Primary Display' prevents placing 2
+          active docks on the same screen edge; Multi-Seat Screen 1..4 lowest-
+          index hotplug arbitration).
+        - Verify secondary-dock drag-off poof removal cleanly deletes docklets
+          and apps with zero leftover blank slot, zero lost drag/click
+          interaction, and exact 1:1 hit-test alignment on accordion expanders
+          ('^^' / '«|') and pinned icons without needing '--replace'.
+        - Verify cross-dock drag ('dockA <-> dockB') of Folders, Pinned/Unpinned
+          Apps, Docklets, and Folder-Drawer apps, cross-dock pinned-suppresses-
+          unpinned deduplication, global O(log N) dichotomic accordion usage
+          vector, and strict '(Same Type) & (Target Zone)' accordion unfold
+          (Folders/Trash never unfold accordions).
+        - Verify 'Add Folder...', bidirectional 'Pinned <-> Folder' moves, and
+          right-click 'Docklets' submenu '_Apply' button & focus-loss apply.
+        - Bug: On secondary docks ('dock2'..'dock4'): (1) unpinned running apps
+          duplicated onto secondary docks; (2) LayerShellDockShell incremented
+          'next_mutter_dock_slot' past 8 across open/close cycles while
+          MutterBackend only matched '/^wayplank-[2-8]$/', causing
+          '_findPoofWindow' to match 'dock2' and resize it to 192x192 on poof
+          while Wayland 'seat.grab()' / non-static 'next_removal_tx_id' wedged
+          drag & right-click until '--replace'; (3) 'DockContainer.construct'
+          seeded 'PlaceholderDockItem' at index 0 and 'SystemMenuAccess==4->2'
+          injected WayPlank's Preferences menu onto secondary app icons;
+          (4) Preferences lacked a dock selector dropdown when WayPlank's icon
+          is 'dock1'-exclusive; and (5) 'Position', 'Screen', and 'On Primary
+          Display' allowed placing 2 active docks on the same '(Screen, Edge)'.
+        - Remediation: Confined 'TransientDockItem' to 'dock1'
+          ('is_pinned_only()'); recycled Mutter dock slots 1..15 with
+          'v072_bridge_5' 'role !== "dock"' guard in '_findPoofWindow', skipped
+          legacy 'seat.grab()' on Wayland, made 'next_removal_tx_id' static, and
+          self-healed released drags; removed 'PlaceholderDockItem' index-0
+          seeding and mapped secondary 'SystemMenuAccess==4->1'; replaced the
+          Preferences top banner with a live 'Gtk.ComboBoxText' dock selector
+          dropdown; and enforced 2D '(EffectiveScreen, Edge)' collision gray-out
+          ('find_dock_at_placement()') across 'PreferencesWindow' and 'Open
+          Dock...'.
 ================================================================================
-SESSION 1 RESULT: PASSED (GNOME / Mutter Backend)
+SESSION 1 RESULT: PASSED - 100.0% QUALIFIED (GNOME / Mutter Backend)
 ================================================================================
-  * Tests: 134 | Passed: 115 [ok] | Squashed: 19 [ko->ok] (0.1, 0.2, 0.3, 1.11,
-    2.14, 2.15, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 9.9, 11.1, 11.7,
-    14.1, 14.2)
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
   * Remediations: 0 [ko->test] | Pending: 0 [  ]
   * Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Compliance: 100.0% PASSED (134/134 Qualified, 0 Pending)
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 22 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 9.9, 11.1,
+    11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (135/135 Qualified, 0 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 21 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 11.1, 11.7,
+    14.1, 14.2, 14.6)
+  * Remediations: 1 [ko->test] (9.9) | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 99.3% (134/135 Qualified, 1 Pending)
+================================================================================
+  * Tests: 135 | Passed: 113 [ok] | Squashed: 21 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 11.1, 11.7,
+    14.1, 14.2, 14.6)
+  * Remediations: 1 [ko->test] (9.9) | Pending: 0 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 99.3% (134/135 Qualified, 1 Pending)
+================================================================================
+  * Tests: 135 | Passed: 104 [ok] | Squashed: 20 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    2.14, 2.15, 6.4, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 11.1, 11.7, 14.1,
+    14.2, 14.6)
+  * Remediations: 2 [ko->test] (6.9, 9.9) | Pending: 9 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 91.9% (124/135 Qualified, 11 Pending)
+================================================================================
+  * Tests: 135 | Passed: 96 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 0.3, 1.11, 6.4,
+    6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 5 [ko->test] (2.14, 2.15, 6.9, 9.9, 11.1) | Pending: 17 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 83.7% (113/135 Qualified, 22 Pending)
+================================================================================
+  * Tests: 135 | Passed: 92 [ok] | Squashed: 12 [ko->ok] (0.1, 0.2, 0.3, 1.11, 6.4,
+    6.14, 7.5, 9.5, 9.6, 11.7, 14.1, 14.6)
+  * Remediations: 10 [ko->test] (2.14, 2.15, 6.9, 6.12, 7.2, 7.6, 7.17, 9.9, 11.1,
+    14.2) | Pending: 21 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 77.0% (104/135 Qualified, 31 Pending)
+================================================================================
+  * Tests: 135 | Passed: 96 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 0.3, 1.11, 6.4,
+    6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 5 [ko->test] (2.14, 2.15, 6.9, 9.9, 11.1) | Pending: 17 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 83.7% (113/135 Qualified, 22 Pending)
+================================================================================
+  * Tests: 135 | Passed: 92 [ok] | Squashed: 11 [ko->ok] (0.1, 0.2, 0.3, 1.11,
+    6.4, 6.14, 7.5, 9.5, 9.6, 11.7, 14.1)
+  * Remediations: 11 [ko->test] (2.14, 2.15, 6.9, 6.12, 7.2, 7.6, 7.17, 9.9,
+    11.1, 14.2, 14.6) | Pending: 21 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 76.3% (103/135 Qualified, 32 Pending)
 ================================================================================
 
 ================================================================================
 SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
-  Score: 117 [ok] | 16 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 OPEN
+  Score: 114 [ok] | 20 [ko->ok] | 0 [ko->test] | 0 [  ] | 0 [NA] | 0 OPEN
 ================================================================================
 
 0. Crashes during test
@@ -999,11 +1154,24 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
           payloads with %F/%U, bounce feedback and window activation.
         - Verified dropping an incompatible file onto an icon cleanly rejects
           the drop without falling back to pinning the file to the dock.
-   [ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
+   [ko->ok] 1.7 Categorized Drag Bounding & Cross-Separator Pin/Unpin:
         - Verify Folders and Docklets stay clamped within their own sections,
           and locked items (Preferences, Separator, Trash) abort drag cleanly.
         - Verify dragging apps across the Pinned/Unpinned divider pins or
           unpins them without crossing into Folders, Docklets, or Trash.
+        - Bug: Attempting to drag a non-draggable item (Preferences, Trash,
+          Separator) froze KWin's Wayland pointer/keyboard seat requiring TTY
+          recovery: Gtk.drag_source_set() connected gtk_drag_source_event_cb
+          on G_SIGNAL_RUN_LAST signals (running before DockWindow's handler),
+          gtk_drag_begin_internal() sent wl_data_device.start_drag BEFORE
+          emitting 'drag-begin', and gdk_wayland_drag_context_drag_abort() is
+          an empty no-op in GTK3, leaving KWin's DragAndDropInputFilter active
+          with a destroyed wl_data_source.
+        - Remediation: Removed passive Gtk.drag_source_set() and Gdk.drag_abort()
+          and switched DockWindow + DragManager to explicit threshold-gated
+          Gtk.drag_begin_with_coordinates() invoked strictly after
+          is_item_draggable() passes, plus mid-drag Gtk.drag_cancel() on
+          teardown and GLib.Timeout.add() in DragManager.
    [ok] 1.8 Folder Launcher Popup Menu (Cairo-Dock Style):
         - Left-click toggles non-modal dark folder popup anchored 4px from
           icon with 60 FPS zoom following, subfolder back-navigation, and
@@ -1233,8 +1401,17 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
         - Entering KDE Plasma Desktop/Panel Edit Mode (Issue #27) is allowed
           through without resetting showDesktop(false), automatically hiding
           WayPlank (FullscreenInhibit) until Edit Mode exits.
-   [ok] 6.2 Trash Docklet:
+   [ko->ok] 6.2 Trash Docklet:
         Displays state; click opens; drag files to trash; right-click empty
+        - Bug: Dragging an external file onto Trash while Pinned Apps Accordion
+          was collapsed triggered unconditional expand_pinned(false, true) in
+          DragManager.drag_motion(), widening the dock and sliding Trash sideways
+          away from the cursor until the unfold animation finished.
+        - Remediation: Added focus-driven ExternalDragOverTrash in DragManager,
+          DefaultApplicationDockItemProvider, and PositionManager to keep
+          accordions still over Trash, plus immediate input_region queue_draw()
+          and DRAG_ENTER->DRAG_MOTION synthesis in LayerShellDockShell so
+          Wayland commits wl_data_offer_accept with 0ms delay.
    [ok] 6.3 External Trash Sync:
         Empty/fill trash from external file manager (Dolphin) -> icon updates
         state via D-Bus
@@ -1319,7 +1496,8 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
           Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
           '«|' separator-expander (PinnedExpanderDockItem) with pure manual
           'Click to Expand/Compress' mode (independent DockletsExpanded &
-          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini),
+          PinnedExpanded latch persistence in
+          ~/.config/wayplank/latch-state.ini),
           symmetric 2-phase slot/vertical expand-collapse animation, 3-phase
           drag-and-drop temporary expansion and post-drop re-masking, and GNOME
           shell-app-usage frecency ranking while keeping running/urgent apps
@@ -1470,14 +1648,14 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
           then close Preferences: verify all 43 DockPreferences keys + 7
-          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
-          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
-          across restarts even after dconf reset.
-        - Run '"FAT/Test Files/Environment/Test environments.sh"' across
-          Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
-          CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
-          subprocess fallback, per-key validation, and 'Load environment failed'
-          startup popup listing defaulted keys/items.
+          LatchState keys + MultiDock slot keys are flushed to unified
+          ~/.config/wayplank/latch-state.ini and restored 100% across restarts
+          (with zero-warning migration from v0.7.1 profiles).
+        - Run '"FAT/Test Files/Environment/Test environments.sh"' across all 9
+          profiles (v0.7.1 baseline + Corrupted, Partial, OutOfRange,
+          InvalidTypesAndPaths, CorruptedDockItems, MultiDockInvalid,
+          MultiDockValid, EmptyProfile): verify RAM-only fault defaulting
+          leaves disk files 100% untouched and shows 'Load environment failed'.
         - Bug: Dragging the continuous 'Icon Size' Gtk.Scale slider in
           PreferencesWindow.iconsize_changed() (PreferencesWindow.vala) could
           assign an odd pixel integer (e.g. '47') to 'prefs.IconSize', firing
@@ -1508,9 +1686,17 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
    [ok] 9.4 Single Script Instance:
         Check D-Bus scripting state after resume/restart (isScriptLoaded) ->
         exactly ONE instance alive
-   [ok] 9.5 Process Lifecycle (--replace / kill):
-        Restart dock via 'wayplank --replace' -> cleanly takes over without
-        zombie scripts
+   [ko->ok] 9.5 Process Lifecycle (--replace / kill) & Multi-Dock Coexistence:
+        - Restart dock via 'wayplank --replace' -> cleanly takes over without
+          zombie scripts.
+        - Launch 2 simultaneous docks ('wayplank' + 'wayplank -n dock-2') ->
+          both docks display running dots and focus/minimize windows cleanly.
+        - Bug: KWinBridge hardcoded 'wayplankService = "net.launchpad.plank"'
+          and a shared '"WayplankApplyCommand"' shortcut, leaving 'dock-2'
+          ('net.launchpad.plank.dock-2') without window state or command IPC.
+        - Remediation: Scoped KWinBridge to each process's unique D-Bus bus
+          name, dock-based 'WayplankApplyCommand_<dock>' shortcut, and single-
+          leader 'Super+D' handling.
    [ko->ok] 9.6 Signal Disconnect Safety:
         Opening and closing Preferences multiple times leaves no dangling
         callbacks or memory leaks
@@ -1805,19 +1991,144 @@ SESSION 2: KDE PLASMA (KWin Backend) - [PASSED - 100.0% QUALIFIED]
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
         - MOC 2026-11-17: per-PID ProcessSnapshot cache (spec §2.3, Labwc CPU)
           -> mandatory retest.
+   [ko->ok] 14.6 Multi-Dock Engine (dock1..dock4), Empty-Dock Lifecycle,
+        Cross-Dock Drag/Pinning, Zone-Matched Accordion Unfold & Folder UX:
+        - Verify single-process Multi-Dock ('Open Dock...', 'Close This Dock'
+          preserving config, 'Delete This Dock...' wiping config; 'dock1'
+          undeletable/unclosable with 'dock1'-only WayPlank icon, 'dock1'-only
+          unpinned running apps ('TransientDockItem'), and auto-restored
+          WayPlank icon if 'dock1' is emptied; emptying 'dock2'..'dock4'
+          automatically deletes & wipes that dock ('Enabled=null'); Preferences
+          top '<Dock> - [Screen X - ]<Position>' dropdown selector switches
+          active dock live on 2+ docks; 2D '(Screen, Edge)' collision gray-out
+          in 'Position', 'Screen', and 'On Primary Display' prevents placing 2
+          active docks on the same screen edge; Multi-Seat Screen 1..4 lowest-
+          index hotplug arbitration).
+        - Verify secondary-dock drag-off poof removal cleanly deletes docklets
+          and apps with zero leftover blank slot, zero lost drag/click
+          interaction, and exact 1:1 hit-test alignment on accordion expanders
+          ('^^' / '«|') and pinned icons without needing '--replace'.
+        - Verify cross-dock drag ('dockA <-> dockB') of Folders, Pinned/Unpinned
+          Apps, Docklets, and Folder-Drawer apps, cross-dock pinned-suppresses-
+          unpinned deduplication, global O(log N) dichotomic accordion usage
+          vector, and strict '(Same Type) & (Target Zone)' accordion unfold
+          (Folders/Trash never unfold accordions).
+        - Verify 'Add Folder...', bidirectional 'Pinned <-> Folder' moves, and
+          right-click 'Docklets' submenu '_Apply' button & focus-loss apply.
+        - Bug: On secondary docks ('dock2'..'dock4'): (1) unpinned running apps
+          duplicated onto secondary docks; (2) LayerShellDockShell incremented
+          'next_mutter_dock_slot' past 8 across open/close cycles while
+          MutterBackend only matched '/^wayplank-[2-8]$/', causing
+          '_findPoofWindow' to match 'dock2' and resize it to 192x192 on poof
+          while Wayland 'seat.grab()' / non-static 'next_removal_tx_id' wedged
+          drag & right-click until '--replace'; (3) 'DockContainer.construct'
+          seeded 'PlaceholderDockItem' at index 0 and 'SystemMenuAccess==4->2'
+          injected WayPlank's Preferences menu onto secondary app icons;
+          (4) Preferences lacked a dock selector dropdown when WayPlank's icon
+          is 'dock1'-exclusive; and (5) 'Position', 'Screen', and 'On Primary
+          Display' allowed placing 2 active docks on the same '(Screen, Edge)'.
+        - Remediation: Confined 'TransientDockItem' to 'dock1'
+          ('is_pinned_only()'); recycled Mutter dock slots 1..15 with
+          'v072_bridge_5' 'role !== "dock"' guard in '_findPoofWindow', skipped
+          legacy 'seat.grab()' on Wayland, made 'next_removal_tx_id' static, and
+          self-healed released drags; removed 'PlaceholderDockItem' index-0
+          seeding and mapped secondary 'SystemMenuAccess==4->1'; replaced the
+          Preferences top banner with a live 'Gtk.ComboBoxText' dock selector
+          dropdown; and enforced 2D '(EffectiveScreen, Edge)' collision gray-out
+          ('find_dock_at_placement()') across 'PreferencesWindow' and 'Open
+          Dock...'.
 ================================================================================
-SESSION 2 RESULT: PASSED (KDE PLASMA / KWin Backend)
+SESSION 2 RESULT: PASSED - 100.0% QUALIFIED (KDE PLASMA / KWin Backend)
 ================================================================================
-  * Tests: 133 | Passed: 117 [ok] | Squashed: 16 [ko->ok] (0.1, 0.2, 1.11, 2.14,
-    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Tests: 134 | Passed: 114 [ok] | Squashed: 20 [ko->ok] (0.1, 0.2, 1.7, 1.11,
+    2.14, 6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.5, 9.6, 11.1, 11.7, 14.1,
+    14.2, 14.6)
   * Remediations: 0 [ko->test] | Pending: 0 [  ]
   * Limitations: 0 [NA] | Open Defects: 0 [ko]
-  * Compliance: 100.0% PASSED (133/133 Qualified, 0 Pending)
+  * Compliance: PASSED — 100.0% (134/134 Qualified, 0 Pending)
+================================================================================
+  * Tests: 134 | Passed: 112 [ok] | Squashed: 18 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 2 [ko->test] (1.7, 9.5) | Pending: 2 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 97.0% (130/134 Qualified, 4 Pending)
+================================================================================
+  * Tests: 134 | Passed: 112 [ok] | Squashed: 18 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 2 [ko->test] (1.7, 9.5) | Pending: 2 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 97.0% (130/134 Qualified, 4 Pending)
+================================================================================
+  * Tests: 134 | Passed: 110 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 4 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.8% (127/134 Qualified, 7 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 108 [ok] | Squashed: 15 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.14, 7.2, 7.5, 7.6, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 5 [ko->test] (1.7, 6.12, 7.17, 9.5, 14.6) | Pending: 6 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 91.8% (123/134 Qualified, 11 Pending)
+================================================================================
+  * Tests: 134 | Passed: 109 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.2, 6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 3 [ko->test] (1.7, 9.5, 14.6) | Pending: 5 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 94.0% (126/134 Qualified, 8 Pending)
+================================================================================
+  * Tests: 134 | Passed: 108 [ok] | Squashed: 15 [ko->ok] (0.1, 0.2, 1.11,
+    2.14, 6.2, 6.9, 6.14, 7.2, 7.5, 7.6, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Remediations: 5 [ko->test] (1.7, 6.12, 7.17, 9.5, 14.6) | Pending: 6 [  ]
+  * Limitations: 0 [NA] | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 91.8% (123/134 Qualified, 11 Pending)
 ================================================================================
 
 ================================================================================
 SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED]
-  Score: 87 [ok] | 12 [ko->ok] | 4 [ko->test] | 27 [  ] | 2 [NA] | 0 OPEN
+  Score: 111 [ok] | 17 [ko->ok] | 0 [ko->test] | 0 [  ] | 5 [NA] | 0 OPEN
 ================================================================================
 
 0. Crashes during test
@@ -2203,7 +2514,8 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED]
           Capacity', 'Top Most Used' 1..20) share the unified half-slot '›|' /
           '«|' separator-expander (PinnedExpanderDockItem) with pure manual
           'Click to Expand/Compress' mode (independent DockletsExpanded &
-          PinnedExpanded latch persistence in ~/.config/wayplank/latch-state.ini),
+          PinnedExpanded latch persistence in
+          ~/.config/wayplank/latch-state.ini),
           symmetric 2-phase slot/vertical expand-collapse animation, 3-phase
           drag-and-drop temporary expansion and post-drop re-masking, and GNOME
           shell-app-usage frecency ranking while keeping running/urgent apps
@@ -2344,14 +2656,14 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED]
         - Configure Theme, Pinned Apps Accordion ('Auto-Fit' vs 'Top N Most
           Used'), Focused App Highlight, Accordion Delay, and layout options,
           then close Preferences: verify all 43 DockPreferences keys + 7
-          LatchState keys (5 SR-latch keys + DockletsExpanded & PinnedExpanded)
-          are flushed to ~/.config/wayplank/latch-state.ini and restored 100%
-          across restarts even after dconf reset.
-        - Run '"FAT/Test Files/Environment/Test environments.sh"' across
-          Corrupted, Partial, OutOfRange, InvalidTypesAndPaths,
-          CorruptedDockItems, ValidCustomProfile, and EmptyProfile: verify
-          subprocess fallback, per-key validation, and 'Load environment failed'
-          startup popup listing defaulted keys/items.
+          LatchState keys + MultiDock slot keys are flushed to unified
+          ~/.config/wayplank/latch-state.ini and restored 100% across restarts
+          (with zero-warning migration from v0.7.1 profiles).
+        - Run '"FAT/Test Files/Environment/Test environments.sh"' across all 9
+          profiles (v0.7.1 baseline + Corrupted, Partial, OutOfRange,
+          InvalidTypesAndPaths, CorruptedDockItems, MultiDockInvalid,
+          MultiDockValid, EmptyProfile): verify RAM-only fault defaulting
+          leaves disk files 100% untouched and shows 'Load environment failed'.
         - Bug: Dragging the continuous 'Icon Size' Gtk.Scale slider in
           PreferencesWindow.iconsize_changed() (PreferencesWindow.vala) could
           assign an odd pixel integer (e.g. '47') to 'prefs.IconSize', firing
@@ -2671,12 +2983,144 @@ SESSION 3: LABWC (wlroots Backend) - [PASSED - 100.0% QUALIFIED]
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
         - MOC 2026-11-17: per-PID ProcessSnapshot cache (spec §2.3, Labwc CPU)
           -> mandatory retest.
+   [ko->ok] 14.6 Multi-Dock Engine (dock1..dock4), Empty-Dock Lifecycle,
+        Cross-Dock Drag/Pinning, Zone-Matched Accordion Unfold & Folder UX:
+        - Verify single-process Multi-Dock ('Open Dock...', 'Close This Dock'
+          preserving config, 'Delete This Dock...' wiping config; 'dock1'
+          undeletable/unclosable with 'dock1'-only WayPlank icon, 'dock1'-only
+          unpinned running apps ('TransientDockItem'), and auto-restored
+          WayPlank icon if 'dock1' is emptied; emptying 'dock2'..'dock4'
+          automatically deletes & wipes that dock ('Enabled=null'); Preferences
+          top '<Dock> - [Screen X - ]<Position>' dropdown selector switches
+          active dock live on 2+ docks; 2D '(Screen, Edge)' collision gray-out
+          in 'Position', 'Screen', and 'On Primary Display' prevents placing 2
+          active docks on the same screen edge; Multi-Seat Screen 1..4 lowest-
+          index hotplug arbitration).
+        - Verify secondary-dock drag-off poof removal cleanly deletes docklets
+          and apps with zero leftover blank slot, zero lost drag/click
+          interaction, and exact 1:1 hit-test alignment on accordion expanders
+          ('^^' / '«|') and pinned icons without needing '--replace'.
+        - Verify cross-dock drag ('dockA <-> dockB') of Folders, Pinned/Unpinned
+          Apps, Docklets, and Folder-Drawer apps, cross-dock pinned-suppresses-
+          unpinned deduplication, global O(log N) dichotomic accordion usage
+          vector, and strict '(Same Type) & (Target Zone)' accordion unfold
+          (Folders/Trash never unfold accordions).
+        - Verify 'Add Folder...', bidirectional 'Pinned <-> Folder' moves, and
+          right-click 'Docklets' submenu '_Apply' button & focus-loss apply.
+        - Bug: On secondary docks ('dock2'..'dock4'): (1) unpinned running apps
+          duplicated onto secondary docks; (2) LayerShellDockShell incremented
+          'next_mutter_dock_slot' past 8 across open/close cycles while
+          MutterBackend only matched '/^wayplank-[2-8]$/', causing
+          '_findPoofWindow' to match 'dock2' and resize it to 192x192 on poof
+          while Wayland 'seat.grab()' / non-static 'next_removal_tx_id' wedged
+          drag & right-click until '--replace'; (3) 'DockContainer.construct'
+          seeded 'PlaceholderDockItem' at index 0 and 'SystemMenuAccess==4->2'
+          injected WayPlank's Preferences menu onto secondary app icons;
+          (4) Preferences lacked a dock selector dropdown when WayPlank's icon
+          is 'dock1'-exclusive; and (5) 'Position', 'Screen', and 'On Primary
+          Display' allowed placing 2 active docks on the same '(Screen, Edge)'.
+        - Remediation: Confined 'TransientDockItem' to 'dock1'
+          ('is_pinned_only()'); recycled Mutter dock slots 1..15 with
+          'v072_bridge_5' 'role !== "dock"' guard in '_findPoofWindow', skipped
+          legacy 'seat.grab()' on Wayland, made 'next_removal_tx_id' static, and
+          self-healed released drags; removed 'PlaceholderDockItem' index-0
+          seeding and mapped secondary 'SystemMenuAccess==4->1'; replaced the
+          Preferences top banner with a live 'Gtk.ComboBoxText' dock selector
+          dropdown; and enforced 2D '(EffectiveScreen, Edge)' collision gray-out
+          ('find_dock_at_placement()') across 'PreferencesWindow' and 'Open
+          Dock...'.
 ================================================================================
-SESSION 3 RESULT: PASSED (LABWC / wlroots Backend)
+SESSION 3 RESULT: PASSED - 100.0% QUALIFIED (LABWC / wlroots Backend)
 ================================================================================
-  * Tests: 132 | Passed: 111 [ok] | Squashed: 16 [ko->ok] (0.1, 0.2, 1.11, 2.14,
-    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2)
+  * Tests: 133 | Passed: 111 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
   * Remediations: 0 [ko->test] | Pending: 0 [  ]
   * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
-  * Compliance: 100.0% PASSED (127/127 Applicable, 0 Pending)
+  * Compliance: PASSED — 100.0% (128/128 Applicable, 0 Pending)
+================================================================================
+  * Tests: 133 | Passed: 111 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 0 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: PASSED — 100.0% (128/128 Applicable, 0 Pending)
+================================================================================
+  * Tests: 133 | Passed: 107 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 4 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 96.9% (124/128 Applicable, 4 Pending)
+================================================================================
+  * Tests: 133 | Passed: 107 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 4 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 96.9% (124/128 Applicable, 4 Pending)
+================================================================================
+  * Tests: 133 | Passed: 107 [ok] | Squashed: 17 [ko->ok] (0.1, 0.2, 1.11, 2.14,
+    6.9, 6.12, 6.14, 7.2, 7.5, 7.6, 7.17, 9.6, 11.1, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 0 [ko->test] | Pending: 4 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 96.9% (124/128 Applicable, 4 Pending)
+================================================================================
+  * Tests: 133 | Passed: 93 [ok] | Squashed: 14 [ko->ok] (0.1, 0.2, 6.9, 6.12, 6.14,
+    7.2, 7.5, 7.6, 7.17, 9.6, 11.7, 14.1, 14.2, 14.6)
+  * Remediations: 3 [ko->test] (1.11, 2.14, 11.1) | Pending: 18 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 83.6% (107/128 Applicable, 21 Pending)
+================================================================================
+  * Tests: 133 | Passed: 90 [ok] | Squashed: 9 [ko->ok] (0.1, 0.2, 6.9, 6.12, 6.14,
+    7.5, 7.17, 9.6, 11.7)
+  * Remediations: 8 [ko->test] (1.11, 2.14, 7.2, 7.6, 11.1, 14.1, 14.2, 14.6) |
+    Pending: 21 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 77.3% (99/128 Applicable, 29 Pending)
+================================================================================
+  * Tests: 133 | Passed: 90 [ok] | Squashed: 9 [ko->ok] (0.1, 0.2, 6.9, 6.12, 6.14,
+    7.5, 7.17, 9.6, 11.7)
+  * Remediations: 8 [ko->test] (1.11, 2.14, 7.2, 7.6, 11.1, 14.1, 14.2, 14.6) |
+    Pending: 21 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 77.3% (99/128 Applicable, 29 Pending)
+================================================================================
+  * Tests: 133 | Passed: 84 [ok] | Squashed: 8 [ko->ok] (0.1, 0.2, 6.12, 6.14, 7.5,
+    7.17, 9.6, 11.7)
+  * Remediations: 9 [ko->test] (1.11, 2.14, 6.9, 7.2, 7.6, 11.1, 14.1, 14.2, 14.6) |
+    Pending: 27 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 71.9% (92/128 Applicable, 36 Pending)
+================================================================================
+  * Tests: 133 | Passed: 84 [ok] | Squashed: 8 [ko->ok] (0.1, 0.2, 6.12, 6.14, 7.5,
+    7.17, 9.6, 11.7)
+  * Remediations: 9 [ko->test] (1.11, 2.14, 6.9, 7.2, 7.6, 11.1, 14.1, 14.2, 14.6) |
+    Pending: 27 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 71.9% (92/128 Applicable, 36 Pending)
+================================================================================
+  * Tests: 133 | Passed: 84 [ok] | Squashed: 8 [ko->ok] (0.1, 0.2, 6.12, 6.14, 7.5,
+    7.17, 9.6, 11.7)
+  * Remediations: 9 [ko->test] (1.11, 2.14, 6.9, 7.2, 7.6, 11.1, 14.1, 14.2, 14.6) |
+    Pending: 27 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 71.9% (92/128 Applicable, 36 Pending)
+================================================================================
+  * Tests: 133 | Passed: 83 [ok] | Squashed: 6 [ko->ok] (0.1, 0.2, 6.14, 7.5, 9.6,
+    11.7)
+  * Remediations: 11 [ko->test] (1.11, 2.14, 6.9, 6.12, 7.2, 7.6, 7.17, 11.1, 14.1,
+    14.2, 14.6) | Pending: 28 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 69.5% (89/128 Applicable, 39 Pending)
+================================================================================
+  * Tests: 133 | Passed: 84 [ok] | Squashed: 8 [ko->ok] (0.1, 0.2, 6.12, 6.14, 7.5,
+    7.17, 9.6, 11.7)
+  * Remediations: 9 [ko->test] (1.11, 2.14, 6.9, 7.2, 7.6, 11.1, 14.1, 14.2, 14.6) |
+    Pending: 27 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 71.9% (92/128 Applicable, 36 Pending)
+================================================================================
+  * Tests: 133 | Passed: 83 [ok] | Squashed: 6 [ko->ok] (0.1, 0.2, 6.14, 7.5,
+    9.6, 11.7)
+  * Remediations: 11 [ko->test] (1.11, 2.14, 6.9, 6.12, 7.2, 7.6, 7.17, 11.1,
+    14.1, 14.2, 14.6) | Pending: 28 [  ]
+  * Limitations: 5 [NA] (2.7, 3.3, 3.4, 3.6, 10.6) | Open Defects: 0 [ko]
+  * Compliance: IN PROGRESS — 69.5% (89/128 Applicable, 39 Pending)
 ================================================================================

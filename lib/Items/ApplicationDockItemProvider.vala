@@ -214,16 +214,18 @@ namespace Plank
 			resume_items_monitor ();
 			ApplicationDiscovery.get_default ().refresh_index_now ();
 			sync_compositor_windows ();
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.sync_windows_across_all_docks ();
 			if (item is ApplicationDockItem)
 				((ApplicationDockItem) item).refresh_indicator ();
 			return true;
 		}
 
-		bool window_has_pinned_item (WindowInfo window)
+		public bool has_local_pinned_item_for_window (WindowInfo window)
 		{
 			var discovery = ApplicationDiscovery.get_default ();
 			unowned DockController? dock = get_dock ();
-			if (dock != null && dock.drag_manager.RemovalActive && dock.drag_manager.PendingRemovalLauncher.length > 0) {
+			if (dock != null && dock.drag_manager != null && dock.drag_manager.RemovalActive && dock.drag_manager.PendingRemovalLauncher.length > 0) {
 				if (discovery.is_best_launcher_for_window (dock.drag_manager.PendingRemovalLauncher, window))
 					return true;
 			}
@@ -239,12 +241,21 @@ namespace Plank
 			return false;
 		}
 
+		bool window_has_pinned_item (WindowInfo window)
+		{
+			if (has_local_pinned_item_for_window (window))
+				return true;
+			if (AbstractMain.app_instance != null && AbstractMain.app_instance.any_visible_dock_has_pinned_window (window))
+				return true;
+			return false;
+		}
+
 		public override void prepare ()
 		{
 			sync_compositor_windows ();
 		}
 
-		protected virtual bool is_pinned_only ()
+		public virtual bool is_pinned_only ()
 		{
 			return false;
 		}
@@ -438,8 +449,8 @@ namespace Plank
 
 			foreach (var element in internal_elements) {
 				unowned ApplicationDockItem? app_item = (element as ApplicationDockItem);
-				if (app_item != null && app_item.get_unity_dbusname () == sender_id)
-					app_item.unity_reset ();
+				if (app_item != null && app_item.get_badge_sender_id () == sender_id)
+					app_item.reset_launcher_badge ();
 			}
 		}
 
@@ -458,7 +469,7 @@ namespace Plank
 				if (app_item == null)
 					continue;
 
-				bool is_match = (sender_id != "" && app_item.get_unity_dbusname () == sender_id);
+				bool is_match = (sender_id != "" && app_item.get_badge_sender_id () == sender_id);
 				if (!is_match && app_item.Launcher != "") {
 					if (app_item.Launcher == target) {
 						is_match = true;
@@ -472,7 +483,7 @@ namespace Plank
 				}
 
 				if (is_match) {
-					app_item.unity_update (sender_id, state);
+					app_item.update_launcher_badge (sender_id, state);
 					matched = true;
 				}
 			}

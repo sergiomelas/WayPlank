@@ -377,6 +377,33 @@ namespace Plank
 					});
 					items.add (keep_item);
 				}
+
+				if (!(this is TransientDockItem)) {
+					var dock_folders = default_provider.get_folder_items ();
+					if (dock_folders.size > 0) {
+						var move_folder_item = create_menu_item (_("Move to _Folder"), "folder", true);
+						var folder_sub = new Gtk.Menu ();
+						var prov_ref = GLib.WeakRef (default_provider);
+						var self_ref = GLib.WeakRef (this);
+						foreach (var f_item in dock_folders) {
+							var f_ref = GLib.WeakRef (f_item);
+							string f_label = (f_item.Text != null && f_item.Text != "") ? f_item.Text : _("Folder");
+							string f_icon = (f_item.Icon != null && f_item.Icon != "") ? f_item.Icon : "folder";
+							var sub_entry = create_literal_menu_item (f_label, f_icon, true);
+							sub_entry.activate.connect (() => {
+								var prov = prov_ref.get () as DefaultApplicationDockItemProvider;
+								var app_it = self_ref.get () as ApplicationDockItem;
+								var dest_f = f_ref.get () as FileDockItem;
+								if (prov != null && app_it != null && dest_f != null)
+									prov.move_pinned_item_to_folder (app_it, dest_f);
+							});
+							folder_sub.append (sub_entry);
+						}
+						folder_sub.show_all ();
+						move_folder_item.set_submenu (folder_sub);
+						items.add (move_folder_item);
+					}
+				}
 			}
 
 			if (!is_window () && Launcher != "" && has_executable_launcher ()) {
@@ -711,7 +738,7 @@ namespace Plank
 		 *
 		 * @return the IPC sender identifier providing LauncherEntry state, or NULL
 		 */
-		public unowned string? get_unity_dbusname ()
+		public unowned string? get_badge_sender_id ()
 		{
 			return badge_sender_id;
 		}
@@ -719,7 +746,7 @@ namespace Plank
 		/**
 		 * Whether this item provides remote badge/progress information worth showing.
 		 */
-		public bool has_unity_info ()
+		public bool has_launcher_badge_info ()
 		{
 			return (ProgressVisible || CountVisible);
 		}
@@ -727,7 +754,7 @@ namespace Plank
 		/**
 		 * Update this item's remote badge/progress values based on normalized HAL state.
 		 */
-		public void unity_update (string sender_name, LauncherBadgeState state)
+		public void update_launcher_badge (string sender_name, LauncherBadgeState state)
 		{
 			badge_sender_id = sender_name;
 
@@ -749,7 +776,7 @@ namespace Plank
 		/**
 		 * Reset this item's remote badge/progress values (`badge_sender_id`).
 		 */
-		public void unity_reset ()
+		public void reset_launcher_badge ()
 		{
 			badge_sender_id = null;
 

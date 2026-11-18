@@ -1,9 +1,11 @@
 [type: gettext/glade]data/ui/preferences.ui
 hal/Freedesktop/Dbus/AppMenuDbusService.vala
+hal/Freedesktop/Dbus/BrightnessControl.vala
 hal/Freedesktop/Dbus/DbusBroker.vala
 hal/Freedesktop/Dbus/DesktopThemeDbusService.vala
 hal/Freedesktop/Dbus/DockIpcClient.vala
 hal/Freedesktop/Dbus/DockIpcServer.vala
+hal/Freedesktop/Dbus/FreedesktopSessionPower.vala
 hal/Freedesktop/Dbus/LauncherEntryDbusService.vala
 hal/Freedesktop/Dbus/MprisDbusService.vala
 hal/Freedesktop/Dbus/NetworkManagerDbusService.vala
@@ -22,6 +24,7 @@ hal/Freedesktop/WindowCapabilities.vala
 hal/Freedesktop/WindowControl.vala
 hal/Freedesktop/Wlroots/LabwcBackend.vala
 hal/Freedesktop/Xdg/FreedesktopEjectorProvider.vala
+hal/Freedesktop/Xdg/FreedesktopPlatformRuntime.vala
 hal/Freedesktop/Xdg/FreedesktopScreenshotProvider.vala
 hal/Freedesktop/Xdg/FreedesktopTrashProvider.vala
 hal/Freedesktop/Xdg/XdgAppSystem.vala
@@ -38,12 +41,12 @@ hal/Interfaces/IWindowBackend.vala
 hal/Interfaces/PlatformCapabilities.vala
 hal/Interfaces/WindowInfo.vala
 hal/Linux/LinuxAudioTelemetry.vala
+hal/Linux/LinuxKernelBootstrap.vala
 hal/Linux/LinuxPlatformRuntime.vala
-hal/Linux/LinuxSessionPower.vala
 hal/Linux/ProcFs/LinuxCpuMemDiskTelemetry.vala
 hal/Linux/ProcFs/LinuxProcessInspector.vala
-hal/Linux/SysFs/BrightnessControl.vala
 hal/Linux/SysFs/LinuxBatteryProvider.vala
+hal/Linux/SysFs/LinuxSysfsBacklight.vala
 lib/DockController.vala
 lib/DockPreferences.vala
 lib/DockRenderer.vala
@@ -112,6 +115,7 @@ lib/Services/WindowManager.vala
 lib/Services/Worker.vala
 lib/Widgets/CalendarWindow.vala
 lib/Widgets/CompositedWindow.vala
+lib/Widgets/DockFolderDialogs.vala
 lib/Widgets/DockWindow.vala
 lib/Widgets/FirstRunWindow.vala
 lib/Widgets/FolderMenuWindow.vala

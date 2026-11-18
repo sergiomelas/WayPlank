@@ -21,9 +21,9 @@
 namespace Plank
 {
 	/**
-	 * Compositor-agnostic Hardware Abstraction Layer (HAL) service for screen brightness.
-	 * Encapsulates kernel PWM backlight, multi-monitor output discovery, KWin kscreen-doctor,
-	 * Mutter / wlroots DDC/CI worker, and bi-directional auto-sync across heterogeneous Wayland compositors.
+	 * Freedesktop session/D-Bus brightness orchestrator (`IBrightnessProvider`).
+	 * Coordinates kernel backlight telemetry via the kernel link seam, KWin kscreen-doctor,
+	 * KDE/GNOME power-management D-Bus signals, and external display DDC/CI synchronization.
 	 */
 	public class BrightnessControl : GLib.Object, IBrightnessProvider
 	{
@@ -92,69 +92,7 @@ namespace Plank
 
 		public bool has_active_internal_display ()
 		{
-			// 1. Direct hardware backlight device (e.g. amdgpu_bl0, intel_backlight)
-			if (backlight_device != null && !backlight_device.has_prefix ("acpi_video")) {
-				string dev_enabled_path = "/sys/class/backlight/%s/device/enabled".printf (backlight_device);
-				if (GLib.FileUtils.test (dev_enabled_path, GLib.FileTest.EXISTS)) {
-					string content;
-					try {
-						GLib.FileUtils.get_contents (dev_enabled_path, out content);
-						if (content.strip () == "disabled") {
-							return false; // Clamshell mode with external monitor
-						}
-					} catch (GLib.Error e) { }
-				}
-				// Also check drm status for eDP/LVDS
-				var drm_dir = GLib.File.new_for_path ("/sys/class/drm");
-				try {
-					var enumerator = drm_dir.enumerate_children ("standard::name", GLib.FileQueryInfoFlags.NONE);
-					GLib.FileInfo? info = null;
-					while ((info = enumerator.next_file ()) != null) {
-						string name = info.get_name ();
-						if (name.contains ("-eDP-") || name.contains ("-LVDS-") || name.contains ("-DSI-")) {
-							string enabled_path = "/sys/class/drm/%s/enabled".printf (name);
-							if (GLib.FileUtils.test (enabled_path, GLib.FileTest.EXISTS)) {
-								string en;
-								GLib.FileUtils.get_contents (enabled_path, out en);
-								if (en.strip () == "disabled") {
-									return false; // Laptop lid closed / clamshell
-								}
-							}
-						}
-					}
-				} catch (GLib.Error e) { }
-				return true;
-			}
-
-			// 2. Fallback scan /sys/class/drm for connected and enabled internal panel (eDP, LVDS, DSI)
-			var drm_dir = GLib.File.new_for_path ("/sys/class/drm");
-			try {
-				var enumerator = drm_dir.enumerate_children ("standard::name", GLib.FileQueryInfoFlags.NONE);
-				GLib.FileInfo? info = null;
-				while ((info = enumerator.next_file ()) != null) {
-					string name = info.get_name ();
-					if (name.contains ("-eDP-") || name.contains ("-LVDS-") || name.contains ("-DSI-")) {
-						string status_path = "/sys/class/drm/%s/status".printf (name);
-						string enabled_path = "/sys/class/drm/%s/enabled".printf (name);
-						try {
-							string status;
-							GLib.FileUtils.get_contents (status_path, out status);
-							if (status.strip () == "connected") {
-								if (GLib.FileUtils.test (enabled_path, GLib.FileTest.EXISTS)) {
-									string en;
-									GLib.FileUtils.get_contents (enabled_path, out en);
-									if (en.strip () == "disabled") {
-										continue;
-									}
-								}
-								return true;
-							}
-						} catch (GLib.Error e) { }
-					}
-				}
-			} catch (GLib.Error e) { }
-
-			return false;
+			return hal_kernel_backlight_has_internal_panel (backlight_device);
 		}
 
 		public bool is_standalone_internal_display ()
@@ -209,10 +147,8 @@ namespace Plank
 			if (shutting_down || backlight_device == null)
 				return;
 
-			string cur_path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
-			try {
-				var f = GLib.File.new_for_path (cur_path);
-				sysfs_monitor = f.monitor_file (GLib.FileMonitorFlags.NONE, null);
+			sysfs_monitor = hal_kernel_backlight_monitor_device (backlight_device);
+			if (sysfs_monitor != null) {
 				sysfs_monitor.changed.connect ((file, other, ev) => {
 					if (shutting_down)
 						return;
@@ -222,8 +158,6 @@ namespace Plank
 						refresh_brightness (false);
 					}
 				});
-			} catch (GLib.Error e) {
-				sysfs_monitor = null;
 			}
 		}
 
@@ -236,7 +170,7 @@ namespace Plank
 			if (shutting_down)
 				return;
 
-			// Event-driven D-Bus or sysfs inotify signals handle KDE, GNOME & Labwc; desktop PCs without backlight need zero timers.
+			// Event-driven D-Bus or kernel inotify signals handle KDE, GNOME & Labwc; desktop PCs without backlight need zero timers.
 			bool has_dbus_events = (kde_available && kde_signal_id != 0) || (gnome_available && gnome_signal_id != 0) || (sysfs_monitor != null);
 			bool has_any_pollable_backend = (backlight_device != null || kde_available || gnome_available);
 			if (!has_dbus_events && has_any_pollable_backend) {
@@ -300,59 +234,51 @@ namespace Plank
 
 		private void init_dbus ()
 		{
-			try {
-				session_bus = GLib.Bus.get_sync (GLib.BusType.SESSION, null);
-				if (session_bus != null) {
-					// 1. Fetch KDE brightness max if available
-					try {
-						var reply_max = session_bus.call_sync (
-							"org.kde.Solid.PowerManagement",
-							"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
-							"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
-							"brightnessMax",
-							null,
-							null,
-							GLib.DBusCallFlags.NONE,
-							200,
-							null
-						);
-						kde_max_brightness = reply_max.get_child_value (0).get_int32 ();
-						kde_available = (kde_max_brightness > 0);
-					} catch (GLib.Error e) {
-						kde_available = false;
-					}
-
-					// 2. Subscribe to real-time KDE brightness changes
-					kde_signal_id = session_bus.signal_subscribe (
+			session_bus = DbusBroker.get_default ().get_session_bus ();
+			if (session_bus != null) {
+				// 1. Fetch KDE brightness max if available
+				try {
+					var reply_max = session_bus.call_sync (
 						"org.kde.Solid.PowerManagement",
-						"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
-						"brightnessChanged",
 						"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
+						"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
+						"brightnessMax",
 						null,
-						GLib.DBusSignalFlags.NONE,
-						on_kde_brightness_changed
-					);
-
-					// 3. Subscribe to real-time GNOME brightness changes
-					gnome_signal_id = session_bus.signal_subscribe (
-						"org.gnome.SettingsDaemon.Power",
-						"org.freedesktop.DBus.Properties",
-						"PropertiesChanged",
-						"/org/gnome/SettingsDaemon/Power",
 						null,
-						GLib.DBusSignalFlags.NONE,
-						on_gnome_properties_changed
+						GLib.DBusCallFlags.NONE,
+						200,
+						null
 					);
+					kde_max_brightness = reply_max.get_child_value (0).get_int32 ();
+					kde_available = (kde_max_brightness > 0);
+				} catch (GLib.Error e) {
+					kde_available = false;
 				}
-			} catch (GLib.Error e) {
-				session_bus = null;
+
+				// 2. Subscribe to real-time KDE brightness changes
+				kde_signal_id = session_bus.signal_subscribe (
+					"org.kde.Solid.PowerManagement",
+					"org.kde.Solid.PowerManagement.Actions.BrightnessControl",
+					"brightnessChanged",
+					"/org/kde/Solid/PowerManagement/Actions/BrightnessControl",
+					null,
+					GLib.DBusSignalFlags.NONE,
+					on_kde_brightness_changed
+				);
+
+				// 3. Subscribe to real-time GNOME brightness changes
+				gnome_signal_id = session_bus.signal_subscribe (
+					"org.gnome.SettingsDaemon.Power",
+					"org.freedesktop.DBus.Properties",
+					"PropertiesChanged",
+					"/org/gnome/SettingsDaemon/Power",
+					null,
+					GLib.DBusSignalFlags.NONE,
+					on_gnome_properties_changed
+				);
 			}
 
-			try {
-				system_bus = GLib.Bus.get_sync (GLib.BusType.SYSTEM, null);
-			} catch (GLib.Error e) {
-				system_bus = null;
-			}
+			system_bus = DbusBroker.get_default ().get_system_bus ();
 		}
 
 		private void on_kde_brightness_changed (GLib.DBusConnection conn, string? sender, string path, string iface, string sig_name, GLib.Variant sig_params)
@@ -416,54 +342,12 @@ namespace Plank
 
 		private void detect_backlight_device ()
 		{
-			backlight_devices.clear ();
-			var dir = GLib.File.new_for_path ("/sys/class/backlight");
-			try {
-				var enumerator = dir.enumerate_children ("standard::name", GLib.FileQueryInfoFlags.NONE);
-				GLib.FileInfo? info = null;
-				string? preferred_dev = null;
-				string? fallback_dev = null;
-				while ((info = enumerator.next_file ()) != null) {
-					string dev = info.get_name ();
-					string max_path = "/sys/class/backlight/%s/max_brightness".printf (dev);
-					string cur_path = "/sys/class/backlight/%s/brightness".printf (dev);
-					if (GLib.FileUtils.test (max_path, GLib.FileTest.EXISTS) && GLib.FileUtils.test (cur_path, GLib.FileTest.EXISTS)) {
-						backlight_devices.add (dev);
-						if (!dev.has_prefix ("acpi_video")) {
-							if (preferred_dev == null)
-								preferred_dev = dev;
-						} else {
-							if (fallback_dev == null)
-								fallback_dev = dev;
-						}
-					}
-				}
-				backlight_device = (preferred_dev != null) ? preferred_dev : fallback_dev;
-				if (backlight_device != null)
-					read_max_brightness ();
-			} catch (GLib.Error e) {
-				backlight_device = null;
-			}
+			string? preferred = null;
+			uint32 max_raw = 100;
+			backlight_devices = hal_kernel_backlight_detect_devices (out preferred, out max_raw);
+			backlight_device = preferred;
+			max_raw_brightness = max_raw;
 			setup_sysfs_monitor ();
-		}
-
-		private uint32 get_device_max_brightness (string dev)
-		{
-			string path = "/sys/class/backlight/%s/max_brightness".printf (dev);
-			try {
-				string content;
-				GLib.FileUtils.get_contents (path, out content);
-				int64 val = int64.parse (content.strip ());
-				if (val > 0)
-					return (uint32) val;
-			} catch (GLib.Error e) { }
-			return 100;
-		}
-
-		private void read_max_brightness ()
-		{
-			if (backlight_device == null) return;
-			max_raw_brightness = get_device_max_brightness (backlight_device);
 		}
 
 		private void refresh_kscreen_outputs ()
@@ -734,21 +618,14 @@ namespace Plank
 
 			// 1. Direct hardware backlight device (Physical ground truth for laptop internal panels: AMD, Intel, NVIDIA/ACPI)
 			if (backlight_device != null) {
-				string actual_path = "/sys/class/backlight/%s/actual_brightness".printf (backlight_device);
-				string cur_path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
-				string path = GLib.FileUtils.test (actual_path, GLib.FileTest.EXISTS) ? actual_path : cur_path;
-				try {
-					string content;
-					GLib.FileUtils.get_contents (path, out content);
-					int64 raw = int64.parse (content.strip ());
-					if (raw >= 0) {
-						if (raw > max_raw_brightness)
-							max_raw_brightness = (uint32) raw;
-						if (max_raw_brightness > 0) {
-							initial_pct = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
-						}
+				int64 raw = hal_kernel_backlight_read_raw (backlight_device);
+				if (raw >= 0) {
+					if (raw > max_raw_brightness)
+						max_raw_brightness = (uint32) raw;
+					if (max_raw_brightness > 0) {
+						initial_pct = (int) Math.round (((double) raw / (double) max_raw_brightness) * 100.0);
 					}
-				} catch (GLib.Error e) { }
+				}
 			}
 
 			if (initial_pct >= 0) {
@@ -1016,10 +893,7 @@ namespace Plank
 				} else if (backlight_device != null) {
 					uint32 target_raw = (uint32) Math.round (((double) target / 100.0) * (double) max_raw_brightness);
 					if (target_raw < 1) target_raw = 1;
-					string path = "/sys/class/backlight/%s/brightness".printf (backlight_device);
-					try {
-						GLib.FileUtils.set_contents (path, target_raw.to_string ());
-					} catch (GLib.Error e) { }
+					hal_kernel_backlight_write_raw (backlight_device, target_raw);
 				}
 
 				// 4. Non-KDE External Display Synchronization via Dedicated Serialized Coalescing Worker
@@ -1083,7 +957,7 @@ namespace Plank
 				}
 
 				foreach (int d_num in displays) {
-					// Check if a newer target arrived while waiting for slow I2C bus!
+					// Check if a newer target arrived while waiting for hardware bus!
 					ddc_mutex.lock ();
 					if (pending_ddc_target >= 0) {
 						ddc_mutex.unlock ();

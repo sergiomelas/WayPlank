@@ -96,6 +96,14 @@ namespace Plank
 		public abstract void reexec_self_on_upgrade (string executable_path, string? dock_name);
 		public abstract void exit_immediately (int status_code);
 		public abstract string[] parse_command_argv (string cmdline);
+		public virtual string quote_command_arg (string arg)
+		{
+			if (arg == "")
+				return "\"\"";
+			if (!arg.contains (" ") && !arg.contains ("\t") && !arg.contains ("\""))
+				return arg;
+			return "\"" + arg.replace ("\"", "\\\"") + "\"";
+		}
 		public virtual void invalidate_process_cache (int pid) {}
 		public abstract void cleanup ();
 	}

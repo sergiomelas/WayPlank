@@ -46,10 +46,51 @@ namespace Plank
 			return desktop.down ().contains ("gnome") || desktop.down ().contains ("ubuntu");
 		}
 
+		static string build_default_screenshot_path ()
+		{
+			var base_dir = Environment.get_user_special_dir (UserDirectory.PICTURES) ?? Environment.get_home_dir ();
+			var screenshots_dir = Path.build_filename (base_dir, "Screenshots");
+			DirUtils.create_with_parents (screenshots_dir, 0755);
+			string dir_to_use = FileUtils.test (screenshots_dir, FileTest.IS_DIR) ? screenshots_dir : base_dir;
+			var time_str = new DateTime.now_local ().format ("%Y-%m-%d_%H-%M-%S");
+			return Path.build_filename (dir_to_use, "Screenshot_%s.png".printf (time_str));
+		}
+
+		static bool invoke_gnome_bridge_screenshot (string mode, string filepath = "")
+		{
+			try {
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
+				var reply = bus.call_sync (
+					"org.wayplank.GnomeBridge",
+					"/org/wayplank/GnomeBridge",
+					"org.wayplank.GnomeBridge",
+					"TakeScreenshot",
+					new Variant ("(ss)", mode, filepath),
+					new VariantType ("(b)"),
+					DBusCallFlags.NO_AUTO_START,
+					4000,
+					null
+				);
+				bool ok = false;
+				reply.get ("(b)", out ok);
+				if (ok && filepath != "" && FileUtils.test (filepath, FileTest.IS_REGULAR)) {
+					NotificationDbusService.get_default ().send_toast (_("Screenshot"), filepath, "applets-screenshooter");
+				}
+				return ok;
+			} catch (Error e) {
+				debug ("GnomeBridge.TakeScreenshot unavailable (%s): %s", mode, e.message);
+				return false;
+			}
+		}
+
 		static bool invoke_portal_screenshot (bool interactive)
 		{
 			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
 				var builder = new VariantBuilder (new VariantType ("a{sv}"));
 				builder.add ("{sv}", "interactive", new Variant.boolean (interactive));
 				bus.call_sync ("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
@@ -66,6 +107,8 @@ namespace Plank
 		public void capture_interactive_region ()
 		{
 			if (is_gnome_session ()) {
+				if (invoke_gnome_bridge_screenshot ("interactive"))
+					return;
 				if (Environment.find_program_in_path ("gnome-screenshot") != null) {
 					try {
 						Process.spawn_command_line_async ("gnome-screenshot -a");
@@ -114,6 +157,8 @@ namespace Plank
 		public void capture_full_screen ()
 		{
 			if (is_gnome_session ()) {
+				if (invoke_gnome_bridge_screenshot ("fullscreen", build_default_screenshot_path ()))
+					return;
 				if (Environment.find_program_in_path ("gnome-screenshot") != null) {
 					try {
 						Process.spawn_command_line_async ("gnome-screenshot");
@@ -160,6 +205,8 @@ namespace Plank
 		public void capture_active_window ()
 		{
 			if (is_gnome_session ()) {
+				if (invoke_gnome_bridge_screenshot ("window", build_default_screenshot_path ()))
+					return;
 				if (Environment.find_program_in_path ("gnome-screenshot") != null) {
 					try {
 						Process.spawn_command_line_async ("gnome-screenshot -w");

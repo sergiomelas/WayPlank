@@ -143,11 +143,28 @@ namespace Plank
 		}
 
 		bool folder_drop_pending = false;
+		static GLib.File? active_folder_drag_file = null;
+		static FileDockItem? active_folder_drag_item = null;
+
+		public static bool has_active_folder_drag ()
+		{
+			return (active_folder_drag_file != null);
+		}
+
+		public static bool consume_active_folder_drag (out GLib.File? src_file, out FileDockItem? src_folder)
+		{
+			src_file = active_folder_drag_file;
+			src_folder = active_folder_drag_item;
+			active_folder_drag_file = null;
+			active_folder_drag_item = null;
+			return (src_file != null);
+		}
 
 		void setup_drag_dest ()
 		{
 			string[] core_atoms = {
 				"text/uri-list",
+				"text/plank-uri-list",
 				"text/plain;charset=utf-8",
 				"UTF8_STRING",
 				"text/plain"
@@ -180,7 +197,7 @@ namespace Plank
 			});
 
 			drag_drop.connect ((context, x, y, time_) => {
-				if (current_dir == null)
+				if (current_dir == null || active_folder_drag_file != null)
 					return false;
 				folder_drop_pending = true;
 				pointer_inside = true;
@@ -197,6 +214,31 @@ namespace Plank
 				if (!folder_drop_pending)
 					return;
 				folder_drop_pending = false;
+
+				DragManager? active_mgr = null;
+				if (controller != null && controller.drag_manager != null) {
+					active_mgr = controller.drag_manager.InternalDragActive
+						? controller.drag_manager
+						: controller.drag_manager.get_peer_dock_drag ();
+				}
+				if (current_dir != null && active_mgr != null
+					&& active_mgr.DragItem is ApplicationDockItem
+					&& !(active_mgr.DragItem is TransientDockItem)
+					&& !(active_mgr.DragItem is FileDockItem)) {
+					unowned DefaultApplicationDockItemProvider? src_prov = active_mgr.DragItem.Container as DefaultApplicationDockItemProvider;
+					if (src_prov != null && controller != null && !controller.prefs.LockItems) {
+						var moving_app = (ApplicationDockItem) active_mgr.DragItem;
+						active_mgr.mark_internal_drop_handled ();
+						bool moved = src_prov.move_pinned_item_to_folder (moving_app, TargetItem, current_dir);
+						if (moved) {
+							populate_items ();
+							show_all ();
+							update_position (true);
+						}
+						Gtk.drag_finish (context, moved, false, time_);
+						return;
+					}
+				}
 
 				var uris = new Gee.ArrayList<string> ();
 				foreach (var native_uri in Hal.Apps.decode_native_drop_selection (selection_data)) {
@@ -623,7 +665,7 @@ namespace Plank
 					if (info.get_is_hidden ())
 						continue;
 					var name = info.get_name ();
-					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+					if (Hal.Apps.is_folder_metadata_file (name))
 						continue;
 					if (count++ >= FOLDER_MAX_FILE_COUNT)
 						break;
@@ -696,7 +738,13 @@ namespace Plank
 
 					int win_count = WindowManager.get_default ().window_count_for_app (uri);
 					var row = create_row (icon, text, false, show_running ? win_count : 0);
-					row.add_events (Gdk.EventMask.SCROLL_MASK);
+					row.add_events (
+						Gdk.EventMask.SCROLL_MASK |
+						Gdk.EventMask.BUTTON_PRESS_MASK |
+						Gdk.EventMask.BUTTON_RELEASE_MASK |
+						Gdk.EventMask.BUTTON1_MOTION_MASK |
+						Gdk.EventMask.POINTER_MOTION_MASK
+					);
 					row.enter_notify_event.connect (() => {
 						hovered_app_uri = uri;
 						hovered_win_count = win_count;
@@ -712,6 +760,12 @@ namespace Plank
 					row.scroll_event.connect ((event) => {
 						return handle_app_scroll (uri, win_count, event);
 					});
+
+					bool primary_armed = false;
+					bool row_drag_started = false;
+					double press_x = 0.0;
+					double press_y = 0.0;
+
 					row.button_press_event.connect ((event) => {
 						bool is_ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK) != 0;
 						if (event.button == 2 || (event.button == 1 && is_ctrl)) {
@@ -722,32 +776,10 @@ namespace Plank
 							close_menu (true);
 							return true;
 						} else if (event.button == 1) {
-							bool is_shift = (event.state & Gdk.ModifierType.SHIFT_MASK) != 0;
-							if (win_count > 0) {
-								if (is_shift) {
-									string? cycle_uuid;
-									if (WindowManager.get_default ().cycle_window (uri, true, out cycle_uuid)) {
-										Hal.Windows.perform_window_action (cycle_uuid, WindowAction.ACTIVATE);
-										close_menu (true);
-										return true;
-									}
-								}
-								int click_behavior = controller.prefs.WindowClickBehavior;
-								bool restore_minimized = controller.prefs.RestoreMinimizedWindows;
-								string? uuid;
-								string action;
-								if (WindowManager.get_default ().resolve_click_command (uri, click_behavior, restore_minimized, out uuid, out action)) {
-									Hal.Windows.perform_window_action (uuid, WindowAction.from_command_name (action));
-									if (TargetItem != null)
-										TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
-									close_menu (true);
-									return true;
-								}
-							}
-							System.get_default ().launch (child);
-							if (TargetItem != null)
-								TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
-							close_menu (true);
+							primary_armed = true;
+							row_drag_started = false;
+							press_x = event.x;
+							press_y = event.y;
 							return true;
 						} else if (event.button == 3) {
 							// Right click: show app context menu anchored to row
@@ -755,6 +787,56 @@ namespace Plank
 							return true;
 						}
 						return false;
+					});
+
+					row.motion_notify_event.connect ((event) => {
+						if (!primary_armed || row_drag_started || controller == null || controller.prefs.LockItems)
+							return false;
+						if ((event.state & Gdk.ModifierType.BUTTON1_MASK) == 0)
+							return false;
+						if (Gtk.drag_check_threshold (row, (int) Math.round (press_x), (int) Math.round (press_y), (int) Math.round (event.x), (int) Math.round (event.y))) {
+							primary_armed = false;
+							row_drag_started = true;
+							begin_row_drag_to_dock (row, event, child, icon, (int) Math.round (press_x), (int) Math.round (press_y));
+							return true;
+						}
+						return false;
+					});
+
+					row.button_release_event.connect ((event) => {
+						if (event.button != 1 || !primary_armed)
+							return false;
+						primary_armed = false;
+						if (row_drag_started)
+							return true;
+
+						bool is_shift = (event.state & Gdk.ModifierType.SHIFT_MASK) != 0;
+						if (win_count > 0) {
+							if (is_shift) {
+								string? cycle_uuid;
+								if (WindowManager.get_default ().cycle_window (uri, true, out cycle_uuid)) {
+									Hal.Windows.perform_window_action (cycle_uuid, WindowAction.ACTIVATE);
+									close_menu (true);
+									return true;
+								}
+							}
+							int click_behavior = controller.prefs.WindowClickBehavior;
+							bool restore_minimized = controller.prefs.RestoreMinimizedWindows;
+							string? uuid;
+							string action;
+							if (WindowManager.get_default ().resolve_click_command (uri, click_behavior, restore_minimized, out uuid, out action)) {
+								Hal.Windows.perform_window_action (uuid, WindowAction.from_command_name (action));
+								if (TargetItem != null)
+									TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
+								close_menu (true);
+								return true;
+							}
+						}
+						System.get_default ().launch (child);
+						if (TargetItem != null)
+							TargetItem.clicked (PopupButton.LEFT, 0, Gtk.get_current_event_time ());
+						close_menu (true);
+						return true;
 					});
 					items_box.pack_start (row, false, false, 0);
 					item_count++;
@@ -809,7 +891,7 @@ namespace Plank
 					if (info.get_is_hidden ())
 						continue;
 					var name = info.get_name ();
-					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+					if (Hal.Apps.is_folder_metadata_file (name))
 						continue;
 					var child_uri = dir.get_child (name).get_uri ();
 					if (Hal.Apps.is_launcher_uri (child_uri)) {
@@ -1061,6 +1143,25 @@ namespace Plank
 				menu.append (recent_item);
 			}
 
+			if (controller != null && !controller.prefs.LockItems) {
+				if (menu.get_children ().length () > 0)
+					menu.append (new Gtk.SeparatorMenuItem ());
+				var move_dock_item = DockElement.create_menu_item (_("Move to _Dock"), "list-add", true);
+				var ctrl_ref = GLib.WeakRef (controller);
+				var target_folder_ref = GLib.WeakRef (TargetItem);
+				move_dock_item.activate.connect (() => {
+					var ctrl = ctrl_ref.get () as DockController;
+					var src_folder = target_folder_ref.get () as FileDockItem;
+					if (ctrl != null) {
+						unowned DefaultApplicationDockItemProvider? app_prov = ctrl.default_provider as DefaultApplicationDockItemProvider;
+						if (app_prov != null)
+							app_prov.move_folder_launcher_to_dock (child, src_folder, null);
+					}
+					close_menu (true);
+				});
+				menu.append (move_dock_item);
+			}
+
 			// Context menu dismiss handling: keep folder menu open if context menu is cancelled
 			menu.hide.connect (() => {
 				context_menu_active = false;
@@ -1070,6 +1171,47 @@ namespace Plank
 
 			menu.show_all ();
 			menu.popup_at_pointer ((Gdk.Event) event);
+		}
+
+		void begin_row_drag_to_dock (Gtk.Widget row, Gdk.EventMotion event, GLib.File child, string icon_name, int start_x, int start_y)
+		{
+			active_folder_drag_file = child;
+			active_folder_drag_item = TargetItem;
+			cancel_dismiss_timer ();
+			context_menu_active = true;
+
+			string drag_uri = child.get_uri ();
+			row.drag_data_get.connect ((ctx, sel, info, time_) => {
+				sel.set_uris ({ drag_uri });
+			});
+			row.drag_end.connect ((ctx) => {
+				context_menu_active = false;
+				active_folder_drag_file = null;
+				active_folder_drag_item = null;
+				close_menu (true);
+			});
+
+			Gtk.TargetEntry te = { "text/uri-list", 0, 0 };
+			var targets = new Gtk.TargetList ({ te });
+			var drag_ctx = Gtk.drag_begin_with_coordinates (
+				row,
+				targets,
+				Gdk.DragAction.COPY | Gdk.DragAction.MOVE,
+				(int) Gdk.BUTTON_PRIMARY,
+				(Gdk.Event) event,
+				start_x,
+				start_y
+			);
+			if (drag_ctx != null) {
+				int drag_px = (controller != null) ? int.max (32, controller.position_manager.IconSize) : 48;
+				var pb = DrawingService.load_icon (icon_name, drag_px, drag_px);
+				if (pb != null)
+					Gtk.drag_set_icon_pixbuf (drag_ctx, pb, drag_px / 2, drag_px / 2);
+			} else {
+				context_menu_active = false;
+				active_folder_drag_file = null;
+				active_folder_drag_item = null;
+			}
 		}
 
 		public void update_position (bool force = false)

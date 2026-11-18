@@ -23,9 +23,8 @@ namespace Plank
 	/**
 	 * Southbound Linux/POSIX runtime driver implementing `IPlatformRuntime`.
 	 * Owns POSIX signals, process titles, `/proc` instance replacement, `fork()`
-	 * KeyFile isolation, `systemd-logind` / `ScreenSaver` resume listeners,
-	 * `SIGWINCH` `/proc/self/exe` binary-upgrade detection, `curl`, `tar`/`unzip`,
-	 * and XDG desktop utility dispatch.
+	 * KeyFile isolation, `SIGWINCH` `/proc/self/exe` binary-upgrade detection,
+	 * `curl`, `tar`/`unzip`, and command-line tokenization/quoting.
 	 */
 	public class LinuxPlatformRuntime : GLib.Object, IPlatformRuntime
 	{
@@ -38,7 +37,6 @@ namespace Plank
 			return instance;
 		}
 
-		string? saved_gtk_use_portal = null;
 		bool lifecycle_installed = false;
 		bool session_watchers_installed = false;
 		uint sigint_source_id = 0U;
@@ -48,97 +46,9 @@ namespace Plank
 		string startup_exe_path = "";
 		bool upgrade_dispatched = false;
 
-		uint login_sleep_sub_id = 0U;
-		uint login_unlock_sub_id = 0U;
-		Gee.ArrayList<uint>? screensaver_sub_ids = null;
-
-		private static bool launch_desktop_commands (string[] kde_cmds, string[] gnome_cmds, string[] generic_cmds)
-		{
-			var ordered = new Gee.ArrayList<string> ();
-			if (environment_is_session_desktop (XdgSessionDesktop.KDE)) {
-				foreach (unowned string c in kde_cmds) ordered.add (c);
-				foreach (unowned string c in generic_cmds) ordered.add (c);
-				foreach (unowned string c in gnome_cmds) ordered.add (c);
-			} else if (environment_is_session_desktop (XdgSessionDesktop.GNOME | XdgSessionDesktop.UBUNTU)) {
-				foreach (unowned string c in gnome_cmds) ordered.add (c);
-				foreach (unowned string c in generic_cmds) ordered.add (c);
-				foreach (unowned string c in kde_cmds) ordered.add (c);
-			} else {
-				foreach (unowned string c in generic_cmds) ordered.add (c);
-				foreach (unowned string c in gnome_cmds) ordered.add (c);
-				foreach (unowned string c in kde_cmds) ordered.add (c);
-			}
-
-			foreach (var cmd in ordered) {
-				var trimmed = cmd.strip ();
-				if (trimmed == "")
-					continue;
-				var prog = trimmed.split (" ")[0];
-				if (GLib.Environment.find_program_in_path (prog) != null) {
-					try {
-						GLib.Process.spawn_command_line_async (trimmed);
-						return true;
-					} catch (GLib.Error e) { }
-				}
-			}
-
-			return false;
-		}
-
 		public bool open_system_utility (DesktopUtilityKind kind)
 		{
-			switch (kind) {
-			case DesktopUtilityKind.DATE_TIME_SETTINGS:
-				return launch_desktop_commands (
-					{ "kcmshell6 kcm_clock", "kcmshell5 kcm_clock" },
-					{ "gnome-control-center datetime" },
-					{ "xfce4-datetime-settings" }
-				);
-			case DesktopUtilityKind.CALENDAR:
-				return launch_desktop_commands (
-					{ "merkuro-calendar", "kalendar", "korganizer" },
-					{ "gnome-calendar" },
-					{ "xfce4-calendar" }
-				);
-			case DesktopUtilityKind.POWER_SETTINGS:
-				return launch_desktop_commands (
-					{ "kcmshell6 powerdevilprofilesconfig", "kcmshell5 powerdevilprofilesconfig" },
-					{ "gnome-control-center power" },
-					{ "xfce4-power-manager-settings" }
-				);
-			case DesktopUtilityKind.SOUND_SETTINGS:
-				return launch_desktop_commands (
-					{ "kcmshell6 kcm_pulseaudio", "kcmshell5 kcm_pulseaudio" },
-					{ "gnome-control-center sound" },
-					{ "pavucontrol" }
-				);
-			case DesktopUtilityKind.NETWORK_SETTINGS:
-				return launch_desktop_commands (
-					{ "kcmshell6 kcm_networkmanagement", "kcmshell5 kcm_networkmanagement" },
-					{ "gnome-control-center wifi", "gnome-control-center network" },
-					{ "nm-connection-editor" }
-				);
-			case DesktopUtilityKind.DISPLAY_SETTINGS:
-				return launch_desktop_commands (
-					{ "systemsettings kcm_kscreen", "kcmshell6 kcm_kscreen", "kcmshell5 kcm_kscreen" },
-					{ "gnome-control-center display" },
-					{ "wdisplays", "arandr" }
-				);
-			case DesktopUtilityKind.NOTIFICATION_SETTINGS:
-				return launch_desktop_commands (
-					{ "kcmshell6 kcm_notifications", "kcmshell5 kcm_notifications", "systemsettings kcm_notifications" },
-					{ "gnome-control-center notifications" },
-					{ "swaync-client -t -sw", "xfce4-notifyd-config" }
-				);
-			case DesktopUtilityKind.SYSTEM_MONITOR:
-				return launch_desktop_commands (
-					{ "plasma-systemmonitor", "ksysguard" },
-					{ "gnome-system-monitor" },
-					{ "xfce4-taskmanager", "lxtask" }
-				);
-			default:
-				return false;
-			}
+			return false;
 		}
 
 		public bool open_uri (string uri, Gtk.Window? parent = null)
@@ -237,12 +147,12 @@ namespace Plank
 
 		public bool is_autostart_enabled ()
 		{
-			return XdgAutostart.is_enabled ();
+			return false;
 		}
 
 		public bool set_autostart_enabled (bool enabled)
 		{
-			return XdgAutostart.set_enabled (enabled);
+			return false;
 		}
 
 		public void terminate_legacy_competing_docks ()
@@ -341,26 +251,20 @@ namespace Plank
 
 		public void prepare_process_environment ()
 		{
-			saved_gtk_use_portal = Environment.get_variable ("GTK_USE_PORTAL");
 			Environment.set_variable ("GTK_USE_PORTAL", "0", true);
 		}
 
 		public void restore_process_environment ()
 		{
-			if (saved_gtk_use_portal != null)
-				Environment.set_variable ("GTK_USE_PORTAL", saved_gtk_use_portal, true);
-			else
-				Environment.unset_variable ("GTK_USE_PORTAL");
+			// Keep GTK_USE_PORTAL=0 active inside WayPlank's own GTK3 process so
+			// URI/file dialogs never stall on desktop portal timeouts; spawned child
+			// applications receive a clean launch environment from the app launcher.
 		}
 
 		public bool verify_supported_display (Gdk.Display? display, out string error_message)
 		{
-			if (display != null && display.get_type ().name () == "GdkWaylandDisplay") {
-				error_message = "";
-				return true;
-			}
-			error_message = _("WayPlank is designed exclusively for Wayland sessions.");
-			return false;
+			error_message = "";
+			return display != null;
 		}
 
 		public string get_self_launcher_id ()
@@ -499,77 +403,7 @@ namespace Plank
 				return;
 			session_watchers_installed = true;
 
-			// 1. systemd-logind sleep/resume + session unlock signals (system bus)
-			var system_bus = DbusBroker.get_default ().get_system_bus ();
-			if (system_bus != null) {
-				login_sleep_sub_id = system_bus.signal_subscribe (
-					"org.freedesktop.login1",
-					"org.freedesktop.login1.Manager",
-					"PrepareForSleep",
-					"/org/freedesktop/login1",
-					null,
-					DBusSignalFlags.NONE,
-					(conn, sender, path, iface, signal_name, parameters) => {
-						bool is_sleeping = false;
-						parameters.get ("(b)", out is_sleeping);
-						if (!is_sleeping) {
-							message ("System resumed from suspend/hibernate! Scheduling dock refresh...");
-							system_resumed (800);
-						}
-					}
-				);
-				debug ("Subscribed to systemd-logind PrepareForSleep signal");
-
-				login_unlock_sub_id = system_bus.signal_subscribe (
-					"org.freedesktop.login1",
-					"org.freedesktop.login1.Session",
-					"Unlock",
-					null,
-					null,
-					DBusSignalFlags.NONE,
-					(conn, sender, path, iface, signal_name, parameters) => {
-						message ("systemd-logind Session Unlock detected! Scheduling dock refresh...");
-						system_resumed (500);
-					}
-				);
-				debug ("Subscribed to systemd-logind Session.Unlock signal");
-			} else {
-				debug ("Unable to subscribe to systemd-logind signals: system bus unavailable");
-			}
-
-			// 2. ScreenSaver / Screen Lock unlock events (session bus: freedesktop + GNOME)
-			var session_bus = DbusBroker.get_default ().get_session_bus ();
-			if (session_bus != null) {
-				screensaver_sub_ids = new Gee.ArrayList<uint> ();
-				string[] screensaver_ifaces = {
-					"org.freedesktop.ScreenSaver",
-					"org.gnome.ScreenSaver"
-				};
-				foreach (unowned string ss_iface in screensaver_ifaces) {
-					uint sub_id = session_bus.signal_subscribe (
-						null,
-						ss_iface,
-						"ActiveChanged",
-						null,
-						null,
-						DBusSignalFlags.NONE,
-						(conn, sender, path, iface, signal_name, parameters) => {
-							bool is_active = false;
-							parameters.get ("(b)", out is_active);
-							if (!is_active) {
-								message ("Screen unlocked (%s)! Scheduling dock refresh...", iface);
-								system_resumed (500);
-							}
-						}
-					);
-					screensaver_sub_ids.add (sub_id);
-				}
-				debug ("Subscribed to ScreenSaver ActiveChanged signals");
-			} else {
-				debug ("Unable to subscribe to ScreenSaver ActiveChanged: session bus unavailable");
-			}
-
-			// 3. Binary package upgrade hot-reload watcher (SIGWINCH + /proc/self/exe)
+			// Binary package upgrade hot-reload watcher (SIGWINCH + /proc/self/exe)
 			try {
 				var resolved = FileUtils.read_link ("/proc/self/exe");
 				if (resolved.has_suffix (" (deleted)"))
@@ -626,6 +460,15 @@ namespace Plank
 			return argv;
 		}
 
+		public string quote_command_arg (string arg)
+		{
+			if (arg == "")
+				return "\"\"";
+			if (!arg.contains (" ") && !arg.contains ("\t") && !arg.contains ("\"") && !arg.contains ("'"))
+				return arg;
+			return "\"" + arg.replace ("\\", "\\\\").replace ("\"", "\\\"") + "\"";
+		}
+
 		public void cleanup ()
 		{
 			if (sigint_source_id > 0U) {
@@ -643,29 +486,6 @@ namespace Plank
 			if (upgrade_signal_source_id > 0U) {
 				GLib.Source.remove (upgrade_signal_source_id);
 				upgrade_signal_source_id = 0U;
-			}
-
-			var system_bus = DbusBroker.get_default ().get_system_bus ();
-			if (system_bus != null) {
-				if (login_sleep_sub_id > 0U) {
-					system_bus.signal_unsubscribe (login_sleep_sub_id);
-					login_sleep_sub_id = 0U;
-				}
-				if (login_unlock_sub_id > 0U) {
-					system_bus.signal_unsubscribe (login_unlock_sub_id);
-					login_unlock_sub_id = 0U;
-				}
-			}
-
-			if (screensaver_sub_ids != null && screensaver_sub_ids.size > 0) {
-				var session_bus = DbusBroker.get_default ().get_session_bus ();
-				if (session_bus != null) {
-					foreach (uint id in screensaver_sub_ids) {
-						if (id > 0U)
-							session_bus.signal_unsubscribe (id);
-					}
-				}
-				screensaver_sub_ids.clear ();
 			}
 		}
 

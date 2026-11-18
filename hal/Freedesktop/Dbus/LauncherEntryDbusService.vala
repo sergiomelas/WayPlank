@@ -66,7 +66,7 @@ namespace Plank
 				return;
 
 			if (unity_bus_id == 0U) {
-				unity_bus_id = Bus.own_name (BusType.SESSION, DBUS_NAME, BusNameOwnerFlags.ALLOW_REPLACEMENT,
+				unity_bus_id = DbusBroker.get_default ().own_session_name (DBUS_NAME, BusNameOwnerFlags.ALLOW_REPLACEMENT,
 					(BusAcquiredCallback) handle_bus_acquired, (BusNameAcquiredCallback) handle_name_acquired,
 					(BusNameLostCallback) handle_name_lost);
 			}
@@ -142,7 +142,7 @@ namespace Plank
 			clients = null;
 
 			if (unity_bus_id > 0U) {
-				Bus.unown_name (unity_bus_id);
+				DbusBroker.get_default ().unown_name (unity_bus_id);
 				unity_bus_id = 0U;
 			}
 

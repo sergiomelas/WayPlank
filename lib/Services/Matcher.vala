@@ -286,10 +286,15 @@ namespace Plank
 					continue;
 				}
 
-				string argv0 = snap.cmdline_argv.length > 0
-					? snap.cmdline_argv[0].down ()
-					: cmdline_down.split (" ")[0];
-				var bin_name = basename_any_slash (argv0);
+				string argv0 = "";
+				if (snap.cmdline_argv.length > 0) {
+					argv0 = snap.cmdline_argv[0].down ();
+				} else if (cmdline_down != "") {
+					var cmd_parts = cmdline_down.split (" ");
+					if (cmd_parts.length > 0 && cmd_parts[0] != null)
+						argv0 = cmd_parts[0];
+				}
+				var bin_name = argv0 != "" ? basename_any_slash (argv0) : "";
 				foreach (var candidate in candidates) {
 					if (candidate != "" && (comm == candidate || bin_name == candidate || (comm.length >= 15 && candidate.has_prefix (comm))))
 						return true;

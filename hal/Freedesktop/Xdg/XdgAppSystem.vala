@@ -25,7 +25,7 @@ namespace Plank
 	 *
 	 * Owns all southbound `.desktop` / `KeyFileDesktop` / `DesktopAppInfo` / GIO MIME /
 	 * XDG directory / Flatpak & Snap export / `Gtk.RecentManager` / `Gtk.IconTheme` /
-	 * `LinuxProcessInspector` operations so Zone 1 (`src/`, `lib/`) remains 100% OS-blind.
+	 * kernel process-inspector seam calls so Zone 1 (`src/`, `lib/`) remains 100% OS-blind.
 	 */
 	public class XdgAppSystem : GLib.Object, IAppSystem
 	{
@@ -389,7 +389,7 @@ namespace Plank
 		public void invalidate_cache ()
 		{
 			launcher_cache.clear ();
-			LinuxProcessInspector.clear_all_caches ();
+			hal_kernel_clear_process_caches ();
 		}
 
 		public AppDescriptor? load_launcher (string uri_or_path)
@@ -1160,7 +1160,11 @@ namespace Plank
 		static GLib.AppLaunchContext get_display_launch_context ()
 		{
 			var display = Gdk.Display.get_default ();
-			return display != null ? display.get_app_launch_context () : new GLib.AppLaunchContext ();
+			GLib.AppLaunchContext ctx = display != null ? display.get_app_launch_context () : new GLib.AppLaunchContext ();
+			ctx.unsetenv ("GTK_USE_PORTAL");
+			ctx.unsetenv ("GIO_LAUNCHED_DESKTOP_FILE");
+			ctx.unsetenv ("GIO_LAUNCHED_DESKTOP_FILE_PID");
+			return ctx;
 		}
 
 		static string strip_xdg_field_codes (string cmd)
@@ -1633,6 +1637,86 @@ namespace Plank
 			return added_files.size;
 		}
 
+		public bool ensure_launcher_folder (GLib.File folder, string display_name = "", string icon_token = "")
+		{
+			string? folder_path = folder.get_path ();
+			if (folder_path == null || folder_path == "")
+				return false;
+
+			if (DirUtils.create_with_parents (folder_path, 0755) != 0 && !FileUtils.test (folder_path, FileTest.IS_DIR))
+				return false;
+
+			var dot_dir = folder.get_child (".directory");
+			string? dot_path = dot_dir.get_path ();
+			if (dot_path != null && (display_name != "" || icon_token != "" || !dot_dir.query_exists ())) {
+				var kf = new KeyFile ();
+				if (dot_dir.query_exists ())
+					load_keyfile_safe (kf, dot_path, KeyFileFlags.KEEP_COMMENTS | KeyFileFlags.KEEP_TRANSLATIONS);
+				kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_TYPE, KeyFileDesktop.TYPE_DIRECTORY);
+				if (display_name != "")
+					kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME, display_name);
+				if (icon_token == "-") {
+					try {
+						if (kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON))
+							kf.remove_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
+					} catch { }
+				} else if (icon_token != "") {
+					kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON, icon_token);
+				} else {
+					bool has_icon = false;
+					try {
+						has_icon = kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON);
+					} catch { }
+					if (!has_icon)
+						kf.set_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_ICON, "folder");
+				}
+				try {
+					FileUtils.set_contents (dot_path, kf.to_data ());
+				} catch { }
+			}
+
+			if (icon_token == "-") {
+				try {
+					folder.set_attribute (FILE_ATTRIBUTE_CUSTOM_ICON_NAME, FileAttributeType.INVALID, null, FileQueryInfoFlags.NONE, null);
+				} catch { }
+			} else if (icon_token != "") {
+				try {
+					folder.set_attribute_string (FILE_ATTRIBUTE_CUSTOM_ICON_NAME, icon_token, FileQueryInfoFlags.NONE, null);
+				} catch { }
+			}
+
+			return true;
+		}
+
+		public bool is_folder_metadata_file (string filename)
+		{
+			return (filename == ".directory" || filename.ascii_down () == "desktop.ini");
+		}
+
+		public string get_folder_display_name (GLib.File folder)
+		{
+			var dot_dir = folder.get_child (".directory");
+			string? dot_path = dot_dir.get_path ();
+			if (dot_path == null || !FileUtils.test (dot_path, FileTest.IS_REGULAR))
+				return "";
+
+			var kf = new KeyFile ();
+			if (!load_keyfile_safe (kf, dot_path, KeyFileFlags.KEEP_TRANSLATIONS))
+				return "";
+			try {
+				if (kf.has_group (KeyFileDesktop.GROUP) && kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME)) {
+					string loc = kf.get_locale_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME, null).strip ();
+					if (loc != "")
+						return loc;
+				}
+			} catch { }
+			try {
+				if (kf.has_group (KeyFileDesktop.GROUP) && kf.has_key (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME))
+					return kf.get_string (KeyFileDesktop.GROUP, KeyFileDesktop.KEY_NAME).strip ();
+			} catch { }
+			return "";
+		}
+
 		public GLib.File? copy_launcher_to_directory (GLib.File src_launcher, GLib.File dest_dir)
 		{
 			if (!src_launcher.query_exists ())
@@ -1649,12 +1733,54 @@ namespace Plank
 					return dst;
 				src_launcher.copy (dst, FileCopyFlags.OVERWRITE, null, null);
 				string? dst_path = dst.get_path ();
-				if (dst_path != null && bname.has_suffix (".desktop"))
+				if (dst_path != null && bname.has_suffix (".desktop")) {
 					FileUtils.chmod (dst_path, 0755);
+					launcher_cache.unset (dst_path);
+				}
 				return dst;
 			} catch {
 				return null;
 			}
+		}
+
+		public GLib.File? relocate_launcher_for_dock_pin (GLib.File folder_launcher)
+		{
+			if (!folder_launcher.query_exists ())
+				return null;
+			string? src_path = folder_launcher.get_path ();
+			string? bname = folder_launcher.get_basename ();
+			if (src_path == null || bname == null || !bname.down ().has_suffix (".desktop"))
+				return null;
+
+			var parent_dir = folder_launcher.get_parent ();
+			if (parent_dir != null) {
+				foreach (var app_dir in discover_launcher_dirs ()) {
+					if (parent_dir.equal (app_dir))
+						return folder_launcher;
+				}
+			}
+
+			if (!bname.has_prefix ("wayplank-app-")) {
+				var src_desc = load_launcher (src_path);
+				string resolved_uri = resolve_launcher_uri (bname);
+				string? resolved_path = uri_or_path_to_local_path (resolved_uri);
+				if (src_desc != null && !src_desc.has_custom_icon_override
+					&& resolved_path != null && resolved_path != src_path
+					&& FileUtils.test (resolved_path, FileTest.IS_REGULAR)) {
+					var existing_desc = load_launcher (resolved_path);
+					if (existing_desc != null
+						&& existing_desc.exec_command == src_desc.exec_command
+						&& existing_desc.icon_token == src_desc.icon_token
+						&& existing_desc.unlocalized_name == src_desc.unlocalized_name) {
+						return File.new_for_path (resolved_path);
+					}
+				}
+			}
+
+			string user_apps_dir = Path.build_filename (Environment.get_user_data_dir (), "applications");
+			DirUtils.create_with_parents (user_apps_dir, 0755);
+			var dest_dir = File.new_for_path (user_apps_dir);
+			return copy_launcher_to_directory (folder_launcher, dest_dir);
 		}
 
 		static string extract_primary_exec_path (string exec_cmd)
@@ -1893,41 +2019,30 @@ namespace Plank
 			string mount_dir = extract_mount_root_prefix (exec_path);
 
 			if (mount_dir == "" && exec_path != "") {
-				var my_uid = Posix.getuid ();
-				try {
-					var proc_dir = Dir.open ("/proc", 0);
-					unowned string? entry = null;
-					while ((entry = proc_dir.read_name ()) != null) {
-						int pid = int.parse (entry);
-						if (pid <= 0)
-							continue;
-						Posix.Stat st;
-						if (Posix.stat ("/proc/%s".printf (entry), out st) != 0 || st.st_uid != my_uid)
-							continue;
-						var snap = LinuxProcessInspector.inspect_process (pid, false);
-						if (!snap.is_alive)
-							continue;
-						bool matched_proc = false;
-						if (snap.env_appimage != "") {
-							if (snap.env_appimage == exec_path || Path.get_basename (snap.env_appimage).down () == exec_base)
-								matched_proc = true;
-						}
-						if (!matched_proc && exec_stem.length >= 3 && snap.exe_realpath.has_prefix ("/tmp/.mount_")) {
-							string exe_b = strip_portable_bundle_stem (snap.exe_realpath);
-							if (exe_b == exec_stem || exe_b == clean_stem)
-								matched_proc = true;
-						}
-						if (matched_proc) {
-							mount_dir = extract_mount_root_prefix (snap.exe_realpath);
-							if (mount_dir == "")
-								mount_dir = extract_mount_root_prefix (snap.working_dir);
-							if (mount_dir == "")
-								mount_dir = extract_mount_root_prefix (snap.full_cmdline);
-							if (mount_dir != "")
-								break;
-						}
+				foreach (var proc_entry in hal_kernel_scan_user_processes ()) {
+					var snap = hal_kernel_inspect_process (proc_entry.pid, false);
+					if (!snap.is_alive)
+						continue;
+					bool matched_proc = false;
+					if (snap.env_appimage != "") {
+						if (snap.env_appimage == exec_path || Path.get_basename (snap.env_appimage).down () == exec_base)
+							matched_proc = true;
 					}
-				} catch { }
+					if (!matched_proc && exec_stem.length >= 3 && snap.exe_realpath.has_prefix ("/tmp/.mount_")) {
+						string exe_b = strip_portable_bundle_stem (snap.exe_realpath);
+						if (exe_b == exec_stem || exe_b == clean_stem)
+							matched_proc = true;
+					}
+					if (matched_proc) {
+						mount_dir = extract_mount_root_prefix (snap.exe_realpath);
+						if (mount_dir == "")
+							mount_dir = extract_mount_root_prefix (snap.working_dir);
+						if (mount_dir == "")
+							mount_dir = extract_mount_root_prefix (snap.full_cmdline);
+						if (mount_dir != "")
+							break;
+					}
+				}
 			}
 
 			if (mount_dir == "" && exec_stem.length >= 3) {
@@ -2078,7 +2193,7 @@ namespace Plank
 			return bname.has_prefix ("wayplank-app-");
 		}
 
-		public bool delete_synthetic_launcher (string launcher_uri)
+		public bool delete_synthetic_launcher (string launcher_uri, bool keep_shared_assets = false)
 		{
 			if (!is_synthetic_launcher (launcher_uri))
 				return false;
@@ -2090,7 +2205,8 @@ namespace Plank
 				stem = stem.substring ("wayplank-app-".length);
 			if (FileUtils.unlink (local) == 0) {
 				launcher_cache.unset (local);
-				delete_synthetic_bundle_icons (stem);
+				if (!keep_shared_assets)
+					delete_synthetic_bundle_icons (stem);
 				return true;
 			}
 			return false;
@@ -2531,22 +2647,22 @@ namespace Plank
 
 		public ProcessSnapshot inspect_process (int pid, bool include_children_and_fds = false)
 		{
-			return LinuxProcessInspector.inspect_process (pid, include_children_and_fds);
+			return hal_kernel_inspect_process (pid, include_children_and_fds);
 		}
 
 		public bool is_process_alive (int pid)
 		{
-			return LinuxProcessInspector.is_process_alive (pid);
+			return hal_kernel_is_process_alive (pid);
 		}
 
 		public Gee.ArrayList<ProcessSnapshot> scan_user_processes ()
 		{
-			return LinuxProcessInspector.scan_user_processes ();
+			return hal_kernel_scan_user_processes ();
 		}
 
 		public int find_pid_by_app_hint (string app_hint, string caption_hint = "")
 		{
-			return LinuxProcessInspector.find_pid_by_app_hint (app_hint, caption_hint);
+			return hal_kernel_find_pid_by_app_hint (app_hint, caption_hint);
 		}
 
 		static bool is_generic_recent_wrapper_bin (string bin)
@@ -2901,7 +3017,7 @@ namespace Plank
 			cancel_browser_session_monitors ();
 			cancel_directory_monitors ();
 			launcher_cache.clear ();
-			LinuxProcessInspector.clear_all_caches ();
+			hal_kernel_clear_process_caches ();
 		}
 	}
 }

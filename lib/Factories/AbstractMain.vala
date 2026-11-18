@@ -50,6 +50,10 @@ namespace Plank
 			is_shutting_down = true;
 
 			if (app_instance != null) {
+				if (app_instance.arbitration_timer_id > 0U) {
+					GLib.Source.remove (app_instance.arbitration_timer_id);
+					app_instance.arbitration_timer_id = 0U;
+				}
 				if (app_instance.resume_timer_id > 0U) {
 					GLib.Source.remove (app_instance.resume_timer_id);
 					app_instance.resume_timer_id = 0U;
@@ -154,9 +158,9 @@ namespace Plank
 		 */
 		public string app_copyright { get; construct; }
 		/**
-		 * The (unique) dbus path for this program.
+		 * The unique application ID / namespace for this program.
 		 */
-		public string app_dbus { get; construct; }
+		public string app_namespace { get; construct; }
 		/**
 		 * The name of this program's icon.
 		 */
@@ -279,10 +283,10 @@ namespace Plank
 			string? raw_dock_opt = null;
 			if (options.lookup ("name", "s", out raw_dock_opt) && raw_dock_opt != null && raw_dock_opt != "") {
 				dock_name = Hal.Runtime.sanitize_dock_name (raw_dock_opt);
-				application_id = "%s.%s".printf (app_dbus, dock_name);
+				application_id = "%s.%s".printf (app_namespace, dock_name);
 			} else {
 				dock_name = "";
-				application_id = app_dbus;
+				application_id = app_namespace;
 			}
 			
 			return -1;
@@ -326,7 +330,7 @@ namespace Plank
 			assert (build_version_info != null);
 			assert (program_name != null);
 			assert (exec_name != null);
-			assert (app_dbus != null);
+			assert (app_namespace != null);
 			
 			base.startup ();
 
@@ -382,64 +386,626 @@ namespace Plank
 			if (dock_name != null && dock_name != "") {
 				message ("Running with 1 dock ('%s')", dock_name);
 				add_dock (create_dock (dock_name));
-				if (primary_dock != null && primary_dock.prefs.load_environment_failed)
+				foreach (var d in docks)
+					d.flush_pending_serialization ();
+				DockPreferences.finish_startup_phase ();
+				if (primary_dock != null && has_any_dock_load_environment_failed ())
 					show_load_environment_failed (primary_dock);
 				else if (primary_dock != null && primary_dock.is_first_run_launch)
 					show_first_run (primary_dock);
 				return;
 			}
-			
-			var settings = create_settings ("net.launchpad.plank");
-			var enabled_docks = settings.get_strv ("enabled-docks");
-			
-			// Allow up to 8 docks, sanitizing and deduplicating names
+
+			// Always construct undeletable dock1 FIRST so DockPreferences.load_latch_state ()
+			// validates latch-state.ini in an isolated subprocess + per-key try/catch before
+			// inspecting secondary MultiDock slots (dock2..dock4).
 			var valid_docks = new Gee.ArrayList<string> ();
-			foreach (unowned string raw_dn in enabled_docks) {
-				string clean_dn = Hal.Runtime.sanitize_dock_name (raw_dn);
-				if (!valid_docks.contains (clean_dn)) {
-					valid_docks.add (clean_dn);
-					if (valid_docks.size >= 8)
-						break;
+			valid_docks.add ("dock1");
+			add_dock (create_dock ("dock1"));
+
+			for (int s = 2; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+				if (DockPreferences.is_slot_enabled (s)) {
+					string dn = DockPreferences.dock_name_for_slot (s);
+					valid_docks.add (dn);
+					add_dock (create_dock (dn));
 				}
 			}
-			if (valid_docks.size <= 0) {
-				valid_docks.add ("dock1");
-				settings.set_strv ("enabled-docks", valid_docks.to_array ());
-			} else if (valid_docks.size != enabled_docks.length) {
-				settings.set_strv ("enabled-docks", valid_docks.to_array ());
-			}
-			enabled_docks = valid_docks.to_array ();
-			
-			message ("Running with %i docks ('%s')", enabled_docks.length, string.joinv ("', '", enabled_docks));
-			foreach (unowned string dock_name in enabled_docks)
-				add_dock (create_dock (dock_name));
 
-			if (primary_dock != null && primary_dock.prefs.load_environment_failed)
+			var enabled_docks = DockPreferences.list_to_strv (valid_docks);
+			save_configured_docks (valid_docks);
+			message ("Running with %i docks ('%s')", enabled_docks.length, string.joinv ("', '", enabled_docks));
+
+			sync_all_global_prefs_from_primary ();
+			arbitrate_docks ();
+			setup_multidock_monitor_watchers ();
+
+			foreach (var d in docks)
+				d.flush_pending_serialization ();
+			DockPreferences.finish_startup_phase ();
+
+			if (!has_any_dock_load_environment_failed ()) {
+				var empty_secondary = new Gee.ArrayList<DockController> ();
+				foreach (var d in docks) {
+					if (d.name != "dock1" && !d.has_any_real_items ())
+						empty_secondary.add (d);
+				}
+				foreach (var empty_d in empty_secondary)
+					delete_dock (empty_d);
+
+				for (int s = 2; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+					if (!DockPreferences.has_slot_saved_config (s)
+						&& DockPreferences.is_slot_empty_after_onboarding (s)) {
+						delete_directory_recursive (Paths.AppConfigFolder.get_child (DockPreferences.dock_name_for_slot (s)));
+					}
+				}
+			}
+
+			if (!has_any_dock_load_environment_failed () && primary_dock != null && primary_dock.prefs != null && primary_dock.prefs.needs_startup_sync)
+				primary_dock.prefs.save_latch_state ();
+
+			if (primary_dock != null && has_any_dock_load_environment_failed ())
 				show_load_environment_failed (primary_dock);
 			else if (primary_dock != null && primary_dock.is_first_run_launch)
 				show_first_run (primary_dock);
 		}
+
+		bool has_any_dock_load_environment_failed ()
+		{
+			if (docks == null)
+				return false;
+			foreach (var d in docks) {
+				if (d.prefs != null && d.prefs.load_environment_failed)
+					return true;
+			}
+			return false;
+		}
+
+		void save_configured_docks (Gee.ArrayList<string> names)
+		{
+			string[] arr = DockPreferences.list_to_strv (names);
+			var settings = create_settings ("net.launchpad.plank");
+			settings.set_strv ("enabled-docks", arr);
+			GLib.Settings.sync ();
+		}
+
+		void persist_active_dock_list ()
+		{
+			var names = new Gee.ArrayList<string> ();
+			if (docks != null) {
+				for (int s = 1; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+					var d = find_dock_for_slot (s);
+					if (d != null)
+						names.add (d.name);
+				}
+			}
+			if (names.size == 0)
+				names.add ("dock1");
+			save_configured_docks (names);
+			if (primary_dock != null && primary_dock.prefs != null)
+				primary_dock.prefs.flush_to_disk ();
+		}
 		
-		DockController create_dock (string dock_name)
+		DockController create_dock (string dock_name, int initial_pos_override = -1, int initial_scr_override = -1)
 		{
 			var config_folder = Paths.AppConfigFolder.get_child (dock_name);
 			// Make sure our config-directory exists
 			Paths.ensure_directory_exists (config_folder);
 			
 			var dock = new DockController (dock_name, config_folder);
+			if (dock_name != "dock1" && primary_dock != null && primary_dock.prefs != null && dock.prefs != null)
+				copy_global_prefs_between (primary_dock.prefs, dock.prefs);
+			if (initial_pos_override >= 0) {
+				dock.initial_position_override = initial_pos_override;
+				if (dock.prefs != null)
+					dock.prefs.Position = (Gtk.PositionType) initial_pos_override;
+			}
+			if (initial_scr_override >= 0) {
+				dock.initial_screen_override = initial_scr_override;
+				if (dock.prefs != null)
+					dock.prefs.Monitor = PositionManager.monitor_token_for_screen_index (initial_scr_override);
+			}
 			dock.initialize ();
 			
 			return dock;
 		}
+
+		bool syncing_global_prefs = false;
+		bool multidock_watchers_connected = false;
+		uint arbitration_timer_id = 0U;
+
+		static bool is_per_dock_property (string prop_name)
+		{
+			return (prop_name == "Position"
+				|| prop_name == "Monitor"
+				|| prop_name == "DockItems"
+				|| prop_name == "FreeDockItems"
+				|| prop_name == "CategorizedDockItems");
+		}
+
+		void copy_global_prefs_between (DockPreferences src, DockPreferences dst)
+		{
+			bool prev = syncing_global_prefs;
+			syncing_global_prefs = true;
+			dst.delay ();
+			foreach (unowned ParamSpec p in src.get_class ().list_properties ()) {
+				unowned string pname = p.get_name ();
+				if (p.get_nick () == "" || pname == "dock-name" || pname == "dock_name" || is_per_dock_property (pname))
+					continue;
+				if ((p.flags & ParamFlags.READWRITE) != ParamFlags.READWRITE || (p.flags & ParamFlags.CONSTRUCT_ONLY) != 0)
+					continue;
+				var val = GLib.Value (p.value_type);
+				src.get_property (pname, ref val);
+				dst.set_property (pname, val);
+			}
+			dst.apply ();
+			syncing_global_prefs = prev;
+		}
+
+		void sync_all_global_prefs_from_primary ()
+		{
+			if (primary_dock == null || primary_dock.prefs == null || docks == null)
+				return;
+			foreach (var d in docks) {
+				if (d != primary_dock && d.prefs != null)
+					copy_global_prefs_between (primary_dock.prefs, d.prefs);
+			}
+		}
+
+		void handle_dock_pref_notify (DockController source_dock, ParamSpec pspec)
+		{
+			if (is_shutting_down || docks == null)
+				return;
+			unowned string pname = pspec.get_name ();
+			if (pname == "Position" || pname == "Monitor") {
+				schedule_arbitrate_docks (10);
+				if (preferences_dlg != null)
+					preferences_dlg.refresh_multi_dock_controls ();
+				return;
+			}
+			if (syncing_global_prefs || is_per_dock_property (pname))
+				return;
+			if ((pspec.flags & ParamFlags.READWRITE) != ParamFlags.READWRITE || (pspec.flags & ParamFlags.CONSTRUCT_ONLY) != 0)
+				return;
+
+			syncing_global_prefs = true;
+			var val = GLib.Value (pspec.value_type);
+			source_dock.prefs.get_property (pname, ref val);
+			foreach (var other in docks) {
+				if (other != source_dock && other.prefs != null)
+					other.prefs.set_property (pname, val);
+			}
+			syncing_global_prefs = false;
+		}
+
+		void setup_multidock_monitor_watchers ()
+		{
+			if (multidock_watchers_connected)
+				return;
+			multidock_watchers_connected = true;
+			unowned Gdk.Screen? scr = Gdk.Screen.get_default ();
+			if (scr != null) {
+				scr.monitors_changed.connect (() => {
+					schedule_arbitrate_docks (80);
+				});
+			}
+			Hal.Shell.primary_monitor_changed.connect (() => {
+				schedule_arbitrate_docks (80);
+			});
+		}
+
+		void schedule_arbitrate_docks (uint delay_ms = 50)
+		{
+			if (is_shutting_down)
+				return;
+			if (arbitration_timer_id > 0U) {
+				GLib.Source.remove (arbitration_timer_id);
+				arbitration_timer_id = 0U;
+			}
+			arbitration_timer_id = GLib.Timeout.add (delay_ms, () => {
+				arbitration_timer_id = 0U;
+				if (!is_shutting_down)
+					arbitrate_docks ();
+				return false;
+			});
+		}
+
+		public Gee.ArrayList<DockController> get_ordered_docks ()
+		{
+			var ordered = new Gee.ArrayList<DockController> ();
+			if (docks == null)
+				return ordered;
+			for (int s = 1; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+				var d = find_dock_for_slot (s);
+				if (d != null)
+					ordered.add (d);
+			}
+			foreach (var d in docks) {
+				if (!ordered.contains (d))
+					ordered.add (d);
+			}
+			return ordered;
+		}
+
+		DockController? find_dock_for_slot (int slot)
+		{
+			if (docks == null)
+				return null;
+			foreach (var d in docks) {
+				if (DockPreferences.slot_index_for_dock_name (d.name) == slot)
+					return d;
+			}
+			return null;
+		}
+
+		public void arbitrate_docks ()
+		{
+			if (docks == null || docks.size == 0)
+				return;
+			var display = Gdk.Display.get_default ();
+			int n_monitors = (display != null) ? int.max (1, display.get_n_monitors ()) : 1;
+			var occupied_tuples = new Gee.HashSet<string> ();
+
+			// Strict ascending slot priority: dock1 (1) > dock2 (2) > dock3 (3) > dock4 (4).
+			// On monitor unplug, lowest dock index per (effective_screen, Position) stays visible;
+			// colliding higher-index docks suspend non-destructively until screen returns.
+			for (int slot = 1; slot <= DockPreferences.MAX_DOCK_SLOTS; slot++) {
+				var d = find_dock_for_slot (slot);
+				if (d == null || d.prefs == null)
+					continue;
+				int cfg_screen = PositionManager.screen_index_for_monitor_token (display, d.prefs.Monitor);
+				int eff_screen = int.min (cfg_screen, n_monitors - 1);
+				int pos = (int) d.prefs.Position;
+				string tuple_key = "%d:%d".printf (eff_screen, pos);
+				if (occupied_tuples.contains (tuple_key)) {
+					d.set_arbitration_suspended (true);
+				} else {
+					occupied_tuples.add (tuple_key);
+					d.set_arbitration_suspended (false);
+				}
+			}
+			sync_windows_across_all_docks ();
+		}
+
+		public bool any_visible_dock_has_pinned_window (WindowInfo window)
+		{
+			if (docks == null)
+				return false;
+			foreach (var d in docks) {
+				if (d == null || d.suspended_by_arbitration)
+					continue;
+				unowned ApplicationDockItemProvider? ap = d.default_provider as ApplicationDockItemProvider;
+				if (ap != null && ap.has_local_pinned_item_for_window (window))
+					return true;
+			}
+			return false;
+		}
+
+		public void sync_windows_across_all_docks ()
+		{
+			if (docks == null || is_shutting_down)
+				return;
+			foreach (var d in docks) {
+				if (d == null)
+					continue;
+				unowned DefaultApplicationDockItemProvider? ap = d.default_provider as DefaultApplicationDockItemProvider;
+				if (ap != null) {
+					ap.sync_compositor_windows ();
+					ap.refresh_separators ();
+				}
+			}
+		}
+
+		public string? resolve_global_active_launcher ()
+		{
+			if (docks == null || is_shutting_down)
+				return null;
+			var window_manager = WindowManager.get_default ();
+			foreach (var d in docks) {
+				if (d == null || d.default_provider == null)
+					continue;
+				foreach (var element in d.default_provider.Elements) {
+					unowned ApplicationDockItem? app = (element as ApplicationDockItem);
+					if (app != null && app.Launcher != "" && window_manager.app_is_active (app.Launcher))
+						return app.Launcher;
+				}
+			}
+			return null;
+		}
+
+		public int get_dock_count ()
+		{
+			return (docks != null) ? docks.size : 0;
+		}
+
+		public unowned DockController? get_primary_dock ()
+		{
+			return primary_dock;
+		}
+
+		public bool is_dock_running (string candidate_name)
+		{
+			int slot = DockPreferences.slot_index_for_dock_name (Hal.Runtime.sanitize_dock_name (candidate_name));
+			if (slot >= 1)
+				return find_dock_for_slot (slot) != null;
+			string clean = Hal.Runtime.sanitize_dock_name (candidate_name);
+			if (docks == null)
+				return false;
+			foreach (var d in docks) {
+				if (d.name == clean)
+					return true;
+			}
+			return false;
+		}
+
+		public bool has_existing_dock_config (string candidate_name)
+		{
+			int slot = DockPreferences.slot_index_for_dock_name (Hal.Runtime.sanitize_dock_name (candidate_name));
+			if (slot >= 2 && DockPreferences.has_slot_saved_config (slot))
+				return true;
+			string clean = (slot >= 1) ? DockPreferences.dock_name_for_slot (slot) : Hal.Runtime.sanitize_dock_name (candidate_name);
+			if (clean == "")
+				return false;
+			var l_dir = Paths.AppConfigFolder.get_child (clean).get_child ("launchers");
+			if (l_dir.query_exists ()) {
+				try {
+					var en = l_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+					FileInfo? fi = null;
+					while ((fi = en.next_file ()) != null) {
+						if (fi.get_name ().has_suffix (".dockitem")) {
+							try { en.close (null); } catch { }
+							return true;
+						}
+					}
+					try { en.close (null); } catch { }
+				} catch { }
+			}
+			return false;
+		}
+
+		public string suggest_next_dock_name ()
+		{
+			// First offer any closed dock that already has saved configuration on disk
+			for (int s = 2; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+				if (find_dock_for_slot (s) == null && has_existing_dock_config (DockPreferences.dock_name_for_slot (s)))
+					return DockPreferences.dock_name_for_slot (s);
+			}
+			for (int s = 2; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+				if (find_dock_for_slot (s) == null)
+					return DockPreferences.dock_name_for_slot (s);
+			}
+			return "dock2";
+		}
+
+		public DockController? find_dock_at_placement (int screen_idx, Gtk.PositionType edge, DockController? ignore_dock = null)
+		{
+			if (docks == null)
+				return null;
+			var display = Gdk.Display.get_default ();
+			int n_monitors = (display != null) ? int.max (1, display.get_n_monitors ()) : 1;
+			int cand_scr = int.max (0, screen_idx);
+			int cand_eff = int.min (cand_scr, n_monitors - 1);
+
+			foreach (var d in docks) {
+				if (d == ignore_dock || d.prefs == null)
+					continue;
+				int d_scr = PositionManager.screen_index_for_monitor_token (display, d.prefs.Monitor);
+				if (d.prefs.Position != edge)
+					continue;
+				if (cand_scr >= n_monitors) {
+					if (d_scr == cand_scr)
+						return d;
+				} else if (!d.suspended_by_arbitration) {
+					int d_eff = int.min (int.max (0, d_scr), n_monitors - 1);
+					if (d_eff == cand_eff)
+						return d;
+				}
+			}
+			return null;
+		}
+
+		public bool is_placement_used (int screen_idx, Gtk.PositionType edge, DockController? ignore_dock = null)
+		{
+			return (find_dock_at_placement (screen_idx, edge, ignore_dock) != null);
+		}
+
+		public void suggest_free_placement (out int out_screen, out Gtk.PositionType out_edge)
+		{
+			var display = Gdk.Display.get_default ();
+			int n_monitors = (display != null) ? display.get_n_monitors ().clamp (1, DockPreferences.MAX_DOCK_SLOTS) : 1;
+			Gtk.PositionType[] edges = {
+				Gtk.PositionType.BOTTOM,
+				Gtk.PositionType.TOP,
+				Gtk.PositionType.LEFT,
+				Gtk.PositionType.RIGHT
+			};
+			// First prefer Bottom on any unoccupied connected screen (multi-screen ergonomic default),
+			// then fall back to free edges across connected screens.
+			foreach (var edge in edges) {
+				for (int scr = 0; scr < n_monitors; scr++) {
+					if (!is_placement_used (scr, edge)) {
+						out_screen = scr;
+						out_edge = edge;
+						return;
+					}
+				}
+			}
+			out_screen = 0;
+			out_edge = Gtk.PositionType.TOP;
+		}
+
+		public void open_preferences_for_dock (DockController? target_dock, string? page_name = null)
+		{
+			unowned DockController? resolved = target_dock ?? primary_dock;
+			if (resolved != null)
+				show_preferences (resolved, page_name);
+		}
+
+		public DockController? create_or_launch_dock (string raw_name, Gtk.PositionType initial_pos = Gtk.PositionType.TOP, int initial_screen = 0)
+		{
+			if (docks == null || docks.size >= DockPreferences.MAX_DOCK_SLOTS)
+				return null;
+
+			int slot = DockPreferences.slot_index_for_dock_name (Hal.Runtime.sanitize_dock_name (raw_name));
+			if (slot < 2 || slot > DockPreferences.MAX_DOCK_SLOTS) {
+				for (int s = 2; s <= DockPreferences.MAX_DOCK_SLOTS; s++) {
+					if (find_dock_for_slot (s) == null) {
+						slot = s;
+						break;
+					}
+				}
+			}
+			if (slot < 2 || slot > DockPreferences.MAX_DOCK_SLOTS)
+				return null;
+
+			var already = find_dock_for_slot (slot);
+			if (already != null)
+				return already;
+
+			string clean = DockPreferences.dock_name_for_slot (slot);
+			int clamped_scr = initial_screen.clamp (0, DockPreferences.MAX_DOCK_SLOTS - 1);
+			DockPreferences.allow_disk_writes_after_user_action ();
+			DockPreferences.set_slot_placement (slot, clamped_scr, (int) initial_pos);
+			if (primary_dock != null && primary_dock.prefs != null)
+				primary_dock.prefs.save_latch_state ();
+
+			var dock = create_dock (clean, (int) initial_pos, clamped_scr);
+			if (primary_dock != null && primary_dock.prefs != null && dock.prefs != null)
+				copy_global_prefs_between (primary_dock.prefs, dock.prefs);
+			dock.prefs.Position = initial_pos;
+			dock.prefs.Monitor = PositionManager.monitor_token_for_screen_index (clamped_scr);
+			add_dock (dock);
+			dock.flush_pending_serialization ();
+			persist_active_dock_list ();
+			arbitrate_docks ();
+
+			if (preferences_dlg != null)
+				preferences_dlg.refresh_multi_dock_controls ();
+
+			return dock;
+		}
+
+		static void delete_directory_recursive (GLib.File dir)
+		{
+			if (!dir.query_exists ())
+				return;
+			try {
+				if (dir.query_file_type (FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null) == FileType.DIRECTORY) {
+					var en = dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NOFOLLOW_SYMLINKS);
+					FileInfo? fi = null;
+					while ((fi = en.next_file ()) != null)
+						delete_directory_recursive (dir.get_child (fi.get_name ()));
+					try { en.close (null); } catch { }
+				}
+				dir.delete (null);
+			} catch { }
+		}
+
+		public bool close_dock (DockController target_dock)
+		{
+			if (target_dock == null || target_dock.name == "dock1" || docks == null || docks.size <= 1 || !docks.contains (target_dock))
+				return false;
+
+			int close_slot = DockPreferences.slot_index_for_dock_name (target_dock.name);
+			target_dock.flush_pending_serialization ();
+			if (target_dock.prefs != null)
+				target_dock.prefs.flush_to_disk ();
+
+			if (preferences_dlg != null && preferences_dlg.controller == target_dock) {
+				var fallback_dock = find_dock_for_slot (1);
+				if (fallback_dock != null && fallback_dock != target_dock) {
+					preferences_dlg.controller = fallback_dock;
+				} else {
+					var dlg = preferences_dlg;
+					preferences_dlg = null;
+					dlg.destroy ();
+				}
+			}
+
+			docks.remove (target_dock);
+			if (primary_dock == target_dock)
+				primary_dock = (docks.size > 0) ? docks[0] : null;
+
+			if (close_slot >= 2)
+				DockPreferences.set_slot_enabled (close_slot, false);
+
+			if (target_dock.window != null)
+				remove_window (target_dock.window);
+			target_dock.dispose_dock ();
+
+			persist_active_dock_list ();
+			arbitrate_docks ();
+
+			if (preferences_dlg != null)
+				preferences_dlg.refresh_multi_dock_controls ();
+
+			return true;
+		}
+
+		public bool delete_dock (DockController target_dock)
+		{
+			if (target_dock == null || target_dock.name == "dock1" || docks == null || docks.size <= 1 || !docks.contains (target_dock))
+				return false;
+
+			string del_name = target_dock.name;
+			int del_slot = DockPreferences.slot_index_for_dock_name (del_name);
+			var del_folder = Paths.AppConfigFolder.get_child (del_name);
+
+			if (preferences_dlg != null && preferences_dlg.controller == target_dock) {
+				var fallback_dock = find_dock_for_slot (1);
+				if (fallback_dock != null && fallback_dock != target_dock) {
+					preferences_dlg.controller = fallback_dock;
+				} else {
+					var dlg = preferences_dlg;
+					preferences_dlg = null;
+					dlg.destroy ();
+				}
+			}
+
+			docks.remove (target_dock);
+			if (primary_dock == target_dock)
+				primary_dock = (docks.size > 0) ? docks[0] : null;
+
+			if (del_slot >= 2)
+				DockPreferences.set_slot_placement (del_slot, -1, -1);
+
+			if (target_dock.window != null)
+				remove_window (target_dock.window);
+			target_dock.dispose_dock ();
+
+			var dock_settings = create_settings ("net.launchpad.plank.dock.settings", "/net/launchpad/plank/docks/%s/".printf (del_name));
+			var schema = dock_settings.settings_schema;
+			if (schema != null) {
+				foreach (unowned string key in schema.list_keys ())
+					dock_settings.reset (key);
+			}
+			GLib.Settings.sync ();
+
+			delete_directory_recursive (del_folder);
+			persist_active_dock_list ();
+			arbitrate_docks ();
+
+			if (preferences_dlg != null)
+				preferences_dlg.refresh_multi_dock_controls ();
+
+			return true;
+		}
 		
 		void add_dock (DockController dock)
 		{
-			// Make sure to populate our primary-dock field
-			if (primary_dock == null
-				|| (primary_dock.prefs.PinnedOnly && !dock.prefs.PinnedOnly))
+			// Make sure to populate our primary-dock field (dock1 is always primary when present)
+			if (primary_dock == null || dock.name == "dock1"
+				|| (primary_dock.name != "dock1" && primary_dock.prefs.PinnedOnly && !dock.prefs.PinnedOnly))
 				primary_dock = dock;
 			
 			docks.add (dock);
+			if (dock.prefs != null) {
+				var d_ref = GLib.WeakRef (dock);
+				dock.prefs.notify.connect ((sender, pspec) => {
+					var src = d_ref.get () as DockController;
+					if (src != null)
+						handle_dock_pref_notify (src, pspec);
+				});
+			}
 			add_window (dock.window);
 		}
 		
@@ -1594,7 +2160,20 @@ namespace Plank
 		void show_load_environment_failed (DockController controller)
 		{
 			string details = controller.prefs.load_environment_failed_details;
-			string discarded = controller.prefs.discarded_dockitems_details;
+			var discarded_parts = new Gee.ArrayList<string> ();
+			if (docks != null) {
+				foreach (var d in docks) {
+					if (d.prefs != null && d.prefs.discarded_dockitems_details != "") {
+						if (docks.size > 1)
+							discarded_parts.add ("%s: %s".printf (d.name, d.prefs.discarded_dockitems_details));
+						else
+							discarded_parts.add (d.prefs.discarded_dockitems_details);
+					}
+				}
+			}
+			string discarded = (discarded_parts.size > 0)
+				? string.joinv (", ", DockPreferences.list_to_strv (discarded_parts))
+				: controller.prefs.discarded_dockitems_details;
 			string secondary = "";
 			if (details != "" && discarded != "") {
 				secondary = "%s\n%s\n\n%s\n%s".printf (

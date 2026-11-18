@@ -163,11 +163,15 @@ namespace Plank
 		public abstract string get_default_app_for_role (DefaultAppRole role);
 		public abstract Gee.ArrayList<string> discover_default_seed_apps ();
 		public abstract int populate_category_folder (GLib.File folder, string icon_name, string[] priority_ids, string[] category_tags, int max_items = 6);
+		public abstract bool ensure_launcher_folder (GLib.File folder, string display_name = "", string icon_token = "");
+		public abstract string get_folder_display_name (GLib.File folder);
+		public abstract bool is_folder_metadata_file (string filename);
 		public abstract GLib.File? copy_launcher_to_directory (GLib.File src_launcher, GLib.File dest_dir);
+		public abstract GLib.File? relocate_launcher_for_dock_pin (GLib.File folder_launcher);
 
 		public abstract GLib.File? synthesize_fallback_launcher (string safe_stem, string app_name, string exec_cmd, string icon_token, string wm_class_or_aumid = "", bool preserve_existing_fields = false);
 		public abstract bool is_synthetic_launcher (string uri_or_id);
-		public abstract bool delete_synthetic_launcher (string launcher_uri);
+		public abstract bool delete_synthetic_launcher (string launcher_uri, bool keep_shared_assets = false);
 
 		public abstract string apply_custom_launcher_icon (string launcher_uri, string new_icon_token);
 		public abstract string reset_custom_launcher_icon (string launcher_uri, out string restored_icon_token);
@@ -222,11 +226,15 @@ namespace Plank
 		public string get_default_app_for_role (DefaultAppRole role) { return ""; }
 		public Gee.ArrayList<string> discover_default_seed_apps () { return new Gee.ArrayList<string> (); }
 		public int populate_category_folder (GLib.File folder, string icon_name, string[] priority_ids, string[] category_tags, int max_items = 6) { return 0; }
+		public bool ensure_launcher_folder (GLib.File folder, string display_name = "", string icon_token = "") { return false; }
+		public string get_folder_display_name (GLib.File folder) { return ""; }
+		public bool is_folder_metadata_file (string filename) { return false; }
 		public GLib.File? copy_launcher_to_directory (GLib.File src_launcher, GLib.File dest_dir) { return null; }
+		public GLib.File? relocate_launcher_for_dock_pin (GLib.File folder_launcher) { return null; }
 
 		public GLib.File? synthesize_fallback_launcher (string safe_stem, string app_name, string exec_cmd, string icon_token, string wm_class_or_aumid = "", bool preserve_existing_fields = false) { return null; }
 		public bool is_synthetic_launcher (string uri_or_id) { return false; }
-		public bool delete_synthetic_launcher (string launcher_uri) { return false; }
+		public bool delete_synthetic_launcher (string launcher_uri, bool keep_shared_assets = false) { return false; }
 
 		public string apply_custom_launcher_icon (string launcher_uri, string new_icon_token) { return ""; }
 		public string reset_custom_launcher_icon (string launcher_uri, out string restored_icon_token)

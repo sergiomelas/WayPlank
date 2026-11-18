@@ -23,11 +23,8 @@ namespace Plank
 {
 	public class KWinBridge : GLib.Object
 	{
-		const string KWIN_SCRIPT =
-			"var wayplankService = \"net.launchpad.plank\";\n"
-			+ "var wayplankPath = \"/net/launchpad/plank/KWin\";\n"
-			+ "var wayplankInterface = \"net.launchpad.plank.KWin\";\n"
-			+ "var wayplankMinimizeSequence = 0;\n"
+		const string KWIN_SCRIPT_BODY =
+			"var wayplankMinimizeSequence = 0;\n"
 			+ "var wayplankMinimizedWindows = {};\n"
 			+ "var wayplankTrackedUuids = {};\n"
 			+ "var wayplankReserveEnabled = false;\n"
@@ -123,8 +120,11 @@ namespace Plank
 			+ "    var capt = (client.caption ? String(client.caption).toLowerCase() : \"\");\n"
 			+ "    var dName = (client.desktopFileName ? String(client.desktopFileName).toLowerCase() : \"\");\n"
 			+ "    return (resClass === \"wayplank\" || resClass === \"plank\" ||\n"
+			+ "        resClass === \"net.launchpad.plank\" || resClass.indexOf(\"net.launchpad.plank.\") === 0 ||\n"
 			+ "        resName === \"wayplank\" || resName === \"plank\" ||\n"
+			+ "        resName === \"net.launchpad.plank\" || resName.indexOf(\"net.launchpad.plank.\") === 0 ||\n"
 			+ "        dName === \"wayplank\" || dName === \"plank\" || dName === \"wayplank.desktop\" || dName === \"plank.desktop\" ||\n"
+			+ "        dName === \"net.launchpad.plank\" || dName === \"net.launchpad.plank.desktop\" || dName.indexOf(\"net.launchpad.plank.\") === 0 ||\n"
 			+ "        capt === \"wayplank\" || capt === \"wayplank-hover\" || capt === \"wayplank-folder-menu\" || capt === \"wayplank-hover-cards\" || capt === \"wayplank-poof\" ||\n"
 			+ "        resClass === \"xwaylandvideobridge\" || resName === \"xwaylandvideobridge\" ||\n"
 			+ "        dName === \"xwaylandvideobridge\" || dName === \"org.kde.xwaylandvideobridge\" ||\n"
@@ -505,7 +505,7 @@ namespace Plank
 			+ "print(\"Wayplank: KWin bridge script loaded, command channel ready\");\n"
 			+ "\n"
 			+ "var wayplankShortcutRegistered = registerShortcut(\n"
-			+ "    \"WayplankApplyCommand\", \"Wayplank: Apply pending window command\", \"\",\n"
+			+ "    wayplankShortcutName, wayplankShortcutTitle, \"\",\n"
 			+ "    pollWayplankCommand);\n"
 			+ "print(\"Wayplank: command shortcut registered: \" + wayplankShortcutRegistered);\n"
 			+ "pollWayplankCommand();\n";
@@ -518,6 +518,9 @@ namespace Plank
 		static int script_id = -1;
 		static DBusConnection? dbus_connection;
 		static uint dbus_registration_id = 0U;
+		static string active_dbus_service = "net.launchpad.plank";
+		static string active_kwin_path = "/net/launchpad/plank/KWin";
+		static string active_shortcut_name = "WayplankApplyCommand";
 		static uint kwin_watch_id = 0U;
 		static string last_kwin_owner = "";
 		static uint showing_desktop_signal_id = 0U;
@@ -561,12 +564,24 @@ namespace Plank
 
 		public static void register_dbus (DBusConnection connection, string object_path) throws GLib.IOError
 		{
+			int last_slash = object_path.last_index_of ("/");
+			var kwin_path = "%s/KWin".printf (object_path.substring (0, last_slash));
+			string dock_seg = (last_slash >= 0 && last_slash + 1 < object_path.length)
+				? object_path.substring (last_slash + 1) : "dock1";
+			string? uniq = connection.get_unique_name ();
+			if (uniq != null && uniq != "")
+				active_dbus_service = uniq;
+			if (dbus_registration_id > 0U && dbus_connection == connection && active_kwin_path == kwin_path)
+				return;
 			if (dbus_registration_id > 0U && dbus_connection != null) {
 				dbus_connection.unregister_object (dbus_registration_id);
 				dbus_registration_id = 0U;
 			}
+			active_shortcut_name = (dock_seg == "" || dock_seg == "dock1")
+				? "WayplankApplyCommand"
+				: "WayplankApplyCommand_%s".printf (dock_seg);
 			dbus_connection = connection;
-		var kwin_path = "%s/KWin".printf (object_path.substring (0, object_path.last_index_of ("/")));
+			active_kwin_path = kwin_path;
 			dbus_registration_id = connection.register_object<Plank.DBusKWinIface> (kwin_path, new KWinDbus ());
 		}
 
@@ -612,8 +627,11 @@ namespace Plank
 					var capt_chk = raw_capt.down ();
 					var dname_chk = raw_dname.down ();
 					if (res_class_chk == "wayplank" || res_class_chk == "plank" ||
+					    res_class_chk == "net.launchpad.plank" || res_class_chk.has_prefix ("net.launchpad.plank.") ||
 					    res_name_chk == "wayplank" || res_name_chk == "plank" ||
+					    res_name_chk == "net.launchpad.plank" || res_name_chk.has_prefix ("net.launchpad.plank.") ||
 					    dname_chk == "wayplank" || dname_chk == "plank" || dname_chk == "wayplank.desktop" || dname_chk == "plank.desktop" ||
+					    dname_chk == "net.launchpad.plank" || dname_chk == "net.launchpad.plank.desktop" || dname_chk.has_prefix ("net.launchpad.plank.") ||
 					    capt_chk == "wayplank" || capt_chk == "wayplank-hover" ||
 					    capt_chk == "wayplank-folder-menu" || capt_chk == "wayplank-hover-cards" || capt_chk == "wayplank-poof")
 						continue;
@@ -639,8 +657,9 @@ namespace Plank
 					info.Caption = raw_capt;
 					info.Pid = (json.has_member ("pid") && !json.get_null_member ("pid")) ? (int) json.get_int_member ("pid") : 0;
 					if (info.Pid > 0) {
-						info.Cmdline = LinuxProcessInspector.get_process_cmdline (info.Pid);
-						info.Executable = LinuxProcessInspector.get_process_comm (info.Pid);
+						var snap = Hal.Apps.inspect_process (info.Pid, false);
+						info.Cmdline = snap.full_cmdline;
+						info.Executable = snap.executable_comm;
 					}
 					if (json.has_member ("x") && json.has_member ("y") && json.has_member ("width") && json.has_member ("height"))
 						info.Geometry = { (int) json.get_double_member ("x"), (int) json.get_double_member ("y"),
@@ -697,10 +716,12 @@ namespace Plank
 		static void invoke_apply_shortcut ()
 		{
 			try {
-				var connection = Bus.get_sync (BusType.SESSION, null);
+				var connection = DbusBroker.get_default ().get_session_bus ();
+				if (connection == null)
+					return;
 				connection.call_sync ("org.kde.kglobalaccel", "/component/kwin",
 					"org.kde.kglobalaccel.Component", "invokeShortcut",
-					new Variant ("(s)", "WayplankApplyCommand"),
+					new Variant ("(s)", active_shortcut_name),
 					null, DBusCallFlags.NONE, 250, null);
 				debug ("Wayplank: invoked KWin shortcut to apply pending command");
 			} catch (Error e) {
@@ -749,13 +770,13 @@ namespace Plank
 			window_state = null;
 			window_state_array = null;
 			if (showing_desktop_signal_id > 0U || plasma_edit_mode_signal_id > 0U) {
-				try {
-					var connection = Bus.get_sync (BusType.SESSION, null);
+				var connection = DbusBroker.get_default ().get_session_bus ();
+				if (connection != null) {
 					if (showing_desktop_signal_id > 0U)
 						connection.signal_unsubscribe (showing_desktop_signal_id);
 					if (plasma_edit_mode_signal_id > 0U)
 						connection.signal_unsubscribe (plasma_edit_mode_signal_id);
-				} catch (Error e) { }
+				}
 				showing_desktop_signal_id = 0U;
 				plasma_edit_mode_signal_id = 0U;
 			}
@@ -763,7 +784,7 @@ namespace Plank
 			desktop_show_desktop_active = false;
 
 			if (kwin_watch_id > 0U) {
-				Bus.unwatch_name (kwin_watch_id);
+				DbusBroker.get_default ().unwatch_name (kwin_watch_id);
 				kwin_watch_id = 0U;
 			}
 
@@ -775,14 +796,16 @@ namespace Plank
 
 			if (script_id >= 0) {
 				try {
-					var connection = Bus.get_sync (BusType.SESSION, null);
-					connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
-						"org.kde.kwin.Script", "stop", null, null,
-						DBusCallFlags.NONE, 500, null);
-					connection.call_sync ("org.kde.KWin", "/Scripting",
-						"org.kde.kwin.Scripting", "unloadScript",
-						new Variant ("(s)", script_path), null,
-						DBusCallFlags.NONE, 500, null);
+					var connection = DbusBroker.get_default ().get_session_bus ();
+					if (connection != null) {
+						connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
+							"org.kde.kwin.Script", "stop", null, null,
+							DBusCallFlags.NONE, 500, null);
+						connection.call_sync ("org.kde.KWin", "/Scripting",
+							"org.kde.kwin.Scripting", "unloadScript",
+							new Variant ("(s)", script_path), null,
+							DBusCallFlags.NONE, 500, null);
+					}
 				} catch (Error e) {
 					debug ("Unable to stop KWin script: %s", e.message);
 				}
@@ -801,14 +824,16 @@ namespace Plank
 		{
 			if (script_id >= 0) {
 				try {
-					var connection = Bus.get_sync (BusType.SESSION, null);
-					connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
-						"org.kde.kwin.Script", "stop", null, null,
-						DBusCallFlags.NONE, 500, null);
-					connection.call_sync ("org.kde.KWin", "/Scripting",
-						"org.kde.kwin.Scripting", "unloadScript",
-						new Variant ("(s)", script_path), null,
-						DBusCallFlags.NONE, 500, null);
+					var connection = DbusBroker.get_default ().get_session_bus ();
+					if (connection != null) {
+						connection.call_sync ("org.kde.KWin", "/Scripting/Script%d".printf (script_id),
+							"org.kde.kwin.Script", "stop", null, null,
+							DBusCallFlags.NONE, 500, null);
+						connection.call_sync ("org.kde.KWin", "/Scripting",
+							"org.kde.kwin.Scripting", "unloadScript",
+							new Variant ("(s)", script_path), null,
+							DBusCallFlags.NONE, 500, null);
+					}
 				} catch (Error e) {
 					debug ("Unable to stop KWin script: %s", e.message);
 				}
@@ -829,16 +854,18 @@ namespace Plank
 		{
 			if (script_id >= 0 && script_path != null) {
 				try {
-					var connection = Bus.get_sync (BusType.SESSION, null);
-					var result = connection.call_sync ("org.kde.KWin", "/Scripting",
-						"org.kde.kwin.Scripting", "isScriptLoaded",
-						new Variant ("(s)", script_path),
-						new VariantType ("(b)"), DBusCallFlags.NONE, 250, null);
-					bool is_loaded = false;
-					result.get ("(b)", out is_loaded);
-					if (is_loaded) {
-						debug ("Wayplank: KWin bridge script is already alive across resume, skipping reload");
-						return;
+					var connection = DbusBroker.get_default ().get_session_bus ();
+					if (connection != null) {
+						var result = connection.call_sync ("org.kde.KWin", "/Scripting",
+							"org.kde.kwin.Scripting", "isScriptLoaded",
+							new Variant ("(s)", script_path),
+							new VariantType ("(b)"), DBusCallFlags.NONE, 250, null);
+						bool is_loaded = false;
+						result.get ("(b)", out is_loaded);
+						if (is_loaded) {
+							debug ("Wayplank: KWin bridge script is already alive across resume, skipping reload");
+							return;
+						}
 					}
 				} catch (Error e) {
 					debug ("Wayplank: KWin script check failed: %s", e.message);
@@ -863,6 +890,14 @@ namespace Plank
 			return window_intersects (dock_rect, false, true);
 		}
 
+		static bool is_wayplank_json_window (Json.Object window)
+		{
+			if (!window.has_member ("resourceClass") || window.get_null_member ("resourceClass"))
+				return false;
+			string rc = (window.get_string_member ("resourceClass") ?? "").down ();
+			return (rc == "wayplank" || rc == "plank" || rc == "net.launchpad.plank" || rc.has_prefix ("net.launchpad.plank."));
+		}
+
 		public static bool fullscreen_window_intersects (Gdk.Rectangle dock_rect)
 		{
 			if (plasma_edit_mode_active || desktop_show_desktop_active)
@@ -877,8 +912,7 @@ namespace Plank
 				var window = node.get_object ();
 				if (window.has_member ("uuid") && !window.get_null_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
 					continue;
-				if (window.has_member ("resourceClass") && !window.get_null_member ("resourceClass")
-					&& (window.get_string_member ("resourceClass") ?? "").down () == "wayplank")
+				if (is_wayplank_json_window (window))
 					continue;
 				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
 					continue;
@@ -920,8 +954,7 @@ namespace Plank
 				var window = node.get_object ();
 				if (window.has_member ("uuid") && !window.get_null_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
 					continue;
-				if (window.has_member ("resourceClass") && !window.get_null_member ("resourceClass")
-					&& (window.get_string_member ("resourceClass") ?? "").down () == "wayplank")
+				if (is_wayplank_json_window (window))
 					continue;
 				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
 					continue;
@@ -963,8 +996,7 @@ namespace Plank
 				var window = node.get_object ();
 				if (window.has_member ("uuid") && !window.get_null_member ("uuid") && window.get_string_member ("uuid") == "__wayplank_primary_panel__")
 					continue;
-				if (window.has_member ("resourceClass") && !window.get_null_member ("resourceClass")
-					&& (window.get_string_member ("resourceClass") ?? "").down () == "wayplank")
+				if (is_wayplank_json_window (window))
 					continue;
 				if (window.has_member ("minimized") && window.get_boolean_member ("minimized"))
 					continue;
@@ -1017,10 +1049,7 @@ namespace Plank
 
 		static void clean_old_script_files ()
 		{
-			DBusConnection? conn = null;
-			try {
-				conn = Bus.get_sync (BusType.SESSION, null);
-			} catch (Error e) {}
+			DBusConnection? conn = DbusBroker.get_default ().get_session_bus ();
 
 			string[] dirs = { get_kwin_script_dir (), "/tmp" };
 			string seen_dir = "";
@@ -1063,8 +1092,7 @@ namespace Plank
 			if (kwin_watch_id > 0U)
 				return;
 
-			kwin_watch_id = Bus.watch_name (
-				BusType.SESSION,
+			kwin_watch_id = DbusBroker.get_default ().watch_session_name (
 				"org.kde.KWin",
 				BusNameWatcherFlags.NONE,
 				on_kwin_appeared,
@@ -1074,36 +1102,34 @@ namespace Plank
 
 		static void setup_showing_desktop_listener (DBusConnection? conn = null)
 		{
-			try {
-				var connection = conn != null ? conn : Bus.get_sync (BusType.SESSION, null);
-				if (showing_desktop_signal_id == 0U) {
-					showing_desktop_signal_id = connection.signal_subscribe (
-						"org.kde.KWin",
-						"org.kde.KWin",
-						"showingDesktopChanged",
-						"/KWin",
-						null,
-						DBusSignalFlags.NONE,
-						on_showing_desktop_changed
-					);
-					debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
-				}
-				if (plasma_edit_mode_signal_id == 0U) {
-					plasma_edit_mode_signal_id = connection.signal_subscribe (
-						"org.kde.plasmashell",
-						"org.freedesktop.DBus.Properties",
-						"PropertiesChanged",
-						"/PlasmaShell",
-						"org.kde.PlasmaShell",
-						DBusSignalFlags.NONE,
-						on_plasma_properties_changed
-					);
-					plasma_edit_mode_active = query_plasma_edit_mode (connection);
-					debug ("KWinBridge: subscribed to org.kde.PlasmaShell PropertiesChanged (id=%u, editMode=%s)",
-						plasma_edit_mode_signal_id, plasma_edit_mode_active ? "true" : "false");
-				}
-			} catch (Error e) {
-				warning ("KWinBridge: failed to subscribe to showingDesktopChanged: %s", e.message);
+			var connection = conn != null ? conn : DbusBroker.get_default ().get_session_bus ();
+			if (connection == null)
+				return;
+			if (showing_desktop_signal_id == 0U) {
+				showing_desktop_signal_id = connection.signal_subscribe (
+					"org.kde.KWin",
+					"org.kde.KWin",
+					"showingDesktopChanged",
+					"/KWin",
+					null,
+					DBusSignalFlags.NONE,
+					on_showing_desktop_changed
+				);
+				debug ("KWinBridge: subscribed to org.kde.KWin showingDesktopChanged signal (id=%u)", showing_desktop_signal_id);
+			}
+			if (plasma_edit_mode_signal_id == 0U) {
+				plasma_edit_mode_signal_id = connection.signal_subscribe (
+					"org.kde.plasmashell",
+					"org.freedesktop.DBus.Properties",
+					"PropertiesChanged",
+					"/PlasmaShell",
+					"org.kde.PlasmaShell",
+					DBusSignalFlags.NONE,
+					on_plasma_properties_changed
+				);
+				plasma_edit_mode_active = query_plasma_edit_mode (connection);
+				debug ("KWinBridge: subscribed to org.kde.PlasmaShell PropertiesChanged (id=%u, editMode=%s)",
+					plasma_edit_mode_signal_id, plasma_edit_mode_active ? "true" : "false");
 			}
 		}
 
@@ -1162,6 +1188,33 @@ namespace Plank
 			}
 		}
 
+		static bool is_show_desktop_leader (DBusConnection connection)
+		{
+			string? my_unique = connection.get_unique_name ();
+			if (my_unique == null || my_unique == "")
+				return true;
+			try {
+				var res = connection.call_sync (
+					"org.freedesktop.DBus",
+					"/org/freedesktop/DBus",
+					"org.freedesktop.DBus",
+					"GetNameOwner",
+					new Variant ("(s)", "net.launchpad.plank"),
+					new VariantType ("(s)"),
+					DBusCallFlags.NO_AUTO_START,
+					100,
+					null
+				);
+				string owner = "";
+				res.get ("(s)", out owner);
+				if (owner != "" && owner != my_unique)
+					return false;
+			} catch (Error e) {
+				// No primary net.launchpad.plank owner running; act as fallback leader.
+			}
+			return true;
+		}
+
 		static void on_showing_desktop_changed (DBusConnection connection,
 		                                        string? sender_name,
 		                                        string object_path,
@@ -1184,6 +1237,9 @@ namespace Plank
 					get_default ().state_changed ();
 					return;
 				}
+
+				if (!is_show_desktop_leader (connection))
+					return;
 
 				handling_show_desktop = true;
 				try {
@@ -1240,6 +1296,24 @@ namespace Plank
 			}
 		}
 
+		static string build_kwin_script (DBusConnection? connection)
+		{
+			if (connection != null) {
+				string? uniq = connection.get_unique_name ();
+				if (uniq != null && uniq != "")
+					active_dbus_service = uniq;
+			}
+			string human_title = (active_shortcut_name == "WayplankApplyCommand")
+				? "Wayplank: Apply pending window command"
+				: "Wayplank: Apply pending window command (%s)".printf (active_shortcut_name);
+			return "var wayplankService = \"%s\";\n".printf (active_dbus_service)
+				+ "var wayplankPath = \"%s\";\n".printf (active_kwin_path)
+				+ "var wayplankInterface = \"net.launchpad.plank.KWin\";\n"
+				+ "var wayplankShortcutName = \"%s\";\n".printf (active_shortcut_name)
+				+ "var wayplankShortcutTitle = \"%s\";\n".printf (human_title)
+				+ KWIN_SCRIPT_BODY;
+		}
+
 		public static void start ()
 		{
 			if (!environment_is_session_desktop (XdgSessionDesktop.KDE)
@@ -1251,9 +1325,12 @@ namespace Plank
 			clean_old_script_files ();
 
 			try {
-				script_path = Path.build_filename (get_kwin_script_dir (), "wayplank-kwin-%i.js".printf (Posix.getpid ()));
-				FileUtils.set_contents (script_path, KWIN_SCRIPT);
-				var connection = Bus.get_sync (BusType.SESSION, null);
+				var connection = DbusBroker.get_default ().get_session_bus ();
+				if (connection == null)
+					return;
+				int self_pid = Hal.Runtime.get_current_pid ();
+				script_path = Path.build_filename (get_kwin_script_dir (), "wayplank-kwin-%i.js".printf (self_pid));
+				FileUtils.set_contents (script_path, build_kwin_script (connection));
 				var result = connection.call_sync ("org.kde.KWin", "/Scripting",
 					"org.kde.kwin.Scripting", "loadScript",
 					new Variant ("(s)", script_path),

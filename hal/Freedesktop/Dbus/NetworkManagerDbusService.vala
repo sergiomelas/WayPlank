@@ -115,7 +115,9 @@ namespace Plank
 			out_gw = "";
 
 			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus == null)
+					return false;
 				var nm_props_var = bus.call_sync (
 					"org.freedesktop.NetworkManager",
 					"/org/freedesktop/NetworkManager",

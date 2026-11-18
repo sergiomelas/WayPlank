@@ -109,6 +109,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_workspace_only;
 		[GtkChild]
+		unowned Gtk.Label l_show_unpinned;
+		[GtkChild]
 		unowned Gtk.Switch sw_show_unpinned;
 		[GtkChild]
 		unowned Gtk.Switch sw_scroll_overflow;
@@ -266,6 +268,108 @@ namespace Plank
 		
 		Gtk.SizeGroup sg_appearance_spin;
 		Gtk.SizeGroup sg_behaviour_spin;
+		Gtk.Button? close_dock_button = null;
+		Gtk.Button? delete_dock_button = null;
+		Gtk.Box? title_bar_box = null;
+		Gtk.ComboBoxText? dock_selector_combo = null;
+		bool updating_dock_selector = false;
+
+		static string position_to_display_label (Gtk.PositionType pos)
+		{
+			switch (pos) {
+			case Gtk.PositionType.TOP:
+				return _("Top");
+			case Gtk.PositionType.LEFT:
+				return _("Left");
+			case Gtk.PositionType.RIGHT:
+				return _("Right");
+			case Gtk.PositionType.BOTTOM:
+			default:
+				return _("Bottom");
+			}
+		}
+
+		string format_dock_entry_title (DockController? target)
+		{
+			string raw = (target != null && target.name != null && target.name != "") ? target.name : "dock1";
+			string pretty_name = raw;
+			if (raw.length > 0)
+				pretty_name = raw.substring (0, 1).up () + raw.substring (1);
+			Gtk.PositionType pos = (target != null && target.prefs != null)
+				? target.prefs.Position
+				: Gtk.PositionType.BOTTOM;
+			var disp = get_display ();
+			int n_mon = (disp != null) ? disp.get_n_monitors () : 1;
+			int scr = PositionManager.screen_index_for_monitor_token (
+				disp,
+				(target != null && target.prefs != null) ? target.prefs.Monitor : ""
+			);
+			if (n_mon > 1 || scr > 0)
+				return "%s - %s - %s".printf (pretty_name, _("Screen %d").printf (scr + 1), position_to_display_label (pos));
+			return "%s - %s".printf (pretty_name, position_to_display_label (pos));
+		}
+
+		string format_dock_identity_title ()
+		{
+			return format_dock_entry_title (controller);
+		}
+
+		void on_dock_selector_changed ()
+		{
+			if (updating_dock_selector || dock_selector_combo == null || AbstractMain.app_instance == null)
+				return;
+			var selected_name = dock_selector_combo.get_active_id ();
+			if (selected_name == null || selected_name == "" || (controller != null && controller.name == selected_name))
+				return;
+			foreach (var d in AbstractMain.app_instance.get_ordered_docks ()) {
+				if (d.name == selected_name) {
+					flush_all_settings_to_disk ();
+					this.controller = d;
+					break;
+				}
+			}
+		}
+
+		void update_window_title ()
+		{
+			bool show_dock_banner = (AbstractMain.app_instance != null && AbstractMain.app_instance.get_dock_count () > 1)
+				|| (controller != null && controller.name != null && controller.name != "" && controller.name != "dock1");
+			string banner = format_dock_identity_title ();
+			set_title (show_dock_banner
+				? "%s — %s".printf (_("WayPlank Preferences"), banner)
+				: _("WayPlank Preferences"));
+			if (dock_selector_combo != null) {
+				updating_dock_selector = true;
+				dock_selector_combo.remove_all ();
+				if (AbstractMain.app_instance != null) {
+					foreach (var d in AbstractMain.app_instance.get_ordered_docks ())
+						dock_selector_combo.append (d.name, format_dock_entry_title (d));
+				} else if (controller != null) {
+					dock_selector_combo.append (controller.name, banner);
+				}
+				if (controller != null && controller.name != null)
+					dock_selector_combo.set_active_id (controller.name);
+				updating_dock_selector = false;
+			}
+			if (title_bar_box != null)
+				title_bar_box.visible = show_dock_banner;
+		}
+
+		public void refresh_multi_dock_controls ()
+		{
+			update_window_title ();
+			update_placement_collision_sensitivity ();
+			bool can_manage_secondary = (AbstractMain.app_instance != null && AbstractMain.app_instance.get_dock_count () > 1)
+				&& (controller != null && controller.name != null && controller.name != "dock1");
+			if (close_dock_button != null) {
+				close_dock_button.visible = can_manage_secondary;
+				close_dock_button.sensitive = can_manage_secondary;
+			}
+			if (delete_dock_button != null) {
+				delete_dock_button.visible = can_manage_secondary;
+				delete_dock_button.sensitive = can_manage_secondary;
+			}
+		}
 
 		public PreferencesWindow (DockController controller)
 		{
@@ -308,9 +412,10 @@ namespace Plank
 		{
 			active_instance = this;
 			PlankCompat.i18n_translate_widget (this);
-			set_title (_("WayPlank Preferences"));
+			update_window_title ();
 			set_role ("preferences");
 			configure_hide_mode_rows ();
+			configure_placement_rows ();
 			set_decorated (true);
 			set_destroy_with_parent (true);
 			set_position (Gtk.WindowPosition.CENTER);
@@ -382,13 +487,60 @@ namespace Plank
 			var stack = (get_child () as Gtk.Widget);
 			remove (stack);
 			var content = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+
+			title_bar_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 4);
+			title_bar_box.set_no_show_all (true);
+			title_bar_box.set_margin_top (8);
+			title_bar_box.set_margin_start (16);
+			title_bar_box.set_margin_end (16);
+			dock_selector_combo = new Gtk.ComboBoxText ();
+			dock_selector_combo.set_halign (Gtk.Align.FILL);
+			dock_selector_combo.set_hexpand (true);
+			foreach (var cell in dock_selector_combo.get_cells ()) {
+				var text_cell = cell as Gtk.CellRendererText;
+				if (text_cell != null) {
+					text_cell.weight = Pango.Weight.BOLD;
+					text_cell.xalign = 0.5f;
+				}
+			}
+			dock_selector_combo.changed.connect (on_dock_selector_changed);
+			dock_selector_combo.show ();
+			var title_sep = new Gtk.Separator (Gtk.Orientation.HORIZONTAL);
+			title_sep.show ();
+			title_bar_box.pack_start (dock_selector_combo, false, false, 0);
+			title_bar_box.pack_start (title_sep, false, false, 2);
+			update_window_title ();
+			content.pack_start (title_bar_box, false, false, 0);
+
 			content.pack_start (stack, true, true, 0);
-			var actions = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			var actions = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
 			actions.set_margin_start (12);
 			actions.set_margin_end (12);
 			actions.set_margin_top (8);
 			actions.set_margin_bottom (12);
-			actions.set_halign (Gtk.Align.CENTER);
+			actions.set_halign (Gtk.Align.FILL);
+			actions.set_hexpand (true);
+
+			close_dock_button = new Gtk.Button.with_mnemonic (_("_Close This Dock"));
+			close_dock_button.set_size_request (145, 36);
+			close_dock_button.set_no_show_all (true);
+			close_dock_button.set_tooltip_text (_("Hide and close this dock while keeping all of its pinned items and screen settings for later"));
+			close_dock_button.clicked.connect (() => {
+				if (AbstractMain.app_instance != null && controller != null)
+					AbstractMain.app_instance.close_dock (controller);
+			});
+			actions.pack_start (close_dock_button, false, false, 0);
+
+			delete_dock_button = new Gtk.Button.with_mnemonic (_("_Delete This Dock..."));
+			delete_dock_button.set_size_request (155, 36);
+			delete_dock_button.set_no_show_all (true);
+			delete_dock_button.set_tooltip_text (_("Permanently remove this dock and delete its pinned item configuration"));
+			delete_dock_button.get_style_context ().add_class (Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
+			delete_dock_button.clicked.connect (() => {
+				DockFolderDialogs.confirm_and_delete_dock (controller);
+			});
+			actions.pack_start (delete_dock_button, false, false, 0);
+
 			var ok_button = new Gtk.Button.with_label (_("OK"));
 			ok_button.set_size_request (160, 36);
 			ok_button.get_style_context ().add_class (Gtk.STYLE_CLASS_SUGGESTED_ACTION);
@@ -399,6 +551,7 @@ namespace Plank
 			ok_button.set_can_default (true);
 			set_default (ok_button);
 			content.show_all ();
+			refresh_multi_dock_controls ();
 			
 			init_dock_tab ();
 			init_window_tab ();
@@ -407,6 +560,8 @@ namespace Plank
 			
 			this.map.connect (() => {
 				is_open = true;
+				update_window_title ();
+				refresh_multi_dock_controls ();
 				update_effect_duration_visibility ();
 				update_accordion_visibility ();
 				update_icon_size_feedback ();
@@ -481,6 +636,85 @@ namespace Plank
 				s_iconsize.get_style_context ().remove_provider (slider_css);
 		}
 
+		static string pretty_dock_short_name (DockController d)
+		{
+			string raw = (d.name != null && d.name != "") ? d.name : "dock1";
+			return raw.substring (0, 1).up () + raw.substring (1);
+		}
+
+		void configure_placement_rows ()
+		{
+			var self_ref = GLib.WeakRef (this);
+			foreach (unowned Gtk.CellRenderer renderer in cb_position.get_cells ()) {
+				cb_position.set_cell_data_func (renderer, (layout, cell, model, iter) => {
+					var self = self_ref.get () as PreferencesWindow;
+					string? base_text = null;
+					string? id = null;
+					model.get (iter, 0, out base_text, 1, out id);
+					if (self == null || self.prefs == null || id == null || id == "" || AbstractMain.app_instance == null) {
+						cell.sensitive = true;
+						if (cell is Gtk.CellRendererText && base_text != null)
+							((Gtk.CellRendererText) cell).text = base_text;
+						return;
+					}
+					var cand_pos = (Gtk.PositionType) int.parse (id);
+					int curr_scr = PositionManager.screen_index_for_monitor_token (self.get_display (), self.prefs.Monitor);
+					var occupier = AbstractMain.app_instance.find_dock_at_placement (curr_scr, cand_pos, self.controller);
+					cell.sensitive = (occupier == null);
+					if (cell is Gtk.CellRendererText) {
+						string clean = base_text ?? "";
+						((Gtk.CellRendererText) cell).text = (occupier != null)
+							? "%s (%s)".printf (clean, pretty_dock_short_name (occupier))
+							: clean;
+					}
+				});
+			}
+
+			foreach (unowned Gtk.CellRenderer renderer in cb_display_plug.get_cells ()) {
+				cb_display_plug.set_cell_data_func (renderer, (layout, cell, model, iter) => {
+					var self = self_ref.get () as PreferencesWindow;
+					string? base_text = null;
+					string? id = null;
+					model.get (iter, 0, out base_text, 1, out id);
+					if (self == null || self.prefs == null || id == null || id == "" || AbstractMain.app_instance == null) {
+						cell.sensitive = true;
+						if (cell is Gtk.CellRendererText && base_text != null)
+							((Gtk.CellRendererText) cell).text = base_text;
+						return;
+					}
+					int cand_scr = int.parse (id).clamp (0, DockPreferences.MAX_DOCK_SLOTS - 1);
+					var occupier = AbstractMain.app_instance.find_dock_at_placement (cand_scr, self.prefs.Position, self.controller);
+					cell.sensitive = (occupier == null);
+					if (cell is Gtk.CellRendererText) {
+						string clean = base_text ?? "";
+						((Gtk.CellRendererText) cell).text = (occupier != null)
+							? "%s (%s)".printf (clean, pretty_dock_short_name (occupier))
+							: clean;
+					}
+				});
+			}
+		}
+
+		void update_placement_collision_sensitivity ()
+		{
+			if (prefs == null)
+				return;
+			bool primary_supported = Hal.Capabilities.supports_primary_display;
+			if (!primary_supported) {
+				sw_primary_display.sensitive = false;
+			} else if (!sw_primary_display.get_active ()) {
+				bool primary_edge_taken = (AbstractMain.app_instance != null
+					&& AbstractMain.app_instance.is_placement_used (0, prefs.Position, controller));
+				sw_primary_display.sensitive = !primary_edge_taken;
+			} else {
+				sw_primary_display.sensitive = true;
+			}
+			if (cb_position != null)
+				cb_position.queue_draw ();
+			if (cb_display_plug != null)
+				cb_display_plug.queue_draw ();
+		}
+
 		void configure_hide_mode_rows ()
 		{
 			foreach (unowned Gtk.CellRenderer renderer in cb_hidemode.get_cells ()) {
@@ -508,6 +742,8 @@ namespace Plank
 			disconnect_signals ();
 			
 			prefs = controller.prefs;
+			update_window_title ();
+			refresh_multi_dock_controls ();
 			
 			init_dock_tab ();
 			init_window_tab ();
@@ -562,16 +798,19 @@ namespace Plank
 			case "Monitor":
 				if (!in_monitor_ui_action)
 					rebuild_monitor_list ();
+				update_window_title ();
 				update_icon_size_feedback ();
 				break;
 			case "Offset":
 				adj_offset.value = prefs.Offset;
 				break;
 			case "PinnedOnly":
-				sw_show_unpinned.set_active (!prefs.PinnedOnly);
+				sw_show_unpinned.set_active (prefs.dock_name == "dock1" && !prefs.PinnedOnly);
 				break;
 			case "Position":
 				cb_position.active_id = ((int) prefs.Position).to_string ();
+				update_window_title ();
+				update_placement_collision_sensitivity ();
 				break;
 			case "PressureReveal":
 				sw_pressure_reveal.set_active (prefs.PressureReveal);
@@ -960,7 +1199,16 @@ namespace Plank
 			var active_id = widget.get_active_id ();
 			if (active_id == null || active_id == "")
 				return;
-			prefs.Position = (Gtk.PositionType) int.parse (active_id);
+			var cand_pos = (Gtk.PositionType) int.parse (active_id);
+			int curr_scr = PositionManager.screen_index_for_monitor_token (get_display (), prefs.Monitor);
+			if (AbstractMain.app_instance != null && AbstractMain.app_instance.is_placement_used (curr_scr, cand_pos, controller)) {
+				cb_position.changed.disconnect (position_changed);
+				cb_position.active_id = ((int) prefs.Position).to_string ();
+				cb_position.changed.connect (position_changed);
+				return;
+			}
+			prefs.Position = cand_pos;
+			update_placement_collision_sensitivity ();
 			retain_preferences_focus (widget);
 		}
 		
@@ -1050,9 +1298,16 @@ namespace Plank
 			try {
 				var is_primary = ((Gtk.Switch) widget).get_active ();
 				var display = get_display ();
-				var names = Plank.PositionManager.get_monitor_plug_names (display);
+				var labels = Plank.PositionManager.get_logical_screen_labels (display);
 
 				if (is_primary) {
+					if (AbstractMain.app_instance != null && AbstractMain.app_instance.is_placement_used (0, prefs.Position, controller)) {
+						updating_monitors = true;
+						sw_primary_display.set_active (false);
+						sw_primary_display.sensitive = false;
+						updating_monitors = false;
+						return;
+					}
 					if (prefs.Monitor != "") {
 						previous_monitor = prefs.Monitor;
 						if (controller != null)
@@ -1060,66 +1315,42 @@ namespace Plank
 					}
 					prefs.Monitor = "";
 					updating_monitors = true;
-					var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
-					for (int i = 0; i < display.get_n_monitors (); i++) {
-						if (display.get_monitor (i) == primary_mon) {
-							cb_display_plug.set_active (i);
-							break;
-						}
-					}
+					cb_display_plug.active_id = "0";
 					cb_display_plug.sensitive = false;
 					updating_monitors = false;
+					update_window_title ();
+					update_placement_collision_sensitivity ();
 					update_icon_size_feedback ();
 				} else {
 					cb_display_plug.sensitive = true;
-					string target_name = "";
-					if (previous_monitor != "") {
-						target_name = previous_monitor;
-					} else if (controller != null && controller.last_explicit_monitor != "") {
-						target_name = controller.last_explicit_monitor;
-					}
-
-					int target_pos = -1;
-					if (target_name != "") {
-						var target_mon = Plank.PositionManager.get_monitor_for_plug_name (display, target_name);
-						if (target_mon != null) {
-							for (int i = 0; i < display.get_n_monitors (); i++) {
-								if (display.get_monitor (i) == target_mon) {
-									target_pos = i;
-									break;
-								}
-							}
-						}
-					}
-
-					// If previous monitor was not found or no longer exists,
-					// pick the first monitor that is NOT the primary monitor!
-					if (target_pos < 0) {
-						var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
-						for (int i = 0; i < display.get_n_monitors (); i++) {
-							if (display.get_monitor (i) != primary_mon) {
-								target_pos = i;
+					string target_tok = (previous_monitor != "") ? previous_monitor
+						: ((controller != null) ? controller.last_explicit_monitor : "");
+					int target_scr = Plank.PositionManager.screen_index_for_monitor_token (display, target_tok);
+					if (target_scr <= 0 && labels.length > 1)
+						target_scr = 1;
+					target_scr = target_scr.clamp (0, int.max (0, labels.length - 1));
+					if (AbstractMain.app_instance != null && AbstractMain.app_instance.is_placement_used (target_scr, prefs.Position, controller)) {
+						int max_scr = int.max (1, labels.length);
+						int free_scr = 0;
+						for (int s = 0; s < max_scr; s++) {
+							if (!AbstractMain.app_instance.is_placement_used (s, prefs.Position, controller)) {
+								free_scr = s;
 								break;
 							}
 						}
+						target_scr = free_scr;
 					}
 
-					if (target_pos < 0 && names.length > 0)
-						target_pos = 0;
-
-					if (target_pos >= 0 && target_pos < names.length) {
-						updating_monitors = true;
-						cb_display_plug.set_active (target_pos);
-						prefs.Monitor = names[target_pos];
-						previous_monitor = names[target_pos];
-						if (controller != null)
-							controller.last_explicit_monitor = names[target_pos];
-						updating_monitors = false;
-					} else {
-						var active_text = cb_display_plug.get_active_text ();
-						if (active_text != null && active_text != "")
-							prefs.Monitor = active_text;
-					}
+					string new_tok = (target_scr == 0) ? "SCREEN:0" : Plank.PositionManager.monitor_token_for_screen_index (target_scr);
+					updating_monitors = true;
+					cb_display_plug.active_id = target_scr.to_string ();
+					prefs.Monitor = new_tok;
+					previous_monitor = new_tok;
+					if (controller != null)
+						controller.last_explicit_monitor = new_tok;
+					updating_monitors = false;
+					update_window_title ();
+					update_placement_collision_sensitivity ();
 					update_icon_size_feedback ();
 				}
 			} finally {
@@ -1145,6 +1376,8 @@ namespace Plank
 		
 		void show_unpinned_toggled (GLib.Object widget, ParamSpec param)
 		{
+			if (prefs.dock_name != "dock1")
+				return;
 			prefs.PinnedOnly = !((Gtk.Switch) widget).get_active ();
 		}
 		
@@ -1538,18 +1771,29 @@ namespace Plank
 		{
 			if (updating_monitors)
 				return;
-			var text = ((Gtk.ComboBoxText) widget).get_active_text ();
-			if (text != null && text != "") {
+			var active_id = widget.get_active_id ();
+			if (active_id != null && active_id != "") {
+				int scr_idx = int.parse (active_id).clamp (0, DockPreferences.MAX_DOCK_SLOTS - 1);
+				if (AbstractMain.app_instance != null && AbstractMain.app_instance.is_placement_used (scr_idx, prefs.Position, controller)) {
+					int curr_scr = Plank.PositionManager.screen_index_for_monitor_token (get_display (), prefs.Monitor);
+					updating_monitors = true;
+					cb_display_plug.active_id = curr_scr.to_string ();
+					updating_monitors = false;
+					return;
+				}
+				string new_tok = (scr_idx == 0) ? "SCREEN:0" : Plank.PositionManager.monitor_token_for_screen_index (scr_idx);
 				in_monitor_ui_action = true;
 				try {
-					previous_monitor = text;
+					previous_monitor = new_tok;
 					if (controller != null)
-						controller.last_explicit_monitor = text;
-					prefs.Monitor = text;
+						controller.last_explicit_monitor = new_tok;
+					prefs.Monitor = new_tok;
 					updating_monitors = true;
 					sw_primary_display.set_active (false);
 					cb_display_plug.sensitive = true;
 					updating_monitors = false;
+					update_window_title ();
+					update_placement_collision_sensitivity ();
 					update_icon_size_feedback ();
 				} finally {
 					in_monitor_ui_action = false;
@@ -1740,23 +1984,21 @@ namespace Plank
 			cb_display_plug.remove_all ();
 			
 			var display = get_display ();
-			var names = Plank.PositionManager.get_monitor_plug_names (display);
-			int primary_pos = 0;
-			int active_pos = -1;
-			var primary_mon = Plank.PositionManager.get_monitor_for_plug_name (display, "");
-			var current_mon = Plank.PositionManager.get_monitor_for_plug_name (display, prefs.Monitor);
-			
-			for (int pos = 0; pos < names.length; pos++) {
-				cb_display_plug.append ("%i".printf (pos), names[pos]);
-				if (primary_mon != null && display.get_monitor (pos) == primary_mon)
-					primary_pos = pos;
-				if (current_mon != null && display.get_monitor (pos) == current_mon)
-					active_pos = pos;
+			var labels = Plank.PositionManager.get_logical_screen_labels (display);
+			int cfg_scr = Plank.PositionManager.screen_index_for_monitor_token (display, prefs.Monitor);
+			int count = int.max (labels.length, cfg_scr + 1);
+			count = int.min (count, DockPreferences.MAX_DOCK_SLOTS);
+
+			for (int s = 0; s < count; s++) {
+				string lbl = (s < labels.length)
+					? labels[s]
+					: _("Screen %d (Disconnected)").printf (s + 1);
+				cb_display_plug.append (s.to_string (), lbl);
 			}
 			
 			bool primary_supported = Hal.Capabilities.supports_primary_display;
 			string primary_tt = primary_supported
-				? _("Automatically display the dock on the primary monitor; disable to choose a specific display")
+				? _("Automatically display the dock on the primary monitor; disable to choose a logical multi-seat screen index")
 				: _("Not supported by this compositor");
 			sw_primary_display.tooltip_text = primary_tt;
 			l_primary_display.tooltip_text = primary_tt;
@@ -1764,25 +2006,14 @@ namespace Plank
 				sw_primary_display.set_active (false);
 				sw_primary_display.sensitive = false;
 				cb_display_plug.sensitive = true;
-				if (active_pos >= 0) {
-					cb_display_plug.set_active (active_pos);
-				} else if (names.length > 0) {
-					cb_display_plug.set_active (0);
-				}
-			} else if (prefs.Monitor == "") {
-				cb_display_plug.set_active (primary_pos);
+				cb_display_plug.active_id = cfg_scr.to_string ();
+			} else if (prefs.Monitor == "" || prefs.Monitor == "primary") {
+				cb_display_plug.active_id = "0";
 				sw_primary_display.set_active (true);
 				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = false;
-			} else if (active_pos >= 0) {
-				cb_display_plug.set_active (active_pos);
-				sw_primary_display.set_active (false);
-				sw_primary_display.sensitive = true;
-				cb_display_plug.sensitive = true;
-				if (prefs.Monitor != names[active_pos])
-					prefs.Monitor = names[active_pos];
-			} else if (names.length > 0) {
-				cb_display_plug.set_active (0);
+			} else {
+				cb_display_plug.active_id = cfg_scr.to_string ();
 				sw_primary_display.set_active (false);
 				sw_primary_display.sensitive = true;
 				cb_display_plug.sensitive = true;
@@ -1795,6 +2026,8 @@ namespace Plank
 			}
 			
 			updating_monitors = false;
+			update_window_title ();
+			update_placement_collision_sensitivity ();
 			update_icon_size_feedback ();
 		}
 
@@ -1835,12 +2068,15 @@ namespace Plank
 			sw_hide.set_active (prefs.HideMode != HideType.NONE);
 			bool primary_supported = Hal.Capabilities.supports_primary_display;
 			sw_primary_display.set_active (primary_supported && prefs.Monitor == "");
-			sw_primary_display.sensitive = primary_supported;
+			update_placement_collision_sensitivity ();
 			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
 			sw_workspace_only.sensitive = false;
 			sw_workspace_only.tooltip_text = _("Workspace filtering is not yet supported under Wayland");
 			sw_autostart.set_active (Hal.Runtime.is_autostart_enabled ());
-			sw_show_unpinned.set_active (!prefs.PinnedOnly);
+			bool can_show_unpinned = (prefs.dock_name == "dock1");
+			l_show_unpinned.sensitive = can_show_unpinned;
+			sw_show_unpinned.sensitive = can_show_unpinned;
+			sw_show_unpinned.set_active (can_show_unpinned && !prefs.PinnedOnly);
 			sw_scroll_overflow.set_active (prefs.ScrollOverflow);
 			update_system_menu_access_options ();
 			sw_lock_items.set_active (prefs.LockItems);

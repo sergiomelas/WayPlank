@@ -54,7 +54,10 @@ namespace Plank
 		 */
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
 		{
-			Application.get_default ().activate_action ("preferences", null);
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.open_preferences_for_dock (get_dock ());
+			else
+				Application.get_default ().activate_action ("preferences", null);
 			
 			return AnimationType.DARKEN;
 		}
@@ -65,6 +68,8 @@ namespace Plank
 		public override Gee.ArrayList<Gtk.MenuItem> get_menu_items ()
 		{
 			var items = new Gee.ArrayList<Gtk.MenuItem> ();
+			unowned DockController? controller = get_dock ();
+			var ctrl_ref = GLib.WeakRef (controller);
 			
 			var item = create_menu_item (_("Report a _Bug Online..."), "tools-report-bug");
 			item.activate.connect (() => Application.get_default ().activate_action ("help", null));
@@ -76,15 +81,34 @@ namespace Plank
 
 			items.add (new Gtk.SeparatorMenuItem ());
 			
-			unowned DockController? controller = get_dock ();
 			var docklets_item = PreferencesDockItem.create_docklets_submenu_item (controller);
 			if (docklets_item != null) {
 				items.add (docklets_item);
-				items.add (new Gtk.SeparatorMenuItem ());
 			}
+
+			var add_folder_item = create_menu_item (_("Add _Folder..."), "folder-new", true);
+			add_folder_item.sensitive = (controller != null && !controller.prefs.LockItems);
+			add_folder_item.activate.connect (() => {
+				DockFolderDialogs.show_add_folder_dialog (ctrl_ref.get () as DockController);
+			});
+			items.add (add_folder_item);
+
+			var new_dock_item = create_menu_item (_("Open _Dock..."), "list-add", true);
+			new_dock_item.sensitive = (AbstractMain.app_instance != null && AbstractMain.app_instance.get_dock_count () < DockPreferences.MAX_DOCK_SLOTS);
+			new_dock_item.activate.connect (() => {
+				DockFolderDialogs.show_new_dock_dialog (ctrl_ref.get () as DockController);
+			});
+			items.add (new_dock_item);
+
+			items.add (new Gtk.SeparatorMenuItem ());
 			
 			item = create_menu_item (_("_Preferences"), "preferences-system", true);
-			item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
+			item.activate.connect (() => {
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController);
+				else
+					Application.get_default ().activate_action ("preferences", null);
+			});
 			items.add (item);
 
 			item = create_menu_item (_("User Guide..."), "help-browser", true);
@@ -95,6 +119,17 @@ namespace Plank
 			item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (item);
 			
+			if (controller != null && controller.name != "dock1") {
+				items.add (new Gtk.SeparatorMenuItem ());
+				item = create_menu_item (_("_Close This Dock"), "window-close", true);
+				item.activate.connect (() => {
+					var target = ctrl_ref.get () as DockController;
+					if (AbstractMain.app_instance != null && target != null)
+						AbstractMain.app_instance.close_dock (target);
+				});
+				items.add (item);
+			}
+
 			// No explicit quit-item when session disallowing quit (e.g. Pantheon)
 			if (Hal.Capabilities.supports_quit_action) {
 				items.add (new Gtk.SeparatorMenuItem ());

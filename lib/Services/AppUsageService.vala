@@ -66,6 +66,12 @@ namespace Plank
 			public int64 stamp = 0;
 		}
 
+		struct GlobalKeyBucket
+		{
+			public string key;
+			public int64 bucket;
+		}
+
 		static AppUsageService? instance = null;
 
 		public static unowned AppUsageService get_default ()
@@ -99,6 +105,9 @@ namespace Plank
 		}
 
 		Gee.HashMap<string, UsageEntry> entries;
+		GlobalKeyBucket[] global_key_vector = new GlobalKeyBucket[0];
+		bool vector_dirty = true;
+		int64 vector_built_s = 0;
 		File? store_file = null;
 		bool dirty = false;
 		bool is_shut_down = false;
@@ -150,6 +159,51 @@ namespace Plank
 			if (entry == null)
 				return 0.0;
 			return decayed (entry, now_seconds ());
+		}
+
+		void ensure_global_vector (int64 now_s)
+		{
+			if (!vector_dirty && (now_s - vector_built_s) < 60 && (now_s >= vector_built_s))
+				return;
+
+			var sorted_keys = new Gee.ArrayList<string> ();
+			sorted_keys.add_all (entries.keys);
+			sorted_keys.sort ((a, b) => strcmp (a, b));
+
+			global_key_vector = new GlobalKeyBucket[sorted_keys.size];
+			for (int i = 0; i < sorted_keys.size; i++) {
+				string k = sorted_keys.get (i);
+				var e = entries.get (k);
+				int64 b = (e != null) ? (int64) Math.round (decayed (e, now_s) / TIE_EPSILON) : 0;
+				global_key_vector[i] = GlobalKeyBucket () { key = k, bucket = b };
+			}
+			vector_built_s = now_s;
+			vector_dirty = false;
+		}
+
+		/**
+		 * Global dichotomic (O(log N) binary-search) rank-bucket lookup across the single
+		 * global usage statistics vector shared by all docks.
+		 */
+		public int64 get_global_rank_bucket (string launcher)
+		{
+			if (launcher == "" || entries.size == 0)
+				return 0;
+			ensure_global_vector (now_seconds ());
+			string target = key_for (launcher);
+			int lo = 0;
+			int hi = global_key_vector.length - 1;
+			while (lo <= hi) {
+				int mid = lo + ((hi - lo) >> 1);
+				int cmp = strcmp (global_key_vector[mid].key, target);
+				if (cmp == 0)
+					return global_key_vector[mid].bucket;
+				if (cmp < 0)
+					lo = mid + 1;
+				else
+					hi = mid - 1;
+			}
+			return 0;
 		}
 
 		/**
@@ -222,6 +276,7 @@ namespace Plank
 			}
 
 			dirty = true;
+			vector_dirty = true;
 			debug ("AppUsageService: '%s' +%.2f -> %.2f", key, points, entry.score);
 
 			if (now_s - last_save_s >= SAVE_THROTTLE_SECONDS)
@@ -350,6 +405,7 @@ namespace Plank
 				warning ("AppUsageService: unable to read '%s': %s", path, e.message);
 				entries.clear ();
 			}
+			vector_dirty = true;
 		}
 
 		void save ()

@@ -174,7 +174,7 @@ namespace Plank
                 exec_name : "wayplank",
 
                 app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
-                app_dbus : "net.launchpad.plank",
+                app_namespace : "net.launchpad.plank",
                 app_icon : "plank",
                 app_launcher : Hal.Runtime.get_self_launcher_id (),
 

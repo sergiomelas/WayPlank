@@ -4811,6 +4811,402 @@ translations = {
         "ca": "Nota: suprimiu qualsevol llançador personalitzat o solució d'inici automàtic (com ara GDK_BACKEND=x11) creat anteriorment per forçar l'antic Plank a executar-se en mode X11 sobre Wayland.",
         "de": "Hinweis: Bitte entfernen Sie alle benutzerdefinierten Starter oder Autostart-Workarounds (wie GDK_BACKEND=x11), die zuvor erstellt wurden, um das alte Plank im X11-Modus unter Wayland zu erzwingen.",
         "uk": "Примітка: будь ласка, видаліть будь-які власні ярлики запуску або обхідні рішення автозапуску (наприклад, GDK_BACKEND=x11), створені раніше для примусового запуску старого Plank у режимі X11 на Wayland."
+    },
+    "Drive is no longer mounted": {
+        "zh_CN": "驱动器已不再挂载",
+        "it": "L'unità non è più montata",
+        "es": "La unidad ya no está montada",
+        "fr": "Le lecteur n'est plus monté",
+        "ca": "La unitat ja no està muntada",
+        "de": "Laufwerk ist nicht mehr eingehängt",
+        "uk": "Диск більше не змонтовано"
+    },
+    "Drive not available": {
+        "zh_CN": "驱动器不可用",
+        "it": "Unità non disponibile",
+        "es": "Unidad no disponible",
+        "fr": "Lecteur indisponible",
+        "ca": "Unitat no disponible",
+        "de": "Laufwerk nicht verfügbar",
+        "uk": "Диск недоступний"
+    },
+    "Move to _Folder": {
+        "zh_CN": "移动到文件夹(_F)",
+        "it": "Sposta nella _cartella",
+        "es": "Mover a _carpeta",
+        "fr": "Déplacer vers le _dossier",
+        "ca": "Mou a la _carpeta",
+        "de": "In _Ordner verschieben",
+        "uk": "Перемістити до _теки"
+    },
+    "Add _Folder...": {
+        "zh_CN": "添加文件夹(_F)...",
+        "it": "Aggiungi _cartella...",
+        "es": "Añadir _carpeta...",
+        "fr": "Ajouter un _dossier...",
+        "ca": "Afegeix una _carpeta...",
+        "de": "_Ordner hinzufügen...",
+        "uk": "Додати _теку..."
+    },
+    "Open _Dock...": {
+        "zh_CN": "打开程序坞(_D)...",
+        "it": "Apri _dock...",
+        "es": "Abrir _dock...",
+        "fr": "Ouvrir un _dock...",
+        "ca": "Obre un _dock...",
+        "de": "_Dock öffnen...",
+        "uk": "Відкрити _панель..."
+    },
+    "_Close This Dock": {
+        "zh_CN": "关闭此程序坞(_C)",
+        "it": "_Chiudi questo dock",
+        "es": "_Cerrar este dock",
+        "fr": "_Fermer ce dock",
+        "ca": "_Tanca aquest dock",
+        "de": "Dieses Dock _schließen",
+        "uk": "_Закрити цю панель"
+    },
+    "_Apply": {
+        "zh_CN": "应用(_A)",
+        "it": "_Applica",
+        "es": "_Aplicar",
+        "fr": "_Appliquer",
+        "ca": "_Aplica",
+        "de": "_Anwenden",
+        "uk": "_Застосувати"
+    },
+    "Display": {
+        "zh_CN": "显示器",
+        "it": "Schermo",
+        "es": "Pantalla",
+        "fr": "Écran",
+        "ca": "Pantalla",
+        "de": "Bildschirm",
+        "uk": "Дисплей"
+    },
+    "Screen %d (Primary — %s %dx%d)": {
+        "zh_CN": "屏幕 %d（主屏幕 — %s %dx%d）",
+        "it": "Schermo %d (Principale — %s %dx%d)",
+        "es": "Pantalla %d (Principal — %s %dx%d)",
+        "fr": "Écran %d (Principal — %s %dx%d)",
+        "ca": "Pantalla %d (Principal — %s %dx%d)",
+        "de": "Bildschirm %d (Primär — %s %dx%d)",
+        "uk": "Екран %d (Основний — %s %dx%d)"
+    },
+    "Screen %d (%s %dx%d)": {
+        "zh_CN": "屏幕 %d（%s %dx%d）",
+        "it": "Schermo %d (%s %dx%d)",
+        "es": "Pantalla %d (%s %dx%d)",
+        "fr": "Écran %d (%s %dx%d)",
+        "ca": "Pantalla %d (%s %dx%d)",
+        "de": "Bildschirm %d (%s %dx%d)",
+        "uk": "Екран %d (%s %dx%d)"
+    },
+    "Add Folder": {
+        "zh_CN": "添加文件夹",
+        "it": "Aggiungi cartella",
+        "es": "Añadir carpeta",
+        "fr": "Ajouter un dossier",
+        "ca": "Afegeix una carpeta",
+        "de": "Ordner hinzufügen",
+        "uk": "Додати теку"
+    },
+    "_Add Folder": {
+        "zh_CN": "添加文件夹(_A)",
+        "it": "_Aggiungi cartella",
+        "es": "_Añadir carpeta",
+        "fr": "_Ajouter le dossier",
+        "ca": "_Afegeix la carpeta",
+        "de": "Ordner _hinzufügen",
+        "uk": "_Додати теку"
+    },
+    "Folder _Name:": {
+        "zh_CN": "文件夹名称(_N):",
+        "it": "_Nome cartella:",
+        "es": "_Nombre de la carpeta:",
+        "fr": "_Nom du dossier :",
+        "ca": "_Nom de la carpeta:",
+        "de": "Ordner_name:",
+        "uk": "_Назва теки:"
+    },
+    "e.g. Work, Tools, Projects": {
+        "zh_CN": "例如：工作、工具、项目",
+        "it": "es. Lavoro, Strumenti, Progetti",
+        "es": "p. ej. Trabajo, Herramientas, Proyectos",
+        "fr": "ex. Travail, Outils, Projets",
+        "ca": "p. ex. Feina, Eines, Projectes",
+        "de": "z. B. Arbeit, Werkzeuge, Projekte",
+        "uk": "напр. Робота, Інструменти, Проєкти"
+    },
+    "Folder _Path:": {
+        "zh_CN": "文件夹路径(_P):",
+        "it": "_Percorso cartella:",
+        "es": "_Ruta de la carpeta:",
+        "fr": "_Chemin du dossier :",
+        "ca": "_Camí de la carpeta:",
+        "de": "Ordner_pfad:",
+        "uk": "_Шлях до теки:"
+    },
+    "Leave empty to create inside WayPlank config": {
+        "zh_CN": "留空则在 WayPlank 配置目录中创建",
+        "it": "Lascia vuoto per crearla nella configurazione di WayPlank",
+        "es": "Déjelo vacío para crearla dentro de la configuración de WayPlank",
+        "fr": "Laisser vide pour créer dans la configuration de WayPlank",
+        "ca": "Deixeu-ho buit per crear-la dins la configuració de WayPlank",
+        "de": "Leer lassen, um im WayPlank-Konfigurationsordner zu erstellen",
+        "uk": "Залиште порожнім, щоб створити у конфігурації WayPlank"
+    },
+    "_Browse...": {
+        "zh_CN": "浏览(_B)...",
+        "it": "_Sfoglia...",
+        "es": "_Examinar...",
+        "fr": "_Parcourir...",
+        "ca": "_Navega...",
+        "de": "_Durchsuchen...",
+        "uk": "_Огляд..."
+    },
+    "Target:": {
+        "zh_CN": "目标:",
+        "it": "Destinazione:",
+        "es": "Destino:",
+        "fr": "Cible :",
+        "ca": "Destinació:",
+        "de": "Ziel:",
+        "uk": "Призначення:"
+    },
+    "Enter a folder name (or select a folder path).": {
+        "zh_CN": "请输入文件夹名称（或选择文件夹路径）。",
+        "it": "Inserisci un nome per la cartella (o seleziona un percorso).",
+        "es": "Introduzca un nombre de carpeta (o seleccione una ruta).",
+        "fr": "Saisissez un nom de dossier (ou sélectionnez un chemin).",
+        "ca": "Introduïu un nom de carpeta (o seleccioneu un camí).",
+        "de": "Geben Sie einen Ordnernamen ein (oder wählen Sie einen Ordnerpfad).",
+        "uk": "Введіть назву теки (або виберіть шлях до теки)."
+    },
+    "Select Folder Location": {
+        "zh_CN": "选择文件夹位置",
+        "it": "Seleziona posizione cartella",
+        "es": "Seleccionar ubicación de la carpeta",
+        "fr": "Sélectionner l'emplacement du dossier",
+        "ca": "Seleccioneu la ubicació de la carpeta",
+        "de": "Ordnerpfad auswählen",
+        "uk": "Вибрати розташування теки"
+    },
+    "_Select": {
+        "zh_CN": "选择(_S)",
+        "it": "_Seleziona",
+        "es": "_Seleccionar",
+        "fr": "_Sélectionner",
+        "ca": "_Selecciona",
+        "de": "_Auswählen",
+        "uk": "_Вибрати"
+    },
+    "Open Dock": {
+        "zh_CN": "打开程序坞",
+        "it": "Apri dock",
+        "es": "Abrir dock",
+        "fr": "Ouvrir un dock",
+        "ca": "Obre un dock",
+        "de": "Dock öffnen",
+        "uk": "Відкрити панель"
+    },
+    "_Open Dock": {
+        "zh_CN": "打开程序坞(_O)",
+        "it": "_Apri dock",
+        "es": "_Abrir dock",
+        "fr": "_Ouvrir le dock",
+        "ca": "_Obre el dock",
+        "de": "Dock _öffnen",
+        "uk": "_Відкрити панель"
+    },
+    "_Dock Slot:": {
+        "zh_CN": "程序坞槽位(_D):",
+        "it": "Slot _dock:",
+        "es": "Ranura del _dock:",
+        "fr": "Emplacement du _dock :",
+        "ca": "Ranura del _dock:",
+        "de": "_Dock-Slot:",
+        "uk": "Слот _панелі:"
+    },
+    "Dock %d (%s — saved config)": {
+        "zh_CN": "程序坞 %d（%s — 已保存配置）",
+        "it": "Dock %d (%s — configurazione salvata)",
+        "es": "Dock %d (%s — configuración guardada)",
+        "fr": "Dock %d (%s — configuration enregistrée)",
+        "ca": "Dock %d (%s — configuració desada)",
+        "de": "Dock %d (%s — gespeicherte Konfiguration)",
+        "uk": "Панель %d (%s — збережена конфігурація)"
+    },
+    "Dock %d (%s)": {
+        "zh_CN": "程序坞 %d（%s）",
+        "it": "Dock %d (%s)",
+        "es": "Dock %d (%s)",
+        "fr": "Dock %d (%s)",
+        "ca": "Dock %d (%s)",
+        "de": "Dock %d (%s)",
+        "uk": "Панель %d (%s)"
+    },
+    "_Screen:": {
+        "zh_CN": "屏幕(_S):",
+        "it": "_Schermo:",
+        "es": "_Pantalla:",
+        "fr": "_Écran :",
+        "ca": "_Pantalla:",
+        "de": "_Bildschirm:",
+        "uk": "_Екран:"
+    },
+    "Screen %d (Multi-seat / Offline)": {
+        "zh_CN": "屏幕 %d（多席位 / 离线）",
+        "it": "Schermo %d (Multi-seat / Disconnesso)",
+        "es": "Pantalla %d (Multiasiento / Sin conexión)",
+        "fr": "Écran %d (Multi-poste / Hors ligne)",
+        "ca": "Pantalla %d (Multiseient / Fora de línia)",
+        "de": "Bildschirm %d (Multi-Seat / Offline)",
+        "uk": "Екран %d (Мультисіт / Офлайн)"
+    },
+    "_Position:": {
+        "zh_CN": "位置(_P):",
+        "it": "_Posizione:",
+        "es": "_Posición:",
+        "fr": "_Position :",
+        "ca": "_Posició:",
+        "de": "_Position:",
+        "uk": "_Розташування:"
+    },
+    "Maximum number of docks (4) already active.": {
+        "zh_CN": "已达到最大活动程序坞数量（4）。",
+        "it": "Numero massimo di dock attivi (4) già raggiunto.",
+        "es": "Ya se ha alcanzado el número máximo de docks activos (4).",
+        "fr": "Le nombre maximal de docks actifs (4) est déjà atteint.",
+        "ca": "Ja s'ha assolit el nombre màxim de docks actius (4).",
+        "de": "Maximale Anzahl aktiver Docks (4) bereits erreicht.",
+        "uk": "Уже досягнуто максимальної кількості активних панелей (4)."
+    },
+    "Another active dock already uses this Screen and Position.": {
+        "zh_CN": "另一个活动程序坞已占用了此屏幕和位置。",
+        "it": "Un altro dock attivo utilizza già questo schermo e questa posizione.",
+        "es": "Otro dock activo ya utiliza esta pantalla y posición.",
+        "fr": "Un autre dock actif utilise déjà cet écran et cette position.",
+        "ca": "Un altre dock actiu ja utilitza aquesta pantalla i posició.",
+        "de": "Ein anderes aktives Dock verwendet diesen Bildschirm und diese Position bereits.",
+        "uk": "Інша активна панель уже використовує цей екран і розташування."
+    },
+    "Saved configuration found for '%s' — will re-open with all pinned items intact.": {
+        "zh_CN": "找到“%s”的已保存配置 — 将保留所有固定项目重新打开。",
+        "it": "Trovata configurazione salvata per '%s' — verrà riaperto con tutti gli elementi fissati intatti.",
+        "es": "Se encontró una configuración guardada para '%s' — se volverá a abrir con todos los elementos anclados intactos.",
+        "fr": "Configuration enregistrée trouvée pour « %s » — réouverture avec tous les éléments épinglés intacts.",
+        "ca": "S'ha trobat una configuració desada per a '%s' — es tornarà a obrir amb tots els elements fixats intactes.",
+        "de": "Gespeicherte Konfiguration für „%s“ gefunden — wird mit allen angehefteten Elementen unverändert wiedergeöffnet.",
+        "uk": "Знайдено збережену конфігурацію для «%s» — панель буде відкрито з усіма закріпленими елементами."
+    },
+    "Will launch '%s' immediately without repeating onboarding.": {
+        "zh_CN": "将立即启动“%s”，无需重复首次引导。",
+        "it": "Avvierà '%s' immediatamente senza ripetere la configurazione iniziale.",
+        "es": "Iniciará '%s' inmediatamente sin repetir la configuración inicial.",
+        "fr": "Lancera « %s » immédiatement sans répéter l'assistant de premier démarrage.",
+        "ca": "Iniciarà '%s' immediatament sense repetir la configuració inicial.",
+        "de": "Startet „%s“ sofort ohne die Ersteinrichtung zu wiederholen.",
+        "uk": "Негайно запустить «%s» без повторення початкового налаштування."
+    },
+    "Delete dock '%s'?": {
+        "zh_CN": "确定删除程序坞“%s”吗？",
+        "it": "Eliminare il dock '%s'?",
+        "es": "¿Eliminar el dock '%s'?",
+        "fr": "Supprimer le dock « %s » ?",
+        "ca": "Voleu suprimir el dock '%s'?",
+        "de": "Dock „%s“ löschen?",
+        "uk": "Видалити панель «%s»?"
+    },
+    "Delete Dock": {
+        "zh_CN": "删除程序坞",
+        "it": "Elimina dock",
+        "es": "Eliminar dock",
+        "fr": "Supprimer le dock",
+        "ca": "Suprimeix el dock",
+        "de": "Dock löschen",
+        "uk": "Видалити панель"
+    },
+    "This will close '%s' and permanently remove its configuration and pinned item list.": {
+        "zh_CN": "这将关闭“%s”并永久删除其配置和固定项目列表。",
+        "it": "Questo chiuderà '%s' ed eliminerà permanentemente la sua configurazione e l'elenco degli elementi fissati.",
+        "es": "Esto cerrará '%s' y eliminará permanentemente su configuración y lista de elementos anclados.",
+        "fr": "Ceci fermera « %s » et supprimera définitivement sa configuration et sa liste d'éléments épinglés.",
+        "ca": "Això tancarà '%s' i suprimirà permanentment la seva configuració i llista d'elements fixats.",
+        "de": "Dies schließt „%s“ und entfernt dauerhaft dessen Konfiguration und angeheftete Elemente.",
+        "uk": "Це закриє «%s» і назавжди видалить її конфігурацію та список закріплених елементів."
+    },
+    "_Delete Dock": {
+        "zh_CN": "删除程序坞(_D)",
+        "it": "_Elimina dock",
+        "es": "_Eliminar dock",
+        "fr": "_Supprimer le dock",
+        "ca": "_Suprimeix el dock",
+        "de": "Dock _löschen",
+        "uk": "_Видалити панель"
+    },
+    "Move to _Dock": {
+        "zh_CN": "移动到程序坞(_D)",
+        "it": "Sposta sul _dock",
+        "es": "Mover al _dock",
+        "fr": "Déplacer vers le _dock",
+        "ca": "Mou al _dock",
+        "de": "In _Dock verschieben",
+        "uk": "Перемістити на _панель"
+    },
+    "Screen %d": {
+        "zh_CN": "屏幕 %d",
+        "it": "Schermo %d",
+        "es": "Pantalla %d",
+        "fr": "Écran %d",
+        "ca": "Pantalla %d",
+        "de": "Bildschirm %d",
+        "uk": "Екран %d"
+    },
+    "Hide and close this dock while keeping all of its pinned items and screen settings for later": {
+        "zh_CN": "隐藏并关闭此程序坞，同时保留其所有固定项目和屏幕设置以供日后使用",
+        "it": "Nasconde e chiude questo dock mantenendo tutti gli elementi fissati e le impostazioni schermo per dopo",
+        "es": "Oculta y cierra este dock conservando todos sus elementos anclados y ajustes de pantalla para más tarde",
+        "fr": "Masque et ferme ce dock tout en conservant tous ses éléments épinglés et paramètres d'écran pour plus tard",
+        "ca": "Amaga i tanca aquest dock conservant tots els elements fixats i la configuració de pantalla per a més endavant",
+        "de": "Blendet dieses Dock aus und schließt es, behält aber alle angehefteten Elemente und Bildschirmeinstellungen bei",
+        "uk": "Приховує й закриває цю панель, зберігаючи всі закріплені елементи та налаштування екрана на майбутнє"
+    },
+    "_Delete This Dock...": {
+        "zh_CN": "删除此程序坞(_D)...",
+        "it": "_Elimina questo dock...",
+        "es": "_Eliminar este dock...",
+        "fr": "_Supprimer ce dock...",
+        "ca": "_Suprimeix aquest dock...",
+        "de": "Dieses Dock _löschen...",
+        "uk": "_Видалити цю панель..."
+    },
+    "Permanently remove this dock and delete its pinned item configuration": {
+        "zh_CN": "永久移除此程序坞并删除其固定项目配置",
+        "it": "Rimuove permanentemente questo dock ed elimina la configurazione dei suoi elementi fissati",
+        "es": "Elimina permanentemente este dock y borra su configuración de elementos anclados",
+        "fr": "Supprime définitivement ce dock et efface sa configuration d'éléments épinglés",
+        "ca": "Suprimeix permanentment aquest dock i esborra la configuració dels seus elements fixats",
+        "de": "Entfernt dieses Dock dauerhaft und löscht seine Konfiguration angehefteter Elemente",
+        "uk": "Назавжди видаляє цю панель та її конфігурацію закріплених елементів"
+    },
+    "Screen %d (Disconnected)": {
+        "zh_CN": "屏幕 %d（已断开）",
+        "it": "Schermo %d (Disconnesso)",
+        "es": "Pantalla %d (Desconectada)",
+        "fr": "Écran %d (Déconnecté)",
+        "ca": "Pantalla %d (Desconnectada)",
+        "de": "Bildschirm %d (Getrennt)",
+        "uk": "Екран %d (Від'єднано)"
+    },
+    "Automatically display the dock on the primary monitor; disable to choose a logical multi-seat screen index": {
+        "zh_CN": "自动在主显示器上显示程序坞；禁用以选择逻辑多席位屏幕索引",
+        "it": "Mostra automaticamente il dock sul monitor principale; disattiva per scegliere un indice schermo logico multi-seat",
+        "es": "Muestra automáticamente el dock en el monitor principal; desactívelo para elegir un índice lógico de pantalla multiasiento",
+        "fr": "Afficher automatiquement le dock sur l'écran principal ; désactiver pour choisir un index d'écran logique multi-poste",
+        "ca": "Mostra automàticament el dock al monitor principal; desactiveu-ho per triar un índex lògic de pantalla multiseient",
+        "de": "Zeigt das Dock automatisch auf dem primären Monitor an; deaktivieren, um einen logischen Multi-Seat-Bildschirmindex zu wählen",
+        "uk": "Автоматично показувати панель на основному моніторі; вимкніть, щоб вибрати логічний індекс екрана мультисіту"
     }
 }
 

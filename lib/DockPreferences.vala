@@ -192,12 +192,31 @@ namespace Plank
 		public string load_environment_failed_details { get; private set; default = ""; }
 		public string discarded_dockitems_details { get; private set; default = ""; }
 
+		/**
+		 * Converts a Gee.Collection<string> into a Vala string[] allocated via new string[n]
+		 * (g_new0(gchar*, n + 1)), guaranteeing a trailing NULL sentinel for GLib GStrv APIs
+		 * such as GLib.Settings.set_strv(), string.joinv(), and G_TYPE_STRV properties.
+		 */
+		public static string[] list_to_strv (Gee.Collection<string>? list)
+		{
+			if (list == null || list.size == 0)
+				return new string[0];
+			var arr = new string[list.size];
+			int idx = 0;
+			foreach (var s in list) {
+				if (idx < arr.length)
+					arr[idx++] = s ?? "";
+			}
+			return arr;
+		}
+
 		public void report_corrupted_dockitems (Gee.ArrayList<string> bad_items)
 		{
 			if (bad_items == null || bad_items.size == 0)
 				return;
 			load_environment_failed = true;
-			discarded_dockitems_details = string.joinv (", ", bad_items.to_array ());
+			preserve_disk_on_load_fault = true;
+			discarded_dockitems_details = string.joinv (", ", list_to_strv (bad_items));
 		}
 
 		bool updating_sr_latch = false;
@@ -228,26 +247,437 @@ namespace Plank
 			save_latch_state ();
 		}
 
-		public string get_latch_state_path ()
+		public const int MAX_DOCK_SLOTS = 4;
+
+		// IMPORTANT: Zero static array/field initializers here — in Vala, non-zero static
+		// initializers on a GLib.Object subclass run lazily inside class_init, which leaves
+		// pointers NULL before first instantiation and overwrites pre-loaded state afterwards.
+		static bool multidock_loaded;
+		static bool preserve_disk_on_load_fault;
+		static bool startup_phase_completed;
+		static int[]? slot_enabled;
+		static int[]? slot_positions;
+		static int[]? slot_screens;
+		static string[]? slot1_items;
+		static string[]? slot1_free_items;
+		static string[]? slot1_cat_items;
+		static string[]? slot2_items;
+		static string[]? slot2_free_items;
+		static string[]? slot2_cat_items;
+		static string[]? slot3_items;
+		static string[]? slot3_free_items;
+		static string[]? slot3_cat_items;
+		static string[]? slot4_items;
+		static string[]? slot4_free_items;
+		static string[]? slot4_cat_items;
+
+		public bool needs_startup_sync { get; private set; default = false; }
+
+		static void ensure_slot_arrays_allocated ()
 		{
-			var dname = (dock_name != null && dock_name != "") ? dock_name : "dock1";
+			if (slot_enabled == null || slot_enabled.length < MAX_DOCK_SLOTS)
+				slot_enabled = { 1, -1, -1, -1 };
+			if (slot_positions == null || slot_positions.length < MAX_DOCK_SLOTS)
+				slot_positions = { (int) Gtk.PositionType.BOTTOM, -1, -1, -1 };
+			if (slot_screens == null || slot_screens.length < MAX_DOCK_SLOTS)
+				slot_screens = { 0, -1, -1, -1 };
+		}
+
+		public static void finish_startup_phase ()
+		{
+			startup_phase_completed = true;
+		}
+
+		public static void allow_disk_writes_after_user_action ()
+		{
+			if (startup_phase_completed)
+				preserve_disk_on_load_fault = false;
+		}
+
+		public static int slot_index_for_dock_name (string? name)
+		{
+			if (name == null || name == "" || name == "dock1")
+				return 1;
+			if (name == "dock2" || name == "dock-2")
+				return 2;
+			if (name == "dock3" || name == "dock-3")
+				return 3;
+			if (name == "dock4" || name == "dock-4")
+				return 4;
+			return 0;
+		}
+
+		public static string dock_name_for_slot (int slot)
+		{
+			int clamped = slot.clamp (1, MAX_DOCK_SLOTS);
+			return "dock%d".printf (clamped);
+		}
+
+		static string resolve_global_latch_path ()
+		{
 			string root_dir = "";
 			if (Paths.AppConfigFolder != null && Paths.AppConfigFolder.get_path () != null && Paths.AppConfigFolder.get_path () != "")
 				root_dir = Paths.AppConfigFolder.get_path ();
 			else
 				root_dir = Path.build_filename (Environment.get_user_config_dir (), "wayplank");
 
-			var sub_path = Path.build_filename (root_dir, dname, "latch-state.ini");
-			if (FileUtils.test (sub_path, FileTest.EXISTS))
-				FileUtils.unlink (sub_path);
+			var global_path = Path.build_filename (root_dir, "latch-state.ini");
+			var stale_docks_ini = Path.build_filename (root_dir, "docks.ini");
+			if (FileUtils.test (stale_docks_ini, FileTest.EXISTS))
+				FileUtils.unlink (stale_docks_ini);
 
-			return Path.build_filename (root_dir, "latch-state.ini");
+			for (int s = 2; s <= MAX_DOCK_SLOTS; s++) {
+				var old_hyphen = Path.build_filename (root_dir, "dock-%d".printf (s));
+				var new_canonical = Path.build_filename (root_dir, "dock%d".printf (s));
+				if (FileUtils.test (old_hyphen, FileTest.IS_DIR) && !FileUtils.test (new_canonical, FileTest.EXISTS))
+					FileUtils.rename (old_hyphen, new_canonical);
+			}
+
+			var dock1_sub = Path.build_filename (root_dir, "dock1", "latch-state.ini");
+			if (!FileUtils.test (global_path, FileTest.EXISTS) && FileUtils.test (dock1_sub, FileTest.IS_REGULAR)) {
+				if (FileUtils.rename (dock1_sub, global_path) != 0) {
+					try {
+						string data = "";
+						if (FileUtils.get_contents (dock1_sub, out data))
+							FileUtils.set_contents (global_path, data);
+					} catch { }
+					FileUtils.unlink (dock1_sub);
+				}
+			}
+
+			string[] sub_dirs = { "dock1", "dock2", "dock3", "dock4", "dock-2", "dock-3", "dock-4" };
+			foreach (unowned string sd in sub_dirs) {
+				var sp = Path.build_filename (root_dir, sd, "latch-state.ini");
+				if (FileUtils.test (sp, FileTest.EXISTS))
+					FileUtils.unlink (sp);
+			}
+
+			return global_path;
+		}
+
+		static int parse_multidock_position_token (string? raw_tok, out bool valid)
+		{
+			valid = true;
+			if (raw_tok == null)
+				return -1;
+			string t = raw_tok.strip ().down ();
+			if (t == "" || t == "null" || t == "none" || t == "-1")
+				return -1;
+			int64 parsed = 0;
+			if (!int64.try_parse (t, out parsed)) {
+				valid = false;
+				return -1;
+			}
+			if (parsed < (int64) Gtk.PositionType.LEFT || parsed > (int64) Gtk.PositionType.BOTTOM) {
+				valid = false;
+				return -1;
+			}
+			return (int) parsed;
+		}
+
+		static string[] get_slot_item_array (int slot, string kind)
+		{
+			ensure_slot_arrays_allocated ();
+			switch (slot) {
+			case 1:
+				if (kind == "FreeDockItems") return slot1_free_items ?? new string[0];
+				if (kind == "CategorizedDockItems") return slot1_cat_items ?? new string[0];
+				return slot1_items ?? new string[0];
+			case 2:
+				if (kind == "FreeDockItems") return slot2_free_items ?? new string[0];
+				if (kind == "CategorizedDockItems") return slot2_cat_items ?? new string[0];
+				return slot2_items ?? new string[0];
+			case 3:
+				if (kind == "FreeDockItems") return slot3_free_items ?? new string[0];
+				if (kind == "CategorizedDockItems") return slot3_cat_items ?? new string[0];
+				return slot3_items ?? new string[0];
+			case 4:
+				if (kind == "FreeDockItems") return slot4_free_items ?? new string[0];
+				if (kind == "CategorizedDockItems") return slot4_cat_items ?? new string[0];
+				return slot4_items ?? new string[0];
+			default:
+				return new string[0];
+			}
+		}
+
+		static void set_slot_item_array (int slot, string kind, string[] arr)
+		{
+			ensure_slot_arrays_allocated ();
+			switch (slot) {
+			case 1:
+				if (kind == "FreeDockItems") slot1_free_items = arr;
+				else if (kind == "CategorizedDockItems") slot1_cat_items = arr;
+				else slot1_items = arr;
+				break;
+			case 2:
+				if (kind == "FreeDockItems") slot2_free_items = arr;
+				else if (kind == "CategorizedDockItems") slot2_cat_items = arr;
+				else slot2_items = arr;
+				break;
+			case 3:
+				if (kind == "FreeDockItems") slot3_free_items = arr;
+				else if (kind == "CategorizedDockItems") slot3_cat_items = arr;
+				else slot3_items = arr;
+				break;
+			case 4:
+				if (kind == "FreeDockItems") slot4_free_items = arr;
+				else if (kind == "CategorizedDockItems") slot4_cat_items = arr;
+				else slot4_items = arr;
+				break;
+			}
+		}
+
+		static int parse_multidock_screen_token (string? raw_tok, out bool valid)
+		{
+			valid = true;
+			if (raw_tok == null)
+				return -1;
+			string t = raw_tok.strip ().down ();
+			if (t == "" || t == "null" || t == "none" || t == "-1")
+				return -1;
+			int64 parsed = 0;
+			if (!int64.try_parse (t, out parsed)) {
+				valid = false;
+				return -1;
+			}
+			if (parsed < 0 || parsed >= MAX_DOCK_SLOTS) {
+				valid = false;
+				return -1;
+			}
+			return (int) parsed;
+		}
+
+		static int parse_multidock_enabled_token (string? raw_tok, out bool valid)
+		{
+			valid = true;
+			if (raw_tok == null)
+				return -1;
+			string t = raw_tok.strip ().down ();
+			if (t == "" || t == "null" || t == "none" || t == "-1")
+				return -1;
+			if (t == "true" || t == "1")
+				return 1;
+			if (t == "false" || t == "0")
+				return 0;
+			valid = false;
+			return -1;
+		}
+
+		static bool is_known_multidock_key (string key)
+		{
+			for (int s = 1; s <= MAX_DOCK_SLOTS; s++) {
+				if (key == "Dock%dEnabled".printf (s)
+					|| key == "Dock%dPosition".printf (s)
+					|| key == "Dock%dScreen".printf (s))
+					return true;
+				if (s >= 2 && (key == "Dock%dItems".printf (s)
+					|| key == "Dock%dFreeItems".printf (s)
+					|| key == "Dock%dCategorizedItems".printf (s)))
+					return true;
+			}
+			return false;
+		}
+
+		public static void ensure_multidock_table_loaded ()
+		{
+			ensure_slot_arrays_allocated ();
+			if (multidock_loaded)
+				return;
+			var path = resolve_global_latch_path ();
+			if (!FileUtils.test (path, FileTest.IS_REGULAR) || !Hal.Runtime.validate_keyfile_isolated (path)) {
+				if (FileUtils.test (path, FileTest.IS_REGULAR))
+					preserve_disk_on_load_fault = true;
+				slot_enabled[0] = 1;
+				slot_positions[0] = (int) Gtk.PositionType.BOTTOM;
+				slot_screens[0] = 0;
+				for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
+					slot_enabled[i] = -1;
+					slot_positions[i] = -1;
+					slot_screens[i] = -1;
+				}
+				multidock_loaded = true;
+				return;
+			}
+			var kf = new KeyFile ();
+			try {
+				kf.load_from_file (path, KeyFileFlags.NONE);
+				int fallback_p1 = (int) Gtk.PositionType.BOTTOM;
+				int fallback_s1 = 0;
+				if (kf.has_group ("DockPreferences")) {
+					try {
+						if (kf.has_key ("DockPreferences", "Position")) {
+							int p = kf.get_integer ("DockPreferences", "Position");
+							if (p >= (int) Gtk.PositionType.LEFT && p <= (int) Gtk.PositionType.BOTTOM)
+								fallback_p1 = p;
+						}
+					} catch { }
+					try {
+						if (kf.has_key ("DockPreferences", "Monitor")) {
+							string m_tok = kf.get_string ("DockPreferences", "Monitor");
+							if (!m_tok.contains ("..") && !m_tok.contains ("/") && !m_tok.contains ("\\"))
+								fallback_s1 = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), m_tok);
+						}
+					} catch { }
+				}
+				if (kf.has_group ("MultiDock")) {
+					for (int s = 1; s <= MAX_DOCK_SLOTS; s++) {
+						string ek = "Dock%dEnabled".printf (s);
+						string pk = "Dock%dPosition".printf (s);
+						string sk = "Dock%dScreen".printf (s);
+						try {
+							if (kf.has_key ("MultiDock", pk)) {
+								bool ok_tok;
+								int pv = parse_multidock_position_token (kf.get_string ("MultiDock", pk), out ok_tok);
+								slot_positions[s - 1] = (ok_tok && !(s == 1 && pv < 0)) ? pv : (s == 1 ? fallback_p1 : -1);
+							} else {
+								slot_positions[s - 1] = (s == 1) ? fallback_p1 : -1;
+							}
+						} catch {
+							slot_positions[s - 1] = (s == 1) ? fallback_p1 : -1;
+						}
+
+						if (slot_positions[s - 1] >= 0) {
+							if (s == 1) {
+								slot_enabled[0] = 1;
+							} else {
+								try {
+									if (kf.has_key ("MultiDock", ek)) {
+										bool ok_en;
+										int ev = parse_multidock_enabled_token (kf.get_string ("MultiDock", ek), out ok_en);
+										slot_enabled[s - 1] = (ok_en && ev >= 0) ? ev : 1;
+									} else {
+										slot_enabled[s - 1] = 1;
+									}
+								} catch {
+									slot_enabled[s - 1] = 1;
+								}
+							}
+
+							try {
+								if (kf.has_key ("MultiDock", sk)) {
+									bool ok_scr;
+									int sv = parse_multidock_screen_token (kf.get_string ("MultiDock", sk), out ok_scr);
+									slot_screens[s - 1] = (ok_scr && sv >= 0) ? sv : (s == 1 ? fallback_s1 : 0);
+								} else {
+									slot_screens[s - 1] = (s == 1) ? fallback_s1 : 0;
+								}
+							} catch {
+								slot_screens[s - 1] = (s == 1) ? fallback_s1 : 0;
+							}
+						} else {
+							slot_enabled[s - 1] = (s == 1) ? 1 : -1;
+							slot_screens[s - 1] = -1;
+						}
+					}
+					if (slot_positions[0] < 0) {
+						slot_enabled[0] = 1;
+						slot_positions[0] = fallback_p1;
+						slot_screens[0] = fallback_s1;
+					}
+				} else {
+					slot_enabled[0] = 1;
+					slot_positions[0] = fallback_p1;
+					slot_screens[0] = fallback_s1;
+					for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
+						slot_enabled[i] = -1;
+						slot_positions[i] = -1;
+						slot_screens[i] = -1;
+					}
+				}
+			} catch {
+				preserve_disk_on_load_fault = true;
+				slot_enabled[0] = 1;
+				slot_positions[0] = (int) Gtk.PositionType.BOTTOM;
+				slot_screens[0] = 0;
+				for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
+					slot_enabled[i] = -1;
+					slot_positions[i] = -1;
+					slot_screens[i] = -1;
+				}
+			}
+			multidock_loaded = true;
+		}
+
+		public static bool is_slot_enabled (int slot)
+		{
+			if (slot < 1 || slot > MAX_DOCK_SLOTS)
+				return false;
+			ensure_multidock_table_loaded ();
+			if (slot == 1)
+				return true;
+			return slot_enabled[slot - 1] == 1 && slot_positions[slot - 1] >= 0;
+		}
+
+		public static bool has_slot_saved_config (int slot)
+		{
+			if (slot < 1 || slot > MAX_DOCK_SLOTS)
+				return false;
+			ensure_multidock_table_loaded ();
+			return slot_enabled[slot - 1] >= 0 && slot_positions[slot - 1] >= 0;
+		}
+
+		public static int get_slot_position (int slot)
+		{
+			if (slot < 1 || slot > MAX_DOCK_SLOTS)
+				return -1;
+			ensure_multidock_table_loaded ();
+			return slot_positions[slot - 1];
+		}
+
+		public static int get_slot_screen (int slot)
+		{
+			if (slot < 1 || slot > MAX_DOCK_SLOTS)
+				return -1;
+			ensure_multidock_table_loaded ();
+			return slot_screens[slot - 1];
+		}
+
+		public static void set_slot_enabled (int slot, bool enabled)
+		{
+			if (slot < 2 || slot > MAX_DOCK_SLOTS)
+				return;
+			ensure_multidock_table_loaded ();
+			if (startup_phase_completed)
+				preserve_disk_on_load_fault = false;
+			if (slot_positions[slot - 1] >= 0)
+				slot_enabled[slot - 1] = enabled ? 1 : 0;
+		}
+
+		public static void set_slot_placement (int slot, int screen_idx, int pos)
+		{
+			if (slot < 1 || slot > MAX_DOCK_SLOTS)
+				return;
+			ensure_multidock_table_loaded ();
+			if (startup_phase_completed)
+				preserve_disk_on_load_fault = false;
+			if (slot == 1 && pos < 0)
+				pos = (int) Gtk.PositionType.BOTTOM;
+			slot_positions[slot - 1] = pos;
+			if (pos >= 0) {
+				slot_enabled[slot - 1] = 1;
+				slot_screens[slot - 1] = screen_idx.clamp (0, MAX_DOCK_SLOTS - 1);
+			} else {
+				slot_enabled[slot - 1] = -1;
+				slot_screens[slot - 1] = -1;
+				if (slot >= 2) {
+					set_slot_item_array (slot, "DockItems", new string[0]);
+					set_slot_item_array (slot, "FreeDockItems", new string[0]);
+					set_slot_item_array (slot, "CategorizedDockItems", new string[0]);
+				}
+			}
+		}
+
+		public string get_latch_state_path ()
+		{
+			return resolve_global_latch_path ();
 		}
 
 		public bool has_profile_settings_on_disk ()
 		{
 			var path = get_latch_state_path ();
 			if (!FileUtils.test (path, FileTest.EXISTS))
+				return false;
+			if (!Hal.Runtime.validate_keyfile_isolated (path))
 				return false;
 			var kf = new KeyFile ();
 			try {
@@ -256,6 +686,37 @@ namespace Plank
 			} catch (Error e) {
 				return false;
 			}
+		}
+
+		public static bool is_slot_empty_after_onboarding (int slot)
+		{
+			if (slot < 1 || slot > MAX_DOCK_SLOTS)
+				return false;
+			string dname = dock_name_for_slot (slot);
+			string dock_dir = "";
+			if (Paths.AppConfigFolder != null && Paths.AppConfigFolder.get_path () != null && Paths.AppConfigFolder.get_path () != "")
+				dock_dir = Path.build_filename (Paths.AppConfigFolder.get_path (), dname);
+			else
+				dock_dir = Path.build_filename (Environment.get_user_config_dir (), "wayplank", dname);
+
+			string marker = Path.build_filename (dock_dir, "onboarding-done");
+			if (!FileUtils.test (marker, FileTest.EXISTS))
+				return false;
+
+			string launchers_dir = Path.build_filename (dock_dir, "launchers");
+			if (!FileUtils.test (launchers_dir, FileTest.IS_DIR))
+				return true;
+
+			try {
+				var dir = Dir.open (launchers_dir, 0);
+				unowned string? entry = null;
+				while ((entry = dir.read_name ()) != null) {
+					if (!entry.has_prefix (".") && entry.has_suffix (".dockitem"))
+						return false;
+				}
+			} catch (Error e) {
+			}
+			return true;
 		}
 
 		bool has_existing_launchers_on_disk ()
@@ -286,6 +747,8 @@ namespace Plank
 		{
 			if (loading_profile_settings)
 				return;
+			if (startup_phase_completed && !updating_sr_latch && PreferencesWindow.is_open)
+				preserve_disk_on_load_fault = false;
 			if (settings.delay_apply) {
 				profile_settings_dirty = true;
 				return;
@@ -295,6 +758,8 @@ namespace Plank
 
 		public override void apply ()
 		{
+			if (startup_phase_completed && !loading_profile_settings && PreferencesWindow.is_open)
+				preserve_disk_on_load_fault = false;
 			base.apply ();
 			save_latch_state ();
 		}
@@ -303,6 +768,8 @@ namespace Plank
 		{
 			if (settings.delay_apply)
 				base.apply ();
+			if (!startup_phase_completed)
+				needs_startup_sync = true;
 			save_latch_state ();
 			GLib.Settings.sync ();
 		}
@@ -371,14 +838,42 @@ namespace Plank
 
 		bool probe_latch_file_in_subprocess (string path)
 		{
-			if (Hal.Runtime.validate_keyfile_isolated (path))
-				return true;
-			FileUtils.unlink (path);
-			return false;
+			// Validate syntax in an isolated child process; NEVER delete or overwrite the
+			// faulty file on disk so the user/tester can inspect the broken file and re-run.
+			return Hal.Runtime.validate_keyfile_isolated (path);
+		}
+
+		void reset_in_memory_defaults ()
+		{
+			ensure_slot_arrays_allocated ();
+			loading_profile_settings = true;
+			updating_sr_latch = true;
+			profile_settings_dirty = false;
+			has_saved_pre_reserve_state = false;
+			saved_hide_mode_before_reserve = HideType.NONE;
+			saved_zoom_before_reserve = false;
+			has_saved_anchor_always_left = false;
+			saved_anchor_always_left = false;
+			docklets_expanded_latch = false;
+			pinned_expanded_latch = false;
+			slot_enabled[0] = 1;
+			slot_positions[0] = (int) Gtk.PositionType.BOTTOM;
+			slot_screens[0] = 0;
+			for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
+				slot_enabled[i] = -1;
+				slot_positions[i] = -1;
+				slot_screens[i] = -1;
+			}
+			multidock_loaded = true;
+			base.reset_all ();
+			last_system_menu_access = SystemMenuAccess;
+			updating_sr_latch = false;
+			loading_profile_settings = false;
 		}
 
 		bool load_latch_state ()
 		{
+			ensure_slot_arrays_allocated ();
 			load_environment_failed = false;
 			load_environment_failed_details = "";
 			var path = get_latch_state_path ();
@@ -386,8 +881,9 @@ namespace Plank
 				return false;
 
 			if (!probe_latch_file_in_subprocess (path)) {
-				reset_all ();
+				reset_in_memory_defaults ();
 				load_environment_failed = true;
+				preserve_disk_on_load_fault = true;
 				load_environment_failed_details = _("All settings (corrupted latch-state.ini)");
 				return false;
 			}
@@ -396,8 +892,9 @@ namespace Plank
 			try {
 				kf.load_from_file (path, KeyFileFlags.NONE);
 			} catch (Error e) {
-				reset_all ();
+				reset_in_memory_defaults ();
 				load_environment_failed = true;
+				preserve_disk_on_load_fault = true;
 				load_environment_failed_details = _("All settings (corrupted latch-state.ini)");
 				return false;
 			}
@@ -405,7 +902,7 @@ namespace Plank
 			var failed_keys = new Gee.ArrayList<string> ();
 
 			foreach (unowned string grp in kf.get_groups ()) {
-				if (grp != "LatchState" && grp != "DockPreferences")
+				if (grp != "LatchState" && grp != "DockPreferences" && grp != "MultiDock")
 					failed_keys.add ("[%s]".printf (grp));
 			}
 
@@ -500,7 +997,7 @@ namespace Plank
 			if (!kf.has_group ("DockPreferences")) {
 				if (failed_keys.size > 0) {
 					load_environment_failed = true;
-					load_environment_failed_details = string.joinv (", ", failed_keys.to_array ());
+					load_environment_failed_details = string.joinv (", ", list_to_strv (failed_keys));
 				}
 				return false;
 			}
@@ -572,6 +1069,8 @@ namespace Plank
 						string new_v = kf.get_string ("DockPreferences", prop_name);
 						if (prop_name == "Theme" && (new_v == "" || new_v == "." || new_v == ".." || new_v.contains ("/") || new_v.contains ("\\")))
 							throw new KeyFileError.INVALID_VALUE ("Invalid string");
+						if (prop_name == "Monitor" && (new_v.contains ("..") || new_v.contains ("/") || new_v.contains ("\\")))
+							throw new KeyFileError.INVALID_VALUE ("Invalid monitor token");
 						string? old_v = null;
 						@get (prop_name, out old_v);
 						if ((old_v ?? "") != new_v)
@@ -593,12 +1092,185 @@ namespace Plank
 				}
 			}
 
+			int my_slot = slot_index_for_dock_name (dock_name);
+			if (my_slot == 1 || !multidock_loaded) {
+				if (my_slot == 1) {
+					slot1_items = get_strv_property ("DockItems");
+					slot1_free_items = get_strv_property ("FreeDockItems");
+					slot1_cat_items = get_strv_property ("CategorizedDockItems");
+				}
+
+				int fallback_pos1 = (int) Position;
+				int fallback_scr1 = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), Monitor);
+				if (kf.has_group ("MultiDock")) {
+					try {
+						foreach (unowned string mk in kf.get_keys ("MultiDock")) {
+							if (!is_known_multidock_key (mk))
+								failed_keys.add (mk);
+						}
+					} catch { }
+
+					for (int s = 1; s <= MAX_DOCK_SLOTS; s++) {
+						string en_k = "Dock%dEnabled".printf (s);
+						string pos_k = "Dock%dPosition".printf (s);
+						string scr_k = "Dock%dScreen".printf (s);
+						try {
+							if (kf.has_key ("MultiDock", pos_k)) {
+								bool ok_tok;
+								int pv = parse_multidock_position_token (kf.get_string ("MultiDock", pos_k), out ok_tok);
+								if (!ok_tok || (s == 1 && pv < 0)) {
+									slot_positions[s - 1] = (s == 1) ? fallback_pos1 : -1;
+									failed_keys.add (pos_k);
+								} else {
+									slot_positions[s - 1] = pv;
+								}
+							} else {
+								slot_positions[s - 1] = (s == 1) ? fallback_pos1 : -1;
+							}
+						} catch {
+							slot_positions[s - 1] = (s == 1) ? fallback_pos1 : -1;
+							failed_keys.add (pos_k);
+						}
+
+						int parsed_en = (s == 1) ? 1 : -1;
+						try {
+							if (kf.has_key ("MultiDock", en_k)) {
+								bool ok_en;
+								int ev = parse_multidock_enabled_token (kf.get_string ("MultiDock", en_k), out ok_en);
+								if (!ok_en || (s == 1 && ev != 1)) {
+									failed_keys.add (en_k);
+									parsed_en = 1;
+								} else {
+									parsed_en = ev;
+								}
+							} else {
+								parsed_en = (slot_positions[s - 1] >= 0) ? 1 : -1;
+							}
+						} catch {
+							failed_keys.add (en_k);
+							parsed_en = (s == 1 || slot_positions[s - 1] >= 0) ? 1 : -1;
+						}
+
+						int parsed_scr = (s == 1) ? fallback_scr1 : -1;
+						try {
+							if (kf.has_key ("MultiDock", scr_k)) {
+								bool ok_scr;
+								int sv = parse_multidock_screen_token (kf.get_string ("MultiDock", scr_k), out ok_scr);
+								if (!ok_scr || (s == 1 && sv < 0)) {
+									failed_keys.add (scr_k);
+									parsed_scr = (s == 1) ? fallback_scr1 : 0;
+								} else {
+									parsed_scr = sv;
+								}
+							} else {
+								parsed_scr = (slot_positions[s - 1] >= 0) ? ((s == 1) ? fallback_scr1 : 0) : -1;
+							}
+						} catch {
+							failed_keys.add (scr_k);
+							parsed_scr = (s == 1) ? fallback_scr1 : 0;
+						}
+
+						if (slot_positions[s - 1] >= 0) {
+							slot_enabled[s - 1] = (s == 1) ? 1 : ((parsed_en >= 0) ? parsed_en : 1);
+							slot_screens[s - 1] = (parsed_scr >= 0) ? parsed_scr : ((s == 1) ? fallback_scr1 : 0);
+						} else {
+							slot_enabled[s - 1] = (s == 1) ? 1 : -1;
+							slot_screens[s - 1] = -1;
+						}
+
+						if (s >= 2) {
+							string[,] item_keys = {
+								{ "Dock%dItems".printf (s), "DockItems" },
+								{ "Dock%dFreeItems".printf (s), "FreeDockItems" },
+								{ "Dock%dCategorizedItems".printf (s), "CategorizedDockItems" }
+							};
+							for (int ik = 0; ik < 3; ik++) {
+								string kf_key = item_keys[ik, 0];
+								string prop_kind = item_keys[ik, 1];
+								try {
+									if (kf.has_key ("MultiDock", kf_key)) {
+										string[] arr = kf.get_string_list ("MultiDock", kf_key);
+										bool valid_arr = true;
+										foreach (unowned string entry in arr) {
+											if (entry == "" || entry.contains ("..") || entry.contains ("/") || entry.contains ("\\") || !entry.has_suffix (".dockitem")) {
+												valid_arr = false;
+												break;
+											}
+										}
+										if (valid_arr) {
+											set_slot_item_array (s, prop_kind, arr);
+										} else {
+											failed_keys.add (kf_key);
+											set_slot_item_array (s, prop_kind, new string[0]);
+										}
+									} else {
+										set_slot_item_array (s, prop_kind, new string[0]);
+									}
+								} catch {
+									failed_keys.add (kf_key);
+									set_slot_item_array (s, prop_kind, new string[0]);
+								}
+							}
+
+							// Configuration-loader armor: if a secondary dock (dock2..dock4) was emptied
+							// after onboarding (0 .dockitem files on disk), clear it automatically to null.
+							if ((slot_positions[s - 1] >= 0 || slot_enabled[s - 1] >= 0)
+								&& is_slot_empty_after_onboarding (s)) {
+								slot_enabled[s - 1] = -1;
+								slot_positions[s - 1] = -1;
+								slot_screens[s - 1] = -1;
+								set_slot_item_array (s, "DockItems", new string[0]);
+								set_slot_item_array (s, "FreeDockItems", new string[0]);
+								set_slot_item_array (s, "CategorizedDockItems", new string[0]);
+								needs_startup_sync = true;
+							}
+						}
+					}
+					multidock_loaded = true;
+				} else {
+					// v0.7.1 backward compatibility: migrate single global Position & Monitor onto dock1, slots 2..4 = null (-1)
+					slot_enabled[0] = 1;
+					slot_positions[0] = fallback_pos1;
+					slot_screens[0] = fallback_scr1;
+					for (int s = 2; s <= MAX_DOCK_SLOTS; s++) {
+						slot_enabled[s - 1] = -1;
+						slot_positions[s - 1] = -1;
+						slot_screens[s - 1] = -1;
+						set_slot_item_array (s, "DockItems", new string[0]);
+						set_slot_item_array (s, "FreeDockItems", new string[0]);
+						set_slot_item_array (s, "CategorizedDockItems", new string[0]);
+					}
+					multidock_loaded = true;
+					needs_startup_sync = true;
+				}
+			}
+			if (my_slot >= 1 && my_slot <= MAX_DOCK_SLOTS) {
+				if (slot_positions[my_slot - 1] >= 0) {
+					if (Position != (Gtk.PositionType) slot_positions[my_slot - 1])
+						Position = (Gtk.PositionType) slot_positions[my_slot - 1];
+					string target_mon_tok = PositionManager.monitor_token_for_screen_index (int.max (0, slot_screens[my_slot - 1]));
+					if (Monitor != target_mon_tok)
+						Monitor = target_mon_tok;
+				}
+				if (my_slot == 1 && is_slot_empty_after_onboarding (1) && SystemMenuAccess != 4) {
+					SystemMenuAccess = 4;
+					last_system_menu_access = 4;
+					needs_startup_sync = true;
+				}
+				if (my_slot >= 2) {
+					set_strv_property ("DockItems", get_slot_item_array (my_slot, "DockItems"));
+					set_strv_property ("FreeDockItems", get_slot_item_array (my_slot, "FreeDockItems"));
+					set_strv_property ("CategorizedDockItems", get_slot_item_array (my_slot, "CategorizedDockItems"));
+				}
+			}
+
 			updating_sr_latch = prev_latch;
 			loading_profile_settings = false;
 
 			if (failed_keys.size > 0) {
 				load_environment_failed = true;
-				load_environment_failed_details = string.joinv (", ", failed_keys.to_array ());
+				preserve_disk_on_load_fault = true;
+				load_environment_failed_details = string.joinv (", ", list_to_strv (failed_keys));
 			}
 			return true;
 		}
@@ -647,8 +1319,24 @@ namespace Plank
 
 		public void save_latch_state ()
 		{
-			if (loading_profile_settings)
+			if (loading_profile_settings || preserve_disk_on_load_fault || !startup_phase_completed)
 				return;
+
+			ensure_multidock_table_loaded ();
+			int my_slot = slot_index_for_dock_name (dock_name);
+			if (my_slot == 1) {
+				slot_positions[0] = (int) Position;
+				slot_screens[0] = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), Monitor);
+				slot1_items = get_strv_property ("DockItems");
+				slot1_free_items = get_strv_property ("FreeDockItems");
+				slot1_cat_items = get_strv_property ("CategorizedDockItems");
+			} else if (my_slot >= 2 && my_slot <= MAX_DOCK_SLOTS && slot_positions[my_slot - 1] >= 0) {
+				slot_positions[my_slot - 1] = (int) Position;
+				slot_screens[my_slot - 1] = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), Monitor);
+				set_slot_item_array (my_slot, "DockItems", get_strv_property ("DockItems"));
+				set_slot_item_array (my_slot, "FreeDockItems", get_strv_property ("FreeDockItems"));
+				set_slot_item_array (my_slot, "CategorizedDockItems", get_strv_property ("CategorizedDockItems"));
+			}
 
 			var path = get_latch_state_path ();
 			var dir = Path.get_dirname (path);
@@ -684,7 +1372,11 @@ namespace Plank
 					kf.set_boolean ("DockPreferences", prop_name, v);
 				} else if (type == typeof (int) || type.is_enum ()) {
 					int v = 0;
-					@get (prop_name, out v);
+					if (prop_name == "Position") {
+						v = slot_positions[0];
+					} else {
+						@get (prop_name, out v);
+					}
 					if (prop_name == "IconSize" && v >= MIN_ICON_SIZE && v <= MAX_ICON_SIZE && (v % 2) != 0)
 						v -= 1;
 					kf.set_integer ("DockPreferences", prop_name, v);
@@ -694,11 +1386,43 @@ namespace Plank
 					kf.set_int64 ("DockPreferences", prop_name, (int64) v);
 				} else if (type == typeof (string)) {
 					string? v = null;
-					@get (prop_name, out v);
+					if (prop_name == "Monitor") {
+						v = PositionManager.monitor_token_for_screen_index (int.max (0, slot_screens[0]));
+					} else {
+						@get (prop_name, out v);
+					}
 					kf.set_string ("DockPreferences", prop_name, v ?? "");
 				} else if (type == typeof (string[])) {
-					string[] v = get_strv_property (prop_name);
+					string[] v = (my_slot == 1)
+						? get_strv_property (prop_name)
+						: get_slot_item_array (1, prop_name);
 					kf.set_string_list ("DockPreferences", prop_name, v);
+				}
+			}
+
+			kf.set_string ("MultiDock", "Dock1Enabled", "true");
+			kf.set_integer ("MultiDock", "Dock1Position", slot_positions[0] >= 0 ? slot_positions[0] : (int) Gtk.PositionType.BOTTOM);
+			kf.set_integer ("MultiDock", "Dock1Screen", int.max (0, slot_screens[0]));
+			for (int s = 2; s <= MAX_DOCK_SLOTS; s++) {
+				int sp = slot_positions[s - 1];
+				int se = slot_enabled[s - 1];
+				if (sp >= 0 && se >= 0) {
+					kf.set_string ("MultiDock", "Dock%dEnabled".printf (s), (se == 1) ? "true" : "false");
+					kf.set_integer ("MultiDock", "Dock%dPosition".printf (s), sp);
+					kf.set_integer ("MultiDock", "Dock%dScreen".printf (s), int.max (0, slot_screens[s - 1]));
+					string[] s_items = get_slot_item_array (s, "DockItems");
+					string[] s_free = get_slot_item_array (s, "FreeDockItems");
+					string[] s_cat = get_slot_item_array (s, "CategorizedDockItems");
+					if (s_items.length > 0)
+						kf.set_string_list ("MultiDock", "Dock%dItems".printf (s), s_items);
+					if (s_free.length > 0)
+						kf.set_string_list ("MultiDock", "Dock%dFreeItems".printf (s), s_free);
+					if (s_cat.length > 0)
+						kf.set_string_list ("MultiDock", "Dock%dCategorizedItems".printf (s), s_cat);
+				} else {
+					kf.set_string ("MultiDock", "Dock%dEnabled".printf (s), "null");
+					kf.set_string ("MultiDock", "Dock%dPosition".printf (s), "null");
+					kf.set_string ("MultiDock", "Dock%dScreen".printf (s), "null");
 				}
 			}
 
@@ -746,8 +1470,9 @@ namespace Plank
 			}
 			last_system_menu_access = SystemMenuAccess;
 
-			if (state_dirty || load_environment_failed || (!loaded_from_disk && has_existing_launchers_on_disk ())) {
-				save_latch_state ();
+			if (!load_environment_failed && !preserve_disk_on_load_fault
+				&& (state_dirty || (!loaded_from_disk && has_existing_launchers_on_disk ()))) {
+				needs_startup_sync = true;
 			}
 
 			notify["ReserveSpace"].connect (on_sr_reserve_changed);
@@ -845,23 +1570,11 @@ namespace Plank
 
 		public override void reset_all ()
 		{
-			loading_profile_settings = true;
-			updating_sr_latch = true;
-			profile_settings_dirty = false;
-			has_saved_pre_reserve_state = false;
-			saved_hide_mode_before_reserve = HideType.NONE;
-			saved_zoom_before_reserve = false;
-			has_saved_anchor_always_left = false;
-			saved_anchor_always_left = false;
-			docklets_expanded_latch = false;
-			pinned_expanded_latch = false;
+			preserve_disk_on_load_fault = false;
+			reset_in_memory_defaults ();
 			var path = get_latch_state_path ();
 			if (FileUtils.test (path, FileTest.EXISTS))
 				FileUtils.unlink (path);
-			base.reset_all ();
-			last_system_menu_access = SystemMenuAccess;
-			updating_sr_latch = false;
-			loading_profile_settings = false;
 		}
 
 		void on_sr_anchor_always_left_changed ()

@@ -21,16 +21,16 @@
 namespace Plank
 {
 	/**
-	 * Southbound Linux / systemd-logind / DisplayManager / Wayland session & power provider (`ISessionPowerProvider`).
+	 * Southbound Freedesktop / systemd-logind / DisplayManager / Wayland session & power provider (`ISessionPowerProvider`).
 	 */
-	public class LinuxSessionPower : GLib.Object, ISessionPowerProvider
+	public class FreedesktopSessionPower : GLib.Object, ISessionPowerProvider
 	{
-		static LinuxSessionPower? default_instance = null;
+		static FreedesktopSessionPower? default_instance = null;
 
-		public static LinuxSessionPower get_default ()
+		public static FreedesktopSessionPower get_default ()
 		{
 			if (default_instance == null)
-				default_instance = new LinuxSessionPower ();
+				default_instance = new FreedesktopSessionPower ();
 			return default_instance;
 		}
 
@@ -62,7 +62,9 @@ namespace Plank
 		static bool query_login1_capability (string method_name)
 		{
 			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus == null)
+					return false;
 				var res = bus.call_sync (
 					"org.freedesktop.login1",
 					"/org/freedesktop/login1",
@@ -78,7 +80,7 @@ namespace Plank
 				res.get ("(s)", out status);
 				return (status == "yes" || status == "challenge");
 			} catch (Error e) {
-				debug ("LinuxSessionPower: %s query failed: %s", method_name, e.message);
+				debug ("FreedesktopSessionPower: %s query failed: %s", method_name, e.message);
 				return false;
 			}
 		}
@@ -100,23 +102,25 @@ namespace Plank
 
 		public void lock_screen ()
 		{
-			debug ("LinuxSessionPower: locking session");
+			debug ("FreedesktopSessionPower: locking session");
 
 			if (is_gnome_session ()) {
 				try {
-					var bus = Bus.get_sync (BusType.SESSION, null);
-					bus.call_sync (
-						"org.gnome.ScreenSaver",
-						"/org/gnome/ScreenSaver",
-						"org.gnome.ScreenSaver",
-						"Lock",
-						null,
-						null,
-						DBusCallFlags.NONE,
-						1500,
-						null
-					);
-					return;
+					var bus = DbusBroker.get_default ().get_session_bus ();
+					if (bus != null) {
+						bus.call_sync (
+							"org.gnome.ScreenSaver",
+							"/org/gnome/ScreenSaver",
+							"org.gnome.ScreenSaver",
+							"Lock",
+							null,
+							null,
+							DBusCallFlags.NONE,
+							1500,
+							null
+						);
+						return;
+					}
 				} catch (Error e) {
 					debug ("GNOME ScreenSaver Lock D-Bus call failed (non-GDM display manager or ScreenShield unavailable): %s", e.message);
 				}
@@ -131,7 +135,33 @@ namespace Plank
 
 			if (is_kde_session ()) {
 				try {
-					var bus = Bus.get_sync (BusType.SESSION, null);
+					var bus = DbusBroker.get_default ().get_session_bus ();
+					if (bus != null) {
+						bus.call_sync (
+							"org.freedesktop.ScreenSaver",
+							"/ScreenSaver",
+							"org.freedesktop.ScreenSaver",
+							"Lock",
+							null,
+							null,
+							DBusCallFlags.NONE,
+							1500,
+							null
+						);
+						return;
+					}
+				} catch (Error e) {
+					debug ("KDE ScreenSaver Lock D-Bus call failed: %s", e.message);
+				}
+				try {
+					Process.spawn_command_line_async ("qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock");
+					return;
+				} catch (Error e) { }
+			}
+
+			try {
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus != null) {
 					bus.call_sync (
 						"org.freedesktop.ScreenSaver",
 						"/ScreenSaver",
@@ -144,29 +174,7 @@ namespace Plank
 						null
 					);
 					return;
-				} catch (Error e) {
-					debug ("KDE ScreenSaver Lock D-Bus call failed: %s", e.message);
 				}
-				try {
-					Process.spawn_command_line_async ("qdbus org.freedesktop.ScreenSaver /ScreenSaver Lock");
-					return;
-				} catch (Error e) { }
-			}
-
-			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
-				bus.call_sync (
-					"org.freedesktop.ScreenSaver",
-					"/ScreenSaver",
-					"org.freedesktop.ScreenSaver",
-					"Lock",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				return;
 			} catch (Error e) { }
 
 			var seat_path = Environment.get_variable ("XDG_SEAT_PATH");
@@ -174,19 +182,21 @@ namespace Plank
 				seat_path = "/org/freedesktop/DisplayManager/Seat0";
 
 			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.DisplayManager",
-					seat_path,
-					"org.freedesktop.DisplayManager.Seat",
-					"SwitchToGreeter",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				return;
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus != null) {
+					bus.call_sync (
+						"org.freedesktop.DisplayManager",
+						seat_path,
+						"org.freedesktop.DisplayManager.Seat",
+						"SwitchToGreeter",
+						null,
+						null,
+						DBusCallFlags.NONE,
+						1500,
+						null
+					);
+					return;
+				}
 			} catch (Error e) {
 				debug ("DisplayManager SwitchToGreeter lock fallback failed: %s", e.message);
 			}
@@ -202,19 +212,21 @@ namespace Plank
 			}
 
 			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.login1",
-					"/org/freedesktop/login1",
-					"org.freedesktop.login1.Manager",
-					"LockSessions",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				return;
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus != null) {
+					bus.call_sync (
+						"org.freedesktop.login1",
+						"/org/freedesktop/login1",
+						"org.freedesktop.login1.Manager",
+						"LockSessions",
+						null,
+						null,
+						DBusCallFlags.NONE,
+						1500,
+						null
+					);
+					return;
+				}
 			} catch (Error e) { }
 
 			try {
@@ -225,26 +237,28 @@ namespace Plank
 
 		public void switch_user ()
 		{
-			debug ("LinuxSessionPower: switching to user greeter");
+			debug ("FreedesktopSessionPower: switching to user greeter");
 
 			var seat_path = Environment.get_variable ("XDG_SEAT_PATH");
 			if (seat_path == null || seat_path == "" || !Variant.is_object_path (seat_path))
 				seat_path = "/org/freedesktop/DisplayManager/Seat0";
 
 			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.DisplayManager",
-					seat_path,
-					"org.freedesktop.DisplayManager.Seat",
-					"SwitchToGreeter",
-					null,
-					null,
-					DBusCallFlags.NONE,
-					1000,
-					null
-				);
-				return;
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus != null) {
+					bus.call_sync (
+						"org.freedesktop.DisplayManager",
+						seat_path,
+						"org.freedesktop.DisplayManager.Seat",
+						"SwitchToGreeter",
+						null,
+						null,
+						DBusCallFlags.NONE,
+						1000,
+						null
+					);
+					return;
+				}
 			} catch (Error e) {
 				debug ("DisplayManager SwitchToGreeter unavailable: %s", e.message);
 			}
@@ -261,7 +275,7 @@ namespace Plank
 
 		public void suspend ()
 		{
-			debug ("LinuxSessionPower: suspending system");
+			debug ("FreedesktopSessionPower: suspending system");
 			try {
 				Process.spawn_command_line_async ("systemctl suspend");
 				return;
@@ -275,7 +289,7 @@ namespace Plank
 
 		public void hibernate ()
 		{
-			debug ("LinuxSessionPower: hibernating system");
+			debug ("FreedesktopSessionPower: hibernating system");
 			try {
 				Process.spawn_command_line_async ("systemctl hibernate");
 				return;
@@ -289,7 +303,7 @@ namespace Plank
 
 		public void hybrid_sleep ()
 		{
-			debug ("LinuxSessionPower: hybrid-sleeping system");
+			debug ("FreedesktopSessionPower: hybrid-sleeping system");
 			try {
 				Process.spawn_command_line_async ("systemctl hybrid-sleep");
 				return;
@@ -303,7 +317,7 @@ namespace Plank
 
 		public void reboot_to_firmware ()
 		{
-			debug ("LinuxSessionPower: reboot to UEFI/BIOS firmware setup");
+			debug ("FreedesktopSessionPower: reboot to UEFI/BIOS firmware setup");
 
 			try {
 				Process.spawn_command_line_async ("systemctl reboot --firmware-setup");
@@ -311,20 +325,22 @@ namespace Plank
 			} catch (Error e) { }
 
 			try {
-				var bus = Bus.get_sync (BusType.SYSTEM, null);
-				bus.call_sync (
-					"org.freedesktop.login1",
-					"/org/freedesktop/login1",
-					"org.freedesktop.login1.Manager",
-					"SetRebootToFirmwareSetup",
-					new Variant ("(b)", true),
-					null,
-					DBusCallFlags.NONE,
-					1500,
-					null
-				);
-				restart ();
-				return;
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus != null) {
+					bus.call_sync (
+						"org.freedesktop.login1",
+						"/org/freedesktop/login1",
+						"org.freedesktop.login1.Manager",
+						"SetRebootToFirmwareSetup",
+						new Variant ("(b)", true),
+						null,
+						DBusCallFlags.NONE,
+						1500,
+						null
+					);
+					restart ();
+					return;
+				}
 			} catch (Error e) {
 				warning ("Failed to reboot to firmware setup: %s", e.message);
 			}
@@ -332,7 +348,7 @@ namespace Plank
 
 		public void logout ()
 		{
-			debug ("LinuxSessionPower: logout");
+			debug ("FreedesktopSessionPower: logout");
 
 			if (is_kde_session ()) {
 				try {
@@ -377,7 +393,7 @@ namespace Plank
 
 		public void restart ()
 		{
-			debug ("LinuxSessionPower: restart");
+			debug ("FreedesktopSessionPower: restart");
 
 			if (is_gnome_session ()) {
 				try {
@@ -410,7 +426,7 @@ namespace Plank
 
 		public void shutdown ()
 		{
-			debug ("LinuxSessionPower: shutdown");
+			debug ("FreedesktopSessionPower: shutdown");
 
 			if (is_gnome_session ()) {
 				try {

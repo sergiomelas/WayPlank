@@ -45,7 +45,8 @@ This manual provides an in-depth reference for all features, configuration optio
    - [Scroll Gestures](#scroll-gestures)
    - [Drag & Drop Interactions](#drag--drop-interactions)
    - [Quick Settings Access & In-App Help](#quick-settings-access--in-app-help)
-8. [Multi-Monitor Setup & Screen Ergonomics](#8-multi-monitor-setup--screen-ergonomics)
+8. [Multi-Monitor Setup, Multi-Dock Engine & Screen Ergonomics](#8-multi-monitor-setup-multi-dock-engine--screen-ergonomics)
+   - [Single-Process Multi-Dock Engine (`dock1`–`dock4`)](#single-process-multi-dock-engine-dock1dock4)
    - [Monitor Selection & Alignment](#monitor-selection--alignment)
    - [Intelligent Hide & Edge Pressure](#intelligent-hide--edge-pressure)
    - [Option to Reserve Screen Space (Panel Mode)](#option-to-reserve-screen-space-panel-mode---issues-9-17)
@@ -413,9 +414,27 @@ WayPlank offers an extensive set of mouse gestures and keyboard shortcuts design
 
 ---
 
-## 8. Multi-Monitor Setup & Screen Ergonomics
+## 8. Multi-Monitor Setup, Multi-Dock Engine & Screen Ergonomics
 
-WayPlank is architected from the ground up for modern multi-monitor Wayland workstations, whether utilizing homogeneous 4K displays or heterogeneous multi-output setups with mixed fractional scaling.
+WayPlank is architected from the ground up for modern multi-monitor Wayland workstations, whether utilizing homogeneous 4K displays, heterogeneous multi-output setups with mixed fractional scaling, or up to **4 simultaneous docks** inside a single lightweight process.
+
+### Single-Process Multi-Dock Engine (`dock1`–`dock4`)
+WayPlank supports up to **4 concurrent, independently positioned docks (`dock1`–`dock4`)** hosted inside **one single `wayplank` process** (zero extra background daemons or inter-process IPC):
+- **Isolated Per-Dock Items, Shared Global Style:** Each dock maintains its own isolated launcher/folder/docklet directory (`~/.config/wayplank/dock1/launchers/` … `~/.config/wayplank/dock4/launchers/`), while global appearance/behavior settings and the `[MultiDock]` topology (`Dock<s>Enabled`, `Dock<s>Screen`, `Dock<s>Position`) live together in `~/.config/wayplank/latch-state.ini`.
+- **Opening, Closing & Deleting Secondary Docks:**
+  - **`Open Dock...`** *(Right-click the WayPlank icon or dock background)*: Opens the **Open Dock** dialog, automatically suggesting the next free `(Screen, Edge)` slot to create a new dock or re-open a previously closed one.
+  - **`Close This Dock`** *(Bottom-left of Preferences on `dock2`–`dock4`)*: Hides the dock (`Enabled=false`) while **keeping all of its pinned apps, folders, and docklets on disk** so you can re-open it intact anytime.
+  - **`Delete This Dock...`** *(Bottom-left of Preferences on `dock2`–`dock4`)*: Permanently removes the dock, deletes `~/.config/wayplank/dock<k>/`, and resets its slot (`Enabled=null`).
+  - **Empty-Dock Auto-Lifecycle:** Removing the last remaining item from any secondary dock (`dock2`–`dock4`) automatically deletes and wipes that dock (`0` items = `Delete This Dock`). Primary **`dock1`** is permanently undeletable and unclosable—if `dock1` is ever emptied, WayPlank automatically restores the dedicated WayPlank icon (`SystemMenuAccess = 4`) so Preferences remain reachable.
+- **Live Preferences Dock Selector Dropdown:** Whenever 2 or more docks are active, a full-width bold dropdown bar (`Dock1 - Screen 1 - Bottom`, `Dock2 - Screen 2 - Bottom`, …) appears at the top of **Preferences**, letting you switch which dock you are configuring live across all 4 tabs without closing the dialog.
+- **2D `(Screen, Edge)` Collision Prevention & Multi-Seat Arbitration:**
+  - Two active docks **can** share the same edge on **different** screens (for example, `Dock1` on `Screen 1 - Bottom` and `Dock2` on `Screen 2 - Bottom`), and can **never** occupy the same `(Screen, Edge)` location.
+  - Occupied edges in **Position**, occupied screens in **Screen**, and **On Primary Display** (whenever toggling ON would collide on `Screen 1`) are automatically **grayed out** with the occupying dock's name (e.g. `Bottom (Dock1)`, `Screen 2 (Dock2)`) across both **Preferences** and **Open Dock...**.
+  - **Lowest-Index Hotplug Arbitration (`dock1` $\rightarrow$ `dock4`):** If an external monitor is unplugged and a secondary dock would clamp onto an edge already held by a lower-index dock, the colliding higher-index dock suspends non-destructively and automatically returns when the monitor is reconnected.
+- **Primary (`dock1`) Exclusivity & Cross-Dock Drag / Pinning:**
+  - Both the **WayPlank anchor icon** and **unpinned running applications (`Show Unpinned`)** belong exclusively to **`dock1`** (`Show Unpinned` is automatically OFF and locked on `dock2`–`dock4`), eliminating duplicate running icons across docks.
+  - **Direct Cross-Dock Drag (`dockA <-> dockB`):** Drag Folders, Pinned Apps, Unpinned Running Apps, Docklets, or Folder-Drawer apps directly from one dock onto another (preserving custom icons and browser profile configs). Any running app pinned on a visible secondary dock suppresses duplicate unpinned icons on `dock1`; unpinning a running app off `dock2`–`dock4` automatically returns its running icon to `dock1`.
+  - **Zone-Matched Accordion Unfold:** Dragging a Docklet unfolds only the Docklets accordion, and dragging an App unfolds only the Pinned Apps accordion (Folders and Trash never trigger accidental accordion unfolds).
 
 ### Monitor Selection & Alignment
 - **Position**: Place the dock on the `Bottom`, `Top`, `Left`, or `Right` edge of your screen.
@@ -631,9 +650,9 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).
 
 ### Configuration File Paths
-- **Launchers Directory**: `~/.config/wayplank/dock1/launchers/`
+- **Per-Dock Launchers Directories (`dock1`–`dock4`)**: `~/.config/wayplank/dock<1..4>/launchers/`
 - **First-Run Onboarding Marker**: `~/.config/wayplank/dock1/onboarding-done`
-- **Persistent Full Profile & SR Latch Memory**: `~/.config/wayplank/latch-state.ini`
+- **Persistent Full Profile, `[MultiDock]` Topology & SR Latch Memory**: `~/.config/wayplank/latch-state.ini`
 - **Smart LRU App Usage Database**: `~/.local/share/wayplank/app_usage.json`
 - **Folder Drawers**: `~/.config/wayplank/folders/`
 - **Custom Themes**: `~/.local/share/wayplank/themes/` (and legacy `~/.local/share/plank/themes/`)

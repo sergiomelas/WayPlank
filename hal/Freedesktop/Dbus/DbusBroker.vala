@@ -87,6 +87,43 @@ namespace Plank
 			return system_conn;
 		}
 
+		public uint own_session_name (string name, BusNameOwnerFlags flags,
+			owned BusAcquiredCallback? bus_acquired,
+			owned BusNameAcquiredCallback? name_acquired,
+			owned BusNameLostCallback? name_lost)
+		{
+			return Bus.own_name (BusType.SESSION, name, flags,
+				(owned) bus_acquired, (owned) name_acquired, (owned) name_lost);
+		}
+
+		public uint own_name_on_connection (DBusConnection conn, string name, BusNameOwnerFlags flags,
+			owned BusNameAcquiredCallback? name_acquired,
+			owned BusNameLostCallback? name_lost)
+		{
+			return Bus.own_name_on_connection (conn, name, flags,
+				(owned) name_acquired, (owned) name_lost);
+		}
+
+		public void unown_name (uint owner_id)
+		{
+			if (owner_id > 0U)
+				Bus.unown_name (owner_id);
+		}
+
+		public uint watch_session_name (string name, BusNameWatcherFlags flags,
+			owned BusNameAppearedCallback? name_appeared,
+			owned BusNameVanishedCallback? name_vanished)
+		{
+			return Bus.watch_name (BusType.SESSION, name, flags,
+				(owned) name_appeared, (owned) name_vanished);
+		}
+
+		public void unwatch_name (uint watcher_id)
+		{
+			if (watcher_id > 0U)
+				Bus.unwatch_name (watcher_id);
+		}
+
 		public uint resolve_sender_pid (string bus_or_sender)
 		{
 			if (bus_or_sender == "")

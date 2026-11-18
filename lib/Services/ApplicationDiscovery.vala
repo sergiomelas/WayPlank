@@ -118,15 +118,6 @@ namespace Plank
 			return s;
 		}
 
-		static string quote_arg_if_needed (string arg)
-		{
-			if (arg == "")
-				return "\"\"";
-			if (!arg.contains (" ") && !arg.contains ("\t") && !arg.contains ("\"") && !arg.contains ("'"))
-				return arg;
-			return "\"" + arg.replace ("\\", "\\\\").replace ("\"", "\\\"") + "\"";
-		}
-
 		ApplicationDiscovery ()
 		{
 			indexed_desktop_files = new Gee.ArrayList<File> ();
@@ -456,6 +447,11 @@ namespace Plank
 									if (uri != null && Hal.Apps.is_synthetic_launcher (uri)) {
 										pinned_synth_stems.add (Hal.Apps.launcher_id_stem (uri));
 										pinned_synth_uris.add (canonicalize_launcher_uri (uri));
+									} else if (uri != null && uri.has_prefix ("file://")) {
+										var maybe_dir = File.new_for_uri (uri);
+										if (maybe_dir.query_exists () && maybe_dir.query_file_type (FileQueryInfoFlags.NONE, null) == FileType.DIRECTORY) {
+											collect_folder_synthetic_launchers (maybe_dir, pinned_synth_stems, pinned_synth_uris, 0);
+										}
 									}
 								}
 							} catch { }
@@ -511,7 +507,7 @@ namespace Plank
 							if (indexed_desktop_files[i].get_basename () == bname)
 								indexed_desktop_files.remove_at (i);
 						}
-						Hal.Apps.delete_synthetic_launcher (synth_uri);
+						Hal.Apps.delete_synthetic_launcher (synth_uri, pinned_synth_stems.contains (stem));
 						removed_any = true;
 					}
 				}
@@ -520,6 +516,27 @@ namespace Plank
 			if (removed_any)
 				rebuild_fast_indexes ();
 			return removed_any;
+		}
+
+		void collect_folder_synthetic_launchers (File dir, Gee.HashSet<string> stems, Gee.HashSet<string> uris, int depth)
+		{
+			if (depth > 3)
+				return;
+			try {
+				var f_enum = dir.enumerate_children (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_TYPE, FileQueryInfoFlags.NONE);
+				FileInfo? f_info = null;
+				while ((f_info = f_enum.next_file ()) != null) {
+					var cname = f_info.get_name ();
+					var child = dir.get_child (cname);
+					if (f_info.get_file_type () == FileType.DIRECTORY) {
+						collect_folder_synthetic_launchers (child, stems, uris, depth + 1);
+					} else if (Hal.Apps.is_synthetic_launcher (cname)) {
+						stems.add (Hal.Apps.launcher_id_stem (cname));
+						uris.add (canonicalize_launcher_uri (child.get_uri ()));
+					}
+				}
+				try { f_enum.close (null); } catch { }
+			} catch { }
 		}
 
 		public int effective_match_score (ApplicationIdentity identity, WindowInfo window)
@@ -758,13 +775,13 @@ namespace Plank
 			if (cmdline.has_prefix (appimage_path) || cmdline.has_prefix ("\"" + appimage_path + "\""))
 				return cmdline;
 
-			string quoted_app = quote_arg_if_needed (appimage_path);
+			string quoted_app = Hal.Runtime.quote_command_arg (appimage_path);
 			string[] parsed_argv = Hal.Runtime.parse_command_argv (cmdline);
 			if (parsed_argv.length > 1) {
 				var sb = new StringBuilder (quoted_app);
 				for (int a = 1; a < parsed_argv.length; a++) {
 					sb.append_c (' ');
-					sb.append (quote_arg_if_needed (parsed_argv[a]));
+					sb.append (Hal.Runtime.quote_command_arg (parsed_argv[a]));
 				}
 				return sb.str;
 			}

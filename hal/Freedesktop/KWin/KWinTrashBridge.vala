@@ -69,11 +69,7 @@ namespace Plank
 
 		static DBusConnection? get_session_bus ()
 		{
-			try {
-				return Bus.get_sync (BusType.SESSION, null);
-			} catch (Error e) {
-				return null;
-			}
+			return DbusBroker.get_default ().get_session_bus ();
 		}
 
 		public static bool is_kwin_or_kde ()

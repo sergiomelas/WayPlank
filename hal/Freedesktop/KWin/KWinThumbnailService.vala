@@ -179,7 +179,9 @@ namespace Plank
 			string safe_id = win_id.replace ("/", "_").replace ("..", "_");
 			string tmp_path = Path.build_filename (runtime_dir, "wayplank_thumb_%d_%d_%s.png".printf ((int) Posix.getpid (), seq, safe_id));
 			try {
-				var conn = Bus.get_sync (BusType.SESSION, null);
+				var conn = DbusBroker.get_default ().get_session_bus ();
+				if (conn == null)
+					return null;
 				var reply = conn.call_sync (
 					"org.wayplank.GnomeBridge",
 					"/org/wayplank/GnomeBridge",
@@ -224,7 +226,12 @@ namespace Plank
 				Posix.close (write_fd);
 				write_fd = -1;
 
-				var conn = Bus.get_sync (BusType.SESSION);
+				var conn = DbusBroker.get_default ().get_session_bus ();
+				if (conn == null) {
+					Posix.close (read_fd);
+					read_fd = -1;
+					return null;
+				}
 				var builder = new VariantBuilder (new VariantType ("a{sv}"));
 
 				string method = "CaptureWindow";

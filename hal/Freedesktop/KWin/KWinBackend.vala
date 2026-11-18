@@ -185,7 +185,9 @@ namespace Plank
 					}
 					print(res);
 				""";
-				var bus = Bus.get_sync (BusType.SESSION, null);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
 				var res = bus.call_sync (
 					"org.kde.plasmashell",
 					"/PlasmaShell",
@@ -250,7 +252,9 @@ namespace Plank
 					}
 					print(res);
 				""".printf (mon_geom.width, mon_geom.x, mon_geom.y);
-				var bus = Bus.get_sync (BusType.SESSION, null);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return cached_top_floating;
 				var res = bus.call_sync (
 					"org.kde.plasmashell",
 					"/PlasmaShell",

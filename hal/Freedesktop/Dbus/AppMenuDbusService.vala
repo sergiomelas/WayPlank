@@ -44,6 +44,8 @@ namespace Plank
 
 		Gee.HashMap<int, string> pid_to_dbus_sender = new Gee.HashMap<int, string> ();
 		Gee.HashSet<string> dead_dbus_senders = new Gee.HashSet<string> ();
+		bool registrar_checked = false;
+		bool registrar_present = false;
 
 		construct
 		{
@@ -87,6 +89,10 @@ namespace Plank
 
 			if (owner_changed_handler_id == 0UL) {
 				owner_changed_handler_id = broker.session_name_owner_changed.connect ((name, old_owner, new_owner) => {
+					if (name == "com.canonical.AppMenu.Registrar") {
+						registrar_checked = true;
+						registrar_present = (new_owner != "");
+					}
 					if (old_owner != "" && new_owner == "") {
 						dead_dbus_senders.remove (old_owner);
 						var stale_pids = new Gee.ArrayList<int> ();
@@ -115,6 +121,33 @@ namespace Plank
 			menu_changed (sender_pid, sender_name + "|" + object_path);
 		}
 
+		bool has_appmenu_registrar ()
+		{
+			if (registrar_checked)
+				return registrar_present;
+			registrar_checked = true;
+			registrar_present = false;
+			if (session_bus == null)
+				return false;
+			try {
+				var res = session_bus.call_sync (
+					"org.freedesktop.DBus",
+					"/org/freedesktop/DBus",
+					"org.freedesktop.DBus",
+					"NameHasOwner",
+					new Variant ("(s)", "com.canonical.AppMenu.Registrar"),
+					new VariantType ("(b)"),
+					DBusCallFlags.NONE,
+					100,
+					null
+				);
+				res.get ("(b)", out registrar_present);
+			} catch (Error e) {
+				registrar_present = false;
+			}
+			return registrar_present;
+		}
+
 		string resolve_menu_dest_for_pid (int pid)
 		{
 			if (pid <= 0)
@@ -131,6 +164,9 @@ namespace Plank
 				pid_to_dbus_sender.unset (pid);
 			}
 
+			if (!has_appmenu_registrar ())
+				return "";
+
 			var matching_conns = DbusBroker.get_default ().resolve_unique_senders_for_pid (pid);
 			int probed = 0;
 			for (int idx = 0; idx < matching_conns.size && probed < 2; idx++) {
@@ -146,7 +182,7 @@ namespace Plank
 						"Introspect",
 						null,
 						new VariantType ("(s)"),
-						DBusCallFlags.NONE,
+						DBusCallFlags.NO_AUTO_START,
 						60,
 						null
 					);
@@ -156,9 +192,9 @@ namespace Plank
 						pid_to_dbus_sender.set (pid, conn_name);
 						return conn_name;
 					}
+					dead_dbus_senders.add (conn_name);
 				} catch (Error e) {
-					if (idx > 0)
-						dead_dbus_senders.add (conn_name);
+					dead_dbus_senders.add (conn_name);
 				}
 			}
 
@@ -380,6 +416,8 @@ namespace Plank
 			}
 			pid_to_dbus_sender.clear ();
 			dead_dbus_senders.clear ();
+			registrar_checked = false;
+			registrar_present = false;
 		}
 	}
 }

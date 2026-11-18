@@ -21,8 +21,8 @@
 namespace Plank
 {
 	/**
-	 * Southbound Linux `/proc/<pid>` process inspector used by `XdgAppSystem`
-	 * and Zone 3 compositor drivers so `src/` + `lib/` never touch `/proc` directly.
+	 * Southbound Linux `/proc/<pid>` process inspector exposed via the kernel
+	 * link seam so `src/` + `lib/` never touch `/proc` directly.
 	 */
 	public class LinuxProcessInspector : GLib.Object
 	{
@@ -473,6 +473,13 @@ namespace Plank
 			int best_pid = 0;
 			int best_score = 0;
 			var comm_prefix = target_cls.length > 15 ? target_cls.substring (0, 15) : target_cls;
+			string short_cls = "";
+			int last_dot = target_cls.last_index_of_char ('.');
+			if (last_dot >= 0 && last_dot + 1 < target_cls.length)
+				short_cls = target_cls.substring (last_dot + 1);
+			if (target_cls.has_prefix ("chrome-") || target_cls.has_prefix ("chromium-"))
+				short_cls = target_cls.has_prefix ("chromium-") ? "chromium" : "chrome";
+			string short_prefix = short_cls.length > 15 ? short_cls.substring (0, 15) : short_cls;
 
 			try {
 				var proc_dir = Dir.open ("/proc", 0);
@@ -489,11 +496,15 @@ namespace Plank
 					var cmdline = get_process_cmdline (pid);
 					var cmd_lower = cmdline.down ();
 
-					bool bin_match = (comm == target_cls || comm == comm_prefix || cmd_lower.contains (target_cls));
-					if (!bin_match)
+					bool exact_match = (comm == target_cls || comm == comm_prefix || cmd_lower.contains (target_cls));
+					bool tail_match = (!exact_match && short_cls.length >= 3
+						&& (comm == short_cls || comm == short_prefix || cmd_lower.contains ("/" + short_cls) || cmd_lower.has_prefix (short_cls + " ") || cmd_lower == short_cls));
+					if (!exact_match && !tail_match)
 						continue;
 
-					int score = 10;
+					int score = exact_match ? 15 : 10;
+					if (comm == target_cls || (short_cls.length >= 3 && comm == short_cls))
+						score += 15;
 					if (!cmd_lower.contains ("--type=") && !comm.contains ("crashpad"))
 						score += 25;
 					foreach (var tok in caption_tokens) {

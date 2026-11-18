@@ -61,14 +61,31 @@ namespace Plank
 		{
 			return false;
 		}
+		public virtual bool position_dock_for (string dock_key, int x, int y, int width, int height)
+		{
+			return position_dock (x, y, width, height);
+		}
 		public virtual bool position_hover (int x, int y, int width, int height)
 		{
 			return false;
+		}
+		public virtual bool position_hover_for (int pid, int x, int y, int width, int height)
+		{
+			return position_hover (x, y, width, height);
 		}
 		public virtual bool position_poof (int x, int y, int width, int height)
 		{
 			return false;
 		}
+		public virtual bool position_poof_for (int pid, int x, int y, int width, int height)
+		{
+			return position_poof (x, y, width, height);
+		}
 		public virtual void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position) { }
+		public virtual void set_reserve_space_for (string dock_key, bool enabled, int thickness, Gtk.PositionType position)
+		{
+			set_reserve_space (enabled, thickness, position);
+		}
+		public virtual void release_dock_surface (string dock_key) { }
 	}
 }

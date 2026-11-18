@@ -130,17 +130,36 @@ namespace Plank
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
 		}
 
+		bool has_non_preferences_real_items ()
+		{
+			foreach (var el in internal_elements) {
+				if (el is SeparatorDockItem || el is PinnedExpanderDockItem || el is PlaceholderDockItem)
+					continue;
+				unowned DockItem? it = el as DockItem;
+				if (el is PreferencesDockItem || (it != null && it.Prefs != null && it.Prefs.Launcher == "docklet://preferences"))
+					continue;
+				return true;
+			}
+			return false;
+		}
+
 		public void ensure_preferences_dockitem ()
 		{
-			if (Prefs.SystemMenuAccess == 4) {
+			if (Prefs.dock_name == "dock1" && Prefs.SystemMenuAccess != 4 && !has_non_preferences_real_items ()) {
+				Prefs.SystemMenuAccess = 4;
+			}
+
+			if (Prefs.SystemMenuAccess == 4 && Prefs.dock_name == "dock1") {
 				if (item_for_uri ("docklet://preferences") == null) {
 					add_item_with_uri ("docklet://preferences");
 				}
 			} else {
 				DockItem? di = item_for_uri ("docklet://preferences");
 				if (di != null) {
-					disconnect_element (di);
-					internal_elements.remove (di);
+					if (internal_elements.contains (di))
+						remove (di);
+					else
+						disconnect_element (di);
 					di.Container = null;
 					di.delete ();
 				}
@@ -537,9 +556,7 @@ namespace Plank
 				return hidden;
 
 			unowned DockController? dock = get_dock ();
-			if (!as_collapsed && dock != null
-				&& (dock.drag_manager.ExternalDragActive
-					|| (dock.drag_manager.InternalDragActive && dock.drag_manager.InternalReorderIntent)))
+			if (!as_collapsed && pinned_drag_expanded)
 				return hidden;
 
 			var pinned = new Gee.ArrayList<ApplicationDockItem> ();
@@ -559,10 +576,8 @@ namespace Plank
 				var ranked = new Gee.ArrayList<ApplicationDockItem> ();
 				ranked.add_all (pinned);
 				ranked.sort ((a, b) => {
-					var score_a = usage.get_score (a.Launcher);
-					var score_b = usage.get_score (b.Launcher);
-					int64 bucket_a = (int64) Math.round (score_a / AppUsageService.TIE_EPSILON);
-					int64 bucket_b = (int64) Math.round (score_b / AppUsageService.TIE_EPSILON);
+					int64 bucket_a = usage.get_global_rank_bucket (a.Launcher);
+					int64 bucket_b = usage.get_global_rank_bucket (b.Launcher);
 					if (bucket_a != bucket_b)
 						return (bucket_a > bucket_b) ? -1 : 1;
 					return pinned.index_of (a) - pinned.index_of (b);
@@ -610,10 +625,8 @@ namespace Plank
 				return hidden;
 
 			candidates.sort ((a, b) => {
-				var score_a = usage.get_score (a.Launcher);
-				var score_b = usage.get_score (b.Launcher);
-				int64 bucket_a = (int64) Math.round (score_a / AppUsageService.TIE_EPSILON);
-				int64 bucket_b = (int64) Math.round (score_b / AppUsageService.TIE_EPSILON);
+				int64 bucket_a = usage.get_global_rank_bucket (a.Launcher);
+				int64 bucket_b = usage.get_global_rank_bucket (b.Launcher);
 				if (bucket_a != bucket_b)
 					return (bucket_a > bucket_b) ? -1 : 1;
 				return pinned.index_of (a) - pinned.index_of (b);
@@ -871,12 +884,16 @@ namespace Plank
 		void on_windows_refreshed ()
 		{
 			string? active_launcher = null;
-			var window_manager = WindowManager.get_default ();
-			foreach (var element in internal_elements) {
-				unowned ApplicationDockItem? app = (element as ApplicationDockItem);
-				if (app != null && app.Launcher != "" && window_manager.app_is_active (app.Launcher)) {
-					active_launcher = app.Launcher;
-					break;
+			if (AbstractMain.app_instance != null) {
+				active_launcher = AbstractMain.app_instance.resolve_global_active_launcher ();
+			} else {
+				var window_manager = WindowManager.get_default ();
+				foreach (var element in internal_elements) {
+					unowned ApplicationDockItem? app = (element as ApplicationDockItem);
+					if (app != null && app.Launcher != "" && window_manager.app_is_active (app.Launcher)) {
+						active_launcher = app.Launcher;
+						break;
+					}
 				}
 			}
 			AppUsageService.get_default ().note_active_launcher (active_launcher);
@@ -895,6 +912,7 @@ namespace Plank
 				pinned_expanded = false;
 			}
 			deduplicate_items ();
+			ensure_preferences_dockitem ();
 			foreach (var element in internal_elements) {
 				element.IsAttached = true;
 				element.AddTime = 0;
@@ -943,10 +961,11 @@ namespace Plank
 			}
 			if (item_list.size == 0)
 				return;
+			var serialized_items = DockPreferences.list_to_strv (item_list);
 			if (is_free)
-				Prefs.FreeDockItems = item_list.to_array ();
+				Prefs.FreeDockItems = serialized_items;
 			else
-				Prefs.CategorizedDockItems = item_list.to_array ();
+				Prefs.CategorizedDockItems = serialized_items;
 		}
 
 		void restore_order_from (string[] target_items)
@@ -1054,6 +1073,7 @@ namespace Plank
 				pinned_expanded = false;
 			}
 			deduplicate_items ();
+			ensure_preferences_dockitem ();
 
 			var folders = new Gee.ArrayList<DockElement> ();
 			var docklets = new Gee.ArrayList<DockElement> ();
@@ -1075,7 +1095,8 @@ namespace Plank
 				} else if (is_docklet_element (el)) {
 					unowned DockItem? item = el as DockItem;
 					if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
-						preferences_docklet = el;
+						if (Prefs.dock_name == "dock1" && preferences_docklet == null)
+							preferences_docklet = el;
 					} else {
 						docklets.add (el);
 					}
@@ -1179,7 +1200,7 @@ namespace Plank
 			}
 
 			foreach (var item in internal_elements) {
-				item.IsAttached = !(Prefs.PinnedOnly && item is TransientDockItem);
+				item.IsAttached = !(is_pinned_only () && item is TransientDockItem);
 			}
 			
 			if (!updating_visible_elements) {
@@ -1188,15 +1209,14 @@ namespace Plank
 				updating_visible_elements = false;
 			}
 
-			bool drag_active = (dock != null && (dock.drag_manager.ExternalDragActive
-				|| (dock.drag_manager.InternalDragActive && dock.drag_manager.InternalReorderIntent)));
-			if (drag_active && !Prefs.AccordionClickToExpand) {
-				docklets_expanded = true;
-				if (is_pinned_accordion_enabled ())
+			if (!Prefs.AccordionClickToExpand) {
+				if (docklets_drag_expanded)
+					docklets_expanded = true;
+				if (pinned_drag_expanded && is_pinned_accordion_enabled ())
 					pinned_expanded = true;
 			}
 
-			if (Prefs.CategorizeItems && Prefs.AccordionDocklets && !docklets_expanded && !drag_active) {
+			if (Prefs.CategorizeItems && Prefs.AccordionDocklets && !docklets_expanded && !docklets_drag_expanded) {
 				int docklet_count = get_docklet_count ();
 				if (docklet_count > 1) {
 					DockElement? anchor = get_anchor_docklet ();
@@ -1335,6 +1355,7 @@ namespace Plank
 				var other_docklets = new Gee.ArrayList<DockElement> ();
 				var transients = new Gee.ArrayList<DockElement> ();
 
+				var orphan_prefs = new Gee.ArrayList<DockElement> ();
 				for (int i = 0; i < internal_elements.size; i++) {
 					var el = internal_elements.get (i);
 					if (el is TrashDockItem || el is SeparatorDockItem || el is PinnedExpanderDockItem)
@@ -1342,18 +1363,21 @@ namespace Plank
 					if (el is TransientDockItem) {
 						var trans = (TransientDockItem) el;
 						var win_count = WindowManager.get_default ().window_count_for_app (trans.Launcher);
-						if (win_count <= 0 && !trans.is_running ()) {
+						if ((win_count <= 0 && !trans.is_running ()) || (is_pinned_only () && dragging_item == null)) {
 							orphan_transients.add (trans);
 							continue;
 						}
-						if (!Prefs.PinnedOnly)
+						if (!is_pinned_only ())
 							transients.add (el);
 					} else if (el is FileDockItem) {
 						folders.add (el);
 					} else if (is_docklet_element (el)) {
 						unowned DockItem? item = el as DockItem;
 						if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
-							preferences_docklet = el;
+							if (Prefs.dock_name == "dock1" && preferences_docklet == null)
+								preferences_docklet = el;
+							else
+								orphan_prefs.add (el);
 						} else {
 							other_docklets.add (el);
 						}
@@ -1362,7 +1386,15 @@ namespace Plank
 					}
 				}
 
-				if (Prefs.SystemMenuAccess == 4 && preferences_docklet == null && dragging_item == null) {
+				foreach (var op in orphan_prefs) {
+					disconnect_element (op);
+					internal_elements.remove (op);
+					op.Container = null;
+					if (op is DockItem)
+						((DockItem) op).delete ();
+				}
+
+				if (Prefs.SystemMenuAccess == 4 && Prefs.dock_name == "dock1" && preferences_docklet == null && dragging_item == null) {
 					ensure_preferences_dockitem ();
 					preferences_docklet = item_for_uri ("docklet://preferences");
 				}
@@ -1453,6 +1485,7 @@ namespace Plank
 			var transients = new Gee.ArrayList<DockElement> ();
 			var orphan_transients = new Gee.ArrayList<TransientDockItem> ();
 
+			var orphan_prefs = new Gee.ArrayList<DockElement> ();
 			for (int i = 0; i < internal_elements.size; i++) {
 				var el = internal_elements.get (i);
 				if (el is SeparatorDockItem || el is TrashDockItem || el is PinnedExpanderDockItem)
@@ -1460,19 +1493,21 @@ namespace Plank
 				if (el is TransientDockItem) {
 					var trans = (TransientDockItem) el;
 					var win_count = WindowManager.get_default ().window_count_for_app (trans.Launcher);
-					if (win_count <= 0 && !trans.is_running () && dragging_item == null) {
+					if ((win_count <= 0 && !trans.is_running () || is_pinned_only ()) && dragging_item == null) {
 						orphan_transients.add (trans);
 						continue;
 					}
-					if (!Prefs.PinnedOnly)
+					if (!is_pinned_only ())
 						transients.add (el);
 				} else {
 					unowned DockItem? item = el as DockItem;
 					if (el is PreferencesDockItem || (item != null && item.Prefs != null && item.Prefs.Launcher == "docklet://preferences")) {
-						if (preferences_item == null) {
+						if (Prefs.dock_name == "dock1" && preferences_item == null) {
 							preferences_item = el;
 							if (!Prefs.AnchorAlwaysLeft)
 								pinned.add (el);
+						} else {
+							orphan_prefs.add (el);
 						}
 					} else {
 						pinned.add (el);
@@ -1480,7 +1515,15 @@ namespace Plank
 				}
 			}
 
-			if (Prefs.SystemMenuAccess == 4 && preferences_item == null && dragging_item == null) {
+			foreach (var op in orphan_prefs) {
+				disconnect_element (op);
+				internal_elements.remove (op);
+				op.Container = null;
+				if (op is DockItem)
+					((DockItem) op).delete ();
+			}
+
+			if (Prefs.SystemMenuAccess == 4 && Prefs.dock_name == "dock1" && preferences_item == null && dragging_item == null) {
 				ensure_preferences_dockitem ();
 				preferences_item = item_for_uri ("docklet://preferences");
 				if (preferences_item != null && !Prefs.AnchorAlwaysLeft)
@@ -1585,14 +1628,14 @@ namespace Plank
 			Matcher.get_default ().set_favorites (favs);
 		}
 
-		protected override bool is_pinned_only ()
+		public override bool is_pinned_only ()
 		{
-			return Prefs.PinnedOnly;
+			return Prefs.PinnedOnly || Prefs.dock_name != "dock1";
 		}
 
 		protected override void app_opened (string app_id)
 		{
-			if (Hal.Windows.has_state ())
+			if (Hal.Windows.has_state () || is_pinned_only ())
 				return;
 
 			unowned ApplicationDockItem? found = item_for_application_id (app_id);
@@ -1706,9 +1749,359 @@ namespace Plank
 
 			resume_items_monitor ();
 			refresh_separators ();
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.sync_windows_across_all_docks ();
 			unowned DockController? dock = get_dock ();
 			if (dock != null)
 				dock.schedule_serialize_item_positions ();
+		}
+
+		public Gee.ArrayList<FileDockItem> get_folder_items ()
+		{
+			var list = new Gee.ArrayList<FileDockItem> ();
+			foreach (var el in internal_elements) {
+				unowned FileDockItem? f = el as FileDockItem;
+				if (f != null && f.is_directory ())
+					list.add (f);
+			}
+			return list;
+		}
+
+		static bool is_launcher_pinned_on_any_dock_bar (string launcher_uri)
+		{
+			if (launcher_uri == "" || !Paths.AppConfigFolder.query_exists ())
+				return false;
+			try {
+				var d_enum = Paths.AppConfigFolder.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+				FileInfo? d_info = null;
+				while ((d_info = d_enum.next_file ()) != null) {
+					var l_dir = Paths.AppConfigFolder.get_child (d_info.get_name ()).get_child ("launchers");
+					if (!l_dir.query_exists ())
+						continue;
+					var l_enum = l_dir.enumerate_children (FileAttribute.STANDARD_NAME, FileQueryInfoFlags.NONE);
+					FileInfo? l_info = null;
+					while ((l_info = l_enum.next_file ()) != null) {
+						if (!l_info.get_name ().has_suffix (".dockitem"))
+							continue;
+						var item_file = l_dir.get_child (l_info.get_name ());
+						string? item_path = item_file.get_path ();
+						if (item_path == null)
+							continue;
+						var kf = new KeyFile ();
+						try {
+							kf.load_from_file (item_path, KeyFileFlags.NONE);
+							if (kf.has_key ("PlankDockItemPreferences", "Launcher")) {
+								string cand = kf.get_string ("PlankDockItemPreferences", "Launcher");
+								if (cand != null && DockItemProvider.uri_matches (cand, launcher_uri)) {
+									try { l_enum.close (null); } catch { }
+									try { d_enum.close (null); } catch { }
+									return true;
+								}
+							}
+						} catch { }
+					}
+					try { l_enum.close (null); } catch { }
+				}
+				try { d_enum.close (null); } catch { }
+			} catch { }
+			return false;
+		}
+
+		void sync_dock_layout_after_mutation ()
+		{
+			refresh_separators ();
+			unowned DockController? dock = get_dock ();
+			if (dock != null) {
+				if (dock.renderer != null && dock.renderer.theme != null) {
+					dock.update_items ();
+					dock.position_manager.update (dock.renderer.theme);
+					dock.renderer.reset_buffers ();
+					dock.renderer.animated_draw ();
+				}
+				dock.schedule_serialize_item_positions ();
+				if (dock.window != null) {
+					dock.window.update_size_and_position ();
+					dock.window.update_icon_regions ();
+					dock.window.set_input_mask ();
+				}
+			}
+		}
+
+		public bool move_pinned_item_to_folder (ApplicationDockItem app_item, FileDockItem? folder_item, GLib.File? explicit_dest_dir = null)
+		{
+			if (Prefs.LockItems || app_item == null || (app_item is TransientDockItem))
+				return false;
+
+			GLib.File? target_dir = explicit_dest_dir;
+			if (target_dir == null && folder_item != null && folder_item.is_directory ())
+				target_dir = folder_item.OwnedFile;
+			if (target_dir == null || !target_dir.query_exists ())
+				return false;
+
+			string launcher_uri = (app_item.Launcher != null) ? app_item.Launcher : "";
+			if (launcher_uri == "")
+				return false;
+
+			string resolved = Hal.Apps.resolve_launcher_uri (launcher_uri);
+			if (resolved == "")
+				resolved = launcher_uri;
+
+			GLib.File src_file = resolved.has_prefix ("file://")
+				? File.new_for_uri (resolved)
+				: (Path.is_absolute (resolved) ? File.new_for_path (resolved) : File.new_for_commandline_arg (resolved));
+
+			var dst_file = Hal.Apps.copy_launcher_to_directory (src_file, target_dir);
+			if (dst_file == null)
+				return false;
+
+			string dst_uri = dst_file.get_uri ();
+			bool still_running = (WindowManager.get_default ().window_count_for_app (launcher_uri) > 0);
+
+			delay_items_monitor ();
+
+			if (internal_elements.contains (app_item))
+				remove (app_item);
+			app_item.delete ();
+
+			if (Hal.Apps.is_synthetic_launcher (launcher_uri) && !is_launcher_pinned_on_any_dock_bar (launcher_uri))
+				Hal.Apps.delete_synthetic_launcher (launcher_uri, true);
+
+			ApplicationDiscovery.get_default ().refresh_index_now ();
+
+			DockPreferences.allow_disk_writes_after_user_action ();
+			if (folder_item != null) {
+				folder_item.refresh_launchers ();
+				folder_item.ClickedAnimation = AnimationType.BOUNCE;
+				folder_item.LastClicked = GLib.get_monotonic_time ();
+				unowned DefaultApplicationDockItemProvider? f_prov = folder_item.Container as DefaultApplicationDockItemProvider;
+				if (f_prov != null && f_prov != this)
+					f_prov.sync_dock_layout_after_mutation ();
+			}
+
+			if (still_running && !is_pinned_only ()) {
+				string trans_uri = Hal.Apps.launcher_exists (launcher_uri) ? launcher_uri : dst_uri;
+				if (item_for_uri (trans_uri) == null) {
+					DockElement? trash_target = null;
+					foreach (var el in internal_elements) {
+						if (el is TrashDockItem) {
+							trash_target = el;
+							break;
+						}
+					}
+					add (new TransientDockItem.with_launcher (trans_uri), trash_target);
+				}
+			}
+
+			resume_items_monitor ();
+			sync_compositor_windows ();
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.sync_windows_across_all_docks ();
+			sync_dock_layout_after_mutation ();
+			return true;
+		}
+
+		public bool move_folder_launcher_to_dock (GLib.File folder_launcher, FileDockItem? source_folder = null, DockItem? target_anchor = null)
+		{
+			if (Prefs.LockItems || folder_launcher == null || !folder_launcher.query_exists ())
+				return false;
+
+			var pin_file = Hal.Apps.relocate_launcher_for_dock_pin (folder_launcher);
+			if (pin_file == null)
+				return false;
+
+			string pin_uri = pin_file.get_uri ();
+
+			unowned DockItem? existing = item_for_uri (pin_uri);
+			if (existing is TransientDockItem && existing.Prefs != null && existing.Prefs.Launcher != pin_uri)
+				existing.Prefs.Launcher = pin_uri;
+
+			bool pinned_ok = true;
+			if (!item_exists_for_uri (pin_uri)) {
+				pinned_ok = add_item_with_uri (pin_uri, target_anchor);
+			} else if (target_anchor != null) {
+				unowned DockItem? already = item_for_uri (pin_uri);
+				if (already != null && already != target_anchor && internal_elements.contains (target_anchor))
+					move_to (already, target_anchor);
+			}
+
+			if (!pinned_ok)
+				return false;
+
+			if (!folder_launcher.equal (pin_file)) {
+				try {
+					folder_launcher.delete (null);
+				} catch { }
+			}
+
+			if (source_folder != null)
+				source_folder.refresh_launchers ();
+
+			ApplicationDiscovery.get_default ().refresh_index_now ();
+			sync_compositor_windows ();
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.sync_windows_across_all_docks ();
+			sync_dock_layout_after_mutation ();
+			return true;
+		}
+
+		public bool pin_folder_directory (GLib.File folder_dir, string display_name = "")
+		{
+			if (Prefs.LockItems || folder_dir == null)
+				return false;
+
+			if (!Hal.Apps.ensure_launcher_folder (folder_dir, display_name, ""))
+				return false;
+
+			string folder_uri = folder_dir.get_uri ();
+			if (item_exists_for_uri (folder_uri)) {
+				unowned FileDockItem? existing_f = item_for_uri (folder_uri) as FileDockItem;
+				if (existing_f != null)
+					existing_f.refresh_launchers ();
+				return true;
+			}
+
+			DockItem? target_anchor = null;
+			int last_folder_idx = -1;
+			for (int i = 0; i < internal_elements.size; i++) {
+				if (internal_elements.get (i) is FileDockItem)
+					last_folder_idx = i;
+			}
+			if (last_folder_idx >= 0) {
+				for (int i = last_folder_idx + 1; i < internal_elements.size; i++) {
+					var cand = internal_elements.get (i) as DockItem;
+					if (cand != null && !(cand is SeparatorDockItem) && !(cand is PinnedExpanderDockItem)) {
+						target_anchor = cand;
+						break;
+					}
+				}
+			} else {
+				for (int i = 0; i < internal_elements.size; i++) {
+					var cand = internal_elements.get (i) as DockItem;
+					if (cand == null || cand is SeparatorDockItem || cand is PinnedExpanderDockItem
+						|| cand is PreferencesDockItem || (cand.Prefs != null && cand.Prefs.Launcher == "docklet://preferences"))
+						continue;
+					target_anchor = cand;
+					break;
+				}
+			}
+
+			bool added = add_item_with_uri (folder_uri, target_anchor);
+			if (added) {
+				ApplicationDiscovery.get_default ().refresh_index_now ();
+				sync_dock_layout_after_mutation ();
+			}
+			return added;
+		}
+
+		public bool move_item_to_other_dock (DockItem? src_item, DockController? dest_dock, DockItem? target_anchor = null)
+		{
+			if (src_item == null || dest_dock == null || Prefs.LockItems || dest_dock.prefs == null || dest_dock.prefs.LockItems)
+				return false;
+			if (src_item is SeparatorDockItem || src_item is PinnedExpanderDockItem
+				|| src_item is TrashDockItem || src_item is PlankDockItem || src_item is PreferencesDockItem
+				|| (src_item.Prefs != null && src_item.Prefs.Launcher == "docklet://preferences"))
+				return false;
+
+			unowned DefaultApplicationDockItemProvider? dest_prov = dest_dock.default_provider as DefaultApplicationDockItemProvider;
+			if (dest_prov == null || dest_prov == this)
+				return false;
+
+			string uri = src_item.Launcher ?? "";
+			if (uri == "")
+				return false;
+
+			DockPreferences.allow_disk_writes_after_user_action ();
+
+			// Cross-dock pinning: dragging an unpinned running TransientDockItem from dock A onto dock B pins it onto dock B
+			if (src_item is TransientDockItem) {
+				if (!dest_prov.item_exists_for_uri (uri)) {
+					if (!dest_prov.add_item_with_uri (uri, target_anchor))
+						return false;
+				} else if (target_anchor != null) {
+					unowned DockItem? ex = dest_prov.item_for_uri (uri);
+					if (ex != null && ex != target_anchor && dest_prov.Elements.contains (target_anchor))
+						dest_prov.move_to (ex, target_anchor);
+				}
+				dest_prov.sync_compositor_windows ();
+				dest_prov.sync_dock_layout_after_mutation ();
+				sync_compositor_windows ();
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.sync_windows_across_all_docks ();
+				sync_dock_layout_after_mutation ();
+				return true;
+			}
+
+			bool was_folder = (src_item is FileDockItem);
+			bool placed_on_dest = false;
+
+			if (!dest_prov.item_exists_for_uri (uri)) {
+				string src_fname = src_item.DockItemFilename;
+				if (src_fname != "" && LaunchersDir != null && dest_prov.LaunchersDir != null) {
+					var src_file = LaunchersDir.get_child (src_fname);
+					if (src_file.query_exists ()) {
+						Paths.ensure_directory_exists (dest_prov.LaunchersDir);
+						var dest_file = dest_prov.LaunchersDir.get_child (src_fname);
+						if (dest_file.query_exists ()) {
+							string stem = src_fname.has_suffix (".dockitem")
+								? src_fname.substring (0, src_fname.length - ".dockitem".length)
+								: src_fname;
+							int n = 2;
+							while (dest_file.query_exists ()) {
+								dest_file = dest_prov.LaunchersDir.get_child ("%s-%d.dockitem".printf (stem, n));
+								n++;
+							}
+						}
+						dest_prov.delay_items_monitor ();
+						try {
+							src_file.copy (dest_file, FileCopyFlags.OVERWRITE, null, null);
+							var prev_factory_dir = Factory.item_factory.launchers_dir;
+							Factory.item_factory.launchers_dir = dest_prov.LaunchersDir;
+							var cloned_el = Factory.item_factory.make_element (dest_file);
+							Factory.item_factory.launchers_dir = prev_factory_dir;
+							var cloned_item = cloned_el as DockItem;
+							if (cloned_item != null) {
+								unowned DockItem? pre_trans = dest_prov.item_for_uri (uri);
+								if (pre_trans is TransientDockItem)
+									dest_prov.remove (pre_trans);
+								dest_prov.add (cloned_item, target_anchor);
+								placed_on_dest = true;
+							} else {
+								try { dest_file.delete (null); } catch { }
+							}
+						} catch { }
+						dest_prov.resume_items_monitor ();
+					}
+				}
+				if (!placed_on_dest)
+					placed_on_dest = dest_prov.add_item_with_uri (uri, target_anchor);
+			} else {
+				placed_on_dest = true;
+				if (target_anchor != null) {
+					unowned DockItem? existing = dest_prov.item_for_uri (uri);
+					if (existing != null && existing != target_anchor && dest_prov.Elements.contains (target_anchor))
+						dest_prov.move_to (existing, target_anchor);
+				}
+			}
+
+			if (!placed_on_dest)
+				return false;
+
+			delay_items_monitor ();
+			if (internal_elements.contains (src_item))
+				remove (src_item);
+			src_item.delete ();
+			resume_items_monitor ();
+
+			if (was_folder)
+				ApplicationDiscovery.get_default ().refresh_index_now ();
+
+			dest_prov.sync_compositor_windows ();
+			dest_prov.sync_dock_layout_after_mutation ();
+			sync_compositor_windows ();
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.sync_windows_across_all_docks ();
+			sync_dock_layout_after_mutation ();
+			return true;
 		}
 	}
 }

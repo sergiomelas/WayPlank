@@ -185,8 +185,16 @@ apply_environment() {
     if [ -d "${src_dir}/dock1/launchers" ]; then
         cp -a "${src_dir}/dock1/launchers/." "${USER_CFG_DIR}/dock1/launchers/"
     fi
+    for sub_dock in dock2 dock3 dock4; do
+        if [ -d "${src_dir}/${sub_dock}/launchers" ]; then
+            mkdir -p "${USER_CFG_DIR}/${sub_dock}/launchers"
+            cp -a "${src_dir}/${sub_dock}/launchers/." "${USER_CFG_DIR}/${sub_dock}/launchers/"
+        fi
+    done
     populate_host_app_dockitems "${USER_CFG_DIR}/dock1/launchers"
     cp -f "$src_ini" "$TARGET_INI"
+    local before_sha=""
+    before_sha="$(sha256sum "$TARGET_INI" | awk '{print $1}')"
     echo "================================================================"
     echo " 🧪 Applied Full Test Environment : ${env_name}"
     echo " 📄 Target Root INI               : ${TARGET_INI}"
@@ -194,6 +202,22 @@ apply_environment() {
     echo " 🚀 Launching                     : ${WAYPLANK_BIN}"
     echo "================================================================"
     restart_wayplank
+    case "$env_name" in
+        Corrupted|Partial|OutOfRange|InvalidTypesAndPaths|CorruptedDockItems|MultiDockInvalid)
+            sleep 1.0
+            if [ -f "$TARGET_INI" ]; then
+                local after_sha=""
+                after_sha="$(sha256sum "$TARGET_INI" | awk '{print $1}')"
+                if [ "$before_sha" = "$after_sha" ]; then
+                    echo " ✅ Disk Preservation Verified: faulty latch-state.ini kept 100% untouched on disk (defaults applied in RAM + Popup)."
+                else
+                    echo " ⚠️ Notice: latch-state.ini changed on disk (${before_sha:0:12} -> ${after_sha:0:12})."
+                fi
+            else
+                echo " ❌ ERROR: latch-state.ini was deleted from disk!"
+            fi
+            ;;
+    esac
 }
 
 restore_environment() {
@@ -231,9 +255,11 @@ if [ $# -ge 1 ]; then
         5|CorruptedDockItems|dockitems) apply_environment "CorruptedDockItems" ;;
         6|ValidCustomProfile|valid) apply_environment "ValidCustomProfile" ;;
         7|EmptyProfile|empty) apply_environment "EmptyProfile" ;;
-        8|restore|Restore) restore_environment ;;
+        8|MultiDockInvalid|multidockinvalid) apply_environment "MultiDockInvalid" ;;
+        9|MultiDockValid|multidockvalid) apply_environment "MultiDockValid" ;;
+        10|restore|Restore) restore_environment ;;
         *)
-            echo "Usage: $0 [Corrupted|Partial|OutOfRange|InvalidTypesAndPaths|CorruptedDockItems|ValidCustomProfile|EmptyProfile|restore]"
+            echo "Usage: $0 [Corrupted|Partial|OutOfRange|InvalidTypesAndPaths|CorruptedDockItems|ValidCustomProfile|EmptyProfile|MultiDockInvalid|MultiDockValid|restore]"
             exit 1
             ;;
     esac
@@ -243,21 +269,23 @@ fi
 while true; do
     echo ""
     echo "================================================================================"
-    echo " 🛡️  WayPlank FAT 7.17 — Environment Persistence Tester"
+    echo " 🛡️  WayPlank FAT 7.17 & 14.6 — Environment & Multi-Dock Persistence Tester"
     echo " 📂 Working Dir : ${SCRIPT_DIR}"
     echo " 💾 Backup Dir  : ${BACKUP_DIR}"
     echo "================================================================================"
-    echo "  1) Corrupted             (Broken latch-state.ini syntax -> Subprocess fallback + Popup)"
-    echo "  2) Partial               (Missing keys in latch-state.ini -> Partial defaults + Popup)"
-    echo "  3) OutOfRange            (Out-of-range numbers/enums -> Clamped defaults + Popup)"
-    echo "  4) InvalidTypesAndPaths  (Wrong types & ../ path traversal -> Sanitized + Popup)"
-    echo "  5) CorruptedDockItems    (Corrupted .dockitem files in dock1/launchers -> Cleaned + Popup)"
-    echo "  6) ValidCustomProfile    (100% Valid custom profile -> Clean load, NO Popup)"
+    echo "  1) Corrupted             (Broken latch-state.ini syntax -> Subprocess RAM fallback + Popup, disk kept)"
+    echo "  2) Partial               (Missing keys in latch-state.ini -> Partial RAM defaults + Popup, disk kept)"
+    echo "  3) OutOfRange            (Out-of-range numbers/enums -> Clamped RAM defaults + Popup, disk kept)"
+    echo "  4) InvalidTypesAndPaths  (Wrong types & ../ path traversal -> Sanitized in RAM + Popup, disk kept)"
+    echo "  5) CorruptedDockItems    (Corrupted .dockitem files in dock1/launchers -> Skipped + Popup, disk kept)"
+    echo "  6) ValidCustomProfile    (v0.7.1 legacy profile without [MultiDock] -> Migrates to dock1, NO Popup)"
     echo "  7) EmptyProfile          (Virgin empty profile + dconf reset -> First-Run Onboarding)"
-    echo "  8) Restore Original User Environment & Exit"
+    echo "  8) MultiDockInvalid      (Invalid [MultiDock] slots/screens/items + bad dock2 item -> RAM defaults + Popup, disk kept)"
+    echo "  9) MultiDockValid        (Valid v0.7.2 [MultiDock]: dock1 Bottom + dock2 Top + closed dock3 -> Clean load, NO Popup)"
+    echo " 10) Restore Original User Environment & Exit"
     echo "  q) Quit (keep current state; backup remains in ${BACKUP_DIR})"
     echo "--------------------------------------------------------------------------------"
-    read -rp "Select option [1-8, q]: " choice
+    read -rp "Select option [1-10, q]: " choice
     case "$choice" in
         1) apply_environment "Corrupted" ;;
         2) apply_environment "Partial" ;;
@@ -266,10 +294,12 @@ while true; do
         5) apply_environment "CorruptedDockItems" ;;
         6) apply_environment "ValidCustomProfile" ;;
         7) apply_environment "EmptyProfile" ;;
-        8) restore_environment; break ;;
+        8) apply_environment "MultiDockInvalid" ;;
+        9) apply_environment "MultiDockValid" ;;
+        10) restore_environment; break ;;
         q|Q)
             echo "ℹ️ Backup preserved at: ${BACKUP_DIR}"
-            echo "   Run '${MANUAL_RESTORE_SCRIPT}' or option 8 to restore later."
+            echo "   Run '${MANUAL_RESTORE_SCRIPT}' or option 10 to restore later."
             break
             ;;
         *) echo "⚠️ Invalid choice: ${choice}" ;;

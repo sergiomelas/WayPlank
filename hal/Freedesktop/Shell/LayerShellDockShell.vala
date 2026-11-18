@@ -142,7 +142,62 @@ namespace Plank
 			}
 		}
 
+		static bool dnd_enter_hook_installed = false;
+		static bool[] mutter_dock_slot_used = new bool[16];
+		static int next_mutter_dock_slot = 15;
 		bool monitor_signal_connected = false;
+
+		static void on_mutter_dock_destroyed (Gtk.Widget widget)
+		{
+			var key = widget.get_data<string> ("wayplank-mutter-dock-key");
+			if (key != null && key != "") {
+				var parts = key.split (":");
+				if (parts.length == 2) {
+					int freed_slot = int.parse (parts[1]);
+					if (freed_slot >= 1 && freed_slot < mutter_dock_slot_used.length)
+						mutter_dock_slot_used[freed_slot] = false;
+				}
+				WindowControl.release_dock_surface (key);
+			}
+		}
+
+		static string ensure_mutter_dock_key (Gtk.Window window)
+		{
+			var existing = window.get_data<string> ("wayplank-mutter-dock-key");
+			if (existing != null && existing != "")
+				return existing;
+
+			int slot = -1;
+			for (int s = 1; s < mutter_dock_slot_used.length; s++) {
+				if (!mutter_dock_slot_used[s]) {
+					mutter_dock_slot_used[s] = true;
+					slot = s;
+					break;
+				}
+			}
+			if (slot < 1)
+				slot = ++next_mutter_dock_slot;
+
+			int pid = Hal.Runtime.get_current_pid ();
+			string key = "%d:%d".printf (pid, slot);
+			window.set_data<string> ("wayplank-mutter-dock-key", key);
+			window.set_title (slot == 1 ? "wayplank" : "wayplank-%d".printf (slot));
+			window.destroy.connect (on_mutter_dock_destroyed);
+			return key;
+		}
+
+		static void on_gdk_event (Gdk.Event event)
+		{
+			Gtk.main_do_event (event);
+			if (event.type == Gdk.EventType.DRAG_ENTER
+				&& event.dnd.window != null
+				&& event.dnd.context != null) {
+				var motion = event.copy ();
+				motion.type = Gdk.EventType.DRAG_MOTION;
+				motion.dnd.type = Gdk.EventType.DRAG_MOTION;
+				motion.put ();
+			}
+		}
 
 		public LayerShellDockShell ()
 		{
@@ -170,6 +225,10 @@ namespace Plank
 
 		public void init_dock_surface (Gtk.Window window)
 		{
+			if (!dnd_enter_hook_installed) {
+				dnd_enter_hook_installed = true;
+				Gdk.Event.handler_set ((Gdk.EventFunc) on_gdk_event);
+			}
 			window.set_focus_on_map (false);
 			if (GtkLayerShell.is_supported ()) {
 				GtkLayerShell.init_for_window (window);
@@ -182,8 +241,8 @@ namespace Plank
 				window.set_skip_taskbar_hint (true);
 				window.set_skip_pager_hint (true);
 				window.set_keep_above (true);
-				window.set_title ("wayplank");
 				window.set_role ("dock");
+				ensure_mutter_dock_key (window);
 			}
 		}
 
@@ -358,9 +417,11 @@ namespace Plank
 					cache.disconnect_frame_clock ();
 					GtkLayerShell.set_exclusive_zone (window, 0);
 				}
+				WindowControl.set_reserve_space (enabled, thickness, position);
+				return;
 			}
 
-			WindowControl.set_reserve_space (enabled, thickness, position);
+			WindowControl.set_reserve_space_for (ensure_mutter_dock_key (window), enabled, thickness, position);
 		}
 
 		public void commit_dock_geometry (Gtk.Window window, Gdk.Rectangle win_rect)
@@ -372,7 +433,8 @@ namespace Plank
 				if (cur_w != win_rect.width || cur_h != win_rect.height)
 					window.resize (win_rect.width, win_rect.height);
 				window.move (win_rect.x, win_rect.y);
-				ready = WindowControl.position_dock (win_rect.x, win_rect.y, win_rect.width, win_rect.height);
+				ready = WindowControl.position_dock_for (ensure_mutter_dock_key (window),
+					win_rect.x, win_rect.y, win_rect.width, win_rect.height);
 			}
 
 			if (ready) {
@@ -397,8 +459,11 @@ namespace Plank
 		public void apply_input_region (Gtk.Window window, Cairo.Region? region)
 		{
 			var gdk_win = window.get_window ();
-			if (gdk_win != null)
+			if (gdk_win != null) {
 				gdk_win.input_shape_combine_region (region ?? new Cairo.Region (), 0, 0);
+				if (window.get_mapped ())
+					window.queue_draw ();
+			}
 		}
 
 		public void resolve_tooltip_anchor (bool is_horizontal, int icon_size,
@@ -460,7 +525,7 @@ namespace Plank
 				int abs_x = int.max (mon_x + gap, int.min (mon_x + mon_w - width - gap, target_x));
 				int abs_y = int.max (mon_y + gap, int.min (mon_y + mon_h - height - gap, target_y));
 				window.move (abs_x, abs_y);
-				WindowControl.position_hover (abs_x, abs_y, width, height);
+				WindowControl.position_hover_for (Hal.Runtime.get_current_pid (), abs_x, abs_y, width, height);
 				return;
 			}
 
@@ -589,7 +654,7 @@ namespace Plank
 
 		public void begin_drag_pointer_grab (Gtk.Window window, Gdk.DragContext context)
 		{
-			if (!GtkLayerShell.is_supported ()) {
+			if (!GtkLayerShell.is_supported () && Environment.get_variable ("WAYLAND_DISPLAY") == null) {
 				context.get_device ().get_seat ().grab (window.get_window (), Gdk.SeatCapabilities.POINTER, true,
 					null, null, null);
 			}
@@ -597,7 +662,7 @@ namespace Plank
 
 		public void end_drag_pointer_grab (Gdk.DragContext context)
 		{
-			if (!GtkLayerShell.is_supported ())
+			if (!GtkLayerShell.is_supported () && Environment.get_variable ("WAYLAND_DISPLAY") == null)
 				context.get_device ().get_seat ().ungrab ();
 		}
 

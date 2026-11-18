@@ -191,11 +191,12 @@ namespace Plank
 					break;
 				}
 
-				WindowControl.position_poof (abs_x, abs_y, surf_w, surf_h);
+				int self_pid = Hal.Runtime.get_current_pid ();
+				WindowControl.position_poof_for (self_pid, abs_x, abs_y, surf_w, surf_h);
 				win.move (abs_x, abs_y);
 				win.show ();
 				apply_click_through_region (win);
-				WindowControl.position_poof (abs_x, abs_y, surf_w, surf_h);
+				WindowControl.position_poof_for (self_pid, abs_x, abs_y, surf_w, surf_h);
 				return;
 			}
 

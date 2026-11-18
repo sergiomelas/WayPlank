@@ -59,6 +59,40 @@ namespace Plank
 		bool is_disposed = false;
 
 		public bool is_first_run_launch { get; private set; default = false; }
+		public int initial_position_override { get; set; default = -1; }
+		public int initial_screen_override { get; set; default = -1; }
+		public bool suspended_by_arbitration { get; private set; default = false; }
+
+		public void set_arbitration_suspended (bool suspended)
+		{
+			if (suspended_by_arbitration == suspended || is_disposed)
+				return;
+			suspended_by_arbitration = suspended;
+
+			if (suspended) {
+				if (folder_menu != null && folder_menu.get_visible ())
+					folder_menu.close_menu (true);
+				if (window_cards != null && window_cards.get_visible ())
+					window_cards.hide ();
+				if (hover != null && hover.get_visible ())
+					hover.hide ();
+				if (window != null) {
+					Hal.Shell.update_exclusive_zone (window, false, 0, prefs.Position);
+					window.hide ();
+				}
+			} else if (window != null) {
+				window.update_shell_dock_monitor ();
+				position_manager.update_dock_position ();
+				if (renderer != null && renderer.theme != null)
+					position_manager.update (renderer.theme);
+				window.show_all ();
+				window.update_size_and_position ();
+				Hal.Shell.present_dock_after_show (window);
+				if (hide_manager != null)
+					hide_manager.refresh_visibility ();
+				window.queue_draw ();
+			}
+		}
 		public bool migrated_from_legacy_plank { get; private set; default = false; }
 		
 		/**
@@ -132,6 +166,10 @@ namespace Plank
 				return;
 			is_disposed = true;
 
+			if (auto_delete_idle_id > 0U) {
+				Source.remove (auto_delete_idle_id);
+				auto_delete_idle_id = 0U;
+			}
 			if (serialize_item_positions_timer_id > 0U) {
 				Source.remove (serialize_item_positions_timer_id);
 				serialize_item_positions_timer_id = 0U;
@@ -288,6 +326,8 @@ namespace Plank
 				def_prov.deduplicate_items ();
 				if (prefs.FreeDockItems == null || prefs.FreeDockItems.length == 0) {
 					def_prov.reorder_free_items_by_category ();
+				} else {
+					def_prov.refresh_separators ();
 				}
 			}
 
@@ -350,81 +390,106 @@ namespace Plank
 		DockItemProvider create_default_provider ()
 		{
 			DockItemProvider provider;
+			Factory.item_factory.launchers_dir = launchers_folder;
 			
-			// If we made the default-launcher-directory or it is empty,
-			// assume a first run and pre-populate with launchers
+			var onboarding_marker = config_folder.get_child ("onboarding-done");
+			// If we made the default-launcher-directory (or it is empty before onboarding-done),
+			// assume a first run and pre-populate with launchers. Once onboarding-done exists,
+			// an empty launchers directory means the user intentionally emptied this dock.
 			bool is_first_run = Paths.ensure_directory_exists (launchers_folder);
-			if (!is_first_run) {
+			if (!is_first_run && !onboarding_marker.query_exists ()) {
 				try {
 					var enumerator = launchers_folder.enumerate_children (FileAttribute.STANDARD_NAME, 0);
 					if (enumerator.next_file (null) == null)
 						is_first_run = true;
+					try { enumerator.close (null); } catch { }
 				} catch { }
 			}
+
+			bool primary_already_onboarded = (name != "dock1")
+				|| Paths.AppConfigFolder.get_child ("dock1").get_child ("onboarding-done").query_exists ();
 			
 			if (is_first_run) {
-				Hal.Runtime.terminate_legacy_competing_docks ();
-				var onboarding_marker = config_folder.get_child ("onboarding-done");
 				var legacy_launchers = Paths.ConfigHomeFolder.get_child ("plank").get_child (name).get_child ("launchers");
 				bool headless = (Environment.get_variable ("WAYPLANK_NO_PROMPT") == "1"
 					|| Environment.get_variable ("CI") == "1"
 					|| Environment.get_variable ("NONINTERACTIVE") == "1");
 
-				ensure_default_autostart ();
-
-				if (Factory.item_factory.migrate_legacy_plank_items (legacy_launchers, launchers_folder)) {
-					debug ("First run: migrated compatible launchers and folders from legacy ~/.config/plank/%s/launchers (read-only)...", name);
-					migrated_from_legacy_plank = true;
-					if (!prefs.has_profile_settings_on_disk ()) {
-						prefs.reset_all ();
-						prefs.DockItems = {};
-						prefs.FreeDockItems = {};
-						prefs.CategorizedDockItems = {};
-						apply_common_first_run_defaults ();
+				if (primary_already_onboarded) {
+					is_first_run_launch = false;
+					if (!onboarding_marker.query_exists ()) {
+						try {
+							FileUtils.set_contents (onboarding_marker.get_path (), "secondary\n");
+						} catch { }
 					}
-					prefs.CategorizeItems = false;
-					prefs.AccordionDocklets = false;
-					prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
-					prefs.SystemMenuAccess = 3;
-					prefs.AnchorAlwaysLeft = false;
-					prefs.ShowDockItem = false;
-					is_first_run_launch = !headless && !onboarding_marker.query_exists ();
-				} else if (headless) {
-					debug ("First run (headless): wiping residual settings and initializing modern Explorer defaults...");
-					if (!prefs.has_profile_settings_on_disk ()) {
-						prefs.reset_all ();
-						prefs.DockItems = {};
-						prefs.FreeDockItems = {};
-						prefs.CategorizedDockItems = {};
-						apply_common_first_run_defaults ();
-						prefs.AccordionDocklets = true;
-						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
-						prefs.SystemMenuAccess = 4;
-						prefs.AnchorAlwaysLeft = true;
-						prefs.ShowDockItem = false;
-						prefs.CategorizeItems = true;
-					}
-					Factory.item_factory.make_default_items ();
-					try {
-						FileUtils.set_contents (onboarding_marker.get_path (), "explorer\n");
-					} catch { }
+					bool migrated_secondary = Factory.item_factory.migrate_legacy_plank_items (legacy_launchers, launchers_folder);
+					prefs.DockItems = new string[0];
+					prefs.FreeDockItems = new string[0];
+					prefs.CategorizedDockItems = new string[0];
+					if (initial_position_override >= 0)
+						prefs.Position = (Gtk.PositionType) initial_position_override;
+					if (initial_screen_override >= 0)
+						prefs.Monitor = PositionManager.monitor_token_for_screen_index (initial_screen_override);
+					if (!migrated_secondary)
+						Factory.item_factory.make_classic_items ();
 				} else {
-					debug ("First run: wiping residual settings, initializing classic baseline and scheduling onboarding choice...");
-					if (!prefs.has_profile_settings_on_disk ()) {
-						prefs.reset_all ();
-						prefs.DockItems = {};
-						prefs.FreeDockItems = {};
-						prefs.CategorizedDockItems = {};
-						apply_common_first_run_defaults ();
-						prefs.AccordionDocklets = false;
-						prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
-						prefs.SystemMenuAccess = 3;
-						prefs.AnchorAlwaysLeft = false;
-						prefs.ShowDockItem = false;
-						prefs.CategorizeItems = false;
+					Hal.Runtime.terminate_legacy_competing_docks ();
+					ensure_default_autostart ();
+
+					if (Factory.item_factory.migrate_legacy_plank_items (legacy_launchers, launchers_folder)) {
+						debug ("First run: migrated compatible launchers and folders from legacy ~/.config/plank/%s/launchers (read-only)...", name);
+						migrated_from_legacy_plank = true;
+						if (!prefs.has_profile_settings_on_disk ()) {
+							prefs.reset_all ();
+							prefs.DockItems = new string[0];
+							prefs.FreeDockItems = new string[0];
+							prefs.CategorizedDockItems = new string[0];
+							apply_common_first_run_defaults ();
+							prefs.CategorizeItems = false;
+							prefs.AccordionDocklets = false;
+							prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
+							prefs.SystemMenuAccess = 3;
+							prefs.AnchorAlwaysLeft = false;
+							prefs.ShowDockItem = false;
+						}
+						is_first_run_launch = !headless && !onboarding_marker.query_exists ();
+					} else if (headless) {
+						debug ("First run (headless): wiping residual settings and initializing modern Explorer defaults...");
+						if (!prefs.has_profile_settings_on_disk ()) {
+							prefs.reset_all ();
+							prefs.DockItems = new string[0];
+							prefs.FreeDockItems = new string[0];
+							prefs.CategorizedDockItems = new string[0];
+							apply_common_first_run_defaults ();
+							prefs.AccordionDocklets = true;
+							prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
+							prefs.SystemMenuAccess = 4;
+							prefs.AnchorAlwaysLeft = true;
+							prefs.ShowDockItem = false;
+							prefs.CategorizeItems = true;
+						}
+						Factory.item_factory.make_default_items ();
+						try {
+							FileUtils.set_contents (onboarding_marker.get_path (), "explorer\n");
+						} catch { }
+					} else {
+						debug ("First run: wiping residual settings, initializing classic baseline and scheduling onboarding choice...");
+						if (!prefs.has_profile_settings_on_disk ()) {
+							prefs.reset_all ();
+							prefs.DockItems = new string[0];
+							prefs.FreeDockItems = new string[0];
+							prefs.CategorizedDockItems = new string[0];
+							apply_common_first_run_defaults ();
+							prefs.AccordionDocklets = false;
+							prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
+							prefs.SystemMenuAccess = 3;
+							prefs.AnchorAlwaysLeft = false;
+							prefs.ShowDockItem = false;
+							prefs.CategorizeItems = false;
+						}
+						Factory.item_factory.make_classic_items ();
+						is_first_run_launch = !onboarding_marker.query_exists ();
 					}
-					Factory.item_factory.make_classic_items ();
-					is_first_run_launch = !onboarding_marker.query_exists ();
 				}
 				prefs.flush_to_disk ();
 				debug ("done.");
@@ -457,9 +522,9 @@ namespace Plank
 				// WayPlank Classic: preserve 100% of existing/migrated launchers and folders (no left WayPlank icon, no forced Trash)
 				prefs.delay ();
 				if (!migrated_from_legacy_plank) {
-					prefs.DockItems = {};
-					prefs.FreeDockItems = {};
-					prefs.CategorizedDockItems = {};
+					prefs.DockItems = new string[0];
+					prefs.FreeDockItems = new string[0];
+					prefs.CategorizedDockItems = new string[0];
 				}
 				apply_common_first_run_defaults ();
 				prefs.AccordionDocklets = false;
@@ -486,9 +551,9 @@ namespace Plank
 					def_prov.resume_items_monitor ();
 				prefs.delay ();
 				if (!migrated_from_legacy_plank) {
-					prefs.DockItems = {};
-					prefs.FreeDockItems = {};
-					prefs.CategorizedDockItems = {};
+					prefs.DockItems = new string[0];
+					prefs.FreeDockItems = new string[0];
+					prefs.CategorizedDockItems = new string[0];
 				}
 				apply_common_first_run_defaults ();
 				prefs.DockletsOnRight = true;
@@ -525,7 +590,7 @@ namespace Plank
 		
 		void update_show_dock_item ()
 		{
-			if (prefs.ShowDockItem) {
+			if (prefs.ShowDockItem && name == "dock1") {
 				if (dock_itself_item == null)
 					dock_itself_item = Factory.item_factory.get_item_for_dock ();
 				if (!internal_elements.contains (dock_itself_item))
@@ -583,19 +648,24 @@ namespace Plank
 		
 		void update_visible_items_recursive (DockContainer container, ref int current_position)
 		{
+			if (container.VisibleElements.size == 0)
+				return;
+
 			var iterator = container.VisibleElements.bidir_list_iterator ();
 			
 			// Reverse dock-item-order for RTL environments if dock is placed horizontally
 			if (Gtk.Widget.get_default_direction () == Gtk.TextDirection.RTL && prefs.is_horizontal_dock ()) {
-				iterator.last ();
-				do {
-					update_visible_items_add_from_iterator (iterator, ref current_position);
-				} while (iterator.previous ());
+				if (iterator.last ()) {
+					do {
+						update_visible_items_add_from_iterator (iterator, ref current_position);
+					} while (iterator.previous ());
+				}
 			} else {
-				iterator.first ();
-				do {
-					update_visible_items_add_from_iterator (iterator, ref current_position);
-				} while (iterator.next ());
+				if (iterator.first ()) {
+					do {
+						update_visible_items_add_from_iterator (iterator, ref current_position);
+					} while (iterator.next ());
+				}
 			}
 		}
 		
@@ -675,6 +745,7 @@ namespace Plank
 			window.update_icon_regions ();
 			
 			schedule_serialize_item_positions ();
+			schedule_auto_delete_if_empty ();
 
 			// FIXME Maybe add a dedicated signal
 			if (container != this) {
@@ -841,8 +912,76 @@ namespace Plank
 			renderer.animated_draw ();
 		}
 		
+		uint auto_delete_idle_id = 0U;
+
+		public bool has_any_real_items ()
+		{
+			if (internal_elements != null) {
+				foreach (var element in internal_elements) {
+					if (element is DockItem
+						&& !(element is SeparatorDockItem)
+						&& !(element is PinnedExpanderDockItem)
+						&& !(element is PlaceholderDockItem))
+						return true;
+					unowned DockContainer? cont = element as DockContainer;
+					if (cont != null) {
+						foreach (var sub in cont.Elements) {
+							if (sub is DockItem
+								&& !(sub is SeparatorDockItem)
+								&& !(sub is PinnedExpanderDockItem)
+								&& !(sub is PlaceholderDockItem))
+								return true;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+		public void schedule_auto_delete_if_empty ()
+		{
+			if (is_disposed || !is_initialized)
+				return;
+			if (drag_manager != null && (drag_manager.RemovalActive || drag_manager.InternalDragActive))
+				return;
+			if (has_any_real_items ())
+				return;
+			if (auto_delete_idle_id > 0U)
+				return;
+
+			var self_ref = GLib.WeakRef (this);
+			auto_delete_idle_id = GLib.Idle.add (() => {
+				var self = self_ref.get () as DockController;
+				if (self == null)
+					return GLib.Source.REMOVE;
+				self.auto_delete_idle_id = 0U;
+				if (self.is_disposed || !self.is_initialized)
+					return GLib.Source.REMOVE;
+				if (self.drag_manager != null && (self.drag_manager.RemovalActive || self.drag_manager.InternalDragActive))
+					return GLib.Source.REMOVE;
+				if (!self.has_any_real_items ()) {
+					if (self.name == "dock1") {
+						if (self.prefs != null && self.prefs.SystemMenuAccess != 4)
+							self.prefs.SystemMenuAccess = 4;
+						unowned DefaultApplicationDockItemProvider? def_prov = self.default_provider as DefaultApplicationDockItemProvider;
+						if (def_prov != null) {
+							def_prov.ensure_preferences_dockitem ();
+							def_prov.refresh_separators ();
+						}
+					} else if (AbstractMain.app_instance != null) {
+						AbstractMain.app_instance.delete_dock (self);
+					}
+				}
+				return GLib.Source.REMOVE;
+			});
+		}
+
 		public void flush_pending_serialization ()
 		{
+			if (auto_delete_idle_id > 0U) {
+				Source.remove (auto_delete_idle_id);
+				auto_delete_idle_id = 0U;
+			}
 			if (serialize_item_positions_timer_id > 0U) {
 				Source.remove (serialize_item_positions_timer_id);
 				serialize_item_positions_timer_id = 0U;
@@ -881,14 +1020,25 @@ namespace Plank
 				}
 			}
 
-			if (item_list.size == 0)
+			if (item_list.size == 0) {
+				if (name != "dock1") {
+					var empty_items = DockPreferences.list_to_strv (item_list);
+					prefs.DockItems = empty_items;
+					if (!prefs.CategorizeItems)
+						prefs.FreeDockItems = empty_items;
+					else
+						prefs.CategorizedDockItems = empty_items;
+					prefs.flush_to_disk ();
+				}
 				return false;
+			}
 
-			prefs.DockItems = item_list.to_array ();
+			var serialized_items = DockPreferences.list_to_strv (item_list);
+			prefs.DockItems = serialized_items;
 			if (!prefs.CategorizeItems) {
-				prefs.FreeDockItems = item_list.to_array ();
+				prefs.FreeDockItems = serialized_items;
 			} else {
-				prefs.CategorizedDockItems = item_list.to_array ();
+				prefs.CategorizedDockItems = serialized_items;
 			}
 			prefs.flush_to_disk ();
 
@@ -897,9 +1047,11 @@ namespace Plank
 
 		public void handle_system_resume ()
 		{
+			if (suspended_by_arbitration)
+				return;
 			message ("DockController '%s': handling system resume / wake-up", name);
 			Hal.Windows.handle_system_resume ();
-			window.update_layer_shell_monitor ();
+			window.update_shell_dock_monitor ();
 			position_manager.update_dock_position ();
 			window.update_size_and_position ();
 			if (renderer != null)

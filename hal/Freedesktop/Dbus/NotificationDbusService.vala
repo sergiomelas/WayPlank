@@ -219,7 +219,7 @@ namespace Plank
 		private static uint register_absorber_owner (DBusConnection bus, NotificationDbusService target)
 		{
 			GLib.WeakRef self_ref = GLib.WeakRef (target);
-			return Bus.own_name_on_connection (
+			return DbusBroker.get_default ().own_name_on_connection (
 				bus,
 				"org.freedesktop.Notifications",
 				BusNameOwnerFlags.ALLOW_REPLACEMENT,
@@ -239,7 +239,7 @@ namespace Plank
 		{
 			standalone_absorber_active = false;
 			if (absorber_owner_id > 0U) {
-				Bus.unown_name (absorber_owner_id);
+				DbusBroker.get_default ().unown_name (absorber_owner_id);
 				absorber_owner_id = 0U;
 			}
 			if (absorber_reg_id > 0U && session_bus != null) {

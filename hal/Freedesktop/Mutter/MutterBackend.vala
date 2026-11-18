@@ -33,11 +33,17 @@ namespace Plank
 		public abstract bool close_window (string uuid) throws GLib.Error;
 		public abstract bool toggle_desktop () throws GLib.Error;
 		public abstract bool position_dock (int x, int y, int width, int height) throws GLib.Error;
+		public abstract bool position_dock_for (string dock_key, int x, int y, int width, int height) throws GLib.Error;
 		public abstract bool position_hover (int x, int y, int width, int height) throws GLib.Error;
+		public abstract bool position_hover_for (int pid, int x, int y, int width, int height) throws GLib.Error;
 		public abstract bool position_poof (int x, int y, int width, int height) throws GLib.Error;
+		public abstract bool position_poof_for (int pid, int x, int y, int width, int height) throws GLib.Error;
 		public abstract bool set_reserve_space (bool enabled, int thickness, int position) throws GLib.Error;
+		public abstract bool set_reserve_space_for (string dock_key, bool enabled, int thickness, int position) throws GLib.Error;
+		public abstract bool release_dock (string dock_key) throws GLib.Error;
 		public abstract string eval (string code) throws GLib.Error;
 		public abstract bool capture_window (string uuid, string filename) throws GLib.Error;
+		public abstract bool take_screenshot (string mode, string filename) throws GLib.Error;
 		public signal void windows_changed ();
 	}
 
@@ -61,17 +67,29 @@ namespace Plank
 		uint ext_enable_timer_id = 0U;
 		uint bridge_reposition_timer_id = 0U;
 
-		int last_x = -1;
-		int last_y = -1;
-		int last_width = -1;
-		int last_height = -1;
-		bool last_reserve_enabled = false;
-		int last_reserve_thickness = 0;
-		int last_reserve_position = -1;
+		class MutterDockState
+		{
+			public string dock_key;
+			public int x = -1;
+			public int y = -1;
+			public int width = -1;
+			public int height = -1;
+			public bool has_reserve = false;
+			public bool reserve_enabled = false;
+			public int reserve_thickness = 0;
+			public int reserve_position = -1;
+
+			public MutterDockState (string key)
+			{
+				this.dock_key = key;
+			}
+		}
+
+		Gee.HashMap<string, MutterDockState> dock_states = new Gee.HashMap<string, MutterDockState> ();
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v072_bridge_2";
+		const string BRIDGE_GEN = "v072_bridge_5";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -164,8 +182,14 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 try {
-    if (Shell.Screenshot && Shell.Screenshot.composite_to_stream)
+    if (Shell.Screenshot && Shell.Screenshot.composite_to_stream && !Shell.Screenshot._original_composite_to_stream)
         Gio._promisify(Shell.Screenshot, 'composite_to_stream', 'composite_to_stream_finish');
+    if (Shell.Screenshot && Shell.Screenshot.prototype) {
+        if (Shell.Screenshot.prototype.screenshot && !Shell.Screenshot.prototype._original_screenshot)
+            Gio._promisify(Shell.Screenshot.prototype, 'screenshot', 'screenshot_finish');
+        if (Shell.Screenshot.prototype.screenshot_window && !Shell.Screenshot.prototype._original_screenshot_window)
+            Gio._promisify(Shell.Screenshot.prototype, 'screenshot_window', 'screenshot_window_finish');
+    }
 } catch (e) { }
 
 const IFACE_XML = `
@@ -213,7 +237,23 @@ const IFACE_XML = `
       <arg type="i" name="height" direction="in"/>
       <arg type="b" name="success" direction="out"/>
     </method>
+    <method name="PositionDockFor">
+      <arg type="s" name="dockKey" direction="in"/>
+      <arg type="i" name="x" direction="in"/>
+      <arg type="i" name="y" direction="in"/>
+      <arg type="i" name="width" direction="in"/>
+      <arg type="i" name="height" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
     <method name="PositionHover">
+      <arg type="i" name="x" direction="in"/>
+      <arg type="i" name="y" direction="in"/>
+      <arg type="i" name="width" direction="in"/>
+      <arg type="i" name="height" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
+    <method name="PositionHoverFor">
+      <arg type="i" name="pid" direction="in"/>
       <arg type="i" name="x" direction="in"/>
       <arg type="i" name="y" direction="in"/>
       <arg type="i" name="width" direction="in"/>
@@ -227,8 +267,21 @@ const IFACE_XML = `
       <arg type="i" name="height" direction="in"/>
       <arg type="b" name="success" direction="out"/>
     </method>
+    <method name="PositionPoofFor">
+      <arg type="i" name="pid" direction="in"/>
+      <arg type="i" name="x" direction="in"/>
+      <arg type="i" name="y" direction="in"/>
+      <arg type="i" name="width" direction="in"/>
+      <arg type="i" name="height" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
     <method name="CaptureWindow">
       <arg type="s" name="uuid" direction="in"/>
+      <arg type="s" name="filename" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
+    <method name="TakeScreenshot">
+      <arg type="s" name="mode" direction="in"/>
       <arg type="s" name="filename" direction="in"/>
       <arg type="b" name="success" direction="out"/>
     </method>
@@ -238,15 +291,27 @@ const IFACE_XML = `
       <arg type="i" name="position" direction="in"/>
       <arg type="b" name="success" direction="out"/>
     </method>
+    <method name="SetReserveSpaceFor">
+      <arg type="s" name="dockKey" direction="in"/>
+      <arg type="b" name="enabled" direction="in"/>
+      <arg type="i" name="thickness" direction="in"/>
+      <arg type="i" name="position" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
+    <method name="ReleaseDock">
+      <arg type="s" name="dockKey" direction="in"/>
+      <arg type="b" name="success" direction="out"/>
+    </method>
     <signal name="WindowsChanged"/>
   </interface>
 </node>`;
 
 export default class WayplankBridgeImpl {
     enable() {
-        this._bridgeGen = 'v072_bridge_2';
-        this._lastDockOnPrimary = true;
-        this._strutHealAttempted = false;
+        this._bridgeGen = 'v072_bridge_4';
+        this._docks = new Map();
+        this._hoverByPid = new Map();
+        this._poofByPid = new Map();
         this._signals = [];
         this._wsSignals = [];
         this._lmSignals = [];
@@ -351,94 +416,104 @@ export default class WayplankBridgeImpl {
             }));
         }
         this._signals.push(display.connect('workareas-changed', () => {
-            if (this._lastReserveEnabled && this._lastReserveThickness > 0 && this._strutActor && this._strutRect) {
-                try {
-                    const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 0;
-                    const sr = this._strutRect;
-                    if (sr.mon >= 0 && sr.mon < nMonitors && global.workspace_manager) {
-                        const ws = global.workspace_manager.get_active_workspace();
-                        const wa = ws ? ws.get_work_area_for_monitor(sr.mon) : null;
-                        if (wa) {
-                            const pos = this._lastReservePosition;
-                            let reserved = true;
-                            if (pos === 3)
-                                reserved = (wa.y + wa.height <= sr.y + 1);
-                            else if (pos === 2)
-                                reserved = (wa.y >= sr.y + sr.height - 1);
-                            else if (pos === 0)
-                                reserved = (wa.x >= sr.x + sr.width - 1);
-                            else if (pos === 1)
-                                reserved = (wa.x + wa.width <= sr.x + 1);
+            const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 0;
+            for (const entry of this._docks.values()) {
+                if (entry.reserveEnabled && entry.reserveThickness > 0 && entry.strutActor && entry.strutRect) {
+                    try {
+                        const sr = entry.strutRect;
+                        if (sr.mon >= 0 && sr.mon < nMonitors && global.workspace_manager) {
+                            const ws = global.workspace_manager.get_active_workspace();
+                            const wa = ws ? ws.get_work_area_for_monitor(sr.mon) : null;
+                            if (wa) {
+                                const pos = entry.reservePosition;
+                                let reserved = true;
+                                if (pos === 3)
+                                    reserved = (wa.y + wa.height <= sr.y + 1);
+                                else if (pos === 2)
+                                    reserved = (wa.y >= sr.y + sr.height - 1);
+                                else if (pos === 0)
+                                    reserved = (wa.x >= sr.x + sr.width - 1);
+                                else if (pos === 1)
+                                    reserved = (wa.x + wa.width <= sr.x + 1);
 
-                            if (!reserved && !this._strutHealAttempted) {
-                                this._strutHealAttempted = true;
-                                this._strutActor.visible = true;
-                                this._strutActor.set_position(sr.x, sr.y);
-                                this._strutActor.set_size(sr.width, sr.height);
-                                try { this._strutActor.queue_relayout(); } catch (e) { }
-                                if (Main.layoutManager && Main.layoutManager._queueUpdateRegions)
-                                    Main.layoutManager._queueUpdateRegions();
-                            } else if (reserved) {
-                                this._strutHealAttempted = false;
+                                if (!reserved && !entry.strutHealAttempted) {
+                                    entry.strutHealAttempted = true;
+                                    entry.strutActor.visible = true;
+                                    entry.strutActor.set_position(sr.x, sr.y);
+                                    entry.strutActor.set_size(sr.width, sr.height);
+                                    try { entry.strutActor.queue_relayout(); } catch (e) { }
+                                    if (Main.layoutManager && Main.layoutManager._queueUpdateRegions)
+                                        Main.layoutManager._queueUpdateRegions();
+                                } else if (reserved) {
+                                    entry.strutHealAttempted = false;
+                                }
                             }
                         }
+                    } catch (e) { }
+                }
+                if (entry.geo) {
+                    const dockWin = this._findDockWindowForEntry(entry);
+                    if (dockWin) {
+                        const { x, y, width, height } = entry.geo;
+                        this._applyDockPosition(dockWin, entry, x, y, width, height);
                     }
-                } catch (e) { }
-            }
-            if (this._lastDockGeo) {
-                const dockWin = this._findDockWindow();
-                if (dockWin) {
-                    const { x, y, width, height } = this._lastDockGeo;
-                    this._applyDockPosition(dockWin, x, y, width, height);
                 }
             }
         }));
         if (Main.layoutManager) {
             this._lmSignals.push(Main.layoutManager.connect('monitors-changed', () => {
                 const nMonitors = global.display.get_n_monitors ? global.display.get_n_monitors() : 0;
-                if (nMonitors > 0 && this._lastDockGeo) {
+                if (nMonitors > 0) {
                     const pMon = this._getSafePrimaryMonitor(nMonitors);
-                    let targetMon = -1;
-                    if (this._lastDockOnPrimary !== false) {
-                        targetMon = pMon;
-                    } else {
-                        const cx = this._lastDockGeo.x + Math.floor(this._lastDockGeo.width / 2);
-                        const cy = this._lastDockGeo.y + Math.floor(this._lastDockGeo.height / 2);
-                        for (let i = 0; i < nMonitors; i++) {
-                            const geo = global.display.get_monitor_geometry(i);
-                            if (cx >= geo.x && cx < geo.x + geo.width &&
-                                cy >= geo.y && cy < geo.y + geo.height) {
-                                targetMon = i;
-                                break;
+                    for (const entry of this._docks.values()) {
+                        if (entry.geo) {
+                            let targetMon = -1;
+                            if (entry.onPrimary !== false) {
+                                targetMon = pMon;
+                            } else {
+                                const cx = entry.geo.x + Math.floor(entry.geo.width / 2);
+                                const cy = entry.geo.y + Math.floor(entry.geo.height / 2);
+                                for (let i = 0; i < nMonitors; i++) {
+                                    const geo = global.display.get_monitor_geometry(i);
+                                    if (cx >= geo.x && cx < geo.x + geo.width &&
+                                        cy >= geo.y && cy < geo.y + geo.height) {
+                                        targetMon = i;
+                                        break;
+                                    }
+                                }
+                                if (targetMon < 0 || targetMon >= nMonitors)
+                                    targetMon = pMon;
+                            }
+                            if (targetMon >= 0 && targetMon < nMonitors) {
+                                const monGeo = global.display.get_monitor_geometry(targetMon);
+                                const topPanel = (targetMon === pMon && Main.panel && Main.panel.height) ? Main.panel.height : 0;
+                                const w = entry.geo.width;
+                                const h = entry.geo.height;
+                                let nx = monGeo.x + Math.max(0, Math.floor((monGeo.width - w) / 2));
+                                let ny = monGeo.y + monGeo.height - h;
+                                if (w >= h) {
+                                    const wasTop = (entry.reserveEnabled && entry.reservePosition === 2) ||
+                                                   (entry.geo.y <= monGeo.y + topPanel + 100);
+                                    if (wasTop)
+                                        ny = monGeo.y + topPanel;
+                                } else {
+                                    const wasRight = (entry.reserveEnabled && entry.reservePosition === 1) ||
+                                                     (entry.geo.x > monGeo.x + 100);
+                                    nx = wasRight ? (monGeo.x + monGeo.width - w) : monGeo.x;
+                                    ny = monGeo.y + topPanel + Math.max(0, Math.floor((monGeo.height - topPanel - h) / 2));
+                                }
+                                entry.geo = { x: nx, y: ny, width: w, height: h };
+                            }
+                            const dockWin = this._findDockWindowForEntry(entry);
+                            if (dockWin) {
+                                const { x, y, width, height } = entry.geo;
+                                this._applyDockPosition(dockWin, entry, x, y, width, height);
                             }
                         }
-                        if (targetMon < 0 || targetMon >= nMonitors)
-                            targetMon = pMon;
-                    }
-                    if (targetMon >= 0 && targetMon < nMonitors) {
-                        const monGeo = global.display.get_monitor_geometry(targetMon);
-                        const topPanel = (targetMon === pMon && Main.panel && Main.panel.height) ? Main.panel.height : 0;
-                        const w = this._lastDockGeo.width;
-                        const h = this._lastDockGeo.height;
-                        let nx = monGeo.x + Math.max(0, Math.floor((monGeo.width - w) / 2));
-                        let ny = monGeo.y + monGeo.height - h;
-                        if (w >= h) {
-                            if (this._lastReservePosition === 2)
-                                ny = monGeo.y + topPanel;
-                        } else {
-                            nx = (this._lastReservePosition === 1) ? (monGeo.x + monGeo.width - w) : monGeo.x;
-                            ny = monGeo.y + topPanel + Math.max(0, Math.floor((monGeo.height - topPanel - h) / 2));
+                        if (entry.reserveEnabled && entry.reserveThickness > 0 && entry.reservePosition >= 0) {
+                            this._syncReserveStrutForEntry(entry, true, entry.reserveThickness, entry.reservePosition);
                         }
-                        this._lastDockGeo = { x: nx, y: ny, width: w, height: h };
                     }
-                    const dockWin = this._findDockWindow();
-                    if (dockWin) {
-                        const { x, y, width, height } = this._lastDockGeo;
-                        this._applyDockPosition(dockWin, x, y, width, height);
-                    }
-                }
-                if (this._lastReserveEnabled && this._lastReserveThickness > 0 && this._lastReservePosition >= 0) {
-                    this._syncReserveStrut(true, this._lastReserveThickness, this._lastReservePosition);
                 }
                 this._notifyWindowsChanged();
             }));
@@ -466,17 +541,19 @@ export default class WayplankBridgeImpl {
     }
 
     disable() {
-        if (this._strutActor) {
-            try {
-                Main.layoutManager.removeChrome(this._strutActor);
-                this._strutActor.destroy();
-            } catch (e) { }
-            this._strutActor = null;
+        if (this._docks) {
+            for (const entry of this._docks.values()) {
+                this._destroyEntryStrut(entry);
+            }
+            this._docks.clear();
         }
-        this._strutRect = null;
-        this._lastReserveEnabled = false;
-        this._lastReserveThickness = 0;
-        this._lastReservePosition = -1;
+        if (this._hoverByPid)
+            this._hoverByPid.clear();
+        if (this._poofByPid)
+            this._poofByPid.clear();
+        if (Main.layoutManager && Main.layoutManager._queueUpdateRegions) {
+            try { Main.layoutManager._queueUpdateRegions(); } catch (e) { }
+        }
 
         if (this._origAttentionHandler && Main.windowAttentionHandler) {
             Main.windowAttentionHandler._onWindowDemandsAttention = this._origAttentionHandler;
@@ -532,6 +609,87 @@ export default class WayplankBridgeImpl {
         this._lastActiveUuid = null;
     }
 
+    _parseDockKey(dockKey) {
+        const raw = (dockKey && typeof dockKey === 'string') ? dockKey.trim() : '';
+        if (raw) {
+            const parts = raw.split(':');
+            if (parts.length === 2) {
+                const pid = parseInt(parts[0], 10) || 0;
+                const slot = Math.max(1, parseInt(parts[1], 10) || 1);
+                return { key: `${pid}:${slot}`, pid, slot };
+            }
+        }
+        return { key: '0:1', pid: 0, slot: 1 };
+    }
+
+    _getOrCreateDockEntry(dockKey) {
+        const parsed = this._parseDockKey(dockKey);
+        let entry = this._docks.get(parsed.key);
+        if (!entry) {
+            entry = {
+                key: parsed.key,
+                pid: parsed.pid,
+                slot: parsed.slot,
+                geo: null,
+                onPrimary: true,
+                reserveEnabled: false,
+                reserveThickness: 0,
+                reservePosition: -1,
+                strutActor: null,
+                strutRect: null,
+                strutHealAttempted: false,
+            };
+            this._docks.set(parsed.key, entry);
+        }
+        return entry;
+    }
+
+    _destroyEntryStrut(entry) {
+        if (!entry)
+            return;
+        if (entry.strutActor) {
+            try {
+                Main.layoutManager.removeChrome(entry.strutActor);
+                entry.strutActor.destroy();
+            } catch (e) { }
+            entry.strutActor = null;
+        }
+        entry.strutRect = null;
+        entry.strutHealAttempted = false;
+    }
+
+    _dockSlotForWindow(win) {
+        const title = ((win && win.get_title ? win.get_title() : '') || '').toLowerCase();
+        if (title === 'wayplank')
+            return 1;
+        const m = /^wayplank-([2-9]|[1-9][0-9]+)$/.exec(title);
+        if (m)
+            return parseInt(m[1], 10);
+        return 1;
+    }
+
+    _hasActivePoofForWindow(win) {
+        if (!this._poofByPid || this._poofByPid.size === 0)
+            return null;
+        const now = Date.now();
+        const winPid = (win && win.get_pid ? win.get_pid() : 0) || 0;
+        if (winPid > 0 && this._poofByPid.has(winPid)) {
+            const st = this._poofByPid.get(winPid);
+            if (st && (now - (st.time || 0) < 3000))
+                return st;
+        }
+        if (this._poofByPid.has(0)) {
+            const st0 = this._poofByPid.get(0);
+            if (st0 && (now - (st0.time || 0) < 3000))
+                return st0;
+        }
+        return null;
+    }
+
+    _isExactDockTitle(lowerTitle) {
+        return (lowerTitle === 'wayplank' || /^wayplank-([2-9]|[1-9][0-9]+)$/.test(lowerTitle));
+    }
+
     _classifyWindow(win) {
         if (!win) return 'unknown';
 
@@ -545,17 +703,23 @@ export default class WayplankBridgeImpl {
         const sandboxedId = ((win.get_sandboxed_app_id ? win.get_sandboxed_app_id() : '') || '').toLowerCase();
 
         const lowerTitle = title.toLowerCase();
-        const isExactInternalTitle = (lowerTitle === 'wayplank' ||
+        const exactDockTitle = this._isExactDockTitle(lowerTitle);
+        const isExactInternalTitle = (exactDockTitle ||
                                       lowerTitle === 'wayplank-hover' ||
                                       lowerTitle === 'wayplank-folder-menu' ||
                                       lowerTitle === 'wayplank-hover-cards' ||
                                       lowerTitle === 'wayplank-poof');
         const isWayplankApp = (wmClass === 'wayplank' ||
                                wmClass === 'plank' ||
+                               wmClass === 'net.launchpad.plank' ||
+                               wmClass.startsWith('net.launchpad.plank.') ||
                                appId === 'wayplank.desktop' ||
                                appId === 'net.launchpad.plank.desktop' ||
+                               appId.startsWith('net.launchpad.plank.') ||
                                gtkAppId === 'net.launchpad.plank' ||
+                               gtkAppId.startsWith('net.launchpad.plank.') ||
                                sandboxedId === 'net.launchpad.plank' ||
+                               sandboxedId.startsWith('net.launchpad.plank.') ||
                                role === 'dock' ||
                                (wmClass === '' && isExactInternalTitle));
 
@@ -564,9 +728,9 @@ export default class WayplankBridgeImpl {
 
         const type = win.get_window_type ? win.get_window_type() : -1;
 
-        // 0. Poof Window: match exact title, role, or active poof placement request
+        // 0. Poof Window: match exact title, role, or active poof placement request for this PID
         if (lowerTitle === 'wayplank-poof' || role === 'poof' ||
-            (this._lastPoofGeo && (Date.now() - (this._lastPoofTime || 0) < 3000) && !isExactInternalTitle && !lowerTitle.includes('prefer') && !lowerTitle.includes('help')))
+            (this._hasActivePoofForWindow(win) && !isExactInternalTitle && !lowerTitle.includes('prefer') && !lowerTitle.includes('help')))
             return 'poof';
 
         // 1. Tooltip / Hover / Folder / Cards Window (exact internal titles or popup roles on WayPlank surfaces)
@@ -574,8 +738,8 @@ export default class WayplankBridgeImpl {
             role === 'tooltip' || role === 'popup-menu')
             return 'hover';
 
-        // 2. Dock Window: ONLY if title is exactly 'wayplank' or role is 'dock' or type is DOCK
-        if (lowerTitle === 'wayplank' || role === 'dock' || type === Meta.WindowType.DOCK)
+        // 2. Dock Window: ONLY if title is exact dock title ('wayplank' / 'wayplank-2'..'wayplank-8') or role is 'dock' or type is DOCK
+        if (exactDockTitle || role === 'dock' || type === Meta.WindowType.DOCK)
             return 'dock';
 
         if (!win.mapped && lowerTitle === '' && role === '')
@@ -735,7 +899,7 @@ export default class WayplankBridgeImpl {
         };
     }
 
-    _applyDockPosition(win, x, y, width, height) {
+    _applyDockPosition(win, entry, x, y, width, height) {
         if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'dock')
             return false;
         try {
@@ -768,24 +932,26 @@ export default class WayplankBridgeImpl {
             // when reserving space and recalculates asynchronously in Mutter.
             const monGeo = global.display.get_monitor_geometry(targetMon);
             const isPrimary = (targetMon === pMon);
-            this._lastDockOnPrimary = isPrimary;
+            if (entry)
+                entry.onPrimary = isPrimary;
             const topPanelHeight = (isPrimary && Main.panel && Main.panel.height) ? Main.panel.height : 0;
 
             let targetX = x;
             let targetY = y;
 
+            const rPos = (entry && entry.reserveEnabled) ? entry.reservePosition : -1;
             let isTop;
-            if (this._lastReservePosition === 2)
+            if (rPos === 2)
                 isTop = true;
-            else if (this._lastReservePosition === 3)
+            else if (rPos === 3)
                 isTop = false;
             else
                 isTop = (y <= monGeo.y + topPanelHeight + 100);
 
             let isLeft;
-            if (this._lastReservePosition === 0)
+            if (rPos === 0)
                 isLeft = true;
-            else if (this._lastReservePosition === 1)
+            else if (rPos === 1)
                 isLeft = false;
             else
                 isLeft = (x <= monGeo.x + 100);
@@ -798,7 +964,8 @@ export default class WayplankBridgeImpl {
                 targetX = isLeft ? monGeo.x : (monGeo.x + monGeo.width - width);
                 targetY = Math.max(monGeo.y + topPanelHeight, Math.min(y, monGeo.y + monGeo.height - height));
             }
-            this._lastDockGeo = { x: targetX, y: targetY, width, height };
+            if (entry)
+                entry.geo = { x: targetX, y: targetY, width, height };
 
             // user_op = true: on Wayland the dock is a NORMAL toplevel (never META_WINDOW_DOCK),
             // so Mutter's constrain_fully_onscreen would shove it out of its OWN reserve-space
@@ -844,7 +1011,7 @@ export default class WayplankBridgeImpl {
         }
     }
 
-    _applyHoverPosition(win, x, y, width, height) {
+    _applyHoverPosition(win, pid, x, y, width, height) {
         if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'hover')
             return false;
         try {
@@ -859,12 +1026,14 @@ export default class WayplankBridgeImpl {
 
             let targetX = x;
             let targetY = y;
-            const dockWin = this._findDockWindow();
-            const dockRect = this._lastDockGeo || (dockWin ? dockWin.get_frame_rect() : null);
+            const effPid = pid > 0 ? pid : ((win.get_pid ? win.get_pid() : 0) || 0);
 
             let targetMon = -1;
             const cx = x + Math.floor((width > 0 ? width : 60) / 2);
             const cy = y + Math.floor((height > 0 ? height : 28) / 2);
+            const dockEntry = this._findNearestDockEntryForPid(effPid, cx, cy);
+            const dockWin = dockEntry ? this._findDockWindowForEntry(dockEntry) : null;
+            const dockRect = (dockEntry && dockEntry.geo) ? dockEntry.geo : (dockWin ? dockWin.get_frame_rect() : null);
 
             for (let i = 0; i < nMonitors; i++) {
                 const geo = global.display.get_monitor_geometry(i);
@@ -887,13 +1056,13 @@ export default class WayplankBridgeImpl {
                 const topPanelHeight = (monIdx === pMon && Main.panel && Main.panel.height && Main.panel.visible !== false)
                     ? Main.panel.height : 0;
                 const isHorizontal = dockRect.width >= dockRect.height;
-                const isTop = (this._lastReservePosition === 2) ||
+                const isTop = (dockEntry && dockEntry.reserveEnabled && dockEntry.reservePosition === 2) ||
                               (isHorizontal && dockRect.y <= monGeo.y + topPanelHeight + 12);
                 if (isTop && topPanelHeight > 0)
                     targetY = y + topPanelHeight;
             }
 
-            win._wpHoverGeo = { x: targetX, y: targetY, width, height };
+            win._wpHoverGeo = { pid: effPid, x: targetX, y: targetY, width, height };
 
             const move = () => {
                 try {
@@ -934,7 +1103,7 @@ export default class WayplankBridgeImpl {
         }
     }
 
-    _applyPoofPosition(win, x, y, width, height) {
+    _applyPoofPosition(win, pid, x, y, width, height) {
         if (!win || win._wpUnmanaging)
             return false;
         try {
@@ -948,6 +1117,7 @@ export default class WayplankBridgeImpl {
             if (nMonitors <= 0)
                 return false;
 
+            const effPid = pid > 0 ? pid : ((win.get_pid ? win.get_pid() : 0) || 0);
             let targetMon = -1;
             const cx = x + Math.floor((width > 0 ? width : 64) / 2);
             const cy = y + Math.floor((height > 0 ? height : 64) / 2);
@@ -963,8 +1133,9 @@ export default class WayplankBridgeImpl {
 
             let targetX = x;
             let targetY = y;
-            const dockWin = this._findDockWindow();
-            const dockRect = this._lastDockGeo || (dockWin && dockWin.get_frame_rect ? dockWin.get_frame_rect() : null);
+            const dockEntry = this._findNearestDockEntryForPid(effPid, cx, cy);
+            const dockWin = dockEntry ? this._findDockWindowForEntry(dockEntry) : null;
+            const dockRect = (dockEntry && dockEntry.geo) ? dockEntry.geo : (dockWin && dockWin.get_frame_rect ? dockWin.get_frame_rect() : null);
             if (dockRect && targetMon >= 0 && targetMon < nMonitors) {
                 const monGeo = global.display.get_monitor_geometry(targetMon);
                 const isHorizontal = dockRect.width >= dockRect.height;
@@ -1019,10 +1190,11 @@ export default class WayplankBridgeImpl {
 
         const applyRole = (targetWin) => {
             let kind = this._classifyWindow(targetWin);
-            if (kind === 'unknown' && this._lastPoofGeo && (Date.now() - (this._lastPoofTime || 0) < 3000)) {
+            const activePoof = this._hasActivePoofForWindow(targetWin);
+            if (kind === 'unknown' && activePoof) {
                 const title = (targetWin.get_title ? targetWin.get_title() : '') || '';
                 const lowerTitle = title.toLowerCase();
-                if (lowerTitle !== 'wayplank' && !lowerTitle.includes('hover') && !lowerTitle.includes('prefer') && !lowerTitle.includes('help')) {
+                if (!this._isExactDockTitle(lowerTitle) && !lowerTitle.includes('hover') && !lowerTitle.includes('prefer') && !lowerTitle.includes('help')) {
                     kind = 'poof';
                 }
             }
@@ -1031,9 +1203,10 @@ export default class WayplankBridgeImpl {
                     if (targetWin.hide_from_window_list)
                         targetWin.hide_from_window_list();
                 } catch (e) { }
-                if (this._lastDockGeo) {
-                    const { x, y, width, height } = this._lastDockGeo;
-                    this._applyDockPosition(targetWin, x, y, width, height);
+                const entry = this._findEntryForDockWindow(targetWin);
+                if (entry && entry.geo) {
+                    const { x, y, width, height } = entry.geo;
+                    this._applyDockPosition(targetWin, entry, x, y, width, height);
                 } else if (targetWin.mapped) {
                     try { this._ensureWindowStickyAbove(targetWin); } catch (e) { }
                 } else {
@@ -1049,10 +1222,11 @@ export default class WayplankBridgeImpl {
                     if (targetWin.hide_from_window_list)
                         targetWin.hide_from_window_list();
                 } catch (e) { }
-                const hoverGeo = targetWin._wpHoverGeo || this._lastHoverGeo;
+                const wPid = (targetWin.get_pid ? targetWin.get_pid() : 0) || 0;
+                const hoverGeo = targetWin._wpHoverGeo || this._hoverByPid.get(wPid) || this._hoverByPid.get(0);
                 if (hoverGeo) {
                     const { x, y, width, height } = hoverGeo;
-                    this._applyHoverPosition(targetWin, x, y, width, height);
+                    this._applyHoverPosition(targetWin, wPid, x, y, width, height);
                 }
             } else if (kind === 'poof') {
                 try {
@@ -1061,9 +1235,11 @@ export default class WayplankBridgeImpl {
                         targetWin.hide_from_window_list();
                 } catch (e) { }
                 targetWin._wayplankCentered = true;
-                if (this._lastPoofGeo) {
-                    const { x, y, width, height } = this._lastPoofGeo;
-                    this._applyPoofPosition(targetWin, x, y, width, height);
+                const wPid = (targetWin.get_pid ? targetWin.get_pid() : 0) || 0;
+                const poofGeo = this._poofByPid.get(wPid) || this._poofByPid.get(0);
+                if (poofGeo) {
+                    const { x, y, width, height } = poofGeo;
+                    this._applyPoofPosition(targetWin, wPid, x, y, width, height);
                 }
             } else if (kind === 'dialog') {
                 try {
@@ -1089,6 +1265,7 @@ export default class WayplankBridgeImpl {
         const sigs = [];
         sigs.push(win.connect('unmanaged', () => {
             const cls = this._classifyWindow(win);
+            const entry = (cls === 'dock') ? this._findEntryForDockWindow(win) : null;
             win._wpUnmanaging = true;
             this._cancelPendingFirstFrame(win);
             if (this._minMap && winId)
@@ -1096,8 +1273,9 @@ export default class WayplankBridgeImpl {
             if (this._desktopRestoredWindows && winId)
                 this._desktopRestoredWindows = this._desktopRestoredWindows.filter(id => id !== winId);
             this._windowSignals.delete(win);
-            if (cls === 'dock' && this._strutActor && !this._findDockWindow())
-                this.SetReserveSpace(false, 0, -1);
+            if (entry && !this._findDockWindowForEntry(entry)) {
+                this.ReleaseDock(entry.key);
+            }
             if (cls === 'other')
                 this._notifyWindowsChanged();
         }));
@@ -1136,14 +1314,15 @@ export default class WayplankBridgeImpl {
             if (win._wpApplyingGeometry || win._wpUnmanaging)
                 return;
             const kind = this._classifyWindow(win);
-            if (kind === 'dock' && this._lastDockGeo) {
-                // Mutter may displace the dock (work-area re-constraint when our strut is applied):
-                // restore it once; the frame-equality guard in _applyDockPosition prevents loops.
-                const { x, y, width, height } = this._lastDockGeo;
-                this._applyDockPosition(win, x, y, width, height);
+            if (kind === 'dock') {
+                const entry = this._findEntryForDockWindow(win);
+                if (entry && entry.geo) {
+                    const { x, y, width, height } = entry.geo;
+                    this._applyDockPosition(win, entry, x, y, width, height);
+                }
             } else if (kind === 'hover' && win._wpHoverGeo) {
-                const { x, y, width, height } = win._wpHoverGeo;
-                this._applyHoverPosition(win, x, y, width, height);
+                const { pid, x, y, width, height } = win._wpHoverGeo;
+                this._applyHoverPosition(win, pid || 0, x, y, width, height);
             } else if (kind === 'other') {
                 this._notifyWindowsChanged();
             }
@@ -1152,14 +1331,18 @@ export default class WayplankBridgeImpl {
             if (win._wpApplyingGeometry || win._wpUnmanaging)
                 return;
             const currentKind = this._classifyWindow(win);
-            if (currentKind === 'dock' && this._lastDockGeo) {
-                const { x, y, width, height } = this._lastDockGeo;
-                this._applyDockPosition(win, x, y, width, height);
+            if (currentKind === 'dock') {
+                const entry = this._findEntryForDockWindow(win);
+                if (entry && entry.geo) {
+                    const { x, y, width, height } = entry.geo;
+                    this._applyDockPosition(win, entry, x, y, width, height);
+                }
             } else if (currentKind === 'hover') {
-                const hoverGeo = win._wpHoverGeo || this._lastHoverGeo;
+                const wPid = (win.get_pid ? win.get_pid() : 0) || 0;
+                const hoverGeo = win._wpHoverGeo || this._hoverByPid.get(wPid) || this._hoverByPid.get(0);
                 if (hoverGeo) {
                     const { x, y, width, height } = hoverGeo;
-                    this._applyHoverPosition(win, x, y, width, height);
+                    this._applyHoverPosition(win, wPid, x, y, width, height);
                 }
             } else if (currentKind === 'dialog') {
                 this._centerWindow(win);
@@ -1181,28 +1364,35 @@ export default class WayplankBridgeImpl {
         this._windowSignals.set(win, sigs);
     }
 
-    _findPoofWindow() {
+    _findPoofWindow(pid = 0) {
         for (const actor of global.get_window_actors()) {
             const win = actor.meta_window;
-            if (win && this._classifyWindow(win) === 'poof')
+            if (!win || win._wpUnmanaging) continue;
+            const wPid = (win.get_pid ? win.get_pid() : 0) || 0;
+            if (pid > 0 && wPid > 0 && wPid !== pid) continue;
+            if (this._classifyWindow(win) === 'poof')
                 return win;
         }
         for (const actor of global.get_window_actors()) {
             const win = actor.meta_window;
-            if (!win) continue;
+            if (!win || win._wpUnmanaging) continue;
+            const wPid = (win.get_pid ? win.get_pid() : 0) || 0;
+            if (pid > 0 && wPid > 0 && wPid !== pid) continue;
+            const role = ((win.get_role ? win.get_role() : '') || '').toLowerCase();
+            if (role === 'dock') continue;
             const kind = this._classifyWindow(win);
             if (kind === 'poof') return win;
             if (kind === 'unknown') {
                 const title = (win.get_title ? win.get_title() : '') || '';
                 const lowerTitle = title.toLowerCase();
-                if (lowerTitle !== 'wayplank' && !lowerTitle.includes('hover') && !lowerTitle.includes('prefer') && !lowerTitle.includes('help'))
+                if (lowerTitle === 'wayplank-poof')
                     return win;
             }
         }
         return null;
     }
 
-    _findHoverWindow() {
+    _findHoverWindow(pid = 0) {
         const actors = global.get_window_actors();
         let unmappedMatch = null;
         for (let i = actors.length - 1; i >= 0; i--) {
@@ -1212,6 +1402,9 @@ export default class WayplankBridgeImpl {
             const win = actor.meta_window;
             if (!win || win._wpUnmanaging || win.minimized || this._classifyWindow(win) !== 'hover')
                 continue;
+            const wPid = (win.get_pid ? win.get_pid() : 0) || 0;
+            if (pid > 0 && wPid > 0 && wPid !== pid)
+                continue;
             if (win.mapped)
                 return win;
             if (!unmappedMatch)
@@ -1220,15 +1413,56 @@ export default class WayplankBridgeImpl {
         return unmappedMatch;
     }
 
-    _findDockWindow() {
+    _findDockWindowForEntry(entry) {
+        if (!entry)
+            return null;
         for (const actor of global.get_window_actors()) {
             if (!actor || (actor.is_destroyed && actor.is_destroyed()))
                 continue;
             const win = actor.meta_window;
-            if (win && !win._wpUnmanaging && this._classifyWindow(win) === 'dock')
+            if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'dock')
+                continue;
+            const wPid = (win.get_pid ? win.get_pid() : 0) || 0;
+            const wSlot = this._dockSlotForWindow(win);
+            if ((entry.pid <= 0 || wPid === entry.pid) && wSlot === entry.slot)
                 return win;
         }
         return null;
+    }
+
+    _findEntryForDockWindow(win) {
+        if (!win)
+            return null;
+        const wPid = (win.get_pid ? win.get_pid() : 0) || 0;
+        const wSlot = this._dockSlotForWindow(win);
+        if (wPid > 0) {
+            const exact = this._docks.get(`${wPid}:${wSlot}`);
+            if (exact)
+                return exact;
+        }
+        return this._docks.get(`0:${wSlot}`) || null;
+    }
+
+    _findNearestDockEntryForPid(pid, cx, cy) {
+        let best = null;
+        let bestDist = Infinity;
+        for (const entry of this._docks.values()) {
+            if (pid > 0 && entry.pid > 0 && entry.pid !== pid)
+                continue;
+            if (!entry.geo) {
+                if (!best)
+                    best = entry;
+                continue;
+            }
+            const dx = (entry.geo.x + entry.geo.width / 2) - cx;
+            const dy = (entry.geo.y + entry.geo.height / 2) - cy;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < bestDist) {
+                bestDist = d2;
+                best = entry;
+            }
+        }
+        return best;
     }
 
     _notifyWindowsChanged() {
@@ -1557,6 +1791,74 @@ export default class WayplankBridgeImpl {
         }
     }
 
+    // D-Bus Method: TakeScreenshot (native GNOME Shell Main.screenshotUI & Shell.Screenshot)
+    async TakeScreenshot(mode, filename) {
+        try {
+            if (mode === 'interactive') {
+                if (!Main.screenshotUI || typeof Main.screenshotUI.open !== 'function')
+                    return false;
+                await Main.screenshotUI.open();
+                if (Main.screenshotUI._selectionButton)
+                    Main.screenshotUI._selectionButton.checked = true;
+                return true;
+            }
+            if (mode === 'fullscreen') {
+                if (filename && Shell.Screenshot) {
+                    const dir = GLib.path_get_dirname(filename);
+                    if (dir)
+                        GLib.mkdir_with_parents(dir, 0o755);
+                    const file = Gio.File.new_for_path(filename);
+                    const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+                    try {
+                        const shooter = new Shell.Screenshot();
+                        await shooter.screenshot(false, stream);
+                    } finally {
+                        try { stream.close(null); } catch (e2) { }
+                    }
+                    return true;
+                }
+                if (Main.screenshotUI && typeof Main.screenshotUI.open === 'function') {
+                    await Main.screenshotUI.open();
+                    if (Main.screenshotUI._screenButton)
+                        Main.screenshotUI._screenButton.checked = true;
+                    return true;
+                }
+                return false;
+            }
+            if (mode === 'window') {
+                const focusWin = global.display && global.display.get_focus_window
+                    ? global.display.get_focus_window()
+                    : (global.display ? global.display.focus_window : null);
+                const hasNormalFocus = focusWin && this._classifyWindow(focusWin) === 'other';
+                if (hasNormalFocus && filename && Shell.Screenshot) {
+                    const dir = GLib.path_get_dirname(filename);
+                    if (dir)
+                        GLib.mkdir_with_parents(dir, 0o755);
+                    const file = Gio.File.new_for_path(filename);
+                    const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+                    try {
+                        const shooter = new Shell.Screenshot();
+                        await shooter.screenshot_window(true, false, stream);
+                    } finally {
+                        try { stream.close(null); } catch (e2) { }
+                    }
+                    return true;
+                }
+                if (Main.screenshotUI && typeof Main.screenshotUI.open === 'function') {
+                    await Main.screenshotUI.open();
+                    if (Main.screenshotUI._windowButton)
+                        Main.screenshotUI._windowButton.checked = true;
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        } catch (e) {
+            console.error('[WayplankBridge] TakeScreenshot error:', e);
+            return false;
+        }
+    }
+
     // D-Bus Method: GetPrimaryMonitor
     GetPrimaryMonitor() {
         const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
@@ -1567,9 +1869,15 @@ export default class WayplankBridgeImpl {
         return JSON.stringify({ x: geo.x, y: geo.y, width: geo.width, height: geo.height });
     }
 
-    // D-Bus Method: PositionDock
+    // D-Bus Method: PositionDock (legacy compatibility wrapper)
     PositionDock(x, y, width, height) {
-        this._lastDockGeo = { x, y, width, height };
+        return this.PositionDockFor('0:1', x, y, width, height);
+    }
+
+    // D-Bus Method: PositionDockFor
+    PositionDockFor(dockKey, x, y, width, height) {
+        const entry = this._getOrCreateDockEntry(dockKey);
+        entry.geo = { x, y, width, height };
         try {
             const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
             if (nMonitors > 0) {
@@ -1586,56 +1894,61 @@ export default class WayplankBridgeImpl {
                     }
                 }
                 if (mon !== -1)
-                    this._lastDockOnPrimary = (mon === pMon);
+                    entry.onPrimary = (mon === pMon);
             }
         } catch (e) { }
 
-        const win = this._findDockWindow();
+        const win = this._findDockWindowForEntry(entry);
         let ok = true;
         if (win) {
-            ok = this._applyDockPosition(win, x, y, width, height);
+            ok = this._applyDockPosition(win, entry, x, y, width, height);
         }
-        // Keep the reserve-space strut strictly bound to WayPlank's active monitor whenever
-        // PositionDock moves the dock across monitors or re-anchors after cable hotplug/unplug.
-        if (this._lastReserveEnabled && this._lastReserveThickness > 0 && this._lastReservePosition >= 0) {
-            this._syncReserveStrut(true, this._lastReserveThickness, this._lastReservePosition);
+        // Keep this dock's reserve-space strut strictly bound to its active monitor whenever
+        // PositionDockFor moves the dock across monitors or re-anchors after cable hotplug/unplug.
+        if (entry.reserveEnabled && entry.reserveThickness > 0 && entry.reservePosition >= 0) {
+            this._syncReserveStrutForEntry(entry, true, entry.reserveThickness, entry.reservePosition);
         }
         return ok;
     }
 
     // D-Bus Method: PositionHover
     PositionHover(x, y, width, height) {
-        this._lastHoverGeo = { x, y, width, height };
-        const win = this._findHoverWindow();
+        return this.PositionHoverFor(0, x, y, width, height);
+    }
+
+    // D-Bus Method: PositionHoverFor
+    PositionHoverFor(pid, x, y, width, height) {
+        const effPid = pid > 0 ? pid : 0;
+        this._hoverByPid.set(effPid, { x, y, width, height });
+        const win = this._findHoverWindow(effPid);
         if (win) {
-            return this._applyHoverPosition(win, x, y, width, height);
+            return this._applyHoverPosition(win, effPid, x, y, width, height);
         }
         return false;
     }
 
     // D-Bus Method: PositionPoof
     PositionPoof(x, y, width, height) {
-        this._lastPoofGeo = { x, y, width, height };
-        this._lastPoofTime = Date.now();
-        const win = this._findPoofWindow();
+        return this.PositionPoofFor(0, x, y, width, height);
+    }
+
+    // D-Bus Method: PositionPoofFor
+    PositionPoofFor(pid, x, y, width, height) {
+        const effPid = pid > 0 ? pid : 0;
+        this._poofByPid.set(effPid, { x, y, width, height, time: Date.now() });
+        const win = this._findPoofWindow(effPid);
         if (win) {
-            return this._applyPoofPosition(win, x, y, width, height);
+            return this._applyPoofPosition(win, effPid, x, y, width, height);
         }
         return false;
     }
 
-    _syncReserveStrut(enabled, thickness, position) {
+    _syncReserveStrutForEntry(entry, enabled, thickness, position) {
+        if (!entry)
+            return false;
         const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
         if (!enabled || thickness <= 0 || position < 0 || position > 3 || nMonitors <= 0) {
-            if (this._strutActor) {
-                try {
-                    Main.layoutManager.removeChrome(this._strutActor);
-                    this._strutActor.destroy();
-                } catch (e) { }
-                this._strutActor = null;
-            }
-            this._strutRect = null;
-            this._strutHealAttempted = false;
+            this._destroyEntryStrut(entry);
             if (Main.layoutManager && Main.layoutManager._queueUpdateRegions) {
                 try { Main.layoutManager._queueUpdateRegions(); } catch (e) { }
             }
@@ -1644,9 +1957,9 @@ export default class WayplankBridgeImpl {
 
         let targetMon = -1;
         try {
-            if (this._lastDockGeo) {
-                const cx = this._lastDockGeo.x + Math.floor(this._lastDockGeo.width / 2);
-                const cy = this._lastDockGeo.y + Math.floor(this._lastDockGeo.height / 2);
+            if (entry.geo) {
+                const cx = entry.geo.x + Math.floor(entry.geo.width / 2);
+                const cy = entry.geo.y + Math.floor(entry.geo.height / 2);
                 for (let i = 0; i < nMonitors; i++) {
                     const geo = global.display.get_monitor_geometry(i);
                     if (cx >= geo.x && cx < geo.x + geo.width &&
@@ -1657,7 +1970,7 @@ export default class WayplankBridgeImpl {
                 }
             }
             if (targetMon === -1) {
-                const dockWin = this._findDockWindow();
+                const dockWin = this._findDockWindowForEntry(entry);
                 if (dockWin && dockWin.get_monitor) {
                     const wm = dockWin.get_monitor();
                     if (wm >= 0 && wm < nMonitors)
@@ -1691,52 +2004,52 @@ export default class WayplankBridgeImpl {
                 sw = thickness;
             }
 
-            if (this._strutActor && this._strutActor.get_parent() && this._strutActor.visible &&
-                this._strutRect &&
-                this._strutRect.mon === targetMon &&
-                this._strutRect.x === sx && this._strutRect.y === sy &&
-                this._strutRect.width === sw && this._strutRect.height === sh) {
+            if (entry.strutActor && entry.strutActor.get_parent() && entry.strutActor.visible &&
+                entry.strutRect &&
+                entry.strutRect.mon === targetMon &&
+                entry.strutRect.x === sx && entry.strutRect.y === sy &&
+                entry.strutRect.width === sw && entry.strutRect.height === sh) {
                 return true;
             }
 
-            this._strutHealAttempted = false;
-            this._strutRect = { mon: targetMon, x: sx, y: sy, width: sw, height: sh };
+            entry.strutHealAttempted = false;
+            entry.strutRect = { mon: targetMon, x: sx, y: sy, width: sw, height: sh };
 
-            if (this._strutActor && !this._strutActor.get_parent()) {
-                try { this._strutActor.destroy(); } catch (e) { }
-                this._strutActor = null;
+            if (entry.strutActor && !entry.strutActor.get_parent()) {
+                try { entry.strutActor.destroy(); } catch (e) { }
+                entry.strutActor = null;
             }
 
-            if (!this._strutActor) {
-                this._strutActor = new St.Widget({
-                    name: 'wayplank-strut',
+            if (!entry.strutActor) {
+                entry.strutActor = new St.Widget({
+                    name: `wayplank-strut-${entry.key}`,
                     reactive: false,
                     can_focus: false,
                     opacity: 0,
                     visible: true,
                 });
-                this._strutActor.set_position(sx, sy);
-                this._strutActor.set_size(sw, sh);
-                Main.layoutManager.addChrome(this._strutActor, { affectsStruts: true, trackFullscreen: false });
+                entry.strutActor.set_position(sx, sy);
+                entry.strutActor.set_size(sw, sh);
+                Main.layoutManager.addChrome(entry.strutActor, { affectsStruts: true, trackFullscreen: false });
             } else {
-                this._strutActor.visible = true;
-                this._strutActor.set_position(sx, sy);
-                this._strutActor.set_size(sw, sh);
-                try { this._strutActor.queue_relayout(); } catch (e) { }
+                entry.strutActor.visible = true;
+                entry.strutActor.set_position(sx, sy);
+                entry.strutActor.set_size(sw, sh);
+                try { entry.strutActor.queue_relayout(); } catch (e) { }
             }
             if (Main.layoutManager && Main.layoutManager._queueUpdateRegions)
                 Main.layoutManager._queueUpdateRegions();
             return true;
         } catch (e) {
-            console.error('[WayplankBridge] _syncReserveStrut error:', e);
-            this._strutRect = null;
+            console.error('[WayplankBridge] _syncReserveStrutForEntry error:', e);
+            entry.strutRect = null;
             return false;
         }
     }
 
     _clampWindowToReserve(win) {
         try {
-            if (!this._lastReserveEnabled || !(this._lastReserveThickness > 0) || !this._strutRect)
+            if (!this._docks || this._docks.size === 0)
                 return;
             if (!win || win._wpUnmanaging || this._classifyWindow(win) !== 'other')
                 return;
@@ -1748,42 +2061,53 @@ export default class WayplankBridgeImpl {
                 (win.get_maximized && win.get_maximized() !== 0))
                 return;
             const nMonitors = (global.display && global.display.get_n_monitors) ? global.display.get_n_monitors() : 0;
-            const targetMon = this._strutRect.mon;
-            if (targetMon < 0 || targetMon >= nMonitors)
+            if (nMonitors <= 0 || !win.get_monitor)
                 return;
-            if (!win.get_monitor || win.get_monitor() !== targetMon)
+            const winMon = win.get_monitor();
+            if (winMon < 0 || winMon >= nMonitors)
                 return;
-            const monGeo = global.display.get_monitor_geometry(targetMon);
-            const base = this._baseWorkArea(targetMon);
+
+            const monGeo = global.display.get_monitor_geometry(winMon);
+            const base = this._baseWorkArea(winMon);
             let minX = monGeo.x, minY = base.y;
             let maxRight = monGeo.x + monGeo.width, maxBottom = monGeo.y + monGeo.height;
-            const pos = this._lastReservePosition;
-            const thick = this._lastReserveThickness;
-            if (pos === 3) maxBottom = Math.min(maxBottom, monGeo.y + monGeo.height - thick);
-            else if (pos === 2) minY = Math.max(minY, base.y + thick);
-            else if (pos === 0) minX = Math.max(minX, monGeo.x + thick);
-            else if (pos === 1) maxRight = Math.min(maxRight, monGeo.x + monGeo.width - thick);
+            let anyActive = false;
+
+            for (const entry of this._docks.values()) {
+                if (!entry.reserveEnabled || !(entry.reserveThickness > 0) || !entry.strutRect)
+                    continue;
+                if (entry.strutRect.mon !== winMon)
+                    continue;
+                anyActive = true;
+                const pos = entry.reservePosition;
+                const thick = entry.reserveThickness;
+                if (pos === 3) maxBottom = Math.min(maxBottom, monGeo.y + monGeo.height - thick);
+                else if (pos === 2) minY = Math.max(minY, base.y + thick);
+                else if (pos === 0) minX = Math.max(minX, monGeo.x + thick);
+                else if (pos === 1) maxRight = Math.min(maxRight, monGeo.x + monGeo.width - thick);
+            }
+            if (!anyActive)
+                return;
 
             const fr = win.get_frame_rect ? win.get_frame_rect() : null;
             if (!fr || fr.width <= 0 || fr.height <= 0 || !win.move_resize_frame)
                 return;
             let nx = fr.x, ny = fr.y, nw = fr.width, nh = fr.height;
-            if (pos === 3 || pos === 2) {
-                if (pos === 3 && ny + nh > maxBottom) {
-                    ny = Math.max(minY, maxBottom - nh);
-                    if (ny + nh > maxBottom) nh = Math.max(120, maxBottom - ny);
-                } else if (pos === 2 && ny < minY) {
-                    ny = minY;
-                    if (ny + nh > maxBottom) nh = Math.max(120, maxBottom - ny);
-                }
-            } else if (pos === 0 || pos === 1) {
-                if (pos === 1 && nx + nw > maxRight) {
-                    nx = Math.max(minX, maxRight - nw);
-                    if (nx + nw > maxRight) nw = Math.max(160, maxRight - nx);
-                } else if (pos === 0 && nx < minX) {
-                    nx = minX;
-                    if (nx + nw > maxRight) nw = Math.max(160, maxRight - nx);
-                }
+            if (ny + nh > maxBottom) {
+                ny = Math.max(minY, maxBottom - nh);
+                if (ny + nh > maxBottom) nh = Math.max(120, maxBottom - ny);
+            }
+            if (ny < minY) {
+                ny = minY;
+                if (ny + nh > maxBottom) nh = Math.max(120, maxBottom - ny);
+            }
+            if (nx + nw > maxRight) {
+                nx = Math.max(minX, maxRight - nw);
+                if (nx + nw > maxRight) nw = Math.max(160, maxRight - nx);
+            }
+            if (nx < minX) {
+                nx = minX;
+                if (nx + nw > maxRight) nw = Math.max(160, maxRight - nx);
             }
             if (Math.abs(nx - fr.x) >= 1 || Math.abs(ny - fr.y) >= 1 ||
                 Math.abs(nw - fr.width) >= 1 || Math.abs(nh - fr.height) >= 1) {
@@ -1793,7 +2117,7 @@ export default class WayplankBridgeImpl {
     }
 
     _clampAllWindowsToReserve() {
-        if (!this._lastReserveEnabled || !(this._lastReserveThickness > 0) || !this._strutRect)
+        if (!this._docks || this._docks.size === 0)
             return;
         try {
             const actors = global.get_window_actors ? global.get_window_actors() : [];
@@ -1804,28 +2128,61 @@ export default class WayplankBridgeImpl {
         } catch (e) { }
     }
 
-    // D-Bus Method: SetReserveSpace
+    // D-Bus Method: SetReserveSpace (legacy compatibility wrapper)
     SetReserveSpace(enabled, thickness, position) {
-        if (this._lastReserveEnabled === enabled &&
-            this._lastReserveThickness === thickness &&
-            this._lastReservePosition === position) {
+        return this.SetReserveSpaceFor('0:1', enabled, thickness, position);
+    }
+
+    // D-Bus Method: SetReserveSpaceFor
+    SetReserveSpaceFor(dockKey, enabled, thickness, position) {
+        const entry = this._getOrCreateDockEntry(dockKey);
+        if (entry.reserveEnabled === enabled &&
+            entry.reserveThickness === thickness &&
+            entry.reservePosition === position) {
             return true;
         }
 
-        this._lastReserveEnabled = enabled;
-        this._lastReserveThickness = thickness;
-        this._lastReservePosition = position;
+        entry.reserveEnabled = enabled;
+        entry.reserveThickness = thickness;
+        entry.reservePosition = position;
 
-        const ok = this._syncReserveStrut(enabled, thickness, position);
-        if (this._lastDockGeo) {
-            const win = this._findDockWindow();
+        const ok = this._syncReserveStrutForEntry(entry, enabled, thickness, position);
+        if (entry.geo) {
+            const win = this._findDockWindowForEntry(entry);
             if (win) {
-                this._applyDockPosition(win, this._lastDockGeo.x, this._lastDockGeo.y, this._lastDockGeo.width, this._lastDockGeo.height);
+                this._applyDockPosition(win, entry, entry.geo.x, entry.geo.y, entry.geo.width, entry.geo.height);
             }
         }
         if (enabled && thickness > 0)
             this._clampAllWindowsToReserve();
         return ok;
+    }
+
+    // D-Bus Method: ReleaseDock
+    ReleaseDock(dockKey) {
+        const parsed = this._parseDockKey(dockKey);
+        const entry = this._docks.get(parsed.key);
+        if (!entry)
+            return false;
+        this._destroyEntryStrut(entry);
+        this._docks.delete(parsed.key);
+        if (parsed.pid > 0) {
+            let hasOtherDockForPid = false;
+            for (const other of this._docks.values()) {
+                if (other.pid === parsed.pid) {
+                    hasOtherDockForPid = true;
+                    break;
+                }
+            }
+            if (!hasOtherDockForPid) {
+                this._hoverByPid.delete(parsed.pid);
+                this._poofByPid.delete(parsed.pid);
+            }
+        }
+        if (Main.layoutManager && Main.layoutManager._queueUpdateRegions) {
+            try { Main.layoutManager._queueUpdateRegions(); } catch (e) { }
+        }
+        return true;
     }
 }
 """;
@@ -1848,21 +2205,17 @@ export default class WayplankBridgeImpl {
 				return true;
 
 			started = true;
-			try {
-				session_bus = Bus.get_sync (BusType.SESSION, null);
-				if (session_bus != null) {
-					display_config_sub_id = session_bus.signal_subscribe (
-						null,
-						"org.gnome.Mutter.DisplayConfig",
-						"MonitorsChanged",
-						"/org/gnome/Mutter/DisplayConfig",
-						null,
-						DBusSignalFlags.NONE,
-						on_display_config_monitors_changed
-					);
-				}
-			} catch (Error e) {
-				session_bus = null;
+			session_bus = DbusBroker.get_default ().get_session_bus ();
+			if (session_bus != null) {
+				display_config_sub_id = session_bus.signal_subscribe (
+					null,
+					"org.gnome.Mutter.DisplayConfig",
+					"MonitorsChanged",
+					"/org/gnome/Mutter/DisplayConfig",
+					null,
+					DBusSignalFlags.NONE,
+					on_display_config_monitors_changed
+				);
 			}
 			ensure_extension_installed ();
 			connect_bridge ();
@@ -2061,8 +2414,7 @@ export default class WayplankBridgeImpl {
 
 		void connect_bridge ()
 		{
-			name_watch_id = Bus.watch_name (
-				BusType.SESSION,
+			name_watch_id = DbusBroker.get_default ().watch_session_name (
 				"org.wayplank.GnomeBridge",
 				BusNameWatcherFlags.NONE,
 				on_bridge_appeared,
@@ -2082,8 +2434,7 @@ export default class WayplankBridgeImpl {
 		{
 			clear_proxy ();
 			try {
-				proxy = Bus.get_proxy_sync (
-					BusType.SESSION,
+				proxy = connection.get_proxy_sync (
 					"org.wayplank.GnomeBridge",
 					"/org/wayplank/GnomeBridge"
 				);
@@ -2108,34 +2459,12 @@ export default class WayplankBridgeImpl {
 				primary_monitor_changed ();
 				state_changed ();
 				bridge_reconnected ();
-				if (last_width > 0 && last_height > 0) {
-					try {
-						proxy.position_dock (last_x, last_y, last_width, last_height);
-					} catch (Error e) { }
-				}
-				if (last_reserve_enabled) {
-					try {
-						proxy.set_reserve_space (last_reserve_enabled, last_reserve_thickness, last_reserve_position);
-					} catch (Error e) { }
-				}
+				replay_all_dock_states ();
 				if (bridge_reposition_timer_id > 0U) {
 					GLib.Source.remove (bridge_reposition_timer_id);
 					bridge_reposition_timer_id = 0U;
 				}
-				bridge_reposition_timer_id = GLib.Timeout.add (250, () => {
-					bridge_reposition_timer_id = 0U;
-					if (proxy != null && last_width > 0 && last_height > 0) {
-						try {
-							proxy.position_dock (last_x, last_y, last_width, last_height);
-						} catch (Error e) { }
-					}
-					if (proxy != null && last_reserve_enabled) {
-						try {
-							proxy.set_reserve_space (last_reserve_enabled, last_reserve_thickness, last_reserve_position);
-						} catch (Error e) { }
-					}
-					return false;
-				});
+				bridge_reposition_timer_id = GLib.Timeout.add (250, on_bridge_reposition_timeout);
 			} catch (Error e) {
 				clear_proxy ();
 				debug ("MutterBackend: unable to connect to GnomeBridge: %s", e.message);
@@ -2200,8 +2529,9 @@ export default class WayplankBridgeImpl {
 					if (json.has_member ("pid")) {
 						info.Pid = (int) json.get_int_member ("pid");
 						if (info.Pid > 0) {
-							info.Cmdline = LinuxProcessInspector.get_process_cmdline (info.Pid);
-							info.Executable = LinuxProcessInspector.get_process_comm (info.Pid);
+							var snap = Hal.Apps.inspect_process (info.Pid, false);
+							info.Cmdline = snap.full_cmdline;
+							info.Executable = snap.executable_comm;
 						}
 					}
 
@@ -2273,17 +2603,17 @@ export default class WayplankBridgeImpl {
 			session_bus = null;
 			pending_monitor_sync = false;
 			if (name_watch_id > 0U) {
-				Bus.unwatch_name (name_watch_id);
+				DbusBroker.get_default ().unwatch_name (name_watch_id);
 				name_watch_id = 0U;
 			}
-			if (proxy != null && last_reserve_enabled) {
-				try {
-					proxy.set_reserve_space (false, 0, last_reserve_position);
-				} catch (Error e) { }
+			if (proxy != null && dock_states.size > 0) {
+				foreach (var st in dock_states.values) {
+					try {
+						proxy.release_dock (st.dock_key);
+					} catch (Error e) { }
+				}
 			}
-			last_reserve_enabled = false;
-			last_reserve_thickness = 0;
-			last_reserve_position = -1;
+			dock_states.clear ();
 			clear_proxy ();
 			last_windows_json = null;
 			started = false;
@@ -2352,6 +2682,14 @@ export default class WayplankBridgeImpl {
 			return window_intersects (rect, false, true);
 		}
 
+		static bool is_wayplank_self_window (WindowInfo window)
+		{
+			string rc_low = window.ResourceClass.down ();
+			string df_low = window.DesktopFileName.down ();
+			return (rc_low == "wayplank" || rc_low == "plank" || rc_low == "net.launchpad.plank" || rc_low.has_prefix ("net.launchpad.plank.")
+				|| df_low == "wayplank" || df_low == "plank" || df_low == "net.launchpad.plank" || df_low.has_prefix ("net.launchpad.plank."));
+		}
+
 		public bool fullscreen_window_intersects (Gdk.Rectangle rect)
 		{
 			foreach (var window in window_infos) {
@@ -2359,7 +2697,7 @@ export default class WayplankBridgeImpl {
 					continue;
 				if (!window.CurrentDesktop)
 					continue;
-				if (window.ResourceClass.down () == "wayplank" || window.DesktopFileName.down () == "wayplank")
+				if (is_wayplank_self_window (window))
 					continue;
 				if (!window.Active || !window.Fullscreen)
 					continue;
@@ -2378,7 +2716,7 @@ export default class WayplankBridgeImpl {
 					continue;
 				if (!window.CurrentDesktop)
 					continue;
-				if (window.ResourceClass.down () == "wayplank" || window.DesktopFileName.down () == "wayplank")
+				if (is_wayplank_self_window (window))
 					continue;
 				if (active_only && !window.Active)
 					continue;
@@ -2400,16 +2738,58 @@ export default class WayplankBridgeImpl {
 			state_changed ();
 		}
 
+		MutterDockState ensure_dock_state (string dock_key)
+		{
+			string norm = (dock_key != null && dock_key != "") ? dock_key : "%d:1".printf (Hal.Runtime.get_current_pid ());
+			var st = dock_states.get (norm);
+			if (st == null) {
+				st = new MutterDockState (norm);
+				dock_states.set (norm, st);
+			}
+			return st;
+		}
+
+		void replay_all_dock_states ()
+		{
+			if (proxy == null)
+				return;
+			foreach (var st in dock_states.values) {
+				if (st.width > 0 && st.height > 0) {
+					try {
+						proxy.position_dock_for (st.dock_key, st.x, st.y, st.width, st.height);
+					} catch (Error e) { }
+				}
+				if (st.has_reserve && st.reserve_enabled) {
+					try {
+						proxy.set_reserve_space_for (st.dock_key, st.reserve_enabled, st.reserve_thickness, st.reserve_position);
+					} catch (Error e) { }
+				}
+			}
+		}
+
+		bool on_bridge_reposition_timeout ()
+		{
+			bridge_reposition_timer_id = 0U;
+			replay_all_dock_states ();
+			return false;
+		}
+
 		public bool position_dock (int x, int y, int width, int height)
 		{
-			last_x = x;
-			last_y = y;
-			last_width = width;
-			last_height = height;
+			return position_dock_for ("%d:1".printf (Hal.Runtime.get_current_pid ()), x, y, width, height);
+		}
+
+		public override bool position_dock_for (string dock_key, int x, int y, int width, int height)
+		{
+			var st = ensure_dock_state (dock_key);
+			st.x = x;
+			st.y = y;
+			st.width = width;
+			st.height = height;
 			if (proxy == null)
 				return false;
 			try {
-				return proxy.position_dock (x, y, width, height);
+				return proxy.position_dock_for (st.dock_key, x, y, width, height);
 			} catch (Error e) {
 				return false;
 			}
@@ -2417,43 +2797,75 @@ export default class WayplankBridgeImpl {
 
 		public bool position_hover (int x, int y, int width, int height)
 		{
+			return position_hover_for (Hal.Runtime.get_current_pid (), x, y, width, height);
+		}
+
+		public override bool position_hover_for (int pid, int x, int y, int width, int height)
+		{
 			if (proxy == null)
 				return false;
 			try {
-				return proxy.position_hover (x, y, width, height);
+				return proxy.position_hover_for (pid, x, y, width, height);
 			} catch (Error e) {
-				debug ("MutterBackend: position_hover D-Bus: %s", e.message);
+				debug ("MutterBackend: position_hover_for D-Bus: %s", e.message);
 				return false;
 			}
 		}
 
 		public bool position_poof (int x, int y, int width, int height)
 		{
+			return position_poof_for (Hal.Runtime.get_current_pid (), x, y, width, height);
+		}
+
+		public override bool position_poof_for (int pid, int x, int y, int width, int height)
+		{
 			if (proxy == null)
 				return false;
 			try {
-				return proxy.position_poof (x, y, width, height);
+				return proxy.position_poof_for (pid, x, y, width, height);
 			} catch (Error e) {
-				debug ("MutterBackend: position_poof D-Bus: %s", e.message);
+				debug ("MutterBackend: position_poof_for D-Bus: %s", e.message);
 				return false;
 			}
 		}
 
 		public override void set_reserve_space (bool enabled, int thickness, Gtk.PositionType position)
 		{
-			if (last_reserve_enabled == enabled &&
-			    last_reserve_thickness == thickness &&
-			    last_reserve_position == (int) position) {
+			set_reserve_space_for ("%d:1".printf (Hal.Runtime.get_current_pid ()), enabled, thickness, position);
+		}
+
+		public override void set_reserve_space_for (string dock_key, bool enabled, int thickness, Gtk.PositionType position)
+		{
+			var st = ensure_dock_state (dock_key);
+			if (st.has_reserve &&
+			    st.reserve_enabled == enabled &&
+			    st.reserve_thickness == thickness &&
+			    st.reserve_position == (int) position) {
 				return;
 			}
-			last_reserve_enabled = enabled;
-			last_reserve_thickness = thickness;
-			last_reserve_position = (int) position;
+			st.has_reserve = true;
+			st.reserve_enabled = enabled;
+			st.reserve_thickness = thickness;
+			st.reserve_position = (int) position;
 			if (proxy != null) {
 				try {
-					proxy.set_reserve_space (enabled, thickness, (int) position);
+					proxy.set_reserve_space_for (st.dock_key, enabled, thickness, (int) position);
 				} catch (Error e) {
-					debug ("MutterBackend: set_reserve_space D-Bus: %s", e.message);
+					debug ("MutterBackend: set_reserve_space_for D-Bus: %s", e.message);
+				}
+			}
+		}
+
+		public override void release_dock_surface (string dock_key)
+		{
+			if (dock_key == null || dock_key == "")
+				return;
+			dock_states.unset (dock_key);
+			if (proxy != null) {
+				try {
+					proxy.release_dock (dock_key);
+				} catch (Error e) {
+					debug ("MutterBackend: release_dock D-Bus: %s", e.message);
 				}
 			}
 		}
@@ -2494,7 +2906,9 @@ export default class WayplankBridgeImpl {
 			}
 
 			try {
-				var bus = Bus.get_sync (BusType.SESSION);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
 				var reply = bus.call_sync (
 					"org.gnome.Mutter.DisplayConfig",
 					"/org/gnome/Mutter/DisplayConfig",

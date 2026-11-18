@@ -82,6 +82,7 @@ namespace Plank
 			visible_elements = new Gee.ArrayList<DockElement> ();
 			internal_elements = new Gee.ArrayList<DockElement> ();
 			placeholder_item = new PlaceholderDockItem ();
+			placeholder_item.Container = this;
 			
 			connect_element (placeholder_item);
 		}
@@ -94,6 +95,7 @@ namespace Plank
 
 			if (placeholder_item != null) {
 				disconnect_element (placeholder_item);
+				placeholder_item.Container = null;
 				placeholder_item.cleanup ();
 			}
 			
@@ -312,6 +314,9 @@ namespace Plank
 				if (item.IsAttached)
 					visible_elements.add (item);
 			
+			if (visible_elements.size <= 0)
+				visible_elements.add (placeholder_item);
+			
 			var added_items = new Gee.ArrayList<DockElement> ();
 			added_items.add_all (visible_elements);
 			added_items.remove_all (old_items);
@@ -319,9 +324,6 @@ namespace Plank
 			var removed_items = new Gee.ArrayList<DockElement> ();
 			removed_items.add_all (old_items);
 			removed_items.remove_all (visible_elements);
-			
-			if (visible_elements.size <= 0)
-				visible_elements.add (placeholder_item);
 			
 			bool order_changed = false;
 			if (old_items.size == visible_elements.size) {

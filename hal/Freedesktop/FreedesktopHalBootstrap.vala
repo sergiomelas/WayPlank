@@ -20,6 +20,48 @@
 
 namespace Plank
 {
+	[CCode (cname = "wayplank_hal_kernel_get_runtime")]
+	extern IPlatformRuntime hal_kernel_get_runtime ();
+
+	[CCode (cname = "wayplank_hal_kernel_get_battery")]
+	extern IBatteryProvider hal_kernel_get_battery ();
+
+	[CCode (cname = "wayplank_hal_kernel_get_cpu_memory")]
+	extern ICpuMemoryProvider hal_kernel_get_cpu_memory ();
+
+	[CCode (cname = "wayplank_hal_kernel_get_audio")]
+	extern IAudioProvider hal_kernel_get_audio ();
+
+	[CCode (cname = "wayplank_hal_kernel_inspect_process")]
+	extern ProcessSnapshot hal_kernel_inspect_process (int pid, bool include_children_and_fds);
+
+	[CCode (cname = "wayplank_hal_kernel_is_process_alive")]
+	extern bool hal_kernel_is_process_alive (int pid);
+
+	[CCode (cname = "wayplank_hal_kernel_scan_user_processes")]
+	extern Gee.ArrayList<ProcessSnapshot> hal_kernel_scan_user_processes ();
+
+	[CCode (cname = "wayplank_hal_kernel_find_pid_by_app_hint")]
+	extern int hal_kernel_find_pid_by_app_hint (string app_hint, string caption_hint);
+
+	[CCode (cname = "wayplank_hal_kernel_clear_process_caches")]
+	extern void hal_kernel_clear_process_caches ();
+
+	[CCode (cname = "wayplank_hal_kernel_backlight_detect_devices")]
+	extern Gee.ArrayList<string> hal_kernel_backlight_detect_devices (out string? preferred_device, out uint32 max_raw);
+
+	[CCode (cname = "wayplank_hal_kernel_backlight_has_internal_panel")]
+	extern bool hal_kernel_backlight_has_internal_panel (string? backlight_device);
+
+	[CCode (cname = "wayplank_hal_kernel_backlight_read_raw")]
+	extern int64 hal_kernel_backlight_read_raw (string backlight_device);
+
+	[CCode (cname = "wayplank_hal_kernel_backlight_write_raw")]
+	extern bool hal_kernel_backlight_write_raw (string backlight_device, uint32 raw_value);
+
+	[CCode (cname = "wayplank_hal_kernel_backlight_monitor_device")]
+	extern GLib.FileMonitor? hal_kernel_backlight_monitor_device (string backlight_device);
+
 	/**
 	 * Pure 1-to-1 pass-through adapter bridging the northbound OS-blind
 	 * `IWindowBackend` translator contract directly to the untouched
@@ -223,7 +265,7 @@ namespace Plank
 		public ISessionPowerProvider SessionPower {
 			get {
 				if (_session_power == null)
-					_session_power = LinuxSessionPower.get_default ();
+					_session_power = FreedesktopSessionPower.get_default ();
 				return _session_power;
 			}
 		}
@@ -231,7 +273,7 @@ namespace Plank
 		public IBatteryProvider Battery {
 			get {
 				if (_battery == null)
-					_battery = LinuxBatteryProvider.get_default ();
+					_battery = hal_kernel_get_battery ();
 				return _battery;
 			}
 		}
@@ -247,7 +289,7 @@ namespace Plank
 		public ICpuMemoryProvider CpuMemory {
 			get {
 				if (_cpu_memory == null)
-					_cpu_memory = LinuxCpuMemDiskTelemetry.get_default ();
+					_cpu_memory = hal_kernel_get_cpu_memory ();
 				return _cpu_memory;
 			}
 		}
@@ -263,7 +305,7 @@ namespace Plank
 		public IAudioProvider Audio {
 			get {
 				if (_audio == null)
-					_audio = LinuxAudioTelemetry.get_default ();
+					_audio = hal_kernel_get_audio ();
 				return _audio;
 			}
 		}
@@ -314,7 +356,7 @@ namespace Plank
 		[CCode (cname = "wayplank_hal_platform_early_runtime")]
 		public static IPlatformRuntime early_runtime ()
 		{
-			return LinuxPlatformRuntime.get_default ();
+			return FreedesktopPlatformRuntime.get_default ();
 		}
 
 		[CCode (cname = "wayplank_hal_platform_early_apps")]
@@ -357,7 +399,7 @@ namespace Plank
 			Hal.bind_system_stack (
 				new FreedesktopBusBackend (),
 				new FreedesktopSystemTelemetry (),
-				LinuxPlatformRuntime.get_default (),
+				FreedesktopPlatformRuntime.get_default (),
 				XdgAppSystem.get_default ()
 			);
 		}

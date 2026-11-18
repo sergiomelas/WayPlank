@@ -170,9 +170,99 @@ namespace Plank
 			
 			return result;
 		}
+
+		public static Gee.ArrayList<Gdk.Monitor> get_ordered_logical_monitors (Gdk.Display display)
+		{
+			var ordered = new Gee.ArrayList<Gdk.Monitor> ();
+			int n_monitors = display.get_n_monitors ();
+			if (n_monitors <= 0)
+				return ordered;
+
+			var primary = get_monitor_for_plug_name (display, "");
+			if (primary != null)
+				ordered.add (primary);
+
+			var others = new Gee.ArrayList<Gdk.Monitor> ();
+			for (int i = 0; i < n_monitors; i++) {
+				var mon = display.get_monitor (i);
+				if (mon != null && mon != primary && !others.contains (mon))
+					others.add (mon);
+			}
+			others.sort ((a, b) => {
+				var ga = a.get_geometry ();
+				var gb = b.get_geometry ();
+				if (ga.x != gb.x)
+					return (ga.x < gb.x) ? -1 : 1;
+				if (ga.y != gb.y)
+					return (ga.y < gb.y) ? -1 : 1;
+				return 0;
+			});
+			foreach (var m in others)
+				ordered.add (m);
+
+			return ordered;
+		}
+
+		public static string[] get_logical_screen_labels (Gdk.Display display)
+		{
+			var ordered = get_ordered_logical_monitors (display);
+			var labels = new string[ordered.size];
+			bool primary_supported = Hal.Capabilities.supports_primary_display;
+			for (int i = 0; i < ordered.size; i++) {
+				var mon = ordered.get (i);
+				string model = (mon.get_model () != null && mon.get_model () != "" && mon.get_model ().ascii_casecmp ("Unknown") != 0)
+					? mon.get_model () : _("Display");
+				var geom = mon.get_geometry ();
+				if (i == 0 && primary_supported)
+					labels[i] = _("Screen %d (Primary — %s %dx%d)").printf (i + 1, model, geom.width, geom.height);
+				else
+					labels[i] = _("Screen %d (%s %dx%d)").printf (i + 1, model, geom.width, geom.height);
+			}
+			return labels;
+		}
+
+		public static string monitor_token_for_screen_index (int screen_index)
+		{
+			int clamped = screen_index.clamp (0, DockPreferences.MAX_DOCK_SLOTS - 1);
+			if (clamped == 0 && Hal.Capabilities.supports_primary_display)
+				return "";
+			return "SCREEN:%d".printf (clamped);
+		}
+
+		public static int screen_index_for_monitor_token (Gdk.Display? display, string? token)
+		{
+			if (token == null || token == "" || token == "primary" || token == "SCREEN:0")
+				return 0;
+			if (token.has_prefix ("SCREEN:")) {
+				int64 parsed = 0;
+				if (int64.try_parse (token.substring ("SCREEN:".length).strip (), out parsed))
+					return ((int) parsed).clamp (0, DockPreferences.MAX_DOCK_SLOTS - 1);
+				return 0;
+			}
+			if (display != null && display.get_n_monitors () > 0) {
+				var target = get_monitor_for_plug_name (display, token);
+				var ordered = get_ordered_logical_monitors (display);
+				for (int i = 0; i < ordered.size; i++) {
+					if (ordered.get (i) == target)
+						return i.clamp (0, DockPreferences.MAX_DOCK_SLOTS - 1);
+				}
+			}
+			return 0;
+		}
 		
 		public static Gdk.Monitor? get_monitor_for_plug_name (Gdk.Display display, string plug_name)
 		{
+			if (plug_name.has_prefix ("SCREEN:")) {
+				var ordered = get_ordered_logical_monitors (display);
+				if (ordered.size == 0)
+					return null;
+				int64 parsed = 0;
+				if (!int64.try_parse (plug_name.substring ("SCREEN:".length).strip (), out parsed))
+					parsed = 0;
+				int idx = ((int) parsed).clamp (0, ordered.size - 1);
+				return ordered.get (idx);
+			}
+
 			if (plug_name == "" || plug_name == "primary") {
 				var primary = display.get_primary_monitor ();
 				if (primary != null)
@@ -349,7 +439,7 @@ namespace Plank
 			
 			freeze_notify ();
 			
-			controller.window.update_layer_shell_monitor ();
+			controller.window.update_shell_dock_monitor ();
 
 			if (scale_changed && controller.renderer != null)
 				controller.renderer.reset_buffers ();
@@ -842,7 +932,10 @@ namespace Plank
 			}
 			
 			if (!controller.hide_manager.Hidden || controller.hide_manager.unhide_pending ()) {
-				bool allow_anticipate = controller.prefs.ZoomEnabled && controller.prefs.AnticipateZoom;
+				bool active_drag = (controller.drag_manager != null
+					&& (controller.drag_manager.ExternalDragActive || controller.drag_manager.InternalDragActive));
+				bool allow_anticipate = controller.prefs.ZoomEnabled
+					&& (controller.prefs.AnticipateZoom || active_drag);
 				if (allow_anticipate) {
 					int zoom_headroom = int.max (0, ZoomIconSize - IconSize);
 					var anticipate_region = static_dock_region;
@@ -1017,10 +1110,12 @@ namespace Plank
 			
 			var draw_value = draw_values[item];
 			if (draw_value == null) {
-				update_draw_values (controller.VisibleItems);
-				draw_value = draw_values[item];
+				if (controller.VisibleItems.contains (item)) {
+					update_draw_values (controller.VisibleItems);
+					draw_value = draw_values[item];
+				}
 				if (draw_value == null) {
-					warning ("Without a draw_value there is trouble ahead for '%s'", item.Text);
+					debug ("Using fallback draw_value for transient/unindexed item '%s'", item.Text);
 					draw_value = new DockItemDrawValue ();
 				}
 			}
@@ -1158,14 +1253,18 @@ namespace Plank
 			
 			PointD center = { Math.floor (center_x), Math.floor (center_y) };
 			
-			bool expand_for_drop = (controller.drag_manager.ExternalDragActive && !prefs.LockItems);
+			bool base_expand_for_drop = (controller.drag_manager.ExternalDragActive
+				&& !controller.drag_manager.ExternalDragOverTrash
+				&& !prefs.LockItems);
 			bool zoom_enabled = prefs.ZoomEnabled;
-			double zoom_in_progress = (zoom_enabled || expand_for_drop ? renderer.zoom_in_progress : 0.0);
+			double zoom_in_progress = (zoom_enabled || base_expand_for_drop ? renderer.zoom_in_progress : 0.0);
 			double zoom_in_percent = (zoom_enabled ? 1.0 + (ZoomPercent - 1.0) * zoom_in_progress : 1.0);
 			double zoom_icon_size = ZoomIconSize;
 			
 			for (int i = 0; i < n_items; i++) {
 				unowned DockItem item = items[i];
+				bool expand_for_drop = base_expand_for_drop
+					&& controller.drag_manager.should_expand_drop_gap (item);
 				DockItemDrawValue? val = draw_value_pool.get (item);
 				if (val == null) {
 					val = new DockItemDrawValue ();
@@ -1264,9 +1363,11 @@ namespace Plank
 			if (post_func != null)
 				post_func (draw_values);
 			
-			update_background_region (draw_values[items.first ()], draw_values[items.last ()],
-				(items.first () is SeparatorDockItem || items.first () is PinnedExpanderDockItem),
-				(items.last () is SeparatorDockItem || items.last () is PinnedExpanderDockItem));
+			if (items.size > 0) {
+				update_background_region (draw_values[items.first ()], draw_values[items.last ()],
+					(items.first () is SeparatorDockItem || items.first () is PinnedExpanderDockItem),
+					(items.last () is SeparatorDockItem || items.last () is PinnedExpanderDockItem));
+			}
 			
 			draw_values.map_iterator ().foreach ((i, val) => {
 				bool is_half_slot = (i is SeparatorDockItem || i is PinnedExpanderDockItem);
@@ -1512,6 +1613,9 @@ namespace Plank
 		
 		public void get_hover_position_at (ref int x, ref int y)
 		{
+			if (controller.VisibleItems.size == 0)
+				return;
+
 			var center = get_draw_value_for_item (controller.VisibleItems.first ()).static_center;
 			var offset = (ZoomIconSize - IconSize / 2.0);
 			

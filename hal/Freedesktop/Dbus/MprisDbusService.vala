@@ -174,7 +174,9 @@ namespace Plank
 			players = new Gee.ArrayList<MediaPlayerInfo> ();
 
 			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
 				var names_variant = bus.call_sync (
 					"org.freedesktop.DBus",
 					"/org/freedesktop/DBus",
@@ -338,7 +340,9 @@ namespace Plank
 		public bool pause_player_sync (string player_id)
 		{
 			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
 				bus.call_sync (
 					player_id,
 					"/org/mpris/MediaPlayer2",
@@ -359,7 +363,9 @@ namespace Plank
 		public bool send_player_command_sync (string player_id, string command)
 		{
 			try {
-				var bus = Bus.get_sync (BusType.SESSION, null);
+				var bus = DbusBroker.get_default ().get_session_bus ();
+				if (bus == null)
+					return false;
 				bus.call_sync (
 					player_id,
 					"/org/mpris/MediaPlayer2",

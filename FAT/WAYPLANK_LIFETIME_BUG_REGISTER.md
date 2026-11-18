@@ -2,8 +2,8 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.1.2` 100.0% Qualified • `v0.7.2` Public Beta 3 `100.0%` FAT Qualified: GNOME `Mutter` [`134/134`], KDE Plasma 6 `KWin` [`133/133`] & `Labwc` [`127/127`], Overall `394/394` Applicable, `0 [ko]`)  
-> **Period:** 2026-09-19 to 2026-11-17  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.1.2` 100.0% Qualified • `v0.7.2` Public Beta 3 `100.0%` FAT Qualified: GNOME `Mutter` [`135/135`], KDE Plasma 6 `KWin` [`134/134`] & `Labwc` [`128/128`], Overall `397/397` Applicable, `5 [NA]`, `0 [ko]`)  
+> **Period:** 2026-09-19 to 2026-11-18  
 > **Standard:** ISA-88 Qualification Standard  
 > **Master HAL Specifications:** [Documentation/Architecture/README.md](../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](../Documentation/Architecture/HAL_BUSES.md), [APPLICATION_IDENTITY_ENGINE.md](../Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md) & [HAL_WINDOWS_BACKEND.md](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
 
@@ -20,11 +20,11 @@
   - **Tests Passed on First Run / Baseline**: **2,550** `[ok]`
   - **Unique Functional Bugs Squashed**: **100** `[ko->ok]` (`+12` unique `[ko->ok]` in `v0.7.1` / `v0.7.1.2` across `39` compositor test verifications)
   - **Total Compositor Test Verifications**: **192** `[ko->ok]` (`+39` `[ko->ok]` in `v0.7.1` / `v0.7.1.2`)
-  - **Open FAT Regressions Remaining (`2026-11-17` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` `100.0%` Qualified on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); `v0.7.2` qualification at `399` test definitions / `394` applicable in [`FAT/2026-11-17 FAT 0.7.2.txt`](2026-11-17%20FAT%200.7.2.txt): **GNOME `Mutter` `100.0% PASSED` (`134/134` — `115 [ok]` + `19 [ko->ok]`)**, **KDE Plasma 6 `KWin` `100.0% PASSED` (`133/133` — `117 [ok]` + `16 [ko->ok]`)**, **`Labwc` `100.0% PASSED` (`127/127` — `111 [ok]` + `16 [ko->ok]`, `5 [NA]`)** = **`394/394` Applicable `100.0% PASSED` (`343 [ok]` + `51 [ko->ok]`, `5 [NA]`, `0 [ko]`), `0 [ko->test]`, `0 [  ]`**)
+  - **Open FAT Regressions Remaining (`2026-11-18` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` `100.0%` Qualified on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); `v0.7.2` Move 6 Multi-Dock qualification at `402` test definitions / `397` applicable in [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt): **GNOME `Mutter` `100.0% PASSED` (`135/135` — `113 [ok]` + `22 [ko->ok]`)**, **KDE Plasma 6 `KWin` `100.0% PASSED` (`134/134` — `114 [ok]` + `20 [ko->ok]`)**, **`Labwc` `100.0% PASSED` (`128/128` — `111 [ok]` + `17 [ko->ok]`, `5 [NA]`)** = **`397/397` Applicable `100.0% PASSED` (`338 [ok]` + `59 [ko->ok]` across `24` unique IDs, `5 [NA]`, `0 [ko]`), `0 [ko->test]`, `0 [  ]`**)
 * **GRAND TOTAL ACROSS LIFETIME**:
   - **Total Milestones**: **18 Releases** (`v0.7.1.2` Public Beta 2 Hotfix; `v0.7.2` Public Beta 3 `100.0%` FAT Qualified)
-  - **Total Unique Functional & Architectural Bugs Squashed**: **153** `[ko->ok]` (`134` through `v0.7.1.2` + `19` unique `[ko->ok]` verified across KWin, GNOME & Labwc in `v0.7.2`)
-  - **Total Multi-Compositor Verification Instances**: **277** `[ko->ok]` (`226` through `v0.7.1.2` + `51` `[ko->ok]` verifications in `v0.7.2`)
+  - **Total Unique Functional & Architectural Bugs Squashed**: **158** `[ko->ok]` (`134` through `v0.7.1.2` + `24` unique `[ko->ok]` verified across KWin, GNOME & Labwc in `v0.7.2`)
+  - **Total Multi-Compositor Verification Instances**: **285** `[ko->ok]` (`226` through `v0.7.1.2` + `59` `[ko->ok]` verifications in `v0.7.2`)
 
 ---
 
@@ -156,9 +156,9 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 | **`v0.6.2.3`** | 2026-11-01 | Previews, Stacks, Comm. | 370 | 27 | 0 |
 | **`v0.7.0`** | 2026-11-06 | Public Beta 1 (Concluded) | 379 | 15 | 4 `ko`** |
 | **`v0.7.1.2`** | 2026-11-14 | Public Beta 2 + Hotfix (100% Pass) | 377 | `12 [ko->ok] (39 inst.)` | 0 |
-| **`v0.7.2`** | 2026-11-17 | Public Beta 3 — 3-Zone HAL Freeze (100% Pass) | 399 | `19 [ko->ok] (51 inst.)` | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **12 Multi-Comp. Releases** | **3,192** | **119** | **0** |
-| **TOTAL** | **All Eras** | **18 Milestone Releases** | **3,192** | **153** | **0** |
+| **`v0.7.2`** | 2026-11-18 | Public Beta 3 — 3-Zone HAL & Multi-Dock (100% Pass) | 402 | `24 [ko->ok] (59 inst.)` | 0 |
+| **ERA 2 SUB** | **Formal FAT** | **12 Multi-Comp. Releases** | **3,195** | **124** | **0** |
+| **TOTAL** | **All Eras** | **18 Milestone Releases** | **3,195** | **158** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects logged were remediated and qualified in `v0.5.1`.*  
 *\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1.2`: `FAT/2026-11-05 FAT 0.7.0.txt` concluded at `359/377` (`95.2%`); all 18 transferred `[ko]` instances plus all `v0.7.1` / `v0.7.1.2` burn-in hotfixes achieved `100.0%` qualification (`375/375` applicable: `336 [ok]` + `39 [ko->ok]` + `2 [NA]` + `0 [ko]`) in `FAT/2026-11-13 FAT 0.7.1.txt`.*
@@ -167,12 +167,12 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 
 ## 🖥️ Compositor Resolution Breakdown (Era 2 Qualification)
 
-| Compositor Backend | Verifications Squashed `[ko->ok]` | Share | Final `v0.7.1` Qualification Status |
+| Compositor Backend | Verifications Squashed `[ko->ok]` | Share | Final `v0.7.2` Qualification Status |
 | :--- | :---: | :---: | :---: |
-| **GNOME Shell (Mutter Backend)** | 78 | 40.6% | `113 [ok]` + `13 [ko->ok]` / `0 [ko]` (`126/126 = 100.0% Qualified`) |
-| **KDE Plasma 6 (KWin Backend)** | 63 | 32.8% | `112 [ok]` + `14 [ko->ok]` / `0 [ko]` (`126/126 = 100.0% Qualified`) |
-| **Labwc (wlroots Backend)** | 51 | 26.6% | `111 [ok]` + `12 [ko->ok]` + `2 [NA]` / `0 [ko]` (`123/123 = 100.0% Qualified`) |
-| **TOTAL COMPOSITOR VERIFICATIONS** | **192 Squashed** | **100%** | **`336 [ok]` + `39 [ko->ok]` + `2 [NA]` / `0 [ko]` (`375/375 = 100.0%`)** |
+| **GNOME Shell (Mutter Backend)** | 100 | 39.8% | `113 [ok]` + `22 [ko->ok]` / `0 [ko]` (`135/135 = 100.0% Qualified`) |
+| **KDE Plasma 6 (KWin Backend)** | 83 | 33.1% | `114 [ok]` + `20 [ko->ok]` / `0 [ko]` (`134/134 = 100.0% Qualified`) |
+| **Labwc (wlroots Backend)** | 68 | 27.1% | `111 [ok]` + `17 [ko->ok]` + `5 [NA]` / `0 [ko]` (`128/128 = 100.0% Qualified`) |
+| **TOTAL COMPOSITOR VERIFICATIONS** | **251 Squashed** | **100%** | **`338 [ok]` + `59 [ko->ok]` + `5 [NA]` / `0 [ko]` (`397/397 = 100.0%`)** |
 
 ---
 
@@ -290,6 +290,7 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 - HAL `SurfaceCoordinateService` overlay positioning, timer-free VSync 3-Beat unpin pipeline & `PendingRemovalLauncher` deduplication (`v0.7.0` / `11.8`)
 - Canonical `file://` URI preservation & `.dockitem` `CustomIcon` fallback persistence for custom image icons on Folder Drawers (`v0.7.1` / `1.10`, Issue #25)
 - `RecentFilesService` (`Gtk.RecentManager`) *"Recent Files"* jump-list submenu restoration on dock and Folder Drawer items (`v0.7.1` / `12.2`, Issue #19)
+- Cross-dock drag/pinning (`dockA <-> dockB` for Folders, Pinned/Unpinned Apps, Docklets & Folder-Drawer apps), cross-dock pinned-suppresses-unpinned deduplication, `dock1`-only WayPlank icon & `dock1`-only unpinned running apps (`TransientDockItem`), automatic secondary-dock deletion when emptied (`0` items = `Delete This Dock`), Preferences `<Dock> - Screen X - <Position>` selector dropdown, 2D `(EffectiveScreen, Edge)` collision gray-out across `Position`, `Screen` & `On Primary Display`, deterministic Mutter `1..4` dock slot reuse (`v072_bridge_5`) & `PoofWindow` secondary-dock slot/index parity, global $O(\log N)$ dichotomic `AppUsageService` ranking vector, and strict `(Same Payload Type) ∧ (Corresponding Target Zone)` accordion auto-unfold (`v0.7.2` / `6.14`, `11.8`, `14.6` — Qualified `100.0%` in `FAT/2026-11-18 FAT 0.7.2.txt`)
 
 ### 6. Process Lifecycle, IPC Bridges & Architectural Purge (23 Bugs)
 - Purge of 112,000+ lines of obsolete X11 Autotools & VAPIs (`v0.1.0` – `v0.3.0`)
@@ -315,6 +316,7 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 - Cross-compositor internal popup window-event filtering, multi-size `SurfaceCache` & 50ms VSync motion hold for 60 FPS hover at `0.1%` idle CPU (`v0.7.0` / `0.1` & `0.3`)
 - Monolithic in-RAM `GResource` embedding for all 5 stock `.theme` files (`Preferences.init_from_resource()`) and purge of `/usr/share/wayplank/themes/` from `.deb`/`.rpm` packaging (`v0.7.1` / `12.1`)
 - Single-Source-of-Truth `EffectDuration` (`1500 ms` `PoofWindow` fix) / `VERSION` constants, `ShowRunningIndicators` live Folder/Dock redraw, CLI `-V` verbose flag routing & dead `doc/report.md` `GResource` purge (`v0.7.1` / `13.8`, Issue #24)
+- Unified `[MultiDock]` single-process (`dock1`–`dock4`) `latch-state.ini` registry with `v0.7.1` migration, non-destructive RAM-only fault defaulting (preserving faulty `latch-state.ini` and `.dockitem` files untouched on disk across 9 `Test environments.sh` profiles), Vala `.bss` static array initialization guard, `NULL`-terminated `GStrv` (`list_to_strv()`) heap safety, Multi-Seat `Screen 1..4` lowest-index hotplug arbitration, `IAppSystem.is_folder_metadata_file()` Zone 1 purification, and Labwc zero-stall portal/AppMenu/reverse-DNS PID resolution hardening (`AppMenuDbusService` registrar guard, `LinuxProcessInspector` reverse-DNS tail matching, persistent `GTK_USE_PORTAL=0` with clean child `AppLaunchContext`, and non-wiping `PositionManager.get_draw_value_for_item()` fallback) (`v0.7.2` / `1.11`, `7.17`, `9.5`, `14.5`, `14.6` — Qualified `100.0%` in `FAT/2026-11-18 FAT 0.7.2.txt`)
 
 ---
 
@@ -332,4 +334,4 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 10. [`FAT/2026-11-01 FAT 0.6.2.3.txt`](2026-11-01%20FAT%200.6.2.3.txt) — Covers `v0.6.2.3` (370 tests, Round 3: Window Cards, Dynamic System Theming, Recent Files, Stock Themes, Folder Running Dots, Drawer UX Parity, Native Peer Stacking, 4-Position System Menu Access, Do Not Disturb Docklet, 7×2 Balanced Preferences Grid, KDE Plasma 6 Multi-Monitor Floating Panel Tracking, Layer-Shell Input Passthrough, Fullscreen Auto-Hide & `0px` Edge Passthrough [Issue #10], Reserve Screen Space / Panel Mode [Issue #9], Show Desktop Persistence [Issue #13], Workspace Switch Visibility [Issue #11], Cold-Start Fractional Scaling [Issue #5], & Multi-VM Instance Tracking with Garbage Collection [Issue #14] on GNOME, KDE Plasma, Labwc)
 11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 — Concluded & Frozen: 379 tests defined, 359/377 applicable passed — `95.2% PASS`: 317 `[ok]` baseline + 42 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 18 `[ko]` open defect instances formally transferred to `v0.7.1`)
 12. [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt) — Covers `v0.7.1` / `v0.7.1.2` (Public Beta 2 + Hotfix — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 336 `[ok]` consolidated baseline + 39 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)
-13. [`FAT/2026-11-17 FAT 0.7.2.txt`](2026-11-17%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — `100.0%` Multi-Compositor Qualification on `hal-v0.7.2`, `MOC-0.7.2-HAL-001`: 399 tests defined / 394 applicable across Sections `0`–`14`; **GNOME `Mutter` [`134/134`]**, **KDE Plasma 6 `KWin` [`133/133`]**, **`Labwc` [`127/127`]** = **`394/394` `100.0% PASS` [`343 [ok]` + `51 [ko->ok]`], `5 [NA]`, `0 [ko]`**)
+13. [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — 3-Zone Linux HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine `dock1`–`dock4`, Multi-Seat `Screen 1..4` arbitration, 2D `(Screen, Edge)` collision gray-out, non-destructive 9-profile fault armor, `dock1`-only WayPlank icon & unpinned running apps, automatic secondary-dock deletion when emptied, cross-dock drag/pinning/suppression, global $O(\log N)$ dichotomic `AppUsageService` vector, strict `(Same Type) ∧ (Target Zone)` accordion unfold, and Labwc zero-stall portal/AppMenu/reverse-DNS PID hardening — **100.0% Multi-Compositor Qualified: `402` tests defined / `397/397` Applicable Passed [`338 [ok]` + `59 [ko->ok]` across `24` unique IDs], `5 [NA]`, `0 [ko]`**: GNOME `Mutter` `135/135`, KDE Plasma 6 `KWin` `134/134`, `Labwc` `128/128`)

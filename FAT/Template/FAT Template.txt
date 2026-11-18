@@ -1,7 +1,7 @@
 ================================================================================
                     WAYPLANK MULTI-COMPOSITOR TEST PROTOCOL & BUG LIST
 ================================================================================
-Date: 2026-11-17
+Date: 2026-11-18
 Milestone: V0.7.2 (Public Beta 3: 3-Zone Dichotomic HAL & Agnostic Boundary
            Translator Freeze — MOC-0.7.2-HAL-001)
 Author & Tester: Sergio Melas
@@ -699,6 +699,30 @@ SESSION 1: GNOME (Mutter Backend)
           & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
           drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
+   [  ] 14.6 Multi-Dock Engine (dock1..dock4), Empty-Dock Lifecycle, Cross-Dock
+        Drag/Pinning, Zone-Matched Accordion Unfold & Folder UX:
+        - Verify single-process Multi-Dock ('Open Dock...', 'Close This Dock'
+          preserving config, 'Delete This Dock...' wiping config; 'dock1'
+          undeletable/unclosable with 'dock1'-only WayPlank icon, 'dock1'-only
+          unpinned running apps ('TransientDockItem'), and auto-restored
+          WayPlank icon if 'dock1' is emptied; emptying 'dock2'..'dock4'
+          automatically deletes & wipes that dock ('Enabled=null'); Preferences
+          top '<Dock> - [Screen X - ]<Position>' dropdown selector switches
+          active dock live on 2+ docks; 2D '(Screen, Edge)' collision gray-out
+          in 'Position', 'Screen', and 'On Primary Display' prevents placing 2
+          active docks on the same screen edge; Multi-Seat Screen 1..4 lowest-
+          index hotplug arbitration).
+        - Verify secondary-dock drag-off poof removal cleanly deletes docklets
+          and apps with zero leftover blank slot, zero lost drag/click
+          interaction, and exact 1:1 hit-test alignment on accordion expanders
+          ('^^' / '«|') and pinned icons without needing '--replace'.
+        - Verify cross-dock drag ('dockA <-> dockB') of Folders, Pinned/Unpinned
+          Apps, Docklets, and Folder-Drawer apps, cross-dock pinned-suppresses-
+          unpinned deduplication, global O(log N) dichotomic accordion usage
+          vector, and strict '(Same Type) & (Target Zone)' accordion unfold
+          (Folders/Trash never unfold accordions).
+        - Verify 'Add Folder...', bidirectional 'Pinned <-> Folder' moves, and
+          right-click 'Docklets' submenu '_Apply' button & focus-loss apply.
 ================================================================================
 SESSION 1 RESULT: (GNOME / Mutter Backend)
 ================================================================================
@@ -1397,6 +1421,30 @@ SESSION 2: KDE PLASMA (KWin Backend)
           & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
           drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
+   [  ] 14.6 Multi-Dock Engine (dock1..dock4), Empty-Dock Lifecycle, Cross-Dock
+        Drag/Pinning, Zone-Matched Accordion Unfold & Folder UX:
+        - Verify single-process Multi-Dock ('Open Dock...', 'Close This Dock'
+          preserving config, 'Delete This Dock...' wiping config; 'dock1'
+          undeletable/unclosable with 'dock1'-only WayPlank icon, 'dock1'-only
+          unpinned running apps ('TransientDockItem'), and auto-restored
+          WayPlank icon if 'dock1' is emptied; emptying 'dock2'..'dock4'
+          automatically deletes & wipes that dock ('Enabled=null'); Preferences
+          top '<Dock> - [Screen X - ]<Position>' dropdown selector switches
+          active dock live on 2+ docks; 2D '(Screen, Edge)' collision gray-out
+          in 'Position', 'Screen', and 'On Primary Display' prevents placing 2
+          active docks on the same screen edge; Multi-Seat Screen 1..4 lowest-
+          index hotplug arbitration).
+        - Verify secondary-dock drag-off poof removal cleanly deletes docklets
+          and apps with zero leftover blank slot, zero lost drag/click
+          interaction, and exact 1:1 hit-test alignment on accordion expanders
+          ('^^' / '«|') and pinned icons without needing '--replace'.
+        - Verify cross-dock drag ('dockA <-> dockB') of Folders, Pinned/Unpinned
+          Apps, Docklets, and Folder-Drawer apps, cross-dock pinned-suppresses-
+          unpinned deduplication, global O(log N) dichotomic accordion usage
+          vector, and strict '(Same Type) & (Target Zone)' accordion unfold
+          (Folders/Trash never unfold accordions).
+        - Verify 'Add Folder...', bidirectional 'Pinned <-> Folder' moves, and
+          right-click 'Docklets' submenu '_Apply' button & focus-loss apply.
 ================================================================================
 SESSION 2 RESULT: (KDE Plasma / KWin Backend)
 ================================================================================
@@ -2071,6 +2119,30 @@ SESSION 3: LABWC (wlroots Backend)
           & AppImage discovery (#14, #16), folder drawer indicators, and URI/file
           drop launching operate cleanly through Hal.Apps (IAppSystem) with zero
           direct Posix / DesktopAppInfo / /proc leaks in Zone 1.
+   [  ] 14.6 Multi-Dock Engine (dock1..dock4), Empty-Dock Lifecycle, Cross-Dock
+        Drag/Pinning, Zone-Matched Accordion Unfold & Folder UX:
+        - Verify single-process Multi-Dock ('Open Dock...', 'Close This Dock'
+          preserving config, 'Delete This Dock...' wiping config; 'dock1'
+          undeletable/unclosable with 'dock1'-only WayPlank icon, 'dock1'-only
+          unpinned running apps ('TransientDockItem'), and auto-restored
+          WayPlank icon if 'dock1' is emptied; emptying 'dock2'..'dock4'
+          automatically deletes & wipes that dock ('Enabled=null'); Preferences
+          top '<Dock> - [Screen X - ]<Position>' dropdown selector switches
+          active dock live on 2+ docks; 2D '(Screen, Edge)' collision gray-out
+          in 'Position', 'Screen', and 'On Primary Display' prevents placing 2
+          active docks on the same screen edge; Multi-Seat Screen 1..4 lowest-
+          index hotplug arbitration).
+        - Verify secondary-dock drag-off poof removal cleanly deletes docklets
+          and apps with zero leftover blank slot, zero lost drag/click
+          interaction, and exact 1:1 hit-test alignment on accordion expanders
+          ('^^' / '«|') and pinned icons without needing '--replace'.
+        - Verify cross-dock drag ('dockA <-> dockB') of Folders, Pinned/Unpinned
+          Apps, Docklets, and Folder-Drawer apps, cross-dock pinned-suppresses-
+          unpinned deduplication, global O(log N) dichotomic accordion usage
+          vector, and strict '(Same Type) & (Target Zone)' accordion unfold
+          (Folders/Trash never unfold accordions).
+        - Verify 'Add Folder...', bidirectional 'Pinned <-> Folder' moves, and
+          right-click 'Docklets' submenu '_Apply' button & focus-loss apply.
 ================================================================================
 SESSION 3 RESULT: (LABWC / wlroots Backend)
 ================================================================================

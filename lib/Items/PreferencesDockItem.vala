@@ -62,7 +62,10 @@ namespace Plank
 
 		public void open_preferences ()
 		{
-			Application.get_default ().activate_action ("preferences", null);
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.open_preferences_for_dock (get_dock ());
+			else
+				Application.get_default ().activate_action ("preferences", null);
 		}
 
 		protected override AnimationType on_clicked (PopupButton button, Gdk.ModifierType mod, uint32 event_time)
@@ -78,14 +81,24 @@ namespace Plank
 		class DockletsSubmenuBatcher : GLib.Object
 		{
 			GLib.WeakRef menu_ref;
+			GLib.WeakRef root_menu_ref;
 			GLib.WeakRef controller_ref;
-			bool applied = false;
+			bool applying = false;
 			bool root_hooked = false;
 
 			public DockletsSubmenuBatcher (Gtk.Menu submenu, DockController controller)
 			{
 				menu_ref = GLib.WeakRef (submenu);
+				root_menu_ref = GLib.WeakRef (null);
 				controller_ref = GLib.WeakRef (controller);
+
+				submenu.hide.connect (apply);
+				submenu.cancel.connect (apply_and_close);
+				submenu.grab_broken_event.connect ((ev) => {
+					if (ev.grab_window == null)
+						apply_and_close ();
+					return false;
+				});
 			}
 
 			public void on_item_parent_set (Gtk.Widget item, Gtk.Widget? old_parent)
@@ -95,20 +108,44 @@ namespace Plank
 				unowned Gtk.Menu? root_menu = item.get_parent () as Gtk.Menu;
 				if (root_menu != null) {
 					root_hooked = true;
+					root_menu_ref.set (root_menu);
 					root_menu.hide.connect (apply);
+					root_menu.deactivate.connect (apply);
+					root_menu.selection_done.connect (apply);
+					root_menu.grab_broken_event.connect ((ev) => {
+						var submenu = menu_ref.get () as Gtk.Menu;
+						if (ev.grab_window == null && (submenu == null || !submenu.get_visible ()))
+							apply_and_close ();
+						return false;
+					});
 				}
 			}
 
 			public void apply ()
 			{
-				if (applied)
+				if (applying)
 					return;
-				applied = true;
+				applying = true;
 				var submenu = menu_ref.get () as Gtk.Menu;
 				var controller = controller_ref.get () as DockController;
-				if (submenu == null || controller == null)
-					return;
-				PreferencesDockItem.apply_docklets_submenu_changes (submenu, controller);
+				if (submenu != null && controller != null)
+					PreferencesDockItem.apply_docklets_submenu_changes (submenu, controller);
+				applying = false;
+			}
+
+			public void apply_and_close ()
+			{
+				apply ();
+				var submenu = menu_ref.get () as Gtk.Menu;
+				if (submenu != null && submenu.get_visible ()) {
+					submenu.popdown ();
+					submenu.deactivate ();
+				}
+				var root_menu = root_menu_ref.get () as Gtk.Menu;
+				if (root_menu != null && root_menu.get_visible ()) {
+					root_menu.popdown ();
+					root_menu.deactivate ();
+				}
 			}
 		}
 
@@ -231,6 +268,18 @@ namespace Plank
 			docklets_item.set_data<DockletsSubmenuBatcher> ("wayplank-docklets-batcher", batcher);
 			docklets_item.parent_set.connect (batcher.on_item_parent_set);
 
+			docklets_menu.add (new Gtk.SeparatorMenuItem ());
+			var apply_item = DockElement.create_menu_item (_("_Apply"), "emblem-ok-symbolic;;dialog-ok-apply;;gtk-apply", true);
+			apply_item.activate.connect (batcher.apply_and_close);
+			apply_item.button_release_event.connect ((ev) => {
+				if (ev.button == Gdk.BUTTON_PRIMARY || ev.button == Gdk.BUTTON_SECONDARY) {
+					batcher.apply_and_close ();
+					return Gdk.EVENT_STOP;
+				}
+				return Gdk.EVENT_PROPAGATE;
+			});
+			docklets_menu.add (apply_item);
+
 			docklets_menu.show_all ();
 			docklets_item.set_submenu (docklets_menu);
 			return docklets_item;
@@ -238,32 +287,73 @@ namespace Plank
 
 		public static void append_full_system_menu (DockController? controller, Gee.ArrayList<Gtk.MenuItem> items)
 		{
+			var ctrl_ref = GLib.WeakRef (controller);
 			items.add (new Gtk.SeparatorMenuItem ());
 
 			var docklets_item = create_docklets_submenu_item (controller);
 			if (docklets_item != null) {
 				items.add (docklets_item);
-				items.add (new Gtk.SeparatorMenuItem ());
 			}
 
+			var add_folder_item = DockElement.create_menu_item (_("Add _Folder..."), "folder-new", true);
+			add_folder_item.sensitive = (controller != null && !controller.prefs.LockItems);
+			add_folder_item.activate.connect (() => {
+				DockFolderDialogs.show_add_folder_dialog (ctrl_ref.get () as DockController);
+			});
+			items.add (add_folder_item);
+
+			var new_dock_item = DockElement.create_menu_item (_("Open _Dock..."), "list-add", true);
+			new_dock_item.sensitive = (AbstractMain.app_instance != null && AbstractMain.app_instance.get_dock_count () < DockPreferences.MAX_DOCK_SLOTS);
+			new_dock_item.activate.connect (() => {
+				DockFolderDialogs.show_new_dock_dialog (ctrl_ref.get () as DockController);
+			});
+			items.add (new_dock_item);
+
+			items.add (new Gtk.SeparatorMenuItem ());
+
 			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
-			pref_item.activate.connect (() => Application.get_default ().activate_action ("preferences", null));
+			pref_item.activate.connect (() => {
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController);
+				else
+					Application.get_default ().activate_action ("preferences", null);
+			});
 			items.add (pref_item);
 
 			var appearance_item = DockElement.create_menu_item (_("_Appearance..."), "preferences-desktop-theme", true);
-			appearance_item.activate.connect (() => Application.get_default ().activate_action ("preferences-appearance", null));
+			appearance_item.activate.connect (() => {
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController, "grid_appearance");
+				else
+					Application.get_default ().activate_action ("preferences-appearance", null);
+			});
 			items.add (appearance_item);
 
 			var behaviour_item = DockElement.create_menu_item (_("_Behaviour..."), "preferences-desktop", true);
-			behaviour_item.activate.connect (() => Application.get_default ().activate_action ("preferences-behaviour", null));
+			behaviour_item.activate.connect (() => {
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController, "grid_behaviour");
+				else
+					Application.get_default ().activate_action ("preferences-behaviour", null);
+			});
 			items.add (behaviour_item);
 
 			var apps_item = DockElement.create_menu_item (_("A_pplications..."), "applications-other", true);
-			apps_item.activate.connect (() => Application.get_default ().activate_action ("preferences-applications", null));
+			apps_item.activate.connect (() => {
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController, "grid_windows");
+				else
+					Application.get_default ().activate_action ("preferences-applications", null);
+			});
 			items.add (apps_item);
 
 			var docklets_tab_item = DockElement.create_menu_item (_("_Docklets..."), "preferences-plugin", true);
-			docklets_tab_item.activate.connect (() => Application.get_default ().activate_action ("preferences-docklets", null));
+			docklets_tab_item.activate.connect (() => {
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController, "grid_docklets");
+				else
+					Application.get_default ().activate_action ("preferences-docklets", null);
+			});
 			items.add (docklets_tab_item);
 
 			var shortcuts_item = DockElement.create_menu_item (_("_Shortcuts & Gestures..."), "help-browser");
@@ -281,6 +371,17 @@ namespace Plank
 			var about_item = DockElement.create_menu_item (_("_About"), "help-about", true);
 			about_item.activate.connect (() => Application.get_default ().activate_action ("about", null));
 			items.add (about_item);
+
+			if (controller != null && controller.name != "dock1") {
+				items.add (new Gtk.SeparatorMenuItem ());
+				var close_dock_item = DockElement.create_menu_item (_("_Close This Dock"), "window-close", true);
+				close_dock_item.activate.connect (() => {
+					var target = ctrl_ref.get () as DockController;
+					if (AbstractMain.app_instance != null && target != null)
+						AbstractMain.app_instance.close_dock (target);
+				});
+				items.add (close_dock_item);
+			}
 
 			if (Hal.Capabilities.supports_quit_action) {
 				items.add (new Gtk.SeparatorMenuItem ());

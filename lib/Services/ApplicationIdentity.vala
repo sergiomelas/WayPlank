@@ -2644,6 +2644,7 @@ namespace Plank
 			if (profile_label_to_dir != null)
 				profile_label_to_dir.clear ();
 			local_state_last_load_us = 0;
+			last_browser_session_event_us = 0;
 		}
 
 		public static void invalidate_locked_launcher_uris ()
@@ -2914,6 +2915,8 @@ namespace Plank
 			return changed;
 		}
 
+		private static int64 last_browser_session_event_us = 0;
+
 		private static void on_browser_sessions_changed ()
 		{
 			ensure_browser_tracking_maps ();
@@ -2921,6 +2924,10 @@ namespace Plank
 				sync_browser_session_watch ();
 				return;
 			}
+			int64 now_us = GLib.get_monotonic_time ();
+			if (last_browser_session_event_us > 0 && (now_us - last_browser_session_event_us) < 80000LL)
+				return;
+			last_browser_session_event_us = now_us;
 			local_state_last_load_us = 0;
 			var pending_wids = new Gee.ArrayList<string> ();
 			pending_wids.add_all (unresolved_browser_windows.keys);

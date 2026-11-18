@@ -145,6 +145,8 @@ namespace Plank
 		{
 			Prefs.CustomIcon = new_icon;
 			if (OwnedFile != null) {
+				if (is_directory ())
+					Hal.Apps.ensure_launcher_folder (OwnedFile, "", new_icon);
 				try {
 					var info = new FileInfo ();
 					if (Path.is_absolute (new_icon) || new_icon.has_prefix ("file://")) {
@@ -174,6 +176,8 @@ namespace Plank
 		{
 			Prefs.CustomIcon = "";
 			if (OwnedFile != null) {
+				if (is_directory ())
+					Hal.Apps.ensure_launcher_folder (OwnedFile, "", "-");
 				try {
 					var info = new FileInfo ();
 					info.set_attribute_string ("metadata::custom-icon", "");
@@ -262,7 +266,7 @@ namespace Plank
 					if (info.get_is_hidden ())
 						continue;
 					var name = info.get_name ();
-					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+					if (Hal.Apps.is_folder_metadata_file (name))
 						continue;
 					var child_file = OwnedFile.get_child (name);
 					var child_uri = child_file.get_uri ();
@@ -280,7 +284,7 @@ namespace Plank
 								if (sub_info.get_is_hidden ())
 									continue;
 								var sub_name = sub_info.get_name ();
-								if (sub_name == ".directory" || sub_name.ascii_down () == "desktop.ini")
+								if (Hal.Apps.is_folder_metadata_file (sub_name))
 									continue;
 								var sub_uri = child_file.get_child (sub_name).get_uri ();
 								if (Hal.Apps.is_launcher_uri (sub_uri))
@@ -738,7 +742,7 @@ namespace Plank
 						continue;
 
 					var name = info.get_name ();
-					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+					if (Hal.Apps.is_folder_metadata_file (name))
 						continue;
 
 					if (count++ >= FOLDER_MAX_FILE_COUNT) {
@@ -878,7 +882,7 @@ namespace Plank
 						continue;
 
 					unowned string name = info.get_name ();
-					if (name == ".directory" || name.ascii_down () == "desktop.ini")
+					if (Hal.Apps.is_folder_metadata_file (name))
 						continue;
 
 					if (count++ >= FOLDER_MAX_FILE_COUNT) {
@@ -896,6 +900,10 @@ namespace Plank
 		
 		static string get_display_name (File file)
 		{
+			string custom_folder_name = Hal.Apps.get_folder_display_name (file);
+			if (custom_folder_name != "")
+				return custom_folder_name;
+
 			try {
 				var info = file.query_info (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_DISPLAY_NAME, 0);
 				var raw_name = info.get_display_name () ?? info.get_name ();

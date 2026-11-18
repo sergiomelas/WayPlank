@@ -203,7 +203,6 @@ namespace Plank
 				if (launcher_check == "") {
 					if (!corrupted_dockitems.contains (filename))
 						corrupted_dockitems.add (filename);
-					try { file.delete (); } catch (Error e) { }
 					continue;
 				}
 				var element = make_element (file);
@@ -218,15 +217,13 @@ namespace Plank
 				if (item == null) {
 					if (!corrupted_dockitems.contains (filename))
 						corrupted_dockitems.add (filename);
-					try { file.delete (); } catch (Error e) { }
 					continue;
 				}
 				
 				if (!item.is_valid ()) {
-					warning ("The launcher '%s' in dock item '%s' does not exist. Removing '%s'.", item.Launcher, file.get_path (), item.DockItemFilename);
+					warning ("The launcher '%s' in dock item '%s' does not exist. Skipping '%s' in memory without deleting disk file.", item.Launcher, file.get_path (), item.DockItemFilename);
 					if (!corrupted_dockitems.contains (filename))
 						corrupted_dockitems.add (filename);
-					item.delete ();
 				} else {
 					elements.set (filename, element);
 				}

@@ -196,7 +196,7 @@ namespace Plank
 					item_list.add ((owned) dock_item_filename);
 			}
 			
-			return item_list.to_array ();
+			return DockPreferences.list_to_strv (item_list);
 		}
 	}
 }

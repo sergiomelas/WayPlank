@@ -65,6 +65,10 @@ namespace Plank
 		uint long_press_timer_id = 0U;
 		bool long_press_active = false;
 		uint long_press_button = 0U;
+		bool drag_button_pressed = false;
+		int drag_press_x = 0;
+		int drag_press_y = 0;
+		DockItem? drag_candidate_item = null;
 
 		double smooth_scroll_dy = 0.0;
 		double smooth_scroll_dx = 0.0;
@@ -88,13 +92,17 @@ namespace Plank
 			// Agnostic shell surface initialization
 			Hal.Shell.init_dock_surface (this);
 			update_exclusive_zone ();
-			update_layer_shell_monitor ();
-			update_layer_shell_anchors ();
+			update_shell_dock_monitor ();
+			update_shell_dock_geometry ();
 			Hal.Windows.state_changed.connect (on_compositor_state_changed);
 
 			realize.connect (() => {
 				input_rect = { -1, -1, -1, -1 };
 				set_input_mask ();
+			});
+			unmap.connect (() => {
+				cancel_long_press ();
+				disarm_drag_candidate ();
 			});
 
 			// Track position setting changes
@@ -151,7 +159,7 @@ namespace Plank
 		{
 			if (is_window_cleaned_up || controller == null || controller.prefs == null)
 				return;
-			update_layer_shell_anchors ();
+			update_shell_dock_geometry ();
 			if (controller.renderer != null && controller.renderer.theme != null && controller.position_manager != null)
 				controller.position_manager.update (controller.renderer.theme);
 			update_exclusive_zone ();
@@ -199,6 +207,12 @@ namespace Plank
 			long_press_button = 0;
 		}
 
+		public void disarm_drag_candidate ()
+		{
+			drag_button_pressed = false;
+			drag_candidate_item = null;
+		}
+
 		void cleanup_window_resources ()
 		{
 			if (is_window_cleaned_up)
@@ -206,6 +220,7 @@ namespace Plank
 			is_window_cleaned_up = true;
 
 			cancel_long_press ();
+			disarm_drag_candidate ();
 			Hal.Windows.state_changed.disconnect (on_compositor_state_changed);
 			if (tracked_monitor != null) {
 				if (monitor_workarea_handler_id != 0UL) {
@@ -253,7 +268,7 @@ namespace Plank
 			cleanup_window_resources ();
 		}
 
-		void update_layer_shell_anchors ()
+		void update_shell_dock_geometry ()
 		{
 			if (is_window_cleaned_up || controller == null || controller.prefs == null)
 				return;
@@ -263,7 +278,7 @@ namespace Plank
 				queue_draw ();
 		}
 
-		public void update_layer_shell_monitor ()
+		public void update_shell_dock_monitor ()
 		{
 			if (is_window_cleaned_up || controller == null || controller.prefs == null)
 				return;
@@ -290,7 +305,7 @@ namespace Plank
 				if (tracked_monitor != null) {
 					monitor_workarea_handler_id = tracked_monitor.notify["workarea"].connect (() => {
 						Hal.Shell.invalidate_panel_cache ();
-						update_layer_shell_anchors ();
+						update_shell_dock_geometry ();
 					});
 				}
 			}
@@ -299,7 +314,7 @@ namespace Plank
 				if (controller.renderer != null)
 					controller.renderer.reset_buffers ();
 				update_exclusive_zone ();
-				update_layer_shell_anchors ();
+				update_shell_dock_geometry ();
 			}
 
 			update_size_and_position ();
@@ -329,6 +344,9 @@ namespace Plank
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
 
+			if (controller.drag_manager.InternalDragActive)
+				controller.drag_manager.cancel_stale_internal_drag_if_released (event.state);
+
 			if (controller.drag_manager.InternalDragActive) {
 				ClickedItem = null;
 				return Gdk.EVENT_STOP;
@@ -347,10 +365,13 @@ namespace Plank
 			}
 
 			cancel_long_press ();
+			disarm_drag_candidate ();
 
 			if (event.button == Gdk.BUTTON_PRIMARY) {
 				long_press_active = false;
 				long_press_button = event.button;
+				drag_press_x = (int) event.x;
+				drag_press_y = (int) event.y;
 				Gdk.ModifierType ev_state = event.state;
 				int ex = (int) event.x;
 				int ey = (int) event.y;
@@ -360,16 +381,16 @@ namespace Plank
 					if (controller.drag_manager.InternalDragActive || controller.drag_manager.ExternalDragActive)
 						return false;
 					long_press_active = true;
+					disarm_drag_candidate ();
 					if (HoveredItem != null)
 						show_menu (HoveredItem, PopupButton.RIGHT, ev_state, ex, ey, null);
 					return false;
 				});
 
-				// Prevent GTK's drag-source gesture from calling wl_data_device.start_drag on
-				// non-draggable items (e.g. PinnedExpanderDockItem, SeparatorDockItem, TrashDockItem,
-				// anchored PreferencesDockItem, or empty dock space) where Gdk.drag_abort is a no-op on Wayland
-				if (!controller.drag_manager.is_item_draggable (HoveredItem))
-					return Gdk.EVENT_STOP;
+				if (controller.drag_manager.is_item_draggable (HoveredItem)) {
+					drag_button_pressed = true;
+					drag_candidate_item = HoveredItem;
+				}
 			}
 
 			return Gdk.EVENT_PROPAGATE;
@@ -380,6 +401,8 @@ namespace Plank
 		 */
 		public override bool button_release_event (Gdk.EventButton event)
 		{
+			disarm_drag_candidate ();
+
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
 
@@ -479,6 +502,8 @@ namespace Plank
 				return Gdk.EVENT_PROPAGATE;
 
 			cancel_long_press ();
+			if ((event.state & Gdk.ModifierType.BUTTON1_MASK) == 0)
+				disarm_drag_candidate ();
 
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.on_dock_leave ();
@@ -567,6 +592,11 @@ namespace Plank
 			if (event.detail == Gdk.NotifyType.INFERIOR || event.mode != Gdk.CrossingMode.NORMAL)
 				return Gdk.EVENT_PROPAGATE;
 
+			if (drag_button_pressed && (event.state & Gdk.ModifierType.BUTTON1_MASK) == 0)
+				disarm_drag_candidate ();
+			if (controller.drag_manager.InternalDragActive && (event.state & Gdk.ModifierType.BUTTON1_MASK) == 0)
+				controller.drag_manager.cancel_stale_internal_drag_if_released (event.state);
+
 			if (controller.folder_menu.get_visible ())
 				controller.folder_menu.cancel_dismiss_timer ();
 
@@ -577,24 +607,26 @@ namespace Plank
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-				if (controller.app_provider.docklets_expanded) {
-					if (!controller.app_provider.has_drag_expansion ())
-						controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
-					controller.app_provider.expand_docklets ();
+			if (!controller.drag_manager.InternalDragActive && !controller.drag_manager.ExternalDragActive) {
+				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+					if (controller.app_provider.docklets_expanded) {
+						if (!controller.app_provider.has_drag_expansion ())
+							controller.app_provider.cancel_collapse_timer ();
+					} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
+						controller.app_provider.expand_docklets ();
+					}
 				}
-			}
 
-			// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
-			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
-				if (controller.app_provider.pinned_expanded) {
-					if (!controller.app_provider.has_drag_expansion ())
-						controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand
-					&& HoveredItem is PinnedExpanderDockItem
-					&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
-					controller.app_provider.expand_pinned ();
+				// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
+				if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
+					if (controller.app_provider.pinned_expanded) {
+						if (!controller.app_provider.has_drag_expansion ())
+							controller.app_provider.cancel_collapse_timer ();
+					} else if (!controller.prefs.AccordionClickToExpand
+						&& HoveredItem is PinnedExpanderDockItem
+						&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
+						controller.app_provider.expand_pinned ();
+					}
 				}
 			}
 
@@ -611,31 +643,54 @@ namespace Plank
 			if (menu_is_visible ())
 				return Gdk.EVENT_STOP;
 
-			if (long_press_timer_id > 0U)
+			if (drag_button_pressed) {
+				if ((event.state & Gdk.ModifierType.BUTTON1_MASK) == 0
+					|| menu_is_visible ()
+					|| long_press_active
+					|| controller.drag_manager.InternalDragActive
+					|| controller.drag_manager.ExternalDragActive
+					|| !controller.drag_manager.is_item_draggable (drag_candidate_item)) {
+					disarm_drag_candidate ();
+				} else if (Gtk.drag_check_threshold (this, drag_press_x, drag_press_y, (int) event.x, (int) event.y)) {
+					var item_to_drag = drag_candidate_item;
+					int sx = drag_press_x;
+					int sy = drag_press_y;
+					disarm_drag_candidate ();
+					cancel_long_press ();
+					ClickedItem = null;
+					controller.drag_manager.start_drag (this, item_to_drag, event, sx, sy);
+					return Gdk.EVENT_STOP;
+				}
+			}
+
+			if (long_press_timer_id > 0U
+				&& (!drag_button_pressed && (((int) event.x - drag_press_x).abs () > 2 || ((int) event.y - drag_press_y).abs () > 2)))
 				cancel_long_press ();
 
 			controller.renderer.update_local_cursor ((int) event.x, (int) event.y);
 			update_hovered ((int) event.x, (int) event.y);
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
-				if (controller.app_provider.docklets_expanded) {
-					if (!controller.app_provider.has_drag_expansion ())
-						controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
-					controller.app_provider.expand_docklets ();
+			if (!controller.drag_manager.InternalDragActive && !controller.drag_manager.ExternalDragActive) {
+				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+					if (controller.app_provider.docklets_expanded) {
+						if (!controller.app_provider.has_drag_expansion ())
+							controller.app_provider.cancel_collapse_timer ();
+					} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
+						controller.app_provider.expand_docklets ();
+					}
 				}
-			}
 
-			// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
-			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
-				if (controller.app_provider.pinned_expanded) {
-					if (!controller.app_provider.has_drag_expansion ())
-						controller.app_provider.cancel_collapse_timer ();
-				} else if (!controller.prefs.AccordionClickToExpand
-					&& HoveredItem is PinnedExpanderDockItem
-					&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
-					controller.app_provider.expand_pinned ();
+				// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
+				if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
+					if (controller.app_provider.pinned_expanded) {
+						if (!controller.app_provider.has_drag_expansion ())
+							controller.app_provider.cancel_collapse_timer ();
+					} else if (!controller.prefs.AccordionClickToExpand
+						&& HoveredItem is PinnedExpanderDockItem
+						&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
+						controller.app_provider.expand_pinned ();
+					}
 				}
 			}
 
@@ -654,6 +709,7 @@ namespace Plank
 		public override void drag_begin (Gdk.DragContext context)
 		{
 			cancel_long_press ();
+			disarm_drag_candidate ();
 			ClickedItem = null;
 		}
 
@@ -664,6 +720,9 @@ namespace Plank
 		{
 			if (controller.hide_manager.Hidden)
 				return Gdk.EVENT_STOP;
+
+			if (controller.drag_manager.InternalDragActive)
+				controller.drag_manager.cancel_stale_internal_drag_if_released (event.state);
 
 			if (controller.drag_manager.InternalDragActive) {
 				ClickedItem = null;
@@ -1037,7 +1096,7 @@ namespace Plank
 		{
 			unowned PositionManager position_manager = controller.position_manager;
 
-			update_layer_shell_anchors ();
+			update_shell_dock_geometry ();
 
 			var win_rect = position_manager.get_dock_window_region ();
 			if (win_rect.width <= 0 || win_rect.height <= 0)
@@ -1111,13 +1170,9 @@ namespace Plank
 			bool is_plain_ctrl = (has_ctrl && !has_alt && !has_shift);
 
 			if ((button & PopupButton.RIGHT) != 0
-				&& (item == null || item is SeparatorDockItem || item is PinnedExpanderDockItem || is_plain_ctrl)) {
-				if (controller.prefs.SystemMenuAccess != 4) {
-					menu_items = new Gee.ArrayList<Gtk.MenuItem> ();
-					PreferencesDockItem.append_full_system_menu (controller, menu_items);
-				} else {
-					menu_items = Factory.item_factory.get_item_for_dock ().get_menu_items ();
-				}
+				&& (item == null || item is SeparatorDockItem || item is PinnedExpanderDockItem || item is PlaceholderDockItem || is_plain_ctrl)) {
+				menu_items = new Gee.ArrayList<Gtk.MenuItem> ();
+				PreferencesDockItem.append_full_system_menu (controller, menu_items);
 				if (is_debug_combo)
 					menu_items.add_all (get_dock_debug_menu_items (controller));
 				set_hovered_provider (null);
@@ -1130,6 +1185,8 @@ namespace Plank
 
 				if ((button & PopupButton.RIGHT) != 0 && !(item is PreferencesDockItem) && !(item is PlankDockItem)) {
 					int access = controller.prefs.SystemMenuAccess;
+					if (access == 4 && controller.name != "dock1")
+						access = 1;
 					if (access == 3) {
 						PreferencesDockItem.append_full_system_menu (controller, menu_items);
 					} else if (access == 2) {
@@ -1247,8 +1304,12 @@ namespace Plank
 			items.add (shortcuts_item);
 
 			var pref_item = DockElement.create_menu_item (_("_Preferences..."), "preferences-system", true);
+			var ctrl_ref = GLib.WeakRef (controller);
 			pref_item.activate.connect (() => {
-				Application.get_default ().activate_action ("preferences", null);
+				if (AbstractMain.app_instance != null)
+					AbstractMain.app_instance.open_preferences_for_dock (ctrl_ref.get () as DockController);
+				else
+					Application.get_default ().activate_action ("preferences", null);
 			});
 			items.add (pref_item);
 

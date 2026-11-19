@@ -331,20 +331,16 @@ namespace Plank
 			browse_in_progress = true;
 			this.hide ();
 
-			var chooser = new Gtk.FileChooserNative (
+			var chooser = new Gtk.FileChooserDialog (
 				_("Select Icon File"),
 				null,
 				Gtk.FileChooserAction.OPEN,
-				_("Select"),
-				_("Cancel")
+				_("Cancel"), Gtk.ResponseType.CANCEL,
+				_("Select"), Gtk.ResponseType.ACCEPT
 			);
 
 			var filter = new Gtk.FileFilter ();
 			filter.set_name (_("Image Files (*.png, *.svg, *.ico, *.jpg)"));
-			filter.add_mime_type ("image/png");
-			filter.add_mime_type ("image/svg+xml");
-			filter.add_mime_type ("image/x-icon");
-			filter.add_mime_type ("image/jpeg");
 			filter.add_pattern ("*.png");
 			filter.add_pattern ("*.PNG");
 			filter.add_pattern ("*.svg");
@@ -357,6 +353,10 @@ namespace Plank
 			filter.add_pattern ("*.JPEG");
 			filter.add_pattern ("*.xpm");
 			filter.add_pattern ("*.XPM");
+			filter.add_pattern ("*.exe");
+			filter.add_pattern ("*.EXE");
+			filter.add_pattern ("*.lnk");
+			filter.add_pattern ("*.LNK");
 			chooser.add_filter (filter);
 
 			var all_filter = new Gtk.FileFilter ();

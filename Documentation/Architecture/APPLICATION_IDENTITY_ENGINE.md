@@ -87,9 +87,9 @@ flowchart TD
     end
 
     FDO_DESK ==>|"v0.7.2 Linux Freeze"| APP_DESC;
-    WIN_LNK -.->|"v0.7.3 Windows Plug-In"| APP_DESC;
+    WIN_LNK ==>|"v0.7.3 Windows Plug-In (Qualified)"| APP_DESC;
     LIN_LIVE ==>|"v0.7.2 Linux Freeze"| PROC_SNAP;
-    WIN_LIVE -.->|"v0.7.3 Windows Plug-In"| PROC_SNAP;
+    WIN_LIVE ==>|"v0.7.3 Windows Plug-In (Qualified)"| PROC_SNAP;
     APP_DESC ==>|"100% Normalized Pure Vala Structs"| ID_CORE;
     PROC_SNAP ==>|"100% Normalized Pure Vala Structs"| ID_CORE;
 ```

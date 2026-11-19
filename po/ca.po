@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.2\n"
+"Project-Id-Version: wayplank 0.7.3\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-18 23:22+0100\n"
-"PO-Revision-Date: 2026-11-18 23:22+0100\n"
+"POT-Creation-Date: 2026-11-20 12:45+0100\n"
+"PO-Revision-Date: 2026-11-20 12:45+0100\n"
 "Last-Translator: Sergio Melas <sergiomelas@gmail.com>\n"
 "Language-Team: Catalan <ca@li.org>\n"
 "Language: ca\n"
@@ -41,6 +41,8 @@ msgid "Screenshot"
 msgstr "Captura de pantalla"
 
 #: hal/Interfaces/ISystemTelemetry.vala:293
+#: hal/Windows/Telemetry/Win32Telemetry.vala:248
+#: hal/Windows/Telemetry/Win32Telemetry.vala:259
 msgid "Drive not available"
 msgstr "Unitat no disponible"
 
@@ -334,7 +336,7 @@ msgid "Empty"
 msgstr "Buit"
 
 #: lib/Items/FileDockItem.vala:846 lib/Widgets/FolderMenuWindow.vala:1128
-#: lib/Widgets/PreferencesWindow.vala:976
+#: lib/Widgets/PreferencesWindow.vala:977
 msgid "_Open"
 msgstr "_Obre"
 
@@ -701,7 +703,7 @@ msgid "Shut Down"
 msgstr "Atura"
 
 #: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:339 lib/Widgets/SessionWindow.vala:262
+#: lib/Widgets/IconChooserDialog.vala:338 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Cancel·la"
@@ -912,10 +914,10 @@ msgid "Add Folder"
 msgstr "Afegeix una carpeta"
 
 #: lib/Widgets/DockFolderDialogs.vala:161
-#: lib/Widgets/DockFolderDialogs.vala:239
+#: lib/Widgets/DockFolderDialogs.vala:238
 #: lib/Widgets/DockFolderDialogs.vala:299
 #: lib/Widgets/DockFolderDialogs.vala:549
-#: lib/Widgets/PreferencesWindow.vala:977
+#: lib/Widgets/PreferencesWindow.vala:976
 #: lib/Widgets/PreferencesWindow.vala:1073
 msgid "_Cancel"
 msgstr "_Cancel·la"
@@ -959,7 +961,7 @@ msgstr "Introduïu un nom de carpeta (o seleccioneu un camí)."
 msgid "Select Folder Location"
 msgstr "Seleccioneu la ubicació de la carpeta"
 
-#: lib/Widgets/DockFolderDialogs.vala:238
+#: lib/Widgets/DockFolderDialogs.vala:239
 msgid "_Select"
 msgstr "_Selecciona"
 
@@ -1524,7 +1526,7 @@ msgstr "Aplica"
 msgid "Select Icon File"
 msgstr "Selecciona el fitxer d'icona"
 
-#: lib/Widgets/IconChooserDialog.vala:338
+#: lib/Widgets/IconChooserDialog.vala:339
 msgid "Select"
 msgstr "Selecciona"
 

@@ -283,7 +283,7 @@ namespace Plank
 			string? raw_dock_opt = null;
 			if (options.lookup ("name", "s", out raw_dock_opt) && raw_dock_opt != null && raw_dock_opt != "") {
 				dock_name = Hal.Runtime.sanitize_dock_name (raw_dock_opt);
-				application_id = "%s.%s".printf (app_namespace, dock_name);
+				application_id = (dock_name == "dock1") ? app_namespace : "%s.%s".printf (app_namespace, dock_name);
 			} else {
 				dock_name = "";
 				application_id = app_namespace;

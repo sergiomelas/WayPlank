@@ -1,7 +1,8 @@
 # WayPlank User Guide & Reference Manual
 
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Release Version:** `v0.7.2` (**Public Beta 3 — 3-Zone Linux HAL & Bus Structural Freeze**)
+> **Release Version:** `v0.7.3` (**Public Beta 4 — First Unified Linux Wayland & Native Windows Release**)  
+> *Trademark Notice: WayPlank is an independent, non-commercial open-source project licensed under GPLv3 and is not affiliated with, endorsed by, or sponsored by Microsoft Corporation, Apple Inc., Google LLC, or The Linux Foundation. Windows, macOS, Chrome, Linux, and all related names/logos are trademarks of their respective owners.*
 
 Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond).
 
@@ -523,13 +524,14 @@ flowchart TD
 
     UI & DOCKLETS & ID ==> HAL_IFACE
     C_IFACE ==>|"Zero-Config Auto-Bind (v0.7.2 Freeze)"| KWIN & MUTTER & LABWC
-    C_IFACE -.->|"Compile-Time Target (v0.7.3)"| WINCOMP
+    C_IFACE ==>|"Native Win32 Zero-DLL (v0.7.3 Qualified)"| WINCOMP
     B_IFACE ==>|"Event-Driven Broker (v0.7.2 Freeze)"| DBUS
-    B_IFACE -.->|"Compile-Time Target (v0.7.3)"| WINBUS
+    B_IFACE ==>|"Native Win32 Telemetry & IPC (v0.7.3 Qualified)"| WINBUS
 ```
 
 ### What Users Get Out of the Box (Zero Configuration)
 - **Automatic Session Detection**: At startup, WayPlank detects your active session automatically—no CLI flags, config edits, or manual plugin setup needed.
+- **Windows (`Win32 / DWM`, `Windows 7 ⟷ 11+`)**: Zero-DLL standalone PE32+ executable (`wayplank.exe`, 24 stock Windows OS DLLs only) + 64-bit NSIS installer (`WayPlank-0.7.3-Setup.exe`) with `SetWinEventHook` window tracking, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` Panel Mode struts, COM `IShellLinkW` / UWP `AUMID`, and native CoreAudio / `DXVA2` / `WinHTTP` / Recycle Bin / Ejector docklets.
 - **KDE Plasma 6 (`KWin`)**: Event-driven window tracking with 0% idle polling, live `ScreenShot2` window preview thumbnails, floating panel awareness, auto-healing across `kwin_wayland --replace`, and hardware DRM backlight sync.
 - **GNOME Shell (`Mutter`)**: Sub-second (`0.74s`) startup via a self-deploying, auto-recovering companion extension delivering live window thumbnails, Intellihide, Panel Mode struts, and multi-monitor stage edge reveal.
 - **Labwc & `wlroots` (`LXQt` / `XFCE` Wayland)**: Native `gtk-layer-shell` surface anchoring and `zwlr_foreign_toplevel` C protocol tracking with Cairo icon/title preview cards and Honest UI capability adaptation.
@@ -633,7 +635,7 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   ```bash
   chmod +x BuildDeb.sh
   ./BuildDeb.sh
-  sudo apt install ./build/wayplank_0.7.2_amd64.deb
+  sudo apt install ./build/wayplank_0.7.3_amd64.deb
   ```
   *(Installing or upgrading the `.deb` package automatically signals any running WayPlank process via `SIGWINCH` to re-exec cleanly into the newly installed binary with zero downtime.)*
 
@@ -642,9 +644,9 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   chmod +x BuildRpm.sh
   ./BuildRpm.sh
   # On openSUSE:
-  sudo zypper install ./build/wayplank-0.7.2-1.x86_64.rpm
+  sudo zypper install ./build/wayplank-0.7.3-1.x86_64.rpm
   # On Fedora / RHEL:
-  sudo dnf install ./build/wayplank-0.7.2-1.x86_64.rpm
+  sudo dnf install ./build/wayplank-0.7.3-1.x86_64.rpm
   ```
 
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).

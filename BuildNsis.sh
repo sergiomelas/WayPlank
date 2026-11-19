@@ -75,6 +75,7 @@ SetCompressor /SOLID lzma
 !define APP_URL "https://github.com/sergiomelas/WayPlank"
 !define APP_EXE "wayplank.exe"
 !define UNINST_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\WayPlank"
+!define APP_PATHS_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\wayplank.exe"
 
 !define MULTIUSER_EXECUTIONLEVEL Highest
 !define MULTIUSER_MUI
@@ -110,11 +111,17 @@ BrandingText "\${APP_NAME} \${APP_VER} — GPLv3"
 
 Function .onInit
     SetRegView 64
+    nsExec::ExecToStack 'taskkill /F /IM wayplank.exe'
+    Pop \$0
+    Pop \$1
     !insertmacro MULTIUSER_INIT
 FunctionEnd
 
 Function un.onInit
     SetRegView 64
+    nsExec::ExecToStack 'taskkill /F /IM wayplank.exe'
+    Pop \$0
+    Pop \$1
     !insertmacro MULTIUSER_UNINIT
 FunctionEnd
 
@@ -143,6 +150,10 @@ Section "WayPlank Dock (Required)" SecCore
     WriteRegStr SHCTX "\${UNINST_KEY}" "InstallMode" "\$MultiUser.InstallMode"
     WriteRegDWORD SHCTX "\${UNINST_KEY}" "NoModify" 1
     WriteRegDWORD SHCTX "\${UNINST_KEY}" "NoRepair" 1
+
+    ; Register in Windows App Paths (zero global PATH touch; enables Win+R & start wayplank)
+    WriteRegStr SHCTX "\${APP_PATHS_KEY}" "" "\$INSTDIR\\\${APP_EXE}"
+    WriteRegStr SHCTX "\${APP_PATHS_KEY}" "Path" "\$INSTDIR"
 SectionEnd
 
 Section "Desktop Shortcut" SecDesktop
@@ -167,6 +178,7 @@ Section "Uninstall"
     Delete "\$DESKTOP\\\${APP_NAME}.lnk"
     DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "WayPlank"
     DeleteRegKey SHCTX "\${UNINST_KEY}"
+    DeleteRegKey SHCTX "\${APP_PATHS_KEY}"
 SectionEnd
 EOF
 

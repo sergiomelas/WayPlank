@@ -103,7 +103,52 @@ namespace Plank
 		uint drag_hover_timer_id = 0U;
 		uint drag_leave_idle_id = 0U;
 		uint spring_hover_timer_id = 0U;
+		uint drag_button_watchdog_id = 0U;
 		DockItem? spring_hover_target = null;
+
+		void cancel_drag_watchdog ()
+		{
+			if (drag_button_watchdog_id > 0U) {
+				GLib.Source.remove (drag_button_watchdog_id);
+				drag_button_watchdog_id = 0U;
+			}
+		}
+
+		void start_drag_watchdog ()
+		{
+			cancel_drag_watchdog ();
+			drag_button_watchdog_id = GLib.Timeout.add (80, () => {
+				if (is_cleaned_up || !InternalDragActive || controller == null || controller.window == null) {
+					drag_button_watchdog_id = 0U;
+					return GLib.Source.REMOVE;
+				}
+				var gdk_win = controller.window.get_window ();
+				var display = controller.window.get_display ();
+				var seat = (display != null) ? display.get_default_seat () : null;
+				var pointer = (seat != null) ? seat.get_pointer () : null;
+				if (gdk_win == null || pointer == null)
+					return GLib.Source.CONTINUE;
+
+				int lx = 0, ly = 0;
+				Gdk.ModifierType mask = 0;
+				gdk_win.get_device_position (pointer, out lx, out ly, out mask);
+				if ((mask & Gdk.ModifierType.BUTTON1_MASK) == 0) {
+					drag_button_watchdog_id = 0U;
+					var cursor_rect = controller.position_manager.get_cursor_region ();
+					if (lx < cursor_rect.x || lx > cursor_rect.x + cursor_rect.width
+						|| ly < cursor_rect.y || ly > cursor_rect.y + cursor_rect.height) {
+						is_outside_dock = true;
+						left_dock_during_drag = true;
+						drag_canceled = false;
+					}
+					var ctx = active_drag_context;
+					if (ctx != null)
+						drag_end (controller.window, ctx);
+					return GLib.Source.REMOVE;
+				}
+				return GLib.Source.CONTINUE;
+			});
+		}
 
 		void cancel_drag_timers ()
 		{
@@ -394,6 +439,7 @@ namespace Plank
 				shrink_completed_handler_id = 0UL;
 			}
 			cancel_drag_timers ();
+			cancel_drag_watchdog ();
 			cancel_spring_loaded_timer ();
 			disconnect_hovered_item_handler ();
 			if (is_initialized && controller != null) {
@@ -560,6 +606,7 @@ namespace Plank
 			});
 			
 			Hal.Shell.begin_drag_pointer_grab (window, context);
+			start_drag_watchdog ();
 		}
 
 		public static string? resolve_drop_uri (string raw_str)
@@ -1013,6 +1060,7 @@ namespace Plank
 			controller.window.update_hovered (x, y);
 			drop_target_item = controller.window.HoveredItem;
 			cancel_drag_timers ();
+			cancel_drag_watchdog ();
 			cancel_spring_loaded_timer ();
 			
 			if (drop_target_item == null) {
@@ -1125,6 +1173,7 @@ namespace Plank
 			if (is_cleaned_up)
 				return;
 			cancel_drag_timers ();
+			cancel_drag_watchdog ();
 			cancel_spring_loaded_timer ();
 			unowned HideManager hide_manager = controller.hide_manager;
 			
@@ -1582,7 +1631,26 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		bool drag_failed (Gtk.Widget w, Gdk.DragContext context, Gtk.DragResult result)
 		{
-			drag_canceled = result == Gtk.DragResult.USER_CANCELLED;
+			if (!is_outside_dock && controller != null && controller.window != null) {
+				var display = controller.window.get_display ();
+				var seat = (display != null) ? display.get_default_seat () : null;
+				var pointer = (seat != null) ? seat.get_pointer () : null;
+				if (pointer != null) {
+					int px = 0, py = 0;
+					pointer.get_position (null, out px, out py);
+					var dock_rect = controller.position_manager.get_static_dock_region ();
+					if (px < dock_rect.x || px > dock_rect.x + dock_rect.width
+						|| py < dock_rect.y || py > dock_rect.y + dock_rect.height) {
+						is_outside_dock = true;
+						left_dock_during_drag = true;
+					}
+				}
+			}
+
+			drag_canceled = (result == Gtk.DragResult.USER_CANCELLED
+				&& !is_outside_dock
+				&& !left_dock_during_drag
+				&& controller.hide_manager.Hovered);
 			return !drag_canceled;
 		}
 
@@ -2092,6 +2160,7 @@ namespace Plank
 				return;
 
 			cancel_drag_timers ();
+			cancel_drag_watchdog ();
 			cancel_spring_loaded_timer ();
 			if (drag_item_redraw_handler_id > 0UL) {
 				if (DragItem != null)
@@ -2132,7 +2201,7 @@ namespace Plank
 			pending_drag_item = item;
 			Gtk.TargetEntry te = { "text/plank-uri-list", Gtk.TargetFlags.SAME_APP, 0 };
 			var targets = new Gtk.TargetList ({ te });
-			Gtk.drag_begin_with_coordinates (window, targets, Gdk.DragAction.PRIVATE,
+			Gtk.drag_begin_with_coordinates (window, targets, Gdk.DragAction.MOVE | Gdk.DragAction.PRIVATE,
 				(int) Gdk.BUTTON_PRIMARY, (Gdk.Event) event, start_x, start_y);
 		}
 

@@ -5,15 +5,15 @@
 > **Mandate:** Compiled 100% on Linux — Zero Compilers or Runtimes Needed on Windows  
 > **Target Asset:** Single Monolithic Standalone Executable (`build/wayplank.exe`) with **ZERO External DLLs**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-WIN-005` • **Revision `2.1`** (`v0.7.3` Milestone W1 — 20-Lib Static MinGW Sysroot, Built-In Static `lunasvg` SVG Loader in `libgdk_pixbuf-2.0.a`, `BuildWin.sh` Zero-DLL Gate `GREEN` at 24 Stock OS DLLs & 64-Bit `BuildNsis.sh` Installer)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-WIN-005` • **Revision `2.2`** (`v0.7.3` Milestones W1–W6 Complete & `100.0%` Qualified — 20-Lib Static MinGW Sysroot, Built-In Static `lunasvg` SVG Loader, Complete Win32/DWM/AppSystem/Bus/Telemetry Drivers, `BuildWin.sh` Zero-DLL Gate `GREEN` at 24 Stock OS DLLs & 64-Bit `BuildNsis.sh` Auto-Close Installer)  
 > **Companion Master Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [Repository `README.md`](../../README.md) • [CONTRIBUTING.md](../../CONTRIBUTING.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Shell Translator)* • [HAL_BUSES.md](HAL_BUSES.md) *(IPC & System Bus Translator)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator & 6-Layer Identity Engine)* • [USER_GUIDE.md](../USER_GUIDE.md)  
-> **Status:** **ACTIVE DEVELOPMENT (`v0.7.3` Public Beta 4 on `hal-v0.7.3-windows`)** — **`v0.7.2` Linux Translator Freeze 100% Qualified (`397/397`)** $\longrightarrow$ **Milestone W1 Complete & Live-Booted on Windows 10 (`build/wayplank.exe` `23 MB` + `build/WayPlank-0.7.3-Setup.exe` `8.8 MB`)**
+> **Status:** **100.0% 4-PLATFORM FAT QUALIFIED (`v0.7.3` Public Beta 4 on `hal-v0.7.3-windows`)** — **Windows `135/135 (100.0%)` + Linux GNOME/KDE/Labwc `390/390 (100.0%)` = `525/525` (`0 [ko]`)** (`build/wayplank.exe` `24 MB` + `build/WayPlank-0.7.3-Setup.exe` `8.8 MB`)
 
 ---
 
 > [!NOTE]
-> # 🪟 ACTIVE DEVELOPMENT — `v0.7.3` PUBLIC BETA 4 (`hal-v0.7.3-windows`)
-> **Milestone W1 is complete:** `./BuildWin.sh` cross-compiles the Zero-DLL monolith `build/wayplank.exe` (`23 MB`, 24 evergreen Windows OS DLLs only) and `./BuildNsis.sh` packages the 64-bit Windows installer `build/WayPlank-0.7.3-Setup.exe` (`8.8 MB` LZMA) 100% on Linux. Native Win32 drivers (`W2`–`W5`) are now being implemented strictly inside `hal/Windows/` with **0 edits** to Zone 1 Core, Zone 2 `hal/Interfaces/`, or Linux/Freedesktop HAL.
+> # 🪟 100.0% QUALIFIED — `v0.7.3` PUBLIC BETA 4 (`hal-v0.7.3-windows`)
+> **All 6 Milestones (W1–W6) are complete and live-certified on real Windows 11 hardware (`135/135` applicable Windows FAT tests passed, `0 [ko]`; `525/525` unified 4-platform scoreboard):** `./BuildWin.sh` cross-compiles the Zero-DLL monolith `build/wayplank.exe` (`24 MB`, 24 evergreen Windows OS DLLs only) and `./BuildNsis.sh` packages the 64-bit Windows installer `build/WayPlank-0.7.3-Setup.exe` (`8.8 MB` LZMA) 100% on Linux, with **0 edits** to Zone 2 `hal/Interfaces/` or the frozen Linux/Freedesktop HAL (`8/8` HAL Purity Firewall `GREEN`).
 
 ---
 
@@ -23,7 +23,8 @@
 | :---: | :---: | :--- | :--- |
 | **`1.0`** | `2026-11-14` | Sergio Melas | Initial Windows compositor/bus backend & Zero-DLL `./BuildWin.sh` blueprint (`v0.7.1.2` baseline). |
 | **`2.0`** | `2026-11-14` | Sergio Melas | **`MOC-0.7.2-HAL-001`:** Synchronized all contracts and Mermaid schemes with the **Agnostic Boundary Translator Layer (`hal/Interfaces/`)** and `WindowsHalBootstrap.vala`; renamed `IPortalThemeBus` $\rightarrow$ **`IDesktopThemeBus`**; documented full Win32 `ITrashProvider` (`SHQueryRecycleBinW` + `FO_DELETE\|FOF_ALLOWUNDO` replacing non-existent static Win32 GVFS `trash:///`) and `IEjectorProvider` (`GetLogicalDrives` + `CM_Request_Device_EjectW` replacing `VolumeMonitor`); documented `Recent\*.lnk` Jump-List parsing, `aumid://` URI validation, `DesktopUtilityKind` $\rightarrow$ `ms-settings:*`, `CommandLineToArgvW` backslash preservation, and `vapi/core/compat.vapi` + `#ifndef _WIN32` C/VAPI purifications. |
-| **`2.1`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Milestone W1 Closure (`c97279b`):** Implemented `./BuildWin.sh` 4-Tier 20-archive static MinGW-w64 sysroot (`deps/win32/sysroot`, documented in `deps/README.md`), built-in static `lunasvg 2.4.1` SVG loader (`hal/Windows/win32-svg-loader.cpp` compiled into `libgdk_pixbuf-2.0.a` via `-DINCLUDE_svg` with external `loaders.cache` probe disabled), verified Zero-DLL PE32+ `objdump -p` gate (`24` evergreen Windows OS DLLs only, `23 MB` stripped `build/wayplank.exe`), added Linux-hosted 64-bit NSIS packager `./BuildNsis.sh` (`build/WayPlank-0.7.3-Setup.exe`, `8.8 MB` LZMA, `MULTIUSER_USE_PROGRAMFILES64` + `SetRegView 64`), and verified first live Windows 10 x64 boot. |
+| **`2.1`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Milestone W1 Closure:** Implemented `./BuildWin.sh` 4-Tier 20-archive static MinGW-w64 sysroot (`deps/win32/sysroot`, documented in `deps/README.md`), built-in static `lunasvg 2.4.1` SVG loader (`hal/Windows/win32-svg-loader.cpp` compiled into `libgdk_pixbuf-2.0.a` via `-DINCLUDE_svg` with external `loaders.cache` probe disabled), verified Zero-DLL PE32+ `objdump -p` gate (`24` evergreen Windows OS DLLs only, `23 MB` stripped `build/wayplank.exe`), added Linux-hosted 64-bit NSIS packager `./BuildNsis.sh` (`build/WayPlank-0.7.3-Setup.exe`, `8.8 MB` LZMA, `MULTIUSER_USE_PROGRAMFILES64` + `SetRegView 64`), and verified first live Windows 10 x64 boot. |
+| **`2.2`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Milestones W2–W6 Closure & 100.0% Qualification (`525/525`):** Implemented and live-certified on real Windows 11 hardware: `Win32Backend` + off-thread 60 FPS `Win32ThumbnailProvider` (`PrintWindow` + `GdiFlush`, UWP `CoreWindow` unwrapping, `AUMID` + `++`→`plusplus` normalization, generic `Chrome_WidgetWin_*` filtering), `Win32Shell` (`WS_EX_TOOLWINDOW\|WS_EX_TOPMOST`, one-shot HWND styling, `WM_NCHITTEST` click-through, `SHAppBarMessage` Panel Mode struts, in-RAM SVG menu checkmarks/radios/arrows, embedded 7-res `wayplank.ico`), `Win32AppSystem` (`OleInitialize`, `IShellLinkW` + `PKEY_AppUserModel_ID`, direct `winico:` PNG-in-ICO decoder, 4-tier icon cascade, `GFileMonitor` on Chrome/Edge `Local State`, `.url`/`Recent\*.lnk`), `Win32Telemetry` + `Win32BusBroker` (Recycle Bin, Ejector, Battery, CPU/RAM, CoreAudio, dynamic `dxva2.dll` DDC/CI, Network, Power/Session, `AppsUseLightTheme`, `WinHTTP` Weather, Registry Autostart, `BitBlt` Screenshot, `Win32AppMenuBus`), GTK3 GSchemas compiled into embedded `gschemas.compiled`, and NSIS auto-close upgrade (`taskkill /F /IM wayplank.exe`). Zero-DLL gate remains `GREEN` at 24 evergreen OS DLLs. |
 
 ---
 
@@ -302,7 +303,7 @@ Cross-compiles all **20 static upstream C/C++/Vala libraries** from source tarba
 
 ### 7.2 Cross-Build C/VAPI Hygiene & 64-Bit NSIS Installer (`./BuildNsis.sh`):
 1. **Pure `vapi/core/compat.vapi`:** Unix `<sys/prctl.h>` (`prctl`) and `<unistd.h>` (`getpid`, `setproctitle`) are isolated in `vapi/freedesktop/unix-compat.vapi`, so `valac -C` generates C code with zero Unix `#include` directives when compiling `src/` + `lib/` + `hal/Interfaces/` + `hal/Windows/`.
-2. **`#ifndef _WIN32` C Guards & Zero-DLL Allowlist Gate:** `lib/gtk-compat.c` and `include/config.h` guard Unix paths/ELF probes under `#ifndef _WIN32`; `./BuildWin.sh` verifies via `x86_64-w64-mingw32-objdump -p` that `build/wayplank.exe` (`23 MB` stripped) imports **only 24 evergreen Windows OS DLLs** (`0` third-party/GTK/MinGW DLLs).
+2. **`#ifndef _WIN32` C Guards & Zero-DLL Allowlist Gate:** `lib/gtk-compat.c` and `include/config.h` guard Unix paths/ELF probes under `#ifndef _WIN32`; `./BuildWin.sh` verifies via `x86_64-w64-mingw32-objdump -p` that `build/wayplank.exe` (`24 MB` stripped) imports **only 24 evergreen Windows OS DLLs** (`0` third-party/GTK/MinGW DLLs).
 3. **Zero-DLL `GSettings` Bootstrap:** `WindowsHalBootstrap` extracts embedded `gschemas.compiled` from `GResource` to `%LOCALAPPDATA%\WayPlank\glib-2.0\schemas\` and sets `G_SETTINGS_SCHEMA_DIR` before `DockPreferences` initializes.
 4. **64-Bit Windows Installer (`./BuildNsis.sh`):** Invokes `./BuildWin.sh` then packages `build/wayplank.exe` via Linux-native `makensis` into **`build/WayPlank-<ver>-Setup.exe` (`8.8 MB` LZMA)** supporting both System-Wide Admin (`C:\Program Files\WayPlank`) and Per-User (`%LOCALAPPDATA%\Programs\WayPlank`) installs (`MULTIUSER_USE_PROGRAMFILES64` + `SetRegView 64`), Start Menu / Desktop shortcuts, optional Autostart, Windows Installed Apps registration, and clean `Uninstall.exe`.
 
@@ -313,7 +314,7 @@ Cross-compiles all **20 static upstream C/C++/Vala libraries** from source tarba
 ```mermaid
 flowchart TD
     M0["Prerequisite Gate (v0.7.2 Public Beta 3 — MOC-0.7.2-HAL-001): Freeze Agnostic Translators + Dual-Zone Firewall + 100% FAT 0.7.2"] ==> M1;
-    M1["Milestone W1: Linux Cross-Toolchain & 16-Library Static MinGW Sysroot"] ==> M2;
+    M1["Milestone W1: Linux Cross-Toolchain & 20-Library Static MinGW Sysroot + lunasvg"] ==> M2;
 
     subgraph WIN_HAL_PLUG ["🪟 v0.7.3 WindowsHalBootstrap & Southbound Driver Plug-In"]
         M2["Milestone W2: Win32Backend + Win32ThumbnailProvider + win32-bridge.c -> IWindowBackend & IThumbnailProvider"];

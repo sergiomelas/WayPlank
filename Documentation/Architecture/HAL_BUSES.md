@@ -3,13 +3,13 @@
 > **Canonical Specification for the Agnostic IPC, Event Bus & Telemetry Boundary Translator (`hal/Interfaces/`) — `D-Bus` ➔ Translator ➔ `Windows Bus`**  
 > **Pedigree:** Scattered Per-Widget `GLib.Bus.get_sync` & `/proc` Calls (`v0.7.0`–`v0.7.1.2`) ➔ Frozen Agnostic Bus/Telemetry Translators + `hal/{Freedesktop,Linux}/` (`v0.7.2` Public Beta 3) ➔ Native `hal/Windows/{Bus,Telemetry}/` Plug-In (`v0.7.3` Public Beta 4)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-BUS-003` • **Revision `2.0`** (`MOC-0.7.2-HAL-001` — Wire-to-Domain Payload Translator, `IDesktopThemeBus` Rename, `ITrashProvider` / `IEjectorProvider` & `IPlatformRuntime` Purification)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-BUS-003` • **Revision `2.1`** (`v0.7.3` Public Beta 4 Closure — Native `hal/Windows/{Bus,Telemetry}/` Plug-In Complete & `100.0%` 4-Platform FAT Qualified `525/525`)  
 > **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Surface Translator: `KWin`, `Mutter`, `Labwc`, `Windows Compositor`)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator & 6-Layer Identity Engine)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) *(Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Cross-Build)*  
 > **Single Source of Truth:** Master System & IPC Bus HAL reference linked by [README.md](../../README.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md), and [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)  
-> **Staged Execution & Freeze Schedule (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
-> - **Active Public Baseline `v0.7.1.2` (Public Beta 2 Hotfix — Concluded 2026-11-14, 100.0% FAT Qualified):** Core window identity is resolved and locked once per window lifecycle inside `ApplicationIdentity` (including event-driven `com.canonical.dbusmenu` submenu `id=61` + `Local State` Chrome multi-profile isolation), while raw D-Bus, GVFS `trash:///`, `VolumeMonitor`, `/proc`, and `/sys` calls remain diffused across `lib/`.
-> - **Current Beta `v0.7.2` (Public Beta 3 — Concluded 2026-11-17, `100.0%` FAT Qualified `394/394` — Agnostic Bus/Telemetry Translator & Linux Freeze ~Nov 14–30, 2026):** Unpacks and translates 100% of D-Bus `GLib.Variant` payloads, GVFS/XDG protocols, and Linux `/proc`/`/sys` telemetry behind pure OS-blind domain contracts (`IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`) in `hal/Interfaces/`. **All bus/telemetry translator contracts are frozen at the end of `v0.7.2`.**
-> - **Subsequent Beta `v0.7.3` (Public Beta 4 — Native `Windows Bus` Plug-In for `Win 7 ⟷ 11+` ~Dec 2026):** Implements `hal/Windows/{Bus,Telemetry}/` using **Pure Baseline Win32 C APIs + Dynamic `GetProcAddress`** (Win32 Named Pipes, `VK_MEDIA_*` / optional GSMTC, Registry `AppsUseLightTheme`, CoreAudio, `DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `CM_Request_Device_EjectW`, `WinHTTP`) hooking directly into the frozen `v0.7.2` translators.
+> **Staged Execution & Qualification Record (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
+> - **Prior Baseline `v0.7.1.2` (Public Beta 2 Hotfix — Concluded 2026-11-14, `100.0%` FAT Qualified `375/375`):** Core window identity resolved and locked once per window lifecycle inside `ApplicationIdentity` (including event-driven `com.canonical.dbusmenu` submenu `id=61` + `Local State` Chrome multi-profile isolation).
+> - **Translator Freeze `v0.7.2` (Public Beta 3 — Concluded 2026-11-18, `100.0%` FAT Qualified `397/397`):** Unpacked and translated 100% of D-Bus `GLib.Variant` payloads, GVFS/XDG protocols, and Linux `/proc`/`/sys` telemetry behind frozen OS-blind domain contracts (`IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`) in `hal/Interfaces/`.
+> - **Current Live Release `v0.7.3` (Public Beta 4 — Concluded 2026-11-19, `100.0%` 4-Platform FAT Qualified `525/525`):** Implemented and live-certified `hal/Windows/{Bus,Telemetry}/` using **Pure Baseline Win32 C APIs + Dynamic `GetProcAddress`** (`Win32AppMenuBus` + `Local State`, `VK_MEDIA_*`, Registry `AppsUseLightTheme`, CoreAudio, `DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `DeviceIoControl` Ejector, `WinHTTP`, `BitBlt`/`PrintWindow` Screenshot, `CreateMutexW` Single-Instance, `WM_POWERBROADCAST` Resume) plugged directly into the frozen `v0.7.2` translators.
 
 ---
 
@@ -87,8 +87,8 @@ flowchart TD
     DOCKLETS_UI ==>|"Typed DTOs & DesktopUtilityKind"| ITELEM;
     IBUS ==>|"Unpacks Variant — v0.7.2"| ZONE3_LIN;
     ITELEM ==>|"Unpacks GVFS / /proc — v0.7.2"| ZONE3_LIN;
-    IBUS -.->|"Unpacks Win32 / Pipe — v0.7.3"| ZONE3_WIN;
-    ITELEM -.->|"Unpacks Win32 / COM — v0.7.3"| ZONE3_WIN;
+    IBUS ==>|"Unpacks Win32 / Pipe — v0.7.3"| ZONE3_WIN;
+    ITELEM ==>|"Unpacks Win32 / COM — v0.7.3"| ZONE3_WIN;
 ```
 
 ### 1.2 Single-Pass Window Identification & Immutable Lock in `ApplicationIdentity`
@@ -213,7 +213,7 @@ flowchart TD
     IFACE_GEO ==>|"KDE Plasma 6"| KWIN_DBUS;
     IFACE_GEO ==>|"GNOME Shell"| GNOME_DBUS;
     IFACE_GEO ==>|"Labwc / wlroots"| WLR_WIRE;
-    IFACE_GEO -.->|"Windows 7 ⟷ 11+ — v0.7.3"| WIN_HOOK;
+    IFACE_GEO ==>|"Windows 7 ⟷ 11+ — v0.7.3"| WIN_HOOK;
 ```
 
 ---
@@ -358,7 +358,7 @@ flowchart TD
         WIN_HW["CoreAudio • DXVA2 • PowrProf • SHQueryRecycleBinW • CM_Request_Device_EjectW • WinHTTP • ms-settings:*"];
     end
 
-    IFACE -.->|"BuildWin.sh Compile-Time Binding"| WBROKER;
+    IFACE ==>|"BuildWin.sh Compile-Time Binding"| WBROKER;
     WBROKER --> PIPE;
     WBROKER --> WINRT_MEDIA;
     WBROKER --> WIN_NOTIF;

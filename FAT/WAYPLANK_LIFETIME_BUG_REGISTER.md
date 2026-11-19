@@ -2,7 +2,7 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397` • **`v0.7.3` Public Beta 4 — Native Windows Zero-DLL Monolith IN PROGRESS**: [`FAT/2026-11-19 FAT 0.7.3.txt`](2026-11-19%20FAT%200.7.3.txt) — `533` Tests Defined / `528` Applicable: `SESSION 1: WINDOWS` `138 [  ]` Pending Live Qualification; `SESSION 2–4` Linux Frozen Baseline `390 [ok]` + `5 [NA]`, `0 [ko]`)  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397` • **`v0.7.3` Public Beta 4 — First Unified Linux Wayland & Native Windows Zero-DLL Monolith `100.0%` 4-Platform Qualified**: [`FAT/2026-11-19 FAT 0.7.3.txt`](2026-11-19%20FAT%200.7.3.txt) — `533` Tests Defined / `525` Applicable: `SESSION 1: WINDOWS` `135/135 (100.0%)` [`132 [ok]` + `3 [ko->ok]` (`1.5`, `2.14`, `5.3`) + `3 [NA]`]; `SESSION 2–4` Linux GNOME `132/132`, KDE Plasma 6 `132/132`, Labwc `126/126` + `5 [NA]` → **`525/525 (100.0% QUALIFIED)`, `0 [ko]`**)  
 > **Period:** 2026-09-19 to 2026-11-19  
 > **Standard:** ISA-88 Qualification Standard  
 > **Master HAL Specifications:** [Documentation/Architecture/README.md](../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](../Documentation/Architecture/HAL_BUSES.md), [APPLICATION_IDENTITY_ENGINE.md](../Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md) & [HAL_WINDOWS_BACKEND.md](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
@@ -22,9 +22,9 @@
   - **Total Compositor Test Verifications**: **192** `[ko->ok]` (`+39` `[ko->ok]` in `v0.7.1` / `v0.7.1.2`)
   - **Open FAT Regressions Remaining (`2026-11-18` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` `100.0%` Qualified on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); `v0.7.2` Move 6 Multi-Dock qualification at `402` test definitions / `397` applicable in [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt): **GNOME `Mutter` `100.0% PASSED` (`135/135` — `113 [ok]` + `22 [ko->ok]`)**, **KDE Plasma 6 `KWin` `100.0% PASSED` (`134/134` — `114 [ok]` + `20 [ko->ok]`)**, **`Labwc` `100.0% PASSED` (`128/128` — `111 [ok]` + `17 [ko->ok]`, `5 [NA]`)** = **`397/397` Applicable `100.0% PASSED` (`338 [ok]` + `59 [ko->ok]` across `24` unique IDs, `5 [NA]`, `0 [ko]`), `0 [ko->test]`, `0 [  ]`**)
 * **GRAND TOTAL ACROSS LIFETIME**:
-  - **Total Milestones**: **18 Releases** (`v0.7.1.2` Public Beta 2 Hotfix; `v0.7.2` Public Beta 3 `100.0%` FAT Qualified)
-  - **Total Unique Functional & Architectural Bugs Squashed**: **158** `[ko->ok]` (`134` through `v0.7.1.2` + `24` unique `[ko->ok]` verified across KWin, GNOME & Labwc in `v0.7.2`)
-  - **Total Multi-Compositor Verification Instances**: **285** `[ko->ok]` (`226` through `v0.7.1.2` + `59` `[ko->ok]` verifications in `v0.7.2`)
+  - **Total Milestones**: **19 Releases** (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified; **`v0.7.3` Public Beta 4 `100.0%` 4-Platform Linux + Windows FAT Qualified `525/525`**)
+  - **Total Unique Functional & Architectural Bugs Squashed**: **161** `[ko->ok]` (`158` through `v0.7.2` + `3` unique Windows `[ko->ok]` verified live on Windows 11 in `v0.7.3`: `1.5`, `2.14`, `5.3`)
+  - **Total Multi-Compositor / Multi-OS Verification Instances**: **288** `[ko->ok]` (`285` through `v0.7.2` + `3` `[ko->ok]` verifications in `v0.7.3`)
 
 ---
 
@@ -157,9 +157,9 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 | **`v0.7.0`** | 2026-11-06 | Public Beta 1 (Concluded) | 379 | 15 | 4 `ko`** |
 | **`v0.7.1.2`** | 2026-11-14 | Public Beta 2 + Hotfix (100% Pass) | 377 | `12 [ko->ok] (39 inst.)` | 0 |
 | **`v0.7.2`** | 2026-11-18 | Public Beta 3 — 3-Zone HAL & Multi-Dock (100% Pass) | 402 | `24 [ko->ok] (59 inst.)` | 0 |
-| **`v0.7.3`** | 2026-11-19 | Public Beta 4 — Native Windows Plug-In (In Progress — W1 Complete) | 533 | `0 [ko->ok]` (`390 [ok]` Linux Frozen + `138 [  ]` Win Pending) | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **12 Multi-Comp. Releases** | **3,195** | **124** | **0** |
-| **TOTAL** | **All Eras** | **18 Milestone Releases** | **3,195** | **158** | **0** |
+| **`v0.7.3`** | 2026-11-19 | Public Beta 4 — Unified Linux & Native Windows (100% Pass) | 533 | `3 [ko->ok] (1.5, 2.14, 5.3)` | 0 |
+| **ERA 2 SUB** | **Formal FAT** | **13 Multi-OS / Comp. Releases** | **3,728** | **127** | **0** |
+| **TOTAL** | **All Eras** | **19 Milestone Releases** | **3,728** | **161** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects logged were remediated and qualified in `v0.5.1`.*  
 *\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1.2`: `FAT/2026-11-05 FAT 0.7.0.txt` concluded at `359/377` (`95.2%`); all 18 transferred `[ko]` instances plus all `v0.7.1` / `v0.7.1.2` burn-in hotfixes achieved `100.0%` qualification (`375/375` applicable: `336 [ok]` + `39 [ko->ok]` + `2 [NA]` + `0 [ko]`) in `FAT/2026-11-13 FAT 0.7.1.txt`.*
@@ -336,4 +336,4 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 — Concluded & Frozen: 379 tests defined, 359/377 applicable passed — `95.2% PASS`: 317 `[ok]` baseline + 42 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 18 `[ko]` open defect instances formally transferred to `v0.7.1`)
 12. [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt) — Covers `v0.7.1` / `v0.7.1.2` (Public Beta 2 + Hotfix — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 336 `[ok]` consolidated baseline + 39 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)
 13. [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — 3-Zone Linux HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine `dock1`–`dock4`, Multi-Seat `Screen 1..4` arbitration, 2D `(Screen, Edge)` collision gray-out, non-destructive 9-profile fault armor, `dock1`-only WayPlank icon & unpinned running apps, automatic secondary-dock deletion when emptied, cross-dock drag/pinning/suppression, global $O(\log N)$ dichotomic `AppUsageService` vector, strict `(Same Type) ∧ (Target Zone)` accordion unfold, and Labwc zero-stall portal/AppMenu/reverse-DNS PID hardening — **100.0% Multi-Compositor Qualified: `402` tests defined / `397/397` Applicable Passed [`338 [ok]` + `59 [ko->ok]` across `24` unique IDs], `5 [NA]`, `0 [ko]`**: GNOME `Mutter` `135/135`, KDE Plasma 6 `KWin` `134/134`, `Labwc` `128/128`)
-14. [`FAT/2026-11-19 FAT 0.7.3.txt`](2026-11-19%20FAT%200.7.3.txt) — Active `v0.7.3` (Public Beta 4 — Native Windows Zero-DLL Monolith `build/wayplank.exe` & 64-Bit NSIS Installer `build/WayPlank-0.7.3-Setup.exe`, **IN PROGRESS — Milestone W1 Complete & Live-Booted on Windows 10 x64**): `533` tests defined / `528` applicable (`SESSION 1: WINDOWS` `138 [  ]` pending live qualification; `SESSION 2–4` Linux frozen `v0.7.2` baseline `390 [ok]` + `5 [NA]`, `0 [ko]`; Boundary Lock verified at `0` Linux/Core code edits)
+14. [`FAT/2026-11-19 FAT 0.7.3.txt`](2026-11-19%20FAT%200.7.3.txt) — Covers `v0.7.3` (Public Beta 4 — First Unified Linux Wayland & Native Windows Zero-DLL Monolith `build/wayplank.exe` + 64-Bit NSIS Installer `build/WayPlank-0.7.3-Setup.exe` — **100.0% 4-Platform FAT Qualified: `533` tests defined / `525/525` Applicable Passed [`522 [ok]` + `3 [ko->ok]` (`1.5`, `2.14`, `5.3`)], `8 [NA]`, `0 [ko]`**: Windows 11 `135/135` + `3 [NA]`, GNOME `Mutter` `132/132`, KDE Plasma 6 `KWin` `132/132`, `Labwc` `126/126` + `5 [NA]`)

@@ -231,12 +231,12 @@ namespace Plank
 			});
 
 			browse_btn.clicked.connect (() => {
-				var chooser = new Gtk.FileChooserNative (
+				var chooser = new Gtk.FileChooserDialog (
 					_("Select Folder Location"),
 					null,
 					Gtk.FileChooserAction.SELECT_FOLDER,
-					_("_Select"),
-					_("_Cancel")
+					_("_Cancel"), Gtk.ResponseType.CANCEL,
+					_("_Select"), Gtk.ResponseType.ACCEPT
 				);
 				if (chooser.run () == Gtk.ResponseType.ACCEPT) {
 					var picked = chooser.get_file ();

@@ -745,7 +745,15 @@ for po in "${BASE_DIR}"/po/*.po; do
     EXTRA_XML_ENTRIES="${EXTRA_XML_ENTRIES}		<file compressed=\"true\">locale/${lang}/wayplank.mo</file>\n"
 done
 
-glib-compile-schemas "${BASE_DIR}/data/glib-2.0/schemas"
+SCHEMA_STAGE="${WIN_C_DIR}_schemas"
+rm -rf "$SCHEMA_STAGE"
+mkdir -p "$SCHEMA_STAGE"
+cp "${BASE_DIR}/data/glib-2.0/schemas/"*.gschema.xml "$SCHEMA_STAGE/"
+if [ -d "${SYSROOT}/share/glib-2.0/schemas" ]; then
+    cp "${SYSROOT}/share/glib-2.0/schemas/"*.gschema.xml "$SCHEMA_STAGE/" 2>/dev/null || true
+fi
+glib-compile-schemas "$SCHEMA_STAGE" --targetdir="${BASE_DIR}/data/glib-2.0/schemas"
+rm -rf "$SCHEMA_STAGE"
 EXTRA_XML_ENTRIES="${EXTRA_XML_ENTRIES}		<file compressed=\"true\">glib-2.0/schemas/gschemas.compiled</file>\n"
 
 awk -v entries="$EXTRA_XML_ENTRIES" '
@@ -777,6 +785,8 @@ valac -C -d "$WIN_C_DIR" \
     --pkg compat \
     --pkg config \
     --pkg win32-bridge \
+    --pkg win32-app-bridge \
+    --pkg win32-sys-bridge \
     "${VALA_FILES[@]}"
 
 echo "🪟 Compiling Windows resource manifest (wayplank.rc)..."
@@ -805,6 +815,8 @@ WIN_CFLAGS=(
     -I"${BASE_DIR}/lib"
     -I"${BASE_DIR}/include"
     -I"${BASE_DIR}/hal/Windows/Compositor"
+    -I"${BASE_DIR}/hal/Windows/AppSystem"
+    -I"${BASE_DIR}/hal/Windows/Telemetry"
     -include "${BASE_DIR}/include/config.h"
     -w
 )

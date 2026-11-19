@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.2\n"
+"Project-Id-Version: wayplank 0.7.3\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-18 23:22+0100\n"
-"PO-Revision-Date: 2026-11-18 23:22+0100\n"
+"POT-Creation-Date: 2026-11-20 12:45+0100\n"
+"PO-Revision-Date: 2026-11-20 12:45+0100\n"
 "Last-Translator: Michailo Buchko <mixabuchko@gmail.com>\n"
 "Language-Team: Ukrainian <uk@li.org>\n"
 "Language: uk\n"
@@ -42,6 +42,8 @@ msgid "Screenshot"
 msgstr "Знімок екрана"
 
 #: hal/Interfaces/ISystemTelemetry.vala:293
+#: hal/Windows/Telemetry/Win32Telemetry.vala:248
+#: hal/Windows/Telemetry/Win32Telemetry.vala:259
 msgid "Drive not available"
 msgstr "Диск недоступний"
 
@@ -335,7 +337,7 @@ msgid "Empty"
 msgstr "Порожньо"
 
 #: lib/Items/FileDockItem.vala:846 lib/Widgets/FolderMenuWindow.vala:1128
-#: lib/Widgets/PreferencesWindow.vala:976
+#: lib/Widgets/PreferencesWindow.vala:977
 msgid "_Open"
 msgstr "_Відкрити"
 
@@ -702,7 +704,7 @@ msgid "Shut Down"
 msgstr "Вимкнути"
 
 #: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:339 lib/Widgets/SessionWindow.vala:262
+#: lib/Widgets/IconChooserDialog.vala:338 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Скасувати"
@@ -913,10 +915,10 @@ msgid "Add Folder"
 msgstr "Додати теку"
 
 #: lib/Widgets/DockFolderDialogs.vala:161
-#: lib/Widgets/DockFolderDialogs.vala:239
+#: lib/Widgets/DockFolderDialogs.vala:238
 #: lib/Widgets/DockFolderDialogs.vala:299
 #: lib/Widgets/DockFolderDialogs.vala:549
-#: lib/Widgets/PreferencesWindow.vala:977
+#: lib/Widgets/PreferencesWindow.vala:976
 #: lib/Widgets/PreferencesWindow.vala:1073
 msgid "_Cancel"
 msgstr "_Скасувати"
@@ -960,7 +962,7 @@ msgstr "Введіть назву теки (або виберіть шлях д�
 msgid "Select Folder Location"
 msgstr "Вибрати розташування теки"
 
-#: lib/Widgets/DockFolderDialogs.vala:238
+#: lib/Widgets/DockFolderDialogs.vala:239
 msgid "_Select"
 msgstr "_Вибрати"
 
@@ -1525,7 +1527,7 @@ msgstr "Застосувати"
 msgid "Select Icon File"
 msgstr "Виберіть файл піктограми"
 
-#: lib/Widgets/IconChooserDialog.vala:338
+#: lib/Widgets/IconChooserDialog.vala:339
 msgid "Select"
 msgstr "Вибрати"
 

@@ -3,13 +3,13 @@
 > **Canonical Specification for the Agnostic Compositor/Surface Boundary Translator (`hal/Interfaces/`) & Multi-OS Compositor Isolation**  
 > **Pedigree:** Plank (Legacy X11) ➔ WayPlank (Wayland: KWin / Mutter / Labwc) ➔ Unified Multi-Compositor & Multi-OS Engine (Linux / BSD / Windows)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-COMP-002` • **Revision `2.0`** (`MOC-0.7.2-HAL-001` — Compositor/Surface Boundary Translator, `FreedesktopHalBootstrap` Isolation & Dual-Zone Firewall)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-COMP-002` • **Revision `2.1`** (`v0.7.3` Public Beta 4 Closure — Native `hal/Windows/Compositor/` Plug-In Complete & `100.0%` 4-Platform FAT Qualified `525/525`)  
 > **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_BUSES.md](HAL_BUSES.md) *(IPC & System Bus Translator: `D-Bus` vs `Windows Bus`)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator: `.desktop` & `/proc` vs `.lnk` & `AUMID` + 6-Layer Identity Engine)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) *(Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Cross-Build)*  
 > **Single Source of Truth:** Master Compositor & Shell HAL reference linked by [README.md](../../README.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [USER_GUIDE.md](../USER_GUIDE.md), [WAYPLANK_FORK_INTEGRATION_ROADMAP.md](../Historic/WAYPLANK_FORK_INTEGRATION_ROADMAP.md), [WAYPLANK_COMPOSITORS_CHEATSHEET.md](../../FAT/Test%20Files/WAYPLANK_COMPOSITORS_CHEATSHEET.md), and [WAYPLANK_LIFETIME_BUG_REGISTER.md](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)  
-> **Staged Execution & Freeze Schedule (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
-> - **Active Public Baseline `v0.7.1.2` (Public Beta 2 Hotfix — Concluded 2026-11-14, 100.0% FAT Qualified):** Wayland 3-compositor HAL active on `main` (`KWin`, `Mutter`, `Labwc`).
-> - **Current Beta `v0.7.2` (Public Beta 3 — Concluded 2026-11-17, `100.0%` FAT Qualified `394/394` — Agnostic Boundary Translator & Linux HAL/Bus Freeze ~Nov 14–30, 2026):** Introduces the 100% OS-blind **Agnostic Boundary Translator Layer (`hal/Interfaces/`)** and physically concentrates all Wayland, D-Bus, XDG, and Linux drivers into `hal/{Freedesktop,Linux}/` with an automated Dual-Zone HAL Purity Firewall. **In `v0.7.2`, only the Linux/Freedesktop side is implemented and qualified so `hal/Interfaces/` is 100% frozen before adding Windows.**
-> - **Subsequent Beta `v0.7.3` (Public Beta 4 — Native Windows Plug-In ~Dec 2026):** Plugs `hal/Windows/{WindowsHalBootstrap,Compositor,Bus,AppSystem,Telemetry}/` and `./BuildWin.sh` ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)) directly into the frozen `v0.7.2` `hal/Interfaces/` translators (`build/wayplank.exe`) with zero modifications to Core or Linux backends.
+> **Staged Execution & Qualification Record (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
+> - **Prior Baseline `v0.7.1.2` (Public Beta 2 Hotfix — Concluded 2026-11-14, `100.0%` FAT Qualified `375/375`):** Wayland 3-compositor HAL (`KWin`, `Mutter`, `Labwc`).
+> - **Translator Freeze `v0.7.2` (Public Beta 3 — Concluded 2026-11-18, `100.0%` FAT Qualified `397/397`):** Introduced the 100% OS-blind **Agnostic Boundary Translator Layer (`hal/Interfaces/`)** and concentrated all Wayland, D-Bus, XDG, and Linux drivers into `hal/{Freedesktop,Linux}/` behind the 8-Gate Dual-Zone HAL Purity Firewall.
+> - **Current Live Release `v0.7.3` (Public Beta 4 — Concluded 2026-11-19, `100.0%` 4-Platform FAT Qualified `525/525`):** Plugged complete native **Windows `7 ⟷ 11+`** drivers (`hal/Windows/{WindowsHalBootstrap,Compositor,Bus,AppSystem,Telemetry}/` + `./BuildWin.sh` + `./BuildNsis.sh` $\rightarrow$ Zero-DLL `build/wayplank.exe` & `build/WayPlank-0.7.3-Setup.exe`) directly into the frozen `v0.7.2` `hal/Interfaces/` translators with zero edits to the frozen Linux HAL.
 
 ---
 
@@ -138,7 +138,7 @@ flowchart TD
     WM ==>|"Window Actions & Overlap Queries"| HAL_API;
     UI ==>|"Domain Intents & Cairo.Region"| HAL_API;
     HAL_API ==>|"Linux / BSD Build"| FDO_BOOT;
-    HAL_API -.->|"Windows Build — BuildWin.sh"| WIN_BOOT;
+    HAL_API ==>|"Windows Build — BuildWin.sh"| WIN_BOOT;
 ```
 
 ### 3.1 4-Compositor Contract Matrix & Non-Negotiable Safety Invariants

@@ -969,12 +969,12 @@ namespace Plank
 			this.hide ();
 			suppress_destroy_on_hide = false;
 
-			var chooser = new Gtk.FileChooserNative (
+			var chooser = new Gtk.FileChooserDialog (
 				_("Install WayPlank Theme"),
 				null,
 				Gtk.FileChooserAction.OPEN,
-				_("_Open"),
-				_("_Cancel")
+				_("_Cancel"), Gtk.ResponseType.CANCEL,
+				_("_Open"), Gtk.ResponseType.ACCEPT
 			);
 
 			var filter_archives = new Gtk.FileFilter ();

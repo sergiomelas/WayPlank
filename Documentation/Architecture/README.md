@@ -2,10 +2,10 @@
 
 > **Canonical Top-Level Engineering Blueprint for the Unified Multi-Compositor & Multi-OS WayPlank Codebase**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.5`** (`2026-11-16` • `MOC-0.7.2-HAL-001` — Moves 1–4 100% Implemented, Dual-Zone HAL Purity Firewall `GREEN` [`0` leaks], 65,025-Case Identity Matrix `100.0% PASS` at `backup/0.7.2-move-4`, `FAT 0.7.2` `100.0%` Qualified [`394/394`] on `2026-11-17`)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.6`** (`2026-11-19` • `v0.7.3` Public Beta 4 — Native `hal/Windows/` Plug-In Complete & `100.0%` 4-Platform FAT Qualified [`525/525`]: Windows 11 `135/135`, GNOME `132/132`, KDE Plasma 6 `132/132`, Labwc `126/126`, 8-Gate HAL Purity Firewall `GREEN`, Zero-DLL `wayplank.exe` at 24 Stock OS DLLs)  
 > **Unified Brand & Executables:** **WayPlank** (`build/wayplank` on Linux / BSD • `build/wayplank.exe` on Windows `7 ⟷ 11+`)  
-> **Active Public Baseline (`main`):** `v0.7.2` (Public Beta 3 — `100.0%` FAT Qualified — `394/394` Applicable across KDE Plasma 6, GNOME Shell & Labwc; previous baseline `v0.7.1.2` at `375/375`)  
-> **Staged Consolidation Gate:** **`v0.7.2` (Public Beta 3 — Agnostic Boundary Translator & Linux HAL/Bus Freeze)** $\longrightarrow$ **`v0.7.3` (Public Beta 4 — Native `hal/Windows/` Southbound Driver Plug-In)**  
+> **Active Public Baseline (`main`):** `v0.7.3` (Public Beta 4 — `100.0%` 4-Platform FAT Qualified — `525/525` Applicable across Windows 11, KDE Plasma 6, GNOME Shell & Labwc; previous baseline `v0.7.2` at `397/397`)  
+> **Completed Consolidation Gate:** **`v0.7.2` (Public Beta 3 — Agnostic Boundary Translator & Linux HAL/Bus Freeze)** $\longrightarrow$ **`v0.7.3` (Public Beta 4 — Native `hal/Windows/` Southbound Driver Plug-In — 100.0% Qualified)**  
 > **Quick Links:** [Repository Root `README.md`](../../README.md) • [User Guide (`USER_GUIDE.md`)](../USER_GUIDE.md) • [Historic Archive (`Historic/`)](../Historic/README.md) • [Contributing (`CONTRIBUTING.md`)](../../CONTRIBUTING.md) • [Lifetime Bug Register](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
 
 ---
@@ -49,6 +49,7 @@ Every structural modification between the qualified **`v0.7.1.2`** baseline and 
 | **`2.3`** | `2026-11-15` | Sergio Melas | **`MOC-0.7.2-HAL-001` Move 4 Sub-Gate M4-A (`backup/0.7.2-move-4a`):** Froze `IAppSystem`, `IAppMenuBus`, and `IPlatformRuntime` path/schema hooks (`0` leaks in `hal/Interfaces/` + `vapi/core/`), implemented `XdgAppSystem`, `AppMenuDbusService`, and expanded `LinuxProcessInspector`, and live-verified `3/3` compositors. |
 | **`2.4`** | `2026-11-16` | Sergio Melas | **`MOC-0.7.2-HAL-001` Move 4 Sub-Gate M4-B (`backup/0.7.2-move-4b`):** Purified all `24` non-solver Core files in `src/` and `lib/` onto `Hal.Apps` and `Hal.Runtime`, remediated Mutter `v072_bridge_1` `move_frame` popup positioning, direct `org.gnome.Shell.Extensions` D-Bus activation (eliminating 25s portal timeout), and uniform `44px` tooltip clearance across KWin/Mutter/Labwc (`3/3` live smoke-verified). |
 | **`2.5`** | `2026-11-16` | Sergio Melas | **`MOC-0.7.2-HAL-001` Move 4 Sub-Gate M4-C & `40/40` Closure (`backup/0.7.2-move-4`):** Purified `ApplicationIdentity`, `ApplicationDiscovery`, and `Matcher` (`0` Zone 1/Zone 2 leaks across `143/143` files), activated the pre-compile **Dual-Zone HAL Purity Firewall** in `BuildBin.sh` (`GREEN`), certified `100.0%` SHA-256 parity on the `65,025`-case Identity Engine Matrix, replaced browser session polling timers with zero-timer `inotify` (`IAppSystem.browser_sessions_changed`), hardened Mutter `v072_bridge_2` `BEFORE_REDRAW` hotplug safety, retained `PreferencesWindow` focus across edge/monitor switches, added multi-choice batched *Docklets* submenu selection, and reconciled `37 [ko->test]` remediations across `399` tests in `FAT/2026-11-17 FAT 0.7.2.txt`. |
+| **`2.6`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Public Beta 4 Closure (Milestones `W1` ➔ `W6`):** Completed native Windows `7 ⟷ 11+` southbound driver plug-in (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`, `BuildWin.sh` 20-lib static MinGW sysroot + built-in `lunasvg`, `BuildNsis.sh` 64-bit installer) with `0` edits to frozen Zone 2 `hal/Interfaces/` or Linux HAL (`8/8` HAL Purity Firewall `GREEN`, Zero-DLL Gate `GREEN` at 24 stock Windows OS DLLs), achieving **`100.0%` 4-Platform FAT Qualification (`525/525` Applicable Passed, `0 [ko]`)** in `FAT/2026-11-19 FAT 0.7.3.txt`. |
 
 ---
 
@@ -114,9 +115,9 @@ flowchart TD
     T_APP ==>|"Linux /proc Inspector"| LIN_DRV;
     T_BUS -.->|"BSD Build"| BSD_DRV;
     T_APP -.->|"BSD sysctl"| BSD_DRV;
-    T_COMP -.->|"Windows Build — BuildWin.sh"| WIN_DRV;
-    T_BUS -.->|"Windows Build — BuildWin.sh"| WIN_DRV;
-    T_APP -.->|"Windows Build — BuildWin.sh"| WIN_DRV;
+    T_COMP ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
+    T_BUS ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
+    T_APP ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
 ```
 
 ---

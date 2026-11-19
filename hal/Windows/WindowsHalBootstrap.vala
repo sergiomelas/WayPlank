@@ -48,7 +48,7 @@ namespace Plank
 			if (base_dir == null || base_dir.strip ().length == 0)
 				base_dir = Environment.get_user_data_dir ();
 
-			string schema_dir = Path.build_filename (base_dir, "WayPlank", "glib-2.0", "schemas");
+			string schema_dir = Path.build_filename (base_dir, "WayPlank", "glib-2.0", "schemas", "v0.7.3-gtk3");
 			DirUtils.create_with_parents (schema_dir, 0755);
 
 			string schema_file = Path.build_filename (schema_dir, "gschemas.compiled");
@@ -59,30 +59,114 @@ namespace Plank
 				);
 				if (bytes != null) {
 					unowned uint8[] data = bytes.get_data ();
-					FileUtils.set_data (schema_file, data);
+					bool need_write = !FileUtils.test (schema_file, FileTest.IS_REGULAR);
+					if (!need_write) {
+						try {
+							var info = File.new_for_path (schema_file).query_info (FileAttribute.STANDARD_SIZE, FileQueryInfoFlags.NONE);
+							if ((size_t) info.get_size () != data.length)
+								need_write = true;
+						} catch (Error e) {
+							need_write = true;
+						}
+					}
+					if (need_write)
+						FileUtils.set_data (schema_file, data);
 				}
 			} catch (Error e) {
 				warning ("Win32BootstrapRuntime: failed to extract embedded gschemas.compiled: %s", e.message);
 			}
 
 			cached_schema_dir = schema_dir;
-			Environment.set_variable ("G_SETTINGS_SCHEMA_DIR", schema_dir, false);
+			Environment.set_variable ("G_SETTINGS_SCHEMA_DIR", schema_dir, true);
 			return schema_dir;
 		}
 
-		public bool open_system_utility (DesktopUtilityKind kind) { return false; }
-		public bool open_uri (string uri, Gtk.Window? parent = null) { return false; }
+		public bool open_system_utility (DesktopUtilityKind kind)
+		{
+			switch (kind) {
+			case DesktopUtilityKind.DATE_TIME_SETTINGS:
+				return Win32AppBridge.shell_execute ("ms-settings:dateandtime", null, null) != 0;
+			case DesktopUtilityKind.CALENDAR:
+				return Win32AppBridge.shell_execute ("outlookcal:", null, null) != 0;
+			case DesktopUtilityKind.POWER_SETTINGS:
+				return Win32AppBridge.shell_execute ("ms-settings:powersleep", null, null) != 0;
+			case DesktopUtilityKind.SOUND_SETTINGS:
+				return Win32AppBridge.shell_execute ("ms-settings:sound", null, null) != 0;
+			case DesktopUtilityKind.NETWORK_SETTINGS:
+				return Win32AppBridge.shell_execute ("ms-settings:network", null, null) != 0;
+			case DesktopUtilityKind.DISPLAY_SETTINGS:
+				return Win32AppBridge.shell_execute ("ms-settings:display", null, null) != 0;
+			case DesktopUtilityKind.NOTIFICATION_SETTINGS:
+				return Win32AppBridge.shell_execute ("ms-settings:notifications", null, null) != 0;
+			case DesktopUtilityKind.SYSTEM_MONITOR:
+				return Win32AppBridge.shell_execute ("taskmgr.exe", null, null) != 0;
+			default:
+				return false;
+			}
+		}
+
+		public bool open_uri (string uri, Gtk.Window? parent = null)
+		{
+			if (uri.length == 0)
+				return false;
+			return Win32AppBridge.shell_execute (uri, null, null) != 0;
+		}
+
 		public bool http_get_sync (string url, int timeout_sec, out string response_body)
 		{
-			response_body = "";
+			string? body = null;
+			int ok = Win32SysBridge.http_get_sync (url, timeout_sec, out body);
+			response_body = body ?? "";
+			return ok != 0;
+		}
+
+		public bool extract_archive (string archive_path, string dest_dir)
+		{
+			try {
+				string[] argv = { "tar.exe", "-xf", archive_path, "-C", dest_dir };
+				int exit_status = 0;
+				Process.spawn_sync (null, argv, null, SpawnFlags.SEARCH_PATH, null, null, null, out exit_status);
+				return exit_status == 0;
+			} catch (Error e) {
+				warning ("Win32BootstrapRuntime: extract_archive failed: %s", e.message);
+				return false;
+			}
+		}
+		public bool validate_keyfile_isolated (string path) { return true; }
+
+		public bool is_autostart_enabled ()
+		{
+			return Win32SysBridge.is_autostart_enabled () != 0;
+		}
+
+		public bool set_autostart_enabled (bool enabled)
+		{
+			return Win32SysBridge.set_autostart_enabled (enabled ? 1 : 0) != 0;
+		}
+		public void terminate_legacy_competing_docks () {}
+		public void replace_running_instances (string target_dock_name)
+		{
+			Win32SysBridge.replace_running_instances ();
+		}
+
+		public bool uses_native_single_instance_ipc ()
+		{
+			return true;
+		}
+
+		public bool try_forward_cli_to_running_instance (string dock_name, string action)
+		{
+			if (Win32SysBridge.acquire_single_instance (dock_name) != 0) {
+				int code = Win32Bridge.IPC_REFRESH;
+				if (action == "preferences")
+					code = Win32Bridge.IPC_PREFERENCES;
+				else if (action == "shortcuts")
+					code = Win32Bridge.IPC_SHORTCUTS;
+				Win32Bridge.post_ipc_action (code);
+				return true;
+			}
 			return false;
 		}
-		public bool extract_archive (string archive_path, string dest_dir) { return false; }
-		public bool validate_keyfile_isolated (string path) { return true; }
-		public bool is_autostart_enabled () { return false; }
-		public bool set_autostart_enabled (bool enabled) { return false; }
-		public void terminate_legacy_competing_docks () {}
-		public void replace_running_instances (string target_dock_name) {}
 
 		public void prepare_process_environment ()
 		{
@@ -148,8 +232,27 @@ namespace Plank
 			return "Windows (Win32 HAL)";
 		}
 
+		void on_win32_resume ()
+		{
+			system_resumed (250);
+		}
+
+		void on_win32_ipc_action (int action_code)
+		{
+			string action = "refresh";
+			if (action_code == Win32Bridge.IPC_PREFERENCES)
+				action = "preferences";
+			else if (action_code == Win32Bridge.IPC_SHORTCUTS)
+				action = "shortcuts";
+			remote_action_requested ("dock1", action);
+		}
+
 		public void install_lifecycle_signals () {}
-		public void install_session_and_upgrade_watchers () {}
+		public void install_session_and_upgrade_watchers ()
+		{
+			Win32Bridge.set_resume_callback (on_win32_resume);
+			Win32Bridge.set_ipc_callback (on_win32_ipc_action);
+		}
 		public void reexec_self_on_upgrade (string executable_path, string? dock_name) {}
 
 		public void exit_immediately (int status_code)
@@ -221,7 +324,11 @@ namespace Plank
 			return args.to_array ();
 		}
 
-		public void cleanup () {}
+		public void cleanup ()
+		{
+			Win32Bridge.set_resume_callback (null);
+			Win32Bridge.set_ipc_callback (null);
+		}
 	}
 
 	/**
@@ -241,7 +348,7 @@ namespace Plank
 		[CCode (cname = "wayplank_hal_platform_early_apps")]
 		public static IAppSystem early_apps ()
 		{
-			return new NullAppSystem ();
+			return Win32AppSystem.get_default ();
 		}
 
 		[CCode (cname = "wayplank_hal_platform_bootstrap")]
@@ -249,6 +356,9 @@ namespace Plank
 		{
 			var rt = Win32BootstrapRuntime.get_default ();
 			rt.ensure_embedded_schemas_dir ();
+
+			var telemetry = new Win32Telemetry ();
+			var bus = new Win32BusBroker ();
 
 			var caps = new PlatformCapabilities ();
 			caps.supports_intelligent_hide = true;
@@ -262,7 +372,7 @@ namespace Plank
 			caps.supports_poof_overlay = true;
 			caps.supports_quit_action = true;
 			caps.supports_pressure_reveal = false;
-			caps.supports_hardware_brightness = true;
+			caps.supports_hardware_brightness = telemetry.Brightness.is_available ();
 			caps.uses_shell_anchored_surfaces = false;
 			caps.unsupported_hide_mode_suffix = "";
 			caps.fully_supported_summary = "Windows (Win32/DWM)";
@@ -270,15 +380,15 @@ namespace Plank
 
 			Hal.bind_display_stack (
 				caps,
-				new NullDockShell (),
-				new NullWindowBackend (),
-				new NullThumbnailProvider ()
+				new Win32Shell (),
+				new Win32Backend (),
+				new Win32ThumbnailProvider ()
 			);
 			Hal.bind_system_stack (
-				new NullBusBackend (),
-				new NullSystemTelemetry (),
+				bus,
+				telemetry,
 				rt,
-				new NullAppSystem ()
+				Win32AppSystem.get_default ()
 			);
 		}
 	}

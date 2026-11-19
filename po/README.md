@@ -28,9 +28,9 @@ WayPlank will **NEVER** be distributed as a multi-file bundle requiring external
 
 ---
 
-## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 3 `v0.7.2`)
+## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 4 `v0.7.3`)
 
-In **WayPlank Public Beta 3 (`v0.7.2`)**, all 7 translation catalogs (`566/566` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration.
+In **WayPlank Public Beta 4 (`v0.7.3`)**, all 7 translation catalogs (`566/566` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration across both Linux (`wayplank`) and Windows (`wayplank.exe`).
 
 The 100% monolithic embedded localization engine for Public Beta (`v0.7.1`) follows these exact technical steps:
 

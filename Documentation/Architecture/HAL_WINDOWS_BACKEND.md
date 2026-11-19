@@ -5,16 +5,15 @@
 > **Mandate:** Compiled 100% on Linux — Zero Compilers or Runtimes Needed on Windows  
 > **Target Asset:** Single Monolithic Standalone Executable (`build/wayplank.exe`) with **ZERO External DLLs**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-WIN-005` • **Revision `2.0`** (`MOC-0.7.2-HAL-001` — `WindowsHalBootstrap`, Agnostic Translator Alignment, `IDesktopThemeBus`, `ITrashProvider` / `IEjectorProvider` GVFS Elimination & `\`-Safe `CommandLineToArgvW`)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-WIN-005` • **Revision `2.1`** (`v0.7.3` Milestone W1 — 20-Lib Static MinGW Sysroot, Built-In Static `lunasvg` SVG Loader in `libgdk_pixbuf-2.0.a`, `BuildWin.sh` Zero-DLL Gate `GREEN` at 24 Stock OS DLLs & 64-Bit `BuildNsis.sh` Installer)  
 > **Companion Master Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [Repository `README.md`](../../README.md) • [CONTRIBUTING.md](../../CONTRIBUTING.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Shell Translator)* • [HAL_BUSES.md](HAL_BUSES.md) *(IPC & System Bus Translator)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator & 6-Layer Identity Engine)* • [USER_GUIDE.md](../USER_GUIDE.md)  
-> **Status:** Staged Two-Beta Execution Plan — **`v0.7.2` (Public Beta 3): Agnostic Boundary Translator & Linux Freeze** $\longrightarrow$ **`v0.7.3` (Public Beta 4): Native `hal/Windows/` Driver Plug-In & `wayplank.exe`** (Active Public Linux Baseline: `v0.7.2` Public Beta 3 — `100.0%` FAT Qualified `394/394`)  
+> **Status:** **ACTIVE DEVELOPMENT (`v0.7.3` Public Beta 4 on `hal-v0.7.3-windows`)** — **`v0.7.2` Linux Translator Freeze 100% Qualified (`397/397`)** $\longrightarrow$ **Milestone W1 Complete & Live-Booted on Windows 10 (`build/wayplank.exe` `23 MB` + `build/WayPlank-0.7.3-Setup.exe` `8.8 MB`)**
 
 ---
 
-> [!CAUTION]
-> # 🛑 PUBLIC REPOSITORY NOTICE — TWO-STAGE BETA GATE (`v0.7.2` TRANSLATOR FREEZE ➔ `v0.7.3` WINDOWS PLUG-IN)
-> ## IN `v0.7.2` (PUBLIC BETA 3), WAYPLANK IMPLEMENTS AND FREEZES THE `hal/Interfaces/` AGNOSTIC BOUNDARY TRANSLATOR CONTRACTS ON LINUX ONLY ([HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) & [HAL_BUSES.md](HAL_BUSES.md)). PUBLIC `wayplank.exe` INTEGRATION IS SCHEDULED FOR `v0.7.3` (PUBLIC BETA 4), PLUGGING `hal/Windows/` DIRECTLY INTO THE FROZEN `v0.7.2` TRANSLATOR LAYER.
-> ### ISSUE TRACKER POLICY: UNTIL `./BuildWin.sh` AND `wayplank.exe` ARE PUBLISHED AS OFFICIAL `v0.7.3+` GITHUB RELEASE ASSETS, DO NOT OPEN GITHUB ISSUES OR DISCUSSIONS ASKING FOR WINDOWS SUPPORT OR ETAS. ANY PREMATURE REQUESTS WILL BE CLOSED WITHOUT DISCUSSION.
+> [!NOTE]
+> # 🪟 ACTIVE DEVELOPMENT — `v0.7.3` PUBLIC BETA 4 (`hal-v0.7.3-windows`)
+> **Milestone W1 is complete:** `./BuildWin.sh` cross-compiles the Zero-DLL monolith `build/wayplank.exe` (`23 MB`, 24 evergreen Windows OS DLLs only) and `./BuildNsis.sh` packages the 64-bit Windows installer `build/WayPlank-0.7.3-Setup.exe` (`8.8 MB` LZMA) 100% on Linux. Native Win32 drivers (`W2`–`W5`) are now being implemented strictly inside `hal/Windows/` with **0 edits** to Zone 1 Core, Zone 2 `hal/Interfaces/`, or Linux/Freedesktop HAL.
 
 ---
 
@@ -24,6 +23,7 @@
 | :---: | :---: | :--- | :--- |
 | **`1.0`** | `2026-11-14` | Sergio Melas | Initial Windows compositor/bus backend & Zero-DLL `./BuildWin.sh` blueprint (`v0.7.1.2` baseline). |
 | **`2.0`** | `2026-11-14` | Sergio Melas | **`MOC-0.7.2-HAL-001`:** Synchronized all contracts and Mermaid schemes with the **Agnostic Boundary Translator Layer (`hal/Interfaces/`)** and `WindowsHalBootstrap.vala`; renamed `IPortalThemeBus` $\rightarrow$ **`IDesktopThemeBus`**; documented full Win32 `ITrashProvider` (`SHQueryRecycleBinW` + `FO_DELETE\|FOF_ALLOWUNDO` replacing non-existent static Win32 GVFS `trash:///`) and `IEjectorProvider` (`GetLogicalDrives` + `CM_Request_Device_EjectW` replacing `VolumeMonitor`); documented `Recent\*.lnk` Jump-List parsing, `aumid://` URI validation, `DesktopUtilityKind` $\rightarrow$ `ms-settings:*`, `CommandLineToArgvW` backslash preservation, and `vapi/core/compat.vapi` + `#ifndef _WIN32` C/VAPI purifications. |
+| **`2.1`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Milestone W1 Closure (`c97279b`):** Implemented `./BuildWin.sh` 4-Tier 20-archive static MinGW-w64 sysroot (`deps/win32/sysroot`, documented in `deps/README.md`), built-in static `lunasvg 2.4.1` SVG loader (`hal/Windows/win32-svg-loader.cpp` compiled into `libgdk_pixbuf-2.0.a` via `-DINCLUDE_svg` with external `loaders.cache` probe disabled), verified Zero-DLL PE32+ `objdump -p` gate (`24` evergreen Windows OS DLLs only, `23 MB` stripped `build/wayplank.exe`), added Linux-hosted 64-bit NSIS packager `./BuildNsis.sh` (`build/WayPlank-0.7.3-Setup.exe`, `8.8 MB` LZMA, `MULTIUSER_USE_PROGRAMFILES64` + `SetRegView 64`), and verified first live Windows 10 x64 boot. |
 
 ---
 
@@ -291,19 +291,20 @@ flowchart TD
 
 ---
 
-## 🛠️ 7. Linux Cross-Build Pipeline Architecture (Planned `./BuildWin.sh`)
+## 🛠️ 7. Linux Cross-Build & NSIS Packaging Pipeline (`./BuildWin.sh` & `./BuildNsis.sh`)
 
-### 7.1 4-Tier Source-Code Static Cross-Compilation DAG (`./deps/win32/sysroot`)
-Cross-compiles all **16 upstream C/Vala libraries** from source tarballs on the Linux host using `x86_64-w64-mingw32-gcc`:
-1. **Tier 1 — Foundational Primitives:** `zlib`, `libffi`, `libiconv`, `gettext-runtime`, `pcre2` (`--enable-unicode`).
-2. **Tier 2 — GLib Ecosystem & Vala Models:** `glib-2.0` (`giowin32` + `GRegistrySettingsBackend`, `--default-library=static`), `libgee-0.8`, `json-glib-1.0`.
-3. **Tier 3 — 2D Vector Graphics, Shaping & Static Loaders:** `libpng`, `pixman`, `freetype2`, `fribidi`, `harfbuzz`, `cairo` (`-Dwin32=enabled`), `pango` (`pangowin32`), `gdk-pixbuf-2.0` (`-Dbuiltin_loaders=png,bmp,ico,jpeg -Dgio_sniffing=false`), plus pure-C static SVG rasterizer (`librsvg-2.40.x` / `lunasvg`) for all embedded `plank.gresource.xml` vector icons.
-4. **Tier 4 — Widget Toolkit:** `libepoxy`, `atk`, `gtk+-3.0` (`-Dwin32_backend=true -Dx11_backend=false -Dwayland_backend=false --default-library=static`).
+### 7.1 4-Tier Source-Code Static Cross-Compilation DAG (`./deps/win32/sysroot` — See [`deps/README.md`](../../deps/README.md))
+Cross-compiles all **20 static upstream C/C++/Vala libraries** from source tarballs on the Linux host using `x86_64-w64-mingw32-gcc-posix` / `g++-posix` (`-std=gnu17`, `-DATK_STATIC_COMPILATION`, cached via `.built` stamps):
+1. **Tier 1 — Foundational Primitives:** `zlib 1.3.1`, `libffi 3.4.6`, `libiconv 1.17`, `gettext-runtime 0.22.5`, `pcre2 10.44` (`--enable-unicode`).
+2. **Tier 2 — GLib Ecosystem & Vala Models:** `glib-2.0 2.80.5` (`giowin32` + `GRegistrySettingsBackend`, `--default-library=static`), `libgee-0.8 0.20.6`, `json-glib-1.0 1.8.0`.
+3. **Tier 3 — 2D Vector Graphics, Shaping & Built-In Static SVG Loader:** `libpng 1.6.44`, `pixman 0.43.4`, `freetype2 2.13.3`, `fribidi 1.0.16`, `harfbuzz 10.0.1`, `cairo 1.18.2` (`-Ddwrite=disabled`), `pango 1.54.0` (`pangowin32`), `lunasvg 2.4.1`, and `gdk-pixbuf-2.0 2.42.12` (`-Dbuiltin_loaders=png,bmp,ico,gif -Dgio_sniffing=false` + [`hal/Windows/win32-svg-loader.cpp`](../../hal/Windows/win32-svg-loader.cpp) compiled directly into `libgdk_pixbuf-2.0.a` via `-DINCLUDE_svg` with external `loaders.cache` probing disabled so all 63 embedded WayPlank SVGs render at native HiDPI with 0 DLLs).
+4. **Tier 4 — Widget Toolkit:** `libepoxy 1.5.10`, `atk 2.38.0`, `gtk+-3.0 3.24.43` (`-Dwin32_backend=true -Dx11_backend=false -Dwayland_backend=false -Dbuiltin_immodules=all --default-library=static`).
 
-### 7.2 Cross-Build C/VAPI Hygiene Enforced in `v0.7.2` (`MOC-0.7.2-HAL-001`):
-1. **Pure `vapi/core/compat.vapi`:** Unix `<sys/prctl.h>` (`prctl`) and `<unistd.h>` (`getpid`, `setproctitle`) are stripped from `vapi/core/compat.vapi` into `vapi/freedesktop/unix-compat.vapi` during `v0.7.2` Move 3, so `valac -C` generates C code with zero Unix `#include` directives when compiling `src/` + `lib/` + `hal/Interfaces/` + `hal/Windows/`.
-2. **`#ifndef _WIN32` C Guards:** `lib/gtk-compat.c` guards ELF `__attribute__((weak))` symbol probes under `#ifndef _WIN32`, `include/config.h` guards Unix `PREFIX`/`DATADIR`/`PKGDATADIR` defaults under `#ifndef _WIN32`, and `lib/Drawing/Surface.vala` uses `GLib.Memory.set()` instead of `Posix.memset()`.
+### 7.2 Cross-Build C/VAPI Hygiene & 64-Bit NSIS Installer (`./BuildNsis.sh`):
+1. **Pure `vapi/core/compat.vapi`:** Unix `<sys/prctl.h>` (`prctl`) and `<unistd.h>` (`getpid`, `setproctitle`) are isolated in `vapi/freedesktop/unix-compat.vapi`, so `valac -C` generates C code with zero Unix `#include` directives when compiling `src/` + `lib/` + `hal/Interfaces/` + `hal/Windows/`.
+2. **`#ifndef _WIN32` C Guards & Zero-DLL Allowlist Gate:** `lib/gtk-compat.c` and `include/config.h` guard Unix paths/ELF probes under `#ifndef _WIN32`; `./BuildWin.sh` verifies via `x86_64-w64-mingw32-objdump -p` that `build/wayplank.exe` (`23 MB` stripped) imports **only 24 evergreen Windows OS DLLs** (`0` third-party/GTK/MinGW DLLs).
 3. **Zero-DLL `GSettings` Bootstrap:** `WindowsHalBootstrap` extracts embedded `gschemas.compiled` from `GResource` to `%LOCALAPPDATA%\WayPlank\glib-2.0\schemas\` and sets `G_SETTINGS_SCHEMA_DIR` before `DockPreferences` initializes.
+4. **64-Bit Windows Installer (`./BuildNsis.sh`):** Invokes `./BuildWin.sh` then packages `build/wayplank.exe` via Linux-native `makensis` into **`build/WayPlank-<ver>-Setup.exe` (`8.8 MB` LZMA)** supporting both System-Wide Admin (`C:\Program Files\WayPlank`) and Per-User (`%LOCALAPPDATA%\Programs\WayPlank`) installs (`MULTIUSER_USE_PROGRAMFILES64` + `SetRegView 64`), Start Menu / Desktop shortcuts, optional Autostart, Windows Installed Apps registration, and clean `Uninstall.exe`.
 
 ---
 

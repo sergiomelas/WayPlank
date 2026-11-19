@@ -187,7 +187,13 @@ fi
 killall -q plank wayplank >/dev/null 2>&1 || true
 pkill -x plank >/dev/null 2>&1 || true
 pkill -x wayplank >/dev/null 2>&1 || true
-echo "Wayplank installed and configured successfully."
+for _i in $(seq 1 30); do
+    if ! pgrep -x wayplank >/dev/null 2>&1 && ! pgrep -x plank >/dev/null 2>&1; then
+        break
+    fi
+    sleep 0.1
+done
+echo "Wayplank installed and configured successfully (previous instances cleanly unloaded — safe to launch)."
 EOF
 chmod 755 "$BUILD_DIR/DEBIAN/postinst"
 

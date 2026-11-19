@@ -20,11 +20,15 @@ GEMINI.md
 Gemini.md
 gemini.md
 AI_private/
-FAT/Test Files/Qemu/*.img
-FAT/Test Files/Qemu/*.qcow2
+FAT/Test Files/Freedesktop/Qemu/*.img
+FAT/Test Files/Freedesktop/Qemu/*.qcow2
 .idea/
 compositor_sources/
 compositor_descktops_sources/
 Next Steps*
 NEXT_STEPS*
 next_steps*
+deps/*
+!deps/README.md
+build/win_c/
+data/.plank.win.gresource.xml

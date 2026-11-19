@@ -6,23 +6,24 @@
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 > [![Current Live Release: v0.7.2 (Public Beta 3 — Linux HAL Freeze)](https://img.shields.io/badge/Live_on_GitHub-v0.7.2_%28Public_Beta_3%29-brightgreen.svg)](Changelogs/CHANGELOG_v0.7.2.md)
-> [![Next Release: v0.7.3 (Public Beta 4 — Native Windows)](https://img.shields.io/badge/Next_Release-v0.7.3_%28Public_Beta_4%29-orange.svg)](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
-> [![FAT v0.7.2: 100.0% Qualified (397/397 Applicable: 338 ok + 59 ko->ok | 0 ko)](https://img.shields.io/badge/FAT_v0.7.2-100.0%25_PASSED_%28397%2F397%29_%7C_0_ko-brightgreen.svg)](FAT/2026-11-18%20FAT%200.7.2.txt)
-> [![Localization: 8 Languages (522/522 In-RAM)](https://img.shields.io/badge/Localization-8_Languages_%28522%2F522_In--RAM%29-blueviolet.svg)](po/README.md)
+> [![Active Dev Branch: v0.7.3 (Public Beta 4 — Native Windows W1 Complete)](https://img.shields.io/badge/Active_Branch-v0.7.3_%28Public_Beta_4_Windows%29-orange.svg)](Changelogs/CHANGELOG_v0.7.3.md)
+> [![FAT v0.7.3: 390/528 Linux Frozen Qualified | 138 Windows Pending | 0 ko](https://img.shields.io/badge/FAT_v0.7.3-390%2F528_Linux_Frozen_%7C_138_Win_Pending-blue.svg)](FAT/2026-11-19%20FAT%200.7.3.txt)
+> [![Localization: 8 Languages (566/566 In-RAM)](https://img.shields.io/badge/Localization-8_Languages_%28566%2F566_In--RAM%29-blueviolet.svg)](po/README.md)
 > [![Architecture: 100% Monolithic Single Binary](https://img.shields.io/badge/Architecture-Single_Binary_%7C_Zero_Host_Pollution-informational.svg)](README.md)
 
 ![Wayplank Release Banner](Beta%20Release%20Pic%20-%20github.png)
 
-> *📌 **Public Beta 3 (`v0.7.2`) Concluded (`2026-11-18`) — 3-Zone Linux HAL, Bus Freeze & Single-Process Multi-Dock Engine (`MOC-0.7.2-HAL-001`):** Moves 1–6 (`M1` ➔ `M6`) are 100% complete with the pre-compile **8-Gate Dual-Zone HAL Purity Firewall `GREEN` (`0` OS/bus leaks)** and **65,025-case Identity Engine SHA-256 parity at `100.0%`**, **`100.0%` qualified** across all 3 compositors in [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt) (**GNOME `Mutter` [`135/135`], KDE Plasma 6 `KWin` [`134/134`] & `Labwc` [`128/128`]** = `397/397` applicable, `5 [NA]`, `0 [ko]`; `v0.7.1.2` baseline `100.0%` qualified at `375/375`); next up is **`v0.7.3` (Native Windows `wayplank.exe`)** — see [**PROJECT ROADMAP & THE WAYLAND MILESTONES**](#project-roadmap--the-wayland-milestones).*
+> *📌 **Public Beta 4 (`v0.7.3` — Active on `hal-v0.7.3-windows`) — First Unified Linux Wayland & Windows Release:** Built on our **`100.0%` 3-compositor Linux Wayland-qualified `v0.7.2` foundation** (KDE Plasma 6 `KWin`, GNOME Shell `Mutter` & `Labwc` — `397/397`, `0 [ko]`, Linux HAL/Core strictly frozen with `0` regressions), `v0.7.3` plugs native **Windows `7 ⟷ 11+`** (`hal/Windows/`) directly into the same Zone 1 + Zone 2 engine. **Milestone W1 is complete & live-booted on Windows 10 x64** (`build/wayplank.exe` `23 MB` Zero-DLL + `build/WayPlank-0.7.3-Setup.exe` `8.8 MB`). Active FAT: [`FAT/2026-11-19 FAT 0.7.3.txt`](FAT/2026-11-19%20FAT%200.7.3.txt) (`SESSION 1: WINDOWS` `138 [  ]` pending; Linux `390 [ok]` frozen) — see [**PROJECT ROADMAP & THE WAYLAND MILESTONES**](#project-roadmap--the-wayland-milestones).*
 
 > [!TIP]
-> ## 🎉 WAYPLANK `v0.7.2` — PUBLIC BETA 3 (3-ZONE LINUX HAL & BUS STRUCTURAL FREEZE)
-> Across **18 milestone releases**, over **112,000 lines of legacy X11/Autotools code** have been purged and **158 unique functional & architectural bugs** squashed across **3,594 formal ISA-88 test definitions** ([`WAYPLANK_LIFETIME_BUG_REGISTER.md`](FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md), `402` tests in `FAT 0.7.2` — **GNOME, KDE Plasma 6 & Labwc `100.0%` qualified (`397/397`), `0 [ko]`**):
-> - 🏛️ **3-Zone Dichotomic HAL & Pure Vala Boundary Translators (`MOC-0.7.2-HAL-001`, [`Architecture/README.md`](Documentation/Architecture/README.md))**: Strict separation of **Zone 1 Agnostic Core** (`src/`, `lib/`), **Zone 2 Pure Vala Contracts** (`hal/Interfaces/`: `IDockShell`, `IWindowBackend`, `IThumbnailProvider`, `IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`, `IAppSystem`), and **Zone 3 OS/Compositor Drivers** (`hal/Freedesktop/`, `hal/Linux/`), enforced at every build by the **Dual-Zone HAL Purity Firewall (`0` leaks)** ahead of the `v0.7.3` native Windows `wayplank.exe` plug-in.
+> ## 🐧🪟 WAYPLANK `v0.7.3` — PUBLIC BETA 4 (FIRST UNIFIED LINUX WAYLAND & WINDOWS RELEASE)
+> Powered by **18 qualified Linux milestones** (**112,000+ lines of legacy X11/Autotools code purged**, **158 unique bugs squashed**, and **100.0% 3-compositor Wayland qualification** across KDE Plasma 6, GNOME & Labwc in [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt)), `v0.7.3` is the **first WayPlank release supporting both Linux Wayland and Windows (`7 ⟷ 11+`)** from a single 100% OS-agnostic Core ([`CHANGELOG_v0.7.3.md`](Changelogs/CHANGELOG_v0.7.3.md) • [`FAT/2026-11-19 FAT 0.7.3.txt`](FAT/2026-11-19%20FAT%200.7.3.txt)):
+> - 🏛️ **3-Zone Dichotomic HAL & Pure Vala Boundary Translators (`MOC-0.7.2-HAL-001`, [`Architecture/README.md`](Documentation/Architecture/README.md))**: Strict separation of **Zone 1 Agnostic Core** (`src/`, `lib/`), **Zone 2 Pure Vala Contracts** (`hal/Interfaces/`: `IDockShell`, `IWindowBackend`, `IThumbnailProvider`, `IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`, `IAppSystem`), and **Zone 3 Native OS/Compositor Drivers** (`hal/Freedesktop/`, `hal/Linux/`, `hal/Windows/`), enforced at every build by the **8-Gate Dual-Zone HAL Purity Firewall (`0` leaks)**.
+> - 🐧🪟 **Unified Linux + Windows Delivery (`BuildDeb.sh` • `BuildRpm.sh` • `BuildWin.sh` • `BuildNsis.sh`, [`HAL_WINDOWS_BACKEND.md`](Documentation/Architecture/HAL_WINDOWS_BACKEND.md))**: Produces native Linux `.deb`/`.rpm` packages alongside the 100% Linux-cross-compiled Zero-DLL `build/wayplank.exe` (`23 MB`, 24 stock Windows OS DLLs only, built-in static `lunasvg` SVG loader) and 64-bit `build/WayPlank-0.7.3-Setup.exe` (`8.8 MB` LZMA) with **zero edits to the frozen Linux HAL**.
 > - 🌐 **Zero-Timer `inotify` Browser Session & 6-Layer Identity Engine (`#20`, `#30`)**: `0ms` launch-intent attribution + kernel `GFileMonitor` (`inotify`) Chrome session resolution with **`0` polling timers** and **`65,025/65,025` (`100.0%`) SHA-256 identity-matrix parity** across Chrome/Brave/Firefox profiles, PWAs, Flatpaks, AppImages, and CLI VMs.
 > - 🪟 **Mutter 51 Hot-Unplug VSync Safety, Focus-Preserving Preferences & Strut Precision (`#32`, `#34`)**: `Meta.LaterType.BEFORE_REDRAW` first-frame deferral eliminating `gnome-shell` `SIGABRT` on monitor cable hot-unplug (`v072_bridge_2`), active focus retention on `PreferencesWindow` across `Position`/`Screen` changes (`focus_on_map=false`), single-monitor Mutter struts, and `AnticipateZoom` input-mask clamping.
 > - 📌 **Single-Process Multi-Dock Engine (`dock1`–`dock4`), Folder Management, Smart Accordion (`›|` / `«|`) & Onboarding (`#26`, `#35`)**: Up to **4 concurrent docks** inside one `wayplank` process with Multi-Seat logical `Screen 1..4` assignment, 2D `(Screen, Edge)` collision gray-out (`Position`, `Screen` & `On Primary Display`), and lowest-index hotplug arbitration, symmetrical `Open Dock...` $\leftrightarrow$ `Close This Dock` (preserve config) / `Delete This Dock...` (wipe config), interactive **Preferences Dock Selector Dropdown** (`Dock1 - Screen 1 - Bottom`, `Dock2 - ...`), `dock1`-exclusive WayPlank anchor icon and `dock1`-exclusive unpinned running apps (`TransientDockItem`) with automatic secondary-dock deletion/cleanup when emptied (`0` items left on `dock2`–`dock4` = `Delete This Dock`), direct **cross-dock drag & pinning** (Folders, Pinned/Unpinned Apps, Docklets, and Folder-Drawer apps) with strict `(Same Type) ∧ (Target Zone)` accordion unfold and cross-dock pinned-suppresses-unpinned deduplication, `Add Folder...` chooser, bidirectional `Pinned <-> Folder` moves, `_Docklets` `Apply` button, global $O(\log N)$ dichotomic usage vector (`AppUsageService`), and First-Run Onboarding (`Classic` vs `Explorer`).
-> - 🛡️ **Non-Destructive Fault-Tolerant Unified Registry (`~/.config/wayplank/latch-state.ini`, `#33`)**: Stores all 43 global preferences (`[DockPreferences]`), 7 SR Flip-Flop / accordion latches (`[LatchState]`), and per-dock `[MultiDock]` topology in a single `latch-state.ini` with seamless `v0.7.1` migration, fork-isolated syntax probing, RAM-only fault defaulting (preserving faulty `latch-state.ini` and `.dockitem` files 100% untouched on disk until an explicit user UI edit across all 9 [`Test environments.sh`](FAT/Test%20Files/Environment/Test%20environments.sh) profiles), `NULL`-terminated `GStrv` safety, and static `WeakRef` `SurfaceCache` maintenance.
+> - 🛡️ **Non-Destructive Fault-Tolerant Unified Registry (`~/.config/wayplank/latch-state.ini`, `#33`)**: Stores all 43 global preferences (`[DockPreferences]`), 7 SR Flip-Flop / accordion latches (`[LatchState]`), and per-dock `[MultiDock]` topology in a single `latch-state.ini` with seamless `v0.7.1` migration, fork-isolated syntax probing, RAM-only fault defaulting (preserving faulty `latch-state.ini` and `.dockitem` files 100% untouched on disk until an explicit user UI edit across all 9 [`Test environments.sh`](FAT/Test%20Files/Freedesktop/Environment/Test%20environments.sh) profiles), `NULL`-terminated `GStrv` safety, and static `WeakRef` `SurfaceCache` maintenance.
 > - 🌍 **Monolithic Single-Binary Engine & 8-Language In-RAM Localization**: **16 docklets**, **6 themes**, **52 vector icons**, self-deploying **GNOME & KWin bridges**, and **`566/566` strings** in `zh_CN`, `it`, `es`, `fr`, `ca`, `de`, `uk`, and `en` + browser auto-translated [User Guide](Documentation/USER_GUIDE.md) and 2-Tab Credits / Pango CJK Easter Egg (`Ctrl + Alt + Shift + Click` on the `About WayPlank` emblem).
 
 ---
@@ -59,7 +60,7 @@ A huge thank you to our 400+ users, issue reporters, and translators!
 * 🪟 [Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Blueprint (`HAL_WINDOWS_BACKEND.md`)](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
 * 🤝 [Contributing Guidelines & Live Issue Tracker (`CONTRIBUTING.md`)](CONTRIBUTING.md)
 * 🌍 [Monolithic Localization & i18n Guide (`po/README.md`)](po/README.md)
-* 🖥️ [Compositors & Nested Desktops Cheatsheet](FAT/Test%20Files/WAYPLANK_COMPOSITORS_CHEATSHEET.md)
+* 🖥️ [Compositors & Nested Desktops Cheatsheet (Freedesktop)](FAT/Test%20Files/Freedesktop/WAYPLANK_COMPOSITORS_CHEATSHEET.md) • [Windows Testing Cheatsheet](FAT/Test%20Files/Windows/WAYPLANK_WINDOWS_TEST_CHEATSHEET.md)
 * 🗺️ [Community Fork Integration Roadmap *(Historic)*](Documentation/Historic/WAYPLANK_FORK_INTEGRATION_ROADMAP.md)
 * 📖 [X11-to-Wayland Technical Migration Report *(Historic)*](Documentation/Historic/wayplank_x11_to_wayland_report_en.md)
 * 🛡️ [Lifetime Master Bug & Defect Register](FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
@@ -202,7 +203,7 @@ valac -g \
     -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -include -X include/config.h \
     -X -Ilib -X -Ihal/Freedesktop/Wlroots -X -Iinclude -X -w -X -lm -X -lwayland-client \
-    $(find hal lib src -name "*.vala") \
+    $(find hal/Interfaces hal/Freedesktop hal/Linux lib src -name "*.vala" | sort) \
     lib/resources.c \
     lib/gtk-compat.c \
     hal/Freedesktop/Wlroots/wlr-foreign-toplevel-management-protocol.c \
@@ -250,9 +251,9 @@ If running Debian, Ubuntu, or derivative distributions, run the automated packag
 chmod +x BuildDeb.sh
 ./BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.7.2_amd64.deb
+sudo apt install ./build/wayplank_0.7.3_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.7.2_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/wayplank_0.7.3_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -266,16 +267,131 @@ chmod +x BuildRpm.sh
 ./BuildRpm.sh
 
 # Install on openSUSE with zypper:
-sudo zypper install ./build/wayplank-0.7.2-1.x86_64.rpm
+sudo zypper install ./build/wayplank-0.7.3-1.x86_64.rpm
 
 # Or install on Fedora/RHEL with dnf:
-sudo dnf install ./build/wayplank-0.7.2-1.x86_64.rpm
+sudo dnf install ./build/wayplank-0.7.3-1.x86_64.rpm
 
 # Or install via rpm directly:
-sudo rpm -Uvh ./build/wayplank-0.7.2-1.x86_64.rpm
+sudo rpm -Uvh ./build/wayplank-0.7.3-1.x86_64.rpm
 ```
 
 > 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).
+
+---
+
+## 5. WINDOWS ZERO-DLL CROSS-COMPILATION (Linux Host ➔ Windows 7 ⟷ 11+)
+
+WayPlank cross-compiles its native Windows monolith (`build/wayplank.exe`, **0 external DLLs**) **100% on Linux** using MinGW-w64 and a gitignored 4-Tier 16-library static sysroot (`./deps/win32/sysroot`, including a built-in static `lunasvg` SVG loader compiled directly into `libgdk_pixbuf-2.0.a`).
+
+### Host Cross-Build Dependencies (Linux)
+In addition to the standard Linux build tools (`valac`, `meson`, `ninja`, `cmake`, `pkg-config`, `make`, `curl`, `tar`, `xz`, `python3`, `msgfmt`, `glib-compile-resources`, `glib-compile-schemas`):
+- **Debian / Ubuntu:**
+  ```bash
+  sudo apt update && sudo apt install -y gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 meson ninja-build cmake
+  ```
+- **Fedora / RHEL:**
+  ```bash
+  sudo dnf install -y mingw64-gcc mingw64-gcc-c++ meson ninja-build cmake
+  ```
+- **Arch Linux:**
+  ```bash
+  sudo pacman -S --needed mingw-w64-gcc meson ninja cmake
+  ```
+
+### Option A: Automated Windows Cross-Build Script (Recommended)
+
+```bash
+chmod +x BuildWin.sh
+./BuildWin.sh
+```
+
+- **First run:** Downloads and statically cross-compiles all 16 upstream libraries (Tiers 1–4 + `lunasvg` static SVG loader) into `./deps/win32/sysroot` (gitignored and cached via per-library `.built` stamps), then transpiles Zone 1 + Zone 2 + `hal/Windows/`, links `build/wayplank.exe`, strips it, and verifies via `x86_64-w64-mingw32-objdump -p` that **only evergreen Windows OS DLLs** are imported.
+- **Subsequent runs:** Reuses the cached sysroot and rebuilds `build/wayplank.exe` in seconds.
+- **Helper flags:**
+  - `./BuildWin.sh --build-sysroot` — build/cache the 4-Tier static sysroot only.
+  - `./BuildWin.sh --rebuild-lib <name>` — force-rebuild a single sysroot library (e.g. `gdk-pixbuf` or `gtk3`).
+  - `WAYPLANK_NO_PROMPT=1 ./BuildWin.sh` — non-interactive / CI mode.
+
+### Option B: Manual Step-by-Step Windows Cross-Compilation
+
+If you prefer executing the Windows cross-build steps manually after preparing the static sysroot:
+
+```bash
+# Step 1: Build and cache the 4-Tier 16-library static MinGW sysroot (one-time)
+./BuildWin.sh --build-sysroot
+
+# Step 2: Generate embedded .mo locales, gschemas.compiled, and GResource C source
+python3 po/generate_translations.py
+rm -rf data/locale
+EMBEDDED_LANGS=""
+EXTRA_XML_ENTRIES=""
+for po in po/*.po; do
+    lang="$(basename "$po" .po)"
+    mkdir -p "data/locale/${lang}"
+    msgfmt "$po" -o "data/locale/${lang}/wayplank.mo"
+    EMBEDDED_LANGS="${EMBEDDED_LANGS:+${EMBEDDED_LANGS}:}${lang}"
+    EXTRA_XML_ENTRIES="${EXTRA_XML_ENTRIES}		<file compressed=\"true\">locale/${lang}/wayplank.mo</file>\n"
+done
+glib-compile-schemas data/glib-2.0/schemas
+EXTRA_XML_ENTRIES="${EXTRA_XML_ENTRIES}		<file compressed=\"true\">glib-2.0/schemas/gschemas.compiled</file>\n"
+awk -v entries="$EXTRA_XML_ENTRIES" '/<\/gresource>/ { printf "%s", entries } { print }' \
+    data/plank.gresource.xml > data/.plank.win.gresource.xml
+mkdir -p build/win_c
+glib-compile-resources --sourcedir=data --target=build/win_c/resources.c --generate-source data/.plank.win.gresource.xml
+rm -rf data/locale
+
+# Step 3: Transpile Zone 1 + Zone 2 + hal/Windows/ Vala sources to portable C (0 Unix/Wayland packages)
+valac -C -d build/win_c \
+    --gresources=data/.plank.win.gresource.xml \
+    --gresourcesdir=data \
+    --vapidir=vapi/core --vapidir=vapi/windows \
+    --pkg gtk+-3.0 --pkg gee-0.8 --pkg json-glib-1.0 --pkg compat --pkg config --pkg win32-bridge \
+    $(find hal/Interfaces hal/Windows lib src -name "*.vala" | sort)
+
+# Step 4: Compile Windows manifest resource, cross-compile C, link static Zero-DLL PE32+, strip & verify
+PKG_VER="$(sed -n '1p' VERSION | tr -d '[:space:]')"
+PKG_DECO="$(sed -n '2p' VERSION | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+WIN_PKG_CONFIG="./deps/win32/sysroot/bin/x86_64-w64-mingw32-pkg-config"
+x86_64-w64-mingw32-windres -DWAYPLANK_VER_STR="\"${PKG_VER}\"" -I hal/Windows hal/Windows/wayplank.rc -O coff -o build/win_c/wayplank.res.o
+
+x86_64-w64-mingw32-g++-posix -static -static-libgcc -static-libstdc++ -mwindows -O2 \
+    -D_WIN32_WINNT=0x0601 -DWINVER=0x0601 \
+    -DGLIB_STATIC_COMPILATION -DGOBJECT_STATIC_COMPILATION -DGIO_STATIC_COMPILATION -DGMODULE_STATIC_COMPILATION -DCAIRO_WIN32_STATIC_BUILD \
+    -DGETTEXT_PACKAGE=\"wayplank\" -DPACKAGE_VERSION=\"${PKG_VER}\" "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
+    -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
+    -Ilib -Iinclude -Ihal/Windows/Compositor -include include/config.h -w \
+    $("$WIN_PKG_CONFIG" --cflags gtk+-3.0 gee-0.8 json-glib-1.0) \
+    $(find build/win_c -name "*.c" | sort) lib/gtk-compat.c $(find hal/Windows -name "*.c" | sort) \
+    build/win_c/wayplank.res.o \
+    -L./deps/win32/sysroot/lib -Wl,--start-group \
+    $("$WIN_PKG_CONFIG" --libs gtk+-3.0 gee-0.8 json-glib-1.0) \
+    -llunasvg -lgtk-3 -lgdk-3 -latk-1.0 -lpangowin32-1.0 -lpangocairo-1.0 -lpango-1.0 \
+    -lharfbuzz -lfribidi -lcairo-gobject -lcairo -lpixman-1 -lfreetype \
+    -lgdk_pixbuf-2.0 -lpng16 -lepoxy -lgee-0.8 -ljson-glib-1.0 \
+    -lgio-2.0 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lglib-2.0 \
+    -lintl -liconv -lpcre2-8 -lffi -lz -Wl,--end-group \
+    -limm32 -lwinmm -lgdi32 -lmsimg32 -lshell32 -lshlwapi -lcomctl32 -lcomdlg32 \
+    -lole32 -loleaut32 -luuid -ldwmapi -luxtheme -lws2_32 -lwinhttp -liphlpapi \
+    -ldnsapi -lsetupapi -lhid -lwtsapi32 -ldxva2 -lpowrprof -luser32 -ladvapi32 -lkernel32 -lm \
+    -o build/wayplank.exe
+
+x86_64-w64-mingw32-strip --strip-all build/wayplank.exe
+x86_64-w64-mingw32-objdump -p build/wayplank.exe | grep "DLL Name:"
+rm -f data/.plank.win.gresource.xml
+```
+
+- **Automated 64-Bit Windows Installer (`BuildNsis.sh`, Optional — requires `sudo apt install nsis`):**
+  ```bash
+  chmod +x BuildNsis.sh
+  ./BuildNsis.sh
+  ```
+  Invokes `./BuildWin.sh` and packages `build/wayplank.exe` into **`build/WayPlank-0.7.3-Setup.exe`** (`~8.8 MB` LZMA) supporting both System-Wide Admin (`C:\Program Files\WayPlank`) and Per-User (`%LOCALAPPDATA%\Programs\WayPlank`) installs, Start Menu/Desktop shortcuts, optional Autostart, and a clean `Uninstall.exe`.
+
+### Windows Deployment & Runtime Paths
+- **Zero-Installer Portable Run:** Copy `build/wayplank.exe` anywhere on Windows `7 ⟷ 11+` and double-click — no external DLLs, no GTK/MSYS2 runtime, and no installer required.
+- **Auto-Extracted GSettings Schema:** `%LOCALAPPDATA%\WayPlank\glib-2.0\schemas\gschemas.compiled` *(automatically unpacked from embedded `GResource` on startup)*.
+- **Windows Config & User Data:** `%LOCALAPPDATA%\WayPlank\` / `%APPDATA%\WayPlank\`.
 
 ---
 
@@ -357,7 +473,7 @@ wayplank -d
   - [x] **`v0.7.1` / `v0.7.1.2` (Public Beta 2 + Burn-In Hotfix — CONCLUDED & FROZEN at 100.0% FAT Qualified, [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt) — `375/375` Applicable)**: First-Run Onboarding (`Classic` vs `Explorer`) & read-only `~/.config/plank` migration, Smart Pinned Apps Accordion (`›|`/`«|`), Chrome D-Bus multi-profile & browser-family isolation (`#30`), `latch-state.ini` 43-key persistence & `/usr/local` schema guard (`#33`), GNOME single-monitor hotplug strut sync (`#32`), `AnticipateZoom` headroom clamp (`#34`), universal `_Docklets` submenu (`#35`), and 2-Tab Credits / Easter Egg.
   - [x] Broaden community field testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
   - [x] **`v0.7.2` (Public Beta 3 — CONCLUDED 2026-11-18 at 100.0% FAT Qualified: Concentrated Linux HAL/Bus Freeze & Single-Process Multi-Dock Engine, [`Changelogs/CHANGELOG_v0.7.2.md`](Changelogs/CHANGELOG_v0.7.2.md) & [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt) — `402` Tests Defined)**: Physical extraction of all diffused Linux compositor drivers ([`HAL_COMPOSITORS.md`](Documentation/Architecture/HAL_COMPOSITORS.md)), Session/System D-Bus endpoints ([`HAL_BUSES.md`](Documentation/Architecture/HAL_BUSES.md)), and `.desktop`/`/proc`/`/sys` adapters ([`APPLICATION_IDENTITY_ENGINE.md`](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)) into `hal/{Interfaces,Freedesktop,Linux}/` per [`Architecture/README.md`](Documentation/Architecture/README.md), plus the single-process **Multi-Dock Engine (`dock1`–`dock4`)** with full-width Preferences dock selector, 2D `(Screen, Edge)` collision gray-out, `dock1`-exclusive WayPlank icon & unpinned running apps, cross-dock drag/pinning, and Labwc zero-stall hardening — **Moves 1–6 (`M1` ➔ `M6`) 100% complete, 8-Gate HAL Purity Firewall `GREEN` (`0` leaks) & 65,025-case Identity Matrix `100.0% PASS`; live 3-compositor `FAT 0.7.2` `100.0% PASSED` (`397/397` applicable, `5 [NA]`, `0 [ko]`): GNOME `Mutter` `135/135`, KDE Plasma 6 `KWin` `134/134` & `Labwc` `128/128`**.
-  - [ ] **`v0.7.3` (Public Beta 4 — Subsequent Beta ~Dec 2026: Native Windows Driver Plug-In)**: Plug `hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/` and `./BuildWin.sh` ([`HAL_WINDOWS_BACKEND.md`](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)) directly into the frozen `v0.7.2` `hal/Interfaces/` contracts to produce the standalone zero-DLL `wayplank.exe`.
+  - [ ] **`v0.7.3` (Public Beta 4 — Active on `hal-v0.7.3-windows`: Native Windows Driver Plug-In, [`Changelogs/CHANGELOG_v0.7.3.md`](Changelogs/CHANGELOG_v0.7.3.md) & [`FAT/2026-11-19 FAT 0.7.3.txt`](FAT/2026-11-19%20FAT%200.7.3.txt))**: Plug `hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`, `./BuildWin.sh` (`23 MB` Zero-DLL `wayplank.exe` with built-in static `lunasvg` SVG loader), and `./BuildNsis.sh` (`8.8 MB` 64-bit `WayPlank-0.7.3-Setup.exe`) directly into the frozen `v0.7.2` `hal/Interfaces/` contracts (**Milestone W1 complete & booted live on Windows 10**; Milestones W2–W6 in progress).
 - [ ] Phase 8 (Planned) WayPlank Release Candidate (v0.8.x)
   - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.
   - [ ] Systematic memory leak profiling (Valgrind / AddressSanitizer) and CPU efficiency audits.
@@ -376,6 +492,8 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
+* 🚧 **v0.7.3 (Public Beta 4 — Active Development on `hal-v0.7.3-windows`: Native Windows Zero-DLL Monolith `wayplank.exe` & 64-Bit NSIS Installer) — 2026-11-19 [`Changelogs/CHANGELOG_v0.7.3.md`]**:  
+  **Milestone W1 complete & booted live on Windows 10 x64:** 100% Linux-hosted 4-Tier 20-library static MinGW-w64 cross-build (`BuildWin.sh` $\rightarrow$ `23 MB` stripped `build/wayplank.exe`, Zero-DLL Gate `GREEN` at 24 stock Windows OS DLLs only), built-in static `lunasvg` SVG loader in `libgdk_pixbuf-2.0.a` rendering all 63 embedded vector icons at native HiDPI, embedded `gschemas.compiled` auto-extraction, 64-bit NSIS installer (`BuildNsis.sh` $\rightarrow$ `8.8 MB` `build/WayPlank-0.7.3-Setup.exe`), `FAT/Test Files/{Freedesktop,Windows}/` split, and `FAT/2026-11-19 FAT 0.7.3.txt` (`SESSION 1: WINDOWS` on top, `0` edits to frozen `v0.7.2` Linux HAL/Core).
 * 🚀 **v0.7.2 (Public Beta 3: 3-Zone Linux HAL & Bus Structural Freeze + Multi-Dock Engine) — 2026-11-18 [`Changelogs/CHANGELOG_v0.7.2.md`]**:  
   Complete 3-Zone Dichotomic HAL extraction (`hal/{Interfaces,Freedesktop,Linux}/`) across 7 pure Vala boundary contracts (`IDockShell`, `IWindowBackend`, `IThumbnailProvider`, `IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`, `IAppSystem`) with pre-compile 8-Gate HAL Purity & Isolation Firewall (`0` leaks) and `65,025/65,025` (`100.0%`) Identity Engine SHA-256 parity; single-process **Multi-Dock Engine (`dock1`–`dock4`)** in unified `~/.config/wayplank/latch-state.ini` (`[MultiDock]`) with Multi-Seat logical `Screen 1..4` lowest-index hotplug arbitration, **2D `(Screen, Edge)` collision gray-out** across `Position`, `Screen`, `On Primary Display`, and `Open Dock...`, full-width **Preferences `<Dock> - [Screen X - ]<Position>` dock selector dropdown**, `Open Dock...` $\leftrightarrow$ `Close This Dock` (preserve config) / `Delete This Dock...` (wipe config), **`dock1`-exclusive WayPlank icon & `dock1`-exclusive unpinned running apps (`TransientDockItem`)**, automatic secondary-dock self-deletion when emptied (`0` items = `Delete This Dock`), deterministic Mutter `1..4` dock slot reuse (`v072_bridge_5`), cross-dock Folder/App/Docklet drag & pinning, cross-dock pinned-suppresses-unpinned, strict `(Same Type) ∧ (Target Zone)` accordion unfold, `Add Folder...` dialog, bidirectional `Pinned <-> Folder` moves, global $O(\log N)$ dichotomic `AppUsageService` ranking vector, and non-destructive RAM-only fault recovery across 9 `Test environments.sh` profiles; zero-timer `inotify` Chrome session watcher, bidirectional `--app=URL` ↔ `--app-id=` web-app symmetry, Deduplicate-to-Last-Pinned, `.sh` wrapper / `Type=Link` URL-drop forwarding (`MOC Rev 2.1`), and `.DirIcon` bundle icon persistence (`MOC Rev 2.2`); Mutter 51 `BEFORE_REDRAW` cable hot-unplug `SIGABRT` fix (`v072_bridge_2`), focus-retaining `PreferencesWindow`, `_Docklets` submenu `Apply` button, per-PID `ProcessSnapshot` cache, per-output Labwc Dodge Maximized/Fullscreen, and **Labwc zero-stall / low-CPU hardening** (`AppMenuDbusService` registrar guard, reverse-DNS PID matching in `LinuxProcessInspector`, persistent `GTK_USE_PORTAL=0` with clean child `AppLaunchContext`, and safe `PositionManager` transient fallback).
 * 🚀 **v0.7.1.2 (Public Beta 2 + Burn-In Hotfix) — 2026-11-14 [CONCLUDED & FROZEN / 100.0% FAT PASSED — 375/375 Applicable | `Changelogs/CHANGELOG_v0.7.1.md`]**:  

@@ -9,28 +9,28 @@ WayPlank is designed from the ground up as a high-performance, standalone, and m
 
 ## 🔒 Core Principle: 100% Standalone Monolithic Binary Guarantee
 
-WayPlank will **NEVER** be distributed as a multi-file bundle requiring external locale directories. The primary build output of `BuildBin.sh` is **ONE SINGLE STANDALONE FILE** (`build/wayplank`). All translations, icons, themes, and logic reside inside this single ~8.9 MB executable. When this single file is launched on a computer with any supported language, it translates automatically directly from internal memory without accessing the filesystem or requiring installation.
+WayPlank will **NEVER** be distributed as a multi-file bundle requiring external locale directories. The primary build output is **ONE SINGLE STANDALONE FILE** (`build/wayplank` `~14 MB` on Linux, `build/wayplank.exe` `~24 MB` Zero-DLL on Windows). All translations, icons, themes, and logic reside inside this single executable. When launched on a computer with any supported language, it translates automatically directly from internal memory without accessing the filesystem or requiring installation.
 
 ---
 
-## 1. 🗣️ Supported Languages & Status (566 / 566 Strings Qualified — 100%)
+## 1. 🗣️ Supported Languages & Status (572 / 572 Strings Qualified — 100%)
 
 | # | Language | Locale | Contributor & Reviewer | Status |
 | :---: | :--- | :---: | :--- | :---: |
-| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (566/566) |
-| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (566/566) |
-| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (566/566) |
-| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (566/566) |
-| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (566/566) |
-| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (566/566) |
-| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (566/566) |
+| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (572/572) |
+| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
+| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
+| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
+| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
+| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (572/572) |
+| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (572/572) |
 | 8 | **English** | `en` | Native in-source fallback language | **100% Native** (Zero files needed) |
 
 ---
 
-## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 4 `v0.7.3`)
+## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 4 Hotfix `v0.7.3.2`)
 
-In **WayPlank Public Beta 4 (`v0.7.3`)**, all 7 translation catalogs (`566/566` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration across both Linux (`wayplank`) and Windows (`wayplank.exe`).
+In **WayPlank Public Beta 4 Hotfix (`v0.7.3.2`)**, all 7 translation catalogs (`572/572` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration across both Linux (`wayplank`) and Windows (`wayplank.exe`).
 
 The 100% monolithic embedded localization engine for Public Beta (`v0.7.1`) follows these exact technical steps:
 
@@ -101,7 +101,7 @@ python3 po/generate_translations.py
 ```
 
 This script guarantees:
-- **100% message coverage** (`522/522` messages across all 7 languages).
+- **100% message coverage** (`572/572` messages across all 7 languages).
 - **Validation** with GNU `msgfmt -c -v`.
 - **Consistent ordering and validation** across all catalogs.
 

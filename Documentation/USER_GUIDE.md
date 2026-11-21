@@ -1,10 +1,10 @@
 # WayPlank User Guide & Reference Manual
 
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Release Version:** `v0.7.3` (**Public Beta 4 — First Unified Linux Wayland & Native Windows Release**)  
+> **Release Version:** `v0.7.3.2` (**Public Beta 4 — Unified Linux Wayland & Native Windows Release**)  
 > *Trademark Notice: WayPlank is an independent, non-commercial open-source project licensed under GPLv3 and is not affiliated with, endorsed by, or sponsored by Microsoft Corporation, Apple Inc., Google LLC, or The Linux Foundation. Windows, macOS, Chrome, Linux, and all related names/logos are trademarks of their respective owners.*
 
-Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond).
+Welcome to **WayPlank**, the fast, lightweight, and modern dock designed natively for modern Linux Wayland desktop environments (**KDE Plasma**, **GNOME**, **Labwc**, and beyond) and **Windows (`7 ⟷ 11+`)**.
 
 This manual provides an in-depth reference for all features, configuration options, gestures, and advanced setups—such as folder-based application menus, docklets, accordion collapsing, multi-monitor layouts, and our modular Hardware Abstraction Layer (HAL).
 
@@ -165,13 +165,19 @@ You can create as many custom folder drawers as you like:
 
 ### Adding and Managing Applications
 To add applications, subfolders, or files to a folder drawer:
-- **Via Direct Drag & Drop (Onto Folder Icon or Open Popup):** Drag any `.desktop` launcher, subfolder, or file directly onto a pinned folder icon on the dock—**or directly onto its open `FolderMenuWindow` popup menu**—and WayPlank copies it into that directory and live-refreshes the menu rows, 4-item folder stack preview, and running indicator dots immediately without restarting.
-- **Via File Manager:** Navigate to `/usr/share/applications/` or `~/.local/share/applications/` and copy or symlink `.desktop` files into your folder directory (`~/.config/wayplank/folders/<FolderName>/`).
+- **Via Direct Drag & Drop (Onto Folder Icon or Open Popup):** Drag any `.desktop`/`.lnk` launcher, **running unpinned dock app**, subfolder, or file directly onto a pinned folder icon on the dock—**or directly onto its open `FolderMenuWindow` popup menu**—or use right-click **`Move to Folder`** / **`Move to Dock`**. WayPlank updates the folder live without restarting, and any application pinned inside a folder automatically suppresses duplicate unpinned running icons across all active docks (`dock1`–`dock4`).
+- **Via File Manager:** Navigate to `/usr/share/applications/` or `~/.local/share/applications/` (or Start Menu `.lnk` shortcuts on Windows) and copy or symlink shortcuts into your folder directory (`~/.config/wayplank/folders/<FolderName>/`).
 
 ### Folder Running Dots & Wheel Window Cycling
 Starting in **v0.6.2.3**, Folder Drawers are fully integrated with WayPlank's native window manager:
-- **Running Indicator Dots**: When one or more applications contained inside a folder drawer are currently running on your desktop, an active running indicator dot automatically appears under that folder's dock icon.
+- **Running Indicator Dots**: When one or more applications contained inside a folder drawer are currently running on your desktop, an active running indicator dot automatically appears under that folder's dock icon and next to the matching row inside the popup.
 - **Mouse Wheel Window Focus Cycling**: You do not even need to open the folder drawer to switch between running documents! Scrolling your mouse wheel while hovering over the folder drawer icon dynamically cycles focus through all open window instances of applications stored inside that folder.
+
+### Renaming Shortcuts (`Rename Shortcut...` — Non-Destructive)
+You can assign a custom display name to any pinned application launcher on the dock or inside any folder drawer without modifying the underlying system `.desktop` or `.lnk` file:
+1. **Right-click** any pinned dock icon or folder drawer item and choose **Rename Shortcut...** *(respects `Lock Icons`)*.
+2. Enter your preferred label (the dialog shows the original default name as a hint, and lets you override even profile-formatted labels such as `Edge:Profile 1` → `Microsoft Edge`) or click **Reset Default** to revert.
+3. Custom names are persisted non-destructively in `launcher-names.ini`, update open folder menus live, and automatically follow the shortcut when moved between the dock and a folder (`Move to Folder` ↔ `Move to Dock`).
 
 ### Customizing Icons (Launchers, Folders & Docklets)
 WayPlank provides an integrated, one-click icon personalization system directly from the dock:
@@ -361,10 +367,10 @@ WayPlank accurately discriminates between standalone Progressive Web Apps (PWAs)
 - **Strict Identity Scoping**: PWAs are assigned their dedicated dock icons and never collapse into the main browser window item.
 - **Word-Boundary Token Matching**: Application titles are parsed using strict word-boundary matching rather than substring searches, preventing unrelated applications from being misidentified.
 
-### Multi-Profile Browser Isolation (`Chrome:<Profile>` & `BrowserProfile`)
-Even when multiple Google Chrome, Chromium, or Brave windows run inside a **single shared browser process (`PID`)** under Wayland (where the compositor reports the same `google-chrome` `app_id` and main process command line for every window), WayPlank isolates each browser profile onto its own dock icon:
-- **Event-Driven Multi-Profile Introspection (`com.canonical.dbusmenu` + `/proc/<pid>/fd` + `Local State`)**: Whenever a browser window opens or updates its menu layout, WayPlank introspects its live D-Bus menu tree (`/com/canonical/menu/<HEX>`) and open profile lock/database descriptors in `/proc/<pid>/fd`, maps internal profile directory IDs (`Default`, `Profile 1`, `Profile 2`, ...) to human-readable profile names via `~/.config/google-chrome/Local State`, and locks each window to its exact profile.
-- **`Chrome:<Profile>` Dock Tooltips**: Hovering over a profile-specific Chrome dock icon displays a concise **`Chrome:<ProfileName>`** tooltip (for example, `Chrome:Work` or `Chrome:Personal`) so you can immediately distinguish multiple pinned or running browser profiles.
+### Multi-Profile Browser Isolation (`<Browser>:<Profile>` & `BrowserProfile`)
+Even when multiple Google Chrome, Microsoft Edge, Brave, Vivaldi, Opera, or Chromium windows run inside a **single shared browser process (`PID`)** under Wayland or Windows, WayPlank isolates each browser profile onto its own dock icon:
+- **Per-Family Event-Driven Multi-Profile Introspection (`com.canonical.dbusmenu` / `AUMID` + `Local State`)**: Whenever a browser window opens or updates its menu layout, WayPlank resolves its profile directory (`Default`, `Profile 1`, `Profile 2`, ...) strictly against **that browser family's own `Local State` file** (so Edge profiles never cross-read Google Chrome's profile map) and locks each window to its exact profile.
+- **`<Browser>:<Profile>` Dock Tooltips**: Hovering over a profile-specific browser dock icon displays a concise family-prefixed tooltip (for example, `Chrome:Work`, `Edge:Personal`, `Brave:Dev`) so you can immediately distinguish multiple pinned or running browser profiles (and optionally override any label via **Rename Shortcut...**).
 - **Pinning & Customizing Profile Launchers**: You can isolate browser profiles via `.desktop` / `.sh` flags (`--profile-directory="Profile 1"`, `--user-data-dir=...`, `firefox -P <profile>`) or by setting `BrowserProfile=<Profile Directory or Display Name>` directly under `[PlankDockItemPreferences]` in any `~/.config/wayplank/dock1/launchers/*.dockitem` file.
 
 ---
@@ -531,7 +537,7 @@ flowchart TD
 
 ### What Users Get Out of the Box (Zero Configuration)
 - **Automatic Session Detection**: At startup, WayPlank detects your active session automatically—no CLI flags, config edits, or manual plugin setup needed.
-- **Windows (`Win32 / DWM`, `Windows 7 ⟷ 11+`)**: Zero-DLL standalone PE32+ executable (`wayplank.exe`, 24 stock Windows OS DLLs only) + 64-bit NSIS installer (`WayPlank-0.7.3-Setup.exe`) with `SetWinEventHook` window tracking, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` Panel Mode struts, COM `IShellLinkW` / UWP `AUMID`, and native CoreAudio / `DXVA2` / `WinHTTP` / Recycle Bin / Ejector docklets.
+- **Windows (`Win32 / DWM`, `Windows 7 ⟷ 11+`)**: Zero-DLL standalone PE32+ executable (`wayplank.exe`, **25 stock Windows OS DLLs only**) + 64-bit NSIS installer (`WayPlank-0.7.3.2-Setup.exe`) with `< 0.5 s` startup via persistent Start Menu `.lnk` index cache (`lnk-index-cache.ini`), Windows Taskbar suppression (`ITaskbarList::DeleteTab`), `SetWinEventHook` window tracking, 1st-click active window minimize, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` Panel Mode struts, COM `IShellLinkW` / UWP `AUMID`, Explorer icon stores, WinRT GSMTC Media Player, WMI + `DXVA2` brightness, CoreAudio, `WinHTTP` Weather, Recycle Bin, and USB Ejector docklets.
 - **KDE Plasma 6 (`KWin`)**: Event-driven window tracking with 0% idle polling, live `ScreenShot2` window preview thumbnails, floating panel awareness, auto-healing across `kwin_wayland --replace`, and hardware DRM backlight sync.
 - **GNOME Shell (`Mutter`)**: Sub-second (`0.74s`) startup via a self-deploying, auto-recovering companion extension delivering live window thumbnails, Intellihide, Panel Mode struts, and multi-monitor stage edge reveal.
 - **Labwc & `wlroots` (`LXQt` / `XFCE` Wayland)**: Native `gtk-layer-shell` surface anchoring and `zwlr_foreign_toplevel` C protocol tracking with Cairo icon/title preview cards and Honest UI capability adaptation.
@@ -554,7 +560,7 @@ Starting in **v0.6.2.3**, WayPlank features multi-bus and filesystem convergence
 - **FreeDesktop Settings Portal**: Intercepts `color-scheme` key changes over D-Bus (`org.freedesktop.portal.Settings`).
 - **GNOME Shell GSettings**: Directly tracks `org.gnome.desktop.interface.color-scheme`.
 - **KDE Plasma Inotify Monitoring**: Monitors `~/.config/kdeglobals` for immediate color changes under KDE Plasma 6.
-- **Dynamic Counterpart Swapping**: When the desktop toggles between Dark and Light mode, WayPlank automatically switches between any paired counterpart themes ending in `" Light"` and `" Dark"` (*Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*, *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*) and dynamically updates the adaptive `Default` theme with zero dock restarts required.
+- **Dynamic Counterpart Swapping & Live Popup Sync**: When the desktop toggles between Dark and Light mode (Linux Portal/GSettings/KDE or Windows `AppsUseLightTheme`), WayPlank automatically switches between paired counterpart themes (*Arian Theme Light* $\longleftrightarrow$ *Arian Theme Dark*, *IFtiger Theme Light* $\longleftrightarrow$ *IFtiger Theme Dark*), updates the adaptive `Default` theme, and live-synchronizes `HoverWindow`, `FolderMenuWindow`, and `WindowCardsWindow` with zero dock restarts required.
 
 ### Interactive Theme Manager (One-Click Archive Install & Removal)
 Starting in **v0.6.2.2**, WayPlank includes an integrated Theme Manager directly within the Preferences dialog (**Preferences $\rightarrow$ Appearance**):
@@ -613,9 +619,9 @@ wayplank -v
 # or: wayplank --version
 ```
 
-### Multi-Language Translation Catalogs (Public Beta v0.7.0 / v0.7.1)
+### Multi-Language Translation Catalogs (Public Beta `v0.7.3.2`)
 WayPlank ships with complete multi-language translation catalogs and an automated translation framework via `po/generate_translations.py`:
-- **Complete String Catalogs Ready**: All **522** user-facing strings, tooltips, onboarding cards, settings labels, and docklet strings have been fully translated across **7 community languages** (plus native English `en`):
+- **Complete String Catalogs Ready**: All **572** user-facing strings, tooltips, onboarding cards, settings labels, rename dialogs, and docklet strings have been fully translated across **7 community languages** (plus native English `en`):
   1. **Simplified Chinese (`zh_CN`)** — Community contribution by 史有虎 (IFtiger-hu).
   2. **Italian (`it`)**
   3. **Spanish (`es`)**
@@ -623,19 +629,19 @@ WayPlank ships with complete multi-language translation catalogs and an automate
   5. **Catalan (`ca`)**
   6. **German (`de`)** — Community contribution by Renate Schwiedernoch.
   7. **Ukrainian (`uk`)** — Community contribution by Michailo Buchko.
-- **Monolithic Embedded Localization Architecture**: All 7 language catalogs (`522/522` strings — 100%) are designed for monolithic in-memory `GResource` resolution with **Zero Host Pollution** (`0` external files installed in `/usr/share/locale/`), dynamically rendering the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES`.
-- **Automatic Browser Translation of the User Guide (`wayplank_user_guide.html`, `FAT 2.6`)**: Opening the User Guide from **Shortcuts & Gestures $\rightarrow$ Open Complete User Guide (Browser)** extracts `wayplank_user_guide.html` and automatically translates the manual into your active WayPlank locale (`LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG`, 100% compatible with `"FAT/Test Files/Freedesktop/Localization/switch_lang.sh"` without changing the OS language), complete with a floating top-right language selector (`#wp-lang-select`), mainland China fallback (`res.zvo.cn/translate/translate.js`), and `notranslate` protection for code blocks and Mermaid diagrams.
+- **Monolithic Embedded Localization Architecture**: All 7 language catalogs (`572/572` strings — 100%) are designed for monolithic in-memory `GResource` resolution with **Zero Host Pollution** (`0` external files installed in `/usr/share/locale/`), dynamically rendering the dock UI in the user's desktop language based on `LANG` / `LC_MESSAGES` on Linux and Windows UI locale on Windows.
+- **Automatic Browser Translation of the User Guide (`wayplank_user_guide.html`, `FAT 2.6`)**: Opening the User Guide from **Shortcuts & Gestures $\rightarrow$ Open Complete User Guide (Browser)** extracts `wayplank_user_guide.html` and automatically translates the manual into your active WayPlank locale (`LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG`, 100% compatible with `"FAT/Test Files/Freedesktop/Localization/switch_lang.sh"` and `switch_lang.ps1` without changing the OS language), complete with a floating top-right language selector (`#wp-lang-select`), mainland China fallback (`res.zvo.cn/translate/translate.js`), and `notranslate` protection for code blocks and Mermaid diagrams.
 - **Balanced 600×520 Preferences Geometry**: The Preferences window layout is engineered with compact 600×520 constraints to guarantee that all localized strings fit cleanly with zero horizontal label truncation.
 - **Call for Translators**: Contributors can easily add new languages or refine existing strings directly in `po/generate_translations.py`.
 
-### Automated Packaging (Debian/Ubuntu & openSUSE/Fedora/RHEL)
+### Automated Packaging (Debian/Ubuntu, openSUSE/Fedora/RHEL & Windows)
 WayPlank provides native, standalone packaging scripts requiring zero manual Makefile manipulation:
 
 - **Debian, Ubuntu & Derivatives (`.deb`)**:
   ```bash
   chmod +x BuildDeb.sh
   ./BuildDeb.sh
-  sudo apt install ./build/wayplank_0.7.3_amd64.deb
+  sudo apt install ./build/wayplank_0.7.3.2_amd64.deb
   ```
   *(Installing or upgrading the `.deb` package automatically signals any running WayPlank process via `SIGWINCH` to re-exec cleanly into the newly installed binary with zero downtime.)*
 
@@ -644,21 +650,28 @@ WayPlank provides native, standalone packaging scripts requiring zero manual Mak
   chmod +x BuildRpm.sh
   ./BuildRpm.sh
   # On openSUSE:
-  sudo zypper install ./build/wayplank-0.7.3-1.x86_64.rpm
+  sudo zypper install ./build/wayplank-0.7.3.2-1.x86_64.rpm
   # On Fedora / RHEL:
-  sudo dnf install ./build/wayplank-0.7.3-1.x86_64.rpm
+  sudo dnf install ./build/wayplank-0.7.3.2-1.x86_64.rpm
+  ```
+
+- **Windows `7 ⟷ 11+` (Zero-DLL `.exe` & 64-Bit NSIS Installer, Cross-Compiled on Linux)**:
+  ```bash
+  WAYPLANK_NO_PROMPT=1 ./BuildNsis.sh
+  # Produces build/wayplank.exe (portable Zero-DLL) and build/WayPlank-0.7.3.2-Setup.exe
   ```
 
 > 💡 **Headless / CI Automation**: All build scripts support non-interactive execution via `WAYPLANK_NO_PROMPT=1` (e.g., `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh`).
 
 ### Configuration File Paths
-- **Per-Dock Launchers Directories (`dock1`–`dock4`)**: `~/.config/wayplank/dock<1..4>/launchers/`
+- **Per-Dock Launchers Directories (`dock1`–`dock4`)**: `~/.config/wayplank/dock<1..4>/launchers/` *(Windows: `%LOCALAPPDATA%\wayplank\dock<1..4>\launchers\`)*
 - **First-Run Onboarding Marker**: `~/.config/wayplank/dock1/onboarding-done`
-- **Persistent Full Profile, `[MultiDock]` Topology & SR Latch Memory**: `~/.config/wayplank/latch-state.ini`
+- **Persistent Full Profile, `[MultiDock]` Topology & SR Latch Memory**: `~/.config/wayplank/latch-state.ini` *(Windows: `%LOCALAPPDATA%\wayplank\latch-state.ini`)*
+- **Non-Destructive Custom Shortcut Names (`Rename Shortcut...`)**: `~/.config/wayplank/launcher-names.ini` *(Windows: `%LOCALAPPDATA%\wayplank\launcher-names.ini`)*
 - **Smart LRU App Usage Database**: `~/.local/share/wayplank/app_usage.json`
 - **Folder Drawers**: `~/.config/wayplank/folders/`
 - **Custom Themes**: `~/.local/share/wayplank/themes/` (and legacy `~/.local/share/plank/themes/`)
-- **Cache & Temporary Files**: `~/.cache/wayplank/`
+- **Cache & Temporary Files**: `~/.cache/wayplank/` *(Windows caches & auto-extracted schemas: `%LOCALAPPDATA%\WayPlank\`)*
 
 ### GSettings Database Keys
 All settings are stored in the GSettings schema `net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/`:

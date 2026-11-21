@@ -1,0 +1,10 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="rb" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#b71c1c" offset="0"/>
+  <stop stop-color="#ef5350" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#rb)"/>
+ <ellipse cx="24" cy="26" rx="7" ry="9" fill="none" stroke="#ffffff" stroke-width="2.8"/>
+ <circle cx="24" cy="15.5" r="3" fill="#ffffff"/>
+ <path d="M 17 21 L 12 18 M 17 26 L 11.5 26 M 17.5 31 L 12.5 34 M 31 21 L 36 18 M 31 26 L 36.5 26 M 30.5 31 L 35.5 34" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

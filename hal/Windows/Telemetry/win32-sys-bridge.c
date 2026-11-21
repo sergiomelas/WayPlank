@@ -1,5 +1,4 @@
 /*
- *  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
  *  Copyright (C) 2026 Sergio Melas
  *
  *  This file is part of WayPlank.
@@ -36,6 +35,8 @@
 #include <winioctl.h>
 #include <ole2.h>
 #include <objbase.h>
+#include <oleauto.h>
+#include <wbemcli.h>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <mmdeviceapi.h>
@@ -55,16 +56,18 @@ static const GUID WP_IID_IMMDeviceEnumerator =
 static const GUID WP_IID_IAudioEndpointVolume =
 	{ 0x5CDF2C82, 0x841E, 0x4546, { 0x97, 0x22, 0x0C, 0xF7, 0x40, 0x78, 0x22, 0x9A } };
 
-static int g_sys_com_init = 0;
+static int
+sys_com_enter (void)
+{
+	HRESULT hr = CoInitializeEx (NULL, COINIT_MULTITHREADED);
+	return SUCCEEDED (hr) ? 1 : 0;
+}
 
 static void
-ensure_sys_com (void)
+sys_com_leave (int did_init)
 {
-	if (!g_sys_com_init) {
-		HRESULT hr = OleInitialize (NULL);
-		if (SUCCEEDED (hr) || hr == RPC_E_CHANGED_MODE)
-			g_sys_com_init = 1;
-	}
+	if (did_init)
+		CoUninitialize ();
 }
 
 static WCHAR *
@@ -174,6 +177,8 @@ win32_sys_enum_removable_drives (Win32RemovableDriveCallback cb, void *user_data
 #ifdef _WIN32
 	if (cb == NULL)
 		return;
+	DWORD prev_err_mode = 0;
+	SetThreadErrorMode (SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX, &prev_err_mode);
 	DWORD mask = GetLogicalDrives ();
 	for (int i = 0; i < 26; i++) {
 		if ((mask & (1U << i)) == 0)
@@ -185,7 +190,9 @@ win32_sys_enum_removable_drives (Win32RemovableDriveCallback cb, void *user_data
 
 		WCHAR vol_w[MAX_PATH];
 		vol_w[0] = L'\0';
-		GetVolumeInformationW (root_w, vol_w, MAX_PATH, NULL, NULL, NULL, NULL, 0);
+		/* Skip safely-ejected or empty-slot drives where no volume is mounted */
+		if (!GetVolumeInformationW (root_w, vol_w, MAX_PATH, NULL, NULL, NULL, NULL, 0))
+			continue;
 
 		char *root_u8 = sys_wide_to_utf8 (root_w);
 		char *label_u8 = (vol_w[0] != L'\0') ? sys_wide_to_utf8 (vol_w) : g_strdup_printf ("Drive (%c:)", 'A' + i);
@@ -193,6 +200,7 @@ win32_sys_enum_removable_drives (Win32RemovableDriveCallback cb, void *user_data
 		g_free (root_u8);
 		g_free (label_u8);
 	}
+	SetThreadErrorMode (prev_err_mode, NULL);
 #else
 	(void) cb;
 	(void) user_data;
@@ -339,7 +347,6 @@ win32_sys_sample_cpu_mem (int *cpu_pct, int *ram_pct, double *ram_used_gb, doubl
 static IAudioEndpointVolume *
 get_default_endpoint_volume (void)
 {
-	ensure_sys_com ();
 	IMMDeviceEnumerator *enumerator = NULL;
 	HRESULT hr = CoCreateInstance (
 		&WP_CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL,
@@ -371,15 +378,19 @@ win32_sys_audio_probe (int *volume_percent, int *is_muted)
 	if (is_muted) *is_muted = 0;
 
 #ifdef _WIN32
+	int com_init = sys_com_enter ();
 	IAudioEndpointVolume *vol = get_default_endpoint_volume ();
-	if (vol == NULL)
+	if (vol == NULL) {
+		sys_com_leave (com_init);
 		return 0;
+	}
 
 	float scalar = 0.0f;
 	BOOL muted = FALSE;
 	HRESULT hr1 = IAudioEndpointVolume_GetMasterVolumeLevelScalar (vol, &scalar);
 	HRESULT hr2 = IAudioEndpointVolume_GetMute (vol, &muted);
 	IAudioEndpointVolume_Release (vol);
+	sys_com_leave (com_init);
 
 	if (FAILED (hr1) && FAILED (hr2))
 		return 0;
@@ -399,11 +410,13 @@ void
 win32_sys_audio_set_muted (int muted)
 {
 #ifdef _WIN32
+	int com_init = sys_com_enter ();
 	IAudioEndpointVolume *vol = get_default_endpoint_volume ();
-	if (vol == NULL)
-		return;
-	IAudioEndpointVolume_SetMute (vol, muted ? TRUE : FALSE, NULL);
-	IAudioEndpointVolume_Release (vol);
+	if (vol != NULL) {
+		IAudioEndpointVolume_SetMute (vol, muted ? TRUE : FALSE, NULL);
+		IAudioEndpointVolume_Release (vol);
+	}
+	sys_com_leave (com_init);
 #else
 	(void) muted;
 #endif
@@ -413,23 +426,184 @@ void
 win32_sys_audio_set_volume_percent (int percent)
 {
 #ifdef _WIN32
+	int com_init = sys_com_enter ();
 	IAudioEndpointVolume *vol = get_default_endpoint_volume ();
-	if (vol == NULL)
-		return;
-	if (percent < 0) percent = 0;
-	if (percent > 100) percent = 100;
-	IAudioEndpointVolume_SetMasterVolumeLevelScalar (vol, (float) percent / 100.0f, NULL);
-	IAudioEndpointVolume_Release (vol);
+	if (vol != NULL) {
+		if (percent < 0) percent = 0;
+		if (percent > 100) percent = 100;
+		IAudioEndpointVolume_SetMasterVolumeLevelScalar (vol, (float) percent / 100.0f, NULL);
+		IAudioEndpointVolume_Release (vol);
+	}
+	sys_com_leave (com_init);
 #else
 	(void) percent;
 #endif
 }
 
 /* ============================================================================
- * 6. Display Brightness (Dynamic dxva2.dll DDC/CI)
+ * 6. Display Brightness (WMI root\WMI Laptop Backlight + Dynamic dxva2.dll Multi-Monitor DDC/CI)
  * ============================================================================ */
 
 #ifdef _WIN32
+
+static const GUID WP_CLSID_WbemLocator =
+	{ 0x4590F811, 0x1D3A, 0x11D0, { 0x89, 0x1F, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24 } };
+static const GUID WP_IID_IWbemLocator =
+	{ 0xDC12A687, 0x737F, 0x11CF, { 0x88, 0x4D, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24 } };
+
+static int g_wmi_bright_checked = 0;
+static int g_wmi_bright_supported = 0;
+
+static int
+wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
+{
+	if (g_wmi_bright_checked && !g_wmi_bright_supported)
+		return 0;
+
+	int com_init = sys_com_enter ();
+
+	IWbemLocator *loc = NULL;
+	HRESULT hr = CoCreateInstance (
+		&WP_CLSID_WbemLocator, NULL, CLSCTX_INPROC_SERVER,
+		&WP_IID_IWbemLocator, (void **) &loc
+	);
+	if (FAILED (hr) || loc == NULL) {
+		g_wmi_bright_checked = 1;
+		g_wmi_bright_supported = 0;
+		sys_com_leave (com_init);
+		return 0;
+	}
+
+	BSTR ns = SysAllocString (L"ROOT\\WMI");
+	IWbemServices *svc = NULL;
+	hr = IWbemLocator_ConnectServer (loc, ns, NULL, NULL, NULL, 0, NULL, NULL, &svc);
+	SysFreeString (ns);
+	IWbemLocator_Release (loc);
+	if (FAILED (hr) || svc == NULL) {
+		g_wmi_bright_checked = 1;
+		g_wmi_bright_supported = 0;
+		sys_com_leave (com_init);
+		return 0;
+	}
+
+	CoSetProxyBlanket (
+		(IUnknown *) svc,
+		RPC_C_AUTHN_WINNT,
+		RPC_C_AUTHZ_NONE,
+		NULL,
+		RPC_C_AUTHN_LEVEL_CALL,
+		RPC_C_IMP_LEVEL_IMPERSONATE,
+		NULL,
+		EOAC_NONE
+	);
+
+	BSTR wql = SysAllocString (L"WQL");
+	int ok = 0;
+
+	if (!do_set) {
+		BSTR q = SysAllocString (L"SELECT CurrentBrightness FROM WmiMonitorBrightness");
+		IEnumWbemClassObject *en = NULL;
+		hr = IWbemServices_ExecQuery (
+			svc, wql, q,
+			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+			NULL, &en
+		);
+		SysFreeString (q);
+		if (SUCCEEDED (hr) && en != NULL) {
+			IWbemClassObject *obj = NULL;
+			ULONG ret = 0;
+			if (SUCCEEDED (IEnumWbemClassObject_Next (en, 1000, 1, &obj, &ret)) && ret == 1 && obj != NULL) {
+				VARIANT vt;
+				VariantInit (&vt);
+				if (SUCCEEDED (IWbemClassObject_Get (obj, L"CurrentBrightness", 0, &vt, NULL, NULL))) {
+					int pct = -1;
+					if (vt.vt == VT_UI1) pct = (int) vt.bVal;
+					else if (vt.vt == VT_I4) pct = (int) vt.lVal;
+					else if (vt.vt == VT_UI4) pct = (int) vt.ulVal;
+					else if (vt.vt == VT_I2) pct = (int) vt.iVal;
+					else if (vt.vt == VT_UI2) pct = (int) vt.uiVal;
+					if (pct >= 0 && pct <= 100) {
+						if (out_pct) *out_pct = pct;
+						ok = 1;
+					}
+				}
+				VariantClear (&vt);
+				IWbemClassObject_Release (obj);
+			}
+			IEnumWbemClassObject_Release (en);
+		}
+		if (!g_wmi_bright_checked) {
+			g_wmi_bright_checked = 1;
+			g_wmi_bright_supported = ok;
+		}
+	} else {
+		if (target_pct < 0) target_pct = 0;
+		if (target_pct > 100) target_pct = 100;
+
+		BSTR cls_name = SysAllocString (L"WmiMonitorBrightnessMethods");
+		BSTR method_name = SysAllocString (L"WmiSetBrightness");
+		IWbemClassObject *cls_obj = NULL;
+		IWbemClassObject *in_def = NULL;
+
+		if (SUCCEEDED (IWbemServices_GetObject (svc, cls_name, 0, NULL, &cls_obj, NULL)) && cls_obj != NULL) {
+			if (SUCCEEDED (IWbemClassObject_GetMethod (cls_obj, L"WmiSetBrightness", 0, &in_def, NULL)) && in_def != NULL) {
+				BSTR q = SysAllocString (L"SELECT InstanceName FROM WmiMonitorBrightnessMethods");
+				IEnumWbemClassObject *en = NULL;
+				if (SUCCEEDED (IWbemServices_ExecQuery (
+					svc, wql, q,
+					WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+					NULL, &en
+				)) && en != NULL) {
+					IWbemClassObject *obj = NULL;
+					ULONG ret = 0;
+					while (SUCCEEDED (IEnumWbemClassObject_Next (en, 1000, 1, &obj, &ret)) && ret == 1 && obj != NULL) {
+						VARIANT vt_path;
+						VariantInit (&vt_path);
+						if (SUCCEEDED (IWbemClassObject_Get (obj, L"__RELPATH", 0, &vt_path, NULL, NULL))
+							&& vt_path.vt == VT_BSTR && vt_path.bstrVal != NULL) {
+							IWbemClassObject *in_inst = NULL;
+							if (SUCCEEDED (IWbemClassObject_SpawnInstance (in_def, 0, &in_inst)) && in_inst != NULL) {
+								VARIANT vt_to, vt_br;
+								VariantInit (&vt_to);
+								vt_to.vt = VT_I4;
+								vt_to.lVal = 0;
+								IWbemClassObject_Put (in_inst, L"Timeout", 0, &vt_to, 0);
+
+								VariantInit (&vt_br);
+								vt_br.vt = VT_UI1;
+								vt_br.bVal = (BYTE) target_pct;
+								IWbemClassObject_Put (in_inst, L"Brightness", 0, &vt_br, 0);
+
+								IWbemClassObject *out_params = NULL;
+								if (SUCCEEDED (IWbemServices_ExecMethod (
+									svc, vt_path.bstrVal, method_name, 0, NULL, in_inst, &out_params, NULL
+								))) {
+									ok = 1;
+									if (out_params != NULL)
+										IWbemClassObject_Release (out_params);
+								}
+								IWbemClassObject_Release (in_inst);
+							}
+						}
+						VariantClear (&vt_path);
+						IWbemClassObject_Release (obj);
+					}
+					IEnumWbemClassObject_Release (en);
+				}
+				SysFreeString (q);
+				IWbemClassObject_Release (in_def);
+			}
+			IWbemClassObject_Release (cls_obj);
+		}
+		SysFreeString (method_name);
+		SysFreeString (cls_name);
+	}
+
+	SysFreeString (wql);
+	IWbemServices_Release (svc);
+	sys_com_leave (com_init);
+	return ok;
+}
 
 typedef struct {
 	HANDLE hPhysicalMonitor;
@@ -465,6 +639,56 @@ ensure_dxva2 (void)
 	pfn_SetBright = (PFN_SetBright) GetProcAddress (h, "SetMonitorBrightness");
 }
 
+typedef struct {
+	int do_set;
+	int target_pct;
+	int out_pct;
+	int any_ok;
+} Dxva2EnumCtx;
+
+static BOOL CALLBACK
+dxva2_enum_mon_cb (HMONITOR hMon, HDC hdc, LPRECT rc, LPARAM lparam)
+{
+	(void) hdc;
+	(void) rc;
+	Dxva2EnumCtx *ctx = (Dxva2EnumCtx *) lparam;
+	if (hMon == NULL)
+		return TRUE;
+
+	DWORD count = 0;
+	if (!pfn_GetNumPhys (hMon, &count) || count == 0)
+		return TRUE;
+
+	WP_PHYSICAL_MONITOR *mons = (WP_PHYSICAL_MONITOR *) g_malloc0 (count * sizeof (WP_PHYSICAL_MONITOR));
+	if (!pfn_GetPhys (hMon, count, mons)) {
+		g_free (mons);
+		return TRUE;
+	}
+
+	for (DWORD i = 0; i < count; i++) {
+		DWORD min_b = 0, cur_b = 0, max_b = 0;
+		if (pfn_GetBright (mons[i].hPhysicalMonitor, &min_b, &cur_b, &max_b) && max_b > min_b) {
+			if (ctx->do_set) {
+				int pct = ctx->target_pct;
+				if (pct < 0) pct = 0;
+				if (pct > 100) pct = 100;
+				DWORD val = min_b + ((max_b - min_b) * (DWORD) pct) / 100;
+				if (pfn_SetBright (mons[i].hPhysicalMonitor, val))
+					ctx->any_ok = 1;
+			} else {
+				ctx->out_pct = (int) (((cur_b - min_b) * 100) / (max_b - min_b));
+				ctx->any_ok = 1;
+				break;
+			}
+		}
+	}
+
+	pfn_DestroyPhys (count, mons);
+	g_free (mons);
+	/* For queries, stop on first working DDC/CI monitor; for sets, update all external monitors */
+	return (ctx->do_set || !ctx->any_ok) ? TRUE : FALSE;
+}
+
 static int
 dxva2_get_or_set (int do_set, int target_pct, int *out_pct)
 {
@@ -472,39 +696,16 @@ dxva2_get_or_set (int do_set, int target_pct, int *out_pct)
 	if (!pfn_GetNumPhys || !pfn_GetPhys || !pfn_DestroyPhys || !pfn_GetBright || !pfn_SetBright)
 		return 0;
 
-	POINT pt = { 0, 0 };
-	HMONITOR hMon = MonitorFromPoint (pt, MONITOR_DEFAULTTOPRIMARY);
-	if (hMon == NULL)
-		return 0;
+	Dxva2EnumCtx ctx;
+	ctx.do_set = do_set;
+	ctx.target_pct = target_pct;
+	ctx.out_pct = 100;
+	ctx.any_ok = 0;
 
-	DWORD count = 0;
-	if (!pfn_GetNumPhys (hMon, &count) || count == 0)
-		return 0;
-
-	WP_PHYSICAL_MONITOR *mons = (WP_PHYSICAL_MONITOR *) g_malloc0 (count * sizeof (WP_PHYSICAL_MONITOR));
-	if (!pfn_GetPhys (hMon, count, mons)) {
-		g_free (mons);
-		return 0;
-	}
-
-	int ok = 0;
-	DWORD min_b = 0, cur_b = 0, max_b = 0;
-	if (pfn_GetBright (mons[0].hPhysicalMonitor, &min_b, &cur_b, &max_b) && max_b > min_b) {
-		if (do_set) {
-			if (target_pct < 0) target_pct = 0;
-			if (target_pct > 100) target_pct = 100;
-			DWORD val = min_b + ((max_b - min_b) * (DWORD) target_pct) / 100;
-			ok = pfn_SetBright (mons[0].hPhysicalMonitor, val) ? 1 : 0;
-		} else {
-			if (out_pct)
-				*out_pct = (int) (((cur_b - min_b) * 100) / (max_b - min_b));
-			ok = 1;
-		}
-	}
-
-	pfn_DestroyPhys (count, mons);
-	g_free (mons);
-	return ok;
+	EnumDisplayMonitors (NULL, NULL, dxva2_enum_mon_cb, (LPARAM) &ctx);
+	if (ctx.any_ok && out_pct != NULL)
+		*out_pct = ctx.out_pct;
+	return ctx.any_ok;
 }
 
 #endif
@@ -514,6 +715,8 @@ win32_sys_brightness_is_available (void)
 {
 #ifdef _WIN32
 	int pct = 100;
+	if (wmi_brightness_get_or_set (0, 0, &pct))
+		return 1;
 	return dxva2_get_or_set (0, 0, &pct);
 #else
 	return 0;
@@ -525,6 +728,8 @@ win32_sys_brightness_get_percent (void)
 {
 #ifdef _WIN32
 	int pct = 100;
+	if (wmi_brightness_get_or_set (0, 0, &pct))
+		return pct;
 	if (dxva2_get_or_set (0, 0, &pct))
 		return pct;
 	return 100;
@@ -537,6 +742,7 @@ void
 win32_sys_brightness_set_percent (int percent)
 {
 #ifdef _WIN32
+	wmi_brightness_get_or_set (1, percent, NULL);
 	dxva2_get_or_set (1, percent, NULL);
 #else
 	(void) percent;
@@ -642,12 +848,17 @@ win32_sys_suspend (int hibernate)
 {
 #ifdef _WIN32
 	typedef BOOLEAN (WINAPI *PFN_SetSuspendState) (BOOLEAN, BOOLEAN, BOOLEAN);
-	HMODULE h = LoadLibraryW (L"powrprof.dll");
-	if (h != NULL) {
-		PFN_SetSuspendState pfn = (PFN_SetSuspendState) GetProcAddress (h, "SetSuspendState");
-		if (pfn != NULL)
-			pfn (hibernate ? TRUE : FALSE, FALSE, FALSE);
+	static HMODULE hPowr = NULL;
+	static PFN_SetSuspendState pfn = NULL;
+	static int loaded = 0;
+	if (!loaded) {
+		loaded = 1;
+		hPowr = LoadLibraryW (L"powrprof.dll");
+		if (hPowr != NULL)
+			pfn = (PFN_SetSuspendState) GetProcAddress (hPowr, "SetSuspendState");
 	}
+	if (pfn != NULL)
+		pfn (hibernate ? TRUE : FALSE, FALSE, FALSE);
 #else
 	(void) hibernate;
 #endif
@@ -702,13 +913,17 @@ win32_sys_send_media_key (int kind)
 	case 3: vk = VK_MEDIA_STOP; break;
 	default: vk = VK_MEDIA_PLAY_PAUSE; break;
 	}
+	WORD scan = (WORD) MapVirtualKeyW (vk, MAPVK_VK_TO_VSC);
 	INPUT inputs[2];
 	memset (inputs, 0, sizeof (inputs));
 	inputs[0].type = INPUT_KEYBOARD;
 	inputs[0].ki.wVk = vk;
+	inputs[0].ki.wScan = scan;
+	inputs[0].ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
 	inputs[1].type = INPUT_KEYBOARD;
 	inputs[1].ki.wVk = vk;
-	inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+	inputs[1].ki.wScan = scan;
+	inputs[1].ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
 	SendInput (2, inputs, sizeof (INPUT));
 #else
 	(void) kind;
@@ -764,7 +979,12 @@ win32_sys_http_get_sync (const char *url, int timeout_sec, char **out_body)
 	if (url == NULL || url[0] == '\0')
 		return 0;
 
-	HMODULE hHttp = LoadLibraryW (L"winhttp.dll");
+	static HMODULE hHttp = NULL;
+	static int http_loaded = 0;
+	if (!http_loaded) {
+		http_loaded = 1;
+		hHttp = LoadLibraryW (L"winhttp.dll");
+	}
 	if (hHttp == NULL)
 		return 0;
 
@@ -810,7 +1030,11 @@ win32_sys_http_get_sync (const char *url, int timeout_sec, char **out_body)
 	if (extra[0])
 		wcsncat (full_path, extra, 1023);
 
-	HINTERNET_WP hSession = pOpen (L"WayPlank/0.7.3", WP_WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, NULL, NULL, 0);
+#define WP_WIDE_HELPER(x) L##x
+#define WP_WIDE(x) WP_WIDE_HELPER(x)
+	HINTERNET_WP hSession = pOpen (L"WayPlank/" WP_WIDE (PACKAGE_VERSION), WP_WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, NULL, NULL, 0);
+#undef WP_WIDE
+#undef WP_WIDE_HELPER
 	if (!hSession)
 		return 0;
 

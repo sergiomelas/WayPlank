@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -86,6 +85,9 @@ namespace Win32Bridge
 
 	[CCode (cname = "win32_bridge_set_resume_callback")]
 	public static void set_resume_callback (WindowEventCallback? cb);
+
+	[CCode (cname = "win32_bridge_set_deactivate_callback")]
+	public static void set_deactivate_callback (WindowEventCallback? cb);
 
 	[CCode (cname = "win32_bridge_set_ipc_callback")]
 	public static void set_ipc_callback (IpcActionCallback? cb);

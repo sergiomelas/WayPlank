@@ -1,2 +1,59 @@
-0.7.3
-Public Beta 4
+[Release]
+Version=0.7.3.2
+Decoration=Public Beta 4
+Year=2026
+ProgramName=WayPlank
+CopyrightHolder=Sergio Melas
+CopyrightEmail=sergiomelas@gmail.com
+Homepage=https://github.com/sergiomelas/WayPlank
+IssuesUrl=https://github.com/sergiomelas/WayPlank/issues
+CompanyName=WayPlank Project (Sergio Melas)
+
+[Credits]
+TabTitle=🚀 WayPlank (2026)
+Groups=lead;code;translators;artwork;qa
+
+[Credits:lead]
+Heading=Lead Architect/Programmer
+Layout=stacked
+Author1=Sergio Melas <sergiomelas@gmail.com>
+Documenter1=Sergio Melas <sergiomelas@gmail.com>
+Artist1=Sergio Melas <sergiomelas@gmail.com>
+Entry1=Sergio Melas | Wayland HAL, Core Engine, Identity & Multi-OS Architecture | https://github.com/sergiomelas | sergiomelas@gmail.com
+HallOfFame1=Lead Architect/Programmer & Maintainer: Sergio Melas (@sergiomelas — Wayland HAL, Core Engine, IT / ES / FR / CA)
+
+[Credits:code]
+Heading=Code & Packaging
+Layout=stacked
+Author1=史有虎 (IFtiger-hu) <2212363803@qq.com>
+Entry1=史有虎 (IFtiger-hu) | Community Fork, RPM Builder, Smooth Scroll & Matcher | https://github.com/IFtiger-hu-hub | 2212363803@qq.com
+HallOfFame1=Community Fork, RPM Packaging, Matcher & Simplified Chinese (zh_CN): 史有虎 (IFtiger-hu / @IFtiger-hu-hub)
+
+[Credits:translators]
+Heading=Translated by
+Layout=inline
+Entry1=Sergio Melas | English, Italiano, Español, Français, Català | https://github.com/sergiomelas
+Entry2=史有虎 (IFtiger-hu) | 简体中文 (zh_CN) | https://github.com/IFtiger-hu-hub
+Entry3=Renate Schwiedernoch (@reni001) | Deutsch (de) | https://github.com/reni001
+Entry4=Michailo Buchko (@Gabenoh) | Українська (uk) | https://github.com/Gabenoh
+HallOfFame1=German (de) Localization: Renate Schwiedernoch (@reni001)
+HallOfFame2=Ukrainian (uk) Localization & Ergonomics: Michailo Buchko (@Gabenoh)
+
+[Credits:artwork]
+Heading=Themes & Artwork
+Layout=inline
+Entry1=Sergio Melas | WayPlank Vector Icons & Adaptive Themes | https://github.com/sergiomelas
+Entry2=Arian | Arian Dark & Light Themes | https://github.com/sergiomelas/WayPlank
+Entry3=史有虎 (IFtiger-hu) | IFtiger Dark & Light Themes | https://github.com/IFtiger-hu-hub
+Entry4=KDE Breeze Icon Artists | Monolithic Docklet SVG Fallbacks | https://kde.org
+HallOfFame1=Themes & Artwork: Arian (Arian Themes), 史有虎 (IFtiger Themes), Daniel Foré, KDE Breeze Artists
+
+[Credits:qa]
+Heading=Testing & QA
+Layout=inline
+Entry1=@Gabenoh (Michailo Buchko) | System Menu & Input Mask UX | https://github.com/Gabenoh
+Entry2=@tcliuqiang | Multi-Compositor Qualification & Testing | https://github.com/tcliuqiang
+Entry3=@winteriscariot | Multi-Monitor & Compositor Verification | https://github.com/winteriscariot
+Entry4=@Jolmas | Desktop Integration & Feedback | https://github.com/Jolmas
+Entry5=@polpodan | KDE Plasma 6 Edit Mode Coexistence (#27) | https://github.com/polpodan
+HallOfFame1=Multi-Compositor Qualification & Bug Hunting: @tcliuqiang, @winteriscariot, @Jolmas, @polpodan

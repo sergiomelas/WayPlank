@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -39,16 +38,60 @@ namespace Plank
 			return instance;
 		}
 
+		const int LNK_CACHE_VERSION = 1;
+
+		class CachedLnkRecord : GLib.Object
+		{
+			public string path = "";
+			public int64 mtime = 0;
+			public int64 size = 0;
+			public string target = "";
+			public string args = "";
+			public string workdir = "";
+			public string description = "";
+			public string icon_path = "";
+			public int icon_idx = 0;
+			public string aumid = "";
+			public bool is_dir = false;
+			public bool tgt_exists = true;
+			public bool icon_exists = false;
+		}
+
 		Gee.ArrayList<AppDescriptor>? cached_apps = null;
+		Gee.ArrayList<GLib.File>? cached_launcher_dirs = null;
+		Gee.ArrayList<string>? cached_native_icon_tokens = null;
+		Gee.HashMap<string, CachedLnkRecord> disk_lnk_records;
+		Gee.HashMap<string, AppDescriptor?> lnk_cache;
+		Gee.HashMap<string, string> apps_by_id;
+		Gee.HashSet<string> failed_icon_keys;
 		Gee.HashMap<string, Gdk.Pixbuf> icon_cache;
 		Gee.HashMap<string, string> custom_icon_overrides;
 		Gee.HashMap<BrowserFamily, Gee.ArrayList<GLib.FileMonitor>> browser_monitors;
+		bool disk_cache_initialized = false;
+		bool bg_sync_running = false;
+		bool is_cleaned_up = false;
+		uint bg_sync_timer_id = 0U;
+		uint save_cache_timer_id = 0U;
 
 		construct
 		{
+			disk_lnk_records = new Gee.HashMap<string, CachedLnkRecord> ();
+			lnk_cache = new Gee.HashMap<string, AppDescriptor?> ();
+			apps_by_id = new Gee.HashMap<string, string> ();
+			failed_icon_keys = new Gee.HashSet<string> ();
 			icon_cache = new Gee.HashMap<string, Gdk.Pixbuf> ();
 			custom_icon_overrides = new Gee.HashMap<string, string> ();
 			browser_monitors = new Gee.HashMap<BrowserFamily, Gee.ArrayList<GLib.FileMonitor>> ();
+		}
+
+		~Win32AppSystem ()
+		{
+			cleanup ();
+		}
+
+		static bool is_network_path (string path)
+		{
+			return path.has_prefix ("\\\\") || path.has_prefix ("//");
 		}
 
 		static string to_local_path (string uri_or_path)
@@ -126,110 +169,116 @@ namespace Plank
 			return new Gee.ArrayList<GLib.File> ();
 		}
 
-		public Gee.ArrayList<GLib.File> discover_launcher_dirs ()
+		static string get_lnk_cache_file_path ()
 		{
-			var dirs = new Gee.ArrayList<GLib.File> ();
-
-			/* Put user synthetic-launchers dir FIRST (index 0) matching the IAppSystem
-			 * GC contract in ApplicationDiscovery.vala so stale unpinned .wayplank-app
-			 * files are garbage-collected automatically on Windows just like Linux. */
-			string synth = get_synthetic_dir ();
-			if (FileUtils.test (synth, FileTest.IS_DIR))
-				dirs.add (File.new_for_path (synth));
-
-			int[] folder_ids = {
-				Win32AppBridge.FOLDER_COMMON_PROGRAMS,
-				Win32AppBridge.FOLDER_USER_PROGRAMS,
-				Win32AppBridge.FOLDER_COMMON_DESKTOP,
-				Win32AppBridge.FOLDER_USER_DESKTOP
-			};
-
-			var seen = new Gee.HashSet<string> ();
-			foreach (int fid in folder_ids) {
-				string? p = Win32AppBridge.get_known_folder (fid);
-				if (p != null && p.length > 0 && FileUtils.test (p, FileTest.IS_DIR)) {
-					string key = p.down ();
-					if (!seen.contains (key)) {
-						seen.add (key);
-						dirs.add (File.new_for_path (p));
-					}
-				}
-			}
-
-			return dirs;
+			string? local = Win32AppBridge.get_known_folder (Win32AppBridge.FOLDER_LOCAL_APPDATA);
+			if (local == null || local.length == 0)
+				local = Environment.get_user_data_dir ();
+			string dir = Path.build_filename (local, "WayPlank");
+			DirUtils.create_with_parents (dir, 0755);
+			return Path.build_filename (dir, "lnk-index-cache.ini");
 		}
 
-		void scan_dir_recursive (string dir_path, int depth, Gee.ArrayList<AppDescriptor> out_apps, Gee.HashSet<string> seen_uris)
+		static void collect_dir_tree (string dir_path, int depth, Gee.ArrayList<string> out_dirs, Gee.HashSet<string> seen)
 		{
-			if (depth > 4)
+			if (depth > 4 || dir_path.length == 0 || !FileUtils.test (dir_path, FileTest.IS_DIR))
+				return;
+			string key = dir_path.down ();
+			if (!seen.contains (key)) {
+				seen.add (key);
+				out_dirs.add (dir_path);
+			}
+			if (depth >= 4)
 				return;
 			try {
 				var dir = Dir.open (dir_path);
 				string? name;
 				while ((name = dir.read_name ()) != null) {
-					string full = Path.build_filename (dir_path, name);
-					if (FileUtils.test (full, FileTest.IS_DIR)) {
-						scan_dir_recursive (full, depth + 1, out_apps, seen_uris);
+					if (name == "." || name == "..")
 						continue;
-					}
-					string lower = name.down ();
-					if (lower.has_suffix (".lnk")) {
-						if (is_uninstaller_name (lower))
-							continue;
-						var desc = load_launcher (full);
-						if (desc != null && desc.is_launchable && !desc.is_non_app_launcher) {
-							string ukey = desc.uri.down ();
-							if (!seen_uris.contains (ukey)) {
-								seen_uris.add (ukey);
-								out_apps.add (desc);
-							}
-						}
-					} else if (lower.has_suffix (".wayplank-app")) {
-						var desc = load_launcher (full);
-						if (desc != null && desc.is_launchable) {
-							string ukey = desc.uri.down ();
-							if (!seen_uris.contains (ukey)) {
-								seen_uris.add (ukey);
-								out_apps.add (desc);
-							}
-						}
-					}
+					string sub = Path.build_filename (dir_path, name);
+					if (FileUtils.test (sub, FileTest.IS_DIR))
+						collect_dir_tree (sub, depth + 1, out_dirs, seen);
 				}
-			} catch (Error e) {
-				// Ignore unreadable Start Menu subdirectories
-			}
+			} catch (Error e) {}
 		}
 
-		public Gee.ArrayList<AppDescriptor> discover_installed_apps (bool include_nodisplay = true)
+		static Gee.ArrayList<string> collect_all_index_dirs ()
 		{
-			if (cached_apps == null) {
-				cached_apps = new Gee.ArrayList<AppDescriptor> ();
-				var seen = new Gee.HashSet<string> ();
-				foreach (var d in discover_launcher_dirs ()) {
-					string? p = d.get_path ();
-					if (p != null && p.length > 0)
-						scan_dir_recursive (p, 0, cached_apps, seen);
+			var dirs = new Gee.ArrayList<string> ();
+			var seen = new Gee.HashSet<string> ();
+
+			int[] recursive_roots = {
+				Win32AppBridge.FOLDER_COMMON_STARTMENU,
+				Win32AppBridge.FOLDER_COMMON_PROGRAMS,
+				Win32AppBridge.FOLDER_USER_STARTMENU,
+				Win32AppBridge.FOLDER_USER_PROGRAMS
+			};
+			foreach (int fid in recursive_roots) {
+				string? p = Win32AppBridge.get_known_folder (fid);
+				if (p != null && p.length > 0)
+					collect_dir_tree (p, 0, dirs, seen);
+			}
+
+			int[] flat_roots = {
+				Win32AppBridge.FOLDER_COMMON_DESKTOP,
+				Win32AppBridge.FOLDER_USER_DESKTOP
+			};
+			foreach (int fid in flat_roots) {
+				string? p = Win32AppBridge.get_known_folder (fid);
+				if (p != null && p.length > 0 && FileUtils.test (p, FileTest.IS_DIR)) {
+					string key = p.down ();
+					if (!seen.contains (key)) {
+						seen.add (key);
+						dirs.add (p);
+					}
 				}
 			}
-			var copy = new Gee.ArrayList<AppDescriptor> ();
-			foreach (var a in cached_apps) {
-				if (include_nodisplay || !a.is_nodisplay)
-					copy.add (a);
+			return dirs;
+		}
+
+		public Gee.ArrayList<GLib.File> discover_launcher_dirs ()
+		{
+			/* Mirror Linux's flat 5-directory layout so ApplicationDiscovery attaches only
+			 * 5 lightweight root monitors at startup; full Start Menu subtrees are indexed
+			 * instantaneously via persistent disk cache in discover_installed_apps(). */
+			if (cached_launcher_dirs == null) {
+				var dirs = new Gee.ArrayList<GLib.File> ();
+				var seen = new Gee.HashSet<string> ();
+
+				string synth = get_synthetic_dir ();
+				if (FileUtils.test (synth, FileTest.IS_DIR)) {
+					seen.add (synth.down ());
+					dirs.add (File.new_for_path (synth));
+				}
+
+				int[] root_ids = {
+					Win32AppBridge.FOLDER_COMMON_PROGRAMS,
+					Win32AppBridge.FOLDER_USER_PROGRAMS,
+					Win32AppBridge.FOLDER_COMMON_DESKTOP,
+					Win32AppBridge.FOLDER_USER_DESKTOP
+				};
+				foreach (int fid in root_ids) {
+					string? p = Win32AppBridge.get_known_folder (fid);
+					if (p != null && p.length > 0 && FileUtils.test (p, FileTest.IS_DIR)) {
+						string key = p.down ();
+						if (!seen.contains (key)) {
+							seen.add (key);
+							dirs.add (File.new_for_path (p));
+						}
+					}
+				}
+
+				cached_launcher_dirs = dirs;
 			}
+
+			var copy = new Gee.ArrayList<GLib.File> ();
+			foreach (var d in cached_launcher_dirs)
+				copy.add (d);
 			return copy;
 		}
 
-		public void set_extra_watched_directories (string[] folder_uris)
-		{
-		}
-
-		public void invalidate_cache ()
-		{
-			cached_apps = null;
-			apps_changed ();
-		}
-
-		AppDescriptor? load_lnk_descriptor (string path)
+		static CachedLnkRecord? resolve_lnk_to_record (string path, int64 mtime, int64 size)
 		{
 			string? target = null;
 			string? args = null;
@@ -246,12 +295,45 @@ namespace Plank
 			if (tgt.length == 0)
 				return null;
 
+			var rec = new CachedLnkRecord ();
+			rec.path = path;
+			rec.mtime = mtime;
+			rec.size = size;
+			rec.target = tgt;
+			rec.args = (args != null) ? args.strip () : "";
+			rec.workdir = workdir ?? "";
+			rec.description = desc_str ?? "";
+			rec.icon_path = (icon_path != null) ? icon_path.strip () : "";
+			rec.icon_idx = icon_idx;
+			rec.aumid = (aumid != null) ? aumid.strip () : "";
+
+			/* Never call stat() on UNC, mapped network (DRIVE_REMOTE), optical, or removable
+			 * drives — avoids 20-45s SMB/hardware stalls on offline or sleeping targets. */
+			if (Win32AppBridge.is_fixed_local_drive (tgt) != 0) {
+				rec.is_dir = FileUtils.test (tgt, FileTest.IS_DIR);
+				rec.tgt_exists = rec.is_dir || FileUtils.test (tgt, FileTest.EXISTS);
+			} else {
+				rec.is_dir = false;
+				rec.tgt_exists = !is_network_path (tgt);
+			}
+
+			if (rec.icon_path.length > 0 && Win32AppBridge.is_fixed_local_drive (rec.icon_path) != 0)
+				rec.icon_exists = FileUtils.test (rec.icon_path, FileTest.EXISTS);
+			else
+				rec.icon_exists = false;
+
+			return rec;
+		}
+
+		AppDescriptor build_descriptor_from_record (CachedLnkRecord rec)
+		{
 			var d = new AppDescriptor ();
-			d.uri = to_file_uri (path);
-			string lnk_stem = path_stem (path);
+			d.uri = to_file_uri (rec.path);
+			string lnk_stem = path_stem (rec.path);
+			string tgt = rec.target;
 			string tgt_stem = path_stem (tgt);
 
-			if (FileUtils.test (tgt, FileTest.IS_DIR)) {
+			if (rec.is_dir) {
 				d.display_name = lnk_stem;
 				d.unlocalized_name = lnk_stem;
 				d.base_id = lnk_stem.down ();
@@ -267,48 +349,50 @@ namespace Plank
 				|| lower_tgt.has_suffix (".com")
 				|| lower_tgt.has_suffix (".msc");
 
-			string arg_str = (args != null) ? args.strip () : "";
+			string arg_str = rec.args;
+			string arg_low = arg_str.down ();
 			string tgt_base = Path.get_basename (tgt);
+			string tgt_base_low = tgt_base.down ();
 			bool is_wrapper_shortcut = (arg_str.length > 0 && is_os_wrapper_binary (tgt_base));
+			bool is_pwa_or_specialized = (tgt_base_low == "chrome_proxy.exe"
+				|| tgt_base_low == "msedge_proxy.exe"
+				|| tgt_base_low == "brave_proxy.exe"
+				|| arg_low.contains ("--app-id=")
+				|| arg_low.contains ("--app="));
+			bool use_lnk_stem = (is_wrapper_shortcut || is_pwa_or_specialized);
 
 			d.display_name = lnk_stem;
 			d.unlocalized_name = lnk_stem;
-			d.comment = desc_str ?? "";
-			d.working_dir = workdir ?? "";
-			d.base_id = (!is_wrapper_shortcut && tgt_stem.length > 0)
+			d.comment = rec.description;
+			d.working_dir = rec.workdir;
+			d.base_id = (!use_lnk_stem && tgt_stem.length > 0)
 				? normalize_app_id (tgt_stem)
 				: normalize_app_id (lnk_stem);
 			if (normalize_app_id (lnk_stem) != d.base_id)
 				d.alias_ids.add (normalize_app_id (lnk_stem));
 			d.alias_ids.add (normalize_app_id (lnk_stem).replace (" ", "-"));
-			if (!is_wrapper_shortcut && tgt_stem.length > 0)
+			if (!use_lnk_stem && tgt_stem.length > 0)
 				d.wm_classes_or_aumids.add (normalize_app_id (tgt_stem));
-			if (aumid != null && aumid.strip ().length > 0) {
-				string clean_aumid = aumid.strip ();
-				d.startup_wm_class_or_aumid = clean_aumid;
-				if (!d.wm_classes_or_aumids.contains (clean_aumid.down ()))
-					d.wm_classes_or_aumids.add (clean_aumid.down ());
+			if (rec.aumid.length > 0) {
+				d.startup_wm_class_or_aumid = rec.aumid;
+				if (!d.wm_classes_or_aumids.contains (rec.aumid.down ()))
+					d.wm_classes_or_aumids.add (rec.aumid.down ());
 			}
 
 			d.exec_command = (arg_str.length > 0)
 				? "%s %s".printf (quote_win_arg (tgt), arg_str)
 				: quote_win_arg (tgt);
 
-			string ip = (icon_path != null) ? icon_path.strip () : "";
 			string chosen_icon = "";
-			if (ip.length > 0 && FileUtils.test (ip, FileTest.EXISTS)) {
-				string candidate = ip.down ().has_suffix (".ico")
-					? ("winico:" + ip)
-					: ((icon_idx != 0) ? "%s,%d".printf (ip, icon_idx) : ip);
-				if (load_native_icon (candidate, 48) != null)
-					chosen_icon = candidate;
+			if (rec.icon_exists && rec.icon_path.length > 0) {
+				chosen_icon = rec.icon_path.down ().has_suffix (".ico")
+					? ("winico:" + rec.icon_path)
+					: ((rec.icon_idx != 0) ? "%s,%d".printf (rec.icon_path, rec.icon_idx) : rec.icon_path);
 			}
-			if (chosen_icon.length == 0 && FileUtils.test (tgt, FileTest.EXISTS)) {
-				if (load_native_icon (tgt, 48) != null)
-					chosen_icon = tgt;
-			}
-			if (chosen_icon.length == 0 && load_native_icon (path, 48) != null)
-				chosen_icon = path;
+			if (chosen_icon.length == 0 && rec.tgt_exists)
+				chosen_icon = tgt;
+			if (chosen_icon.length == 0 && !is_network_path (rec.path))
+				chosen_icon = rec.path;
 			d.icon_token = (chosen_icon.length > 0) ? chosen_icon : "application-default-icon";
 
 			if (custom_icon_overrides.has_key (d.uri.down ())) {
@@ -319,10 +403,377 @@ namespace Plank
 			d.is_launchable = is_exec;
 			d.is_non_app_launcher = !is_exec;
 			d.has_explicit_app_type = is_exec;
-			d.try_exec_satisfied = FileUtils.test (tgt, FileTest.EXISTS);
+			d.try_exec_satisfied = rec.tgt_exists;
 			d.supports_files = is_exec;
 			d.supports_uris = is_exec;
 			d.is_shown_in_current_desktop = true;
+			return d;
+		}
+
+		void rebuild_apps_memory_index ()
+		{
+			var next_apps = new Gee.ArrayList<AppDescriptor> ();
+			var next_by_id = new Gee.HashMap<string, string> ();
+			var seen_uris = new Gee.HashSet<string> ();
+
+			/* 1. Include user synthetic .wayplank-app launchers first */
+			string synth_dir = get_synthetic_dir ();
+			if (FileUtils.test (synth_dir, FileTest.IS_DIR)) {
+				try {
+					var dir = Dir.open (synth_dir);
+					string? name;
+					while ((name = dir.read_name ()) != null) {
+						if (!name.down ().has_suffix (".wayplank-app"))
+							continue;
+						var sdesc = load_synthetic_descriptor (Path.build_filename (synth_dir, name));
+						if (sdesc != null && sdesc.is_launchable) {
+							string ukey = sdesc.uri.down ();
+							if (seen_uris.add (ukey)) {
+								next_apps.add (sdesc);
+								if (sdesc.base_id.length > 0 && !next_by_id.has_key (sdesc.base_id))
+									next_by_id.set (sdesc.base_id, sdesc.uri);
+								string dlow = sdesc.display_name.down ();
+								if (dlow.length > 0 && !next_by_id.has_key (dlow))
+									next_by_id.set (dlow, sdesc.uri);
+							}
+						}
+					}
+				} catch (Error e) {}
+			}
+
+			/* 2. Build descriptors purely in RAM from persistent disk_lnk_records */
+			foreach (var entry in disk_lnk_records.entries) {
+				var rec = entry.value;
+				string lower_name = Path.get_basename (rec.path).down ();
+				if (is_uninstaller_name (lower_name))
+					continue;
+				var desc = build_descriptor_from_record (rec);
+				lnk_cache.set (entry.key, desc);
+				if (desc.is_launchable && !desc.is_non_app_launcher) {
+					string ukey = desc.uri.down ();
+					if (seen_uris.add (ukey)) {
+						next_apps.add (desc);
+						if (desc.base_id.length > 0 && !next_by_id.has_key (desc.base_id))
+							next_by_id.set (desc.base_id, desc.uri);
+						string dlow = desc.display_name.down ();
+						if (dlow.length > 0 && !next_by_id.has_key (dlow))
+							next_by_id.set (dlow, desc.uri);
+					}
+				}
+			}
+
+			cached_apps = next_apps;
+			apps_by_id = next_by_id;
+		}
+
+		bool load_disk_cache_file ()
+		{
+			string cache_path = get_lnk_cache_file_path ();
+			if (!FileUtils.test (cache_path, FileTest.IS_REGULAR))
+				return false;
+
+			var kf = new KeyFile ();
+			try {
+				kf.load_from_file (cache_path, KeyFileFlags.NONE);
+				if (!kf.has_group ("Meta") || !kf.has_key ("Meta", "CacheVersion"))
+					return false;
+				if (kf.get_integer ("Meta", "CacheVersion") != LNK_CACHE_VERSION)
+					return false;
+
+				int count = kf.has_key ("Meta", "Count") ? kf.get_integer ("Meta", "Count") : 0;
+				if (count <= 0)
+					return false;
+
+				var loaded = new Gee.HashMap<string, CachedLnkRecord> ();
+				for (int i = 0; i < count; i++) {
+					string grp = "%d".printf (i);
+					if (!kf.has_group (grp))
+						continue;
+					string p = kf.has_key (grp, "Path") ? kf.get_string (grp, "Path") : "";
+					string tgt = kf.has_key (grp, "Target") ? kf.get_string (grp, "Target") : "";
+					if (p.length == 0 || tgt.length == 0)
+						continue;
+
+					var rec = new CachedLnkRecord ();
+					rec.path = p;
+					rec.mtime = kf.has_key (grp, "Mtime") ? kf.get_int64 (grp, "Mtime") : 0;
+					rec.size = kf.has_key (grp, "Size") ? kf.get_int64 (grp, "Size") : 0;
+					rec.target = tgt;
+					rec.args = kf.has_key (grp, "Args") ? kf.get_string (grp, "Args") : "";
+					rec.workdir = kf.has_key (grp, "WorkDir") ? kf.get_string (grp, "WorkDir") : "";
+					rec.description = kf.has_key (grp, "Desc") ? kf.get_string (grp, "Desc") : "";
+					rec.icon_path = kf.has_key (grp, "Icon") ? kf.get_string (grp, "Icon") : "";
+					rec.icon_idx = kf.has_key (grp, "IconIdx") ? kf.get_integer (grp, "IconIdx") : 0;
+					rec.aumid = kf.has_key (grp, "Aumid") ? kf.get_string (grp, "Aumid") : "";
+					rec.is_dir = kf.has_key (grp, "IsDir") && kf.get_boolean (grp, "IsDir");
+					rec.tgt_exists = !kf.has_key (grp, "TgtExists") || kf.get_boolean (grp, "TgtExists");
+					rec.icon_exists = kf.has_key (grp, "IconExists") && kf.get_boolean (grp, "IconExists");
+					loaded.set (p.down (), rec);
+				}
+
+				if (loaded.size == 0)
+					return false;
+
+				disk_lnk_records = loaded;
+				return true;
+			} catch (Error e) {
+				return false;
+			}
+		}
+
+		void save_disk_cache_file ()
+		{
+			string cache_path = get_lnk_cache_file_path ();
+			var kf = new KeyFile ();
+			kf.set_integer ("Meta", "CacheVersion", LNK_CACHE_VERSION);
+			int idx = 0;
+			foreach (var rec in disk_lnk_records.values) {
+				string grp = "%d".printf (idx++);
+				kf.set_string (grp, "Path", rec.path);
+				kf.set_int64 (grp, "Mtime", rec.mtime);
+				kf.set_int64 (grp, "Size", rec.size);
+				kf.set_string (grp, "Target", rec.target);
+				if (rec.args.length > 0) kf.set_string (grp, "Args", rec.args);
+				if (rec.workdir.length > 0) kf.set_string (grp, "WorkDir", rec.workdir);
+				if (rec.description.length > 0) kf.set_string (grp, "Desc", rec.description);
+				if (rec.icon_path.length > 0) kf.set_string (grp, "Icon", rec.icon_path);
+				if (rec.icon_idx != 0) kf.set_integer (grp, "IconIdx", rec.icon_idx);
+				if (rec.aumid.length > 0) kf.set_string (grp, "Aumid", rec.aumid);
+				if (rec.is_dir) kf.set_boolean (grp, "IsDir", true);
+				if (!rec.tgt_exists) kf.set_boolean (grp, "TgtExists", false);
+				if (rec.icon_exists) kf.set_boolean (grp, "IconExists", true);
+			}
+			kf.set_integer ("Meta", "Count", idx);
+			try {
+				FileUtils.set_contents (cache_path, kf.to_data ());
+			} catch (Error e) {}
+		}
+
+		void schedule_save_disk_cache ()
+		{
+			if (is_cleaned_up || save_cache_timer_id != 0U)
+				return;
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			save_cache_timer_id = GLib.Timeout.add (1500, () => {
+				var self = (Win32AppSystem?) weak_self.get ();
+				if (self == null || self.is_cleaned_up)
+					return Source.REMOVE;
+				self.save_cache_timer_id = 0U;
+				self.save_disk_cache_file ();
+				return Source.REMOVE;
+			});
+		}
+
+		void scan_all_start_menu_cold_sync ()
+		{
+			int64 t0 = GLib.get_monotonic_time ();
+			var dirs = collect_all_index_dirs ();
+			foreach (var dir_path in dirs) {
+				try {
+					var dir = Dir.open (dir_path);
+					string? name;
+					while ((name = dir.read_name ()) != null) {
+						if (name == "." || name == "..")
+							continue;
+						string lower = name.down ();
+						if (!lower.has_suffix (".lnk") || is_uninstaller_name (lower))
+							continue;
+						string full = Path.build_filename (dir_path, name);
+						string pkey = full.down ();
+						if (disk_lnk_records.has_key (pkey))
+							continue;
+						int64 mtime = 0, fsz = 0;
+						if (Win32AppBridge.get_file_stamp (full, out mtime, out fsz) == 0)
+							continue;
+						var rec = resolve_lnk_to_record (full, mtime, fsz);
+						if (rec != null)
+							disk_lnk_records.set (pkey, rec);
+					}
+				} catch (Error e) {}
+			}
+			int64 elapsed_ms = (GLib.get_monotonic_time () - t0) / 1000;
+			if (elapsed_ms > 500)
+				message ("Win32AppSystem: initial cold .lnk index built (%d entries in %lld ms)", disk_lnk_records.size, elapsed_ms);
+			save_disk_cache_file ();
+		}
+
+		void schedule_bg_delta_sync (uint delay_ms)
+		{
+			if (is_cleaned_up || bg_sync_running)
+				return;
+			if (bg_sync_timer_id != 0U) {
+				Source.remove (bg_sync_timer_id);
+				bg_sync_timer_id = 0U;
+			}
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			bg_sync_timer_id = GLib.Timeout.add (delay_ms, () => {
+				var self = (Win32AppSystem?) weak_self.get ();
+				if (self == null || self.is_cleaned_up)
+					return Source.REMOVE;
+				self.bg_sync_timer_id = 0U;
+				self.launch_bg_delta_sync ();
+				return Source.REMOVE;
+			});
+		}
+
+		void launch_bg_delta_sync ()
+		{
+			if (is_cleaned_up || bg_sync_running)
+				return;
+			bg_sync_running = true;
+
+			/* Immutable snapshot of known path -> "mtime:size" handed to worker thread */
+			var snapshot = new Gee.HashMap<string, string> ();
+			foreach (var e in disk_lnk_records.entries)
+				snapshot.set (e.key, "%lld:%lld".printf (e.value.mtime, e.value.size));
+
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			new Thread<void*> ("wayplank-lnk-delta", () => {
+				Win32AppBridge.set_thread_low_priority ();
+				var dirs = collect_all_index_dirs ();
+				var live_keys = new Gee.HashSet<string> ();
+				var updated = new Gee.HashMap<string, CachedLnkRecord> ();
+
+				foreach (var dir_path in dirs) {
+					try {
+						var dir = Dir.open (dir_path);
+						string? name;
+						while ((name = dir.read_name ()) != null) {
+							if (name == "." || name == "..")
+								continue;
+							string lower = name.down ();
+							if (!lower.has_suffix (".lnk") || is_uninstaller_name (lower))
+								continue;
+							string full = Path.build_filename (dir_path, name);
+							string pkey = full.down ();
+							if (!live_keys.add (pkey))
+								continue;
+
+							int64 mtime = 0, fsz = 0;
+							if (Win32AppBridge.get_file_stamp (full, out mtime, out fsz) == 0)
+								continue;
+							string stamp = "%lld:%lld".printf (mtime, fsz);
+							if (snapshot.has_key (pkey) && snapshot.get (pkey) == stamp)
+								continue;
+
+							var rec = resolve_lnk_to_record (full, mtime, fsz);
+							if (rec != null)
+								updated.set (pkey, rec);
+						}
+					} catch (Error e) {}
+				}
+
+				var removed = new Gee.ArrayList<string> ();
+				foreach (var old_key in snapshot.keys) {
+					if (!live_keys.contains (old_key))
+						removed.add (old_key);
+				}
+
+				GLib.Idle.add (() => {
+					var self = (Win32AppSystem?) weak_self.get ();
+					if (self == null || self.is_cleaned_up)
+						return Source.REMOVE;
+					self.bg_sync_running = false;
+					if (updated.size > 0 || removed.size > 0) {
+						foreach (var rk in removed) {
+							self.disk_lnk_records.unset (rk);
+							self.lnk_cache.unset (rk);
+						}
+						foreach (var ue in updated.entries)
+							self.disk_lnk_records.set (ue.key, ue.value);
+						self.rebuild_apps_memory_index ();
+						self.save_disk_cache_file ();
+						self.apps_changed ();
+					}
+					return Source.REMOVE;
+				});
+				return null;
+			});
+		}
+
+		void ensure_disk_cache_initialized ()
+		{
+			if (disk_cache_initialized)
+				return;
+			disk_cache_initialized = true;
+
+			if (load_disk_cache_file ()) {
+				rebuild_apps_memory_index ();
+				schedule_bg_delta_sync (1500);
+			} else {
+				scan_all_start_menu_cold_sync ();
+				rebuild_apps_memory_index ();
+			}
+		}
+
+		public Gee.ArrayList<AppDescriptor> discover_installed_apps (bool include_nodisplay = true)
+		{
+			ensure_disk_cache_initialized ();
+			var copy = new Gee.ArrayList<AppDescriptor> ();
+			if (cached_apps != null) {
+				foreach (var a in cached_apps) {
+					if (include_nodisplay || !a.is_nodisplay)
+						copy.add (a);
+				}
+			}
+			return copy;
+		}
+
+		public void set_extra_watched_directories (string[] folder_uris)
+		{
+		}
+
+		public void invalidate_cache ()
+		{
+			failed_icon_keys.clear ();
+			if (disk_cache_initialized)
+				schedule_bg_delta_sync (200);
+			apps_changed ();
+		}
+
+		AppDescriptor? load_lnk_descriptor (string path)
+		{
+			ensure_disk_cache_initialized ();
+			string pkey = path.down ();
+			if (lnk_cache.has_key (pkey))
+				return lnk_cache.get (pkey);
+
+			int64 mtime = 0, fsz = 0;
+			bool has_stamp = (Win32AppBridge.get_file_stamp (path, out mtime, out fsz) != 0);
+
+			if (!has_stamp && Win32AppBridge.is_fixed_local_drive (path) != 0) {
+				if (disk_lnk_records.unset (pkey))
+					schedule_save_disk_cache ();
+				lnk_cache.unset (pkey);
+				return null;
+			}
+
+			if (disk_lnk_records.has_key (pkey)) {
+				var cached_rec = disk_lnk_records.get (pkey);
+				if (!has_stamp || (cached_rec.mtime == mtime && cached_rec.size == fsz)) {
+					var desc = build_descriptor_from_record (cached_rec);
+					if (lnk_cache.size > 4096)
+						lnk_cache.clear ();
+					lnk_cache.set (pkey, desc);
+					return desc;
+				}
+			}
+
+			if (lnk_cache.size > 4096)
+				lnk_cache.clear ();
+
+			var rec = resolve_lnk_to_record (path, mtime, fsz);
+			if (rec == null) {
+				lnk_cache.set (pkey, null);
+				return null;
+			}
+
+			var d = build_descriptor_from_record (rec);
+			if (disk_lnk_records.size < 4096) {
+				disk_lnk_records.set (pkey, rec);
+				schedule_save_disk_cache ();
+			}
+			lnk_cache.set (pkey, d);
 			return d;
 		}
 
@@ -435,19 +886,38 @@ namespace Plank
 
 		public string resolve_launcher_uri (string raw_id_or_uri)
 		{
-			if (raw_id_or_uri.length == 0 || raw_id_or_uri.has_prefix ("file://")
-				|| raw_id_or_uri.has_prefix ("aumid://") || raw_id_or_uri.has_prefix ("docklet://"))
+			if (raw_id_or_uri.length == 0 || raw_id_or_uri.has_prefix ("aumid://") || raw_id_or_uri.has_prefix ("docklet://"))
 				return raw_id_or_uri;
+
+			if (raw_id_or_uri.has_prefix ("file://")) {
+				string local = to_local_path (raw_id_or_uri);
+				if (local.length > 0 && FileUtils.test (local, FileTest.EXISTS))
+					return raw_id_or_uri;
+				/* Self-heal deleted Desktop .lnk (e.g. PWA removed from Desktop while Start Menu copy exists) */
+				string missing_stem = normalize_app_id (launcher_id_stem (raw_id_or_uri));
+				if (missing_stem.length > 0) {
+					foreach (var app in discover_installed_apps (true)) {
+						if (app.base_id == missing_stem || normalize_app_id (app.display_name) == missing_stem) {
+							string cand_path = to_local_path (app.uri);
+							if (cand_path.length > 0 && FileUtils.test (cand_path, FileTest.EXISTS))
+								return app.uri;
+						}
+					}
+				}
+				return raw_id_or_uri;
+			}
 
 			if (Path.is_absolute (raw_id_or_uri) && FileUtils.test (raw_id_or_uri, FileTest.EXISTS))
 				return to_file_uri (raw_id_or_uri);
 
-			string needle = strip_launcher_extension (raw_id_or_uri).down ();
-			foreach (var app in discover_installed_apps (true)) {
-				if (app.base_id == needle || app.display_name.down () == needle)
-					return app.uri;
-			}
-			return raw_id_or_uri;
+			ensure_disk_cache_initialized ();
+			string needle = normalize_app_id (strip_launcher_extension (raw_id_or_uri));
+			if (needle.length > 0 && apps_by_id.has_key (needle))
+				return apps_by_id.get (needle);
+			string raw_low = strip_launcher_extension (raw_id_or_uri).down ();
+			if (raw_low.length > 0 && apps_by_id.has_key (raw_low))
+				return apps_by_id.get (raw_low);
+			return "";
 		}
 
 		public bool is_launcher_uri (string uri_or_path)
@@ -686,16 +1156,54 @@ namespace Plank
 
 		public bool is_folder_metadata_file (string filename)
 		{
-			string lower = filename.down ();
-			return lower == "desktop.ini" || lower == "thumbs.db";
+			string lower = filename.ascii_down ();
+			return (lower == "desktop.ini" || lower.has_prefix ("desktop.ini.")
+				|| lower == "thumbs.db"
+				|| filename == ".directory" || filename.has_prefix (".directory."));
 		}
 
 		public GLib.File? copy_launcher_to_directory (GLib.File src_launcher, GLib.File dest_dir)
 		{
+			if (!src_launcher.query_exists ())
+				return null;
 			string? base_name = src_launcher.get_basename ();
 			if (base_name == null || base_name.length == 0)
 				return null;
+
+			try {
+				if (!dest_dir.query_exists ())
+					dest_dir.make_directory_with_parents ();
+			} catch (Error e) {
+				return null;
+			}
+
+			string? src_path = src_launcher.get_path ();
+			if (src_path != null && src_path.down ().has_suffix (".exe")) {
+				var desc = load_exe_descriptor (src_path);
+				if (desc == null || desc.exec_command.length == 0)
+					return null;
+				string stem = path_stem (src_path).replace ("/", "_").replace ("\\", "_").replace (":", "_");
+				if (stem.length == 0)
+					return null;
+				var dest = dest_dir.get_child (stem + ".wayplank-app");
+				var kf = new KeyFile ();
+				kf.set_string ("WayPlankApp", "Name", desc.display_name.length > 0 ? desc.display_name : stem);
+				kf.set_string ("WayPlankApp", "Exec", desc.exec_command);
+				kf.set_string ("WayPlankApp", "Icon", desc.icon_token.length > 0 ? desc.icon_token : src_path);
+				try {
+					string? dp = dest.get_path ();
+					if (dp == null || dp.length == 0)
+						return null;
+					FileUtils.set_contents (dp, kf.to_data ());
+					return dest;
+				} catch (Error e) {
+					return null;
+				}
+			}
+
 			var dest = dest_dir.get_child (base_name);
+			if (src_launcher.equal (dest))
+				return dest;
 			try {
 				src_launcher.copy (dest, FileCopyFlags.OVERWRITE);
 				return dest;
@@ -807,6 +1315,7 @@ namespace Plank
 			if (launcher_uri.length == 0 || new_icon_token.length == 0)
 				return "";
 			custom_icon_overrides.set (launcher_uri.down (), new_icon_token);
+			lnk_cache.unset (to_local_path (launcher_uri).down ());
 			return launcher_uri;
 		}
 
@@ -814,6 +1323,7 @@ namespace Plank
 		{
 			restored_icon_token = "";
 			custom_icon_overrides.unset (launcher_uri.down ());
+			lnk_cache.unset (to_local_path (launcher_uri).down ());
 			var d = load_launcher (launcher_uri);
 			if (d != null)
 				restored_icon_token = d.icon_token;
@@ -990,12 +1500,109 @@ namespace Plank
 			return found;
 		}
 
+		static bool is_non_document_ext (string dot_ext_low)
+		{
+			return dot_ext_low == ".exe" || dot_ext_low == ".lnk" || dot_ext_low == ".bat"
+				|| dot_ext_low == ".cmd" || dot_ext_low == ".msi" || dot_ext_low == ".dll"
+				|| dot_ext_low == ".url" || dot_ext_low == ".com" || dot_ext_low == ".scr"
+				|| dot_ext_low == ".sys" || dot_ext_low == ".cpl";
+		}
+
 		public Gee.ArrayList<RecentDocInfo> get_recent_documents (string launcher_uri, int max_items = 10)
 		{
 			var results = new Gee.ArrayList<RecentDocInfo> ();
+			if (launcher_uri.length == 0 || launcher_uri.has_prefix ("docklet://") || max_items <= 0)
+				return results;
+
+			var desc = load_launcher (launcher_uri);
+			if (desc == null || !desc.is_launchable)
+				return results;
+
+			string exec_low = desc.exec_command.down ();
+			if (exec_low.contains ("--app-id=") || exec_low.contains ("--app="))
+				return results;
+
+			var seen_targets = new Gee.HashSet<string> ();
+			var app_ids = new Gee.ArrayList<string> ();
+
+			if (launcher_uri.down ().has_prefix ("aumid://")) {
+				string uwp_id = launcher_uri.substring (8).strip ();
+				if (uwp_id.length > 0)
+					app_ids.add (uwp_id);
+			}
+			if (desc.startup_wm_class_or_aumid.length > 0 && !app_ids.contains (desc.startup_wm_class_or_aumid))
+				app_ids.add (desc.startup_wm_class_or_aumid);
+
+			string exe_base = "";
+			string exe_full = "";
+			if (desc.exec_command.length > 0) {
+				var argv = Hal.Runtime.parse_command_argv (desc.exec_command);
+				if (argv.length > 0) {
+					exe_full = argv[0].strip ();
+					exe_base = Path.get_basename (exe_full).down ();
+				}
+			}
+
+			bool is_blocked_proxy = (exe_base == "chrome_proxy.exe" || exe_base == "msedge_proxy.exe"
+				|| exe_base == "brave_proxy.exe" || is_os_wrapper_binary (exe_base));
+			if (is_blocked_proxy && app_ids.size == 0)
+				return results;
+
+			if (!is_blocked_proxy && exe_full.length > 0 && exe_base.has_suffix (".exe")
+				&& GLib.Path.is_absolute (exe_full) && !app_ids.contains (exe_full)) {
+				app_ids.add (exe_full);
+			}
+
+			/* 1. Primary: Official Windows Shell per-app Jump List (IApplicationDocumentLists).
+			 * Returns the exact documents opened in this specific Win32 or UWP app. */
+			foreach (var app_id in app_ids) {
+				if (results.size >= max_items)
+					break;
+				Win32AppBridge.enum_jump_list_recent (app_id, max_items * 2, (doc_path) => {
+					if (results.size >= max_items || doc_path.length == 0)
+						return;
+					if (!FileUtils.test (doc_path, FileTest.IS_REGULAR))
+						return;
+					string tgt_key = doc_path.down ();
+					if (seen_targets.contains (tgt_key))
+						return;
+					string bname = Path.get_basename (doc_path);
+					int dot = bname.last_index_of_char ('.');
+					if (dot > 0 && dot + 1 < bname.length) {
+						if (is_non_document_ext (bname.substring (dot).down ()))
+							return;
+					}
+					seen_targets.add (tgt_key);
+					var info = new RecentDocInfo ();
+					info.uri = to_file_uri (doc_path);
+					info.display_name = bname;
+					info.tooltip_path = doc_path;
+					info.icon_token = doc_path;
+					info.direct_app_match = true;
+					try {
+						var fi = File.new_for_path (doc_path).query_info (FileAttribute.TIME_MODIFIED, FileQueryInfoFlags.NONE);
+						info.modified_unix = (int64) fi.get_attribute_uint64 (FileAttribute.TIME_MODIFIED);
+					} catch (Error e) {}
+					results.add (info);
+				});
+			}
+
+			if (results.size > 0)
+				return results;
+
+			/* 2. Fallback for classic Win32 apps without Jump List entries:
+			 * Strictly match ONLY extensions where this executable is the actual
+			 * system default handler (match_level >= 2: AssocQueryStringW / UserChoice),
+			 * never loose OpenWithProgids entries (which would pollute Chrome/editors
+			 * with unrelated global .pdf files). */
+			if (exe_base.length == 0 || !exe_base.has_suffix (".exe") || is_blocked_proxy)
+				return results;
+
 			string? recent_dir = Win32AppBridge.get_known_folder (Win32AppBridge.FOLDER_RECENT);
 			if (recent_dir == null || !FileUtils.test (recent_dir, FileTest.IS_DIR))
 				return results;
+
+			var ext_cache = new Gee.HashMap<string, int> ();
 
 			try {
 				var dir = Dir.open (recent_dir);
@@ -1013,14 +1620,40 @@ namespace Plank
 					string? aumid = null;
 					if (Win32AppBridge.resolve_lnk (full, out target, out args, out workdir, out desc_str, out icon_path, out icon_idx, out aumid) == 0)
 						continue;
-					if (target == null || target.length == 0 || !FileUtils.test (target, FileTest.IS_REGULAR))
+					if (target == null || target.length == 0 || Win32AppBridge.is_fixed_local_drive (target) == 0)
+						continue;
+					if (!FileUtils.test (target, FileTest.IS_REGULAR))
 						continue;
 
+					string tgt_key = target.down ();
+					if (seen_targets.contains (tgt_key))
+						continue;
+
+					string bname = Path.get_basename (target);
+					int dot = bname.last_index_of_char ('.');
+					if (dot <= 0 || dot + 1 >= bname.length)
+						continue;
+					string dot_ext = bname.substring (dot).down ();
+					if (is_non_document_ext (dot_ext))
+						continue;
+
+					int match_level = 0;
+					if (ext_cache.has_key (dot_ext)) {
+						match_level = ext_cache.get (dot_ext);
+					} else {
+						match_level = Win32AppBridge.exe_handles_ext (exe_base, dot_ext);
+						ext_cache.set (dot_ext, match_level);
+					}
+					if (match_level < 2)
+						continue;
+
+					seen_targets.add (tgt_key);
 					var info = new RecentDocInfo ();
 					info.uri = to_file_uri (target);
-					info.display_name = Path.get_basename (target);
+					info.display_name = bname;
 					info.tooltip_path = target;
 					info.icon_token = target;
+					info.direct_app_match = true;
 					try {
 						var fi = File.new_for_path (full).query_info (FileAttribute.TIME_MODIFIED, FileQueryInfoFlags.NONE);
 						info.modified_unix = (int64) fi.get_attribute_uint64 (FileAttribute.TIME_MODIFIED);
@@ -1072,6 +1705,14 @@ namespace Plank
 				| ((uint32) data[off + 3] << 24);
 		}
 
+		/* Documented Binary Container Exception (Architecture/README.md §1.1 Rule 5):
+		 * Microsoft's Vista+ ICO container specification (ICONDIR / ICONDIRENTRY) carries
+		 * either a 32-bit DIB or an embedded 256x256 PNG payload with no format enum field
+		 * in ICONDIRENTRY (PNG vs DIB is defined by the leading 4-byte PNG signature vs
+		 * BITMAPINFOHEADER.biSize == 40). Static gdk-pixbuf ICO / legacy Win32 GDI loaders
+		 * fail or degrade alpha on PNG-in-ICO files (e.g. browser profile/PWA .ico files),
+		 * so Zone 3 parses the published ICONDIR table with full bounds checks and hands
+		 * the PNG payload directly to the official Gdk.PixbufLoader.with_type("png") API. */
 		static Gdk.Pixbuf? decode_ico_file (string path, int req_size)
 		{
 			uint8[] data;
@@ -1166,21 +1807,186 @@ namespace Plank
 			return null;
 		}
 
+		/* Native Windows 7 <-> 11+ Stock Icon mapping (SHSTOCKICONID from shellapi.h).
+		 * Fishes version-consistent OS icons (Aero on Win 7, Flat on Win 10, Fluent on
+		 * Win 11+) live from imageres.dll / shell32.dll at 256x256 SHIL_JUMBO for dock,
+		 * menus, and Change Icon dialog, falling back cleanly to embedded SVGs. */
+		static int map_stock_icon_id (string token)
+		{
+			switch (token.down ()) {
+			case "text-x-generic":
+			case "image-missing":
+				return 0;   /* SIID_DOCNOASSOC */
+			case "x-office-document":
+			case "document-properties":
+				return 1;   /* SIID_DOCASSOC */
+			case "application-x-executable":
+				return 2;   /* SIID_APPLICATION */
+			case "folder":
+			case "inode-directory":
+				return 3;   /* SIID_FOLDER */
+			case "folder-open":
+			case "document-open":
+			case "document-open-symbolic":
+			case "gtk-open":
+				return 4;   /* SIID_FOLDEROPEN */
+			case "media-floppy":
+				return 6;   /* SIID_DRIVE35 */
+			case "drive-removable-media":
+				return 7;   /* SIID_DRIVEREMOVE */
+			case "drive-harddisk":
+				return 8;   /* SIID_DRIVEFIXED */
+			case "folder-remote":
+			case "network-server":
+				return 9;   /* SIID_DRIVENET */
+			case "drive-optical":
+			case "media-optical":
+				return 11;  /* SIID_DRIVECD */
+			case "preferences-system-network":
+			case "applications-internet":
+				return 13;  /* SIID_WORLD */
+			case "network-workgroup":
+				return 15;  /* SIID_SERVER */
+			case "printer":
+			case "document-print":
+				return 16;  /* SIID_PRINTER */
+			case "network-wired":
+			case "network-idle":
+				return 17;  /* SIID_MYNETWORK */
+			case "edit-find":
+			case "system-search":
+				return 22;  /* SIID_FIND */
+			case "help-contents":
+			case "help-browser":
+				return 23;  /* SIID_HELP */
+			case "media-optical-audio":
+				return 40;  /* SIID_MEDIACDAUDIO */
+			case "system-lock-screen":
+			case "system-lock-screen-symbolic":
+				return 47;  /* SIID_LOCK */
+			case "printer-network":
+				return 50;  /* SIID_PRINTERNET */
+			case "folder-documents":
+			case "folder-templates":
+				return 57;  /* SIID_STUFFEDFOLDER */
+			case "media-optical-dvd":
+				return 59;  /* SIID_DRIVEDVD */
+			case "folder-music":
+			case "audio-x-generic":
+				return 71;  /* SIID_AUDIOFILES */
+			case "folder-pictures":
+			case "image-x-generic":
+				return 72;  /* SIID_IMAGEFILES */
+			case "folder-videos":
+			case "video-x-generic":
+				return 73;  /* SIID_VIDEOFILES */
+			case "folder-download":
+				return 74;  /* SIID_MIXEDFILES */
+			case "security-high":
+			case "dialog-password":
+				return 77;  /* SIID_SHIELD */
+			case "dialog-warning":
+				return 78;  /* SIID_WARNING */
+			case "help-about":
+			case "dialog-information":
+				return 79;  /* SIID_INFO */
+			case "dialog-error":
+				return 80;  /* SIID_ERROR */
+			case "dialog-key":
+			case "changes-prevent":
+				return 81;  /* SIID_KEY */
+			case "system-software-install":
+				return 82;  /* SIID_SOFTWARE */
+			case "edit-rename":
+				return 83;  /* SIID_RENAME */
+			case "edit-delete":
+				return 84;  /* SIID_DELETE */
+			case "computer":
+			case "video-display":
+			case "preferences-desktop-display":
+				return 94;  /* SIID_DESKTOPPC */
+			case "computer-laptop":
+				return 95;  /* SIID_MOBILEPC */
+			case "system-users":
+			case "system-switch-user":
+			case "system-users-symbolic":
+				return 96;  /* SIID_USERS */
+			case "media-flash":
+				return 97;  /* SIID_MEDIASMARTMEDIA */
+			case "phone":
+				return 99;  /* SIID_DEVICECELLPHONE */
+			case "camera-photo":
+				return 100; /* SIID_DEVICECAMERA */
+			case "camera-video":
+				return 101; /* SIID_DEVICEVIDEOCAMERA */
+			case "multimedia-player":
+				return 102; /* SIID_DEVICEAUDIOPLAYER */
+			case "network-transmit-receive":
+				return 103; /* SIID_NETWORKCONNECT */
+			case "web-browser":
+				return 104; /* SIID_INTERNET */
+			case "application-x-archive":
+			case "package-x-generic":
+				return 105; /* SIID_ZIPFILE */
+			case "preferences-system":
+			case "configure":
+				return 106; /* SIID_SETTINGS */
+			default:
+				return -1;
+			}
+		}
+
 		public Gdk.Pixbuf? load_native_icon (string token, int size)
 		{
+			int req = (size > 0) ? size : 64;
+
+			int stock_id = map_stock_icon_id (token);
+			if (stock_id >= 0) {
+				string skey = "stock:%d@%d".printf (stock_id, req);
+				if (icon_cache.has_key (skey))
+					return icon_cache.get (skey);
+
+				uint8* s_rgba = null;
+				int sw = 0, sh = 0;
+				if (Win32AppBridge.extract_stock_icon_rgba (stock_id, req, out s_rgba, out sw, out sh) != 0
+					&& s_rgba != null && sw > 0 && sh > 0) {
+					int s_row = sw * 4;
+					int s_bytes = s_row * sh;
+					uint8[] s_px = new uint8[s_bytes];
+					Memory.copy (s_px, s_rgba, s_bytes);
+					Win32AppBridge.free_buffer (s_rgba);
+
+					var spb = new Gdk.Pixbuf.from_data ((owned) s_px, Gdk.Colorspace.RGB, true, 8, sw, sh, s_row);
+					if (sw != req || sh != req)
+						spb = spb.scale_simple (req, req, Gdk.InterpType.BILINEAR);
+					if (icon_cache.size > 1024)
+						icon_cache.clear ();
+					icon_cache.set (skey, spb);
+					return spb;
+				}
+				if (s_rgba != null)
+					Win32AppBridge.free_buffer (s_rgba);
+				return null;
+			}
+
 			if (!is_win_icon_spec (token))
 				return null;
 
-			int req = (size > 0) ? size : 64;
 			string key = "%s@%d".printf (token.down (), req);
 			if (icon_cache.has_key (key))
 				return icon_cache.get (key);
+			if (failed_icon_keys.contains (key))
+				return null;
 
 			/* Direct raster/vector/ico image files */
 			string base_path = token.has_prefix ("winico:") ? token.substring (7) : token;
 			int comma = base_path.last_index_of_char (',');
 			if (comma > 0)
 				base_path = base_path.substring (0, comma);
+			if (is_network_path (base_path)) {
+				failed_icon_keys.add (key);
+				return null;
+			}
 			string lower = base_path.down ();
 			if (lower.has_suffix (".ico")) {
 				var ico_pb = decode_ico_file (base_path, req);
@@ -1188,7 +1994,7 @@ namespace Plank
 					icon_cache.set (key, ico_pb);
 					return ico_pb;
 				}
-				return null;
+				/* Fall through to Win32 SHIL_JUMBO / PrivateExtractIconsW for non-standard .ico */
 			}
 			if (lower.has_suffix (".png") || lower.has_suffix (".svg") || lower.has_suffix (".bmp") || lower.has_suffix (".gif")) {
 				try {
@@ -1196,6 +2002,7 @@ namespace Plank
 					icon_cache.set (key, pb);
 					return pb;
 				} catch (Error e) {
+					failed_icon_keys.add (key);
 					return null;
 				}
 			}
@@ -1203,7 +2010,8 @@ namespace Plank
 			uint8* rgba_ptr = null;
 			int out_w = 0;
 			int out_h = 0;
-			if (Win32AppBridge.extract_icon_rgba (token, req, out rgba_ptr, out out_w, out out_h) == 0
+			string extract_spec = token.has_prefix ("winico:") ? base_path : token;
+			if (Win32AppBridge.extract_icon_rgba (extract_spec, req, out rgba_ptr, out out_w, out out_h) == 0
 				|| rgba_ptr == null || out_w <= 0 || out_h <= 0) {
 				if (rgba_ptr != null)
 					Win32AppBridge.free_buffer (rgba_ptr);
@@ -1213,9 +2021,14 @@ namespace Plank
 					int icon_i = 0;
 					if (Win32AppBridge.resolve_lnk (base_path, out target, out args, out workdir, out desc_str, out icon_p, out icon_i, out aumid) != 0
 						&& target != null && target.length > 0 && target.down () != base_path.down ()) {
-						return load_native_icon (target, req);
+						var fallback_pb = load_native_icon (target, req);
+						if (fallback_pb != null)
+							return fallback_pb;
 					}
 				}
+				if (failed_icon_keys.size > 1024)
+					failed_icon_keys.clear ();
+				failed_icon_keys.add (key);
 				return null;
 			}
 
@@ -1234,7 +2047,9 @@ namespace Plank
 				out_h,
 				rowstride
 			);
-			if (icon_cache.size > 512)
+			if (out_w != req || out_h != req)
+				pixbuf = pixbuf.scale_simple (req, req, Gdk.InterpType.BILINEAR);
+			if (icon_cache.size > 1024)
 				icon_cache.clear ();
 			icon_cache.set (key, pixbuf);
 			return pixbuf;
@@ -1242,14 +2057,35 @@ namespace Plank
 
 		public bool has_native_icon (string token)
 		{
+			if (map_stock_icon_id (token) >= 0)
+				return load_native_icon (token, 36) != null;
 			return is_win_icon_spec (token);
+		}
+
+		public Gee.ArrayList<string> list_native_icon_tokens ()
+		{
+			if (cached_native_icon_tokens == null) {
+				var list = new Gee.ArrayList<string> ();
+				var seen = new Gee.HashSet<string> ();
+				Win32AppBridge.enum_system_icon_stores ((token) => {
+					if (token != "" && seen.add (token.down ()))
+						list.add (token);
+				});
+				cached_native_icon_tokens = list;
+			}
+			var copy = new Gee.ArrayList<string> ();
+			copy.add_all (cached_native_icon_tokens);
+			return copy;
 		}
 
 		public string? get_file_icon_token (GLib.File file)
 		{
 			string? p = file.get_path ();
-			if (p != null && p.length > 0 && FileUtils.test (p, FileTest.EXISTS))
+			if (p != null && p.length > 0 && !is_network_path (p) && FileUtils.test (p, FileTest.EXISTS)) {
+				if (FileUtils.test (p, FileTest.IS_DIR))
+					return "inode-directory;;folder";
 				return p;
+			}
 			return null;
 		}
 
@@ -1265,12 +2101,27 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			is_cleaned_up = true;
+			if (bg_sync_timer_id != 0U) {
+				Source.remove (bg_sync_timer_id);
+				bg_sync_timer_id = 0U;
+			}
+			if (save_cache_timer_id != 0U) {
+				Source.remove (save_cache_timer_id);
+				save_cache_timer_id = 0U;
+			}
 			foreach (var list in browser_monitors.values) {
 				foreach (var mon in list)
 					mon.cancel ();
 			}
 			browser_monitors.clear ();
 			icon_cache.clear ();
+			failed_icon_keys.clear ();
+			lnk_cache.clear ();
+			disk_lnk_records.clear ();
+			apps_by_id.clear ();
+			cached_launcher_dirs = null;
+			cached_native_icon_tokens = null;
 			cached_apps = null;
 		}
 	}

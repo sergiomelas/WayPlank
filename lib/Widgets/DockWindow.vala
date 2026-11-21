@@ -970,7 +970,7 @@ namespace Plank
 				|| controller.drag_manager.InternalDragActive)
 				return;
 
-			hover_reposition_timer_id = Gdk.threads_add_timeout (HOVER_DELAY_TIME, () => {
+			hover_reposition_timer_id = GLib.Timeout.add (HOVER_DELAY_TIME, () => {
 				hover_reposition_timer_id = 0U;
 				if (HoveredItem == null)
 					return false;

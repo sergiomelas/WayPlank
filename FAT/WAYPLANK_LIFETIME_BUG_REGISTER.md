@@ -2,8 +2,8 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397` • **`v0.7.3` Public Beta 4 — First Unified Linux Wayland & Native Windows Zero-DLL Monolith `100.0%` 4-Platform Qualified**: [`FAT/2026-11-19 FAT 0.7.3.txt`](2026-11-19%20FAT%200.7.3.txt) — `533` Tests Defined / `525` Applicable: `SESSION 1: WINDOWS` `135/135 (100.0%)` [`132 [ok]` + `3 [ko->ok]` (`1.5`, `2.14`, `5.3`) + `3 [NA]`]; `SESSION 2–4` Linux GNOME `132/132`, KDE Plasma 6 `132/132`, Labwc `126/126` + `5 [NA]` → **`525/525 (100.0% QUALIFIED)`, `0 [ko]`**)  
-> **Period:** 2026-09-19 to 2026-11-19  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397` • **`v0.7.3` / `v0.7.3.2` Public Beta 4 + Hotfix `100.0%` 4-Platform Qualified `529/529`** — CONCLUDED & FROZEN in [`FAT/2026-11-22 FAT 0.7.3.2.txt`](2026-11-22%20FAT%200.7.3.2.txt): `537` Tests Defined / `529` Applicable: `463 [ok]` + `66 [ko->ok]` across `30` unique IDs, `8 [NA]`, `0 [ko]`)  
+> **Period:** 2026-09-19 to 2026-11-22  
 > **Standard:** ISA-88 Qualification Standard  
 > **Master HAL Specifications:** [Documentation/Architecture/README.md](../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](../Documentation/Architecture/HAL_BUSES.md), [APPLICATION_IDENTITY_ENGINE.md](../Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md) & [HAL_WINDOWS_BACKEND.md](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
 
@@ -22,9 +22,9 @@
   - **Total Compositor Test Verifications**: **192** `[ko->ok]` (`+39` `[ko->ok]` in `v0.7.1` / `v0.7.1.2`)
   - **Open FAT Regressions Remaining (`2026-11-18` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` `100.0%` Qualified on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); `v0.7.2` Move 6 Multi-Dock qualification at `402` test definitions / `397` applicable in [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt): **GNOME `Mutter` `100.0% PASSED` (`135/135` — `113 [ok]` + `22 [ko->ok]`)**, **KDE Plasma 6 `KWin` `100.0% PASSED` (`134/134` — `114 [ok]` + `20 [ko->ok]`)**, **`Labwc` `100.0% PASSED` (`128/128` — `111 [ok]` + `17 [ko->ok]`, `5 [NA]`)** = **`397/397` Applicable `100.0% PASSED` (`338 [ok]` + `59 [ko->ok]` across `24` unique IDs, `5 [NA]`, `0 [ko]`), `0 [ko->test]`, `0 [  ]`**)
 * **GRAND TOTAL ACROSS LIFETIME**:
-  - **Total Milestones**: **19 Releases** (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified; **`v0.7.3` Public Beta 4 `100.0%` 4-Platform Linux + Windows FAT Qualified `525/525`**)
-  - **Total Unique Functional & Architectural Bugs Squashed**: **161** `[ko->ok]` (`158` through `v0.7.2` + `3` unique Windows `[ko->ok]` verified live on Windows 11 in `v0.7.3`: `1.5`, `2.14`, `5.3`)
-  - **Total Multi-Compositor / Multi-OS Verification Instances**: **288** `[ko->ok]` (`285` through `v0.7.2` + `3` `[ko->ok]` verifications in `v0.7.3`)
+  - **Total Milestones**: **19 Qualified Releases** (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397`; **`v0.7.3` / `v0.7.3.2` Public Beta 4 + Hotfix `100.0%` 4-Platform Linux + Windows FAT Qualified `529/529`**)
+  - **Total Unique Functional & Architectural Bugs Squashed**: **188** `[ko->ok]` (`158` through `v0.7.2` + `30` unique `[ko->ok]` IDs verified live across Windows 11, GNOME `Mutter`, KDE Plasma 6 `KWin`, and `Labwc` in `v0.7.3` / `v0.7.3.2`)
+  - **Total Multi-Compositor / Multi-OS Verification Instances**: **351** `[ko->ok]` (`285` through `v0.7.2` + `66` `[ko->ok]` verifications in `v0.7.3` / `v0.7.3.2`)
 
 ---
 
@@ -157,23 +157,56 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 | **`v0.7.0`** | 2026-11-06 | Public Beta 1 (Concluded) | 379 | 15 | 4 `ko`** |
 | **`v0.7.1.2`** | 2026-11-14 | Public Beta 2 + Hotfix (100% Pass) | 377 | `12 [ko->ok] (39 inst.)` | 0 |
 | **`v0.7.2`** | 2026-11-18 | Public Beta 3 — 3-Zone HAL & Multi-Dock (100% Pass) | 402 | `24 [ko->ok] (59 inst.)` | 0 |
-| **`v0.7.3`** | 2026-11-19 | Public Beta 4 — Unified Linux & Native Windows (100% Pass) | 533 | `3 [ko->ok] (1.5, 2.14, 5.3)` | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **13 Multi-OS / Comp. Releases** | **3,728** | **127** | **0** |
-| **TOTAL** | **All Eras** | **19 Milestone Releases** | **3,728** | **161** | **0** |
+| **`v0.7.3.2`** | 2026-11-22 | Public Beta 4 + Hotfix — Unified Linux & Native Windows (100% Pass) | 537 | `30 [ko->ok] (66 inst.)` | 0 |
+| **ERA 2 SUB** | **Formal FAT** | **13 Concluded Milestones** | **3,732+** | **154** | **0** |
+| **TOTAL** | **All Eras** | **19 Qualified Milestones** | **3,732+** | **188** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects logged were remediated and qualified in `v0.5.1`.*  
 *\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1.2`: `FAT/2026-11-05 FAT 0.7.0.txt` concluded at `359/377` (`95.2%`); all 18 transferred `[ko]` instances plus all `v0.7.1` / `v0.7.1.2` burn-in hotfixes achieved `100.0%` qualification (`375/375` applicable: `336 [ok]` + `39 [ko->ok]` + `2 [NA]` + `0 [ko]`) in `FAT/2026-11-13 FAT 0.7.1.txt`.*
 
 ---
 
-## 🖥️ Compositor Resolution Breakdown (Era 2 Qualification)
+## 🖥️ 4-Platform Qualification Breakdown (`v0.7.3.2` — CONCLUDED & FROZEN `100.0%`)
 
-| Compositor Backend | Verifications Squashed `[ko->ok]` | Share | Final `v0.7.2` Qualification Status |
-| :--- | :---: | :---: | :---: |
-| **GNOME Shell (Mutter Backend)** | 100 | 39.8% | `113 [ok]` + `22 [ko->ok]` / `0 [ko]` (`135/135 = 100.0% Qualified`) |
-| **KDE Plasma 6 (KWin Backend)** | 83 | 33.1% | `114 [ok]` + `20 [ko->ok]` / `0 [ko]` (`134/134 = 100.0% Qualified`) |
-| **Labwc (wlroots Backend)** | 68 | 27.1% | `111 [ok]` + `17 [ko->ok]` + `5 [NA]` / `0 [ko]` (`128/128 = 100.0% Qualified`) |
-| **TOTAL COMPOSITOR VERIFICATIONS** | **251 Squashed** | **100%** | **`338 [ok]` + `59 [ko->ok]` + `5 [NA]` / `0 [ko]` (`397/397 = 100.0%`)** |
+| Platform / Compositor Backend | Qualified `[ok]` | Squashed `[ko->ok]` | `[NA]` | Open `[ko]` | Pending | Final Result |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Windows (`Win32 / DWM`, `7 ⟷ 11+`)** | **106** | **30** | 3 | 0 | 0 | **`136 / 136` (`100.0%`)** |
+| **GNOME Shell (`Mutter` Backend)** | **121** | **12** | 0 | 0 | 0 | **`133 / 133` (`100.0%`)** |
+| **KDE Plasma 6 (`KWin` Backend)** | **121** | **12** | 0 | 0 | 0 | **`133 / 133` (`100.0%`)** |
+| **Labwc (`wlroots` Backend)** | **115** | **12** | 5 | 0 | 0 | **`127 / 127` (`100.0%`)** |
+| **TOTAL (`537` Defined / `529` Applicable)** | **`463`** | **`66` (`30` unique)** | **8** | **0** | **0** | **`529 / 529` (`100.0%`)** |
+
+---
+
+## 🟢 Remediated & Qualified Defects (`[ko->ok]`) in `v0.7.3.2` Public Beta 4 Hotfix (`2026-11-22` — `100.0%` 4-Platform Qualified `529/529`, `0` Open `[ko]`)
+
+All remediations below passed Gate 1 (`0` compiler warnings/errors, `8/8` HAL Purity Firewall `GREEN`, `0` Pitfall #14 UAFs on ELF & PE32+, Zero-DLL Gate `GREEN` at 25 stock Windows OS DLLs) and were live-certified by the human maintainer at Gate 2 across Windows 11, GNOME `Mutter`, KDE Plasma 6 `KWin`, and `Labwc` in [`FAT/2026-11-22 FAT 0.7.3.2.txt`](2026-11-22%20FAT%200.7.3.2.txt):
+
+1. **Icons, Drag & Drop, Folder Drawers & Universal `Rename Shortcut...`** (`1.7`, `1.8`, `1.10`, `1.11`, `1.12` `[ko->ok]` ×4; `1.3`, `1.13` `[ok]` ×4; Windows `1.4` `[ok]`):
+   - `1.8`, `1.11`, `1.12` `[ko->ok]` ×4: Live Light/Dark theme sync on `FolderMenuWindow`, running-app drag & *Move to Folder* (without obsolete 1-frame `TransientDockItem` flicker), and cross-dock folder-pinned suppression of duplicate unpinned running icons.
+   - `1.10` `[ko->ok]` ×4: Async chunked `IconChooserDialog`, cached read-only Windows Explorer icon stores (`imageres`/`ddores`/`shell32`), 2-pass `DrawingService` icon precedence, duplicate `search_debounce_id` teardown cleanup, and **Linux live-FAT fix eliminating the 6-second folder `Change Icon...` freeze** via Zone 3 `Hal.Apps.is_folder_metadata_file()` (`.directory*`/`desktop.ini*`/`thumbs.db`), `120 ms` debounced `FileDockItem.handle_dir_changed()` (`GLib.WeakRef`) + `ApplicationDiscovery.schedule_refresh()`, and non-destructive `XdgAppSystem.invalidate_cache()` pruning.
+   - `1.13` `[ok]` ×4 *(New Feature)*: Universal non-destructive **`Rename Shortcut...`** (`CustomNameService.vala` → `launcher-names.ini`, CSD dialog preserving explicit overrides to default app names such as `Edge:Profile 1` → `Microsoft Edge`, `Reset Default`, live folder-menu refresh on `name_changed`, `Move to Folder <-> Move to Dock` persistence).
+   - `1.3` `[ok]` ×4, `1.7` `[ko->ok]` ×4 & Windows `1.4` `[ok]`: `DragManager` `GLib.Timeout.add` timer migration, categorized drag bounding, and immediate eviction of deleted local `.lnk` entries on fixed drives in `Win32AppSystem.load_lnk_descriptor()`.
+2. **Window Management, Browser Profile Identity & Context Menus** (Windows `2.3`, `2.6`, `2.14`, `12.2`, `14.5` `[ko->ok]`; Linux `2.6`, `2.14`, `14.5` `[ok]`):
+   - `2.3` `[ko->ok]` Windows: 1st-click minimize of active foreign windows via `g_last_foreign_fg_hwnd`.
+   - `2.6` (`[ko->ok]` Win / `[ok]` Linux) & `12.2` `[ko->ok]` Windows: Right-click menu focus-loss auto-dismiss (`on_app_deactivated`), unified `VERSION` GResource metadata (`ReleaseMetadata.vala`), auto-translated User Guide (`572/572` strings), and **Windows live-FAT fix adding official COM `IApplicationDocumentLists`** (`win32_app_enum_jump_list_recent()` in `win32-app-bridge.c`, `ADLT_RECENT`/`ADLT_FREQUENT` for both UWP and Win32 apps, restricting `%APPDATA%\Microsoft\Windows\Recent\*.lnk` fallback strictly to default handlers `match_level >= 2`).
+   - `2.14` (`[ko->ok]` Win / `[ok]` Linux) & `14.5` (`[ko->ok]` Win / `[ok]` Linux): Per-family Chromium `Local State` profile formatting (`Edge:`, `Brave:`, `Vivaldi:`, `Chromium:`, `Opera:`, `Chrome:`) and persistent `.lnk` index cache (`lnk-index-cache.ini`).
+3. **Hide/Dodge, Icon Zoom, Tooltips & Multi-Window Preview Cards** (`5.1`, `12.3` `[ko->ok]` ×4; `5.3` `[ko->ok]` Win / `[ok]` Linux; `3.2`, `3.3` [NA Labwc], `5.2` `[ok]`):
+   - `3.2`, `3.3` (NA Labwc), `5.3`: Full migration of remaining non-`_full` `Gdk.threads_add_{timeout,idle}` timers in `HideManager`, `DockRenderer`, and `DockController` to `GLib.Timeout.add` / `GLib.Idle.add` (`0` Pitfall #14 UAFs).
+   - `5.1` `[ko->ok]` ×4, `5.2` `[ok]` ×4, `12.3` `[ko->ok]` ×4: Live Light/Dark theme sync on `HoverWindow` & `WindowCardsWindow`, plus `Win32ShellState.taskbar_hidden` guard eliminating per-show COM `CoCreateInstance` stutter on Windows popups.
+4. **Themes, Persistence, Multi-Dock & Docklets** (`6.8`, `6.16`, `7.17`, `12.1`, `14.6` `[ko->ok]` ×4; Windows `6.9`, `6.10a/b`, `6.12` `[ko->ok]`, `6.2` `[ok]`):
+   - `6.8`, `6.16`, `7.17`, `12.1`, `14.6` `[ko->ok]` ×4: `battery-low*.svg` 50% fill calibration + `104`-SVG audit, cross-dock folder-pinned suppression, and unified `latch-state.ini` persistence.
+   - Windows `6.2` `[ok]`, `6.9`, `6.10a`, `6.10b`, `6.12` `[ko->ok]`: Deferred Trash init, USB Ejector empty-slot guard & 3 s polling, async WMI + `dxva2.dll` brightness (`hw-caps-cache.ini`), and docklet right-click menu auto-dismiss.
+5. **Windows Native HAL & Zero-DLL Monolith Gates** (`14.2`, `14.3`, `14.4`, `15.1`, `15.2`, `15.5`, `15.6` `[ko->ok]` Windows):
+   - `< 0.5 s` startup (`lnk-index-cache.ini`, non-blocking `SLGP_RAWPATH`, `DRIVE_FIXED` guard, early `Win32Backend.start()`, $O(N)$ process snapshot), Windows Taskbar suppression (`ITaskbarList::DeleteTab` + `WS_EX_TOOLWINDOW`), WinRT `GSMTC` Media Player (`win32-media-bridge.c`) with balanced COM/RoUninit, direct `%LOCALAPPDATA%\WayPlank\glib-2.0\schemas` extraction, and Zero-DLL Gate (`25` evergreen stock Windows OS DLLs).
+
+---
+
+## 🟢 Remediated & Qualified Defects (`[ko->ok]`) in `v0.7.3` (`2026-11-19` — `100.0%` 4-Platform Qualified `525/525`)
+
+1. **Windows 11 Drag-Off Removal (`FAT 1.5` `[ko->ok]`):** Added `Gdk.DragAction.MOVE | Gdk.DragAction.PRIVATE` and outside-dock `drag_failed` guard in `DragManager.vala`.
+2. **Windows `notepad++` vs `notepad` Identity Collision (`FAT 2.14` `[ko->ok]`):** Normalized `"++"` → `"plusplus"` during token extraction (`Win32Backend` / `ApplicationIdentity`).
+3. **Windows 60 FPS Hover & Zoom Pacing (`FAT 5.3` `[ko->ok]`):** Moved `PrintWindow(PW_RENDERFULLCONTENT)` captures off the GTK main thread (`GLib.Thread` + `GdiFlush()`) and eliminated per-frame `SWP_FRAMECHANGED` HWND re-styling in `Win32Shell`.
 
 ---
 
@@ -336,4 +369,4 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 11. [`FAT/2026-11-05 FAT 0.7.0.txt`](2026-11-05%20FAT%200.7.0.txt) — Covers `v0.7.0` (Public Beta 1 — Concluded & Frozen: 379 tests defined, 359/377 applicable passed — `95.2% PASS`: 317 `[ok]` baseline + 42 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 18 `[ko]` open defect instances formally transferred to `v0.7.1`)
 12. [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt) — Covers `v0.7.1` / `v0.7.1.2` (Public Beta 2 + Hotfix — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 336 `[ok]` consolidated baseline + 39 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)
 13. [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — 3-Zone Linux HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine `dock1`–`dock4`, Multi-Seat `Screen 1..4` arbitration, 2D `(Screen, Edge)` collision gray-out, non-destructive 9-profile fault armor, `dock1`-only WayPlank icon & unpinned running apps, automatic secondary-dock deletion when emptied, cross-dock drag/pinning/suppression, global $O(\log N)$ dichotomic `AppUsageService` vector, strict `(Same Type) ∧ (Target Zone)` accordion unfold, and Labwc zero-stall portal/AppMenu/reverse-DNS PID hardening — **100.0% Multi-Compositor Qualified: `402` tests defined / `397/397` Applicable Passed [`338 [ok]` + `59 [ko->ok]` across `24` unique IDs], `5 [NA]`, `0 [ko]`**: GNOME `Mutter` `135/135`, KDE Plasma 6 `KWin` `134/134`, `Labwc` `128/128`)
-14. [`FAT/2026-11-19 FAT 0.7.3.txt`](2026-11-19%20FAT%200.7.3.txt) — Covers `v0.7.3` (Public Beta 4 — First Unified Linux Wayland & Native Windows Zero-DLL Monolith `build/wayplank.exe` + 64-Bit NSIS Installer `build/WayPlank-0.7.3-Setup.exe` — **100.0% 4-Platform FAT Qualified: `533` tests defined / `525/525` Applicable Passed [`522 [ok]` + `3 [ko->ok]` (`1.5`, `2.14`, `5.3`)], `8 [NA]`, `0 [ko]`**: Windows 11 `135/135` + `3 [NA]`, GNOME `Mutter` `132/132`, KDE Plasma 6 `KWin` `132/132`, `Labwc` `126/126` + `5 [NA]`)
+14. [`FAT/2026-11-22 FAT 0.7.3.2.txt`](2026-11-22%20FAT%200.7.3.2.txt) — Covers `v0.7.3` / `v0.7.3.2` (Public Beta 4 + Hotfix — First Unified Linux Wayland & Native Windows Zero-DLL Monolith `build/wayplank.exe` + 64-Bit NSIS Installer `build/WayPlank-0.7.3.2-Setup.exe` — **CONCLUDED & FROZEN at `100.0%` 4-Platform FAT Qualified: `537` tests defined / `529/529` Applicable Passed [`463 [ok]` + `66 [ko->ok]` across `30` unique IDs], `8 [NA]`, `0 [ko]`**: Windows 11 `136/136`, GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127`)

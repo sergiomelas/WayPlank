@@ -1829,8 +1829,10 @@ namespace Plank
 
 		public bool move_pinned_item_to_folder (ApplicationDockItem app_item, FileDockItem? folder_item, GLib.File? explicit_dest_dir = null)
 		{
-			if (Prefs.LockItems || app_item == null || (app_item is TransientDockItem))
+			if (Prefs.LockItems || app_item == null || app_item.is_window () || !app_item.has_executable_launcher ())
 				return false;
+
+			bool is_transient = (app_item is TransientDockItem);
 
 			GLib.File? target_dir = explicit_dest_dir;
 			if (target_dir == null && folder_item != null && folder_item.is_directory ())
@@ -1855,15 +1857,20 @@ namespace Plank
 				return false;
 
 			string dst_uri = dst_file.get_uri ();
-			bool still_running = (WindowManager.get_default ().window_count_for_app (launcher_uri) > 0);
+			CustomNameService.get_default ().transfer_custom_name (launcher_uri, dst_uri);
 
 			delay_items_monitor ();
 
 			if (internal_elements.contains (app_item))
 				remove (app_item);
-			app_item.delete ();
+			if (!is_transient)
+				app_item.delete ();
 
-			if (Hal.Apps.is_synthetic_launcher (launcher_uri) && !is_launcher_pinned_on_any_dock_bar (launcher_uri))
+			var synth_dirs = Hal.Apps.discover_launcher_dirs ();
+			bool in_synth_dir = (synth_dirs.size > 0 && src_file.get_parent () != null && src_file.get_parent ().equal (synth_dirs[0]));
+			if (in_synth_dir && !src_file.equal (dst_file)
+				&& Hal.Apps.is_synthetic_launcher (launcher_uri)
+				&& !is_launcher_pinned_on_any_dock_bar (launcher_uri))
 				Hal.Apps.delete_synthetic_launcher (launcher_uri, true);
 
 			ApplicationDiscovery.get_default ().refresh_index_now ();
@@ -1876,20 +1883,6 @@ namespace Plank
 				unowned DefaultApplicationDockItemProvider? f_prov = folder_item.Container as DefaultApplicationDockItemProvider;
 				if (f_prov != null && f_prov != this)
 					f_prov.sync_dock_layout_after_mutation ();
-			}
-
-			if (still_running && !is_pinned_only ()) {
-				string trans_uri = Hal.Apps.launcher_exists (launcher_uri) ? launcher_uri : dst_uri;
-				if (item_for_uri (trans_uri) == null) {
-					DockElement? trash_target = null;
-					foreach (var el in internal_elements) {
-						if (el is TrashDockItem) {
-							trash_target = el;
-							break;
-						}
-					}
-					add (new TransientDockItem.with_launcher (trans_uri), trash_target);
-				}
 			}
 
 			resume_items_monitor ();
@@ -1910,6 +1903,7 @@ namespace Plank
 				return false;
 
 			string pin_uri = pin_file.get_uri ();
+			CustomNameService.get_default ().transfer_custom_name (folder_launcher.get_uri (), pin_uri);
 
 			unowned DockItem? existing = item_for_uri (pin_uri);
 			if (existing is TransientDockItem && existing.Prefs != null && existing.Prefs.Launcher != pin_uri)

@@ -546,7 +546,7 @@ namespace Plank
 			if (launcher_file_monitor == null || is_valid ())
 				return false;
 			
-			removal_timer_id = Gdk.threads_add_timeout (ITEM_INVALID_DURATION, () => {
+			removal_timer_id = GLib.Timeout.add (ITEM_INVALID_DURATION, () => {
 				removal_timer_id = 0U;
 				if (!is_valid ())
 					@delete ();

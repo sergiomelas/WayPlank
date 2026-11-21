@@ -1,5 +1,4 @@
 /*
- *  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
  *  Copyright (C) 2026 Sergio Melas
  *
  *  This file is part of WayPlank.
@@ -36,8 +35,10 @@ extern "C" {
 #define WIN32_FOLDER_RECENT           4
 #define WIN32_FOLDER_PROGRAM_FILES    5
 #define WIN32_FOLDER_PROGRAM_FILES_X86 6
-#define WIN32_FOLDER_LOCAL_APPDATA    7
-#define WIN32_FOLDER_ROAMING_APPDATA  8
+#define WIN32_FOLDER_LOCAL_APPDATA      7
+#define WIN32_FOLDER_ROAMING_APPDATA    8
+#define WIN32_FOLDER_COMMON_STARTMENU   9
+#define WIN32_FOLDER_USER_STARTMENU    10
 
 typedef void (*Win32EnumProcessCallback) (
 	int pid,
@@ -46,8 +47,21 @@ typedef void (*Win32EnumProcessCallback) (
 	void *user_data
 );
 
-/* Known folders */
+typedef void (*Win32EnumIconTokenCallback) (
+	const char *token,
+	void *user_data
+);
+
+typedef void (*Win32EnumRecentDocCallback) (
+	const char *doc_path,
+	void *user_data
+);
+
+/* Known folders & fast metadata/drive helpers */
 char *win32_app_get_known_folder (int folder_id);
+int win32_app_get_file_stamp (const char *path, int64_t *out_mtime_sec, int64_t *out_size);
+int win32_app_is_fixed_local_drive (const char *path);
+void win32_app_set_thread_low_priority (void);
 
 /* COM IShellLinkW .lnk resolution */
 int win32_app_resolve_lnk (
@@ -61,7 +75,7 @@ int win32_app_resolve_lnk (
 	char **out_aumid
 );
 
-/* Native 256x256 (SHIL_JUMBO / ExtractIconExW) icon extraction -> 32-bit RGBA */
+/* Native 256x256 (SHIL_JUMBO / PrivateExtractIconsW) icon extraction -> 32-bit RGBA */
 int win32_app_extract_icon_rgba (
 	const char *path_or_icon_spec,
 	int desired_size,
@@ -69,7 +83,28 @@ int win32_app_extract_icon_rgba (
 	int *out_w,
 	int *out_h
 );
+/* Native Windows 7 <-> 11+ Stock Icon extraction (SHGetStockIconInfo + SHIL_JUMBO) -> 32-bit RGBA */
+int win32_app_extract_stock_icon_rgba (
+	int stock_id,
+	int desired_size,
+	uint8_t **out_rgba,
+	int *out_w,
+	int *out_h
+);
+/* Enumerate canonical Windows Explorer icon stores (imageres.dll, ddores.dll, shell32.dll) via GetSystemDirectoryW + EnumResourceNamesW */
+void win32_app_enum_system_icon_stores (Win32EnumIconTokenCallback cb, void *user_data);
 void win32_app_free_buffer (void *ptr);
+
+/* Registry-backed per-app file-extension association check (0=no, 1=open-with/supported, 2=default) */
+int win32_app_exe_handles_ext (const char *exe_basename, const char *dot_ext);
+
+/* Official COM IApplicationDocumentLists per-app Taskbar Jump List (ADLT_RECENT / ADLT_FREQUENT) */
+int win32_app_enum_jump_list_recent (
+	const char *app_id,
+	int max_items,
+	Win32EnumRecentDocCallback cb,
+	void *user_data
+);
 
 /* Native launching via ShellExecuteW */
 int win32_app_shell_execute (

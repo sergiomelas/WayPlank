@@ -142,24 +142,27 @@ namespace Plank
     {
         public Main ()
         {
-            var authors = new string[] {
-                    "Sergio Melas <sergiomelas@gmail.com>",
-                    "史有虎 (IFtiger-hu) <2212363803@qq.com>",
+            var meta = ReleaseMetadata.get_default ();
+
+            // Historic upstream Plank credits (immutable)
+            var historic_authors = new string[] {
                     "Robert Dyer <psybers@gmail.com>",
                     "Rico Tzschichholz <ricotz@ubuntu.com>",
                     "Michal Hruby <michal.mhr@gmail.com>"
                 };
 
-            var documenters = new string[] {
-                    "Sergio Melas <sergiomelas@gmail.com>",
+            var historic_documenters = new string[] {
                     "Robert Dyer <psybers@gmail.com>",
                     "Rico Tzschichholz <ricotz@ubuntu.com>"
                 };
 
-            var artists = new string[] {
-                    "Sergio Melas <sergiomelas@gmail.com>",
+            var historic_artists = new string[] {
                     "Daniel Foré <daniel@elementaryos.org>"
                 };
+
+            var authors = meta.get_authors_with_historic (historic_authors);
+            var documenters = meta.get_documenters_with_historic (historic_documenters);
+            var artists = meta.get_artists_with_historic (historic_artists);
 
             string sys_data_dir = Hal.Runtime.get_system_data_dir ();
 
@@ -170,17 +173,17 @@ namespace Plank
                 build_version : Build.VERSION,
                 build_version_info : Build.VERSION_INFO,
 
-                program_name : "WayPlank",
+                program_name : meta.program_name,
                 exec_name : "wayplank",
 
-                app_copyright : "2026 Sergio Melas\nCopyright © 2011-2017 Plank Developers",
+                app_copyright : "%s %s\nCopyright © 2011-2017 Plank Developers".printf (meta.year, meta.copyright_holder),
                 app_namespace : "net.launchpad.plank",
                 app_icon : "plank",
                 app_launcher : Hal.Runtime.get_self_launcher_id (),
 
-                main_url : "https://github.com/sergiomelas/wayplank",
-                help_url : "https://github.com/sergiomelas/wayplank/issues",
-                translate_url : "https://github.com/sergiomelas/wayplank",
+                main_url : meta.homepage,
+                help_url : meta.issues_url,
+                translate_url : meta.homepage,
 
                 about_authors : authors,
                 about_documenters : documenters,

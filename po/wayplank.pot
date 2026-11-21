@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.3\n"
+"Project-Id-Version: wayplank 0.7.3.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-20 12:45+0100\n"
+"POT-Creation-Date: 2026-11-22 17:40+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -40,13 +40,13 @@ msgid "Screenshot"
 msgstr ""
 
 #: hal/Interfaces/ISystemTelemetry.vala:293
-#: hal/Windows/Telemetry/Win32Telemetry.vala:248
-#: hal/Windows/Telemetry/Win32Telemetry.vala:259
+#: hal/Windows/Telemetry/Win32Telemetry.vala:367
+#: hal/Windows/Telemetry/Win32Telemetry.vala:378
 msgid "Drive not available"
 msgstr ""
 
 #: lib/DockPreferences.vala:887 lib/DockPreferences.vala:898
-#: lib/Factories/AbstractMain.vala:2189
+#: lib/Factories/AbstractMain.vala:2167
 msgid "All settings (corrupted latch-state.ini)"
 msgstr ""
 
@@ -76,56 +76,61 @@ msgstr ""
 msgid "Website"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:1174 src/Main.vala:188
+#: lib/Factories/AbstractMain.vala:1174 src/Main.vala:191
 msgid "translator-credits"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:2180 lib/Factories/AbstractMain.vala:2190
+#: lib/Factories/AbstractMain.vala:2158 lib/Factories/AbstractMain.vala:2168
 msgid "Defaulting partially to default config for:"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:2182 lib/Factories/AbstractMain.vala:2186
+#: lib/Factories/AbstractMain.vala:2160 lib/Factories/AbstractMain.vala:2164
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr ""
 
-#: lib/Factories/AbstractMain.vala:2209 lib/Factories/AbstractMain.vala:2212
+#: lib/Factories/AbstractMain.vala:2187 lib/Factories/AbstractMain.vala:2190
 msgid "Load environment failed"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:302
-#: lib/Widgets/FolderMenuWindow.vala:1071
+#: lib/Items/ApplicationDockItem.vala:304
+#: lib/Widgets/FolderMenuWindow.vala:1168
 msgid "Close _All"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:311
-#: lib/Widgets/FolderMenuWindow.vala:1081
+#: lib/Items/ApplicationDockItem.vala:313
+#: lib/Widgets/FolderMenuWindow.vala:1178
 msgid "_Close"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:367 lib/Items/FileDockItem.vala:685
-#: lib/Items/FileDockItem.vala:834
+#: lib/Items/ApplicationDockItem.vala:369 lib/Items/FileDockItem.vala:732
+#: lib/Items/FileDockItem.vala:881
 msgid "_Keep in Dock"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:373
+#: lib/Items/ApplicationDockItem.vala:375
 msgid "Keep Always _Visible"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:384
+#: lib/Items/ApplicationDockItem.vala:385
 msgid "Move to _Folder"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:390 lib/Widgets/DockFolderDialogs.vala:65
+#: lib/Items/ApplicationDockItem.vala:391 lib/Widgets/DockFolderDialogs.vala:66
 #: lib/Widgets/DockWindow.vala:888
 msgid "Folder"
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:410 lib/Items/FileDockItem.vala:703
-#: lib/Items/FileDockItem.vala:858
+#: lib/Items/ApplicationDockItem.vala:410 lib/Items/FileDockItem.vala:750
+#: lib/Items/FileDockItem.vala:905
 msgid "Change _Icon..."
 msgstr ""
 
-#: lib/Items/ApplicationDockItem.vala:425
+#: lib/Items/ApplicationDockItem.vala:417
+#: lib/Widgets/FolderMenuWindow.vala:1261
+msgid "Rename _Shortcut..."
+msgstr ""
+
+#: lib/Items/ApplicationDockItem.vala:436
 #, c-format
 msgid "Drop to open with %s"
 msgstr ""
@@ -142,7 +147,7 @@ msgstr ""
 msgid "Not charging"
 msgstr ""
 
-#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:928
+#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:975
 msgid "Unknown"
 msgstr ""
 
@@ -316,55 +321,55 @@ msgstr ""
 msgid "No Removable Devices"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:530
+#: lib/Items/FileDockItem.vala:577
 #, c-format
 msgid "Drop to copy into %s"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:670 lib/Widgets/FolderMenuWindow.vala:588
-#: lib/Widgets/FolderMenuWindow.vala:872
+#: lib/Items/FileDockItem.vala:717 lib/Widgets/FolderMenuWindow.vala:682
+#: lib/Widgets/FolderMenuWindow.vala:969
 msgid "Empty Folder"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:697
+#: lib/Items/FileDockItem.vala:744
 msgid "_Open in File Browser"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:769
+#: lib/Items/FileDockItem.vala:816
 msgid "Empty"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:846 lib/Widgets/FolderMenuWindow.vala:1128
+#: lib/Items/FileDockItem.vala:893 lib/Widgets/FolderMenuWindow.vala:1225
 #: lib/Widgets/PreferencesWindow.vala:977
 msgid "_Open"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:850
+#: lib/Items/FileDockItem.vala:897
 msgid "Open Containing _Folder"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:912
+#: lib/Items/FileDockItem.vala:959
 msgid "Internet"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:914
+#: lib/Items/FileDockItem.vala:961
 msgid "Office"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:916
+#: lib/Items/FileDockItem.vala:963
 msgid "Media"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:918
+#: lib/Items/FileDockItem.vala:965
 msgid "Games"
 msgstr ""
 
-#: lib/Items/FileDockItem.vala:920
+#: lib/Items/FileDockItem.vala:967
 msgid "Utilities"
 msgstr ""
 
 #: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:266
-#: lib/Services/ApplicationIdentity.vala:3444 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3547 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr ""
 
@@ -701,8 +706,8 @@ msgstr ""
 msgid "Shut Down"
 msgstr ""
 
-#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:338 lib/Widgets/SessionWindow.vala:262
+#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:219
+#: lib/Widgets/IconChooserDialog.vala:426 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr ""
@@ -908,155 +913,177 @@ msgstr ""
 msgid "Calendar"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:158
+#: lib/Widgets/DockFolderDialogs.vala:160
 msgid "Add Folder"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:161
-#: lib/Widgets/DockFolderDialogs.vala:238
-#: lib/Widgets/DockFolderDialogs.vala:299
-#: lib/Widgets/DockFolderDialogs.vala:549
+#: lib/Widgets/DockFolderDialogs.vala:163
+#: lib/Widgets/DockFolderDialogs.vala:240
+#: lib/Widgets/DockFolderDialogs.vala:301
+#: lib/Widgets/DockFolderDialogs.vala:551
+#: lib/Widgets/DockFolderDialogs.vala:618
 #: lib/Widgets/PreferencesWindow.vala:976
 #: lib/Widgets/PreferencesWindow.vala:1073
 msgid "_Cancel"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:162
+#: lib/Widgets/DockFolderDialogs.vala:164
 msgid "_Add Folder"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:181
+#: lib/Widgets/DockFolderDialogs.vala:183
 msgid "Folder _Name:"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:186
+#: lib/Widgets/DockFolderDialogs.vala:188
 msgid "e.g. Work, Tools, Projects"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:189
+#: lib/Widgets/DockFolderDialogs.vala:191
 msgid "Folder _Path:"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:195
+#: lib/Widgets/DockFolderDialogs.vala:197
 msgid "Leave empty to create inside WayPlank config"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:198
+#: lib/Widgets/DockFolderDialogs.vala:200
 msgid "_Browse..."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:220
-#: lib/Widgets/DockFolderDialogs.vala:229
+#: lib/Widgets/DockFolderDialogs.vala:222
+#: lib/Widgets/DockFolderDialogs.vala:231
 msgid "Target:"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:221
-#: lib/Widgets/DockFolderDialogs.vala:230
-#: lib/Widgets/DockFolderDialogs.vala:257
+#: lib/Widgets/DockFolderDialogs.vala:223
+#: lib/Widgets/DockFolderDialogs.vala:232
+#: lib/Widgets/DockFolderDialogs.vala:259
 msgid "Enter a folder name (or select a folder path)."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:235
+#: lib/Widgets/DockFolderDialogs.vala:237
 msgid "Select Folder Location"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:239
+#: lib/Widgets/DockFolderDialogs.vala:241
 msgid "_Select"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:296
+#: lib/Widgets/DockFolderDialogs.vala:298
 msgid "Open Dock"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:300
+#: lib/Widgets/DockFolderDialogs.vala:302
 msgid "_Open Dock"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:318
+#: lib/Widgets/DockFolderDialogs.vala:320
 msgid "_Dock Slot:"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:329
+#: lib/Widgets/DockFolderDialogs.vala:331
 #, c-format
 msgid "Dock %d (%s — saved config)"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:330
+#: lib/Widgets/DockFolderDialogs.vala:332
 #, c-format
 msgid "Dock %d (%s)"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:338
+#: lib/Widgets/DockFolderDialogs.vala:340
 msgid "_Screen:"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:347
+#: lib/Widgets/DockFolderDialogs.vala:349
 #, c-format
 msgid "Screen %d (Multi-seat / Offline)"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:352
+#: lib/Widgets/DockFolderDialogs.vala:354
 msgid "_Position:"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:356
+#: lib/Widgets/DockFolderDialogs.vala:358
 #: lib/Widgets/PreferencesWindow.vala:288 data/ui/preferences.ui:215
 msgid "Bottom"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:357
+#: lib/Widgets/DockFolderDialogs.vala:359
 #: lib/Widgets/PreferencesWindow.vala:281 data/ui/preferences.ui:214
 msgid "Top"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:358
+#: lib/Widgets/DockFolderDialogs.vala:360
 #: lib/Widgets/PreferencesWindow.vala:283 data/ui/preferences.ui:212
 msgid "Left"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:359
+#: lib/Widgets/DockFolderDialogs.vala:361
 #: lib/Widgets/PreferencesWindow.vala:285 data/ui/preferences.ui:213
 msgid "Right"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:501
+#: lib/Widgets/DockFolderDialogs.vala:503
 msgid "Maximum number of docks (4) already active."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:510
+#: lib/Widgets/DockFolderDialogs.vala:512
 msgid "Another active dock already uses this Screen and Position."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:519
+#: lib/Widgets/DockFolderDialogs.vala:521
 #, c-format
 msgid ""
 "Saved configuration found for '%s' — will re-open with all pinned items "
 "intact."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:521
+#: lib/Widgets/DockFolderDialogs.vala:523
 #, c-format
 msgid "Will launch '%s' immediately without repeating onboarding."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:542
+#: lib/Widgets/DockFolderDialogs.vala:544
 #, c-format
 msgid "Delete dock '%s'?"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:546
+#: lib/Widgets/DockFolderDialogs.vala:548
 msgid "Delete Dock"
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:547
+#: lib/Widgets/DockFolderDialogs.vala:549
 #, c-format
 msgid ""
 "This will close '%s' and permanently remove its configuration and pinned "
 "item list."
 msgstr ""
 
-#: lib/Widgets/DockFolderDialogs.vala:550
+#: lib/Widgets/DockFolderDialogs.vala:552
 msgid "_Delete Dock"
+msgstr ""
+
+#: lib/Widgets/DockFolderDialogs.vala:589
+msgid "Rename Shortcut"
+msgstr ""
+
+#: lib/Widgets/DockFolderDialogs.vala:596
+msgid "Custom display name:"
+msgstr ""
+
+#: lib/Widgets/DockFolderDialogs.vala:609
+#, c-format
+msgid "Default: %s"
+msgstr ""
+
+#: lib/Widgets/DockFolderDialogs.vala:617
+msgid "Reset _Default"
+msgstr ""
+
+#: lib/Widgets/DockFolderDialogs.vala:619
+msgid "_Rename"
 msgstr ""
 
 #: lib/Widgets/DockWindow.vala:890
@@ -1172,20 +1199,20 @@ msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:623
+#: lib/Widgets/FolderMenuWindow.vala:717
 msgid "Back"
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:1031
+#: lib/Widgets/FolderMenuWindow.vala:1128
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:1121
+#: lib/Widgets/FolderMenuWindow.vala:1218
 msgid "_New Window"
 msgstr ""
 
-#: lib/Widgets/FolderMenuWindow.vala:1149
+#: lib/Widgets/FolderMenuWindow.vala:1246
 msgid "Move to _Dock"
 msgstr ""
 
@@ -1488,52 +1515,52 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:56
+#: lib/Widgets/IconChooserDialog.vala:61
 #, c-format
 msgid "Change Icon - %s"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:150
+#: lib/Widgets/IconChooserDialog.vala:166
 msgid "Select icon for: "
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:166
+#: lib/Widgets/IconChooserDialog.vala:182
 msgid "Search theme icons (e.g. browser, folder, games, edit)..."
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:170
+#: lib/Widgets/IconChooserDialog.vala:186
 msgid "_Browse File..."
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:173
+#: lib/Widgets/IconChooserDialog.vala:189
 msgid "Choose a custom image file (PNG, SVG, ICO) from disk"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:199
+#: lib/Widgets/IconChooserDialog.vala:215
 msgid "Restore Default"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:200
+#: lib/Widgets/IconChooserDialog.vala:216
 msgid "Revert to the original default icon"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:205
+#: lib/Widgets/IconChooserDialog.vala:221
 msgid "Apply"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:335
+#: lib/Widgets/IconChooserDialog.vala:423
 msgid "Select Icon File"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:339
+#: lib/Widgets/IconChooserDialog.vala:427
 msgid "Select"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:343
+#: lib/Widgets/IconChooserDialog.vala:431
 msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr ""
 
-#: lib/Widgets/IconChooserDialog.vala:363
+#: lib/Widgets/IconChooserDialog.vala:451
 #: lib/Widgets/PreferencesWindow.vala:994
 msgid "All Files"
 msgstr ""
@@ -1918,11 +1945,11 @@ msgstr ""
 msgid "No forecast data available"
 msgstr ""
 
-#: lib/Widgets/WindowCardsWindow.vala:487
+#: lib/Widgets/WindowCardsWindow.vala:510
 msgid "Application"
 msgstr ""
 
-#: lib/Widgets/WindowCardsWindow.vala:621
+#: lib/Widgets/WindowCardsWindow.vala:668
 msgid "Minimized"
 msgstr ""
 

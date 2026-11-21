@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -39,12 +38,31 @@ namespace Win32AppBridge
 	public const int FOLDER_LOCAL_APPDATA;
 	[CCode (cname = "WIN32_FOLDER_ROAMING_APPDATA")]
 	public const int FOLDER_ROAMING_APPDATA;
+	[CCode (cname = "WIN32_FOLDER_COMMON_STARTMENU")]
+	public const int FOLDER_COMMON_STARTMENU;
+	[CCode (cname = "WIN32_FOLDER_USER_STARTMENU")]
+	public const int FOLDER_USER_STARTMENU;
 
 	[CCode (cname = "Win32EnumProcessCallback", has_target = true)]
 	public delegate void EnumProcessCallback (int pid, string exe_name, string exe_path);
 
+	[CCode (cname = "Win32EnumIconTokenCallback", has_target = true)]
+	public delegate void EnumIconTokenCallback (string token);
+
+	[CCode (cname = "Win32EnumRecentDocCallback", has_target = true)]
+	public delegate void EnumRecentDocCallback (string doc_path);
+
 	[CCode (cname = "win32_app_get_known_folder")]
 	public static string? get_known_folder (int folder_id);
+
+	[CCode (cname = "win32_app_get_file_stamp")]
+	public static int get_file_stamp (string path, out int64 out_mtime_sec, out int64 out_size);
+
+	[CCode (cname = "win32_app_is_fixed_local_drive")]
+	public static int is_fixed_local_drive (string path);
+
+	[CCode (cname = "win32_app_set_thread_low_priority")]
+	public static void set_thread_low_priority ();
 
 	[CCode (cname = "win32_app_resolve_lnk")]
 	public static int resolve_lnk (
@@ -67,8 +85,26 @@ namespace Win32AppBridge
 		out int out_h
 	);
 
+	[CCode (cname = "win32_app_extract_stock_icon_rgba")]
+	public static int extract_stock_icon_rgba (
+		int stock_id,
+		int desired_size,
+		out uint8* out_rgba,
+		out int out_w,
+		out int out_h
+	);
+
+	[CCode (cname = "win32_app_enum_system_icon_stores")]
+	public static void enum_system_icon_stores (EnumIconTokenCallback cb);
+
 	[CCode (cname = "win32_app_free_buffer")]
 	public static void free_buffer (void* ptr);
+
+	[CCode (cname = "win32_app_exe_handles_ext")]
+	public static int exe_handles_ext (string exe_basename, string dot_ext);
+
+	[CCode (cname = "win32_app_enum_jump_list_recent")]
+	public static int enum_jump_list_recent (string app_id, int max_items, EnumRecentDocCallback cb);
 
 	[CCode (cname = "win32_app_shell_execute")]
 	public static int shell_execute (string target, string? args, string? working_dir);

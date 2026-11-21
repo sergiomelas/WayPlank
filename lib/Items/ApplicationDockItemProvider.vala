@@ -232,10 +232,15 @@ namespace Plank
 
 			foreach (var element in internal_elements) {
 				unowned ApplicationDockItem? appitem = (element as ApplicationDockItem);
-				if (appitem == null || (appitem is TransientDockItem))
+				if (appitem != null) {
+					if (appitem is TransientDockItem)
+						continue;
+					if (discovery.is_best_launcher_for_window (appitem.Launcher, window))
+						return true;
 					continue;
-
-				if (discovery.is_best_launcher_for_window (appitem.Launcher, window))
+				}
+				unowned FileDockItem? folderitem = (element as FileDockItem);
+				if (folderitem != null && folderitem.has_launcher_for_window (window))
 					return true;
 			}
 			return false;

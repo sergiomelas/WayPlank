@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -108,27 +107,92 @@ namespace Plank
 	{
 		int cached_percent = 100;
 		bool probed = false;
-		bool available = false;
+		bool probe_in_flight = false;
+		bool available = true;
+		bool has_cached_availability = false;
+		bool is_cleaned_up = false;
 
-		void ensure_probed ()
+		static string get_caps_cache_path ()
 		{
-			if (probed)
+			string? local = Win32AppBridge.get_known_folder (Win32AppBridge.FOLDER_LOCAL_APPDATA);
+			if (local == null || local.length == 0)
+				local = Environment.get_user_data_dir ();
+			string dir = Path.build_filename (local, "WayPlank");
+			DirUtils.create_with_parents (dir, 0755);
+			return Path.build_filename (dir, "hw-caps-cache.ini");
+		}
+
+		public bool get_cached_availability ()
+		{
+			if (!has_cached_availability) {
+				has_cached_availability = true;
+				string path = get_caps_cache_path ();
+				if (FileUtils.test (path, FileTest.IS_REGULAR)) {
+					var kf = new KeyFile ();
+					try {
+						kf.load_from_file (path, KeyFileFlags.NONE);
+						if (kf.has_key ("Caps", "HardwareBrightnessSupported"))
+							available = kf.get_boolean ("Caps", "HardwareBrightnessSupported");
+					} catch (Error e) {}
+				}
+			}
+			return available;
+		}
+
+		static void save_cached_availability (bool supp)
+		{
+			string path = get_caps_cache_path ();
+			var kf = new KeyFile ();
+			kf.set_boolean ("Caps", "HardwareBrightnessSupported", supp);
+			try {
+				FileUtils.set_contents (path, kf.to_data ());
+			} catch (Error e) {}
+		}
+
+		public void start_async_probe ()
+		{
+			if (probed || probe_in_flight || is_cleaned_up)
 				return;
-			probed = true;
-			available = (Win32SysBridge.brightness_is_available () != 0);
-			if (available)
-				cached_percent = Win32SysBridge.brightness_get_percent ();
+			probe_in_flight = true;
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			new Thread<void*> ("wayplank-bright-probe", () => {
+				Win32AppBridge.set_thread_low_priority ();
+				bool supp = (Win32SysBridge.brightness_is_available () != 0);
+				int pct = supp ? Win32SysBridge.brightness_get_percent () : 100;
+				GLib.Idle.add (() => {
+					var self = (Win32BrightnessProvider?) weak_self.get ();
+					if (self == null || self.is_cleaned_up)
+						return Source.REMOVE;
+					self.probe_in_flight = false;
+					self.probed = true;
+					self.available = supp;
+					self.has_cached_availability = true;
+					self.cached_percent = pct;
+					Hal.Capabilities.supports_hardware_brightness = supp;
+					save_cached_availability (supp);
+					if (supp)
+						self.brightness_changed (pct);
+					return Source.REMOVE;
+				});
+				return null;
+			});
 		}
 
 		public bool is_available ()
 		{
-			ensure_probed ();
+			if (!probed) {
+				start_async_probe ();
+				return get_cached_availability ();
+			}
 			return available;
 		}
 
 		public int get_percent ()
 		{
-			ensure_probed ();
+			if (!probed) {
+				start_async_probe ();
+				return cached_percent;
+			}
 			if (!available)
 				return 100;
 			cached_percent = Win32SysBridge.brightness_get_percent ();
@@ -137,8 +201,9 @@ namespace Plank
 
 		public void set_percent (int percent, bool immediate = false)
 		{
-			ensure_probed ();
-			if (!available)
+			if (!probed && !get_cached_availability ())
+				return;
+			if (probed && !available)
 				return;
 			int clamped = int.max (5, int.min (100, percent));
 			Win32SysBridge.brightness_set_percent (clamped);
@@ -151,7 +216,10 @@ namespace Plank
 			set_percent (get_percent () + delta, true);
 		}
 
-		public void cleanup () {}
+		public void cleanup ()
+		{
+			is_cleaned_up = true;
+		}
 	}
 
 	class Win32CpuMemoryProvider : GLib.Object, ICpuMemoryProvider
@@ -228,6 +296,55 @@ namespace Plank
 
 	class Win32EjectorProvider : GLib.Object, IEjectorProvider
 	{
+		string last_signature = "";
+		uint poll_timer_id = 0U;
+		uint init_idle_id = 0U;
+
+		construct
+		{
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			init_idle_id = GLib.Idle.add (() => {
+				var self = (Win32EjectorProvider?) weak_self.get ();
+				if (self == null)
+					return Source.REMOVE;
+				self.init_idle_id = 0U;
+				string cur = self.build_signature ();
+				if (cur != self.last_signature) {
+					self.last_signature = cur;
+					self.drives_changed ();
+				}
+				return Source.REMOVE;
+			});
+			poll_timer_id = GLib.Timeout.add_seconds (3, on_poll_tick);
+		}
+
+		~Win32EjectorProvider ()
+		{
+			cleanup ();
+		}
+
+		string build_signature ()
+		{
+			var sb = new StringBuilder ();
+			Win32SysBridge.enum_removable_drives ((root, label) => {
+				sb.append (root);
+				sb.append_c ('|');
+				sb.append (label);
+				sb.append_c (';');
+			});
+			return sb.str;
+		}
+
+		bool on_poll_tick ()
+		{
+			string cur = build_signature ();
+			if (cur != last_signature) {
+				last_signature = cur;
+				drives_changed ();
+			}
+			return Source.CONTINUE;
+		}
+
 		public Gee.ArrayList<RemovableDriveInfo> get_removable_drives ()
 		{
 			var list = new Gee.ArrayList<RemovableDriveInfo> ();
@@ -244,6 +361,7 @@ namespace Plank
 		public void eject_drive (string id, owned DriveEjectCallback? callback = null)
 		{
 			bool ok = Win32SysBridge.eject_drive (id) != 0;
+			last_signature = build_signature ();
 			if (callback != null)
 				callback (ok, id, ok ? "" : _("Drive not available"));
 			if (ok)
@@ -258,10 +376,21 @@ namespace Plank
 				if (per_drive_callback != null)
 					per_drive_callback (ok, d.display_name, ok ? "" : _("Drive not available"));
 			}
+			last_signature = build_signature ();
 			drives_changed ();
 		}
 
-		public void cleanup () {}
+		public void cleanup ()
+		{
+			if (init_idle_id != 0U) {
+				Source.remove (init_idle_id);
+				init_idle_id = 0U;
+			}
+			if (poll_timer_id != 0U) {
+				Source.remove (poll_timer_id);
+				poll_timer_id = 0U;
+			}
+		}
 	}
 
 	class Win32ScreenshotProvider : GLib.Object, IScreenshotProvider
@@ -353,10 +482,23 @@ namespace Plank
 	{
 		uint last_count = 0;
 		uint poll_timer_id = 0U;
+		uint init_idle_id = 0U;
 
 		construct
 		{
-			last_count = Win32SysBridge.trash_get_count ();
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			init_idle_id = GLib.Idle.add (() => {
+				var self = (Win32TrashProvider?) weak_self.get ();
+				if (self == null)
+					return Source.REMOVE;
+				self.init_idle_id = 0U;
+				uint cur = Win32SysBridge.trash_get_count ();
+				if (cur != self.last_count) {
+					self.last_count = cur;
+					self.trash_changed ();
+				}
+				return Source.REMOVE;
+			});
 			poll_timer_id = GLib.Timeout.add_seconds (3, on_poll_tick);
 		}
 
@@ -419,6 +561,10 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			if (init_idle_id != 0U) {
+				Source.remove (init_idle_id);
+				init_idle_id = 0U;
+			}
 			if (poll_timer_id != 0U) {
 				Source.remove (poll_timer_id);
 				poll_timer_id = 0U;
@@ -441,6 +587,16 @@ namespace Plank
 		Win32EjectorProvider ejector = new Win32EjectorProvider ();
 		Win32ScreenshotProvider screenshot = new Win32ScreenshotProvider ();
 		Win32TrashProvider trash = new Win32TrashProvider ();
+
+		public bool get_cached_brightness_available ()
+		{
+			return brightness.get_cached_availability ();
+		}
+
+		public void start_async_probes ()
+		{
+			brightness.start_async_probe ();
+		}
 
 		public ISessionPowerProvider SessionPower { get { return session_power; } }
 		public IBatteryProvider Battery { get { return battery; } }

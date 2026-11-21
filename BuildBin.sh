@@ -29,8 +29,17 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
 fi
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+read_version_key() {
+    awk -F'=' -v sec="$1" -v key="$2" '
+        /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
+        in_sec && $1 == key { sub(/^[^=]*=/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit }
+    ' "${BASE_DIR}/VERSION"
+}
+PKG_VER="$(read_version_key Release Version)"
+PKG_DECO="$(read_version_key Release Decoration)"
+PKG_YEAR="$(read_version_key Release Year)"
+PKG_HOMEPAGE="$(read_version_key Release Homepage)"
+PKG_ISSUES="$(read_version_key Release IssuesUrl)"
 [ -z "$PKG_DECO" ] && PKG_DECO="Public Beta"
 OUT_DIR="${BASE_DIR}/build"
 BUILD_GRESOURCE_XML="${BASE_DIR}/data/.plank.build.gresource.xml"
@@ -182,6 +191,9 @@ if valac -g \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
     -X -DPACKAGE_VERSION=\"${PKG_VER}\" \
     -X "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
+    -X -DPACKAGE_YEAR=\"${PKG_YEAR}\" \
+    -X -DPACKAGE_URL=\"${PKG_HOMEPAGE}\" \
+    -X -DPACKAGE_BUGREPORT=\"${PKG_ISSUES}\" \
     -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -I"${BASE_DIR}/lib" \
     -X -I"${BASE_DIR}/hal/Freedesktop/Wlroots" \

@@ -994,7 +994,7 @@ namespace Plank
 			if (serialize_item_positions_timer_id > 0U)
 				return;
 
-			serialize_item_positions_timer_id = Gdk.threads_add_timeout (ITEM_SERIALIZATION_DELAY, (SourceFunc) serialize_item_positions);
+			serialize_item_positions_timer_id = GLib.Timeout.add (ITEM_SERIALIZATION_DELAY, (SourceFunc) serialize_item_positions);
 		}
 
 		bool serialize_item_positions ()

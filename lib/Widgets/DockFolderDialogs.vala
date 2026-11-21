@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -25,6 +24,7 @@ namespace Plank
 		static Gtk.Dialog? active_folder_dialog = null;
 		static Gtk.Dialog? active_new_dock_dialog = null;
 		static Gtk.Dialog? active_delete_dock_dialog = null;
+		static Gtk.Dialog? active_rename_shortcut_dialog = null;
 
 		static string sanitize_folder_leaf (string raw)
 		{
@@ -90,6 +90,7 @@ namespace Plank
 			if (active_folder_dialog == null
 				&& active_new_dock_dialog == null
 				&& active_delete_dock_dialog == null
+				&& active_rename_shortcut_dialog == null
 				&& PreferencesWindow.active_instance != null) {
 				PreferencesWindow.active_instance.set_keep_above (true);
 			}
@@ -567,6 +568,81 @@ namespace Plank
 			});
 
 			present_dialog_above_preferences (dlg, click_time);
+		}
+
+		public static void show_rename_shortcut_dialog (string launcher_uri, string current_display_name, string default_name)
+		{
+			string clean_uri = launcher_uri.strip ();
+			if (clean_uri == "")
+				return;
+
+			uint32 click_time = Gtk.get_current_event_time ();
+			if (active_rename_shortcut_dialog != null) {
+				active_rename_shortcut_dialog.destroy ();
+				active_rename_shortcut_dialog = null;
+			}
+
+			var dlg = new Gtk.Dialog ();
+			active_rename_shortcut_dialog = dlg;
+			configure_independent_dialog (dlg, "help");
+			dlg.set_title (_("Rename Shortcut"));
+			dlg.set_resizable (false);
+			dlg.border_width = 12;
+
+			var content = dlg.get_content_area ();
+			content.spacing = 8;
+
+			var lbl = new Gtk.Label (_("Custom display name:"));
+			lbl.xalign = 0.0f;
+			content.pack_start (lbl, false, false, 0);
+
+			var entry = new Gtk.Entry ();
+			entry.set_width_chars (36);
+			entry.activates_default = true;
+			entry.set_text (current_display_name);
+			entry.select_region (0, -1);
+			content.pack_start (entry, false, false, 0);
+
+			string clean_default = default_name.strip ();
+			if (clean_default != "") {
+				var hint = new Gtk.Label (_("Default: %s").printf (clean_default));
+				hint.xalign = 0.0f;
+				hint.set_ellipsize (Pango.EllipsizeMode.END);
+				hint.set_max_width_chars (44);
+				hint.opacity = 0.72;
+				content.pack_start (hint, false, false, 0);
+			}
+
+			dlg.add_button (_("Reset _Default"), Gtk.ResponseType.REJECT);
+			dlg.add_button (_("_Cancel"), Gtk.ResponseType.CANCEL);
+			var ok_btn = dlg.add_button (_("_Rename"), Gtk.ResponseType.ACCEPT) as Gtk.Button;
+			if (ok_btn != null) {
+				ok_btn.can_default = true;
+				ok_btn.get_style_context ().add_class (Gtk.STYLE_CLASS_SUGGESTED_ACTION);
+			}
+			dlg.set_default_response (Gtk.ResponseType.ACCEPT);
+
+			dlg.response.connect ((resp) => {
+				if (resp == Gtk.ResponseType.REJECT) {
+					CustomNameService.get_default ().set_custom_name (clean_uri, "");
+				} else if (resp == Gtk.ResponseType.ACCEPT) {
+					string entered = entry.get_text ().strip ();
+					if (entered == "")
+						CustomNameService.get_default ().set_custom_name (clean_uri, "");
+					else
+						CustomNameService.get_default ().set_custom_name (clean_uri, entered);
+				}
+				dlg.destroy ();
+			});
+
+			dlg.destroy.connect (() => {
+				if (active_rename_shortcut_dialog == dlg)
+					active_rename_shortcut_dialog = null;
+				restore_preferences_keep_above_if_idle ();
+			});
+
+			present_dialog_above_preferences (dlg, click_time);
+			entry.grab_focus ();
 		}
 	}
 }

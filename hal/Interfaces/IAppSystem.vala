@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -191,6 +190,7 @@ namespace Plank
 
 		public abstract Gdk.Pixbuf? load_native_icon (string token, int size);
 		public abstract bool has_native_icon (string token);
+		public abstract Gee.ArrayList<string> list_native_icon_tokens ();
 		public abstract string? get_file_icon_token (GLib.File file);
 
 		public abstract string[] get_extra_drop_target_atoms ();
@@ -262,6 +262,7 @@ namespace Plank
 
 		public Gdk.Pixbuf? load_native_icon (string token, int size) { return null; }
 		public bool has_native_icon (string token) { return false; }
+		public Gee.ArrayList<string> list_native_icon_tokens () { return new Gee.ArrayList<string> (); }
 		public string? get_file_icon_token (GLib.File file) { return null; }
 
 		public string[] get_extra_drop_target_atoms () { return {}; }

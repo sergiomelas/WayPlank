@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -48,7 +47,7 @@ namespace Plank
 			if (base_dir == null || base_dir.strip ().length == 0)
 				base_dir = Environment.get_user_data_dir ();
 
-			string schema_dir = Path.build_filename (base_dir, "WayPlank", "glib-2.0", "schemas", "v0.7.3-gtk3");
+			string schema_dir = Path.build_filename (base_dir, "WayPlank", "glib-2.0", "schemas");
 			DirUtils.create_with_parents (schema_dir, 0755);
 
 			string schema_file = Path.build_filename (schema_dir, "gschemas.compiled");
@@ -62,8 +61,10 @@ namespace Plank
 					bool need_write = !FileUtils.test (schema_file, FileTest.IS_REGULAR);
 					if (!need_write) {
 						try {
-							var info = File.new_for_path (schema_file).query_info (FileAttribute.STANDARD_SIZE, FileQueryInfoFlags.NONE);
-							if ((size_t) info.get_size () != data.length)
+							uint8[] existing;
+							if (!FileUtils.get_data (schema_file, out existing)
+								|| existing.length != data.length
+								|| Memory.cmp (existing, data, data.length) != 0)
 								need_write = true;
 						} catch (Error e) {
 							need_write = true;
@@ -356,6 +357,7 @@ namespace Plank
 		{
 			var rt = Win32BootstrapRuntime.get_default ();
 			rt.ensure_embedded_schemas_dir ();
+			Win32Shell.ensure_win32_ui_icons_and_css ();
 
 			var telemetry = new Win32Telemetry ();
 			var bus = new Win32BusBroker ();
@@ -372,16 +374,17 @@ namespace Plank
 			caps.supports_poof_overlay = true;
 			caps.supports_quit_action = true;
 			caps.supports_pressure_reveal = false;
-			caps.supports_hardware_brightness = telemetry.Brightness.is_available ();
+			caps.supports_hardware_brightness = telemetry.get_cached_brightness_available ();
 			caps.uses_shell_anchored_surfaces = false;
 			caps.unsupported_hide_mode_suffix = "";
 			caps.fully_supported_summary = "Windows (Win32/DWM)";
 			caps.partially_supported_summary = "";
 
+			var win32_backend = new Win32Backend ();
 			Hal.bind_display_stack (
 				caps,
 				new Win32Shell (),
-				new Win32Backend (),
+				win32_backend,
 				new Win32ThumbnailProvider ()
 			);
 			Hal.bind_system_stack (
@@ -390,6 +393,11 @@ namespace Plank
 				rt,
 				Win32AppSystem.get_default ()
 			);
+			/* Start Win32 window tracking immediately (~2 ms) so Hal.Windows.has_state()
+			 * is already true before create_docks() runs, preventing Matcher from launching
+			 * a redundant 300-process fallback scan during startup. */
+			win32_backend.start ();
+			telemetry.start_async_probes ();
 		}
 	}
 }

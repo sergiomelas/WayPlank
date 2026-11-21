@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.3\n"
+"Project-Id-Version: wayplank 0.7.3.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-20 12:45+0100\n"
-"PO-Revision-Date: 2026-11-20 12:45+0100\n"
+"POT-Creation-Date: 2026-11-22 17:40+0100\n"
+"PO-Revision-Date: 2026-11-22 17:40+0100\n"
 "Last-Translator: 史有虎 (IFtiger-hu) <2212363803@qq.com>\n"
 "Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
 "Language: zh_CN\n"
@@ -40,13 +40,13 @@ msgid "Screenshot"
 msgstr "截屏"
 
 #: hal/Interfaces/ISystemTelemetry.vala:293
-#: hal/Windows/Telemetry/Win32Telemetry.vala:248
-#: hal/Windows/Telemetry/Win32Telemetry.vala:259
+#: hal/Windows/Telemetry/Win32Telemetry.vala:367
+#: hal/Windows/Telemetry/Win32Telemetry.vala:378
 msgid "Drive not available"
 msgstr "驱动器不可用"
 
 #: lib/DockPreferences.vala:887 lib/DockPreferences.vala:898
-#: lib/Factories/AbstractMain.vala:2189
+#: lib/Factories/AbstractMain.vala:2167
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "全部设置 (latch-state.ini 已损坏)"
 
@@ -76,56 +76,61 @@ msgstr "部分支持的混成器: %s"
 msgid "Website"
 msgstr "官方网站"
 
-#: lib/Factories/AbstractMain.vala:1174 src/Main.vala:188
+#: lib/Factories/AbstractMain.vala:1174 src/Main.vala:191
 msgid "translator-credits"
 msgstr "史有虎 (IFtiger-hu) <2212363803@qq.com>"
 
-#: lib/Factories/AbstractMain.vala:2180 lib/Factories/AbstractMain.vala:2190
+#: lib/Factories/AbstractMain.vala:2158 lib/Factories/AbstractMain.vala:2168
 msgid "Defaulting partially to default config for:"
 msgstr "以下配置项已部分恢复为默认配置："
 
-#: lib/Factories/AbstractMain.vala:2182 lib/Factories/AbstractMain.vala:2186
+#: lib/Factories/AbstractMain.vala:2160 lib/Factories/AbstractMain.vala:2164
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "已丢弃损坏或无效的启动器项 (.dockitem)："
 
-#: lib/Factories/AbstractMain.vala:2209 lib/Factories/AbstractMain.vala:2212
+#: lib/Factories/AbstractMain.vala:2187 lib/Factories/AbstractMain.vala:2190
 msgid "Load environment failed"
 msgstr "加载环境配置失败"
 
-#: lib/Items/ApplicationDockItem.vala:302
-#: lib/Widgets/FolderMenuWindow.vala:1071
+#: lib/Items/ApplicationDockItem.vala:304
+#: lib/Widgets/FolderMenuWindow.vala:1168
 msgid "Close _All"
 msgstr "全部关闭(_A)"
 
-#: lib/Items/ApplicationDockItem.vala:311
-#: lib/Widgets/FolderMenuWindow.vala:1081
+#: lib/Items/ApplicationDockItem.vala:313
+#: lib/Widgets/FolderMenuWindow.vala:1178
 msgid "_Close"
 msgstr "关闭(_C)"
 
-#: lib/Items/ApplicationDockItem.vala:367 lib/Items/FileDockItem.vala:685
-#: lib/Items/FileDockItem.vala:834
+#: lib/Items/ApplicationDockItem.vala:369 lib/Items/FileDockItem.vala:732
+#: lib/Items/FileDockItem.vala:881
 msgid "_Keep in Dock"
 msgstr "固定到 Dock(_K)"
 
-#: lib/Items/ApplicationDockItem.vala:373
+#: lib/Items/ApplicationDockItem.vala:375
 msgid "Keep Always _Visible"
 msgstr "始终保持可见(_V)"
 
-#: lib/Items/ApplicationDockItem.vala:384
+#: lib/Items/ApplicationDockItem.vala:385
 msgid "Move to _Folder"
 msgstr "移动到文件夹(_F)"
 
-#: lib/Items/ApplicationDockItem.vala:390 lib/Widgets/DockFolderDialogs.vala:65
+#: lib/Items/ApplicationDockItem.vala:391 lib/Widgets/DockFolderDialogs.vala:66
 #: lib/Widgets/DockWindow.vala:888
 msgid "Folder"
 msgstr "文件夹"
 
-#: lib/Items/ApplicationDockItem.vala:410 lib/Items/FileDockItem.vala:703
-#: lib/Items/FileDockItem.vala:858
+#: lib/Items/ApplicationDockItem.vala:410 lib/Items/FileDockItem.vala:750
+#: lib/Items/FileDockItem.vala:905
 msgid "Change _Icon..."
 msgstr "更改图标(_I)..."
 
-#: lib/Items/ApplicationDockItem.vala:425
+#: lib/Items/ApplicationDockItem.vala:417
+#: lib/Widgets/FolderMenuWindow.vala:1261
+msgid "Rename _Shortcut..."
+msgstr "重命名快捷方式(_S)..."
+
+#: lib/Items/ApplicationDockItem.vala:436
 #, c-format
 msgid "Drop to open with %s"
 msgstr "松手使用 %s 打开"
@@ -142,7 +147,7 @@ msgstr "放电中"
 msgid "Not charging"
 msgstr "未充电"
 
-#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:928
+#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:975
 msgid "Unknown"
 msgstr "未知"
 
@@ -316,55 +321,55 @@ msgstr "没有连接的可移动设备"
 msgid "No Removable Devices"
 msgstr "无移动存储设备"
 
-#: lib/Items/FileDockItem.vala:530
+#: lib/Items/FileDockItem.vala:577
 #, c-format
 msgid "Drop to copy into %s"
 msgstr "松手复制到 %s"
 
-#: lib/Items/FileDockItem.vala:670 lib/Widgets/FolderMenuWindow.vala:588
-#: lib/Widgets/FolderMenuWindow.vala:872
+#: lib/Items/FileDockItem.vala:717 lib/Widgets/FolderMenuWindow.vala:682
+#: lib/Widgets/FolderMenuWindow.vala:969
 msgid "Empty Folder"
 msgstr "空文件夹"
 
-#: lib/Items/FileDockItem.vala:697
+#: lib/Items/FileDockItem.vala:744
 msgid "_Open in File Browser"
 msgstr "在文件管理器中打开(_O)"
 
-#: lib/Items/FileDockItem.vala:769
+#: lib/Items/FileDockItem.vala:816
 msgid "Empty"
 msgstr "空"
 
-#: lib/Items/FileDockItem.vala:846 lib/Widgets/FolderMenuWindow.vala:1128
+#: lib/Items/FileDockItem.vala:893 lib/Widgets/FolderMenuWindow.vala:1225
 #: lib/Widgets/PreferencesWindow.vala:977
 msgid "_Open"
 msgstr "打开(_O)"
 
-#: lib/Items/FileDockItem.vala:850
+#: lib/Items/FileDockItem.vala:897
 msgid "Open Containing _Folder"
 msgstr "打开所在文件夹(_F)"
 
-#: lib/Items/FileDockItem.vala:912
+#: lib/Items/FileDockItem.vala:959
 msgid "Internet"
 msgstr "互联网"
 
-#: lib/Items/FileDockItem.vala:914
+#: lib/Items/FileDockItem.vala:961
 msgid "Office"
 msgstr "办公与效率"
 
-#: lib/Items/FileDockItem.vala:916
+#: lib/Items/FileDockItem.vala:963
 msgid "Media"
 msgstr "影音与创意"
 
-#: lib/Items/FileDockItem.vala:918
+#: lib/Items/FileDockItem.vala:965
 msgid "Games"
 msgstr "游戏"
 
-#: lib/Items/FileDockItem.vala:920
+#: lib/Items/FileDockItem.vala:967
 msgid "Utilities"
 msgstr "实用工具"
 
 #: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:266
-#: lib/Services/ApplicationIdentity.vala:3444 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3547 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "媒体播放器"
 
@@ -701,8 +706,8 @@ msgstr "确定要关闭计算机吗？"
 msgid "Shut Down"
 msgstr "关机"
 
-#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:338 lib/Widgets/SessionWindow.vala:262
+#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:219
+#: lib/Widgets/IconChooserDialog.vala:426 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "取消"
@@ -908,156 +913,178 @@ msgstr "最近打开的文件"
 msgid "Calendar"
 msgstr "日历"
 
-#: lib/Widgets/DockFolderDialogs.vala:158
+#: lib/Widgets/DockFolderDialogs.vala:160
 msgid "Add Folder"
 msgstr "添加文件夹"
 
-#: lib/Widgets/DockFolderDialogs.vala:161
-#: lib/Widgets/DockFolderDialogs.vala:238
-#: lib/Widgets/DockFolderDialogs.vala:299
-#: lib/Widgets/DockFolderDialogs.vala:549
+#: lib/Widgets/DockFolderDialogs.vala:163
+#: lib/Widgets/DockFolderDialogs.vala:240
+#: lib/Widgets/DockFolderDialogs.vala:301
+#: lib/Widgets/DockFolderDialogs.vala:551
+#: lib/Widgets/DockFolderDialogs.vala:618
 #: lib/Widgets/PreferencesWindow.vala:976
 #: lib/Widgets/PreferencesWindow.vala:1073
 msgid "_Cancel"
 msgstr "取消(_C)"
 
-#: lib/Widgets/DockFolderDialogs.vala:162
+#: lib/Widgets/DockFolderDialogs.vala:164
 msgid "_Add Folder"
 msgstr "添加文件夹(_A)"
 
-#: lib/Widgets/DockFolderDialogs.vala:181
+#: lib/Widgets/DockFolderDialogs.vala:183
 msgid "Folder _Name:"
 msgstr "文件夹名称(_N):"
 
-#: lib/Widgets/DockFolderDialogs.vala:186
+#: lib/Widgets/DockFolderDialogs.vala:188
 msgid "e.g. Work, Tools, Projects"
 msgstr "例如：工作、工具、项目"
 
-#: lib/Widgets/DockFolderDialogs.vala:189
+#: lib/Widgets/DockFolderDialogs.vala:191
 msgid "Folder _Path:"
 msgstr "文件夹路径(_P):"
 
-#: lib/Widgets/DockFolderDialogs.vala:195
+#: lib/Widgets/DockFolderDialogs.vala:197
 msgid "Leave empty to create inside WayPlank config"
 msgstr "留空则在 WayPlank 配置目录中创建"
 
-#: lib/Widgets/DockFolderDialogs.vala:198
+#: lib/Widgets/DockFolderDialogs.vala:200
 msgid "_Browse..."
 msgstr "浏览(_B)..."
 
-#: lib/Widgets/DockFolderDialogs.vala:220
-#: lib/Widgets/DockFolderDialogs.vala:229
+#: lib/Widgets/DockFolderDialogs.vala:222
+#: lib/Widgets/DockFolderDialogs.vala:231
 msgid "Target:"
 msgstr "目标:"
 
-#: lib/Widgets/DockFolderDialogs.vala:221
-#: lib/Widgets/DockFolderDialogs.vala:230
-#: lib/Widgets/DockFolderDialogs.vala:257
+#: lib/Widgets/DockFolderDialogs.vala:223
+#: lib/Widgets/DockFolderDialogs.vala:232
+#: lib/Widgets/DockFolderDialogs.vala:259
 msgid "Enter a folder name (or select a folder path)."
 msgstr "请输入文件夹名称（或选择文件夹路径）。"
 
-#: lib/Widgets/DockFolderDialogs.vala:235
+#: lib/Widgets/DockFolderDialogs.vala:237
 msgid "Select Folder Location"
 msgstr "选择文件夹位置"
 
-#: lib/Widgets/DockFolderDialogs.vala:239
+#: lib/Widgets/DockFolderDialogs.vala:241
 msgid "_Select"
 msgstr "选择(_S)"
 
-#: lib/Widgets/DockFolderDialogs.vala:296
+#: lib/Widgets/DockFolderDialogs.vala:298
 msgid "Open Dock"
 msgstr "打开程序坞"
 
-#: lib/Widgets/DockFolderDialogs.vala:300
+#: lib/Widgets/DockFolderDialogs.vala:302
 msgid "_Open Dock"
 msgstr "打开程序坞(_O)"
 
-#: lib/Widgets/DockFolderDialogs.vala:318
+#: lib/Widgets/DockFolderDialogs.vala:320
 msgid "_Dock Slot:"
 msgstr "程序坞槽位(_D):"
 
-#: lib/Widgets/DockFolderDialogs.vala:329
+#: lib/Widgets/DockFolderDialogs.vala:331
 #, c-format
 msgid "Dock %d (%s — saved config)"
 msgstr "程序坞 %d（%s — 已保存配置）"
 
-#: lib/Widgets/DockFolderDialogs.vala:330
+#: lib/Widgets/DockFolderDialogs.vala:332
 #, c-format
 msgid "Dock %d (%s)"
 msgstr "程序坞 %d（%s）"
 
-#: lib/Widgets/DockFolderDialogs.vala:338
+#: lib/Widgets/DockFolderDialogs.vala:340
 msgid "_Screen:"
 msgstr "屏幕(_S):"
 
-#: lib/Widgets/DockFolderDialogs.vala:347
+#: lib/Widgets/DockFolderDialogs.vala:349
 #, c-format
 msgid "Screen %d (Multi-seat / Offline)"
 msgstr "屏幕 %d（多席位 / 离线）"
 
-#: lib/Widgets/DockFolderDialogs.vala:352
+#: lib/Widgets/DockFolderDialogs.vala:354
 msgid "_Position:"
 msgstr "位置(_P):"
 
-#: lib/Widgets/DockFolderDialogs.vala:356
+#: lib/Widgets/DockFolderDialogs.vala:358
 #: lib/Widgets/PreferencesWindow.vala:288 data/ui/preferences.ui:215
 msgid "Bottom"
 msgstr "底部"
 
-#: lib/Widgets/DockFolderDialogs.vala:357
+#: lib/Widgets/DockFolderDialogs.vala:359
 #: lib/Widgets/PreferencesWindow.vala:281 data/ui/preferences.ui:214
 msgid "Top"
 msgstr "顶部"
 
-#: lib/Widgets/DockFolderDialogs.vala:358
+#: lib/Widgets/DockFolderDialogs.vala:360
 #: lib/Widgets/PreferencesWindow.vala:283 data/ui/preferences.ui:212
 msgid "Left"
 msgstr "左侧"
 
-#: lib/Widgets/DockFolderDialogs.vala:359
+#: lib/Widgets/DockFolderDialogs.vala:361
 #: lib/Widgets/PreferencesWindow.vala:285 data/ui/preferences.ui:213
 msgid "Right"
 msgstr "右侧"
 
-#: lib/Widgets/DockFolderDialogs.vala:501
+#: lib/Widgets/DockFolderDialogs.vala:503
 msgid "Maximum number of docks (4) already active."
 msgstr "已达到最大活动程序坞数量（4）。"
 
-#: lib/Widgets/DockFolderDialogs.vala:510
+#: lib/Widgets/DockFolderDialogs.vala:512
 msgid "Another active dock already uses this Screen and Position."
 msgstr "另一个活动程序坞已占用了此屏幕和位置。"
 
-#: lib/Widgets/DockFolderDialogs.vala:519
+#: lib/Widgets/DockFolderDialogs.vala:521
 #, c-format
 msgid ""
 "Saved configuration found for '%s' — will re-open with all pinned items "
 "intact."
 msgstr "找到“%s”的已保存配置 — 将保留所有固定项目重新打开。"
 
-#: lib/Widgets/DockFolderDialogs.vala:521
+#: lib/Widgets/DockFolderDialogs.vala:523
 #, c-format
 msgid "Will launch '%s' immediately without repeating onboarding."
 msgstr "将立即启动“%s”，无需重复首次引导。"
 
-#: lib/Widgets/DockFolderDialogs.vala:542
+#: lib/Widgets/DockFolderDialogs.vala:544
 #, c-format
 msgid "Delete dock '%s'?"
 msgstr "确定删除程序坞“%s”吗？"
 
-#: lib/Widgets/DockFolderDialogs.vala:546
+#: lib/Widgets/DockFolderDialogs.vala:548
 msgid "Delete Dock"
 msgstr "删除程序坞"
 
-#: lib/Widgets/DockFolderDialogs.vala:547
+#: lib/Widgets/DockFolderDialogs.vala:549
 #, c-format
 msgid ""
 "This will close '%s' and permanently remove its configuration and pinned "
 "item list."
 msgstr "这将关闭“%s”并永久删除其配置和固定项目列表。"
 
-#: lib/Widgets/DockFolderDialogs.vala:550
+#: lib/Widgets/DockFolderDialogs.vala:552
 msgid "_Delete Dock"
 msgstr "删除程序坞(_D)"
+
+#: lib/Widgets/DockFolderDialogs.vala:589
+msgid "Rename Shortcut"
+msgstr "重命名快捷方式"
+
+#: lib/Widgets/DockFolderDialogs.vala:596
+msgid "Custom display name:"
+msgstr "自定义显示名称："
+
+#: lib/Widgets/DockFolderDialogs.vala:609
+#, c-format
+msgid "Default: %s"
+msgstr "默认：%s"
+
+#: lib/Widgets/DockFolderDialogs.vala:617
+msgid "Reset _Default"
+msgstr "恢复默认(_D)"
+
+#: lib/Widgets/DockFolderDialogs.vala:619
+msgid "_Rename"
+msgstr "重命名(_R)"
 
 #: lib/Widgets/DockWindow.vala:890
 msgid "Running"
@@ -1172,20 +1199,20 @@ msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "您可以随时在 WayPlank 首选项中切换或自定义任何功能。"
 
-#: lib/Widgets/FolderMenuWindow.vala:623
+#: lib/Widgets/FolderMenuWindow.vala:717
 msgid "Back"
 msgstr "返回"
 
-#: lib/Widgets/FolderMenuWindow.vala:1031
+#: lib/Widgets/FolderMenuWindow.vala:1128
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr "应用程序正在运行 (%d 个窗口)"
 
-#: lib/Widgets/FolderMenuWindow.vala:1121
+#: lib/Widgets/FolderMenuWindow.vala:1218
 msgid "_New Window"
 msgstr "新建窗口(_N)"
 
-#: lib/Widgets/FolderMenuWindow.vala:1149
+#: lib/Widgets/FolderMenuWindow.vala:1246
 msgid "Move to _Dock"
 msgstr "移动到程序坞(_D)"
 
@@ -1488,52 +1515,52 @@ msgstr "WayPlank 快捷键与手势指南"
 msgid "OK"
 msgstr "确定"
 
-#: lib/Widgets/IconChooserDialog.vala:56
+#: lib/Widgets/IconChooserDialog.vala:61
 #, c-format
 msgid "Change Icon - %s"
 msgstr "更改图标 - %s"
 
-#: lib/Widgets/IconChooserDialog.vala:150
+#: lib/Widgets/IconChooserDialog.vala:166
 msgid "Select icon for: "
 msgstr "选择图标: "
 
-#: lib/Widgets/IconChooserDialog.vala:166
+#: lib/Widgets/IconChooserDialog.vala:182
 msgid "Search theme icons (e.g. browser, folder, games, edit)..."
 msgstr "搜索主题图标库 (例如: browser, folder, games, edit)..."
 
-#: lib/Widgets/IconChooserDialog.vala:170
+#: lib/Widgets/IconChooserDialog.vala:186
 msgid "_Browse File..."
 msgstr "浏览文件(_B)..."
 
-#: lib/Widgets/IconChooserDialog.vala:173
+#: lib/Widgets/IconChooserDialog.vala:189
 msgid "Choose a custom image file (PNG, SVG, ICO) from disk"
 msgstr "从磁盘选择自定义图像文件 (PNG, SVG, ICO)"
 
-#: lib/Widgets/IconChooserDialog.vala:199
+#: lib/Widgets/IconChooserDialog.vala:215
 msgid "Restore Default"
 msgstr "恢复默认"
 
-#: lib/Widgets/IconChooserDialog.vala:200
+#: lib/Widgets/IconChooserDialog.vala:216
 msgid "Revert to the original default icon"
 msgstr "恢复原始默认图标"
 
-#: lib/Widgets/IconChooserDialog.vala:205
+#: lib/Widgets/IconChooserDialog.vala:221
 msgid "Apply"
 msgstr "应用"
 
-#: lib/Widgets/IconChooserDialog.vala:335
+#: lib/Widgets/IconChooserDialog.vala:423
 msgid "Select Icon File"
 msgstr "选择图标文件"
 
-#: lib/Widgets/IconChooserDialog.vala:339
+#: lib/Widgets/IconChooserDialog.vala:427
 msgid "Select"
 msgstr "选择"
 
-#: lib/Widgets/IconChooserDialog.vala:343
+#: lib/Widgets/IconChooserDialog.vala:431
 msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "图像文件 (*.png, *.svg, *.ico, *.jpg)"
 
-#: lib/Widgets/IconChooserDialog.vala:363
+#: lib/Widgets/IconChooserDialog.vala:451
 #: lib/Widgets/PreferencesWindow.vala:994
 msgid "All Files"
 msgstr "所有文件"
@@ -1918,11 +1945,11 @@ msgstr "体感温度 %d%s"
 msgid "No forecast data available"
 msgstr "暂无天气预报数据"
 
-#: lib/Widgets/WindowCardsWindow.vala:487
+#: lib/Widgets/WindowCardsWindow.vala:510
 msgid "Application"
 msgstr "应用程序"
 
-#: lib/Widgets/WindowCardsWindow.vala:621
+#: lib/Widgets/WindowCardsWindow.vala:668
 msgid "Minimized"
 msgstr "已最小化"
 

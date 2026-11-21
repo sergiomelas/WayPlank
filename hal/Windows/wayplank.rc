@@ -6,20 +6,14 @@
  */
 
 #include <winver.h>
-
-#ifndef WAYPLANK_VER_RAW
-#define WAYPLANK_VER_RAW 0.7.3
-#endif
-#define WP_STR_HELPER(x) #x
-#define WP_STR(x) WP_STR_HELPER(x)
-#define WAYPLANK_VER_STR WP_STR(WAYPLANK_VER_RAW)
+#include "wayplank-ver.h"
 
 1 24 "wayplank.manifest"
 101 ICON "wayplank.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,7,3,0
- PRODUCTVERSION 0,7,3,0
+ FILEVERSION WAYPLANK_VER_CSV
+ PRODUCTVERSION WAYPLANK_VER_CSV
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS VOS_NT_WINDOWS32
@@ -30,13 +24,13 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "WayPlank Project (Sergio Melas)\0"
+            VALUE "CompanyName", WAYPLANK_COMPANY_STR
             VALUE "FileDescription", "WayPlank Monolithic Desktop Dock\0"
             VALUE "FileVersion", WAYPLANK_VER_STR
             VALUE "InternalName", "wayplank\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Sergio Melas (GPLv3)\0"
+            VALUE "LegalCopyright", WAYPLANK_COPYRIGHT_STR
             VALUE "OriginalFilename", "wayplank.exe\0"
-            VALUE "ProductName", "WayPlank\0"
+            VALUE "ProductName", WAYPLANK_PRODUCT_STR
             VALUE "ProductVersion", WAYPLANK_VER_STR
         END
     END

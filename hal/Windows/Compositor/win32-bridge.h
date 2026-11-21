@@ -1,5 +1,4 @@
 /*
- *  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
  *  Copyright (C) 2026 Sergio Melas
  *
  *  This file is part of WayPlank.
@@ -77,6 +76,7 @@ void win32_bridge_exit_immediately (int status_code);
 int win32_bridge_start_window_hooks (Win32WindowEventCallback cb, void *user_data);
 void win32_bridge_stop_window_hooks (void);
 void win32_bridge_set_resume_callback (Win32WindowEventCallback cb, void *user_data);
+void win32_bridge_set_deactivate_callback (Win32WindowEventCallback cb, void *user_data);
 void win32_bridge_set_ipc_callback (Win32IpcActionCallback cb, void *user_data);
 int win32_bridge_post_ipc_action (int action_code);
 void win32_bridge_enum_windows (Win32EnumWindowCallback cb, void *user_data);

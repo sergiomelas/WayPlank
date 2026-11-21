@@ -110,7 +110,7 @@ namespace Plank
 			window.leave_notify_event.connect (handle_leave_notify_event);
 			Hal.Windows.state_changed.connect (window_state_changed);
 			if (Hal.Capabilities.supports_pressure_reveal)
-				pressure_reveal_timer_id = Gdk.threads_add_timeout (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
+				pressure_reveal_timer_id = GLib.Timeout.add (PRESSURE_REVEAL_TIMEOUT, pressure_reveal_tick);
 			is_initialized = true;
 			update_window_intersect ();
 		}
@@ -233,7 +233,7 @@ namespace Plank
 					prefs_changed_timer_id = 0U;
 				}
 				
-				prefs_changed_timer_id = Gdk.threads_add_timeout (UPDATE_TIMEOUT, () => {
+				prefs_changed_timer_id = GLib.Timeout.add (UPDATE_TIMEOUT, () => {
 					prefs_changed_timer_id = 0U;
 					update_window_intersect ();
 					return false;
@@ -415,7 +415,7 @@ namespace Plank
 			if (hide_timer_id > 0U)
 				return;
 			
-			hide_timer_id = Gdk.threads_add_timeout (controller.prefs.HideDelay, () => {
+			hide_timer_id = GLib.Timeout.add (controller.prefs.HideDelay, () => {
 				hide_timer_id = 0U;
 				if (!Hidden && !Disabled) {
 					Hidden = true;
@@ -446,7 +446,7 @@ namespace Plank
 			if (unhide_timer_id > 0U)
 				return;
 			
-			unhide_timer_id = Gdk.threads_add_timeout (controller.prefs.UnhideDelay, () => {
+			unhide_timer_id = GLib.Timeout.add (controller.prefs.UnhideDelay, () => {
 				unhide_timer_id = 0U;
 				if (Hidden) {
 					Hidden = false;

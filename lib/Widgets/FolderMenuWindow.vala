@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -44,6 +43,8 @@ namespace Plank
 		Gtk.ScrolledWindow scrolled;
 
 		uint dismiss_timer_id = 0U;
+		ulong theme_changed_id = 0UL;
+		ulong custom_name_changed_id = 0UL;
 		bool pointer_inside = false;
 		bool context_menu_active = false;
 		string? hovered_app_uri = null;
@@ -135,6 +136,19 @@ namespace Plank
 			});
 
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
+			theme_changed_id = SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
+			custom_name_changed_id = CustomNameService.get_default ().name_changed.connect (on_custom_name_changed);
+		}
+
+		void on_custom_name_changed (string launcher_uri)
+		{
+			refresh_if_visible ();
+		}
+
+		void on_system_theme_changed (bool is_dark)
+		{
+			apply_theme_style ();
+			queue_draw ();
 		}
 
 		void cancel_position_timer ()
@@ -223,7 +237,6 @@ namespace Plank
 				}
 				if (current_dir != null && active_mgr != null
 					&& active_mgr.DragItem is ApplicationDockItem
-					&& !(active_mgr.DragItem is TransientDockItem)
 					&& !(active_mgr.DragItem is FileDockItem)) {
 					unowned DefaultApplicationDockItemProvider? src_prov = active_mgr.DragItem.Container as DefaultApplicationDockItemProvider;
 					if (src_prov != null && controller != null && !controller.prefs.LockItems) {
@@ -397,6 +410,14 @@ namespace Plank
 			is_window_cleaned_up = true;
 			has_last_pos = false;
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
+			if (theme_changed_id != 0UL) {
+				SystemTheme.get_default ().disconnect (theme_changed_id);
+				theme_changed_id = 0UL;
+			}
+			if (custom_name_changed_id != 0UL) {
+				CustomNameService.get_default ().disconnect (custom_name_changed_id);
+				custom_name_changed_id = 0UL;
+			}
 			cancel_dismiss_timer ();
 			cancel_position_timer ();
 			remove_theme_style ();
@@ -417,12 +438,13 @@ namespace Plank
 
 		void apply_theme_style ()
 		{
-			if (css_provider != null)
-				return;
+			bool dark = SystemTheme.get_default ().is_dark;
+			bool need_attach = (css_provider == null);
+			if (css_provider == null)
+				css_provider = new Gtk.CssProvider ();
 
-			css_provider = new Gtk.CssProvider ();
 			try {
-				var css = """
+				string css = dark ? """
 					.wayplank-folder-menu,
 					window.wayplank-folder-menu {
 						background-color: transparent;
@@ -484,12 +506,76 @@ namespace Plank
 						background-color: rgba(255, 255, 255, 0.16);
 						min-height: 1px;
 					}
+				""" : """
+					.wayplank-folder-menu,
+					window.wayplank-folder-menu {
+						background-color: transparent;
+						background: transparent;
+					}
+					.wayplank-folder-menu scrolledwindow,
+					.wayplank-folder-menu viewport,
+					.wayplank-folder-menu box {
+						background-color: transparent;
+						background: transparent;
+					}
+					.folder-menu-label {
+						color: #1c1c1e;
+						font-size: 13px;
+						font-weight: 500;
+					}
+					.folder-menu-header {
+						color: rgba(28, 28, 30, 0.65);
+						font-size: 12px;
+						font-weight: 600;
+						padding: 4px 8px;
+					}
+					.wayplank-folder-menu image {
+						color: #1c1c1e;
+					}
+					.folder-menu-item {
+						border-radius: 6px;
+						padding: 6px 10px;
+						transition: background-color 0.08s ease;
+						background-color: transparent;
+						border: 1px solid transparent;
+					}
+					.folder-menu-item:hover,
+					.folder-menu-item.hovered {
+						background-color: rgba(0, 0, 0, 0.07);
+						border: 1px solid rgba(0, 0, 0, 0.14);
+					}
+					.folder-menu-item:hover .folder-menu-label,
+					.folder-menu-item.hovered .folder-menu-label {
+						color: #111113;
+						font-weight: 600;
+					}
+					.folder-menu-item:hover image,
+					.folder-menu-item.hovered image {
+						color: #111113;
+					}
+					.folder-menu-back {
+						border-radius: 6px;
+						padding: 5px 8px;
+						background-color: rgba(0, 0, 0, 0.05);
+						border: 1px solid transparent;
+					}
+					.folder-menu-back:hover,
+					.folder-menu-back.hovered {
+						background-color: rgba(0, 0, 0, 0.11);
+						border: 1px solid rgba(0, 0, 0, 0.18);
+					}
+					.wayplank-folder-menu separator {
+						background-color: rgba(0, 0, 0, 0.12);
+						min-height: 1px;
+					}
 				""";
 
 				css_provider.load_from_data (css);
-				unowned Gdk.Screen? screen = get_screen () ?? Gdk.Screen.get_default ();
-				if (screen != null) {
-					Gtk.StyleContext.add_provider_for_screen (screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 20);
+				if (need_attach) {
+					unowned Gdk.Screen? screen = get_screen () ?? Gdk.Screen.get_default ();
+					if (screen != null) {
+						Gtk.StyleContext.add_provider_for_screen (screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 20);
+					}
 				}
 			} catch (GLib.Error e) { }
 		}
@@ -511,18 +597,25 @@ namespace Plank
 			double radius = 7.0;
 			double line_width = 1.0;
 
-			// Draw rounded cornered rectangle matching tooltips
+			// Draw rounded cornered rectangle matching tooltips & active system theme
 			Theme.draw_rounded_rect (cr,
 				line_width / 2.0, line_width / 2.0,
 				width - line_width, height - line_width,
 				radius, radius, line_width);
 
-			// Tooltip background: black/dark charcoal rgba(28, 28, 30, 0.95)
-			cr.set_source_rgba (28.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 0.95);
+			bool dark = SystemTheme.get_default ().is_dark;
+			if (dark) {
+				cr.set_source_rgba (28.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 0.95);
+			} else {
+				cr.set_source_rgba (248.0 / 255.0, 249.0 / 255.0, 251.0 / 255.0, 0.96);
+			}
 			cr.fill_preserve ();
 
-			// Tooltip border: 1px solid rgba(255, 255, 255, 0.18)
-			cr.set_source_rgba (1.0, 1.0, 1.0, 0.18);
+			if (dark) {
+				cr.set_source_rgba (1.0, 1.0, 1.0, 0.18);
+			} else {
+				cr.set_source_rgba (0.0, 0.0, 0.0, 0.14);
+			}
 			cr.set_line_width (line_width);
 			cr.stroke ();
 
@@ -733,6 +826,9 @@ namespace Plank
 					ApplicationDockItem.parse_launcher (uri, out icon, out text);
 					if (text == null || text == "")
 						text = child.get_basename ();
+					string custom_title = CustomNameService.get_default ().get_custom_name (uri);
+					if (custom_title != "")
+						text = custom_title;
 					if (icon == null || icon == "")
 						icon = "application-x-executable";
 
@@ -1160,6 +1256,17 @@ namespace Plank
 					close_menu (true);
 				});
 				menu.append (move_dock_item);
+
+				var rename_item = DockElement.create_menu_item (_("Rename _Shortcut..."), "text-x-generic", true);
+				rename_item.activate.connect (() => {
+					string def_icon, def_title;
+					ApplicationDockItem.parse_launcher (uri, out def_icon, out def_title);
+					if (def_title == null || def_title == "")
+						def_title = child.get_basename () ?? title;
+					close_menu (true);
+					DockFolderDialogs.show_rename_shortcut_dialog (uri, title, def_title);
+				});
+				menu.append (rename_item);
 			}
 
 			// Context menu dismiss handling: keep folder menu open if context menu is cancelled

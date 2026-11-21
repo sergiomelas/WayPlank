@@ -221,9 +221,13 @@ namespace Plank
 				}
 				
 				if (!item.is_valid ()) {
-					warning ("The launcher '%s' in dock item '%s' does not exist. Skipping '%s' in memory without deleting disk file.", item.Launcher, file.get_path (), item.DockItemFilename);
-					if (!corrupted_dockitems.contains (filename))
-						corrupted_dockitems.add (filename);
+					if (item is BrightnessDockItem) {
+						message ("Hardware brightness control is unavailable on this display. Skipping '%s' in memory without marking it corrupted.", item.DockItemFilename);
+					} else {
+						warning ("The launcher '%s' in dock item '%s' does not exist. Skipping '%s' in memory without deleting disk file.", item.Launcher, file.get_path (), item.DockItemFilename);
+						if (!corrupted_dockitems.contains (filename))
+							corrupted_dockitems.add (filename);
+					}
 				} else {
 					elements.set (filename, element);
 				}

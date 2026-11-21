@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
@@ -52,6 +51,9 @@ namespace Plank
 		static Gee.HashMap<string, int>? open_terminal_window_pids;
 		static Gee.HashMap<string, string>? profile_dir_to_name;
 		static Gee.HashMap<string, string>? profile_label_to_dir;
+		static Gee.HashMap<string, Gee.HashMap<string, string>>? family_profile_dir_to_name;
+		static Gee.HashMap<string, Gee.HashMap<string, string>>? family_profile_label_to_dir;
+		static Gee.HashMap<string, int64?>? family_local_state_load_us;
 		static string pending_launched_profile = "";
 		static int64 pending_launched_time_us = 0;
 		static string last_used_profile_dir = "";
@@ -2350,7 +2352,7 @@ namespace Plank
 			return null;
 		}
 
-		private static void parse_local_state_file (string path)
+		private static void parse_local_state_file_into (string path, Gee.HashMap<string, string> dir_to_name, Gee.HashMap<string, string> label_to_dir, bool track_chrome_defaults)
 		{
 			try {
 				if (!GLib.FileUtils.test (path, GLib.FileTest.IS_REGULAR))
@@ -2361,11 +2363,13 @@ namespace Plank
 				int ic_pos = content.index_of ("\"info_cache\"");
 				if (ic_pos < 0)
 					return;
-				int prof_pos = content.index_of ("\"profile\"");
-				if (prof_pos >= 0 && last_used_profile_dir == "") {
-					string? lu = extract_json_string_field (content.substring (prof_pos), "last_used");
-					if (lu != null && lu.strip () != "")
-						last_used_profile_dir = lu.strip ();
+				if (track_chrome_defaults) {
+					int prof_pos = content.index_of ("\"profile\"");
+					if (prof_pos >= 0 && last_used_profile_dir == "") {
+						string? lu = extract_json_string_field (content.substring (prof_pos), "last_used");
+						if (lu != null && lu.strip () != "")
+							last_used_profile_dir = lu.strip ();
+					}
 				}
 				int open_brace = content.index_of_char ('{', ic_pos + 12);
 				if (open_brace < 0)
@@ -2424,19 +2428,19 @@ namespace Plank
 							string? gaia_given = extract_json_string_field (entry_json, "gaia_given_name");
 							string norm_dir = normalize_profile_token (current_key);
 							string disp = (name != null && name.strip () != "") ? name.strip () : current_key;
-							if (first_known_profile_dir == "")
+							if (track_chrome_defaults && first_known_profile_dir == "")
 								first_known_profile_dir = current_key;
-							profile_dir_to_name.set (norm_dir, disp);
-							profile_label_to_dir.set (norm_dir, current_key);
-							profile_label_to_dir.set (current_key.down (), current_key);
+							dir_to_name.set (norm_dir, disp);
+							label_to_dir.set (norm_dir, current_key);
+							label_to_dir.set (current_key.down (), current_key);
 							if (name != null && name.strip () != "") {
 								string clean_name = name.strip ();
-								profile_label_to_dir.set (clean_name.down (), current_key);
-								profile_label_to_dir.set (normalize_profile_token (clean_name), current_key);
+								label_to_dir.set (clean_name.down (), current_key);
+								label_to_dir.set (normalize_profile_token (clean_name), current_key);
 								if (gaia_given != null && gaia_given.strip () != "" && gaia_given.strip ().down () != clean_name.down ()) {
 									string combo = "%s (%s)".printf (gaia_given.strip (), clean_name);
-									profile_label_to_dir.set (combo.down (), current_key);
-									profile_label_to_dir.set (normalize_profile_token (combo), current_key);
+									label_to_dir.set (combo.down (), current_key);
+									label_to_dir.set (normalize_profile_token (combo), current_key);
 								}
 							}
 							entry_start = -1;
@@ -2468,7 +2472,64 @@ namespace Plank
 			first_known_profile_dir = "";
 
 			foreach (unowned string ls_path in Hal.Apps.get_browser_local_state_paths (BrowserFamily.CHROME))
-				parse_local_state_file (ls_path);
+				parse_local_state_file_into (ls_path, profile_dir_to_name, profile_label_to_dir, true);
+		}
+
+		private static bool map_family_to_hal_browser (string browser_family, out BrowserFamily hal_family, out string label_prefix)
+		{
+			switch (browser_family) {
+			case "google-chrome":
+				hal_family = BrowserFamily.CHROME;
+				label_prefix = "Chrome";
+				return true;
+			case "edge":
+				hal_family = BrowserFamily.EDGE;
+				label_prefix = "Edge";
+				return true;
+			case "brave":
+				hal_family = BrowserFamily.BRAVE;
+				label_prefix = "Brave";
+				return true;
+			case "chromium":
+				hal_family = BrowserFamily.CHROMIUM;
+				label_prefix = "Chromium";
+				return true;
+			case "vivaldi":
+				hal_family = BrowserFamily.VIVALDI;
+				label_prefix = "Vivaldi";
+				return true;
+			case "opera":
+				hal_family = BrowserFamily.OPERA;
+				label_prefix = "Opera";
+				return true;
+			default:
+				hal_family = BrowserFamily.CHROME;
+				label_prefix = "";
+				return false;
+			}
+		}
+
+		private static void ensure_family_local_state_loaded (string browser_family, BrowserFamily hal_family)
+		{
+			if (family_profile_dir_to_name == null)
+				family_profile_dir_to_name = new Gee.HashMap<string, Gee.HashMap<string, string>> ();
+			if (family_profile_label_to_dir == null)
+				family_profile_label_to_dir = new Gee.HashMap<string, Gee.HashMap<string, string>> ();
+			if (family_local_state_load_us == null)
+				family_local_state_load_us = new Gee.HashMap<string, int64?> ();
+
+			int64 now = GLib.get_monotonic_time ();
+			int64? last_us = family_local_state_load_us.get (browser_family);
+			if (last_us != null && (now - last_us) < 10000000LL && family_profile_dir_to_name.has_key (browser_family))
+				return;
+
+			family_local_state_load_us.set (browser_family, now);
+			var dir_map = new Gee.HashMap<string, string> ();
+			var label_map = new Gee.HashMap<string, string> ();
+			foreach (unowned string ls_path in Hal.Apps.get_browser_local_state_paths (hal_family))
+				parse_local_state_file_into (ls_path, dir_map, label_map, false);
+			family_profile_dir_to_name.set (browser_family, dir_map);
+			family_profile_label_to_dir.set (browser_family, label_map);
 		}
 
 		private static string get_fallback_default_profile ()
@@ -2517,6 +2578,41 @@ namespace Plank
 			if (disp == "")
 				return "";
 			return "Chrome:" + disp;
+		}
+
+		public static string format_browser_profile_identity_name (string browser_family, string raw_profile)
+		{
+			string clean = raw_profile.strip ().replace ("\"", "").replace ("'", "");
+			if (clean == "")
+				return "";
+			if (browser_family == "google-chrome")
+				return format_chrome_profile_identity_name (clean);
+
+			BrowserFamily hal_family;
+			string prefix;
+			if (!map_family_to_hal_browser (browser_family, out hal_family, out prefix))
+				return "";
+
+			ensure_family_local_state_loaded (browser_family, hal_family);
+			var dir_map = family_profile_dir_to_name.get (browser_family);
+			var label_map = family_profile_label_to_dir.get (browser_family);
+
+			string norm = normalize_profile_token (clean);
+			string canon = norm;
+			if (label_map != null) {
+				string low = clean.down ();
+				if (label_map.has_key (low))
+					canon = normalize_profile_token (label_map.get (low));
+				else if (label_map.has_key (norm))
+					canon = normalize_profile_token (label_map.get (norm));
+			}
+
+			string disp = (dir_map != null && canon != "" && dir_map.has_key (canon))
+				? dir_map.get (canon)
+				: clean;
+			if (disp == "")
+				return "";
+			return "%s:%s".printf (prefix, disp);
 		}
 
 		public static bool profiles_match (string prof_a, string prof_b)
@@ -2643,6 +2739,12 @@ namespace Plank
 				profile_dir_to_name.clear ();
 			if (profile_label_to_dir != null)
 				profile_label_to_dir.clear ();
+			if (family_profile_dir_to_name != null)
+				family_profile_dir_to_name.clear ();
+			if (family_profile_label_to_dir != null)
+				family_profile_label_to_dir.clear ();
+			if (family_local_state_load_us != null)
+				family_local_state_load_us.clear ();
 			local_state_last_load_us = 0;
 			last_browser_session_event_us = 0;
 		}

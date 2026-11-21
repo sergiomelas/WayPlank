@@ -1,5 +1,4 @@
 /*
- *  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
  *  Copyright (C) 2026 Sergio Melas
  *
  *  This file is part of WayPlank.
@@ -33,6 +32,7 @@
 #include <objbase.h>
 #include <propsys.h>
 #include <shellapi.h>
+#include <shobjidl.h>
 #include <tlhelp32.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -328,8 +328,32 @@ static Win32WindowEventCallback g_resume_cb = NULL;
 static void *g_resume_user_data = NULL;
 static volatile gint g_resume_pending = 0;
 
+static Win32WindowEventCallback g_deactivate_cb = NULL;
+static void *g_deactivate_user_data = NULL;
+static volatile gint g_deactivate_pending = 0;
+static HWND g_last_foreign_fg_hwnd = NULL;
+
 static Win32IpcActionCallback g_ipc_cb = NULL;
 static void *g_ipc_user_data = NULL;
+
+static gboolean
+dispatch_deactivate_idle (gpointer user_data)
+{
+	(void) user_data;
+	g_atomic_int_set (&g_deactivate_pending, 0);
+	if (g_deactivate_cb != NULL)
+		g_deactivate_cb (g_deactivate_user_data);
+	return G_SOURCE_REMOVE;
+}
+
+static void
+notify_deactivate_async (void)
+{
+	if (g_deactivate_cb == NULL)
+		return;
+	if (g_atomic_int_compare_and_exchange (&g_deactivate_pending, 0, 1))
+		g_idle_add (dispatch_deactivate_idle, NULL);
+}
 
 static gboolean
 dispatch_ipc_idle (gpointer user_data)
@@ -414,6 +438,11 @@ win_event_proc (
 	if (pid == GetCurrentProcessId ())
 		return;
 
+	if (event == EVENT_SYSTEM_FOREGROUND) {
+		g_last_foreign_fg_hwnd = hwnd;
+		notify_deactivate_async ();
+	}
+
 	if (event == EVENT_OBJECT_LOCATIONCHANGE
 		|| event == EVENT_OBJECT_NAMECHANGE
 		|| event == EVENT_OBJECT_CREATE
@@ -492,6 +521,19 @@ win32_bridge_set_resume_callback (Win32WindowEventCallback cb, void *user_data)
 	g_resume_cb = cb;
 	g_resume_user_data = user_data;
 	g_atomic_int_set (&g_resume_pending, 0);
+#else
+	(void) cb;
+	(void) user_data;
+#endif
+}
+
+void
+win32_bridge_set_deactivate_callback (Win32WindowEventCallback cb, void *user_data)
+{
+#ifdef _WIN32
+	g_deactivate_cb = cb;
+	g_deactivate_user_data = user_data;
+	g_atomic_int_set (&g_deactivate_pending, 0);
 #else
 	(void) cb;
 	(void) user_data;
@@ -811,6 +853,12 @@ win32_bridge_enum_windows (Win32EnumWindowCallback cb, void *user_data)
 	ctx.user_data = user_data;
 	ctx.fg_hwnd = GetForegroundWindow ();
 	ctx.self_pid = GetCurrentProcessId ();
+	if (ctx.fg_hwnd != NULL) {
+		DWORD fg_pid = 0;
+		GetWindowThreadProcessId (ctx.fg_hwnd, &fg_pid);
+		if (fg_pid != 0 && fg_pid != ctx.self_pid)
+			g_last_foreign_fg_hwnd = ctx.fg_hwnd;
+	}
 	ctx.proc_snap = INVALID_HANDLE_VALUE;
 	win32_query_gdk_origin_offset (&ctx.off_x, &ctx.off_y);
 	EnumWindows (enum_windows_proc, (LPARAM) &ctx);
@@ -836,12 +884,24 @@ win32_bridge_perform_window_action (uint64_t hwnd_val, int action)
 	}
 
 	if (action == WIN32_ACTION_MINIMIZE) {
+		if (g_last_foreign_fg_hwnd == hwnd)
+			g_last_foreign_fg_hwnd = NULL;
 		ShowWindowAsync (hwnd, SW_MINIMIZE);
 		return 1;
 	}
 
 	if (action == WIN32_ACTION_TOGGLE) {
-		if (!IsIconic (hwnd) && GetForegroundWindow () == hwnd) {
+		HWND fg = GetForegroundWindow ();
+		DWORD fg_pid = 0;
+		if (fg != NULL)
+			GetWindowThreadProcessId (fg, &fg_pid);
+		/* When clicking a dock icon, DockWindow briefly becomes Windows foreground;
+		 * evaluate toggle against the last foreign active window instead. */
+		HWND effective_fg = (fg == NULL || fg_pid == GetCurrentProcessId ()) ? g_last_foreign_fg_hwnd : fg;
+		if (!IsIconic (hwnd) && effective_fg != NULL
+			&& (effective_fg == hwnd || GetAncestor (effective_fg, GA_ROOTOWNER) == hwnd)) {
+			if (g_last_foreign_fg_hwnd == hwnd)
+				g_last_foreign_fg_hwnd = NULL;
 			ShowWindowAsync (hwnd, SW_MINIMIZE);
 			return 1;
 		}
@@ -866,6 +926,7 @@ win32_bridge_perform_window_action (uint64_t hwnd_val, int action)
 
 	BringWindowToTop (hwnd);
 	SetForegroundWindow (hwnd);
+	g_last_foreign_fg_hwnd = hwnd;
 
 	if (attached_target)
 		AttachThreadInput (cur_tid, target_tid, FALSE);
@@ -1052,6 +1113,7 @@ typedef struct {
 	int *rects;       /* [x, y, w, h, ...] in client physical pixels */
 	int n_rects;
 	int no_activate;
+	int taskbar_hidden;
 	int pointer_inside;
 	int leave_timer_active;
 	int reveal_timer_active;
@@ -1160,6 +1222,28 @@ emit_synthetic_gdk_enter (Win32ShellState *st, HWND hwnd, POINT screen_pt)
 	emit_synthetic_gdk_crossing (st, GDK_ENTER_NOTIFY, lx, ly, rx, ry);
 }
 
+static const GUID WP_CLSID_TaskbarList =
+	{ 0x56FDF344, 0xFD6D, 0x11d0, { 0x95, 0x8A, 0x00, 0x60, 0x97, 0xC9, 0xA0, 0x90 } };
+static const GUID WP_IID_ITaskbarList =
+	{ 0x56FDF342, 0xFD6D, 0x11d0, { 0x95, 0x8A, 0x00, 0x60, 0x97, 0xC9, 0xA0, 0x90 } };
+
+static void
+hide_from_windows_taskbar (HWND hwnd)
+{
+	if (hwnd == NULL || !IsWindow (hwnd))
+		return;
+	HRESULT hr_com = CoInitializeEx (NULL, COINIT_APARTMENTTHREADED);
+	int did_init = SUCCEEDED (hr_com) ? 1 : 0;
+	ITaskbarList *tbl = NULL;
+	if (SUCCEEDED (CoCreateInstance (&WP_CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, &WP_IID_ITaskbarList, (void **) &tbl)) && tbl != NULL) {
+		if (SUCCEEDED (ITaskbarList_HrInit (tbl)))
+			ITaskbarList_DeleteTab (tbl, hwnd);
+		ITaskbarList_Release (tbl);
+	}
+	if (did_init)
+		CoUninitialize ();
+}
+
 static LRESULT CALLBACK
 wayplank_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -1173,6 +1257,16 @@ wayplank_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	if (msg == WM_MOUSEACTIVATE && st != NULL && st->no_activate) {
 		return MA_NOACTIVATE;
+	}
+
+	if (msg == WM_RBUTTONDOWN && st != NULL && !st->no_activate) {
+		/* Bring dock to Win32 foreground on right-click so Windows reliably sends
+		 * WM_ACTIVATEAPP(FALSE) when the user clicks outside any Gtk.Menu / submenu. */
+		SetForegroundWindow (hwnd);
+	}
+
+	if ((msg == WM_ACTIVATEAPP && wParam == FALSE) || msg == WM_CANCELMODE) {
+		notify_deactivate_async ();
 	}
 
 	if (msg == WM_NCHITTEST && st != NULL && st->mask_active) {
@@ -1283,6 +1377,19 @@ wayplank_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		notify_resume_async ();
 	}
 
+	if (msg == WM_SHOWWINDOW && wParam == TRUE && st != NULL) {
+		LONG_PTR ex = GetWindowLongPtrW (hwnd, GWL_EXSTYLE);
+		LONG_PTR target_ex = (ex | WS_EX_TOOLWINDOW | WS_EX_TOPMOST) & ~WS_EX_APPWINDOW;
+		if (st->no_activate)
+			target_ex |= WS_EX_NOACTIVATE;
+		if (target_ex != ex)
+			SetWindowLongPtrW (hwnd, GWL_EXSTYLE, target_ex);
+		if (!st->taskbar_hidden || target_ex != ex) {
+			hide_from_windows_taskbar (hwnd);
+			st->taskbar_hidden = 1;
+		}
+	}
+
 	if (msg == WM_NCDESTROY && st != NULL) {
 		if (st->leave_timer_active) {
 			KillTimer (hwnd, WAYPLANK_LEAVE_TIMER_ID);
@@ -1345,6 +1452,7 @@ win32_bridge_configure_window (GdkWindow *gdk_window, int is_popup, int no_activ
 	if (is_popup)
 		swp_flags |= SWP_NOOWNERZORDER;
 	SetWindowPos (hwnd, HWND_TOPMOST, 0, 0, 0, 0, swp_flags);
+	hide_from_windows_taskbar (hwnd);
 #else
 	(void) gdk_window;
 	(void) is_popup;

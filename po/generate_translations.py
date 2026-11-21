@@ -474,6 +474,60 @@ translations = {
         "de": "_Symbol ändern...",
         "uk": "Змінити _піктограму..."
     },
+    "Rename _Shortcut...": {
+        "zh_CN": "重命名快捷方式(_S)...",
+        "it": "Rinomina _collegamento...",
+        "es": "Renombrar _acceso directo...",
+        "fr": "Renommer le _raccourci...",
+        "ca": "Canvia el nom de l'_accés directe...",
+        "de": "_Verknüpfung umbenennen...",
+        "uk": "Перейменувати _ярлик..."
+    },
+    "Rename Shortcut": {
+        "zh_CN": "重命名快捷方式",
+        "it": "Rinomina collegamento",
+        "es": "Renombrar acceso directo",
+        "fr": "Renommer le raccourci",
+        "ca": "Canvia el nom de l'accés directe",
+        "de": "Verknüpfung umbenennen",
+        "uk": "Перейменувати ярлик"
+    },
+    "Custom display name:": {
+        "zh_CN": "自定义显示名称：",
+        "it": "Nome visualizzato personalizzato:",
+        "es": "Nombre mostrado personalizado:",
+        "fr": "Nom affiché personnalisé :",
+        "ca": "Nom mostrat personalitzat:",
+        "de": "Benutzerdefinierter Anzeigename:",
+        "uk": "Власна назва для відображення:"
+    },
+    "Default: %s": {
+        "zh_CN": "默认：%s",
+        "it": "Predefinito: %s",
+        "es": "Predeterminado: %s",
+        "fr": "Par défaut : %s",
+        "ca": "Per defecte: %s",
+        "de": "Standard: %s",
+        "uk": "Типово: %s"
+    },
+    "Reset _Default": {
+        "zh_CN": "恢复默认(_D)",
+        "it": "Ripristina _predefinito",
+        "es": "Restablecer _predeterminado",
+        "fr": "Réinitialiser par _défaut",
+        "ca": "Restableix per _defecte",
+        "de": "_Standard wiederherstellen",
+        "uk": "Скинути до _типового"
+    },
+    "_Rename": {
+        "zh_CN": "重命名(_R)",
+        "it": "_Rinomina",
+        "es": "_Renombrar",
+        "fr": "_Renommer",
+        "ca": "_Canvia el nom",
+        "de": "_Umbenennen",
+        "uk": "_Перейменувати"
+    },
     "Checking weather...": {
         "zh_CN": "正在获取天气...",
         "it": "Verifica meteo in corso...",
@@ -5302,8 +5356,18 @@ else:
 os.chdir(repo_root)
 os.makedirs("po", exist_ok=True)
 
+import configparser
 version_file = os.path.join(repo_root, "VERSION")
-pkg_version = open(version_file, "r", encoding="utf-8").read().splitlines()[0].strip() if os.path.exists(version_file) else "0.7.1"
+pkg_version = "0.7.1"
+copyright_holder = "Sergio Melas"
+copyright_email = "sergiomelas@gmail.com"
+if os.path.exists(version_file):
+    _cfg = configparser.ConfigParser(interpolation=None)
+    _cfg.read(version_file, encoding="utf-8")
+    if _cfg.has_section("Release"):
+        pkg_version = _cfg.get("Release", "Version", fallback=pkg_version).strip()
+        copyright_holder = _cfg.get("Release", "CopyrightHolder", fallback=copyright_holder).strip()
+        copyright_email = _cfg.get("Release", "CopyrightEmail", fallback=copyright_email).strip()
 
 vala_files = sorted(glob.glob("hal/**/*.vala", recursive=True) + glob.glob("lib/**/*.vala", recursive=True) + glob.glob("src/**/*.vala", recursive=True))
 ui_files = ["data/ui/preferences.ui"] if os.path.exists("data/ui/preferences.ui") else []
@@ -5312,8 +5376,8 @@ if vala_files and ui_files:
         "xgettext",
         "--package-name=wayplank",
         f"--package-version={pkg_version}",
-        "--msgid-bugs-address=sergiomelas@gmail.com",
-        "--copyright-holder=Sergio Melas <sergiomelas@gmail.com>",
+        f"--msgid-bugs-address={copyright_email}",
+        f"--copyright-holder={copyright_holder} <{copyright_email}>",
         "--from-code=UTF-8",
         "-k_", "-kN_",
         "-o", "po/wayplank.pot"

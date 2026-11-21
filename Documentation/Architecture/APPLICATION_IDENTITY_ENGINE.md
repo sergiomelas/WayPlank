@@ -2,7 +2,7 @@
 
 > **Formal Software Architecture Specification for the Agnostic Launcher/Process Boundary Translator (`IAppSystem`), Cross-OS Path/Argv Purity & 6-Layer Mathematical Window-to-Launcher Solver**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-ID-004` • **Revision `2.2`** (`MOC-0.7.2-HAL-001` — `IAppSystem` Boundary Translator, Executable-Only `is_launcher_uri`, Wrapper URI-Drop Forwarding, Bidirectional Web-App Symmetry, Deduplicate-to-Last-Pinned & Portable Bundle Fallback Icon Persistence)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-ID-004` • **Revision `2.3`** (`v0.7.3.2` Public Beta 4 Hotfix — **`100.0%` 4-Platform Qualified `529/529`** — Per-Family Chromium `Local State` Profiles, Cross-Dock Folder-Pinned Suppression, Non-Destructive `CustomNameService`, Zone 3 `is_folder_metadata_file()` + Non-Destructive Cache Pruning, Windows COM `IApplicationDocumentLists` Per-App Recent Files, Persistent `.lnk` Index Cache & Deleted Local `.lnk` Eviction)  
 > **Target Core Solver & Dock Consumers (`Zone 1 — 100% OS-Agnostic Core`):** [`lib/Services/ApplicationIdentity.vala`](../../lib/Services/ApplicationIdentity.vala), [`lib/Services/ApplicationDiscovery.vala`](../../lib/Services/ApplicationDiscovery.vala), [`lib/Services/WindowManager.vala`](../../lib/Services/WindowManager.vala), [`lib/Services/RecentFilesService.vala`](../../lib/Services/RecentFilesService.vala), [`lib/Items/ApplicationDockItemProvider.vala`](../../lib/Items/ApplicationDockItemProvider.vala), [`lib/DragManager.vala`](../../lib/DragManager.vala)  
 > **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [Repository `README.md`](../../README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) • [HAL_BUSES.md](HAL_BUSES.md) • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) • [USER_GUIDE.md](../USER_GUIDE.md)  
 > **Compliance & Verification Baseline:** [CONTRIBUTING.md](../../CONTRIBUTING.md) • [FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md) • [Changelogs/CHANGELOG_v0.1.0.md](../../Changelogs/CHANGELOG_v0.1.0.md) $\longrightarrow$ [Changelogs/CHANGELOG_v0.7.1.md](../../Changelogs/CHANGELOG_v0.7.1.md) • Verified via 10-Iteration Top-Down / Bottom-Up / Tera Logical Simulator ($65,025$ pairwise cross-product evaluations, $0$ failures)
@@ -44,6 +44,7 @@
 | **`2.0`** | `2026-11-14` | Sergio Melas | **`MOC-0.7.2-HAL-001`:** Routed all static launcher files and live `/proc`/PEB/bus signals in `§1.2`–`§1.3` schemes strictly through the **`IAppSystem` + `IAppMenuBus` + `IWindowBackend` Agnostic Boundary Translators**; replaced POSIX `GLib.Shell.parse_argv` (`\`-stripping trap) with `Hal.Runtime.parse_command_argv()`; replaced Unix `has_prefix("/")` checks across 11 Core files with `GLib.Path.is_absolute()` + `IAppSystem.launcher_exists(uri)` (supporting UWP `aumid://`); added `IAppSystem.find_installed_browser_binary()` (replacing hardcoded `/opt/google/chrome`) and `IAppSystem.get_recent_documents()` (`RecentDocInfo`: `RecentManager` vs Windows `Recent\*.lnk`). Preserved 100% of $S(I,W) \in [0..124]$ math and all 11 normative invariants. |
 | **`2.1`** | `2026-11-17` | Sergio Melas | **`MOC-0.7.2-HAL-001` (`FAT 0.7.2` General Launcher, Wrapper & Web-App Identity Closure):** (1) Specified in `§1.2` that `IAppSystem.is_launcher_uri(uri)` returns `true` **iff** the target is an executable application launcher (`!is_non_app_launcher`), returning `false` on XDG `Type=Link` / `Type=Directory` `.desktop` files and Windows `.url` shortcuts so dropped link files route to browser/default-URI opening instead of dock pinning; (2) specified in `§2.2 Step 2.5` southbound `IAppSystem.launch_app(launcher_uri, uris)` URI/file argument forwarding across field-code-less launchers (omitting `%u/%U/%f/%F`) and user `.sh`/`.bat`/`.cmd` wrapper scripts lacking positional argument forwarding (`"$@"` / `%*`); (3) generalized `§2.5` with the **Deduplicate-to-Last-Pinned** dock pinning law across indistinguishable runtime identities ($I_1 \equiv_{\text{rt}} I_2$); and (4) made Class B2 (`--app-id=`) $\leftrightarrow$ Class B3 (`--app=URL`) co-matching **strictly bidirectional** in `§3.2` & `§3.5.2` so windows launched via `--app=URL` bind to pinned `--app-id=` PWAs (and vice versa) with zero duplicate transient icons. |
 | **`2.2`** | `2026-11-17` | Sergio Melas | **`MOC-0.7.2-HAL-001` (`FAT 2.15` Dichotomic Fallback Icon & Portable Bundle Persistence):** Specified in `§2.6` that Zone 1 fallback synthesis resolves icons across `W.ResourceClass`, `W.ResourceName`, `norm_id`, `W.Executable`, and unwrapped `exec_cmd` clean binary stems via `Hal.Apps.has_native_icon()` (maintaining Wayland `ResourceName == ""` parity across KWin, Mutter, and Labwc with zero OS pollution in Zone 1), while southbound Zone 3 (`XdgAppSystem` on Freedesktop, `Win32AppSystem` on Windows) extracts and caches embedded portable-bundle icons (live AppImage/`.run` `.DirIcon` & embedded hicolor assets $\rightarrow$ `~/.local/share/wayplank/synthetic-icons/wayplank-app-<slug>.<ext>`, or PE icon resources on Windows) when no theme icon exists and garbage-collects them atomically in `delete_synthetic_launcher()`. |
+| **`2.3`** | `2026-11-22` | Sergio Melas | **`v0.7.3.2` Public Beta 4 Hotfix Closure (`529/529` `100.0%` Qualified):** Added per-family Chromium `Local State` profile formatting (`ApplicationIdentity.format_browser_profile_identity_name()`: `Edge:`, `Brave:`, `Vivaldi:`, `Chromium:`, `Opera:`, `Chrome:` with per-family 10 s caches); extended `ApplicationDockItemProvider.has_local_pinned_item_for_window()` with `FileDockItem.has_launcher_for_window()` so folder-pinned apps suppress duplicate unpinned running icons across all docks (`dock1`–`dock4`); added Zone 1 non-destructive `CustomNameService` (`launcher-names.ini`) decoupled from canonical launcher matching; encapsulated folder metadata filtering (`.directory*`/`desktop.ini*`/`thumbs.db`) inside Zone 3 `Hal.Apps.is_folder_metadata_file()` paired with `120 ms` debounced `FileDockItem.handle_dir_changed()` (`GLib.WeakRef`), `ApplicationDiscovery.schedule_refresh()`, and non-destructive `XdgAppSystem.invalidate_cache()` pruning (instant Linux `FAT 1.10` `Change Icon...`); upgraded `Win32AppSystem.get_recent_documents()` to query official Windows COM **`IApplicationDocumentLists`** (`ADLT_RECENT`/`ADLT_FREQUENT`) first for UWP and Win32 apps with strict default-handler (`match_level >= 2`) `.lnk` fallback (`FAT 12.2`); and hardened `Win32AppSystem` with persistent `lnk-index-cache.ini`, $O(1)$ `apps_by_id` lookup, `DRIVE_FIXED` guards, and immediate eviction of deleted local `.lnk` entries. |
 
 ### 1.1 System Purpose, Scope & Single-Pass Immutable Identity Lock
 
@@ -66,14 +67,14 @@ To keep the mathematical scoring engine (`ApplicationIdentity`, `ApplicationDisc
 flowchart TD
     subgraph ZONE3_STATIC ["💾 ZONE 3: Southbound Launcher & Recent-File Drivers (hal/)"]
         direction LR
-        FDO_DESK["Linux / BSD Driver (XdgAppSystem.vala — Frozen v0.7.2): Parses XDG .desktop, ~/Desktop & Gtk.RecentManager"];
-        WIN_LNK["Windows Driver (Win32AppSystem.vala — Plugged v0.7.3): Parses .lnk via IShellLinkW, UWP AUMID (aumid://), SHIL_JUMBO & Recent .lnk"];
+        FDO_DESK["🐧😈 Shared Linux / BSD Driver (hal/Freedesktop/Xdg/XdgAppSystem.vala — v0.7.2): Parses XDG .desktop, ~/Desktop & Gtk.RecentManager"];
+        WIN_LNK["🪟 Windows Driver (hal/Windows/AppSystem/Win32AppSystem.vala — v0.7.3+): Parses .lnk via IShellLinkW, UWP AUMID (aumid://), SHIL_JUMBO & COM IApplicationDocumentLists"];
     end
 
     subgraph ZONE3_LIVE ["⚡ ZONE 3: Southbound Live Window, Kernel & Bus Drivers (hal/)"]
         direction LR
-        LIN_LIVE["Linux / BSD Live Drivers (Frozen v0.7.2): KWin / Mutter / Labwc + /proc/PID/{cmdline,comm,environ,fd} + dbusmenu id=61"];
-        WIN_LIVE["Windows Live Drivers (Plugged v0.7.3): HWND / Class / AUMID + QueryFullProcessImageNameW & PEB + UIAutomation Profile"];
+        LIN_LIVE["🐧😈 Shared Freedesktop (KWin / Mutter / Labwc + dbusmenu id=61) + Kernel Inspector (🐧 Linux /proc | 😈 BSD sysctl v0.7.4)"];
+        WIN_LIVE["🪟 Windows Live Drivers (v0.7.3+): HWND / Class / AUMID + QueryFullProcessImageNameW & PEB + Local State Profiles"];
     end
 
     subgraph ZONE2_TRANS ["🔀 ZONE 2: Agnostic Boundary Translators & Domain DTOs (hal/Interfaces/ — Frozen v0.7.2)"]
@@ -86,10 +87,10 @@ flowchart TD
         ID_CORE["ApplicationIdentity (I) • ApplicationDiscovery • RecentFilesService: 6-Layer Unwrapper + Pairwise Score S(I, W) in [0..124] + Fallback CLI Synthesis"];
     end
 
-    FDO_DESK ==>|"v0.7.2 Linux Freeze"| APP_DESC;
-    WIN_LNK ==>|"v0.7.3 Windows Plug-In (Qualified)"| APP_DESC;
-    LIN_LIVE ==>|"v0.7.2 Linux Freeze"| PROC_SNAP;
-    WIN_LIVE ==>|"v0.7.3 Windows Plug-In (Qualified)"| PROC_SNAP;
+    FDO_DESK ==>|"Linux / BSD Shared Userland"| APP_DESC;
+    WIN_LNK ==>|"Windows Plug-In (Qualified)"| APP_DESC;
+    LIN_LIVE ==>|"Linux / BSD Shared + Kernel"| PROC_SNAP;
+    WIN_LIVE ==>|"Windows Plug-In (Qualified)"| PROC_SNAP;
     APP_DESC ==>|"100% Normalized Pure Vala Structs"| ID_CORE;
     PROC_SNAP ==>|"100% Normalized Pure Vala Structs"| ID_CORE;
 ```
@@ -105,7 +106,7 @@ flowchart TD
 | **`startup_wm_class_or_aumid`** | `StartupWMClass=` key in `.desktop` | COM `IPropertyStore::GetValue(PKEY_AppUserModel_ID)` (`AUMID`) on `.lnk` / UWP package | Populates $T_{\text{wmclass}}$ and $T_{\text{primary}}$ (Stage 1 `100`-pt & Tier 1 `120`-pt match) |
 | **`sandbox_ids`** | `X-Flatpak=`, `X-Flatpak-RenamedFrom=`, `X-SnapInstanceName=` | UWP `PackageFamilyName` (`Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`) | Added directly to $T_{\text{primary}}$ for sandboxed/Store apps |
 | **`url_target` & `is_non_app_launcher`** | `Type=Link` / `Type=Directory` / `URL=` / `URL[$e]=` | Internet shortcut `.url` (`[InternetShortcut] URL=`) | Classified as Class B1 (`is_browser_url_bookmark`, $S(I,W)=0$); **`is_launcher_uri(uri)` MUST return `false`** |
-| **`icon_token`** | `Icon=` theme name or image path | `IShellLinkW::GetIconLocation` or `SHGetImageList(SHIL_JUMBO)` `256×256` `GdkPixbuf` | High-DPI dock & folder drawer icon rendering |
+| **`icon_token`** | `Icon=` theme name or image path (`list_native_icon_tokens()` returns empty — uses disk `Gtk.IconTheme`) | `IShellLinkW::GetIconLocation`, `SHGetImageList(SHIL_JUMBO)` `256×256` & `list_native_icon_tokens()` (`GetSystemDirectoryW` + `EnumResourceNamesW` on `imageres.dll`/`ddores.dll`/`shell32.dll`) | High-DPI dock, folder drawer & `IconChooserDialog` rendering |
 | **`is_terminal` & `is_terminal_emulator`** | `Terminal=true` & `Categories=` containing `TerminalEmulator` (`#30`) | Console subsystem flag / known Windows terminal stems (`wt`, `cmd`, `powershell`) | Distinguishes hosted CLI apps (`Terminal=true`) from interactive terminal emulators (`is_terminal_emulator`) |
 
 > [!IMPORTANT]

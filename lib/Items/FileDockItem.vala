@@ -33,6 +33,8 @@ namespace Plank
 		public File OwnedFile { get; protected construct set; }
 		
 		FileMonitor? dir_monitor;
+		uint dir_refresh_timer_id = 0U;
+		bool dir_refresh_needs_discovery = false;
 		Gee.ArrayList<string> contained_launchers = new Gee.ArrayList<string> ();
 		string[]? cached_tile_icons = null;
 		Gdk.Pixbuf?[]? cached_tile_pixbufs = null;
@@ -211,6 +213,11 @@ namespace Plank
 		
 		void stop_monitor ()
 		{
+			if (dir_refresh_timer_id > 0U) {
+				Source.remove (dir_refresh_timer_id);
+				dir_refresh_timer_id = 0U;
+			}
+			dir_refresh_needs_discovery = false;
 			if (dir_monitor != null) {
 				dir_monitor.changed.disconnect (handle_dir_changed);
 				dir_monitor.cancel ();
@@ -225,18 +232,44 @@ namespace Plank
 		[CCode (instance_pos = -1)]
 		void handle_dir_changed (File f, File? other, FileMonitorEvent event)
 		{
-			cached_tile_icons = null;
-			cached_tile_pixbufs = null;
-			reset_icon_buffer ();
-			refresh_contained_launchers ();
+			string? bname = f.get_basename ();
+			if (bname != null && Hal.Apps.is_folder_metadata_file (bname))
+				return;
+
 			if (event == FileMonitorEvent.CREATED
 				|| event == FileMonitorEvent.DELETED
 				|| event == FileMonitorEvent.MOVED_IN
 				|| event == FileMonitorEvent.MOVED_OUT
 				|| event == FileMonitorEvent.CHANGES_DONE_HINT) {
-				ApplicationDiscovery.get_default ().refresh_index_now ();
+				dir_refresh_needs_discovery = true;
 			}
-			update_indicator ();
+
+			if (dir_refresh_timer_id > 0U) {
+				Source.remove (dir_refresh_timer_id);
+				dir_refresh_timer_id = 0U;
+			}
+			GLib.WeakRef weak_self = GLib.WeakRef (this);
+			dir_refresh_timer_id = GLib.Timeout.add (120, () => {
+				var self = (FileDockItem?) weak_self.get ();
+				if (self == null)
+					return false;
+				self.dir_refresh_timer_id = 0U;
+				bool needs_disc = self.dir_refresh_needs_discovery;
+				self.dir_refresh_needs_discovery = false;
+				self.cached_tile_icons = null;
+				self.cached_tile_pixbufs = null;
+				self.reset_icon_buffer ();
+				self.refresh_contained_launchers ();
+				if (needs_disc) {
+					ApplicationDiscovery.get_default ().schedule_refresh ();
+					self.update_indicator ();
+					if (AbstractMain.app_instance != null)
+						AbstractMain.app_instance.sync_windows_across_all_docks ();
+				} else {
+					self.update_indicator ();
+				}
+				return false;
+			});
 		}
 
 		public void refresh_launchers ()
@@ -246,7 +279,21 @@ namespace Plank
 			reset_icon_buffer ();
 			refresh_contained_launchers ();
 			update_indicator ();
+			if (AbstractMain.app_instance != null)
+				AbstractMain.app_instance.sync_windows_across_all_docks ();
 			needs_redraw ();
+		}
+
+		public bool has_launcher_for_window (WindowInfo window)
+		{
+			if (!is_directory () || contained_launchers.size == 0)
+				return false;
+			var discovery = ApplicationDiscovery.get_default ();
+			foreach (var uri in contained_launchers) {
+				if (discovery.is_best_launcher_for_window (uri, window))
+					return true;
+			}
+			return false;
 		}
 
 		void refresh_contained_launchers ()

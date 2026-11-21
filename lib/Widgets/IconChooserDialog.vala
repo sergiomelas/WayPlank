@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -32,7 +31,8 @@ namespace Plank
 		private bool browse_in_progress = false;
 
 		private const int ICON_DISPLAY_SIZE = 36;
-		private const int MAX_VISIBLE_ICONS = 180;
+		private const int MAX_VISIBLE_ICONS = 320;
+		private const int POPULATE_BATCH_SIZE = 24;
 
 		public string? selected_icon { get; private set; default = null; }
 		public bool is_reset_to_default { get; private set; default = false; }
@@ -48,7 +48,11 @@ namespace Plank
 		private Gtk.Button btn_default;
 
 		private Gee.ArrayList<string> all_theme_icons;
+		private Gee.ArrayList<string> pending_populate_icons;
+		private int pending_populate_idx = 0;
+		private int pending_populate_added = 0;
 		private uint search_debounce_id = 0;
+		private uint populate_idle_id = 0;
 
 		public IconChooserDialog (string current_icon, string item_name, Gtk.Window? parent = null)
 		{
@@ -110,18 +114,29 @@ namespace Plank
 				GLib.Source.remove (search_debounce_id);
 				search_debounce_id = 0;
 			}
+			cancel_populate ();
+		}
+
+		private void cancel_populate ()
+		{
+			if (populate_idle_id > 0) {
+				GLib.Source.remove (populate_idle_id);
+				populate_idle_id = 0;
+			}
 		}
 
 		public override void destroy ()
 		{
+			is_destroyed = true;
+			cancel_populate ();
+			if (search_debounce_id > 0) {
+				GLib.Source.remove (search_debounce_id);
+				search_debounce_id = 0;
+			}
 			if (counted_open) {
 				counted_open = false;
 				if (open_count > 0)
 					open_count--;
-			}
-			if (search_debounce_id > 0) {
-				GLib.Source.remove (search_debounce_id);
-				search_debounce_id = 0;
 			}
 			base.destroy ();
 		}
@@ -224,64 +239,131 @@ namespace Plank
 		private void update_preview_image (string? icon_name_or_path)
 		{
 			if (icon_name_or_path == null || icon_name_or_path == "") {
-				preview_image.set_from_icon_name ("application-x-executable", Gtk.IconSize.DIALOG);
+				var def_pix = DrawingService.load_icon ("application-x-executable", 48, 48);
+				preview_image.set_from_pixbuf (def_pix);
 				return;
 			}
 
-			string lower = icon_name_or_path.ascii_down ();
-			if (lower.has_prefix ("resource://") || lower.has_prefix ("file://") || Path.is_absolute (icon_name_or_path)) {
-				if (DrawingService.has_icon (icon_name_or_path)) {
-					var pix = DrawingService.load_icon (icon_name_or_path, 48, 48);
-					preview_image.set_from_pixbuf (pix);
-				} else {
-					preview_image.set_from_icon_name ("image-missing", Gtk.IconSize.DIALOG);
-				}
+			if (DrawingService.has_icon (icon_name_or_path)) {
+				var pix = DrawingService.load_icon (icon_name_or_path, 48, 48);
+				preview_image.set_from_pixbuf (pix);
 			} else {
-				// Handle multi-icon split (e.g. "icon1;;icon2")
-				string first_icon = icon_name_or_path.split (";;")[0];
-				preview_image.set_from_icon_name (first_icon, Gtk.IconSize.DIALOG);
+				var miss_pix = DrawingService.load_icon ("image-missing", 48, 48);
+				preview_image.set_from_pixbuf (miss_pix);
 			}
 		}
+
+		const string[] STANDARD_SYSTEM_ICONS = {
+			"folder", "folder-open", "folder-documents", "folder-download",
+			"folder-music", "folder-pictures", "folder-videos", "folder-remote",
+			"computer", "computer-laptop", "video-display",
+			"drive-harddisk", "drive-removable-media", "drive-optical",
+			"media-optical-dvd", "media-optical-audio", "media-flash", "media-floppy",
+			"printer", "printer-network", "camera-photo", "camera-video", "phone",
+			"network-wired", "network-idle", "network-workgroup", "network-server",
+			"network-transmit-receive", "web-browser", "applications-internet",
+			"preferences-system", "preferences-system-network", "preferences-desktop-display",
+			"system-users", "system-lock-screen", "security-high", "dialog-key",
+			"dialog-information", "dialog-warning", "dialog-error", "help-about",
+			"help-browser", "edit-find", "edit-delete", "edit-rename",
+			"package-x-generic", "application-x-archive", "system-software-install",
+			"application-x-executable", "x-office-document", "text-x-generic"
+		};
 
 		private void load_theme_icons_async ()
 		{
 			all_theme_icons = new Gee.ArrayList<string> ();
+			pending_populate_icons = new Gee.ArrayList<string> ();
 
 			unowned Gtk.IconTheme theme = DrawingService.get_icon_theme ();
 			GLib.List<string> icons = theme.list_icons (null);
 
 			Gee.HashSet<string> seen = new Gee.HashSet<string> ();
+			var named_icons = new Gee.ArrayList<string> ();
 
+			// 1. Named standard system icons resolvable via HAL or real disk theme
+			foreach (unowned string std_name in STANDARD_SYSTEM_ICONS) {
+				if (DrawingService.has_icon (std_name) && seen.add (std_name))
+					named_icons.add (std_name);
+			}
+
+			// 2. Real disk-installed desktop theme icons (exclude GTK3's internal Tango/GTK2 PNGs)
 			foreach (unowned string name in icons) {
 				if (name == null || name.length < 2)
 					continue;
-				if (!seen.add (name))
+				if (seen.contains (name))
 					continue;
-				all_theme_icons.add (name);
+				var info = theme.lookup_icon (name, 48, 0);
+				if (info == null || DrawingService.is_builtin_gtk_icon_info (info))
+					continue;
+				seen.add (name);
+				named_icons.add (name);
+			}
+			named_icons.sort ();
+			all_theme_icons.add_all (named_icons);
+
+			// 3. Curated embedded crisp WayPlank vector SVG icons (Anchor & essentials first)
+			foreach (unowned string emb_name in DrawingService.get_embedded_icon_names ()) {
+				if (DrawingService.has_icon (emb_name) && seen.add (emb_name))
+					all_theme_icons.add (emb_name);
 			}
 
-			all_theme_icons.sort ();
+			// 4. Native OS icon stores (e.g. Explorer DLL resource catalogs on Windows; empty on Linux)
+			foreach (var native_tok in Hal.Apps.list_native_icon_tokens ()) {
+				if (native_tok != "" && seen.add (native_tok))
+					all_theme_icons.add (native_tok);
+			}
+
 			populate_flowbox ("");
 		}
 
 		private void populate_flowbox (string query)
 		{
+			cancel_populate ();
+
 			flowbox.foreach ((child) => {
 				flowbox.remove (child);
 			});
 
-			string lower_query = query.strip ().down ();
-			int count = 0;
+			pending_populate_icons.clear ();
+			pending_populate_idx = 0;
+			pending_populate_added = 0;
 
+			string lower_query = query.strip ().down ();
 			foreach (var name in all_theme_icons) {
 				if (lower_query != "" && !(lower_query in name.down ()))
+					continue;
+				pending_populate_icons.add (name);
+			}
+
+			if (pending_populate_icons.size == 0)
+				return;
+
+			populate_idle_id = GLib.Idle.add (on_populate_idle_batch);
+		}
+
+		private bool on_populate_idle_batch ()
+		{
+			if (is_destroyed || flowbox == null) {
+				populate_idle_id = 0;
+				return false;
+			}
+
+			int processed = 0;
+			while (pending_populate_idx < pending_populate_icons.size
+				&& pending_populate_added < MAX_VISIBLE_ICONS
+				&& processed < POPULATE_BATCH_SIZE) {
+				string name = pending_populate_icons[pending_populate_idx++];
+				processed++;
+
+				var pix = DrawingService.try_load_icon (name, ICON_DISPLAY_SIZE, ICON_DISPLAY_SIZE);
+				if (pix == null)
 					continue;
 
 				var item_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 2);
 				item_box.margin = 4;
 
-				var img = new Gtk.Image.from_icon_name (name, Gtk.IconSize.DND);
-				img.pixel_size = ICON_DISPLAY_SIZE;
+				var img = new Gtk.Image.from_pixbuf (pix);
 				item_box.pack_start (img, true, true, 0);
 
 				var child = new Gtk.FlowBoxChild ();
@@ -291,12 +373,17 @@ namespace Plank
 				child.show_all ();
 
 				flowbox.add (child);
-
-				if (++count >= MAX_VISIBLE_ICONS)
-					break;
+				pending_populate_added++;
 			}
 
 			flowbox.show_all ();
+
+			if (pending_populate_idx >= pending_populate_icons.size
+				|| pending_populate_added >= MAX_VISIBLE_ICONS) {
+				populate_idle_id = 0;
+				return false;
+			}
+			return true;
 		}
 
 		private void on_search_changed ()
@@ -441,7 +528,7 @@ namespace Plank
 				item.Prefs.Launcher = updated_uri;
 			item.Prefs.CustomIcon = new_icon;
 			item.Icon = new_icon;
-			ApplicationDiscovery.get_default ().refresh_index_now ();
+			ApplicationDiscovery.get_default ().schedule_refresh ();
 		}
 
 		private static void reset_launcher_icon (ApplicationDockItem item)
@@ -462,7 +549,7 @@ namespace Plank
 				ApplicationDockItem.parse_launcher (item.Prefs.Launcher, out icon, out text);
 				item.Icon = icon;
 			}
-			ApplicationDiscovery.get_default ().refresh_index_now ();
+			ApplicationDiscovery.get_default ().schedule_refresh ();
 		}
 
 		public static void show_for_folder (FileDockItem item)

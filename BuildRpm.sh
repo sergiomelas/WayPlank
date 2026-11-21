@@ -46,8 +46,19 @@ fi
 PKG_NAME="wayplank"
 PKG_REL="1"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+read_version_key() {
+    awk -F'=' -v sec="$1" -v key="$2" '
+        /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
+        in_sec && $1 == key { sub(/^[^=]*=/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit }
+    ' "${BASE_DIR}/VERSION"
+}
+PKG_VER="$(read_version_key Release Version)"
+PKG_DECO="$(read_version_key Release Decoration)"
+PKG_YEAR="$(read_version_key Release Year)"
+PKG_HOLDER="$(read_version_key Release CopyrightHolder)"
+PKG_EMAIL="$(read_version_key Release CopyrightEmail)"
+PKG_HOMEPAGE="$(read_version_key Release Homepage)"
+MAINTAINER="${PKG_HOLDER} <${PKG_EMAIL}>"
 RPM_TOPDIR="${BASE_DIR}/build_rpm_workspace"
 OUT_DIR="${BASE_DIR}/build"
 ARCH="$(uname -m)"
@@ -78,21 +89,21 @@ cp "${BASE_DIR}/data/wayplank.svg" "${RPM_TOPDIR}/SOURCES/wayplank.svg"
 cp "${BASE_DIR}/data/wayplank.desktop" "${RPM_TOPDIR}/SOURCES/wayplank.desktop"
 cp "${BASE_DIR}/data/glib-2.0/schemas/net.launchpad.plank.gschema.xml" "${RPM_TOPDIR}/SOURCES/net.launchpad.plank.gschema.xml"
 
-cat << 'EOF_COPYRIGHT' > "${RPM_TOPDIR}/SOURCES/copyright"
+cat << EOF_COPYRIGHT > "${RPM_TOPDIR}/SOURCES/copyright"
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: wayplank
-Upstream-Contact: Sergio Melas <sergiomelas@gmail.com>
-Source: https://github.com/sergiomelas/WayPlank
+Upstream-Contact: ${MAINTAINER}
+Source: ${PKG_HOMEPAGE}
 
 Files: *
 Copyright: 2011-2015 Robert Dyer, Michal Hruby, Rico Tzschichholz
-           2026 Sergio Melas <sergiomelas@gmail.com>
-           2026 史有虎 (IFtiger-hu)
+           ${PKG_YEAR} ${MAINTAINER}
+           ${PKG_YEAR} 史有虎 (IFtiger-hu)
 License: GPL-3.0-or-later
 
 Files: data/docklets/*
-Copyright: 2014-2026 KDE Community / Breeze Icon Artists
-           2026 Sergio Melas <sergiomelas@gmail.com>
+Copyright: 2014-${PKG_YEAR} KDE Community / Breeze Icon Artists
+           ${PKG_YEAR} ${MAINTAINER}
 License: LGPL-3.0-or-later or GPL-3.0-or-later
 Comment: Embedded fallback vector icons for Wayplank docklets (volume scale,
  battery scale and charging states, analog/digital clocks, trash, mpris, system monitors).
@@ -126,7 +137,7 @@ Release:        ${PKG_REL}
 Summary:        Modern standalone dock for Wayland
 License:        GPL-3.0-or-later
 Group:          System/GUI/Other
-URL:            https://github.com/sergiomelas/WayPlank
+URL:            ${PKG_HOMEPAGE}
 Provides:       plank = %{version}
 Obsoletes:      plank < %{version}
 Conflicts:      plank

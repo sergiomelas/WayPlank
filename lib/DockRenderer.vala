@@ -276,7 +276,7 @@ namespace Plank
 			if (reset_position_manager_timer_id > 0U)
 				Source.remove (reset_position_manager_timer_id);
 			
-			reset_position_manager_timer_id = Gdk.threads_add_timeout (50, () => {
+			reset_position_manager_timer_id = GLib.Timeout.add (50, () => {
 				reset_position_manager_timer_id = 0U;
 				if (is_cleaned_up || controller == null || controller.prefs == null || controller.position_manager == null)
 					return false;

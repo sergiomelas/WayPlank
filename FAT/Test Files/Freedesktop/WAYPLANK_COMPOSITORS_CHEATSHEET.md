@@ -2,7 +2,7 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Master HAL Specifications:** [Documentation/Architecture/README.md](../../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../../Documentation/Architecture/HAL_COMPOSITORS.md) & [HAL_BUSES.md](../../Documentation/Architecture/HAL_BUSES.md)
+> **Master HAL Specifications:** [Documentation/Architecture/README.md](../../../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../../../Documentation/Architecture/HAL_COMPOSITORS.md) & [HAL_BUSES.md](../../../Documentation/Architecture/HAL_BUSES.md)
 
 ---
 

@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -82,42 +81,32 @@ namespace Plank
 
 		public bool probe_players_sync (out Gee.ArrayList<MediaPlayerInfo> players)
 		{
-			players = new Gee.ArrayList<MediaPlayerInfo> ();
-			var info = new MediaPlayerInfo ();
-			info.player_id = "win32-media";
-			info.identity = "Windows Media";
-			info.fallback_app_name = "Media";
-			info.status = "Paused";
-			info.can_pause = true;
-			players.add (info);
-			return true;
+			var list = new Gee.ArrayList<MediaPlayerInfo> ();
+			int ok = Win32MediaBridge.probe_players ((player_id, identity, fallback_name, status, title, artist, can_pause, is_browser, owner_pid) => {
+				var info = new MediaPlayerInfo ();
+				info.player_id = player_id;
+				info.identity = identity;
+				info.fallback_app_name = fallback_name;
+				info.status = status;
+				info.title = title;
+				info.artist = artist;
+				info.can_pause = (can_pause != 0);
+				info.is_browser = (is_browser != 0);
+				info.owner_pid = owner_pid;
+				list.add (info);
+			});
+			players = list;
+			return (ok != 0);
 		}
 
 		public bool pause_player_sync (string player_id)
 		{
-			Win32SysBridge.send_media_key (0);
-			return true;
+			return Win32MediaBridge.send_command (player_id, "pause") != 0;
 		}
 
 		public bool send_player_command_sync (string player_id, string command)
 		{
-			switch (command.down ()) {
-			case "next":
-				Win32SysBridge.send_media_key (1);
-				return true;
-			case "previous":
-				Win32SysBridge.send_media_key (2);
-				return true;
-			case "stop":
-				Win32SysBridge.send_media_key (3);
-				return true;
-			default:
-			case "playpause":
-			case "play":
-			case "pause":
-				Win32SysBridge.send_media_key (0);
-				return true;
-			}
+			return Win32MediaBridge.send_command (player_id, command) != 0;
 		}
 
 		public void cleanup () {}

@@ -1131,7 +1131,7 @@ namespace Plank
 				bool handled_peer = false;
 				if (src_prov != null && !controller.prefs.LockItems) {
 					if (drop_was_directly_on_item && drop_target_item is FileDockItem && ((FileDockItem) drop_target_item).is_directory ()
-						&& moving_item is ApplicationDockItem && !(moving_item is TransientDockItem) && !(moving_item is FileDockItem)) {
+						&& moving_item is ApplicationDockItem && !(moving_item is FileDockItem)) {
 						peer_mgr.mark_internal_drop_handled ();
 						handled_peer = src_prov.move_pinned_item_to_folder ((ApplicationDockItem) moving_item, (FileDockItem) drop_target_item);
 					} else {
@@ -1193,7 +1193,7 @@ namespace Plank
 					InternalDragActive = false;
 				} else if (dropped_on_target && !dropped_on_trash && !controller.prefs.LockItems
 					&& target_folder_drop != null && target_folder_drop.is_directory ()
-					&& DragItem is ApplicationDockItem && !(DragItem is TransientDockItem) && !(DragItem is FileDockItem)) {
+					&& DragItem is ApplicationDockItem && !(DragItem is FileDockItem)) {
 					unowned DefaultApplicationDockItemProvider? ap = DragItem.Container as DefaultApplicationDockItemProvider;
 					if (ap != null) {
 						var moving_app = (ApplicationDockItem) DragItem;
@@ -1605,7 +1605,7 @@ namespace Plank
 					drag_leave_idle_id = 0U;
 				}
 				
-				drag_leave_idle_id = Gdk.threads_add_idle (() => {
+				drag_leave_idle_id = GLib.Idle.add (() => {
 					drag_leave_idle_id = 0U;
 					if (dropped_on_target)
 						return false;
@@ -1865,9 +1865,9 @@ namespace Plank
 			if (InternalDragActive && DragItem != null && hovered_item != null
 				&& DragItem != hovered_item
 				&& DragItem.Container == hovered_item.Container) {
-				// Allow dropping a pinned ApplicationDockItem directly onto a Folder (FileDockItem)
-				// without reordering the folder away from under the pointer.
-				if (DragItem is ApplicationDockItem && !(DragItem is TransientDockItem) && !(DragItem is FileDockItem)
+				// Allow dropping an ApplicationDockItem (pinned or running unpinned) directly onto
+				// a Folder (FileDockItem) without reordering the folder away from under the pointer.
+				if (DragItem is ApplicationDockItem && !(DragItem is FileDockItem)
 					&& hovered_item is FileDockItem && ((FileDockItem) hovered_item).is_directory ()) {
 					return;
 				}

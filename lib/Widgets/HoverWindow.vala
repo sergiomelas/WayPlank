@@ -36,15 +36,75 @@ namespace Plank
 		
 		Gtk.Box box;
 		Gtk.Label label;
+		Gtk.CssProvider? css_provider = null;
+		ulong theme_changed_id = 0UL;
 		
 		public HoverWindow ()
 		{
 			GLib.Object (type: Gtk.WindowType.TOPLEVEL);
 		}
 
+		void disconnect_theme_signal ()
+		{
+			if (theme_changed_id != 0UL) {
+				SystemTheme.get_default ().disconnect (theme_changed_id);
+				theme_changed_id = 0UL;
+			}
+		}
+
+		public override void destroy ()
+		{
+			disconnect_theme_signal ();
+			Hal.Shell.cancel_popup_sync (this);
+			base.destroy ();
+		}
+
 		~HoverWindow ()
 		{
+			disconnect_theme_signal ();
 			Hal.Shell.cancel_popup_sync (this);
+		}
+		
+		void apply_theme_style ()
+		{
+			if (css_provider == null)
+				css_provider = new Gtk.CssProvider ();
+
+			bool dark = SystemTheme.get_default ().is_dark;
+			try {
+				string css = dark ? (
+					"window.tooltip, tooltip, .tooltip {\n" +
+					"    background-color: rgba(28, 28, 30, 0.94);\n" +
+					"    color: #ffffff;\n" +
+					"    border: 1px solid rgba(255, 255, 255, 0.18);\n" +
+					"    border-radius: 7px;\n" +
+					"}\n" +
+					"window.tooltip label, tooltip label, .tooltip label, label {\n" +
+					"    color: #f5f5f7;\n" +
+					"    font-size: 11px;\n" +
+					"    font-weight: 500;\n" +
+					"}\n"
+				) : (
+					"window.tooltip, tooltip, .tooltip {\n" +
+					"    background-color: rgba(248, 249, 251, 0.96);\n" +
+					"    color: #1c1c1e;\n" +
+					"    border: 1px solid rgba(0, 0, 0, 0.14);\n" +
+					"    border-radius: 7px;\n" +
+					"}\n" +
+					"window.tooltip label, tooltip label, .tooltip label, label {\n" +
+					"    color: #1c1c1e;\n" +
+					"    font-size: 11px;\n" +
+					"    font-weight: 500;\n" +
+					"}\n"
+				);
+				css_provider.load_from_data (css);
+			} catch (GLib.Error e) { }
+		}
+
+		void on_system_theme_changed (bool is_dark)
+		{
+			apply_theme_style ();
+			queue_draw ();
 		}
 		
 		construct
@@ -63,23 +123,9 @@ namespace Plank
 			
 			get_style_context ().add_class (Gtk.STYLE_CLASS_TOOLTIP);
 
-			var css_provider = new Gtk.CssProvider ();
-			try {
-				css_provider.load_from_data (
-					"window.tooltip, tooltip, .tooltip {\n" +
-					"    background-color: rgba(28, 28, 30, 0.94);\n" +
-					"    color: #ffffff;\n" +
-					"    border: 1px solid rgba(255, 255, 255, 0.18);\n" +
-					"    border-radius: 7px;\n" +
-					"}\n" +
-					"window.tooltip label, tooltip label, .tooltip label {\n" +
-					"    color: #f5f5f7;\n" +
-					"    font-size: 11px;\n" +
-					"    font-weight: 500;\n" +
-					"}\n"
-				);
+			apply_theme_style ();
+			if (css_provider != null)
 				get_style_context ().add_provider (css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
-			} catch (GLib.Error e) { }
 			
 			box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
 			box.set_margin_start (10);
@@ -91,7 +137,11 @@ namespace Plank
 			
 			label = new Gtk.Label (null);
 			label.set_line_wrap (false);
+			if (css_provider != null)
+				label.get_style_context ().add_provider (css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 			box.pack_start (label, false, false, 0);
+
+			theme_changed_id = SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 		}
 		
 		public void show_at (int x, int y, Gtk.PositionType position, int dock_thickness, Gdk.Monitor? monitor)

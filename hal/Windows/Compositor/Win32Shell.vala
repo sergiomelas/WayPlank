@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -32,97 +31,36 @@ namespace Plank
 	public class Win32Shell : GLib.Object, IDockShell
 	{
 		static bool ui_theme_installed = false;
+		static bool deactivate_hooked = false;
 
 		Gee.HashSet<Gdk.Window> tracked_appbar_windows = new Gee.HashSet<Gdk.Window> ();
 
-		static Gdk.Pixbuf? svg_to_pixbuf (string svg_markup, int size)
+		static void on_app_deactivated ()
 		{
-			try {
-				var loader = new Gdk.PixbufLoader.with_type ("svg");
-				loader.set_size (size, size);
-				loader.write (svg_markup.data);
-				loader.close ();
-				return loader.get_pixbuf ();
-			} catch (Error e) {
-				return null;
+			foreach (unowned Gtk.Window win in Gtk.Window.list_toplevels ()) {
+				if (win == null || !win.get_visible ())
+					continue;
+				var child = win.get_child ();
+				if (child is Gtk.Menu) {
+					((Gtk.Menu) child).popdown ();
+				}
 			}
 		}
 
-		static void register_builtin_svg (string icon_name, string svg_markup)
-		{
-			var pb16 = svg_to_pixbuf (svg_markup, 16);
-			if (pb16 != null)
-				Gtk.IconTheme.add_builtin_icon (icon_name, 16, pb16);
-			var pb24 = svg_to_pixbuf (svg_markup, 24);
-			if (pb24 != null)
-				Gtk.IconTheme.add_builtin_icon (icon_name, 24, pb24);
-		}
-
-		static void register_builtin_gresource_svg (string[] icon_names, string resource_path)
-		{
-			try {
-				var bytes = GLib.resources_lookup_data (resource_path, GLib.ResourceLookupFlags.NONE);
-				if (bytes == null)
-					return;
-				var loader = new Gdk.PixbufLoader.with_type ("svg");
-				loader.set_size (128, 128);
-				loader.write (bytes.get_data ());
-				loader.close ();
-				var pb = loader.get_pixbuf ();
-				if (pb == null)
-					return;
-				foreach (unowned string name in icon_names)
-					Gtk.IconTheme.add_builtin_icon (name, 128, pb);
-			} catch (Error e) {
-			}
-		}
-
-		static void ensure_win32_ui_icons_and_css ()
+		public static void ensure_win32_ui_icons_and_css ()
 		{
 			if (ui_theme_installed)
 				return;
 			ui_theme_installed = true;
 
-			const string SVG_CHECK = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path fill='none' stroke='#ffffff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' d='M3.2 8.4 L6.6 11.8 L12.8 4.4'/></svg>";
-			const string SVG_MIXED = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path fill='none' stroke='#ffffff' stroke-width='2.4' stroke-linecap='round' d='M3.5 8 L12.5 8'/></svg>";
-			const string SVG_RADIO = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><circle cx='8' cy='8' r='3.5' fill='#ffffff'/></svg>";
-			const string SVG_ARROW_END = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path fill='#808080' d='M6 4 L11 8 L6 12 Z'/></svg>";
-			const string SVG_ARROW_DOWN = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path fill='#808080' d='M4 6 L8 11 L12 6 Z'/></svg>";
-			const string SVG_CLOSE = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path fill='none' stroke='#808080' stroke-width='2' stroke-linecap='round' d='M4 4 L12 12 M12 4 L4 12'/></svg>";
-
-			register_builtin_svg ("check-active-symbolic", SVG_CHECK);
-			register_builtin_svg ("checkbox-checked-symbolic", SVG_CHECK);
-			register_builtin_svg ("object-select-symbolic", SVG_CHECK);
-			register_builtin_svg ("check-mixed-symbolic", SVG_MIXED);
-			register_builtin_svg ("checkbox-mixed-symbolic", SVG_MIXED);
-			register_builtin_svg ("radio-checked-symbolic", SVG_RADIO);
-			register_builtin_svg ("pan-end-symbolic", SVG_ARROW_END);
-			register_builtin_svg ("pan-down-symbolic", SVG_ARROW_DOWN);
-			register_builtin_svg ("window-close-symbolic", SVG_CLOSE);
-
-			/* Pre-register embedded docklet SVGs into Gtk.IconTheme so Windows
-			 * (which has no /usr/share/icons/hicolor) avoids repeated zoom-frame
-			 * icon-theme misses before falling back to GResource. */
-			register_builtin_gresource_svg (
-				{ "trashcan_empty", "user-trash" },
-				Plank.G_RESOURCE_PATH + "/docklets/trash.svg"
-			);
-			register_builtin_gresource_svg (
-				{ "trashcan_full", "user-trash-full" },
-				Plank.G_RESOURCE_PATH + "/docklets/trash-full.svg"
-			);
-			register_builtin_gresource_svg (
-				{ "plank", "wayplank", "preferences-other" },
-				Plank.G_RESOURCE_PATH + "/docklets/preferences.svg"
-			);
-			register_builtin_gresource_svg (
-				{ "preferences-system", "configure" },
-				Plank.G_RESOURCE_PATH + "/docklets/settings-gear.svg"
-			);
-			register_builtin_gresource_svg (
-				{ "system-shutdown", "system-shutdown-symbolic" },
-				Plank.G_RESOURCE_PATH + "/docklets/session.svg"
-			);
+			/* Mount embedded GResource hicolor icon theme BEFORE any GTK window or
+			 * Gtk.Window.set_default_icon_name("wayplank") lookup, eliminating the
+			 * "Could not find the icon 'wayplank' / 'hicolor' theme not found" warning
+			 * and providing scalable vector docklet, UI & widget symbolic icons above
+			 * GTK3's legacy 24px PNGs with zero deprecated add_builtin_icon() calls. */
+			var default_theme = Gtk.IconTheme.get_default ();
+			if (default_theme != null)
+				default_theme.add_resource_path (Plank.G_RESOURCE_PATH + "/icons");
 
 			var screen = Gdk.Screen.get_default ();
 			if (screen == null)
@@ -221,6 +159,10 @@ namespace Plank
 		public void init_dock_surface (Gtk.Window window)
 		{
 			ensure_win32_ui_icons_and_css ();
+			if (!deactivate_hooked) {
+				deactivate_hooked = true;
+				Win32Bridge.set_deactivate_callback (on_app_deactivated);
+			}
 			window.set_decorated (false);
 			window.set_type_hint (Gdk.WindowTypeHint.DOCK);
 			window.set_skip_taskbar_hint (true);
@@ -404,13 +346,20 @@ namespace Plank
 			}
 
 			if (!was_visible) {
+				if (!window.get_realized ())
+					window.realize ();
+				var pre_gdk = window.get_window ();
+				if (pre_gdk != null) {
+					window.set_data<bool> ("wp-win32-styled", true);
+					Win32Bridge.configure_window (pre_gdk, 0, 0);
+				}
 				window.show_all ();
 				window.stick ();
 			}
 
 			var gdk_win = window.get_window ();
 			if (gdk_win != null) {
-				if (!window.get_data<bool> ("wp-win32-styled")) {
+				if (!was_visible || !window.get_data<bool> ("wp-win32-styled")) {
 					window.set_data<bool> ("wp-win32-styled", true);
 					Win32Bridge.configure_window (gdk_win, 0, 0);
 				}
@@ -645,6 +594,10 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			if (deactivate_hooked) {
+				Win32Bridge.set_deactivate_callback (null);
+				deactivate_hooked = false;
+			}
 			foreach (var gw in tracked_appbar_windows) {
 				if (gw != null && !gw.is_destroyed ())
 					Win32Bridge.remove_appbar_strut (gw);

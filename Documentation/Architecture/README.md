@@ -2,9 +2,9 @@
 
 > **Canonical Top-Level Engineering Blueprint for the Unified Multi-Compositor & Multi-OS WayPlank Codebase**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.6`** (`2026-11-19` • `v0.7.3` Public Beta 4 — Native `hal/Windows/` Plug-In Complete & `100.0%` 4-Platform FAT Qualified [`525/525`]: Windows 11 `135/135`, GNOME `132/132`, KDE Plasma 6 `132/132`, Labwc `126/126`, 8-Gate HAL Purity Firewall `GREEN`, Zero-DLL `wayplank.exe` at 24 Stock OS DLLs)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.7`** (`2026-11-22` • `v0.7.3.2` Public Beta 4 Hotfix — **`100.0%` 4-Platform Qualified `529/529`**: `< 0.5 s` Windows Startup, WinRT GSMTC Media Player, Windows COM `IApplicationDocumentLists` Recent Files, Instant Linux `Change Icon...`, Live Light/Dark Popups, Unified `ReleaseMetadata` `meta/VERSION`, Non-Destructive `CustomNameService`, Per-Family Browser Profiles & Folder-Pinned Suppression; 8-Gate HAL Purity Firewall `GREEN`, Zero-DLL `wayplank.exe` at 25 Stock OS DLLs)  
 > **Unified Brand & Executables:** **WayPlank** (`build/wayplank` on Linux / BSD • `build/wayplank.exe` on Windows `7 ⟷ 11+`)  
-> **Active Public Baseline (`main`):** `v0.7.3` (Public Beta 4 — `100.0%` 4-Platform FAT Qualified — `525/525` Applicable across Windows 11, KDE Plasma 6, GNOME Shell & Labwc; previous baseline `v0.7.2` at `397/397`)  
+> **Active Public Baseline (`main`):** **`v0.7.3.2` (Public Beta 4 Hotfix — CONCLUDED & FROZEN at `100.0%` 4-Platform FAT Qualified `529/529`, `0 [ko]`)**  
 > **Completed Consolidation Gate:** **`v0.7.2` (Public Beta 3 — Agnostic Boundary Translator & Linux HAL/Bus Freeze)** $\longrightarrow$ **`v0.7.3` (Public Beta 4 — Native `hal/Windows/` Southbound Driver Plug-In — 100.0% Qualified)**  
 > **Quick Links:** [Repository Root `README.md`](../../README.md) • [User Guide (`USER_GUIDE.md`)](../USER_GUIDE.md) • [Historic Archive (`Historic/`)](../Historic/README.md) • [Contributing (`CONTRIBUTING.md`)](../../CONTRIBUTING.md) • [Lifetime Bug Register](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
 
@@ -49,7 +49,19 @@ Every structural modification between the qualified **`v0.7.1.2`** baseline and 
 | **`2.3`** | `2026-11-15` | Sergio Melas | **`MOC-0.7.2-HAL-001` Move 4 Sub-Gate M4-A (`backup/0.7.2-move-4a`):** Froze `IAppSystem`, `IAppMenuBus`, and `IPlatformRuntime` path/schema hooks (`0` leaks in `hal/Interfaces/` + `vapi/core/`), implemented `XdgAppSystem`, `AppMenuDbusService`, and expanded `LinuxProcessInspector`, and live-verified `3/3` compositors. |
 | **`2.4`** | `2026-11-16` | Sergio Melas | **`MOC-0.7.2-HAL-001` Move 4 Sub-Gate M4-B (`backup/0.7.2-move-4b`):** Purified all `24` non-solver Core files in `src/` and `lib/` onto `Hal.Apps` and `Hal.Runtime`, remediated Mutter `v072_bridge_1` `move_frame` popup positioning, direct `org.gnome.Shell.Extensions` D-Bus activation (eliminating 25s portal timeout), and uniform `44px` tooltip clearance across KWin/Mutter/Labwc (`3/3` live smoke-verified). |
 | **`2.5`** | `2026-11-16` | Sergio Melas | **`MOC-0.7.2-HAL-001` Move 4 Sub-Gate M4-C & `40/40` Closure (`backup/0.7.2-move-4`):** Purified `ApplicationIdentity`, `ApplicationDiscovery`, and `Matcher` (`0` Zone 1/Zone 2 leaks across `143/143` files), activated the pre-compile **Dual-Zone HAL Purity Firewall** in `BuildBin.sh` (`GREEN`), certified `100.0%` SHA-256 parity on the `65,025`-case Identity Engine Matrix, replaced browser session polling timers with zero-timer `inotify` (`IAppSystem.browser_sessions_changed`), hardened Mutter `v072_bridge_2` `BEFORE_REDRAW` hotplug safety, retained `PreferencesWindow` focus across edge/monitor switches, added multi-choice batched *Docklets* submenu selection, and reconciled `37 [ko->test]` remediations across `399` tests in `FAT/2026-11-17 FAT 0.7.2.txt`. |
-| **`2.6`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Public Beta 4 Closure (Milestones `W1` ➔ `W6`):** Completed native Windows `7 ⟷ 11+` southbound driver plug-in (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`, `BuildWin.sh` 20-lib static MinGW sysroot + built-in `lunasvg`, `BuildNsis.sh` 64-bit installer) with `0` edits to frozen Zone 2 `hal/Interfaces/` or Linux HAL (`8/8` HAL Purity Firewall `GREEN`, Zero-DLL Gate `GREEN` at 24 stock Windows OS DLLs), achieving **`100.0%` 4-Platform FAT Qualification (`525/525` Applicable Passed, `0 [ko]`)** in `FAT/2026-11-19 FAT 0.7.3.txt`. |
+| **`2.6`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Public Beta 4 Closure (Milestones `W1` ➔ `W6`):** Completed native Windows `7 ⟷ 11+` southbound driver plug-in (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`, `BuildWin.sh` 20-lib static MinGW sysroot + built-in `lunasvg`, `BuildNsis.sh` 64-bit installer) with `0` edits to frozen Zone 2 `hal/Interfaces/` or Linux HAL (`8/8` HAL Purity Firewall `GREEN`, Zero-DLL Gate `GREEN` at 24 stock Windows OS DLLs), achieving **`100.0%` 4-Platform FAT Qualification (`525/525` Applicable Passed, `0 [ko]`)** in `FAT/2026-11-22 FAT 0.7.3.2.txt`. |
+| **`2.7`** | `2026-11-22` | Sergio Melas | **`v0.7.3.2` Public Beta 4 Hotfix Closure (`529/529` `100.0%` 4-Platform Qualified):** Added Zone 1 `ReleaseMetadata.vala` (root `VERSION` INI compiled into `GResource` `meta/VERSION`), Zone 1 `CustomNameService.vala` (non-destructive `Rename Shortcut...` in `launcher-names.ini`), cross-dock folder-pinned app suppression, per-family Chromium `Local State` profile formatting, live Light/Dark sync on `HoverWindow`/`FolderMenuWindow`/`WindowCardsWindow`, Zone 3 `Hal.Apps.is_folder_metadata_file()` + debounced `FileDockItem`/`ApplicationDiscovery` refresh & non-destructive `XdgAppSystem` cache pruning (instant Linux `1.10` `Change Icon...`), Windows COM `IApplicationDocumentLists` per-app Recent Files (`12.2`), Windows `< 0.5 s` persistent `.lnk` index cache + deleted local `.lnk` eviction, `ITaskbarList::DeleteTab` with `taskbar_hidden` guard, WinRT `GSMTC` (`win32-media-bridge.c`), WMI+DXVA2 brightness, `572/572` 8-language localization, and removal of all remaining non-`_full` `Gdk.threads_add_*` calls (`8/8` HAL Firewall `GREEN`, `0` Pitfall #14 UAFs, Zero-DLL Gate `GREEN` at 25 stock Windows OS DLLs). |
+
+### 1.1 Zero-Hack Engineering Mandate (Official APIs & Typed Properties Only)
+
+> [!CAUTION]
+> **NO BYTE-PATTERN, FILE-HEADER, OR INTERNAL-PATH HACKS:**  
+> All code across Zone 1 (`src/`, `lib/`), Zone 2 (`hal/Interfaces/`), and Zone 3 (`hal/*/`) MUST resolve formats, capabilities, icons, windows, and OS objects **strictly through official, documented APIs and typed properties** — **never** through ad-hoc file-header sniffing, magic-byte scanning, or hardcoded toolkit-internal path prefixes:
+> 1. **Explicit API Format Selection:** Never rely on raw magic-byte patterns (e.g., matching leading `<svg`, `<?xml`, `<!--`, or raw header offsets) when the format or loader is known; invoke the explicit typed API (`Gdk.PixbufLoader.with_type("svg")`, Win32 Shell/GDI/COM APIs, GIO `FileInfo` attributes).
+> 2. **No Hardcoded Toolkit-Internal Path Hacks:** Never match internal library resource prefixes (such as `/org/gtk/...`) or guess toolkit internals via substring checks; query official object properties and filesystem contracts (`Gtk.IconInfo.get_filename()` + `GLib.File.query_exists()`, `PlatformCapabilities`, `Hal.*` interfaces).
+> 3. **No Fragile Manual Binary/Text Scrapers:** Never hand-parse OS binary structures or raw file headers when a documented OS/toolkit API (`IShellLinkW`, `IPropertyStore`, `SHGetStockIconInfo`, `SHGetImageList`, `PrivateExtractIconsW`, `IWbemServices`, `GKeyFile`, `Json.Parser`) provides the exact typed property.
+> 4. **Audit Before Commit:** Any PR or AI change proposal introducing raw byte-pattern matching, substring path heuristics, or undocumented format scraping is **automatically non-compliant** and must be rejected in Step 1/Step 2.
+> 5. **Narrow Exception — Documented Binary Container Specifications:** Reading fixed fields defined by a **published binary container or wire specification** (e.g., Microsoft ICO `ICONDIR`/`ICONDIRENTRY` payload discrimination between embedded PNG and 32-bit DIB, PE/ELF headers, or Wayland wire structures) is permitted **only** inside Zone 3 (`hal/*/`) when: (a) no available OS or static toolkit API decodes the container faithfully, (b) parsing strictly follows the published specification with full bounds checks (never ad-hoc heuristics), (c) the extracted payload is immediately handed off to an official typed decoder (e.g., `Gdk.PixbufLoader.with_type("png")`), and (d) the architectural reason is documented inline.
 
 ---
 
@@ -98,10 +110,10 @@ flowchart TD
 
     subgraph ZONE3 ["⚙️ ZONE 3: Southbound Protocol Translators & Native OS Drivers (hal/)"]
         direction LR
-        FDO_DRV["🐧 hal/Freedesktop/ (v0.7.2): FreedesktopHalBootstrap • KWin • Mutter • Wlroots • LayerShell • DbusBroker • XdgAppSystem • Trash"];
-        LIN_DRV["🐧 hal/Linux/ (v0.7.2): /proc Inspector & Telemetry • /sys Power & Backlight • DDC/CI • systemd-logind • PipeWire/ALSA"];
-        BSD_DRV["😈 hal/BSD/ (Horizon): sysctl KERN_PROC • kern.cp_time • hw.acpi • sndio • seatd"];
-        WIN_DRV["🪟 hal/Windows/ (v0.7.3): WindowsHalBootstrap • Win32Shell AppBar/Layered • DWM • Named Pipes • CoreAudio • DXVA2 • IShellLinkW • AUMID • WinHTTP"];
+        FDO_DRV["🐧😈 hal/Freedesktop/ (Shared Linux & BSD Userland — v0.7.2): FreedesktopHalBootstrap • KWin • Mutter • Wlroots • LayerShell • DbusBroker • XdgAppSystem • Trash"];
+        LIN_DRV["🐧 hal/Linux/ (Linux Kernel — v0.7.2): /proc Inspector & Telemetry • /sys Power & Backlight • DDC/CI • systemd-logind • PipeWire/ALSA"];
+        BSD_DRV["😈 hal/BSD/ (FreeBSD Kernel — v0.7.4 Planned): sysctl KERN_PROC • kern.cp_time • hw.acpi • sndio • seatd"];
+        WIN_DRV["🪟 hal/Windows/ (v0.7.3+): WindowsHalBootstrap • Win32Shell AppBar/Layered • DWM • Named Pipes • CoreAudio • DXVA2 • IShellLinkW • AUMID • WinHTTP"];
     end
 
     UI_CORE ==>|"Domain Intents & Cairo Regions"| T_COMP;
@@ -109,12 +121,12 @@ flowchart TD
     ID_SOLVER ==>|"Normalized AppDescriptor & ProcessSnapshot"| T_APP;
     ID_SOLVER ==>|"WindowInfo & Profile Lock"| T_COMP;
     T_COMP ==>|"Linux / BSD Build"| FDO_DRV;
-    T_BUS ==>|"Linux Build"| FDO_DRV;
+    T_BUS ==>|"Linux / BSD Build"| FDO_DRV;
     T_BUS ==>|"Linux Kernel Telemetry"| LIN_DRV;
     T_APP ==>|"Linux / BSD Launchers"| FDO_DRV;
     T_APP ==>|"Linux /proc Inspector"| LIN_DRV;
-    T_BUS -.->|"BSD Build"| BSD_DRV;
-    T_APP -.->|"BSD sysctl"| BSD_DRV;
+    T_BUS -.->|"BSD Kernel (v0.7.4)"| BSD_DRV;
+    T_APP -.->|"BSD sysctl (v0.7.4)"| BSD_DRV;
     T_COMP ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
     T_BUS ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
     T_APP ==>|"Windows Build — BuildWin.sh"| WIN_DRV;

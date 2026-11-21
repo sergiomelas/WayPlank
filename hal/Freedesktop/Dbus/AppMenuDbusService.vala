@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -192,8 +191,12 @@ namespace Plank
 						pid_to_dbus_sender.set (pid, conn_name);
 						return conn_name;
 					}
+					if (dead_dbus_senders.size > 512)
+						dead_dbus_senders.clear ();
 					dead_dbus_senders.add (conn_name);
 				} catch (Error e) {
+					if (dead_dbus_senders.size > 512)
+						dead_dbus_senders.clear ();
 					dead_dbus_senders.add (conn_name);
 				}
 			}

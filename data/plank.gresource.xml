@@ -81,6 +81,44 @@
 		<file alias="docklets/list-add.svg" compressed="true" preprocess="xml-stripblanks">docklets/list-add.svg</file>
 		<file alias="docklets/help-browser.svg" compressed="true" preprocess="xml-stripblanks">docklets/help-browser.svg</file>
 		<file alias="docklets/application-exit.svg" compressed="true" preprocess="xml-stripblanks">docklets/application-exit.svg</file>
+		<file alias="icons/hicolor/index.theme" compressed="true">ui-icons/index.theme</file>
+		<file alias="icons/hicolor/scalable/actions/check-active-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/check-active-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/checkbox-checked-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/check-active-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/object-select-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/check-active-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/check-mixed-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/check-mixed-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/checkbox-mixed-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/check-mixed-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/radio-checked-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/radio-checked-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/pan-end-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/pan-end-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/pan-down-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/pan-down-symbolic.svg</file>
+		<file alias="icons/hicolor/scalable/actions/window-close-symbolic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/window-close-symbolic.svg</file>
+		<file alias="ui-icons/window-close.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/window-close.svg</file>
+		<file alias="ui-icons/window-new.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/window-new.svg</file>
+		<file alias="ui-icons/folder.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/folder.svg</file>
+		<file alias="ui-icons/folder-new.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/folder-new.svg</file>
+		<file alias="ui-icons/folder-pictures.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/folder-pictures.svg</file>
+		<file alias="ui-icons/document-open.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/document-open.svg</file>
+		<file alias="ui-icons/document-open-recent.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/document-open-recent.svg</file>
+		<file alias="ui-icons/edit-delete.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/edit-delete.svg</file>
+		<file alias="ui-icons/edit-clear.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/edit-clear.svg</file>
+		<file alias="ui-icons/edit-copy.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/edit-copy.svg</file>
+		<file alias="ui-icons/emblem-ok.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/emblem-ok.svg</file>
+		<file alias="ui-icons/dialog-warning.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/dialog-warning.svg</file>
+		<file alias="ui-icons/help-about.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/help-about.svg</file>
+		<file alias="ui-icons/tools-report-bug.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/tools-report-bug.svg</file>
+		<file alias="ui-icons/preferences-desktop-theme.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-desktop-theme.svg</file>
+		<file alias="ui-icons/preferences-desktop.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-desktop.svg</file>
+		<file alias="ui-icons/preferences-plugin.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-plugin.svg</file>
+		<file alias="ui-icons/preferences-desktop-display.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-desktop-display.svg</file>
+		<file alias="ui-icons/preferences-system-power.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-system-power.svg</file>
+		<file alias="ui-icons/preferences-system-notifications.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-system-notifications.svg</file>
+		<file alias="ui-icons/preferences-system-network.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/preferences-system-network.svg</file>
+		<file alias="ui-icons/system-run.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/system-run.svg</file>
+		<file alias="ui-icons/applications-other.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/applications-other.svg</file>
+		<file alias="ui-icons/media-skip-forward.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/media-skip-forward.svg</file>
+		<file alias="ui-icons/media-skip-backward.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/media-skip-backward.svg</file>
+		<file alias="ui-icons/media-playback-stop.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/media-playback-stop.svg</file>
+		<file alias="ui-icons/view-refresh.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/view-refresh.svg</file>
+		<file alias="ui-icons/text-x-generic.svg" compressed="true" preprocess="xml-stripblanks">ui-icons/text-x-generic.svg</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/preferences.ui</file>
 		<file compressed="true" preprocess="xml-stripblanks">ui/slider-marks-below-red.svg</file>
 		<file alias="themes/Transparent/dock.theme" compressed="true">themes/Transparent/dock.theme</file>
@@ -90,5 +128,6 @@
 		<file alias="themes/IFtiger Theme Dark/dock.theme" compressed="true">themes/IFtiger Theme Dark/dock.theme</file>
 		<file alias="doc/guide.md" compressed="true">../Documentation/USER_GUIDE.md</file>
 		<file alias="doc/banner.png" compressed="true">../Beta Release Pic - github.png</file>
+		<file alias="meta/VERSION" compressed="true">../VERSION</file>
 	</gresource>
 </gresources>

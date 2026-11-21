@@ -5,7 +5,7 @@
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
 > **ISA-88 Document Control & MOC:** `DOC-ARCH-COMP-002` • **Revision `2.1`** (`v0.7.3` Public Beta 4 Closure — Native `hal/Windows/Compositor/` Plug-In Complete & `100.0%` 4-Platform FAT Qualified `525/525`)  
 > **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_BUSES.md](HAL_BUSES.md) *(IPC & System Bus Translator: `D-Bus` vs `Windows Bus`)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator: `.desktop` & `/proc` vs `.lnk` & `AUMID` + 6-Layer Identity Engine)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) *(Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Cross-Build)*  
-> **Single Source of Truth:** Master Compositor & Shell HAL reference linked by [README.md](../../README.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [USER_GUIDE.md](../USER_GUIDE.md), [WAYPLANK_FORK_INTEGRATION_ROADMAP.md](../Historic/WAYPLANK_FORK_INTEGRATION_ROADMAP.md), [WAYPLANK_COMPOSITORS_CHEATSHEET.md](../../FAT/Test%20Files/WAYPLANK_COMPOSITORS_CHEATSHEET.md), and [WAYPLANK_LIFETIME_BUG_REGISTER.md](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)  
+> **Single Source of Truth:** Master Compositor & Shell HAL reference linked by [README.md](../../README.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [USER_GUIDE.md](../USER_GUIDE.md), [WAYPLANK_FORK_INTEGRATION_ROADMAP.md](../Historic/WAYPLANK_FORK_INTEGRATION_ROADMAP.md), [WAYPLANK_COMPOSITORS_CHEATSHEET.md](../../FAT/Test%20Files/Freedesktop/WAYPLANK_COMPOSITORS_CHEATSHEET.md), and [WAYPLANK_LIFETIME_BUG_REGISTER.md](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)  
 > **Staged Execution & Qualification Record (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
 > - **Prior Baseline `v0.7.1.2` (Public Beta 2 Hotfix — Concluded 2026-11-14, `100.0%` FAT Qualified `375/375`):** Wayland 3-compositor HAL (`KWin`, `Mutter`, `Labwc`).
 > - **Translator Freeze `v0.7.2` (Public Beta 3 — Concluded 2026-11-18, `100.0%` FAT Qualified `397/397`):** Introduced the 100% OS-blind **Agnostic Boundary Translator Layer (`hal/Interfaces/`)** and concentrated all Wayland, D-Bus, XDG, and Linux drivers into `hal/{Freedesktop,Linux}/` behind the 8-Gate Dual-Zone HAL Purity Firewall.
@@ -117,7 +117,7 @@ flowchart TD
         HAL_API["Hal.Capabilities • Hal.Shell (IDockShell) • Hal.Windows (IWindowBackend) • Hal.Thumbnails (IThumbnailProvider)"];
     end
 
-    subgraph ZONE3_FDO ["🐧 ZONE 3A: hal/Freedesktop/ — Runtime Wayland Bootstrap & Drivers (Frozen v0.7.2)"]
+    subgraph ZONE3_FDO ["🐧😈 ZONE 3A: hal/Freedesktop/ — Shared Linux & BSD Wayland Bootstrap & Drivers (Frozen v0.7.2)"]
         FDO_BOOT["FreedesktopHalBootstrap.vala — Probes WAYLAND_DISPLAY + XDG_CURRENT_DESKTOP + DbusBroker"];
         SHELL_DRV["Shell/LayerShellDockShell.vala + SurfaceCoordinateService.vala"];
         KWIN["KWin/ — KWinBackend + KWinBridge JS + ScreenShot2 Pipe + Plasma editMode"];

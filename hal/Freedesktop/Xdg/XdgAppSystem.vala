@@ -388,7 +388,16 @@ namespace Plank
 
 		public void invalidate_cache ()
 		{
-			launcher_cache.clear ();
+			// load_launcher() validates (mtime_sec, mtime_usec) per file on every hit
+			// and apply/reset_custom_launcher_icon() explicitly evict modified entries.
+			// Prune only deleted files here instead of discarding all ~500 valid entries.
+			var stale_paths = new Gee.ArrayList<string> ();
+			foreach (var p in launcher_cache.keys) {
+				if (!FileUtils.test (p, FileTest.EXISTS))
+					stale_paths.add (p);
+			}
+			foreach (var p in stale_paths)
+				launcher_cache.unset (p);
 			hal_kernel_clear_process_caches ();
 		}
 
@@ -1690,7 +1699,9 @@ namespace Plank
 
 		public bool is_folder_metadata_file (string filename)
 		{
-			return (filename == ".directory" || filename.ascii_down () == "desktop.ini");
+			string lower = filename.ascii_down ();
+			return (filename == ".directory" || filename.has_prefix (".directory.")
+				|| lower == "desktop.ini" || lower.has_prefix ("desktop.ini."));
 		}
 
 		public string get_folder_display_name (GLib.File folder)
@@ -1843,24 +1854,27 @@ namespace Plank
 			return s;
 		}
 
-		static string detect_bundle_image_extension (string src_path, uint8[] data)
+		static string detect_bundle_image_extension (string src_path)
 		{
-			if (data.length >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
-				return ".png";
-
-			string low = src_path.down ();
-			int head_len = int.min (data.length, 512);
-			if (head_len > 4) {
-				char[] head_buf = new char[head_len + 1];
-				Memory.copy (head_buf, data, head_len);
-				head_buf[head_len] = 0;
-				string head_str = ((string) head_buf).down ();
-				if (head_str.contains ("<svg"))
-					return ".svg";
-				if (head_str.contains ("/* xpm"))
-					return ".xpm";
+			int w = 0, h = 0;
+			unowned Gdk.PixbufFormat? fmt = Gdk.Pixbuf.get_file_info (src_path, out w, out h);
+			if (fmt != null) {
+				string? fname = fmt.get_name ();
+				if (fname != null) {
+					switch (fname.down ()) {
+					case "png":
+						return ".png";
+					case "svg":
+						return ".svg";
+					case "xpm":
+						return ".xpm";
+					default:
+						break;
+					}
+				}
 			}
 
+			string low = src_path.down ();
 			if (low.has_suffix (".svg"))
 				return ".svg";
 			if (low.has_suffix (".png"))
@@ -1973,7 +1987,7 @@ namespace Plank
 				if (!FileUtils.get_data (src_icon_path, out data) || data.length < 8 || data.length > 4 * 1024 * 1024)
 					return "";
 
-				string ext = detect_bundle_image_extension (src_icon_path, data);
+				string ext = detect_bundle_image_extension (src_icon_path);
 				if (ext == "")
 					return "";
 
@@ -2923,6 +2937,11 @@ namespace Plank
 			}
 			icon_mutex.unlock ();
 			return exists;
+		}
+
+		public Gee.ArrayList<string> list_native_icon_tokens ()
+		{
+			return new Gee.ArrayList<string> ();
 		}
 
 		public string? get_file_icon_token (GLib.File file)

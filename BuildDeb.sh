@@ -34,14 +34,24 @@ fi
 
 PKG_NAME="wayplank"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+read_version_key() {
+    awk -F'=' -v sec="$1" -v key="$2" '
+        /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
+        in_sec && $1 == key { sub(/^[^=]*=/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit }
+    ' "${BASE_DIR}/VERSION"
+}
+PKG_VER="$(read_version_key Release Version)"
+PKG_DECO="$(read_version_key Release Decoration)"
+PKG_YEAR="$(read_version_key Release Year)"
+PKG_HOLDER="$(read_version_key Release CopyrightHolder)"
+PKG_EMAIL="$(read_version_key Release CopyrightEmail)"
+PKG_HOMEPAGE="$(read_version_key Release Homepage)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
 OUT_DIR="${BASE_DIR}/build"
 ARCH="$(dpkg --print-architecture)"
 
-export DEBFULLNAME="Sergio Melas"
-export DEBEMAIL="sergiomelas@gmail.com"
+export DEBFULLNAME="${PKG_HOLDER}"
+export DEBEMAIL="${PKG_EMAIL}"
 MAINTAINER="${DEBFULLNAME} <${DEBEMAIL}>"
 
 echo ""
@@ -102,21 +112,21 @@ cp "${BASE_DIR}/data/wayplank.svg" "${BUILD_DIR}/usr/share/icons/hicolor/scalabl
 cp "${BASE_DIR}/data/glib-2.0/schemas/net.launchpad.plank.gschema.xml" "${BUILD_DIR}/usr/share/glib-2.0/schemas/"
 
 mkdir -p "${BUILD_DIR}/usr/share/doc/wayplank"
-cat << 'EOF' > "${BUILD_DIR}/usr/share/doc/wayplank/copyright"
+cat << EOF > "${BUILD_DIR}/usr/share/doc/wayplank/copyright"
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: wayplank
-Upstream-Contact: Sergio Melas <sergiomelas@gmail.com>
-Source: https://github.com/sergiomelas/WayPlank
+Upstream-Contact: ${MAINTAINER}
+Source: ${PKG_HOMEPAGE}
 
 Files: *
 Copyright: 2011-2015 Robert Dyer, Michal Hruby, Rico Tzschichholz
-           2026 Sergio Melas <sergiomelas@gmail.com>
-           2026 史有虎 (IFtiger-hu)
+           ${PKG_YEAR} ${MAINTAINER}
+           ${PKG_YEAR} 史有虎 (IFtiger-hu)
 License: GPL-3.0-or-later
 
 Files: data/docklets/*
-Copyright: 2014-2026 KDE Community / Breeze Icon Artists
-           2026 Sergio Melas <sergiomelas@gmail.com>
+Copyright: 2014-${PKG_YEAR} KDE Community / Breeze Icon Artists
+           ${PKG_YEAR} ${MAINTAINER}
 License: LGPL-3.0-or-later or GPL-3.0-or-later
 Comment: Embedded fallback vector icons for Wayplank docklets (volume scale,
  battery scale and charging states, analog/digital clocks, trash, mpris, system monitors).
@@ -133,7 +143,7 @@ License: GPL-3.0-or-later
  GNU General Public License for more details.
  .
  On Debian systems, the full text of the GNU General Public License version 3
- can be found in `/usr/share/common-licenses/GPL-3'.
+ can be found in \`/usr/share/common-licenses/GPL-3'.
 
 License: LGPL-3.0-or-later
  This library/asset is free software; you can redistribute it and/or
@@ -142,7 +152,7 @@ License: LGPL-3.0-or-later
  version 3 of the License, or (at your option) any later version.
  .
  On Debian systems, the full text of the GNU Lesser General Public License
- version 3 can be found in `/usr/share/common-licenses/LGPL-3'.
+ version 3 can be found in \`/usr/share/common-licenses/LGPL-3'.
 EOF
 chmod 644 "${BUILD_DIR}/usr/share/doc/wayplank/copyright"
 
@@ -158,7 +168,7 @@ Section: misc
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: ${MAINTAINER}
-Homepage: https://github.com/sergiomelas/WayPlank
+Homepage: ${PKG_HOMEPAGE}
 Provides: plank (= ${PKG_VER}), libplank-common, libplank1
 Replaces: plank, libplank-common, libplank1
 Conflicts: plank, libplank-common, libplank1

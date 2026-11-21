@@ -172,10 +172,12 @@ namespace Plank
 					return true;
 
 				icon_theme_mutex.lock ();
-				bool exists = theme.has_icon (name);
+				var info = theme.lookup_icon (name, 48, 0);
+				bool exists = (info != null && !is_builtin_gtk_icon_info (info));
 				if (!exists && name.contains (".")) {
 					var parts = name.split (".");
-					exists = theme.has_icon (parts [0]);
+					info = theme.lookup_icon (parts [0], 48, 0);
+					exists = (info != null && !is_builtin_gtk_icon_info (info));
 				}
 				icon_theme_mutex.unlock ();
 
@@ -220,19 +222,16 @@ namespace Plank
 		}
 		
 		/**
-		 * Loads an icon based on names and the given width/height
-		 *
-		 * @param names a delimited (with ";;") list of icon names, first one found is used
-		 * @param width the requested width of the icon
-		 * @param height the requested height of the icon
-		 * @return the pixbuf representing the requested icon
+		 * Attempts to load an icon from file, real disk icon theme, native OS
+		 * icon provider, or embedded WayPlank GResource vectors without falling
+		 * back to the generic default icon.
 		 */
-		public static Gdk.Pixbuf load_icon (string names, int width, int height)
+		public static Gdk.Pixbuf? try_load_icon (string names, int width, int height)
 		{
 			Gdk.Pixbuf? pbuf = null;
-			
 			var all_names = names.split (";;");
-			
+
+			// Pass 1: Explicit GResource URI, filesystem file, or real disk icon theme
 			foreach (unowned string name in all_names) {
 				if (name == null || name == "")
 					continue;
@@ -249,24 +248,22 @@ namespace Plank
 					if (pbuf != null)
 						break;
 				}
-				
+
 				pbuf = load_pixbuf (name, int.max (width, height));
 				if (pbuf != null)
 					break;
-
-				pbuf = Hal.Apps.load_native_icon (name, int.max (width, height));
-				if (pbuf != null)
-					break;
-				
-				if (name != DEFAULT_ICON)
-					message ("Could not find icon '%s'", name);
 			}
-			
-			// If not found in active system theme, check integrated GResource fallback icons
+
+			// Pass 2: Per-name priority between native OS stock/store icons and embedded SVGs
 			if (pbuf == null) {
 				foreach (unowned string name in all_names) {
 					if (name == null || name == "")
 						continue;
+
+					pbuf = Hal.Apps.load_native_icon (name, int.max (width, height));
+					if (pbuf != null)
+						break;
+
 					var fallback = get_docklet_fallback_resource (name);
 					if (fallback != null) {
 						pbuf = load_pixbuf_from_resource (fallback, width, height);
@@ -276,9 +273,31 @@ namespace Plank
 				}
 			}
 
+			if (pbuf != null) {
+				if (width != -1 && height != -1 && (width != pbuf.width || height != pbuf.height))
+					return ar_scale (pbuf, width, height);
+				return pbuf;
+			}
+
+			return null;
+		}
+
+		/**
+		 * Loads an icon based on names and the given width/height
+		 *
+		 * @param names a delimited (with ";;") list of icon names, first one found is used
+		 * @param width the requested width of the icon
+		 * @param height the requested height of the icon
+		 * @return the pixbuf representing the requested icon
+		 */
+		public static Gdk.Pixbuf load_icon (string names, int width, int height)
+		{
+			var pbuf = try_load_icon (names, width, height);
+			if (pbuf != null)
+				return pbuf;
+
 			// Try theme default icon before embedded last-resort icon
-			if (pbuf == null)
-				pbuf = load_pixbuf (DEFAULT_ICON, int.max (width, height));
+			pbuf = load_pixbuf (DEFAULT_ICON, int.max (width, height));
 			
 			// Load internal default icon as last resort
 			if (pbuf == null)
@@ -330,6 +349,23 @@ namespace Plank
 		static Gdk.Pixbuf? load_pixbuf_from_file (File file, int width, int height)
 		{
 			Gdk.Pixbuf? pbuf = null;
+
+			string? base_name = file.get_basename ();
+			if (base_name != null && base_name.down ().has_suffix (".svg")) {
+				try {
+					uint8[] contents;
+					if (file.load_contents (null, out contents, null) && contents.length > 0) {
+						var loader = new Gdk.PixbufLoader.with_type ("svg");
+						if (width > 0 && height > 0)
+							loader.set_size (width, height);
+						loader.write (contents);
+						loader.close ();
+						pbuf = loader.get_pixbuf ();
+						if (pbuf != null)
+							return pbuf;
+					}
+				} catch { }
+			}
 			
 			try {
 				var fis = file.read ();
@@ -342,6 +378,22 @@ namespace Plank
 		static Gdk.Pixbuf? load_pixbuf_from_resource (string resource, int width, int height)
 		{
 			Gdk.Pixbuf? pbuf = null;
+
+			if (resource.down ().has_suffix (".svg")) {
+				try {
+					var bytes = GLib.resources_lookup_data (resource, GLib.ResourceLookupFlags.NONE);
+					if (bytes != null) {
+						var loader = new Gdk.PixbufLoader.with_type ("svg");
+						if (width > 0 && height > 0)
+							loader.set_size (width, height);
+						loader.write (bytes.get_data ());
+						loader.close ();
+						pbuf = loader.get_pixbuf ();
+						if (pbuf != null)
+							return pbuf;
+					}
+				} catch { }
+			}
 			
 			try {
 				pbuf = new Gdk.Pixbuf.from_resource_at_scale (resource, width, height, true);
@@ -350,6 +402,41 @@ namespace Plank
 			return pbuf;
 		}
 		
+		/**
+		 * Returns true when a {@link Gtk.IconInfo} does not back onto a real file
+		 * on the host filesystem (i.e. synthetic toolkit-internal GResource stock
+		 * entries), so native OS stock icons and embedded WayPlank vector SVGs take
+		 * precedence while real disk-installed desktop icon themes remain untouched.
+		 */
+		public static bool is_builtin_gtk_icon_info (Gtk.IconInfo? info)
+		{
+			if (info == null)
+				return false;
+			unowned string? fname = info.get_filename ();
+			if (fname == null || fname == "")
+				return true;
+			return !File.new_for_path (fname).query_exists ();
+		}
+
+		public static string[] get_embedded_icon_names ()
+		{
+			return {
+				"wayplank", "preferences-system", "preferences-desktop-theme",
+				"preferences-desktop", "preferences-plugin", "preferences-system-power",
+				"preferences-system-network", "preferences-system-notifications",
+				"preferences-system-time", "digital-clock", "utilities-system-monitor",
+				"user-trash", "user-desktop", "applets-screenshooter",
+				"audio-volume-high", "media-playback-start", "media-eject",
+				"gnome-mplayer", "display-brightness", "battery-full",
+				"weather-clear", "weather-storm", "network-wireless",
+				"notifications-disabled", "system-shutdown", "system-reboot",
+				"system-log-out", "tools-report-bug", "starred", "list-add",
+				"window-close", "window-new", "folder-new", "document-open-recent",
+				"edit-clear", "edit-copy", "emblem-ok", "system-run",
+				"applications-other", "view-refresh"
+			};
+		}
+
 		static Gdk.Pixbuf? load_pixbuf (string icon, int size)
 		{
 			Gdk.Pixbuf? pbuf = null;
@@ -358,13 +445,17 @@ namespace Plank
 			icon_theme_mutex.lock ();
 			
 			try {
-				pbuf = icon_theme.load_icon (icon, size, 0);
+				var info = icon_theme.lookup_icon (icon, size, 0);
+				if (info != null && !is_builtin_gtk_icon_info (info))
+					pbuf = info.load_icon ();
 			} catch { }
 			
 			try {
 				if (pbuf == null && icon.contains (".")) {
 					var parts = icon.split (".");
-					pbuf = icon_theme.load_icon (parts [0], size, 0);
+					var info = icon_theme.lookup_icon (parts [0], size, 0);
+					if (info != null && !is_builtin_gtk_icon_info (info))
+						pbuf = info.load_icon ();
 				}
 			} catch { }
 			
@@ -388,6 +479,7 @@ namespace Plank
 			
 			var all_names = names.split (";;");
 			
+			// Pass 1: Explicit GResource URI, filesystem file, or real disk icon theme
 			foreach (unowned string name in all_names) {
 				if (name == null || name == "")
 					continue;
@@ -414,28 +506,26 @@ namespace Plank
 				surface = load_surface (name, int.max (width, height) / scale, scale);
 				if (surface != null)
 					break;
-
-				var native_pbuf = Hal.Apps.load_native_icon (name, int.max (width, height));
-				if (native_pbuf != null) {
-					var scaled = (width != -1 && height != -1 && (width != native_pbuf.width || height != native_pbuf.height))
-						? ar_scale (native_pbuf, width, height) : native_pbuf;
-					surface = new Cairo.ImageSurface (Cairo.Format.ARGB32, width, height);
-					var cr = new Cairo.Context (surface);
-					Gdk.cairo_set_source_pixbuf (cr, scaled, (width - scaled.width) / 2, (height - scaled.height) / 2);
-					cr.paint ();
-					surface.set_device_scale (scale, scale);
-					break;
-				}
-				
-				if (name != DEFAULT_ICON)
-					message ("Could not find icon '%s'", name);
 			}
 			
-			// If not found in active system theme, check integrated GResource fallback icons
+			// Pass 2: Per-name priority between native OS stock/store icons and embedded SVGs
 			if (surface == null) {
 				foreach (unowned string name in all_names) {
 					if (name == null || name == "")
 						continue;
+
+					var native_pbuf = Hal.Apps.load_native_icon (name, int.max (width, height));
+					if (native_pbuf != null) {
+						var scaled = (width != -1 && height != -1 && (width != native_pbuf.width || height != native_pbuf.height))
+							? ar_scale (native_pbuf, width, height) : native_pbuf;
+						surface = new Cairo.ImageSurface (Cairo.Format.ARGB32, width, height);
+						var cr = new Cairo.Context (surface);
+						Gdk.cairo_set_source_pixbuf (cr, scaled, (width - scaled.width) / 2, (height - scaled.height) / 2);
+						cr.paint ();
+						surface.set_device_scale (scale, scale);
+						break;
+					}
+
 					var fallback = get_docklet_fallback_resource (name);
 					if (fallback != null) {
 						surface = load_surface_from_resource_at_scale (fallback, width, height, scale);
@@ -482,6 +572,7 @@ namespace Plank
 				case "multimedia-player":
 				case "audio-player":
 				case "applications-multimedia":
+				case "gnome-mplayer":
 					return Plank.G_RESOURCE_PATH + "/docklets/mpris.svg";
 				case "battery-full":
 				case "battery":
@@ -517,6 +608,7 @@ namespace Plank
 				case "audio-volume":
 				case "audio-volume-high":
 				case "stock_volume-max":
+				case "multimedia-volume-control":
 					return Plank.G_RESOURCE_PATH + "/docklets/volume-high.svg";
 				case "audio-volume-medium":
 				case "stock_volume-med":
@@ -528,8 +620,12 @@ namespace Plank
 				case "stock_volume-mute":
 					return Plank.G_RESOURCE_PATH + "/docklets/volume-muted.svg";
 				case "media-playback-start":
+				case "media-playback-start-symbolic":
+				case "player_play":
 					return Plank.G_RESOURCE_PATH + "/docklets/mpris-play.svg";
 				case "media-playback-pause":
+				case "media-playback-pause-symbolic":
+				case "player_pause":
 					return Plank.G_RESOURCE_PATH + "/docklets/mpris-pause.svg";
 				case "applets-screenshooter":
 				case "accessories-screenshot-tool":
@@ -674,6 +770,74 @@ namespace Plank
 				case "notifications-disabled-symbolic":
 				case "notification-disabled":
 					return Plank.G_RESOURCE_PATH + "/docklets/dnd-muted.svg";
+				case "window-close":
+				case "window-close-symbolic":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/window-close.svg";
+				case "window-new":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/window-new.svg";
+				case "folder":
+				case "inode-directory":
+				case "folder-open":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/folder.svg";
+				case "folder-new":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/folder-new.svg";
+				case "folder-pictures":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/folder-pictures.svg";
+				case "document-open":
+				case "document-open-symbolic":
+				case "gtk-open":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/document-open.svg";
+				case "document-open-recent":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/document-open-recent.svg";
+				case "edit-delete":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/edit-delete.svg";
+				case "edit-clear":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/edit-clear.svg";
+				case "edit-copy":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/edit-copy.svg";
+				case "emblem-ok":
+				case "emblem-ok-symbolic":
+				case "dialog-ok-apply":
+				case "gtk-apply":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/emblem-ok.svg";
+				case "dialog-warning":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/dialog-warning.svg";
+				case "help-about":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/help-about.svg";
+				case "tools-report-bug":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/tools-report-bug.svg";
+				case "preferences-desktop-theme":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/preferences-desktop-theme.svg";
+				case "preferences-desktop":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/preferences-desktop.svg";
+				case "preferences-plugin":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/preferences-plugin.svg";
+				case "preferences-desktop-display":
+				case "video-display":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/preferences-desktop-display.svg";
+				case "preferences-system-power":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/preferences-system-power.svg";
+				case "preferences-system-network":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/preferences-system-network.svg";
+				case "system-run":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/system-run.svg";
+				case "applications-other":
+				case "application-x-executable":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/applications-other.svg";
+				case "media-skip-forward":
+				case "media-skip-forward-symbolic":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/media-skip-forward.svg";
+				case "media-skip-backward":
+				case "media-skip-backward-symbolic":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/media-skip-backward.svg";
+				case "media-playback-stop":
+				case "media-playback-stop-symbolic":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/media-playback-stop.svg";
+				case "view-refresh":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/view-refresh.svg";
+				case "text-x-generic":
+				case "image-missing":
+					return Plank.G_RESOURCE_PATH + "/ui-icons/text-x-generic.svg";
 				default:
 					return null;
 			}
@@ -681,12 +845,8 @@ namespace Plank
 		
 		static Cairo.Surface? load_surface_from_resource_at_scale (string resource, int width, int height, int scale)
 		{
-			Gdk.Pixbuf? pbuf = null;
 			Cairo.Surface? surface = null;
-			
-			try {
-				pbuf = new Gdk.Pixbuf.from_resource_at_scale (resource, width, height, true);
-			} catch { }
+			var pbuf = load_pixbuf_from_resource (resource, width, height);
 			
 			if (pbuf != null) {
 				surface = new Cairo.ImageSurface (Cairo.Format.ARGB32, width, height);
@@ -709,7 +869,7 @@ namespace Plank
 			
 			try {
 				info = icon_theme.lookup_icon_for_scale (icon, size, scale, Gtk.IconLookupFlags.FORCE_SIZE);
-				if (info != null)
+				if (info != null && !is_builtin_gtk_icon_info (info))
 					surface = info.load_surface (null);
 			} catch { }
 			
@@ -717,7 +877,7 @@ namespace Plank
 				if (surface == null && icon.contains (".")) {
 					var parts = icon.split (".");
 					info = icon_theme.lookup_icon_for_scale (parts [0], size, scale, Gtk.IconLookupFlags.FORCE_SIZE);
-					if (info != null)
+					if (info != null && !is_builtin_gtk_icon_info (info))
 						surface = info.load_surface (null);
 				}
 			} catch { }

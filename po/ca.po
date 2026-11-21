@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: wayplank 0.7.3\n"
+"Project-Id-Version: wayplank 0.7.3.2\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-20 12:45+0100\n"
-"PO-Revision-Date: 2026-11-20 12:45+0100\n"
+"POT-Creation-Date: 2026-11-22 17:40+0100\n"
+"PO-Revision-Date: 2026-11-22 17:40+0100\n"
 "Last-Translator: Sergio Melas <sergiomelas@gmail.com>\n"
 "Language-Team: Catalan <ca@li.org>\n"
 "Language: ca\n"
@@ -41,13 +41,13 @@ msgid "Screenshot"
 msgstr "Captura de pantalla"
 
 #: hal/Interfaces/ISystemTelemetry.vala:293
-#: hal/Windows/Telemetry/Win32Telemetry.vala:248
-#: hal/Windows/Telemetry/Win32Telemetry.vala:259
+#: hal/Windows/Telemetry/Win32Telemetry.vala:367
+#: hal/Windows/Telemetry/Win32Telemetry.vala:378
 msgid "Drive not available"
 msgstr "Unitat no disponible"
 
 #: lib/DockPreferences.vala:887 lib/DockPreferences.vala:898
-#: lib/Factories/AbstractMain.vala:2189
+#: lib/Factories/AbstractMain.vala:2167
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Tots els paràmetres (latch-state.ini malmès)"
 
@@ -77,56 +77,61 @@ msgstr "Compositors parcialment compatibles: %s"
 msgid "Website"
 msgstr "Lloc web"
 
-#: lib/Factories/AbstractMain.vala:1174 src/Main.vala:188
+#: lib/Factories/AbstractMain.vala:1174 src/Main.vala:191
 msgid "translator-credits"
 msgstr "Sergio Melas <sergiomelas@gmail.com>"
 
-#: lib/Factories/AbstractMain.vala:2180 lib/Factories/AbstractMain.vala:2190
+#: lib/Factories/AbstractMain.vala:2158 lib/Factories/AbstractMain.vala:2168
 msgid "Defaulting partially to default config for:"
 msgstr "S'està restablint parcialment a la configuració predeterminada per a:"
 
-#: lib/Factories/AbstractMain.vala:2182 lib/Factories/AbstractMain.vala:2186
+#: lib/Factories/AbstractMain.vala:2160 lib/Factories/AbstractMain.vala:2164
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "S'ha descartat l'element dockitem malmès o no vàlid:"
 
-#: lib/Factories/AbstractMain.vala:2209 lib/Factories/AbstractMain.vala:2212
+#: lib/Factories/AbstractMain.vala:2187 lib/Factories/AbstractMain.vala:2190
 msgid "Load environment failed"
 msgstr "Ha fallat la càrrega de l'entorn"
 
-#: lib/Items/ApplicationDockItem.vala:302
-#: lib/Widgets/FolderMenuWindow.vala:1071
+#: lib/Items/ApplicationDockItem.vala:304
+#: lib/Widgets/FolderMenuWindow.vala:1168
 msgid "Close _All"
 msgstr "Tanca-ho _tot"
 
-#: lib/Items/ApplicationDockItem.vala:311
-#: lib/Widgets/FolderMenuWindow.vala:1081
+#: lib/Items/ApplicationDockItem.vala:313
+#: lib/Widgets/FolderMenuWindow.vala:1178
 msgid "_Close"
 msgstr "_Tanca"
 
-#: lib/Items/ApplicationDockItem.vala:367 lib/Items/FileDockItem.vala:685
-#: lib/Items/FileDockItem.vala:834
+#: lib/Items/ApplicationDockItem.vala:369 lib/Items/FileDockItem.vala:732
+#: lib/Items/FileDockItem.vala:881
 msgid "_Keep in Dock"
 msgstr "_Mantén al dock"
 
-#: lib/Items/ApplicationDockItem.vala:373
+#: lib/Items/ApplicationDockItem.vala:375
 msgid "Keep Always _Visible"
 msgstr "Mantén sempre _visible"
 
-#: lib/Items/ApplicationDockItem.vala:384
+#: lib/Items/ApplicationDockItem.vala:385
 msgid "Move to _Folder"
 msgstr "Mou a la _carpeta"
 
-#: lib/Items/ApplicationDockItem.vala:390 lib/Widgets/DockFolderDialogs.vala:65
+#: lib/Items/ApplicationDockItem.vala:391 lib/Widgets/DockFolderDialogs.vala:66
 #: lib/Widgets/DockWindow.vala:888
 msgid "Folder"
 msgstr "Carpeta"
 
-#: lib/Items/ApplicationDockItem.vala:410 lib/Items/FileDockItem.vala:703
-#: lib/Items/FileDockItem.vala:858
+#: lib/Items/ApplicationDockItem.vala:410 lib/Items/FileDockItem.vala:750
+#: lib/Items/FileDockItem.vala:905
 msgid "Change _Icon..."
 msgstr "Canvia la _icona..."
 
-#: lib/Items/ApplicationDockItem.vala:425
+#: lib/Items/ApplicationDockItem.vala:417
+#: lib/Widgets/FolderMenuWindow.vala:1261
+msgid "Rename _Shortcut..."
+msgstr "Canvia el nom de l'_accés directe..."
+
+#: lib/Items/ApplicationDockItem.vala:436
 #, c-format
 msgid "Drop to open with %s"
 msgstr "Deixa anar per obrir amb %s"
@@ -143,7 +148,7 @@ msgstr "Descarregant"
 msgid "Not charging"
 msgstr "No s'està carregant"
 
-#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:928
+#: lib/Items/BatteryDockItem.vala:123 lib/Items/FileDockItem.vala:975
 msgid "Unknown"
 msgstr "Desconegut"
 
@@ -317,55 +322,55 @@ msgstr "No hi ha cap dispositiu extraïble connectat"
 msgid "No Removable Devices"
 msgstr "Cap dispositiu extraïble"
 
-#: lib/Items/FileDockItem.vala:530
+#: lib/Items/FileDockItem.vala:577
 #, c-format
 msgid "Drop to copy into %s"
 msgstr "Deixa anar per copiar a %s"
 
-#: lib/Items/FileDockItem.vala:670 lib/Widgets/FolderMenuWindow.vala:588
-#: lib/Widgets/FolderMenuWindow.vala:872
+#: lib/Items/FileDockItem.vala:717 lib/Widgets/FolderMenuWindow.vala:682
+#: lib/Widgets/FolderMenuWindow.vala:969
 msgid "Empty Folder"
 msgstr "Carpeta buida"
 
-#: lib/Items/FileDockItem.vala:697
+#: lib/Items/FileDockItem.vala:744
 msgid "_Open in File Browser"
 msgstr "_Obre al gestor de fitxers"
 
-#: lib/Items/FileDockItem.vala:769
+#: lib/Items/FileDockItem.vala:816
 msgid "Empty"
 msgstr "Buit"
 
-#: lib/Items/FileDockItem.vala:846 lib/Widgets/FolderMenuWindow.vala:1128
+#: lib/Items/FileDockItem.vala:893 lib/Widgets/FolderMenuWindow.vala:1225
 #: lib/Widgets/PreferencesWindow.vala:977
 msgid "_Open"
 msgstr "_Obre"
 
-#: lib/Items/FileDockItem.vala:850
+#: lib/Items/FileDockItem.vala:897
 msgid "Open Containing _Folder"
 msgstr "Obre la carpeta c_ontenidora"
 
-#: lib/Items/FileDockItem.vala:912
+#: lib/Items/FileDockItem.vala:959
 msgid "Internet"
 msgstr "Internet"
 
-#: lib/Items/FileDockItem.vala:914
+#: lib/Items/FileDockItem.vala:961
 msgid "Office"
 msgstr "Oficina"
 
-#: lib/Items/FileDockItem.vala:916
+#: lib/Items/FileDockItem.vala:963
 msgid "Media"
 msgstr "Multimèdia"
 
-#: lib/Items/FileDockItem.vala:918
+#: lib/Items/FileDockItem.vala:965
 msgid "Games"
 msgstr "Jocs"
 
-#: lib/Items/FileDockItem.vala:920
+#: lib/Items/FileDockItem.vala:967
 msgid "Utilities"
 msgstr "Utilitats"
 
 #: lib/Items/MprisDockItem.vala:50 lib/Items/MprisDockItem.vala:266
-#: lib/Services/ApplicationIdentity.vala:3444 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3547 data/ui/preferences.ui:2154
 msgid "Media Player"
 msgstr "Reproductor multimèdia"
 
@@ -702,8 +707,8 @@ msgstr "Segur que voleu apagar l'ordinador?"
 msgid "Shut Down"
 msgstr "Atura"
 
-#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:203
-#: lib/Widgets/IconChooserDialog.vala:338 lib/Widgets/SessionWindow.vala:262
+#: lib/Items/SessionDockItem.vala:221 lib/Widgets/IconChooserDialog.vala:219
+#: lib/Widgets/IconChooserDialog.vala:426 lib/Widgets/SessionWindow.vala:262
 #: lib/Widgets/SessionWindow.vala:307 lib/Widgets/WeatherCityDialog.vala:162
 msgid "Cancel"
 msgstr "Cancel·la"
@@ -909,156 +914,178 @@ msgstr "Fitxers recents"
 msgid "Calendar"
 msgstr "Calendari"
 
-#: lib/Widgets/DockFolderDialogs.vala:158
+#: lib/Widgets/DockFolderDialogs.vala:160
 msgid "Add Folder"
 msgstr "Afegeix una carpeta"
 
-#: lib/Widgets/DockFolderDialogs.vala:161
-#: lib/Widgets/DockFolderDialogs.vala:238
-#: lib/Widgets/DockFolderDialogs.vala:299
-#: lib/Widgets/DockFolderDialogs.vala:549
+#: lib/Widgets/DockFolderDialogs.vala:163
+#: lib/Widgets/DockFolderDialogs.vala:240
+#: lib/Widgets/DockFolderDialogs.vala:301
+#: lib/Widgets/DockFolderDialogs.vala:551
+#: lib/Widgets/DockFolderDialogs.vala:618
 #: lib/Widgets/PreferencesWindow.vala:976
 #: lib/Widgets/PreferencesWindow.vala:1073
 msgid "_Cancel"
 msgstr "_Cancel·la"
 
-#: lib/Widgets/DockFolderDialogs.vala:162
+#: lib/Widgets/DockFolderDialogs.vala:164
 msgid "_Add Folder"
 msgstr "_Afegeix la carpeta"
 
-#: lib/Widgets/DockFolderDialogs.vala:181
+#: lib/Widgets/DockFolderDialogs.vala:183
 msgid "Folder _Name:"
 msgstr "_Nom de la carpeta:"
 
-#: lib/Widgets/DockFolderDialogs.vala:186
+#: lib/Widgets/DockFolderDialogs.vala:188
 msgid "e.g. Work, Tools, Projects"
 msgstr "p. ex. Feina, Eines, Projectes"
 
-#: lib/Widgets/DockFolderDialogs.vala:189
+#: lib/Widgets/DockFolderDialogs.vala:191
 msgid "Folder _Path:"
 msgstr "_Camí de la carpeta:"
 
-#: lib/Widgets/DockFolderDialogs.vala:195
+#: lib/Widgets/DockFolderDialogs.vala:197
 msgid "Leave empty to create inside WayPlank config"
 msgstr "Deixeu-ho buit per crear-la dins la configuració de WayPlank"
 
-#: lib/Widgets/DockFolderDialogs.vala:198
+#: lib/Widgets/DockFolderDialogs.vala:200
 msgid "_Browse..."
 msgstr "_Navega..."
 
-#: lib/Widgets/DockFolderDialogs.vala:220
-#: lib/Widgets/DockFolderDialogs.vala:229
+#: lib/Widgets/DockFolderDialogs.vala:222
+#: lib/Widgets/DockFolderDialogs.vala:231
 msgid "Target:"
 msgstr "Destinació:"
 
-#: lib/Widgets/DockFolderDialogs.vala:221
-#: lib/Widgets/DockFolderDialogs.vala:230
-#: lib/Widgets/DockFolderDialogs.vala:257
+#: lib/Widgets/DockFolderDialogs.vala:223
+#: lib/Widgets/DockFolderDialogs.vala:232
+#: lib/Widgets/DockFolderDialogs.vala:259
 msgid "Enter a folder name (or select a folder path)."
 msgstr "Introduïu un nom de carpeta (o seleccioneu un camí)."
 
-#: lib/Widgets/DockFolderDialogs.vala:235
+#: lib/Widgets/DockFolderDialogs.vala:237
 msgid "Select Folder Location"
 msgstr "Seleccioneu la ubicació de la carpeta"
 
-#: lib/Widgets/DockFolderDialogs.vala:239
+#: lib/Widgets/DockFolderDialogs.vala:241
 msgid "_Select"
 msgstr "_Selecciona"
 
-#: lib/Widgets/DockFolderDialogs.vala:296
+#: lib/Widgets/DockFolderDialogs.vala:298
 msgid "Open Dock"
 msgstr "Obre un dock"
 
-#: lib/Widgets/DockFolderDialogs.vala:300
+#: lib/Widgets/DockFolderDialogs.vala:302
 msgid "_Open Dock"
 msgstr "_Obre el dock"
 
-#: lib/Widgets/DockFolderDialogs.vala:318
+#: lib/Widgets/DockFolderDialogs.vala:320
 msgid "_Dock Slot:"
 msgstr "Ranura del _dock:"
 
-#: lib/Widgets/DockFolderDialogs.vala:329
+#: lib/Widgets/DockFolderDialogs.vala:331
 #, c-format
 msgid "Dock %d (%s — saved config)"
 msgstr "Dock %d (%s — configuració desada)"
 
-#: lib/Widgets/DockFolderDialogs.vala:330
+#: lib/Widgets/DockFolderDialogs.vala:332
 #, c-format
 msgid "Dock %d (%s)"
 msgstr "Dock %d (%s)"
 
-#: lib/Widgets/DockFolderDialogs.vala:338
+#: lib/Widgets/DockFolderDialogs.vala:340
 msgid "_Screen:"
 msgstr "_Pantalla:"
 
-#: lib/Widgets/DockFolderDialogs.vala:347
+#: lib/Widgets/DockFolderDialogs.vala:349
 #, c-format
 msgid "Screen %d (Multi-seat / Offline)"
 msgstr "Pantalla %d (Multiseient / Fora de línia)"
 
-#: lib/Widgets/DockFolderDialogs.vala:352
+#: lib/Widgets/DockFolderDialogs.vala:354
 msgid "_Position:"
 msgstr "_Posició:"
 
-#: lib/Widgets/DockFolderDialogs.vala:356
+#: lib/Widgets/DockFolderDialogs.vala:358
 #: lib/Widgets/PreferencesWindow.vala:288 data/ui/preferences.ui:215
 msgid "Bottom"
 msgstr "A baix"
 
-#: lib/Widgets/DockFolderDialogs.vala:357
+#: lib/Widgets/DockFolderDialogs.vala:359
 #: lib/Widgets/PreferencesWindow.vala:281 data/ui/preferences.ui:214
 msgid "Top"
 msgstr "A dalt"
 
-#: lib/Widgets/DockFolderDialogs.vala:358
+#: lib/Widgets/DockFolderDialogs.vala:360
 #: lib/Widgets/PreferencesWindow.vala:283 data/ui/preferences.ui:212
 msgid "Left"
 msgstr "Esquerra"
 
-#: lib/Widgets/DockFolderDialogs.vala:359
+#: lib/Widgets/DockFolderDialogs.vala:361
 #: lib/Widgets/PreferencesWindow.vala:285 data/ui/preferences.ui:213
 msgid "Right"
 msgstr "Dreta"
 
-#: lib/Widgets/DockFolderDialogs.vala:501
+#: lib/Widgets/DockFolderDialogs.vala:503
 msgid "Maximum number of docks (4) already active."
 msgstr "Ja s'ha assolit el nombre màxim de docks actius (4)."
 
-#: lib/Widgets/DockFolderDialogs.vala:510
+#: lib/Widgets/DockFolderDialogs.vala:512
 msgid "Another active dock already uses this Screen and Position."
 msgstr "Un altre dock actiu ja utilitza aquesta pantalla i posició."
 
-#: lib/Widgets/DockFolderDialogs.vala:519
+#: lib/Widgets/DockFolderDialogs.vala:521
 #, c-format
 msgid ""
 "Saved configuration found for '%s' — will re-open with all pinned items "
 "intact."
 msgstr "S'ha trobat una configuració desada per a '%s' — es tornarà a obrir amb tots els elements fixats intactes."
 
-#: lib/Widgets/DockFolderDialogs.vala:521
+#: lib/Widgets/DockFolderDialogs.vala:523
 #, c-format
 msgid "Will launch '%s' immediately without repeating onboarding."
 msgstr "Iniciarà '%s' immediatament sense repetir la configuració inicial."
 
-#: lib/Widgets/DockFolderDialogs.vala:542
+#: lib/Widgets/DockFolderDialogs.vala:544
 #, c-format
 msgid "Delete dock '%s'?"
 msgstr "Voleu suprimir el dock '%s'?"
 
-#: lib/Widgets/DockFolderDialogs.vala:546
+#: lib/Widgets/DockFolderDialogs.vala:548
 msgid "Delete Dock"
 msgstr "Suprimeix el dock"
 
-#: lib/Widgets/DockFolderDialogs.vala:547
+#: lib/Widgets/DockFolderDialogs.vala:549
 #, c-format
 msgid ""
 "This will close '%s' and permanently remove its configuration and pinned "
 "item list."
 msgstr "Això tancarà '%s' i suprimirà permanentment la seva configuració i llista d'elements fixats."
 
-#: lib/Widgets/DockFolderDialogs.vala:550
+#: lib/Widgets/DockFolderDialogs.vala:552
 msgid "_Delete Dock"
 msgstr "_Suprimeix el dock"
+
+#: lib/Widgets/DockFolderDialogs.vala:589
+msgid "Rename Shortcut"
+msgstr "Canvia el nom de l'accés directe"
+
+#: lib/Widgets/DockFolderDialogs.vala:596
+msgid "Custom display name:"
+msgstr "Nom mostrat personalitzat:"
+
+#: lib/Widgets/DockFolderDialogs.vala:609
+#, c-format
+msgid "Default: %s"
+msgstr "Per defecte: %s"
+
+#: lib/Widgets/DockFolderDialogs.vala:617
+msgid "Reset _Default"
+msgstr "Restableix per _defecte"
+
+#: lib/Widgets/DockFolderDialogs.vala:619
+msgid "_Rename"
+msgstr "_Canvia el nom"
 
 #: lib/Widgets/DockWindow.vala:890
 msgid "Running"
@@ -1173,20 +1200,20 @@ msgid ""
 "You can switch or customize any feature at any time in WayPlank Preferences."
 msgstr "Podeu canviar o personalitzar qualsevol funció en qualsevol moment a les Preferències de WayPlank."
 
-#: lib/Widgets/FolderMenuWindow.vala:623
+#: lib/Widgets/FolderMenuWindow.vala:717
 msgid "Back"
 msgstr "Enrere"
 
-#: lib/Widgets/FolderMenuWindow.vala:1031
+#: lib/Widgets/FolderMenuWindow.vala:1128
 #, c-format
 msgid "Application is running (%d windows)"
 msgstr "L'aplicació s'està executant (%d finestres)"
 
-#: lib/Widgets/FolderMenuWindow.vala:1121
+#: lib/Widgets/FolderMenuWindow.vala:1218
 msgid "_New Window"
 msgstr "_Nova finestra"
 
-#: lib/Widgets/FolderMenuWindow.vala:1149
+#: lib/Widgets/FolderMenuWindow.vala:1246
 msgid "Move to _Dock"
 msgstr "Mou al _dock"
 
@@ -1489,52 +1516,52 @@ msgstr "Dreceres i gestos de WayPlank"
 msgid "OK"
 msgstr "D'acord"
 
-#: lib/Widgets/IconChooserDialog.vala:56
+#: lib/Widgets/IconChooserDialog.vala:61
 #, c-format
 msgid "Change Icon - %s"
 msgstr "Canvia la icona - %s"
 
-#: lib/Widgets/IconChooserDialog.vala:150
+#: lib/Widgets/IconChooserDialog.vala:166
 msgid "Select icon for: "
 msgstr "Selecciona la icona per a: "
 
-#: lib/Widgets/IconChooserDialog.vala:166
+#: lib/Widgets/IconChooserDialog.vala:182
 msgid "Search theme icons (e.g. browser, folder, games, edit)..."
 msgstr "Cerca icones del tema (p. ex. navegador, carpeta, jocs, edició)..."
 
-#: lib/Widgets/IconChooserDialog.vala:170
+#: lib/Widgets/IconChooserDialog.vala:186
 msgid "_Browse File..."
 msgstr "_Navega pel fitxer..."
 
-#: lib/Widgets/IconChooserDialog.vala:173
+#: lib/Widgets/IconChooserDialog.vala:189
 msgid "Choose a custom image file (PNG, SVG, ICO) from disk"
 msgstr "Trieu una imatge personalitzada (PNG, SVG, ICO) del disc"
 
-#: lib/Widgets/IconChooserDialog.vala:199
+#: lib/Widgets/IconChooserDialog.vala:215
 msgid "Restore Default"
 msgstr "Restaura per defecte"
 
-#: lib/Widgets/IconChooserDialog.vala:200
+#: lib/Widgets/IconChooserDialog.vala:216
 msgid "Revert to the original default icon"
 msgstr "Restaura la icona predeterminada original"
 
-#: lib/Widgets/IconChooserDialog.vala:205
+#: lib/Widgets/IconChooserDialog.vala:221
 msgid "Apply"
 msgstr "Aplica"
 
-#: lib/Widgets/IconChooserDialog.vala:335
+#: lib/Widgets/IconChooserDialog.vala:423
 msgid "Select Icon File"
 msgstr "Selecciona el fitxer d'icona"
 
-#: lib/Widgets/IconChooserDialog.vala:339
+#: lib/Widgets/IconChooserDialog.vala:427
 msgid "Select"
 msgstr "Selecciona"
 
-#: lib/Widgets/IconChooserDialog.vala:343
+#: lib/Widgets/IconChooserDialog.vala:431
 msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "Fitxers d'imatge (*.png, *.svg, *.ico, *.jpg)"
 
-#: lib/Widgets/IconChooserDialog.vala:363
+#: lib/Widgets/IconChooserDialog.vala:451
 #: lib/Widgets/PreferencesWindow.vala:994
 msgid "All Files"
 msgstr "Tots els fitxers"
@@ -1919,11 +1946,11 @@ msgstr "Sensació de %d%s"
 msgid "No forecast data available"
 msgstr "No hi ha dades de previsió disponibles"
 
-#: lib/Widgets/WindowCardsWindow.vala:487
+#: lib/Widgets/WindowCardsWindow.vala:510
 msgid "Application"
 msgstr "Aplicació"
 
-#: lib/Widgets/WindowCardsWindow.vala:621
+#: lib/Widgets/WindowCardsWindow.vala:668
 msgid "Minimized"
 msgstr "Minimitzada"
 

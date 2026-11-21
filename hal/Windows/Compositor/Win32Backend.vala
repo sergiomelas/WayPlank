@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //
 //  This file is part of WayPlank.
@@ -198,6 +197,8 @@ namespace Plank
 						break;
 				}
 			}
+			if (aumid_profile_cache.size > 256)
+				aumid_profile_cache.clear ();
 			aumid_profile_cache.set (low, resolved);
 			return resolved;
 		}

@@ -3,7 +3,7 @@
 > **Canonical Specification for the Agnostic IPC, Event Bus & Telemetry Boundary Translator (`hal/Interfaces/`) — `D-Bus` ➔ Translator ➔ `Windows Bus`**  
 > **Pedigree:** Scattered Per-Widget `GLib.Bus.get_sync` & `/proc` Calls (`v0.7.0`–`v0.7.1.2`) ➔ Frozen Agnostic Bus/Telemetry Translators + `hal/{Freedesktop,Linux}/` (`v0.7.2` Public Beta 3) ➔ Native `hal/Windows/{Bus,Telemetry}/` Plug-In (`v0.7.3` Public Beta 4)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-BUS-003` • **Revision `2.1`** (`v0.7.3` Public Beta 4 Closure — Native `hal/Windows/{Bus,Telemetry}/` Plug-In Complete & `100.0%` 4-Platform FAT Qualified `525/525`)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-BUS-003` • **Revision `2.2`** (`v0.7.3.2` Public Beta 4 Hotfix — **`100.0%` 4-Platform Qualified `529/529`** — Native WinRT `GSMTC` Media Bridge `win32-media-bridge.c`, WMI+DXVA2 Brightness, Balanced Per-Thread COM/RoUninit & `AppMenuDbusService` Cache Bounds)  
 > **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Surface Translator: `KWin`, `Mutter`, `Labwc`, `Windows Compositor`)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator & 6-Layer Identity Engine)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) *(Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Cross-Build)*  
 > **Single Source of Truth:** Master System & IPC Bus HAL reference linked by [README.md](../../README.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md), and [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)  
 > **Staged Execution & Qualification Record (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
@@ -46,6 +46,8 @@
 | :---: | :---: | :--- | :--- |
 | **`1.0`** | `2026-11-14` | Sergio Melas | Initial IPC & system bus abstraction specification (`v0.7.1.2` baseline). |
 | **`2.0`** | `2026-11-14` | Sergio Melas | **`MOC-0.7.2-HAL-001`:** Added formal **Wire-to-Domain Payload Translation Matrix (`§2.1`)**; purged Freedesktop naming bias (`IPortalThemeBus` $\rightarrow$ **`IDesktopThemeBus`**, `PortalDbusService` $\rightarrow$ `DesktopThemeDbusService`, `UnityClient` $\rightarrow$ `ILauncherBadgeClient` with `LauncherBadgeState` replacing raw `Variant` `'(sa{sv})'`); detailed full `ITrashProvider` (`trash:///` & `file.trash()` replacement), `IEjectorProvider` (`VolumeMonitor` & `/media` replacement), and `IPlatformRuntime` (`DesktopUtilityKind`, `parse_command_argv`, Unix `<unistd.h>`/`<sys/prctl.h>` removal from `vapi/core/`). |
+| **`2.1`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Public Beta 4 Closure:** Completed and live-qualified `hal/Windows/{Bus,Telemetry}/` (`Win32BusBroker`, `Win32AppMenuBus`, CoreAudio, `DXVA2`, Recycle Bin, Ejector, `WinHTTP`, `AppsUseLightTheme`, `BitBlt` Screenshot, `PowrProf`) against frozen `v0.7.2` translators (`525/525` qualified). |
+| **`2.2`** | `2026-11-22` | Sergio Melas | **`v0.7.3.2` Public Beta 4 Hotfix Closure (`529/529` `100.0%` Qualified):** Added native WinRT `GSMTC` + CoreAudio/HWND Media Player bridge (`hal/Windows/Bus/win32-media-bridge.{c,h}`), WMI `ROOT\WMI` laptop backlight + async `hw-caps-cache.ini` brightness probe, USB Ejector empty-slot guard & 3 s polling, balanced per-thread `CoInitializeEx`/`RoInitialize` teardown, and bounded session caches across `AppMenuDbusService` and Win32 providers. |
 
 > [!IMPORTANT]
 > **THE SYSTEM BUS & AGNOSTIC TRANSLATOR PRIME DIRECTIVE:**  
@@ -67,14 +69,20 @@ flowchart TD
         ITELEM["ISystemTelemetry & IPlatformRuntime: IBattery • ISessionPower • IAudio • IBrightness • INetwork • ICpuMemory • ITrash • IEjector • IScreenshot • DesktopUtilityKind"];
     end
 
-    subgraph ZONE3_LIN ["🐧 ZONE 3A/3B: Freedesktop D-Bus, XDG & Linux Drivers (hal/Freedesktop/ + hal/Linux/ — v0.7.2)"]
+    subgraph ZONE3_FDO ["🐧😈 ZONE 3A: Shared Linux & BSD Freedesktop Userland (hal/Freedesktop/ — v0.7.2)"]
         direction TB
         DBROKER["DbusBroker — Single Shared Session & System DBusConnection + NameOwnerChanged / PID Cache"];
-        DSERV["DockIpcServer • AppMenu id=61 • Mpris • Notification • DesktopTheme • LauncherEntry • FreedesktopTrash • FreedesktopEjector • Linux /proc & /sys"];
+        DSERV["DockIpcServer • AppMenu id=61 • Mpris • Notification • DesktopTheme • LauncherEntry • FreedesktopTrash • FreedesktopEjector"];
         DBROKER --> DSERV;
     end
 
-    subgraph ZONE3_WIN ["🪟 ZONE 3D: Native Windows Bus & Telemetry Drivers (hal/Windows/ — v0.7.3)"]
+    subgraph ZONE3_KERN ["🐧 / 😈 ZONE 3B & 3C: Unix Kernel Telemetry Plugins"]
+        direction TB
+        LIN_KERN["🐧 hal/Linux/ (v0.7.2): /proc & /sys • DDC/CI • systemd-logind • PipeWire/ALSA"];
+        BSD_KERN["😈 hal/BSD/ (v0.7.4 Planned): sysctl • hw.acpi • sndio • seatd"];
+    end
+
+    subgraph ZONE3_WIN ["🪟 ZONE 3D: Native Windows Bus & Telemetry Drivers (hal/Windows/ — v0.7.3+)"]
         direction TB
         WBROKER["Win32BusBroker — Named Pipes • COM Apartment • Win32/GetProcAddress Event Dispatcher"];
         WSERV["NamedPipe DockIpc • UIAutomation Profile • VK_MEDIA_*/GSMTC • FocusAssist • AppsUseLightTheme • ITaskbarList3 • CoreAudio • DXVA2 • SHQueryRecycleBinW • CM_Request_Device_EjectW"];
@@ -85,10 +93,12 @@ flowchart TD
     UI_CORE ==>|"Typed Domain Structs"| IBUS;
     DOCKLETS_UI ==>|"Media & DND Intents"| IBUS;
     DOCKLETS_UI ==>|"Typed DTOs & DesktopUtilityKind"| ITELEM;
-    IBUS ==>|"Unpacks Variant — v0.7.2"| ZONE3_LIN;
-    ITELEM ==>|"Unpacks GVFS / /proc — v0.7.2"| ZONE3_LIN;
-    IBUS ==>|"Unpacks Win32 / Pipe — v0.7.3"| ZONE3_WIN;
-    ITELEM ==>|"Unpacks Win32 / COM — v0.7.3"| ZONE3_WIN;
+    IBUS ==>|"Linux / BSD D-Bus"| ZONE3_FDO;
+    ITELEM ==>|"Linux / BSD XDG / GVFS"| ZONE3_FDO;
+    ITELEM ==>|"Linux /proc & /sys"| LIN_KERN;
+    ITELEM -.->|"BSD sysctl (v0.7.4)"| BSD_KERN;
+    IBUS ==>|"Win32 / Pipe / GSMTC"| ZONE3_WIN;
+    ITELEM ==>|"Win32 / COM / DXVA2"| ZONE3_WIN;
 ```
 
 ### 1.2 Single-Pass Window Identification & Immutable Lock in `ApplicationIdentity`
@@ -301,18 +311,25 @@ flowchart TD
         TRANS["IDockIpcServer • IAppMenuBus • IMediaController • INotificationBus • IDesktopThemeBus • ILauncherBadgeBus • ISystemTelemetry (ITrash • IEjector) • IPlatformRuntime"];
     end
 
-    subgraph ZONE3_FDO ["🚌 ZONE 3A/3B: hal/Freedesktop/ + hal/Linux/ (Frozen v0.7.2)"]
+    subgraph ZONE3_FDO ["🐧😈 ZONE 3A: Shared Linux & BSD Userland (hal/Freedesktop/ — Frozen v0.7.2)"]
         BROKER["DbusBroker — Shared Session & System DBusConnection + NameOwnerChanged / PID Cache"];
         DBUS_SVC["DockIpcServer • AppMenuDbusService (id=61) • MprisDbusService • NotificationDbusService • DesktopThemeDbusService • LauncherEntryDbusService • NetworkManagerDbusService"];
-        XDG_LIN["Freedesktop{Trash,Ejector,Screenshot}Provider • Linux{SessionPower,AudioTelemetry,PlatformRuntime} • LinuxCpuMemDiskTelemetry • LinuxBatteryProvider"];
+        XDG_SVC["Freedesktop{Trash,Ejector,Screenshot}Provider — Shared across Linux & BSD"];
         DBUS_SVC --> BROKER;
+    end
+
+    subgraph ZONE3_KERN_D ["🐧 / 😈 ZONE 3B & 3C: Kernel Telemetry Plugins (hal/Linux/ vs hal/BSD/)"]
+        LIN_TEL["🐧 hal/Linux/: Linux{SessionPower,AudioTelemetry,PlatformRuntime} • LinuxCpuMemDiskTelemetry • LinuxBatteryProvider"];
+        BSD_TEL["😈 hal/BSD/ (v0.7.4 Planned): sysctl CPU/RAM/Battery • sndio • seatd"];
     end
 
     IDENTITY <==>|"Pure Domain Signals"| TRANS;
     CORE_SVC <==>|"Pure Domain Structs"| TRANS;
     DOCKLETS <==>|"Pure Domain DTOs"| TRANS;
-    TRANS <==>|"D-Bus Unpacking"| DBUS_SVC;
-    TRANS <==>|"XDG / Kernel Unpacking"| XDG_LIN;
+    TRANS <==>|"Linux / BSD D-Bus"| DBUS_SVC;
+    TRANS <==>|"Linux / BSD XDG"| XDG_SVC;
+    TRANS <==>|"Linux Kernel"| LIN_TEL;
+    TRANS <-.->|"BSD Kernel (v0.7.4)"| BSD_TEL;
 ```
 
 ### 4.1 Shared Connection Pool & `NameOwnerChanged` / PID Cache (`DbusBroker`)
@@ -394,4 +411,4 @@ flowchart TD
 4. **[ ] Step B4 (Dual-Zone Firewall Active & Formal `FAT 0.7.2` Qualification Pending):** `BuildBin.sh` Dual-Zone HAL Purity Firewall is **active and `GREEN` (`0` leaks across `src/`, `lib/`, `hal/Interfaces/`, and `vapi/core/`)**; pending formal human `FAT 0.7.2` qualification (`399` tests defined) at `100.0%` across KWin, Mutter, and Labwc.
 
 ### Phase 2 — `v0.7.3` (Public Beta 4): Native `Windows Bus` Plug-In (`hal/Windows/{Bus,Telemetry}/`)
-5. **[ ] Step B5 (`Win32BusBroker.vala` & `Win32Telemetry.vala`):** Plug Named Pipe RPC, `UIAutomation` Chrome profile inspection, `VK_MEDIA_*`/GSMTC, Focus Assist, `AppsUseLightTheme`, `ITaskbarList3`, CoreAudio, `DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `CM_Request_Device_EjectW`, and `WinHTTP` directly into the frozen `v0.7.2` translators ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)).
+5. **[x] Step B5 (`Win32BusBroker.vala`, `win32-media-bridge.{c,h}` & `Win32Telemetry.vala` — Complete in `v0.7.3` / Hardened in `v0.7.3.2`):** Plugged Named Pipe RPC, `AUMID`/`Local State` Chrome profile inspection, `VK_MEDIA_*` + WinRT `GSMTC`, Focus Assist, `AppsUseLightTheme`, `ITaskbarList3`, CoreAudio, WMI+`DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `DeviceIoControl` Ejector, and `WinHTTP` directly into the frozen `v0.7.2` translators ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)).

@@ -1,0 +1,9 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="mb" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#1976d2" offset="0"/>
+  <stop stop-color="#42a5f5" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#mb)"/>
+ <polygon points="34,16 22,24 34,32" fill="#ffffff"/>
+ <rect x="15" y="16" width="4" height="16" rx="1.5" fill="#ffffff"/>
+</svg>

@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
@@ -60,6 +59,7 @@ namespace Plank
 		double smooth_scroll_dx = 0.0;
 		double smooth_scroll_dy = 0.0;
 		uint32 last_scroll_time = 0U;
+		ulong theme_changed_id = 0UL;
 
 		static Pango.FontDescription? cached_font_title = null;
 		static Pango.FontDescription? cached_font_sub = null;
@@ -131,6 +131,16 @@ namespace Plank
 			});
 
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
+			theme_changed_id = SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
+		}
+
+		void on_system_theme_changed (bool is_dark)
+		{
+			queue_draw ();
+			if (cards_box != null) {
+				foreach (var child in cards_box.get_children ())
+					child.queue_draw ();
+			}
 		}
 
 		void remove_theme_style ()
@@ -161,6 +171,10 @@ namespace Plank
 			cancel_dismiss_timer ();
 			cancel_position_timers ();
 			WindowManager.get_default ().windows_refreshed.disconnect (on_windows_refreshed);
+			if (theme_changed_id != 0UL) {
+				SystemTheme.get_default ().disconnect (theme_changed_id);
+				theme_changed_id = 0UL;
+			}
 			remove_theme_style ();
 			_controller = null;
 		}
@@ -325,12 +339,20 @@ namespace Plank
 				width - line_width, height - line_width,
 				radius, radius, line_width);
 
-			// Semi-transparent dark charcoal background
-			cr.set_source_rgba (20.0 / 255.0, 22.0 / 255.0, 30.0 / 255.0, 0.96);
+			// Background & border adapting to active system Light/Dark theme
+			bool dark = SystemTheme.get_default ().is_dark;
+			if (dark) {
+				cr.set_source_rgba (20.0 / 255.0, 22.0 / 255.0, 30.0 / 255.0, 0.96);
+			} else {
+				cr.set_source_rgba (245.0 / 255.0, 246.0 / 255.0, 250.0 / 255.0, 0.96);
+			}
 			cr.fill_preserve ();
 
-			// Subtle crisp border
-			cr.set_source_rgba (1.0, 1.0, 1.0, 0.15);
+			if (dark) {
+				cr.set_source_rgba (1.0, 1.0, 1.0, 0.15);
+			} else {
+				cr.set_source_rgba (0.0, 0.0, 0.0, 0.14);
+			}
 			cr.set_line_width (line_width);
 			cr.stroke ();
 
@@ -548,12 +570,24 @@ namespace Plank
 					}
 				}
 
-				if (is_card_hovered) {
-					cr.set_source_rgba (36.0 / 255.0, 42.0 / 255.0, 56.0 / 255.0, 0.98);
-				} else if (is_win_active) {
-					cr.set_source_rgba (32.0 / 255.0, 44.0 / 255.0, 64.0 / 255.0, 0.96);
+				bool dark = SystemTheme.get_default ().is_dark;
+
+				if (dark) {
+					if (is_card_hovered) {
+						cr.set_source_rgba (36.0 / 255.0, 42.0 / 255.0, 56.0 / 255.0, 0.98);
+					} else if (is_win_active) {
+						cr.set_source_rgba (32.0 / 255.0, 44.0 / 255.0, 64.0 / 255.0, 0.96);
+					} else {
+						cr.set_source_rgba (28.0 / 255.0, 32.0 / 255.0, 42.0 / 255.0, 0.94);
+					}
 				} else {
-					cr.set_source_rgba (28.0 / 255.0, 32.0 / 255.0, 42.0 / 255.0, 0.94);
+					if (is_card_hovered) {
+						cr.set_source_rgba (232.0 / 255.0, 238.0 / 255.0, 248.0 / 255.0, 0.98);
+					} else if (is_win_active) {
+						cr.set_source_rgba (236.0 / 255.0, 243.0 / 255.0, 253.0 / 255.0, 0.97);
+					} else {
+						cr.set_source_rgba (255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.95);
+					}
 				}
 				cr.fill_preserve ();
 
@@ -568,7 +602,10 @@ namespace Plank
 					cr.set_source_rgba (255.0 / 255.0, 165.0 / 255.0, 0.0, 0.85);
 					cr.set_line_width (1.5);
 				} else {
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.12);
+					if (dark)
+						cr.set_source_rgba (1.0, 1.0, 1.0, 0.12);
+					else
+						cr.set_source_rgba (0.0, 0.0, 0.0, 0.12);
 					cr.set_line_width (1.0);
 				}
 				cr.stroke ();
@@ -586,7 +623,10 @@ namespace Plank
 
 				var current_thumb = (thumb_pixbuf != null) ? thumb_pixbuf : Hal.Thumbnails.get_cached (win.Id);
 				if (current_thumb != null) {
-					cr.set_source_rgba (16.0 / 255.0, 20.0 / 255.0, 28.0 / 255.0, 0.92);
+					if (dark)
+						cr.set_source_rgba (16.0 / 255.0, 20.0 / 255.0, 28.0 / 255.0, 0.92);
+					else
+						cr.set_source_rgba (228.0 / 255.0, 231.0 / 255.0, 238.0 / 255.0, 0.92);
 					cr.fill ();
 					double tx = prev_x + (prev_w_d - current_thumb.get_width ()) / 2.0;
 					double ty = prev_y + (prev_h_d - current_thumb.get_height ()) / 2.0;
@@ -594,14 +634,20 @@ namespace Plank
 					cr.paint ();
 				} else {
 					// Graceful Fallback for minimized or non-captured windows
-					cr.set_source_rgba (16.0 / 255.0, 20.0 / 255.0, 28.0 / 255.0, 0.92);
+					if (dark)
+						cr.set_source_rgba (16.0 / 255.0, 20.0 / 255.0, 28.0 / 255.0, 0.92);
+					else
+						cr.set_source_rgba (228.0 / 255.0, 231.0 / 255.0, 238.0 / 255.0, 0.92);
 					cr.fill ();
 
 					double center_x = prev_x + prev_w_d / 2.0;
 					double center_y = prev_y + prev_h_d / 2.0;
 
 					cr.arc (center_x, center_y, 26.0, 0, 2 * Math.PI);
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.06);
+					if (dark)
+						cr.set_source_rgba (1.0, 1.0, 1.0, 0.06);
+					else
+						cr.set_source_rgba (0.0, 0.0, 0.0, 0.05);
 					cr.fill ();
 
 					if (app_icon_large != null) {
@@ -619,7 +665,10 @@ namespace Plank
 						var layout_min = Pango.cairo_create_layout (cr);
 						layout_min.set_font_description (cached_font_title);
 						layout_min.set_text (_("Minimized"), -1);
-						cr.set_source_rgba (148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, 0.85);
+						if (dark)
+							cr.set_source_rgba (148.0 / 255.0, 163.0 / 255.0, 184.0 / 255.0, 0.85);
+						else
+							cr.set_source_rgba (71.0 / 255.0, 85.0 / 255.0, 105.0 / 255.0, 0.90);
 						cr.move_to (center_x - 22.0, center_y + 24.0);
 						Pango.cairo_show_layout (cr, layout_min);
 					}
@@ -628,7 +677,10 @@ namespace Plank
 
 				// Inner border around preview viewport
 				Theme.draw_rounded_rect (cr, prev_x, prev_y, prev_w_d, prev_h_d, prev_r, prev_r, 0.0);
-				cr.set_source_rgba (1.0, 1.0, 1.0, 0.08);
+				if (dark)
+					cr.set_source_rgba (1.0, 1.0, 1.0, 0.08);
+				else
+					cr.set_source_rgba (0.0, 0.0, 0.0, 0.08);
 				cr.set_line_width (1.0);
 				cr.stroke ();
 
@@ -657,7 +709,10 @@ namespace Plank
 					layout_sub.set_width ((int) (text_w * Pango.SCALE));
 					layout_sub.set_ellipsize (Pango.EllipsizeMode.END);
 
-					cr.set_source_rgba (248.0 / 255.0, 250.0 / 255.0, 252.0 / 255.0, 0.95);
+					if (dark)
+						cr.set_source_rgba (248.0 / 255.0, 250.0 / 255.0, 252.0 / 255.0, 0.95);
+					else
+						cr.set_source_rgba (28.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 0.95);
 					cr.move_to (text_x, header_y + (header_h - 13.0) / 2.0);
 					Pango.cairo_show_layout (cr, layout_sub);
 				}
@@ -674,10 +729,16 @@ namespace Plank
 					cr.set_source_rgba (255.0 / 255.0, 90.0 / 255.0, 90.0 / 255.0, 1.0);
 					cr.set_line_width (2.0);
 				} else if (is_card_hovered) {
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.70);
+					if (dark)
+						cr.set_source_rgba (1.0, 1.0, 1.0, 0.70);
+					else
+						cr.set_source_rgba (28.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 0.72);
 					cr.set_line_width (1.5);
 				} else {
-					cr.set_source_rgba (1.0, 1.0, 1.0, 0.35);
+					if (dark)
+						cr.set_source_rgba (1.0, 1.0, 1.0, 0.35);
+					else
+						cr.set_source_rgba (28.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 0.38);
 					cr.set_line_width (1.5);
 				}
 				cr.move_to (close_x - cr_size, close_y - cr_size);

@@ -23,16 +23,23 @@
 #define PACKAGE_NAME "WayPlank"
 #define PACKAGE_TARNAME "wayplank"
 #ifndef PACKAGE_VERSION
-#error "PACKAGE_VERSION must be defined from root VERSION file (line 1)"
+#error "PACKAGE_VERSION must be defined from root VERSION file ([Release] Version)"
 #endif
 #ifndef PACKAGE_VERSION_DECO
-#error "PACKAGE_VERSION_DECO must be defined from root VERSION file (line 2)"
+#error "PACKAGE_VERSION_DECO must be defined from root VERSION file ([Release] Decoration)"
+#endif
+#ifndef PACKAGE_YEAR
+#error "PACKAGE_YEAR must be defined from root VERSION file ([Release] Year)"
 #endif
 #ifndef PACKAGE_STRING
 #define PACKAGE_STRING "WayPlank " PACKAGE_VERSION
 #endif
-#define PACKAGE_BUGREPORT "https://github.com/sergiomelas/wayplank/issues"
-#define PACKAGE_URL "https://github.com/sergiomelas/wayplank"
+#ifndef PACKAGE_BUGREPORT
+#error "PACKAGE_BUGREPORT must be defined from root VERSION file ([Release] IssuesUrl)"
+#endif
+#ifndef PACKAGE_URL
+#error "PACKAGE_URL must be defined from root VERSION file ([Release] Homepage)"
+#endif
 #ifndef VERSION
 #define VERSION PACKAGE_VERSION
 #endif

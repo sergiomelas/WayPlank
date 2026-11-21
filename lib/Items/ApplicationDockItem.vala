@@ -80,6 +80,7 @@ namespace Plank
 			desktop_action_ids = new Gee.HashMap<string, string> ();
 			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
+			CustomNameService.get_default ().name_changed.connect (handle_custom_name_changed);
 			Prefs.notify["BrowserProfile"].connect (handle_browser_profile_changed);
 
 			load_from_launcher ();
@@ -97,6 +98,7 @@ namespace Plank
 
 			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
+			CustomNameService.get_default ().name_changed.disconnect (handle_custom_name_changed);
 			Prefs.notify["BrowserProfile"].disconnect (handle_browser_profile_changed);
 
 			if (browser_profile_reg_id > 0) {
@@ -378,31 +380,29 @@ namespace Plank
 					items.add (keep_item);
 				}
 
-				if (!(this is TransientDockItem)) {
-					var dock_folders = default_provider.get_folder_items ();
-					if (dock_folders.size > 0) {
-						var move_folder_item = create_menu_item (_("Move to _Folder"), "folder", true);
-						var folder_sub = new Gtk.Menu ();
-						var prov_ref = GLib.WeakRef (default_provider);
-						var self_ref = GLib.WeakRef (this);
-						foreach (var f_item in dock_folders) {
-							var f_ref = GLib.WeakRef (f_item);
-							string f_label = (f_item.Text != null && f_item.Text != "") ? f_item.Text : _("Folder");
-							string f_icon = (f_item.Icon != null && f_item.Icon != "") ? f_item.Icon : "folder";
-							var sub_entry = create_literal_menu_item (f_label, f_icon, true);
-							sub_entry.activate.connect (() => {
-								var prov = prov_ref.get () as DefaultApplicationDockItemProvider;
-								var app_it = self_ref.get () as ApplicationDockItem;
-								var dest_f = f_ref.get () as FileDockItem;
-								if (prov != null && app_it != null && dest_f != null)
-									prov.move_pinned_item_to_folder (app_it, dest_f);
-							});
-							folder_sub.append (sub_entry);
-						}
-						folder_sub.show_all ();
-						move_folder_item.set_submenu (folder_sub);
-						items.add (move_folder_item);
+				var dock_folders = default_provider.get_folder_items ();
+				if (dock_folders.size > 0) {
+					var move_folder_item = create_menu_item (_("Move to _Folder"), "folder", true);
+					var folder_sub = new Gtk.Menu ();
+					var prov_ref = GLib.WeakRef (default_provider);
+					var self_ref = GLib.WeakRef (this);
+					foreach (var f_item in dock_folders) {
+						var f_ref = GLib.WeakRef (f_item);
+						string f_label = (f_item.Text != null && f_item.Text != "") ? f_item.Text : _("Folder");
+						string f_icon = (f_item.Icon != null && f_item.Icon != "") ? f_item.Icon : "folder";
+						var sub_entry = create_literal_menu_item (f_label, f_icon, true);
+						sub_entry.activate.connect (() => {
+							var prov = prov_ref.get () as DefaultApplicationDockItemProvider;
+							var app_it = self_ref.get () as ApplicationDockItem;
+							var dest_f = f_ref.get () as FileDockItem;
+							if (prov != null && app_it != null && dest_f != null)
+								prov.move_pinned_item_to_folder (app_it, dest_f);
+						});
+						folder_sub.append (sub_entry);
 					}
+					folder_sub.show_all ();
+					move_folder_item.set_submenu (folder_sub);
+					items.add (move_folder_item);
 				}
 			}
 
@@ -412,6 +412,17 @@ namespace Plank
 					IconChooserDialog.show_for_launcher (this);
 				});
 				items.add (icon_item);
+
+				if (default_provider == null || !default_provider.Prefs.LockItems) {
+					var rename_item = create_menu_item (_("Rename _Shortcut..."), "text-x-generic", true);
+					string target_uri = Launcher;
+					string cur_text = Text ?? "";
+					string def_text = (base_launcher_text != null && base_launcher_text != "") ? base_launcher_text : cur_text;
+					rename_item.activate.connect (() => {
+						DockFolderDialogs.show_rename_shortcut_dialog (target_uri, cur_text, def_text);
+					});
+					items.add (rename_item);
+				}
 			}
 
 			return items;
@@ -597,13 +608,31 @@ namespace Plank
 			return true;
 		}
 
+		void handle_custom_name_changed (string uri)
+		{
+			if (Prefs == null || Prefs.Launcher == "" || uri.strip ().down () != Prefs.Launcher.strip ().down ())
+				return;
+			update_profile_tooltip_text ();
+		}
+
 		void update_profile_tooltip_text ()
 		{
 			if (Prefs.Launcher == "")
 				return;
-			var identity = ApplicationDiscovery.get_default ().identity_for_launcher (Prefs.Launcher);
-			if (identity == null || !identity.is_browser_launcher ())
+
+			string custom_name = CustomNameService.get_default ().get_custom_name (Prefs.Launcher);
+			if (custom_name != "") {
+				if (Text != custom_name)
+					Text = custom_name;
 				return;
+			}
+
+			var identity = ApplicationDiscovery.get_default ().identity_for_launcher (Prefs.Launcher);
+			if (identity == null || !identity.is_browser_launcher ()) {
+				if (base_launcher_text != null && base_launcher_text != "" && Text != base_launcher_text)
+					Text = base_launcher_text;
+				return;
+			}
 
 			var wins = WindowManager.get_default ().matching_windows (Prefs.Launcher);
 			foreach (var w in wins) {
@@ -620,9 +649,13 @@ namespace Plank
 				: identity.detected_browser_profile;
 
 			if (prof != null && prof != "") {
-				string? formatted = ApplicationIdentity.format_chrome_profile_identity_name (prof);
-				if (formatted != null && formatted != "" && Text != formatted)
-					Text = formatted;
+				string? formatted = ApplicationIdentity.format_browser_profile_identity_name (identity.get_browser_family (), prof);
+				if (formatted != null && formatted != "") {
+					if (Text != formatted)
+						Text = formatted;
+				} else if (base_launcher_text != null && base_launcher_text != "" && Text != base_launcher_text) {
+					Text = base_launcher_text;
+				}
 			} else if (base_launcher_text != null && base_launcher_text != "" && Text != base_launcher_text) {
 				Text = base_launcher_text;
 			}

@@ -32,8 +32,17 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
 fi
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+read_version_key() {
+    awk -F'=' -v sec="$1" -v key="$2" '
+        /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
+        in_sec && $1 == key { sub(/^[^=]*=/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit }
+    ' "${BASE_DIR}/VERSION"
+}
+PKG_VER="$(read_version_key Release Version)"
+PKG_DECO="$(read_version_key Release Decoration)"
+PKG_PROG="$(read_version_key Release ProgramName)"
+PKG_COMPANY="$(read_version_key Release CompanyName)"
+PKG_HOMEPAGE="$(read_version_key Release Homepage)"
 [ -z "$PKG_DECO" ] && PKG_DECO="Public Beta"
 
 OUT_DIR="${BASE_DIR}/build"
@@ -68,11 +77,11 @@ cat > "$NSI_FILE" <<EOF
 Unicode True
 SetCompressor /SOLID lzma
 
-!define APP_NAME "WayPlank"
+!define APP_NAME "${PKG_PROG}"
 !define APP_VER "${PKG_VER}"
 !define APP_DECO "${PKG_DECO}"
-!define APP_PUBLISHER "Sergio Melas (WayPlank Project)"
-!define APP_URL "https://github.com/sergiomelas/WayPlank"
+!define APP_PUBLISHER "${PKG_COMPANY}"
+!define APP_URL "${PKG_HOMEPAGE}"
 !define APP_EXE "wayplank.exe"
 !define UNINST_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\WayPlank"
 !define APP_PATHS_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\wayplank.exe"

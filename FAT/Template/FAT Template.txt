@@ -103,6 +103,13 @@ SESSION 1: WINDOWS (Win32 / DWM Backend — Windows 7 <-> 11+)
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
           cycles open windows, and row right-click menu stays open cleanly
           without 'Keep in Dock'.
+   [  ] 1.13 Universal 'Rename Shortcut...' (Dock & Folder Drawers):
+        - Right-click any pinned dock icon or folder drawer launcher ->
+          'Rename Shortcut...' opens independent CSD dialog (with default
+          hint & 'Reset Default').
+        - Custom name persists in launcher-names.ini without touching
+          .desktop/.lnk files, survives Move to Folder <-> Move to Dock,
+          respects LockItems, and 'Reset Default' restores original name.
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
@@ -839,6 +846,13 @@ SESSION 2: GNOME (Mutter Backend)
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
           cycles open windows, and row right-click menu stays open cleanly
           without 'Keep in Dock'.
+   [  ] 1.13 Universal 'Rename Shortcut...' (Dock & Folder Drawers):
+        - Right-click any pinned dock icon or folder drawer launcher ->
+          'Rename Shortcut...' opens independent CSD dialog (with default
+          hint & 'Reset Default').
+        - Custom name persists in launcher-names.ini without touching
+          .desktop/.lnk files, survives Move to Folder <-> Move to Dock,
+          respects LockItems, and 'Reset Default' restores original name.
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
@@ -1545,6 +1559,13 @@ SESSION 3: KDE PLASMA (KWin Backend)
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
           cycles open windows, and row right-click menu stays open cleanly
           without 'Keep in Dock'.
+   [  ] 1.13 Universal 'Rename Shortcut...' (Dock & Folder Drawers):
+        - Right-click any pinned dock icon or folder drawer launcher ->
+          'Rename Shortcut...' opens independent CSD dialog (with default
+          hint & 'Reset Default').
+        - Custom name persists in launcher-names.ini without touching
+          .desktop/.lnk files, survives Move to Folder <-> Move to Dock,
+          respects LockItems, and 'Reset Default' restores original name.
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open
@@ -2269,6 +2290,13 @@ SESSION 4: LABWC (wlroots Backend)
           Ctrl+Click or Middle-Click launches a new instance, mouse wheel
           cycles open windows, and row right-click menu stays open cleanly
           without 'Keep in Dock'.
+   [  ] 1.13 Universal 'Rename Shortcut...' (Dock & Folder Drawers):
+        - Right-click any pinned dock icon or folder drawer launcher ->
+          'Rename Shortcut...' opens independent CSD dialog (with default
+          hint & 'Reset Default').
+        - Custom name persists in launcher-names.ini without touching
+          .desktop/.lnk files, survives Move to Folder <-> Move to Dock,
+          respects LockItems, and 'Reset Default' restores original name.
 2. WINDOW MANAGEMENT & RUNNING STATES
    [  ] 2.1 Running Indicator: Running dot / glow appears beneath/beside icon
    [  ] 2.2 Multiple Windows: Multi-window dots appear when 2+ windows are open

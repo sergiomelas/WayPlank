@@ -1426,7 +1426,8 @@ namespace Plank
 			switcher.set_no_show_all (true);
 			switcher.hide ();
 
-			// Tab 1: WayPlank (2026) — 2-Column Native GTK Grid Layout
+			// Tab 1: WayPlank (loaded from embedded root VERSION metadata)
+			var meta = ReleaseMetadata.get_default ();
 			var wp_grid = new Gtk.Grid ();
 			wp_grid.set_row_spacing (3);
 			wp_grid.set_column_spacing (12);
@@ -1438,33 +1439,8 @@ namespace Plank
 			attach_solid_bg_painter (wp_grid, dlg);
 
 			int wp_row = 0;
-			add_credit_group_to_grid (wp_grid, ref wp_row, "Lead Architect/Programmer", {
-				"<a href=\"https://github.com/sergiomelas\">Sergio Melas</a> &lt;<a href=\"mailto:sergiomelas@gmail.com\">sergiomelas@gmail.com</a>&gt;",
-				"Wayland HAL, Core Engine, Identity &amp; Multi-OS Architecture"
-			});
-			add_credit_group_to_grid (wp_grid, ref wp_row, "Code & Packaging", {
-				"<a href=\"https://github.com/IFtiger-hu-hub\">史有虎 (IFtiger-hu)</a> &lt;<a href=\"mailto:2212363803@qq.com\">2212363803@qq.com</a>&gt;",
-				"Community Fork, RPM Builder, Smooth Scroll &amp; Matcher"
-			});
-			add_credit_group_to_grid (wp_grid, ref wp_row, "Translated by", {
-				"<a href=\"https://github.com/sergiomelas\">Sergio Melas</a> — English, Italiano, Español, Français, Català",
-				"<a href=\"https://github.com/IFtiger-hu-hub\">史有虎 (IFtiger-hu)</a> — 简体中文 (zh_CN)",
-				"<a href=\"https://github.com/reni001\">Renate Schwiedernoch (@reni001)</a> — Deutsch (de)",
-				"<a href=\"https://github.com/Gabenoh\">Michailo Buchko (@Gabenoh)</a> — Українська (uk)"
-			});
-			add_credit_group_to_grid (wp_grid, ref wp_row, "Themes & Artwork", {
-				"<a href=\"https://github.com/sergiomelas\">Sergio Melas</a> — WayPlank Vector Icons &amp; Adaptive Themes",
-				"<a href=\"https://github.com/sergiomelas/WayPlank\">Arian</a> — Arian Dark &amp; Light Themes",
-				"<a href=\"https://github.com/IFtiger-hu-hub\">史有虎 (IFtiger-hu)</a> — IFtiger Dark &amp; Light Themes",
-				"<a href=\"https://kde.org\">KDE Breeze Icon Artists</a> — Monolithic Docklet SVG Fallbacks"
-			});
-			add_credit_group_to_grid (wp_grid, ref wp_row, "Testing & QA", {
-				"<a href=\"https://github.com/Gabenoh\">@Gabenoh (Michailo Buchko)</a> — System Menu &amp; Input Mask UX",
-				"<a href=\"https://github.com/tcliuqiang\">@tcliuqiang</a> — Multi-Compositor Qualification &amp; Testing",
-				"<a href=\"https://github.com/winteriscariot\">@winteriscariot</a> — Multi-Monitor &amp; Compositor Verification",
-				"<a href=\"https://github.com/Jolmas\">@Jolmas</a> — Desktop Integration &amp; Feedback",
-				"<a href=\"https://github.com/polpodan\">@polpodan</a> — KDE Plasma 6 Edit Mode Coexistence (#27)"
-			});
+			foreach (var grp in meta.get_credit_groups ())
+				add_credit_group_to_grid (wp_grid, ref wp_row, grp.heading, grp.lines);
 
 			// Tab 2: Plank (Historic 2011–2015) — 2-Column Native GTK Grid Layout
 			var plank_grid = new Gtk.Grid ();
@@ -1495,7 +1471,7 @@ namespace Plank
 				"project (<a href=\"https://launchpad.net/plank\">https://launchpad.net/plank</a> — GPL-3.0+)."
 			});
 
-			credits_stack.add_titled (wp_grid, "wayplank", "🚀 WayPlank (2026)");
+			credits_stack.add_titled (wp_grid, "wayplank", meta.credits_tab_title);
 			credits_stack.add_titled (plank_grid, "plank_historic", "🏛️ Plank (Historic)");
 
 			if (outer_sw != null) {
@@ -1944,8 +1920,10 @@ namespace Plank
 			cr.move_to (title_x, title_y);
 			Pango.cairo_show_layout (cr, title_layout);
 
-			// Continuous right-to-left scrolling Hall of Fame banner (Pango layout renders CJK 史有虎 + all scripts)
-			string hall_of_fame = "🌟 WAYPLANK HALL OF FAME   •   Lead Architect/Programmer & Maintainer: Sergio Melas (@sergiomelas — Wayland HAL, Core Engine, IT / ES / FR / CA)   •   Community Fork, RPM Packaging, Matcher & Simplified Chinese (zh_CN): 史有虎 (IFtiger-hu / @IFtiger-hu-hub)   •   German (de) Localization: Renate Schwiedernoch (@reni001)   •   Ukrainian (uk) Localization & Ergonomics: Michailo Buchko (@Gabenoh)   •   Themes & Artwork: Arian (Arian Themes), 史有虎 (IFtiger Themes), Daniel Foré, KDE Breeze Artists   •   Multi-Compositor Qualification & Bug Hunting: @tcliuqiang, @winteriscariot, @Jolmas, @polpodan   •   Original Plank Creators (Tribute): Robert Dyer, Michal Hruby, Rico Tzschichholz     •     ";
+			// Continuous right-to-left scrolling Hall of Fame banner (WayPlank credits from VERSION + immutable Plank tribute)
+			string hall_of_fame = ReleaseMetadata.get_default ().get_hall_of_fame (
+				"Original Plank Creators (Tribute): Robert Dyer, Michal Hruby, Rico Tzschichholz"
+			);
 			double pill_x = 16.0;
 			double pill_y = 40.0;
 			double pill_w = w - 32.0;

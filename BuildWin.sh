@@ -24,9 +24,24 @@
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PKG_VER="$(sed -n '1p' "${BASE_DIR}/VERSION" | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' "${BASE_DIR}/VERSION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+read_version_key() {
+    awk -F'=' -v sec="$1" -v key="$2" '
+        /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
+        in_sec && $1 == key { sub(/^[^=]*=/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit }
+    ' "${BASE_DIR}/VERSION"
+}
+PKG_VER="$(read_version_key Release Version)"
+PKG_DECO="$(read_version_key Release Decoration)"
+PKG_YEAR="$(read_version_key Release Year)"
+PKG_PROG="$(read_version_key Release ProgramName)"
+PKG_HOLDER="$(read_version_key Release CopyrightHolder)"
+PKG_COMPANY="$(read_version_key Release CompanyName)"
+PKG_HOMEPAGE="$(read_version_key Release Homepage)"
+PKG_ISSUES="$(read_version_key Release IssuesUrl)"
 [ -z "$PKG_DECO" ] && PKG_DECO="Public Beta"
+IFS='.' read -r _v1 _v2 _v3 _v4 _vrest <<< "${PKG_VER}.0.0.0"
+PKG_VER_4="${_v1}.${_v2}.${_v3}.${_v4}"
+PKG_VER_CSV="${_v1},${_v2},${_v3},${_v4}"
 
 OUT_DIR="${BASE_DIR}/build"
 WIN_C_DIR="${OUT_DIR}/win_c"
@@ -787,11 +802,20 @@ valac -C -d "$WIN_C_DIR" \
     --pkg win32-bridge \
     --pkg win32-app-bridge \
     --pkg win32-sys-bridge \
+    --pkg win32-media-bridge \
     "${VALA_FILES[@]}"
 
 echo "🪟 Compiling Windows resource manifest (wayplank.rc)..."
+cat > "${WIN_C_DIR}/wayplank-ver.h" <<EOF
+#define WAYPLANK_VER_STR "${PKG_VER}\0"
+#define WAYPLANK_VER_CSV ${PKG_VER_CSV}
+#define WAYPLANK_COMPANY_STR "${PKG_COMPANY}\0"
+#define WAYPLANK_COPYRIGHT_STR "Copyright (C) ${PKG_YEAR} ${PKG_HOLDER} (GPLv3)\0"
+#define WAYPLANK_PRODUCT_STR "${PKG_PROG}\0"
+EOF
+sed "s/@WAYPLANK_VER_4@/${PKG_VER_4}/g" "${BASE_DIR}/hal/Windows/wayplank.manifest" > "${WIN_C_DIR}/wayplank.manifest"
 "$WIN_WINDRES" \
-    -DWAYPLANK_VER_RAW="${PKG_VER}" \
+    -I "${WIN_C_DIR}" \
     -I "${BASE_DIR}/hal/Windows" \
     "${BASE_DIR}/hal/Windows/wayplank.rc" \
     -O coff -o "${WIN_C_DIR}/wayplank.res.o"
@@ -811,11 +835,15 @@ WIN_CFLAGS=(
     -DGETTEXT_PACKAGE=\"wayplank\"
     -DPACKAGE_VERSION=\"${PKG_VER}\"
     "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\""
+    -DPACKAGE_YEAR=\"${PKG_YEAR}\"
+    -DPACKAGE_URL=\"${PKG_HOMEPAGE}\"
+    -DPACKAGE_BUGREPORT=\"${PKG_ISSUES}\"
     -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\"
     -I"${BASE_DIR}/lib"
     -I"${BASE_DIR}/include"
     -I"${BASE_DIR}/hal/Windows/Compositor"
     -I"${BASE_DIR}/hal/Windows/AppSystem"
+    -I"${BASE_DIR}/hal/Windows/Bus"
     -I"${BASE_DIR}/hal/Windows/Telemetry"
     -include "${BASE_DIR}/include/config.h"
     -w

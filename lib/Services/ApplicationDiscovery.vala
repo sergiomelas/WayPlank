@@ -1,5 +1,4 @@
 //
-//  Copyright (C) 2011-2012 Robert Dyer, Michal Hruby, Rico Tzschichholz
 //  Copyright (C) 2026 Sergio Melas
 //  Copyright (C) 2026 史有虎 (IFtiger-hu)
 //
@@ -294,6 +293,13 @@ namespace Plank
 			refresh_desktop_index (true);
 		}
 
+		public void schedule_refresh ()
+		{
+			if (is_cleaned_up)
+				return;
+			arm_debounce_timer (this);
+		}
+
 		void cleanup_instance ()
 		{
 			if (is_cleaned_up)
@@ -356,6 +362,9 @@ namespace Plank
 		void on_folder_changed (File file, File? other_file, FileMonitorEvent event_type)
 		{
 			if (is_cleaned_up)
+				return;
+			string? bname = file.get_basename ();
+			if (bname != null && Hal.Apps.is_folder_metadata_file (bname))
 				return;
 			arm_debounce_timer (this);
 		}
@@ -1626,6 +1635,7 @@ namespace Plank
 			}
 
 			// 2. Index standard application launcher folders and user folder-menu drawers
+			var checked_uris = new Gee.HashSet<string> ();
 			foreach (var folder in folders) {
 				if (!folder.query_exists ())
 					continue;
@@ -1639,6 +1649,7 @@ namespace Plank
 						var child_name = info.get_name ();
 						var file = folder.get_child (child_name);
 						var file_uri = file.get_uri ();
+						checked_uris.add (file_uri);
 						if (!Hal.Apps.is_launcher_uri (file_uri))
 							continue;
 						if (is_drawer)
@@ -1665,9 +1676,9 @@ namespace Plank
 				}
 			}
 
-			// 3. Index any non-filesystem native platform apps (e.g. Store AUMIDs) returned by Hal.Apps
+			// 3. Index any additional apps returned by Hal.Apps (e.g. Store AUMIDs or cached Start Menu subtrees)
 			foreach (var desc in Hal.Apps.discover_installed_apps (true)) {
-				if (desc.uri == "" || desc.uri.down ().has_prefix ("file://") || seen_uris.contains (desc.uri))
+				if (desc.uri == "" || seen_uris.contains (desc.uri) || checked_uris.contains (desc.uri))
 					continue;
 				if (Hal.Apps.is_self_launcher (desc.uri))
 					continue;
@@ -1679,6 +1690,8 @@ namespace Plank
 				seen_uris.add (desc.uri);
 				seen_ids.add (id);
 				uris.add (desc.uri);
+				if (desc.uri.down ().has_prefix ("file://"))
+					files_out.add (File.new_for_uri (desc.uri));
 			}
 
 			pinned_launcher_uris = next_pinned_uris;

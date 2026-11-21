@@ -30,8 +30,8 @@ Whether you are reporting a bug, contributing translations, improving themes, te
 
 ## 🗺️ Current Project Status & Roadmap
 
-* **Current Public Beta Release**: `v0.7.3` (**Public Beta 4 — First Unified Linux Wayland & Native Windows Zero-DLL Monolith — 100.0% 4-Platform FAT Qualified (`525/525`)**, [`FAT/2026-11-19 FAT 0.7.3.txt`](FAT/2026-11-19%20FAT%200.7.3.txt); `v0.7.2` Public Beta 3 concluded at `100.0%` (`397/397`), `v0.7.1.2` Public Beta 2 Hotfix concluded at `100.0%` (`375/375`), and `v0.7.0` Public Beta 1 concluded & frozen at `95.2% PASS`).
-* **Upcoming Public Beta Roadmap (`v0.7.x`)**: **`v0.7.1.2`** (Public Beta 2 Hotfix — *Concluded*: First-Run Onboarding `Classic` vs `Explorer`, 100% read-only `~/.config/plank` migration, Smart Usage-Adaptive Accordion [#26](https://github.com/sergiomelas/WayPlank/issues/26), browser auto-translated User Guide, `MONLMIP Rank 1`, and complete remediation through `#35` + **Public Architecture Review**), followed by **`v0.7.2`** (Public Beta 3 — *Concluded 2026-11-18*: **Linux-Only HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine (`dock1`–`dock4`)** in `hal/{Interfaces,Freedesktop,Linux}/` — see [Documentation/Architecture/README.md](Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)), **`v0.7.3`** (Public Beta 4 — *Concluded 2026-11-19 at 100.0% 4-Platform FAT Qualified (`525/525`)*: **Native Windows Zero-DLL Monolith Plug-In** `hal/Windows/` + `./BuildWin.sh` + 64-bit `./BuildNsis.sh` producing `wayplank.exe` & `WayPlank-0.7.3-Setup.exe` — see [HAL_WINDOWS_BACKEND.md](Documentation/Architecture/HAL_WINDOWS_BACKEND.md) and [CHANGELOG_v0.7.3.md](Changelogs/CHANGELOG_v0.7.3.md)), and iterative `v0.7.x` Public Beta hotfix/stabilization releases remaining open until the community signals readiness for the `v0.8.x` Release Candidate freeze, up to **December 31, 2026**.
+* **Current Public Beta Release**: `v0.7.3.2` (**Public Beta 4 Hotfix — Unified Linux Wayland & Native Windows Zero-DLL Monolith**: `100.0%` 4-Platform Qualified `529/529` across Windows 11, GNOME `Mutter`, KDE Plasma 6 `KWin`, and `Labwc`, [`FAT/2026-11-22 FAT 0.7.3.2.txt`](FAT/2026-11-22%20FAT%200.7.3.2.txt); `v0.7.2` Public Beta 3 concluded at `100.0%` (`397/397`), `v0.7.1.2` Public Beta 2 Hotfix concluded at `100.0%` (`375/375`), and `v0.7.0` Public Beta 1 concluded & frozen at `95.2% PASS`).
+* **Upcoming Public Beta Roadmap (`v0.7.x`)**: **`v0.7.1.2`** (Public Beta 2 Hotfix — *Concluded*), **`v0.7.2`** (Public Beta 3 — *Concluded 2026-11-18*: **Linux-Only HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine (`dock1`–`dock4`)** in `hal/{Interfaces,Freedesktop,Linux}/` — see [Documentation/Architecture/README.md](Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)), **`v0.7.3` / `v0.7.3.2`** (Public Beta 4 + Hotfix: **Native Windows Zero-DLL Monolith Plug-In** `hal/Windows/` + `./BuildWin.sh` + 64-bit `./BuildNsis.sh` producing `wayplank.exe` & `WayPlank-0.7.3.2-Setup.exe` — see [HAL_WINDOWS_BACKEND.md](Documentation/Architecture/HAL_WINDOWS_BACKEND.md) and [CHANGELOG_v0.7.3.md](Changelogs/CHANGELOG_v0.7.3.md)), followed by **`v0.7.4`** (FreeBSD `hal/BSD/`) and iterative `v0.7.x` stabilization releases remaining open until the community signals readiness for the `v0.8.x` Release Candidate freeze, up to **December 31, 2026**.
 * **Completed Foundation Release**: `v0.6.2.3` (Official Closure of the Alpha & Pre-Beta Era).
 * **Tier 1 Supported Compositors & OS Backends**:
   - **Windows (`Win32 / DWM`, `Windows 7 ⟷ 11+`)**: Zero-DLL PE32+ monolith (`wayplank.exe`), `SetWinEventHook` + `EnumWindows`, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` Panel Mode struts, COM `IShellLinkW` / UWP `AUMID`, CoreAudio / `DXVA2` / `WinHTTP` / Recycle Bin / Ejector.
@@ -62,7 +62,7 @@ A warm, heartfelt thank you to every contributor, translator, tester, and bug re
 
 We actively track all community suggestions, bug reports, post-release audits, and translations on [GitHub Issues](https://github.com/sergiomelas/WayPlank/issues) and [GitHub Discussions](https://github.com/sergiomelas/WayPlank/discussions):
 
-> **Current Status (`2026-11-18` — `v0.7.2` Public Beta 3 Qualified `100.0%` [`397/397`]):** **`0` Open Bug Reports + `2` Open Community Feature RFCs (`#31`, `#36`)** • **`32` Closed Community Issues, PRs & Discussions Preserved in FINO ("First In, Never Out") Pile (`5` in `v0.7.1.2`: `#30`, `#32` – `#35` • `10` in `#20` – `#29` • `9` in `#11` – `#19` • `8` in `#1` – `#10` & `Discussion #3`)**
+> **Current Status (`2026-11-22` — `v0.7.3.2` Public Beta 4 Hotfix `100.0%` 4-Platform Qualified [`529/529`, `0` Open Bugs]):** **`0` Open Bug Reports + `1` Open Community Feature RFC (`#31`)** • **`32` Closed Community Issues, PRs & Discussions Preserved in FINO ("First In, Never Out") Pile (`5` in `v0.7.1.2`: `#30`, `#32` – `#35` • `10` in `#20` – `#29` • `9` in `#11` – `#19` • `8` in `#1` – `#10` & `Discussion #3`)**
 
 <details>
 
@@ -151,7 +151,7 @@ We actively track all community suggestions, bug reports, post-release audits, a
 
 WayPlank features a standalone translation architecture managed through a central dictionary script: [`po/generate_translations.py`](po/generate_translations.py).
 
-Currently, **7 languages** are qualified at **100% (522/522 strings)**:
+Currently, **7 languages** are qualified at **100% (572/572 strings)**:
 
 * **Natively Maintained by Author** *(Complete & Closed)*:
   - English (`en`) — In-source native fallback
@@ -224,6 +224,7 @@ WayPlank supports modular themes compatible with the Plank/WayPlank theme specif
 We currently provide native build scripts for:
 * **Debian / Ubuntu** (`.deb`): `./BuildDeb.sh`
 * **Fedora / openSUSE / RHEL** (`.rpm`): `./BuildRpm.sh`
+* **Windows (`7 ⟷ 11+`, Linux-hosted cross-build)** (Zero-DLL `.exe` & 64-bit NSIS installer): `./BuildWin.sh` & `./BuildNsis.sh`
 
 Community packages for other package managers are warmly welcome:
 * **Arch Linux AUR** (`PKGBUILD`)
@@ -244,7 +245,7 @@ Community packages for other package managers are warmly welcome:
 
 * WayPlank runs seamlessly across **KWin**, **Mutter**, and **Labwc** (with physical multi-OS HAL and Bus isolation documented in [Documentation/Architecture/README.md](Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)). 
 * **Never write compositor-specific or OS-specific logic inside core dock code** (`lib/Widgets/`, `lib/Items/`, `src/`).
-* All compositor-specific and OS-bus interactions (window tracking, thumbnails, active desktop detection, panel avoidance, IPC buses, launcher/process discovery) MUST reside strictly behind the HAL interfaces (in [lib/Services/](lib/Services/) on the `v0.7.1.2` baseline, migrating physically into `hal/{Interfaces,Freedesktop,Linux}/` in `v0.7.2` and adding `hal/Windows/` in `v0.7.3` per [Documentation/Architecture/HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md) and [Documentation/Architecture/HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md)).
+* All compositor-specific and OS-bus interactions (window tracking, thumbnails, active desktop detection, panel avoidance, IPC buses, launcher/process discovery) MUST reside strictly behind the frozen Zone 2 HAL contracts (`hal/Interfaces/`) inside `hal/{Freedesktop,Linux,Windows}/` (enforced at every build by the 8-Gate Dual-Zone HAL Purity Firewall per [Documentation/Architecture/HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [Documentation/Architecture/HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [Documentation/Architecture/HAL_WINDOWS_BACKEND.md](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)).
 * Any fix for one compositor **must be verified not to break other compositors**.
 * 🛑 **MANDATORY PR & FORK QUALIFICATION POLICY**:
   - **No pull request from forks will be accepted or merged without an accompanying verified FAT document.**
@@ -276,7 +277,7 @@ cd WayPlank
 
 ### Testing & Quality Assurance (FAT)
 
-WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering 402 validation points across all Tier 1 compositors (`359/377` = `95.2% PASS` in concluded [`FAT/2026-11-05 FAT 0.7.0.txt`](FAT/2026-11-05%20FAT%200.7.0.txt), `375/375` = `100.0% PASS` (`336 [ok]` baseline + `39 [ko->ok]` squashed + `2 [NA]` + `0 [ko]`) in [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt), and `397/397` = `100.0% PASS` (`338 [ok]` + `59 [ko->ok]` + `5 [NA]` + `0 [ko]`) in [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt)):
+WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering **537** validation points (`529` applicable) across all 4 Tier 1 platforms (`359/377` = `95.2% PASS` in concluded [`FAT/2026-11-05 FAT 0.7.0.txt`](FAT/2026-11-05%20FAT%200.7.0.txt), `375/375` = `100.0% PASS` in [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt), `397/397` = `100.0% PASS` in [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt), and `529/529` = `100.0% PASS` in concluded & frozen [`FAT/2026-11-22 FAT 0.7.3.2.txt`](FAT/2026-11-22%20FAT%200.7.3.2.txt)):
 * Test protocols and matrices are maintained in [`FAT/`](FAT/).
 * Any PR introducing new UI, docklets, or window management changes **MUST** be accompanied by verification against the checklist in [`FAT/Template/FAT Template.txt`](FAT/Template/FAT%20Template.txt).
 * Fill out the template across tested compositors, save it as `FAT/<date> FAT from <Contributor name> <version>.txt`, and commit it as part of your pull request.

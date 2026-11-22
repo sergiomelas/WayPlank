@@ -43,4 +43,37 @@ namespace Plank.BsdKernelBridge
 
 	[CCode (cname = "bsd_kernel_get_open_fd_paths", array_length = false, array_null_terminated = true)]
 	public string[]? get_open_fd_paths (int pid);
+
+	[CCode (cname = "bsd_kernel_read_cpu_ticks")]
+	public bool read_cpu_ticks (out uint64 total, out uint64 idle);
+
+	[CCode (cname = "bsd_kernel_read_memory")]
+	public bool read_memory (out uint64 total_bytes, out uint64 avail_bytes);
+
+	[CCode (cname = "bsd_kernel_read_disk_busy_ms")]
+	public bool read_disk_busy_ms (out uint64 busy_ms);
+
+	[CCode (cname = "bsd_kernel_read_battery")]
+	public bool read_battery (out bool has_battery, out int percentage, out bool is_charging, out bool is_full, out string raw_status);
+
+	[CCode (cname = "bsd_kernel_oss_get_volume")]
+	public bool oss_get_volume (out int percent);
+
+	[CCode (cname = "bsd_kernel_oss_set_volume")]
+	public bool oss_set_volume (int percent);
+
+	[CCode (cname = "bsd_kernel_backlight_list_devices", array_length = false, array_null_terminated = true)]
+	public string[]? backlight_list_devices (out string? preferred, out uint32 max_raw);
+
+	[CCode (cname = "bsd_kernel_backlight_lid_is_open")]
+	public bool backlight_lid_is_open ();
+
+	[CCode (cname = "bsd_kernel_backlight_read_raw")]
+	public int64 backlight_read_raw (string device);
+
+	[CCode (cname = "bsd_kernel_backlight_write_raw")]
+	public bool backlight_write_raw (string device, uint32 raw_value);
+
+	[CCode (cname = "bsd_kernel_probe_network")]
+	public bool probe_network (out string conn_type, out string conn_name, out int wifi_strength, out string ip_address, out string gateway);
 }

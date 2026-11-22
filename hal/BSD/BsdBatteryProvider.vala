@@ -20,8 +20,8 @@
 namespace Plank
 {
 	/**
-	 * Southbound FreeBSD ACPI battery provider.
-	 * Milestone B1 skeleton; full `sysctl hw.acpi.battery.*` implementation arrives in Milestone B3.
+	 * Southbound FreeBSD ACPI battery provider backed by `sysctl(3)`
+	 * (`hw.acpi.battery.*` and `hw.acpi.acline`).
 	 */
 	public class BsdBatteryProvider : GLib.Object, IBatteryProvider
 	{
@@ -36,11 +36,33 @@ namespace Plank
 
 		public bool has_battery ()
 		{
+			bool present = false;
+			int pct = 100;
+			bool charging = false;
+			bool full = true;
+			string raw = "";
+			if (BsdKernelBridge.read_battery (out present, out pct, out charging, out full, out raw))
+				return present;
 			return false;
 		}
 
 		public BatteryState query_state ()
 		{
+			bool present = false;
+			int pct = 100;
+			bool charging = false;
+			bool full = true;
+			string raw = "";
+			if (BsdKernelBridge.read_battery (out present, out pct, out charging, out full, out raw)) {
+				return BatteryState () {
+					has_battery = present,
+					percentage = pct.clamp (0, 100),
+					is_charging = charging,
+					is_full = full,
+					raw_status = raw ?? ""
+				};
+			}
+
 			return BatteryState () {
 				has_battery = false,
 				percentage = 100,

@@ -115,7 +115,14 @@ Works on any desktop or server hypervisor (**QEMU/KVM `virt-manager`**, **Virtua
    FreeBSD `drm-kmod` ships only bare-metal GPU drivers (`amdgpu`, `i915kms`, `radeonkms`) — `vmwgfx` and `vboxvideo` were removed, so `/dev/dri/card0` does not exist inside VMware/VirtualBox guests. To boot **100% native fullscreen Wayland (`XFCE 4.20 Wayland + labwc + Xwayland`)** directly from LightDM while preserving host ↔ guest resize and clipboard:
    - Compile a minimal `libX11` borderless fullscreen helper (`/usr/local/bin/wlr-x11-fullscreen`) that tracks `MapNotify`/`ConfigureNotify` on the outer SVGA II framebuffer (`:0`) and calls `XMoveResizeWindow(dpy, win, 0, 0, DisplayWidth, DisplayHeight)`.
    - Install a bidirectional clipboard bridge (`/usr/local/bin/wlr-x11-clipbridge`) using `xclip` (`:0`, synced by `vmtoolsd -n vmusr`) ↔ `wl-copy`/`wl-paste` (`$WAYLAND_DISPLAY`).
-   - Wrap the session in `/usr/local/bin/start-vmware-wayland` exporting `WLR_BACKENDS=x11`, `WLR_RENDERER=pixman`, `WLR_X11_OUTPUTS=1`, `XDG_SESSION_TYPE=wayland`, `GDK_BACKEND=wayland`, `QT_QPA_PLATFORM=wayland`, starting `vmware-user-suid-wrapper`, `wlr-x11-fullscreen`, and `wlr-x11-clipbridge`, and executing `dbus-run-session -- startxfce4 --wayland`.
+   - Wrap the session in `/usr/local/bin/start-vmware-wayland` calling `xset s off s noblank`, exporting `WLR_BACKENDS=x11`, `WLR_RENDERER=pixman`, `WLR_X11_OUTPUTS=1`, `XDG_SESSION_TYPE=wayland`, `GDK_BACKEND=wayland`, `QT_QPA_PLATFORM=wayland`, starting `vmware-user-suid-wrapper`, `wlr-x11-fullscreen`, and `wlr-x11-clipbridge`, and executing `dbus-run-session -- startxfce4 --wayland`.
+   - **Prevent VMware Black Screen on Idle (Disable Screensaver & Wayland DPMS):** Under `WLR_BACKENDS=x11`, `xfce4-power-manager` / `xfce4-screensaver` output-blanking can leave the Wayland output black with only the cursor visible. Disable both permanently inside the VM:
+     ```sh
+     xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-enabled -n -t bool -s false
+     xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/blank-on-ac -n -t int -s 0
+     mkdir -p ~/.config/autostart
+     printf "[Desktop Entry]\nType=Application\nName=Screensaver\nHidden=true\n" > ~/.config/autostart/xfce4-screensaver.desktop
+     ```
    - Register `/usr/local/share/xsessions/xfce-vmware-wayland.desktop` pointing to `/usr/local/bin/start-vmware-wayland xfce`, and clean `/usr/local/etc/lightdm/lightdm.conf` to show only the working Wayland & X11 fallback sessions:
      ```ini
      [LightDM]

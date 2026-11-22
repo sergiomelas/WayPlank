@@ -109,5 +109,16 @@ namespace Plank
 		{
 			return LinuxSysfsBacklight.monitor_device (backlight_device);
 		}
+
+		[CCode (cname = "wayplank_hal_kernel_probe_network_fallback")]
+		public static bool probe_network_fallback (out string conn_type, out string conn_name, out int wifi_strength, out string ip_address, out string gateway)
+		{
+			conn_type = "none";
+			conn_name = "";
+			wifi_strength = 0;
+			ip_address = "";
+			gateway = "";
+			return false;
+		}
 	}
 }

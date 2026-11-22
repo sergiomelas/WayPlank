@@ -269,6 +269,19 @@ namespace Plank
 				};
 			}
 
+			string fb_type, fb_name, fb_ip, fb_gw;
+			int fb_strength;
+			if (hal_kernel_probe_network_fallback (out fb_type, out fb_name, out fb_strength, out fb_ip, out fb_gw)) {
+				return NetworkState () {
+					is_connected = true,
+					connection_type = fb_type,
+					connection_name = fb_name,
+					wifi_strength = fb_strength,
+					ip_address = fb_ip,
+					gateway = fb_gw
+				};
+			}
+
 			var netmon = NetworkMonitor.get_default ();
 			if (netmon != null && netmon.get_network_available ()) {
 				return NetworkState () {

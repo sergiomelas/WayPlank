@@ -38,4 +38,29 @@ gboolean bsd_kernel_get_proc_env_hints (int pid,
 int     *bsd_kernel_get_child_pids (int pid, int *out_len);
 char   **bsd_kernel_get_open_fd_paths (int pid);
 
+/* Milestone B3: Hardware Telemetry, Audio OSS, Backlight & Network */
+gboolean bsd_kernel_read_cpu_ticks (guint64 *out_total, guint64 *out_idle);
+gboolean bsd_kernel_read_memory (guint64 *out_total_bytes, guint64 *out_avail_bytes);
+gboolean bsd_kernel_read_disk_busy_ms (guint64 *out_busy_ms);
+
+gboolean bsd_kernel_read_battery (gboolean *out_has_battery,
+                                  int *out_percentage,
+                                  gboolean *out_is_charging,
+                                  gboolean *out_is_full,
+                                  char **out_raw_status);
+
+gboolean bsd_kernel_oss_get_volume (int *out_percent);
+gboolean bsd_kernel_oss_set_volume (int percent);
+
+char   **bsd_kernel_backlight_list_devices (char **out_preferred, guint32 *out_max_raw);
+gboolean bsd_kernel_backlight_lid_is_open (void);
+gint64   bsd_kernel_backlight_read_raw (const char *device);
+gboolean bsd_kernel_backlight_write_raw (const char *device, guint32 raw_value);
+
+gboolean bsd_kernel_probe_network (char **out_type,
+                                   char **out_name,
+                                   int *out_strength,
+                                   char **out_ip,
+                                   char **out_gateway);
+
 G_END_DECLS

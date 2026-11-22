@@ -61,6 +61,9 @@ namespace Plank
 	[CCode (cname = "wayplank_hal_kernel_backlight_monitor_device")]
 	extern GLib.FileMonitor? hal_kernel_backlight_monitor_device (string backlight_device);
 
+	[CCode (cname = "wayplank_hal_kernel_probe_network_fallback")]
+	extern bool hal_kernel_probe_network_fallback (out string conn_type, out string conn_name, out int wifi_strength, out string ip_address, out string gateway);
+
 	/**
 	 * Pure 1-to-1 pass-through adapter bridging the northbound OS-blind
 	 * `IWindowBackend` translator contract directly to the untouched

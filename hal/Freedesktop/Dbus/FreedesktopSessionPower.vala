@@ -84,14 +84,71 @@ namespace Plank
 			}
 		}
 
+		static bool query_consolekit_capability (string method_name)
+		{
+			try {
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus == null)
+					return false;
+				var res = bus.call_sync (
+					"org.freedesktop.ConsoleKit",
+					"/org/freedesktop/ConsoleKit/Manager",
+					"org.freedesktop.ConsoleKit.Manager",
+					method_name,
+					null,
+					null,
+					DBusCallFlags.NO_AUTO_START,
+					1000,
+					null
+				);
+				if (res.is_of_type (new VariantType ("(s)"))) {
+					string status = "";
+					res.get ("(s)", out status);
+					return (status == "yes" || status == "challenge");
+				}
+				if (res.is_of_type (new VariantType ("(b)"))) {
+					bool ok = false;
+					res.get ("(b)", out ok);
+					return ok;
+				}
+			} catch (Error e) {
+				debug ("FreedesktopSessionPower: ConsoleKit %s query failed: %s", method_name, e.message);
+			}
+			return false;
+		}
+
+		static bool call_consolekit_action (string method_name, bool has_interactive_arg)
+		{
+			try {
+				var bus = DbusBroker.get_default ().get_system_bus ();
+				if (bus == null)
+					return false;
+				bus.call_sync (
+					"org.freedesktop.ConsoleKit",
+					"/org/freedesktop/ConsoleKit/Manager",
+					"org.freedesktop.ConsoleKit.Manager",
+					method_name,
+					has_interactive_arg ? new Variant ("(b)", true) : null,
+					null,
+					DBusCallFlags.NO_AUTO_START,
+					1500,
+					null
+				);
+				return true;
+			} catch (Error e) {
+				debug ("FreedesktopSessionPower: ConsoleKit %s failed: %s", method_name, e.message);
+				return false;
+			}
+		}
+
 		public bool can_hibernate ()
 		{
-			return query_login1_capability ("CanHibernate");
+			return query_login1_capability ("CanHibernate") || query_consolekit_capability ("CanHibernate");
 		}
 
 		public bool can_hybrid_sleep ()
 		{
-			return query_login1_capability ("CanHybridSleep");
+			return query_login1_capability ("CanHybridSleep") || query_consolekit_capability ("CanHybridSleep");
 		}
 
 		public bool can_reboot_to_firmware ()
@@ -275,10 +332,20 @@ namespace Plank
 		public void suspend ()
 		{
 			debug ("FreedesktopSessionPower: suspending system");
-			try {
-				Process.spawn_command_line_async ("systemctl suspend");
+			if (Environment.find_program_in_path ("systemctl") != null) {
+				try {
+					Process.spawn_command_line_async ("systemctl suspend");
+					return;
+				} catch (Error e) { }
+			}
+			if (call_consolekit_action ("Suspend", true))
 				return;
-			} catch (Error e) { }
+			if (Environment.find_program_in_path ("acpiconf") != null) {
+				try {
+					Process.spawn_command_line_async ("acpiconf -s 3");
+					return;
+				} catch (Error e) { }
+			}
 			try {
 				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Suspend true");
 			} catch (Error e) {
@@ -289,10 +356,14 @@ namespace Plank
 		public void hibernate ()
 		{
 			debug ("FreedesktopSessionPower: hibernating system");
-			try {
-				Process.spawn_command_line_async ("systemctl hibernate");
+			if (Environment.find_program_in_path ("systemctl") != null) {
+				try {
+					Process.spawn_command_line_async ("systemctl hibernate");
+					return;
+				} catch (Error e) { }
+			}
+			if (call_consolekit_action ("Hibernate", true))
 				return;
-			} catch (Error e) { }
 			try {
 				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Hibernate true");
 			} catch (Error e) {
@@ -303,10 +374,14 @@ namespace Plank
 		public void hybrid_sleep ()
 		{
 			debug ("FreedesktopSessionPower: hybrid-sleeping system");
-			try {
-				Process.spawn_command_line_async ("systemctl hybrid-sleep");
+			if (Environment.find_program_in_path ("systemctl") != null) {
+				try {
+					Process.spawn_command_line_async ("systemctl hybrid-sleep");
+					return;
+				} catch (Error e) { }
+			}
+			if (call_consolekit_action ("HybridSleep", true))
 				return;
-			} catch (Error e) { }
 			try {
 				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.HybridSleep true");
 			} catch (Error e) {
@@ -401,20 +476,34 @@ namespace Plank
 				} catch (Error e) { }
 			}
 
-			try {
-				Process.spawn_command_line_async ("systemctl reboot");
-				return;
-			} catch (Error e) { }
+			if (Environment.find_program_in_path ("systemctl") != null) {
+				try {
+					Process.spawn_command_line_async ("systemctl reboot");
+					return;
+				} catch (Error e) { }
+			}
 
-			try {
-				Process.spawn_command_line_async ("loginctl reboot");
+			if (Environment.find_program_in_path ("loginctl") != null) {
+				try {
+					Process.spawn_command_line_async ("loginctl reboot");
+					return;
+				} catch (Error e) { }
+			}
+
+			if (call_consolekit_action ("Restart", false))
 				return;
-			} catch (Error e) { }
 
 			try {
 				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.Reboot false");
 				return;
 			} catch (Error e) { }
+
+			if (Environment.find_program_in_path ("shutdown") != null) {
+				try {
+					Process.spawn_command_line_async ("shutdown -r now");
+					return;
+				} catch (Error e) { }
+			}
 
 			try {
 				Process.spawn_command_line_async ("reboot");
@@ -434,20 +523,34 @@ namespace Plank
 				} catch (Error e) { }
 			}
 
-			try {
-				Process.spawn_command_line_async ("systemctl poweroff");
-				return;
-			} catch (Error e) { }
+			if (Environment.find_program_in_path ("systemctl") != null) {
+				try {
+					Process.spawn_command_line_async ("systemctl poweroff");
+					return;
+				} catch (Error e) { }
+			}
 
-			try {
-				Process.spawn_command_line_async ("loginctl poweroff");
+			if (Environment.find_program_in_path ("loginctl") != null) {
+				try {
+					Process.spawn_command_line_async ("loginctl poweroff");
+					return;
+				} catch (Error e) { }
+			}
+
+			if (call_consolekit_action ("Stop", false))
 				return;
-			} catch (Error e) { }
 
 			try {
 				Process.spawn_command_line_async ("gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 --method org.freedesktop.login1.Manager.PowerOff false");
 				return;
 			} catch (Error e) { }
+
+			if (Environment.find_program_in_path ("shutdown") != null) {
+				try {
+					Process.spawn_command_line_async ("shutdown -p now");
+					return;
+				} catch (Error e) { }
+			}
 
 			try {
 				Process.spawn_command_line_async ("poweroff");

@@ -34,4 +34,13 @@ namespace Plank.BsdKernelBridge
 
 	[CCode (cname = "bsd_kernel_get_proc_argv", array_length = false, array_null_terminated = true)]
 	public string[]? get_proc_argv (int pid);
+
+	[CCode (cname = "bsd_kernel_get_proc_env_hints")]
+	public bool get_proc_env_hints (int pid, out string appimage, out string wineprefix);
+
+	[CCode (cname = "bsd_kernel_get_child_pids", array_length_type = "int")]
+	public int[] get_child_pids (int pid);
+
+	[CCode (cname = "bsd_kernel_get_open_fd_paths", array_length = false, array_null_terminated = true)]
+	public string[]? get_open_fd_paths (int pid);
 }

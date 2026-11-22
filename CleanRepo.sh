@@ -112,7 +112,8 @@ fi
 # 3. Temporary C & packaging staging directories
 remove_path "build_workspace"
 remove_path "build/win_c"
-for tmp_dir in build/deb_* build/rpm_* build/nsis* build/staging*; do
+remove_path "build/windows/win_c"
+for tmp_dir in build/deb_* build/rpm_* build/nsis* build/staging* build/*/deb_* build/*/rpm_* build/*/nsis* build/*/staging*; do
     [ -e "$tmp_dir" ] && remove_path "$tmp_dir"
 done
 
@@ -123,9 +124,11 @@ remove_path "data/.plank.build.gresource.xml"
 remove_path "data/.plank.win.gresource.xml"
 remove_path "lib/resources.c"
 
-# 5. Stale older-version packages in build/ (keep current VERSION)
+# 5. Stale older-version packages in build/{linux,bsd,windows}/ (keep current VERSION)
 if [ -n "$CURRENT_VER" ] && [ -d "build" ]; then
-    for pkg in build/wayplank_*.deb build/wayplank-*.rpm build/WayPlank-*-Setup.exe; do
+    for pkg in build/wayplank_*.deb build/wayplank-*.rpm build/WayPlank-*-Setup.exe \
+               build/linux/wayplank_*.deb build/linux/wayplank-*.rpm \
+               build/bsd/wayplank-*.pkg build/windows/WayPlank-*-Setup.exe; do
         [ -e "$pkg" ] || continue
         case "$pkg" in
             *"${CURRENT_VER}"*) ;; # keep current version

@@ -31,4 +31,5 @@ next_steps*
 deps/*
 !deps/README.md
 build/win_c/
+build/windows/win_c/
 data/.plank.win.gresource.xml

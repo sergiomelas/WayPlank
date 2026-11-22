@@ -32,5 +32,10 @@ gboolean bsd_kernel_get_proc_basic (int pid,
                                     char **out_exe_path,
                                     char **out_cwd);
 char   **bsd_kernel_get_proc_argv (int pid);
+gboolean bsd_kernel_get_proc_env_hints (int pid,
+                                        char **out_appimage,
+                                        char **out_wineprefix);
+int     *bsd_kernel_get_child_pids (int pid, int *out_len);
+char   **bsd_kernel_get_open_fd_paths (int pid);
 
 G_END_DECLS

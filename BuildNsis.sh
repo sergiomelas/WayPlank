@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#  WayPlank Windows NSIS Installer Packager (Linux-hosted -> build/WayPlank-<ver>-Setup.exe)
+#  WayPlank Windows NSIS Installer Packager (Linux-hosted -> build/windows/WayPlank-<ver>-Setup.exe)
 #  Mirrors BuildDeb.sh / BuildRpm.sh: invokes ./BuildWin.sh first, then packages via makensis.
 #
 set -euo pipefail
@@ -45,7 +45,7 @@ PKG_COMPANY="$(read_version_key Release CompanyName)"
 PKG_HOMEPAGE="$(read_version_key Release Homepage)"
 [ -z "$PKG_DECO" ] && PKG_DECO="Public Beta"
 
-OUT_DIR="${BASE_DIR}/build"
+OUT_DIR="${BASE_DIR}/build/windows"
 EXE_PATH="${OUT_DIR}/wayplank.exe"
 SETUP_OUT="${OUT_DIR}/WayPlank-${PKG_VER}-Setup.exe"
 NSI_FILE="${OUT_DIR}/.wayplank-installer.nsi"

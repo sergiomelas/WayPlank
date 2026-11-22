@@ -60,7 +60,7 @@ PKG_EMAIL="$(read_version_key Release CopyrightEmail)"
 PKG_HOMEPAGE="$(read_version_key Release Homepage)"
 MAINTAINER="${PKG_HOLDER} <${PKG_EMAIL}>"
 RPM_TOPDIR="${BASE_DIR}/build_rpm_workspace"
-OUT_DIR="${BASE_DIR}/build"
+OUT_DIR="${BASE_DIR}/build/linux"
 ARCH="$(uname -m)"
 
 echo ""

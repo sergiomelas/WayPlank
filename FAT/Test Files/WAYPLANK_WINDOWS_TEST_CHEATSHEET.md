@@ -1,20 +1,20 @@
 # 🪟 WayPlank Windows Testing Cheatsheet (`Win 7 ⟷ 11+`)
 
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Target Assets:** `build/wayplank.exe` (Zero-DLL Portable) • `build/WayPlank-<ver>-Setup.exe` (64-bit NSIS Installer)
+> **Target Assets:** `build/windows/wayplank.exe` (Zero-DLL Portable) • `build/windows/WayPlank-<ver>-Setup.exe` (64-bit NSIS Installer)
 
 ---
 
 ## 1. Building on Linux Host
 ```bash
-# Build portable Zero-DLL build/wayplank.exe (uses cached deps/win32/sysroot):
+# Build portable Zero-DLL build/windows/wayplank.exe (uses cached deps/win32/sysroot):
 WAYPLANK_NO_PROMPT=1 ./BuildWin.sh
 
-# Build portable build/wayplank.exe + 64-bit NSIS installer build/WayPlank-0.7.3.2-Setup.exe:
+# Build portable build/windows/wayplank.exe + 64-bit NSIS installer build/windows/WayPlank-0.7.3.2-Setup.exe:
 WAYPLANK_NO_PROMPT=1 ./BuildNsis.sh
 
 # Verify Zero-DLL evergreen OS import allowlist manually:
-x86_64-w64-mingw32-objdump -p build/wayplank.exe | grep "DLL Name:"
+x86_64-w64-mingw32-objdump -p build/windows/wayplank.exe | grep "DLL Name:"
 ```
 
 ## 2. Installing & Running on Windows 10/11 (Virtual Machine / Bare Metal)
@@ -127,5 +127,5 @@ Works on any desktop or server hypervisor (**QEMU/KVM `virt-manager`**, **Virtua
 8. **Native FreeBSD Build (`8-Gate Firewall`) & Verbose Launch:**
    ```sh
    cd ~/WayPlank && WAYPLANK_NO_PROMPT=1 ./BuildBsd.sh
-   GSETTINGS_SCHEMA_DIR="$PWD/data/glib-2.0/schemas" ./build/wayplank -v
+   GSETTINGS_SCHEMA_DIR="$PWD/data/glib-2.0/schemas" ./build/bsd/wayplank -v
    ```

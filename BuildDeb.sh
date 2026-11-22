@@ -47,7 +47,7 @@ PKG_HOLDER="$(read_version_key Release CopyrightHolder)"
 PKG_EMAIL="$(read_version_key Release CopyrightEmail)"
 PKG_HOMEPAGE="$(read_version_key Release Homepage)"
 BUILD_DIR="${BASE_DIR}/build_workspace"
-OUT_DIR="${BASE_DIR}/build"
+OUT_DIR="${BASE_DIR}/build/linux"
 ARCH="$(dpkg --print-architecture)"
 
 export DEBFULLNAME="${PKG_HOLDER}"

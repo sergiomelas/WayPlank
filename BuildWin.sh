@@ -18,7 +18,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #  WayPlank v0.7.3 — 100% Linux-Hosted Zero-DLL PE32+ Cross-Build Pipeline
-#  Target: build/wayplank.exe (Windows 7 <-> 11+, 0 external DLLs)
+#  Target: build/windows/wayplank.exe (Windows 7 <-> 11+, 0 external DLLs)
 #  Governed by: Documentation/Architecture/HAL_WINDOWS_BACKEND.md
 #
 set -euo pipefail
@@ -43,7 +43,7 @@ IFS='.' read -r _v1 _v2 _v3 _v4 _vrest <<< "${PKG_VER}.0.0.0"
 PKG_VER_4="${_v1}.${_v2}.${_v3}.${_v4}"
 PKG_VER_CSV="${_v1},${_v2},${_v3},${_v4}"
 
-OUT_DIR="${BASE_DIR}/build"
+OUT_DIR="${BASE_DIR}/build/windows"
 WIN_C_DIR="${OUT_DIR}/win_c"
 DEPS_DIR="${BASE_DIR}/deps/win32"
 SRC_CACHE="${DEPS_DIR}/src"

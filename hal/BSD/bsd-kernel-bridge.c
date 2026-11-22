@@ -212,6 +212,156 @@ bsd_kernel_get_proc_argv (int pid)
 	return result;
 }
 
+gboolean
+bsd_kernel_get_proc_env_hints (int pid,
+                               char **out_appimage,
+                               char **out_wineprefix)
+{
+	struct procstat *prstat;
+	struct kinfo_proc *procs;
+	unsigned int cnt = 0;
+	char **envv;
+	gboolean ok = FALSE;
+
+	if (out_appimage != NULL)
+		*out_appimage = g_strdup ("");
+	if (out_wineprefix != NULL)
+		*out_wineprefix = g_strdup ("");
+
+	if (pid <= 0)
+		return FALSE;
+
+	prstat = procstat_open_sysctl ();
+	if (prstat == NULL)
+		return FALSE;
+
+	procs = procstat_getprocs (prstat, KERN_PROC_PID, pid, &cnt);
+	if (procs != NULL && cnt > 0) {
+		ok = TRUE;
+		envv = procstat_getenvv (prstat, &procs[0], 0);
+		if (envv != NULL) {
+			gboolean found_appimage = (out_appimage == NULL);
+			gboolean found_wineprefix = (out_wineprefix == NULL);
+			for (size_t i = 0; envv[i] != NULL && !(found_appimage && found_wineprefix); i++) {
+				if (!found_appimage && g_str_has_prefix (envv[i], "APPIMAGE=")) {
+					char *val = g_strstrip (g_strdup (envv[i] + 9));
+					if (val[0] != '\0' && g_file_test (val, G_FILE_TEST_EXISTS)) {
+						g_free (*out_appimage);
+						*out_appimage = val;
+						found_appimage = TRUE;
+					} else {
+						g_free (val);
+					}
+				} else if (!found_wineprefix && g_str_has_prefix (envv[i], "WINEPREFIX=")) {
+					char *val = g_strstrip (g_strdup (envv[i] + 11));
+					g_free (*out_wineprefix);
+					*out_wineprefix = val;
+					found_wineprefix = TRUE;
+				}
+			}
+		}
+		procstat_freeprocs (prstat, procs);
+	}
+
+	procstat_close (prstat);
+	return ok;
+}
+
+int *
+bsd_kernel_get_child_pids (int pid, int *out_len)
+{
+	struct procstat *prstat;
+	struct kinfo_proc *procs;
+	unsigned int cnt = 0;
+	int *children = NULL;
+
+	if (out_len != NULL)
+		*out_len = 0;
+
+	if (pid <= 0)
+		return NULL;
+
+	prstat = procstat_open_sysctl ();
+	if (prstat == NULL)
+		return NULL;
+
+	procs = procstat_getprocs (prstat, KERN_PROC_PROC, 0, &cnt);
+	if (procs != NULL && cnt > 0) {
+		unsigned int i;
+		int match_cnt = 0;
+		for (i = 0; i < cnt; i++) {
+			if (procs[i].ki_ppid == (pid_t) pid &&
+			    procs[i].ki_pid > 0 &&
+			    procs[i].ki_pid != (pid_t) pid) {
+				match_cnt++;
+			}
+		}
+		if (match_cnt > 0) {
+			int idx = 0;
+			children = g_new (int, match_cnt);
+			for (i = 0; i < cnt && idx < match_cnt; i++) {
+				if (procs[i].ki_ppid == (pid_t) pid &&
+				    procs[i].ki_pid > 0 &&
+				    procs[i].ki_pid != (pid_t) pid) {
+					children[idx++] = (int) procs[i].ki_pid;
+				}
+			}
+			if (out_len != NULL)
+				*out_len = idx;
+		}
+		procstat_freeprocs (prstat, procs);
+	}
+
+	procstat_close (prstat);
+	return children;
+}
+
+char **
+bsd_kernel_get_open_fd_paths (int pid)
+{
+	struct procstat *prstat;
+	struct kinfo_proc *procs;
+	unsigned int cnt = 0;
+	struct filestat_list *head;
+	struct filestat *fst;
+	GPtrArray *paths;
+
+	if (pid <= 0)
+		return NULL;
+
+	prstat = procstat_open_sysctl ();
+	if (prstat == NULL)
+		return NULL;
+
+	procs = procstat_getprocs (prstat, KERN_PROC_PID, pid, &cnt);
+	if (procs == NULL || cnt == 0) {
+		if (procs != NULL)
+			procstat_freeprocs (prstat, procs);
+		procstat_close (prstat);
+		return NULL;
+	}
+
+	paths = g_ptr_array_new ();
+	head = procstat_getfiles (prstat, &procs[0], 0);
+	if (head != NULL) {
+		STAILQ_FOREACH (fst, head, next) {
+			if (fst->fs_type == PS_FST_TYPE_VNODE &&
+			    fst->fs_fd > 0 &&
+			    fst->fs_path != NULL &&
+			    fst->fs_path[0] != '\0') {
+				g_ptr_array_add (paths, g_strdup (fst->fs_path));
+			}
+		}
+		procstat_freefiles (prstat, head);
+	}
+
+	procstat_freeprocs (prstat, procs);
+	procstat_close (prstat);
+
+	g_ptr_array_add (paths, NULL);
+	return (char **) g_ptr_array_free (paths, FALSE);
+}
+
 #else
 
 gboolean
@@ -256,6 +406,35 @@ bsd_kernel_get_proc_basic (int pid,
 
 char **
 bsd_kernel_get_proc_argv (int pid)
+{
+	(void) pid;
+	return NULL;
+}
+
+gboolean
+bsd_kernel_get_proc_env_hints (int pid,
+                               char **out_appimage,
+                               char **out_wineprefix)
+{
+	(void) pid;
+	if (out_appimage != NULL)
+		*out_appimage = g_strdup ("");
+	if (out_wineprefix != NULL)
+		*out_wineprefix = g_strdup ("");
+	return FALSE;
+}
+
+int *
+bsd_kernel_get_child_pids (int pid, int *out_len)
+{
+	(void) pid;
+	if (out_len != NULL)
+		*out_len = 0;
+	return NULL;
+}
+
+char **
+bsd_kernel_get_open_fd_paths (int pid)
 {
 	(void) pid;
 	return NULL;

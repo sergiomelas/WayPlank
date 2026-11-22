@@ -41,7 +41,7 @@ PKG_YEAR="$(read_version_key Release Year)"
 PKG_HOMEPAGE="$(read_version_key Release Homepage)"
 PKG_ISSUES="$(read_version_key Release IssuesUrl)"
 [ -z "$PKG_DECO" ] && PKG_DECO="Public Beta"
-OUT_DIR="${BASE_DIR}/build"
+OUT_DIR="${BASE_DIR}/build/linux"
 BUILD_GRESOURCE_XML="${BASE_DIR}/data/.plank.build.gresource.xml"
 TMP_ISO_DIR=""
 

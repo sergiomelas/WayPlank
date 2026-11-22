@@ -80,6 +80,18 @@ win32_attach_parent_console (void)
 #define DWMWA_CLOAKED 14
 #endif
 
+#ifndef DWM_CLOAKED_SHELL
+#define DWM_CLOAKED_SHELL 0x00000002
+#endif
+
+#ifndef EVENT_OBJECT_CLOAKED
+#define EVENT_OBJECT_CLOAKED 0x8017
+#endif
+
+#ifndef EVENT_OBJECT_UNCLOAKED
+#define EVENT_OBJECT_UNCLOAKED 0x8018
+#endif
+
 #ifndef PW_RENDERFULLCONTENT
 #define PW_RENDERFULLCONTENT 0x00000002
 #endif
@@ -104,6 +116,25 @@ static const GUID WP_IID_IPropertyStore =
 	{ 0x886D8EEB, 0x8CF2, 0x4446, { 0x8D, 0x02, 0xCD, 0xBA, 0x1D, 0xBD, 0xCF, 0x99 } };
 static const PROPERTYKEY WP_PKEY_AppUserModel_ID =
 	{ { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3 } }, 5 };
+/* Official Windows 10/11 Shell COM IVirtualDesktopManager (ShObjIdl_core.h) */
+static const GUID WP_CLSID_VirtualDesktopManager =
+	{ 0xAA509086, 0x5CA9, 0x4C25, { 0x8F, 0x95, 0x58, 0x9D, 0x3C, 0x07, 0xB4, 0x8A } };
+static const GUID WP_IID_IVirtualDesktopManager =
+	{ 0xA5CD92FF, 0x29BE, 0x454C, { 0x8D, 0x04, 0xD8, 0x28, 0x79, 0xFB, 0x3F, 0x1B } };
+
+typedef struct WP_IVirtualDesktopManager WP_IVirtualDesktopManager;
+typedef struct {
+	HRESULT (STDMETHODCALLTYPE *QueryInterface) (WP_IVirtualDesktopManager *This, REFIID riid, void **ppvObject);
+	ULONG   (STDMETHODCALLTYPE *AddRef) (WP_IVirtualDesktopManager *This);
+	ULONG   (STDMETHODCALLTYPE *Release) (WP_IVirtualDesktopManager *This);
+	HRESULT (STDMETHODCALLTYPE *IsWindowOnCurrentVirtualDesktop) (WP_IVirtualDesktopManager *This, HWND topLevelWindow, BOOL *onCurrentDesktop);
+	HRESULT (STDMETHODCALLTYPE *GetWindowDesktopId) (WP_IVirtualDesktopManager *This, HWND topLevelWindow, GUID *desktopId);
+	HRESULT (STDMETHODCALLTYPE *MoveWindowToDesktop) (WP_IVirtualDesktopManager *This, HWND topLevelWindow, REFGUID desktopId);
+} WP_IVirtualDesktopManagerVtbl;
+
+struct WP_IVirtualDesktopManager {
+	const WP_IVirtualDesktopManagerVtbl *lpVtbl;
+};
 
 static PFN_DwmGetWindowAttribute pfn_DwmGetWindowAttribute = NULL;
 static PFN_GetDpiForWindow pfn_GetDpiForWindow = NULL;
@@ -320,6 +351,7 @@ win32_bridge_exit_immediately (int status_code)
 static HWINEVENTHOOK g_hook_sys = NULL;
 static HWINEVENTHOOK g_hook_obj = NULL;
 static HWINEVENTHOOK g_hook_loc = NULL;
+static HWINEVENTHOOK g_hook_cloak = NULL;
 static Win32WindowEventCallback g_event_cb = NULL;
 static void *g_event_user_data = NULL;
 static volatile gint g_event_pending = 0;
@@ -370,6 +402,29 @@ notify_ipc_async (int action_code)
 	if (g_ipc_cb == NULL)
 		return;
 	g_idle_add (dispatch_ipc_idle, GINT_TO_POINTER (action_code));
+}
+
+static Win32WindowEventCallback g_theme_cb = NULL;
+static void *g_theme_user_data = NULL;
+static volatile gint g_theme_pending = 0;
+
+static gboolean
+dispatch_theme_idle (gpointer user_data)
+{
+	(void) user_data;
+	g_atomic_int_set (&g_theme_pending, 0);
+	if (g_theme_cb != NULL)
+		g_theme_cb (g_theme_user_data);
+	return G_SOURCE_REMOVE;
+}
+
+static void
+notify_theme_async (void)
+{
+	if (g_theme_cb == NULL)
+		return;
+	if (g_atomic_int_compare_and_exchange (&g_theme_pending, 0, 1))
+		g_idle_add (dispatch_theme_idle, NULL);
 }
 
 static gboolean
@@ -460,6 +515,38 @@ win_event_proc (
 #endif /* _WIN32 */
 
 int
+win32_bridge_has_virtual_desktop_manager (void)
+{
+#ifdef _WIN32
+	static int cached = -1;
+	if (cached >= 0)
+		return cached;
+
+	HRESULT hr_co = CoInitializeEx (NULL, COINIT_APARTMENTTHREADED);
+	int did_init = (hr_co == S_OK || hr_co == S_FALSE);
+	WP_IVirtualDesktopManager *vdm = NULL;
+	HRESULT hr = CoCreateInstance (
+		&WP_CLSID_VirtualDesktopManager,
+		NULL,
+		CLSCTX_INPROC_SERVER,
+		&WP_IID_IVirtualDesktopManager,
+		(void **) &vdm
+	);
+	if (SUCCEEDED (hr) && vdm != NULL) {
+		vdm->lpVtbl->Release (vdm);
+		cached = 1;
+	} else {
+		cached = 0;
+	}
+	if (did_init)
+		CoUninitialize ();
+	return cached;
+#else
+	return 0;
+#endif
+}
+
+int
 win32_bridge_start_window_hooks (Win32WindowEventCallback cb, void *user_data)
 {
 #ifdef _WIN32
@@ -484,8 +571,13 @@ win32_bridge_start_window_hooks (Win32WindowEventCallback cb, void *user_data)
 		EVENT_OBJECT_NAMECHANGE,
 		NULL, win_event_proc, 0, 0, flags
 	);
+	g_hook_cloak = SetWinEventHook (
+		EVENT_OBJECT_CLOAKED,
+		EVENT_OBJECT_UNCLOAKED,
+		NULL, win_event_proc, 0, 0, flags
+	);
 
-	return (g_hook_sys != NULL || g_hook_obj != NULL || g_hook_loc != NULL) ? 1 : 0;
+	return (g_hook_sys != NULL || g_hook_obj != NULL || g_hook_loc != NULL || g_hook_cloak != NULL) ? 1 : 0;
 #else
 	(void) cb;
 	(void) user_data;
@@ -509,6 +601,10 @@ win32_bridge_stop_window_hooks (void)
 		UnhookWinEvent (g_hook_loc);
 		g_hook_loc = NULL;
 	}
+	if (g_hook_cloak != NULL) {
+		UnhookWinEvent (g_hook_cloak);
+		g_hook_cloak = NULL;
+	}
 	g_event_cb = NULL;
 	g_event_user_data = NULL;
 #endif
@@ -521,6 +617,19 @@ win32_bridge_set_resume_callback (Win32WindowEventCallback cb, void *user_data)
 	g_resume_cb = cb;
 	g_resume_user_data = user_data;
 	g_atomic_int_set (&g_resume_pending, 0);
+#else
+	(void) cb;
+	(void) user_data;
+#endif
+}
+
+void
+win32_bridge_set_theme_callback (Win32WindowEventCallback cb, void *user_data)
+{
+#ifdef _WIN32
+	g_theme_cb = cb;
+	g_theme_user_data = user_data;
+	g_atomic_int_set (&g_theme_pending, 0);
 #else
 	(void) cb;
 	(void) user_data;
@@ -605,17 +714,18 @@ typedef struct {
 	int off_y;
 	HANDLE proc_snap;
 	int proc_snap_tried;
+	WP_IVirtualDesktopManager *vdm;
 } EnumCtx;
 
-static int
-is_cloaked_window (HWND hwnd)
+static DWORD
+get_window_cloaked_flags (HWND hwnd)
 {
 	ensure_dynamic_apis ();
 	if (pfn_DwmGetWindowAttribute == NULL)
 		return 0;
 	DWORD cloaked = 0;
 	HRESULT hr = pfn_DwmGetWindowAttribute (hwnd, DWMWA_CLOAKED, &cloaked, sizeof (cloaked));
-	return (SUCCEEDED (hr) && cloaked != 0) ? 1 : 0;
+	return SUCCEEDED (hr) ? cloaked : 0;
 }
 
 static char *
@@ -738,8 +848,21 @@ enum_windows_proc (HWND hwnd, LPARAM lParam)
 	if (owner != NULL && (ex_style & WS_EX_APPWINDOW) == 0)
 		return TRUE;
 
-	if (is_cloaked_window (hwnd))
-		return TRUE;
+	int current_desktop = 1;
+	DWORD cloaked = get_window_cloaked_flags (hwnd);
+	if (cloaked != 0) {
+		if (cloaked == DWM_CLOAKED_SHELL && ctx->vdm != NULL) {
+			BOOL on_curr = TRUE;
+			HRESULT hr_vdm = ctx->vdm->lpVtbl->IsWindowOnCurrentVirtualDesktop (ctx->vdm, hwnd, &on_curr);
+			if (SUCCEEDED (hr_vdm) && !on_curr) {
+				current_desktop = 0;
+			} else {
+				return TRUE;
+			}
+		} else {
+			return TRUE;
+		}
+	}
 
 	WCHAR cls_w[256];
 	cls_w[0] = L'\0';
@@ -828,6 +951,7 @@ enum_windows_proc (HWND hwnd, LPARAM lParam)
 		fullscreen,
 		is_dialog,
 		0,
+		current_desktop,
 		ctx->user_data
 	);
 
@@ -860,8 +984,27 @@ win32_bridge_enum_windows (Win32EnumWindowCallback cb, void *user_data)
 			g_last_foreign_fg_hwnd = ctx.fg_hwnd;
 	}
 	ctx.proc_snap = INVALID_HANDLE_VALUE;
+	HRESULT hr_co = CoInitializeEx (NULL, COINIT_APARTMENTTHREADED);
+	int did_co_init = (hr_co == S_OK || hr_co == S_FALSE);
+	if (win32_bridge_has_virtual_desktop_manager ()) {
+		WP_IVirtualDesktopManager *vdm = NULL;
+		if (SUCCEEDED (CoCreateInstance (
+				&WP_CLSID_VirtualDesktopManager,
+				NULL,
+				CLSCTX_INPROC_SERVER,
+				&WP_IID_IVirtualDesktopManager,
+				(void **) &vdm)) && vdm != NULL) {
+			ctx.vdm = vdm;
+		}
+	}
 	win32_query_gdk_origin_offset (&ctx.off_x, &ctx.off_y);
 	EnumWindows (enum_windows_proc, (LPARAM) &ctx);
+	if (ctx.vdm != NULL) {
+		ctx.vdm->lpVtbl->Release (ctx.vdm);
+		ctx.vdm = NULL;
+	}
+	if (did_co_init)
+		CoUninitialize ();
 	if (ctx.proc_snap != INVALID_HANDLE_VALUE && ctx.proc_snap != NULL)
 		CloseHandle (ctx.proc_snap);
 #else
@@ -1361,6 +1504,11 @@ wayplank_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	if (msg == WM_DPICHANGED || (msg == WM_SETTINGCHANGE && wParam == SPI_SETWORKAREA)) {
 		invalidate_monitor_cache ();
+	}
+	if (msg == WM_SETTINGCHANGE && lParam != 0) {
+		const WCHAR *param_name = (const WCHAR *) lParam;
+		if (_wcsicmp (param_name, L"ImmersiveColorSet") == 0)
+			notify_theme_async ();
 	}
 
 	if ((msg == WM_POWERBROADCAST && (wParam == PBT_APMRESUMEAUTOMATIC || wParam == PBT_APMRESUMESUSPEND))

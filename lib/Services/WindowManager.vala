@@ -74,6 +74,19 @@ namespace Plank
 		Gee.HashMap<string, Gee.ArrayList<WindowInfo>> matches_cache;
 		Gee.HashSet<string> known_window_ids;
 		bool initial_browser_scan_done = false;
+		bool _filter_current_workspace = false;
+
+		public bool filter_current_workspace {
+			get { return _filter_current_workspace; }
+			set {
+				bool effective = value && Hal.Capabilities.supports_workspace_filtering;
+				if (_filter_current_workspace == effective)
+					return;
+				_filter_current_workspace = effective;
+				matches_cache.clear ();
+				windows_refreshed ();
+			}
+		}
 
 		public void clear_matches_cache ()
 		{
@@ -209,6 +222,8 @@ namespace Plank
 			var discovery = ApplicationDiscovery.get_default ();
 			var identity = identity_for_launcher (launcher_uri);
 			foreach (var window in cached_windows) {
+				if (_filter_current_workspace && !window.CurrentDesktop)
+					continue;
 				if (identity != null) {
 					if (discovery.is_best_launcher_for_window (launcher_uri, window))
 						result.add (window);

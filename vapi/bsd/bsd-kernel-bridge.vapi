@@ -74,6 +74,21 @@ namespace Plank.BsdKernelBridge
 	[CCode (cname = "bsd_kernel_backlight_write_raw")]
 	public bool backlight_write_raw (string device, uint32 raw_value);
 
+	[CCode (cname = "BsdNetInterfaceCallback", has_target = true)]
+	public delegate void NetInterfaceCallback (
+		string iface_id,
+		string display_name,
+		string kind,
+		int wifi_strength,
+		string ip_address,
+		string gateway,
+		uint64 rx_bytes,
+		uint64 tx_bytes
+	);
+
 	[CCode (cname = "bsd_kernel_probe_network")]
 	public bool probe_network (out string conn_type, out string conn_name, out int wifi_strength, out string ip_address, out string gateway);
+
+	[CCode (cname = "bsd_kernel_list_network_interfaces")]
+	public void list_network_interfaces (NetInterfaceCallback cb);
 }

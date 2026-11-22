@@ -737,24 +737,39 @@ namespace Plank
 				case "network-wireless-signal-excellent":
 				case "network-wireless-signal-excellent-symbolic":
 				case "network-wireless-connected-100":
+				case "network-wireless-100":
+				case "network-wireless-connected":
+				case "network-wireless":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-wireless-excellent.svg";
 				case "network-wireless-signal-good":
 				case "network-wireless-signal-good-symbolic":
 				case "network-wireless-connected-75":
+				case "network-wireless-80":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-wireless-good.svg";
 				case "network-wireless-signal-ok":
 				case "network-wireless-signal-ok-symbolic":
 				case "network-wireless-connected-50":
+				case "network-wireless-60":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-wireless-ok.svg";
 				case "network-wireless-signal-weak":
 				case "network-wireless-signal-weak-symbolic":
 				case "network-wireless-connected-25":
+				case "network-wireless-40":
+				case "network-wireless-20":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-wireless-weak.svg";
 				case "network-wireless-signal-none":
 				case "network-wireless-signal-none-symbolic":
-				case "network-wireless-connected":
-				case "network-wireless":
+				case "network-wireless-0":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-wireless-none.svg";
 				case "network-wired-activated":
 				case "network-wired":
 				case "network-workgroup":
 				case "network-idle":
-					return Plank.G_RESOURCE_PATH + "/docklets/network.svg";
+					return Plank.G_RESOURCE_PATH + "/docklets/network-wired.svg";
+				case "network-virtual":
+				case "network-vpn":
+				case "network-vpn-symbolic":
+					return Plank.G_RESOURCE_PATH + "/docklets/network-virtual.svg";
 				case "network-offline":
 				case "network-offline-symbolic":
 				case "network-error":

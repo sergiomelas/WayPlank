@@ -65,6 +65,7 @@ typedef void (*Win32EnumWindowCallback) (
 	int fullscreen,
 	int is_dialog,
 	int urgent,
+	int current_desktop,
 	void *user_data
 );
 
@@ -73,9 +74,11 @@ int win32_bridge_get_current_pid (void);
 void win32_bridge_exit_immediately (int status_code);
 
 /* Window tracking & control (Milestone W2) */
+int win32_bridge_has_virtual_desktop_manager (void);
 int win32_bridge_start_window_hooks (Win32WindowEventCallback cb, void *user_data);
 void win32_bridge_stop_window_hooks (void);
 void win32_bridge_set_resume_callback (Win32WindowEventCallback cb, void *user_data);
+void win32_bridge_set_theme_callback (Win32WindowEventCallback cb, void *user_data);
 void win32_bridge_set_deactivate_callback (Win32WindowEventCallback cb, void *user_data);
 void win32_bridge_set_ipc_callback (Win32IpcActionCallback cb, void *user_data);
 int win32_bridge_post_ipc_action (int action_code);

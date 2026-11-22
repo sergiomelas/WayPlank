@@ -99,12 +99,30 @@ namespace Plank
 	}
 
 	/**
+	 * Normalized active network interface snapshot with 64-bit byte counters
+	 * for multi-interface priority selection and live throughput telemetry.
+	 */
+	public class NetworkInterfaceInfo : GLib.Object
+	{
+		public string iface_id = "";
+		public string display_name = "";
+		/** One of "wifi", "ethernet", or "virtual". */
+		public string kind = "ethernet";
+		public int wifi_strength = 0;
+		public string ip_address = "";
+		public string gateway = "";
+		public uint64 rx_bytes = 0;
+		public uint64 tx_bytes = 0;
+	}
+
+	/**
 	 * Agnostic network connectivity & Wi-Fi strength provider (`NetworkDockItem`).
 	 */
 	public interface INetworkProvider : GLib.Object
 	{
 		public signal void network_changed ();
 		public abstract NetworkState probe_state_sync ();
+		public abstract Gee.ArrayList<NetworkInterfaceInfo> list_interfaces_sync ();
 		public abstract void cleanup ();
 	}
 
@@ -266,6 +284,12 @@ namespace Plank
 				gateway = ""
 			};
 		}
+
+		public Gee.ArrayList<NetworkInterfaceInfo> list_interfaces_sync ()
+		{
+			return new Gee.ArrayList<NetworkInterfaceInfo> ();
+		}
+
 		public void cleanup () {}
 	}
 

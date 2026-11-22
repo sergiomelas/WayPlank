@@ -68,7 +68,8 @@ namespace Win32Bridge
 		int maximized,
 		int fullscreen,
 		int is_dialog,
-		int urgent
+		int urgent,
+		int current_desktop
 	);
 
 	[CCode (cname = "win32_bridge_get_current_pid")]
@@ -76,6 +77,9 @@ namespace Win32Bridge
 
 	[CCode (cname = "win32_bridge_exit_immediately")]
 	public static void exit_immediately (int status_code);
+
+	[CCode (cname = "win32_bridge_has_virtual_desktop_manager")]
+	public static int has_virtual_desktop_manager ();
 
 	[CCode (cname = "win32_bridge_start_window_hooks")]
 	public static int start_window_hooks (WindowEventCallback cb);
@@ -85,6 +89,9 @@ namespace Win32Bridge
 
 	[CCode (cname = "win32_bridge_set_resume_callback")]
 	public static void set_resume_callback (WindowEventCallback? cb);
+
+	[CCode (cname = "win32_bridge_set_theme_callback")]
+	public static void set_theme_callback (WindowEventCallback? cb);
 
 	[CCode (cname = "win32_bridge_set_deactivate_callback")]
 	public static void set_deactivate_callback (WindowEventCallback? cb);

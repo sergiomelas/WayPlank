@@ -115,5 +115,24 @@ namespace Plank
 		{
 			return BsdKernelBridge.probe_network (out conn_type, out conn_name, out wifi_strength, out ip_address, out gateway);
 		}
+
+		[CCode (cname = "wayplank_hal_kernel_list_network_interfaces")]
+		public static Gee.ArrayList<NetworkInterfaceInfo> list_network_interfaces ()
+		{
+			var list = new Gee.ArrayList<NetworkInterfaceInfo> ();
+			BsdKernelBridge.list_network_interfaces ((iface_id, display_name, kind, wifi_strength, ip_address, gateway, rx_bytes, tx_bytes) => {
+				var info = new NetworkInterfaceInfo ();
+				info.iface_id = iface_id;
+				info.display_name = display_name;
+				info.kind = kind;
+				info.wifi_strength = wifi_strength;
+				info.ip_address = ip_address;
+				info.gateway = gateway;
+				info.rx_bytes = rx_bytes;
+				info.tx_bytes = tx_bytes;
+				list.add (info);
+			});
+			return list;
+		}
 	}
 }

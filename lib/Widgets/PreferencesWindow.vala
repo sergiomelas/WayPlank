@@ -107,6 +107,8 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Switch sw_primary_display;
 		[GtkChild]
+		unowned Gtk.Label l_workspace_only;
+		[GtkChild]
 		unowned Gtk.Switch sw_workspace_only;
 		[GtkChild]
 		unowned Gtk.Label l_show_unpinned;
@@ -767,8 +769,7 @@ namespace Plank
 				update_alignment_sensitivity ();
 				break;
 			case "CurrentWorkspaceOnly":
-				sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
-				sw_workspace_only.sensitive = false;
+				update_workspace_only_control ();
 				break;
 			case "IconSize":
 				adj_iconsize.value = prefs.IconSize;
@@ -1359,6 +1360,25 @@ namespace Plank
 			retain_preferences_focus (sw_primary_display);
 		}
 		
+		void update_workspace_only_control ()
+		{
+			bool ws_supported = Hal.Capabilities.supports_workspace_filtering;
+			sw_workspace_only.sensitive = ws_supported;
+			l_workspace_only.sensitive = ws_supported;
+			sw_workspace_only.set_active (ws_supported && prefs.CurrentWorkspaceOnly);
+			string tip;
+			if (ws_supported) {
+				tip = _("Show only windows and running indicators from the current workspace");
+			} else {
+				string reason = Hal.Capabilities.workspace_filtering_unavailable_reason;
+				tip = (reason.length > 0)
+					? reason
+					: _("Workspace filtering is not supported by this compositor");
+			}
+			sw_workspace_only.tooltip_text = tip;
+			l_workspace_only.tooltip_text = tip;
+		}
+
 		void workspace_only_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.CurrentWorkspaceOnly = ((Gtk.Switch) widget).get_active ();
@@ -2069,9 +2089,7 @@ namespace Plank
 			bool primary_supported = Hal.Capabilities.supports_primary_display;
 			sw_primary_display.set_active (primary_supported && prefs.Monitor == "");
 			update_placement_collision_sensitivity ();
-			sw_workspace_only.set_active (prefs.CurrentWorkspaceOnly);
-			sw_workspace_only.sensitive = false;
-			sw_workspace_only.tooltip_text = _("Workspace filtering is not yet supported under Wayland");
+			update_workspace_only_control ();
 			sw_autostart.set_active (Hal.Runtime.is_autostart_enabled ());
 			bool can_show_unpinned = (prefs.dock_name == "dock1");
 			l_show_unpinned.sensitive = can_show_unpinned;
@@ -2286,48 +2304,49 @@ namespace Plank
 			updating_docklets = false;
 		}
 
-		void ensure_docklet_icon (Gtk.Image? img, string system_icon_names, string fallback_resource)
+		void ensure_docklet_icon (Gtk.Image? img, string docklet_uri, string system_icon_names)
 		{
 			if (img == null)
 				return;
-			
-			string? matched = null;
-			foreach (var name in system_icon_names.split (";;")) {
-				if (DrawingService.theme_has_icon (name)) {
-					matched = name;
-					break;
+
+			string spec = system_icon_names;
+			if (controller != null && controller.default_provider != null) {
+				unowned DefaultApplicationDockItemProvider? default_provider = controller.default_provider as DefaultApplicationDockItemProvider;
+				if (default_provider != null) {
+					var active = default_provider.item_for_uri (docklet_uri);
+					if (active != null && active.Icon != null && active.Icon != "")
+						spec = active.Icon;
 				}
 			}
 
-			if (matched != null) {
-				img.set_from_icon_name (matched, Gtk.IconSize.DND);
-			} else {
-				try {
-					var pb = new Gdk.Pixbuf.from_resource_at_scale (fallback_resource, 35, 35, true);
+			int scale = int.max (1, get_scale_factor ());
+			int px = 36 * scale;
+			var pb = DrawingService.load_icon (spec, px, px);
+			if (pb != null) {
+				var surf = Gdk.cairo_surface_create_from_pixbuf (pb, scale, img.get_window ());
+				if (surf != null)
+					img.set_from_surface (surf);
+				else
 					img.set_from_pixbuf (pb);
-				} catch (GLib.Error e) {
-					img.set_from_icon_name (system_icon_names.split (";;")[0], Gtk.IconSize.DND);
-				}
 			}
-			img.pixel_size = 35;
 		}
 
 		void update_docklet_icons ()
 		{
-			ensure_docklet_icon (img_docklet_cpu, "utilities-system-monitor", "/net/launchpad/plank/docklets/cpu.svg");
-			ensure_docklet_icon (img_docklet_clock, "preferences-system-time", "/net/launchpad/plank/docklets/clock.svg");
-			ensure_docklet_icon (img_docklet_desktop, "user-desktop", "/net/launchpad/plank/docklets/desktop.svg");
-			ensure_docklet_icon (img_docklet_digital_clock, "org.kde.plasma.digitalclock", "/net/launchpad/plank/docklets/digital-clock.svg");
-			ensure_docklet_icon (img_docklet_mpris, "gnome-mplayer;;applications-multimedia;;multimedia-player", "/net/launchpad/plank/docklets/mpris.svg");
-			ensure_docklet_icon (img_docklet_battery, "battery-full", "/net/launchpad/plank/docklets/battery.svg");
-			ensure_docklet_icon (img_docklet_volume, "audio-volume-high;;volume-level-high", "/net/launchpad/plank/docklets/volume-high.svg");
-			ensure_docklet_icon (img_docklet_screenshot, "applets-screenshooter", "/net/launchpad/plank/docklets/screenshot.svg");
-			ensure_docklet_icon (img_docklet_session, "system-shutdown", "/net/launchpad/plank/docklets/session.svg");
-			ensure_docklet_icon (img_docklet_brightness, BrightnessDockItem.get_brightness_icon_name (100), "/net/launchpad/plank/docklets/brightness.svg");
-			ensure_docklet_icon (img_docklet_ejector, "media-eject", "/net/launchpad/plank/docklets/ejector.svg");
-			ensure_docklet_icon (img_docklet_weather, "weather-few-clouds", "/net/launchpad/plank/docklets/weather.svg");
-			ensure_docklet_icon (img_docklet_network, "network-wireless-signal-good", "/net/launchpad/plank/docklets/network.svg");
-			ensure_docklet_icon (img_docklet_dnd, "preferences-desktop-notification-bell;;notifications", "/net/launchpad/plank/docklets/dnd.svg");
+			ensure_docklet_icon (img_docklet_cpu, "docklet://cpu", "utilities-system-monitor");
+			ensure_docklet_icon (img_docklet_clock, "docklet://clock", "preferences-system-time");
+			ensure_docklet_icon (img_docklet_desktop, "docklet://desktop", "user-desktop;;desktop;;user-home;;computer");
+			ensure_docklet_icon (img_docklet_digital_clock, "docklet://digital-clock", "org.kde.plasma.digitalclock;;preferences-system-time");
+			ensure_docklet_icon (img_docklet_mpris, "docklet://mpris", "gnome-mplayer;;applications-multimedia;;audio-player;;multimedia-player");
+			ensure_docklet_icon (img_docklet_battery, "docklet://battery", "battery-full");
+			ensure_docklet_icon (img_docklet_volume, "docklet://volume", "audio-volume-high;;volume-level-high;;stock_volume-max");
+			ensure_docklet_icon (img_docklet_screenshot, "docklet://screenshot", "applets-screenshooter;;accessories-screenshot-tool;;spectacle;;org.kde.spectacle;;camera-photo;;screengrab");
+			ensure_docklet_icon (img_docklet_session, "docklet://session", "system-shutdown;;system-shutdown-symbolic;;xfsm-shutdown;;application-exit");
+			ensure_docklet_icon (img_docklet_brightness, "docklet://brightness", BrightnessDockItem.get_brightness_icon_name (100));
+			ensure_docklet_icon (img_docklet_ejector, "docklet://ejector", "media-eject;;drive-removable-media;;media-eject-symbolic");
+			ensure_docklet_icon (img_docklet_weather, "docklet://weather", "weather-few-clouds;;weather-clear;;weather");
+			ensure_docklet_icon (img_docklet_network, "docklet://network", "network-wireless-signal-good;;network-wireless-80;;network-wireless-signal-good-symbolic;;network-wired");
+			ensure_docklet_icon (img_docklet_dnd, "docklet://dnd", "preferences-desktop-notification-bell;;notifications;;preferences-system-notifications;;notification-symbolic");
 		}
 	}
 }

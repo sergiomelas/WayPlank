@@ -36,9 +36,11 @@
 #include <ole2.h>
 #include <objbase.h>
 #include <oleauto.h>
+#include <propsys.h>
 #include <wbemcli.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <shobjidl.h>
 #include <mmdeviceapi.h>
 #include <endpointvolume.h>
 #include <stdlib.h>
@@ -55,6 +57,24 @@ static const GUID WP_IID_IMMDeviceEnumerator =
 	{ 0xA95664D2, 0x9614, 0x4F35, { 0xA7, 0x46, 0xDE, 0x8D, 0xB6, 0x36, 0x17, 0xE6 } };
 static const GUID WP_IID_IAudioEndpointVolume =
 	{ 0x5CDF2C82, 0x841E, 0x4546, { 0x97, 0x22, 0x0C, 0xF7, 0x40, 0x78, 0x22, 0x9A } };
+static const GUID WP_SYS_FOLDERID_RecycleBinFolder =
+	{ 0xB7534046, 0x3ECB, 0x4C18, { 0xBE, 0x4E, 0x64, 0xCD, 0x4C, 0xB7, 0xD6, 0xAC } };
+static const GUID WP_SYS_BHID_EnumItems =
+	{ 0x94F60519, 0x2850, 0x4924, { 0xAA, 0x5A, 0xD1, 0x5E, 0x84, 0x86, 0x80, 0x39 } };
+static const GUID WP_SYS_BHID_SFUIObject =
+	{ 0x3981E225, 0xF559, 0x11D3, { 0x8E, 0x3A, 0x00, 0xC0, 0x4F, 0x68, 0x37, 0xD5 } };
+static const GUID WP_SYS_IID_IShellItem =
+	{ 0x43826D1E, 0xE718, 0x42EE, { 0xBC, 0x55, 0xA1, 0xE2, 0x61, 0xC3, 0x7B, 0xFE } };
+static const GUID WP_SYS_IID_IShellItem2 =
+	{ 0x7E9FB0D3, 0x919F, 0x4307, { 0xAB, 0x2E, 0x9B, 0x18, 0x60, 0x31, 0x0C, 0x93 } };
+static const GUID WP_SYS_IID_IEnumShellItems =
+	{ 0x70629033, 0xE363, 0x4A28, { 0xA5, 0x67, 0x0D, 0xB7, 0x80, 0x06, 0xE6, 0xD7 } };
+static const GUID WP_SYS_IID_IContextMenu =
+	{ 0x000214E4, 0x0000, 0x0000, { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
+static const PROPERTYKEY WP_SYS_PKEY_Recycle_DeletedFrom =
+	{ { 0x9B174B33, 0x40FF, 0x11D2, { 0xA2, 0x7E, 0x00, 0xC0, 0x4F, 0xC3, 0x08, 0x71 } }, 2 };
+
+typedef HRESULT (WINAPI *PFN_Sys_SHGetKnownFolderItem) (REFKNOWNFOLDERID rfid, DWORD flags, HANDLE hToken, REFIID riid, void **ppv);
 
 static int
 sys_com_enter (void)
@@ -164,6 +184,191 @@ win32_sys_trash_open_ui (void)
 {
 #ifdef _WIN32
 	ShellExecuteW (NULL, L"open", L"shell:RecycleBinFolder", NULL, NULL, SW_SHOWNORMAL);
+#endif
+}
+
+#ifdef _WIN32
+static PFN_Sys_SHGetKnownFolderItem
+sys_get_sh_known_folder_item (void)
+{
+	static PFN_Sys_SHGetKnownFolderItem pfn = NULL;
+	static int resolved = 0;
+	if (!resolved) {
+		resolved = 1;
+		HMODULE hShell = GetModuleHandleW (L"shell32.dll");
+		if (hShell == NULL)
+			hShell = LoadLibraryW (L"shell32.dll");
+		if (hShell != NULL)
+			pfn = (PFN_Sys_SHGetKnownFolderItem) (void *) GetProcAddress (hShell, "SHGetKnownFolderItem");
+	}
+	return pfn;
+}
+
+static int
+sys_trash_invoke_verb_by_id (const char *id, const char *verb)
+{
+	if (id == NULL || id[0] == '\0' || verb == NULL || verb[0] == '\0')
+		return 0;
+	PFN_Sys_SHGetKnownFolderItem pfn = sys_get_sh_known_folder_item ();
+	if (pfn == NULL)
+		return 0;
+
+	HRESULT com_hr = CoInitializeEx (NULL, COINIT_APARTMENTTHREADED);
+	int did_com = SUCCEEDED (com_hr) ? 1 : 0;
+
+	IShellItem *rb = NULL;
+	HRESULT hr = pfn (&WP_SYS_FOLDERID_RecycleBinFolder, 0, NULL, &WP_SYS_IID_IShellItem, (void **) &rb);
+	if (FAILED (hr) || rb == NULL) {
+		if (did_com) CoUninitialize ();
+		return 0;
+	}
+
+	IEnumShellItems *en = NULL;
+	hr = IShellItem_BindToHandler (rb, NULL, &WP_SYS_BHID_EnumItems, &WP_SYS_IID_IEnumShellItems, (void **) &en);
+	IShellItem_Release (rb);
+
+	int invoked = 0;
+	if (SUCCEEDED (hr) && en != NULL) {
+		IShellItem *item = NULL;
+		ULONG fetched = 0;
+		while (IEnumShellItems_Next (en, 1, &item, &fetched) == S_OK && fetched == 1 && item != NULL) {
+			PWSTR wparse = NULL;
+			int matched = 0;
+			if (SUCCEEDED (IShellItem_GetDisplayName (item, SIGDN_DESKTOPABSOLUTEPARSING, &wparse)) && wparse != NULL) {
+				char *parse_u8 = sys_wide_to_utf8 (wparse);
+				CoTaskMemFree (wparse);
+				if (parse_u8 != NULL && g_ascii_strcasecmp (parse_u8, id) == 0)
+					matched = 1;
+				g_free (parse_u8);
+			}
+			if (matched) {
+				IContextMenu *cm = NULL;
+				if (SUCCEEDED (IShellItem_BindToHandler (item, NULL, &WP_SYS_BHID_SFUIObject, &WP_SYS_IID_IContextMenu, (void **) &cm)) && cm != NULL) {
+					HMENU hmenu = CreatePopupMenu ();
+					if (hmenu != NULL) {
+						IContextMenu_QueryContextMenu (cm, hmenu, 0, 1, 0x7FFF, CMF_NORMAL);
+						CMINVOKECOMMANDINFO ici;
+						memset (&ici, 0, sizeof (ici));
+						ici.cbSize = sizeof (ici);
+						ici.fMask = CMIC_MASK_FLAG_NO_UI;
+						ici.lpVerb = verb;
+						ici.nShow = SW_HIDE;
+						if (SUCCEEDED (IContextMenu_InvokeCommand (cm, &ici)))
+							invoked = 1;
+						DestroyMenu (hmenu);
+					}
+					IContextMenu_Release (cm);
+				}
+				IShellItem_Release (item);
+				break;
+			}
+			IShellItem_Release (item);
+		}
+		IEnumShellItems_Release (en);
+	}
+
+	if (did_com) CoUninitialize ();
+	return invoked;
+}
+#endif
+
+void
+win32_sys_trash_list_items (Win32TrashItemCallback cb, void *user_data)
+{
+#ifdef _WIN32
+	if (cb == NULL)
+		return;
+	PFN_Sys_SHGetKnownFolderItem pfn = sys_get_sh_known_folder_item ();
+	if (pfn == NULL)
+		return;
+
+	HRESULT com_hr = CoInitializeEx (NULL, COINIT_APARTMENTTHREADED);
+	int did_com = SUCCEEDED (com_hr) ? 1 : 0;
+
+	IShellItem *rb = NULL;
+	HRESULT hr = pfn (&WP_SYS_FOLDERID_RecycleBinFolder, 0, NULL, &WP_SYS_IID_IShellItem, (void **) &rb);
+	if (FAILED (hr) || rb == NULL) {
+		if (did_com) CoUninitialize ();
+		return;
+	}
+
+	IEnumShellItems *en = NULL;
+	hr = IShellItem_BindToHandler (rb, NULL, &WP_SYS_BHID_EnumItems, &WP_SYS_IID_IEnumShellItems, (void **) &en);
+	IShellItem_Release (rb);
+
+	if (SUCCEEDED (hr) && en != NULL) {
+		IShellItem *item = NULL;
+		ULONG fetched = 0;
+		int count = 0;
+		while (count < 100 && IEnumShellItems_Next (en, 1, &item, &fetched) == S_OK && fetched == 1 && item != NULL) {
+			PWSTR wparse = NULL;
+			PWSTR wdisp = NULL;
+			char *id_u8 = NULL;
+			char *disp_u8 = NULL;
+			char *orig_u8 = NULL;
+			int is_dir = 0;
+
+			if (SUCCEEDED (IShellItem_GetDisplayName (item, SIGDN_DESKTOPABSOLUTEPARSING, &wparse)) && wparse != NULL) {
+				id_u8 = sys_wide_to_utf8 (wparse);
+				CoTaskMemFree (wparse);
+			}
+			if (SUCCEEDED (IShellItem_GetDisplayName (item, SIGDN_NORMALDISPLAY, &wdisp)) && wdisp != NULL) {
+				disp_u8 = sys_wide_to_utf8 (wdisp);
+				CoTaskMemFree (wdisp);
+			}
+			SFGAOF attrs = 0;
+			if (SUCCEEDED (IShellItem_GetAttributes (item, SFGAO_FOLDER, &attrs)) && (attrs & SFGAO_FOLDER) != 0)
+				is_dir = 1;
+
+			IShellItem2 *item2 = NULL;
+			if (SUCCEEDED (IShellItem_QueryInterface (item, &WP_SYS_IID_IShellItem2, (void **) &item2)) && item2 != NULL) {
+				PWSTR worig = NULL;
+				if (SUCCEEDED (IShellItem2_GetString (item2, &WP_SYS_PKEY_Recycle_DeletedFrom, &worig)) && worig != NULL) {
+					orig_u8 = sys_wide_to_utf8 (worig);
+					CoTaskMemFree (worig);
+				}
+				IShellItem2_Release (item2);
+			}
+
+			if (id_u8 != NULL && id_u8[0] != '\0') {
+				cb (id_u8, (disp_u8 && disp_u8[0]) ? disp_u8 : id_u8, orig_u8 ? orig_u8 : "", is_dir, user_data);
+				count++;
+			}
+
+			g_free (id_u8);
+			g_free (disp_u8);
+			g_free (orig_u8);
+			IShellItem_Release (item);
+		}
+		IEnumShellItems_Release (en);
+	}
+
+	if (did_com) CoUninitialize ();
+#else
+	(void) cb;
+	(void) user_data;
+#endif
+}
+
+int
+win32_sys_trash_restore_item (const char *id)
+{
+#ifdef _WIN32
+	return sys_trash_invoke_verb_by_id (id, "undelete");
+#else
+	(void) id;
+	return 0;
+#endif
+}
+
+int
+win32_sys_trash_delete_item (const char *id)
+{
+#ifdef _WIN32
+	return sys_trash_invoke_verb_by_id (id, "delete");
+#else
+	(void) id;
+	return 0;
 #endif
 }
 
@@ -333,6 +538,75 @@ win32_sys_sample_cpu_mem (int *cpu_pct, int *ram_pct, double *ram_used_gb, doubl
 		if (ram_total_gb) *ram_total_gb = total_gb;
 	}
 	return 1;
+#else
+	return 0;
+#endif
+}
+
+/* Dynamic PDH Disk I/O % (\PhysicalDisk(_Total)\% Disk Time — zero Admin needed) */
+int
+win32_sys_sample_disk_io (void)
+{
+#ifdef _WIN32
+	typedef LONG (WINAPI *PFN_PdhOpenQueryW) (LPCWSTR, DWORD_PTR, HANDLE *);
+	typedef LONG (WINAPI *PFN_PdhAddEnglishCounterW) (HANDLE, LPCWSTR, DWORD_PTR, HANDLE *);
+	typedef LONG (WINAPI *PFN_PdhCollectQueryData) (HANDLE);
+	typedef struct {
+		DWORD CStatus;
+		union {
+			LONG longValue;
+			double doubleValue;
+			LONGLONG largeValue;
+			LPCSTR AnsiStringValue;
+			LPCWSTR WideStringValue;
+		};
+	} WP_PDH_FMT_COUNTERVALUE;
+	typedef LONG (WINAPI *PFN_PdhGetFormattedCounterValue) (HANDLE, DWORD, LPDWORD, WP_PDH_FMT_COUNTERVALUE *);
+
+	static int inited = 0;
+	static int primed = 0;
+	static HANDLE hQuery = NULL;
+	static HANDLE hCounter = NULL;
+	static PFN_PdhCollectQueryData pCollect = NULL;
+	static PFN_PdhGetFormattedCounterValue pGetFmt = NULL;
+
+	if (!inited) {
+		inited = 1;
+		HMODULE hPdh = LoadLibraryW (L"pdh.dll");
+		if (hPdh != NULL) {
+			PFN_PdhOpenQueryW pOpen = (PFN_PdhOpenQueryW) (void *) GetProcAddress (hPdh, "PdhOpenQueryW");
+			PFN_PdhAddEnglishCounterW pAdd = (PFN_PdhAddEnglishCounterW) (void *) GetProcAddress (hPdh, "PdhAddEnglishCounterW");
+			pCollect = (PFN_PdhCollectQueryData) (void *) GetProcAddress (hPdh, "PdhCollectQueryData");
+			pGetFmt = (PFN_PdhGetFormattedCounterValue) (void *) GetProcAddress (hPdh, "PdhGetFormattedCounterValue");
+			if (pOpen && pAdd && pCollect && pGetFmt) {
+				if (pOpen (NULL, 0, &hQuery) == 0 && hQuery != NULL) {
+					if (pAdd (hQuery, L"\\PhysicalDisk(_Total)\\% Disk Time", 0, &hCounter) == 0 && hCounter != NULL) {
+						pCollect (hQuery);
+						primed = 1;
+					} else {
+						hCounter = NULL;
+					}
+				}
+			}
+		}
+	}
+
+	if (!primed || hQuery == NULL || hCounter == NULL || pCollect == NULL || pGetFmt == NULL)
+		return 0;
+
+	if (pCollect (hQuery) != 0)
+		return 0;
+
+	WP_PDH_FMT_COUNTERVALUE val;
+	memset (&val, 0, sizeof (val));
+	/* PDH_FMT_DOUBLE = 0x00000200 */
+	if (pGetFmt (hCounter, 0x00000200U, NULL, &val) != 0)
+		return 0;
+
+	int pct = (int) (val.doubleValue + 0.5);
+	if (pct < 0) pct = 0;
+	if (pct > 100) pct = 100;
+	return pct;
 #else
 	return 0;
 #endif
@@ -750,59 +1024,384 @@ win32_sys_brightness_set_percent (int percent)
 }
 
 /* ============================================================================
- * 7. Network (GetAdaptersAddresses)
+ * 7. Network (GetAdaptersAddresses + Dynamic wlanapi.dll Signal Quality)
  * ============================================================================ */
 
-int
-win32_sys_network_probe (int *is_connected, char **out_type, char **out_name, char **out_ip)
-{
-	if (is_connected) *is_connected = 0;
-	if (out_type) *out_type = g_strdup ("none");
-	if (out_name) *out_name = g_strdup ("");
-	if (out_ip) *out_ip = g_strdup ("");
-
 #ifdef _WIN32
-	ULONG buf_len = 16384;
+#ifndef IF_TYPE_PROP_VIRTUAL
+#define IF_TYPE_PROP_VIRTUAL 53
+#endif
+
+static int
+win32_str_contains_ci (const char *haystack, const char *needle)
+{
+	if (haystack == NULL || needle == NULL || needle[0] == '\0')
+		return 0;
+	char *h_low = g_ascii_strdown (haystack, -1);
+	char *n_low = g_ascii_strdown (needle, -1);
+	int found = (strstr (h_low, n_low) != NULL) ? 1 : 0;
+	g_free (h_low);
+	g_free (n_low);
+	return found;
+}
+
+static int
+win32_is_virtual_adapter (ULONG if_type, const char *desc, const char *friendly)
+{
+	if (if_type == IF_TYPE_TUNNEL || if_type == IF_TYPE_PROP_VIRTUAL)
+		return 1;
+
+	static const char *const virtual_hints[] = {
+		"vmware", "vmnet", "virtualbox", "vbox", "hyper-v", "vethernet",
+		"virtual", "tap-windows", "tap-", "wintun", "wireguard", "zerotier",
+		"tailscale", "wsl", "openvpn", "nordlynx", "protonvpn", "hamachi",
+		"radmin", "tunnel", "teredo", "isatap", "npcap", "km-test", "loopback",
+		NULL
+	};
+
+	for (int i = 0; virtual_hints[i] != NULL; i++) {
+		if (win32_str_contains_ci (desc, virtual_hints[i])
+			|| win32_str_contains_ci (friendly, virtual_hints[i])) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static void
+win32_query_if_octets (NET_LUID luid, DWORD if_index, uint64_t *out_rx, uint64_t *out_tx)
+{
+	*out_rx = 0;
+	*out_tx = 0;
+
+	/* Official Vista+/Win7+ 64-bit counter API GetIfEntry2 from already-linked iphlpapi.dll */
+	typedef DWORD (WINAPI *PFN_GetIfEntry2) (PMIB_IF_ROW2);
+	static int resolved = 0;
+	static PFN_GetIfEntry2 pGetIfEntry2 = NULL;
+	if (!resolved) {
+		resolved = 1;
+		HMODULE hIp = GetModuleHandleW (L"iphlpapi.dll");
+		if (hIp == NULL)
+			hIp = LoadLibraryW (L"iphlpapi.dll");
+		if (hIp != NULL)
+			pGetIfEntry2 = (PFN_GetIfEntry2) (void *) GetProcAddress (hIp, "GetIfEntry2");
+	}
+
+	if (pGetIfEntry2 != NULL) {
+		MIB_IF_ROW2 row;
+		memset (&row, 0, sizeof (row));
+		row.InterfaceLuid = luid;
+		row.InterfaceIndex = if_index;
+		if (pGetIfEntry2 (&row) == NO_ERROR) {
+			*out_rx = (uint64_t) row.InOctets;
+			*out_tx = (uint64_t) row.OutOctets;
+			return;
+		}
+	}
+
+	if (if_index != 0) {
+		MIB_IFROW row32;
+		memset (&row32, 0, sizeof (row32));
+		row32.dwIndex = if_index;
+		if (GetIfEntry (&row32) == NO_ERROR) {
+			*out_rx = (uint64_t) row32.dwInOctets;
+			*out_tx = (uint64_t) row32.dwOutOctets;
+		}
+	}
+}
+
+static int
+query_wifi_signal_and_ssid_for_adapter (const char *adapter_guid_str, char **out_ssid)
+{
+	if (out_ssid) *out_ssid = NULL;
+
+	/* Official wlanapi.h ABI structs (loaded dynamically via LoadLibraryW — 0 static DLLs) */
+	typedef struct {
+		GUID InterfaceGuid;
+		WCHAR strInterfaceDescription[256];
+		DWORD isState;
+	} WP_WLAN_INTERFACE_INFO;
+	typedef struct {
+		DWORD dwNumberOfItems;
+		DWORD dwIndex;
+		WP_WLAN_INTERFACE_INFO InterfaceInfo[1];
+	} WP_WLAN_INTERFACE_INFO_LIST;
+	typedef struct {
+		ULONG uSSIDLength;
+		UCHAR ucSSID[32];
+	} WP_DOT11_SSID;
+	typedef struct {
+		WP_DOT11_SSID dot11Ssid;
+		DWORD dot11BssType;
+		UCHAR dot11Bssid[6];
+		DWORD dot11PhyType;
+		ULONG uDot11PhyIndex;
+		ULONG wlanSignalQuality;
+		ULONG ulRxRate;
+		ULONG ulTxRate;
+	} WP_WLAN_ASSOCIATION_ATTRIBUTES;
+	typedef struct {
+		DWORD isState;
+		DWORD wlanConnectionMode;
+		WCHAR strProfileName[256];
+		WP_WLAN_ASSOCIATION_ATTRIBUTES wlanAssociationAttributes;
+	} WP_WLAN_CONNECTION_ATTRIBUTES_PREFIX;
+
+	typedef DWORD (WINAPI *PFN_WlanOpenHandle) (DWORD, PVOID, PDWORD, PHANDLE);
+	typedef DWORD (WINAPI *PFN_WlanCloseHandle) (HANDLE, PVOID);
+	typedef DWORD (WINAPI *PFN_WlanEnumInterfaces) (HANDLE, PVOID, WP_WLAN_INTERFACE_INFO_LIST **);
+	typedef DWORD (WINAPI *PFN_WlanQueryInterface) (HANDLE, const GUID *, DWORD, PVOID, PDWORD, PVOID *, DWORD *);
+	typedef void  (WINAPI *PFN_WlanFreeMemory) (PVOID);
+
+	static int resolved = 0;
+	static PFN_WlanOpenHandle pOpen = NULL;
+	static PFN_WlanCloseHandle pClose = NULL;
+	static PFN_WlanEnumInterfaces pEnum = NULL;
+	static PFN_WlanQueryInterface pQuery = NULL;
+	static PFN_WlanFreeMemory pFree = NULL;
+
+	if (!resolved) {
+		resolved = 1;
+		HMODULE hWlan = LoadLibraryW (L"wlanapi.dll");
+		if (hWlan != NULL) {
+			pOpen = (PFN_WlanOpenHandle) (void *) GetProcAddress (hWlan, "WlanOpenHandle");
+			pClose = (PFN_WlanCloseHandle) (void *) GetProcAddress (hWlan, "WlanCloseHandle");
+			pEnum = (PFN_WlanEnumInterfaces) (void *) GetProcAddress (hWlan, "WlanEnumInterfaces");
+			pQuery = (PFN_WlanQueryInterface) (void *) GetProcAddress (hWlan, "WlanQueryInterface");
+			pFree = (PFN_WlanFreeMemory) (void *) GetProcAddress (hWlan, "WlanFreeMemory");
+		}
+	}
+	if (!pOpen || !pClose || !pEnum || !pQuery || !pFree)
+		return -1;
+
+	DWORD neg_ver = 0;
+	HANDLE hClient = NULL;
+	if (pOpen (2, NULL, &neg_ver, &hClient) != ERROR_SUCCESS || hClient == NULL)
+		return -1;
+
+	int quality = -1;
+	WP_WLAN_INTERFACE_INFO_LIST *list = NULL;
+	if (pEnum (hClient, NULL, &list) == ERROR_SUCCESS && list != NULL) {
+		/* First try exact GUID match against adapter_guid_str, then fallback to any connected WLAN */
+		for (int pass = 0; pass < 2 && quality < 0; pass++) {
+			for (DWORD i = 0; i < list->dwNumberOfItems; i++) {
+				if (list->InterfaceInfo[i].isState != 1 /* wlan_interface_state_connected */)
+					continue;
+				if (pass == 0 && adapter_guid_str != NULL && adapter_guid_str[0] != '\0') {
+					const GUID *g = &list->InterfaceInfo[i].InterfaceGuid;
+					char guid_buf[64];
+					g_snprintf (guid_buf, sizeof (guid_buf),
+						"{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
+						(unsigned long) g->Data1, (unsigned int) g->Data2, (unsigned int) g->Data3,
+						g->Data4[0], g->Data4[1], g->Data4[2], g->Data4[3],
+						g->Data4[4], g->Data4[5], g->Data4[6], g->Data4[7]);
+					if (g_ascii_strcasecmp (guid_buf, adapter_guid_str) != 0)
+						continue;
+				}
+				DWORD data_sz = 0;
+				WP_WLAN_CONNECTION_ATTRIBUTES_PREFIX *attrs = NULL;
+				/* wlan_intf_opcode_current_connection = 7 */
+				if (pQuery (hClient, &list->InterfaceInfo[i].InterfaceGuid, 7, NULL, &data_sz, (PVOID *) &attrs, NULL) == ERROR_SUCCESS
+					&& attrs != NULL && data_sz >= sizeof (WP_WLAN_CONNECTION_ATTRIBUTES_PREFIX)) {
+					ULONG q = attrs->wlanAssociationAttributes.wlanSignalQuality;
+					quality = (q > 100U) ? 100 : (int) q;
+					if (out_ssid != NULL && attrs->wlanAssociationAttributes.dot11Ssid.uSSIDLength > 0
+						&& attrs->wlanAssociationAttributes.dot11Ssid.uSSIDLength <= 32) {
+						*out_ssid = g_strndup (
+							(const char *) attrs->wlanAssociationAttributes.dot11Ssid.ucSSID,
+							(gsize) attrs->wlanAssociationAttributes.dot11Ssid.uSSIDLength
+						);
+					}
+					pFree (attrs);
+					break;
+				}
+			}
+		}
+		pFree (list);
+	}
+	pClose (hClient, NULL);
+	return quality;
+}
+#endif
+
+void
+win32_sys_network_list_interfaces (Win32NetInterfaceCallback cb, void *user_data)
+{
+	if (cb == NULL)
+		return;
+#ifdef _WIN32
+	ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_GATEWAYS;
+	ULONG buf_len = 32768;
 	IP_ADAPTER_ADDRESSES *addrs = (IP_ADAPTER_ADDRESSES *) g_malloc (buf_len);
-	ULONG ret = GetAdaptersAddresses (AF_INET, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER, NULL, addrs, &buf_len);
+	ULONG ret = GetAdaptersAddresses (AF_INET, flags, NULL, addrs, &buf_len);
 	if (ret == ERROR_BUFFER_OVERFLOW) {
 		g_free (addrs);
 		addrs = (IP_ADAPTER_ADDRESSES *) g_malloc (buf_len);
-		ret = GetAdaptersAddresses (AF_INET, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER, NULL, addrs, &buf_len);
+		ret = GetAdaptersAddresses (AF_INET, flags, NULL, addrs, &buf_len);
 	}
 	if (ret != NO_ERROR) {
 		g_free (addrs);
-		return 0;
+		return;
 	}
 
 	for (IP_ADAPTER_ADDRESSES *cur = addrs; cur != NULL; cur = cur->Next) {
 		if (cur->OperStatus != IfOperStatusUp)
 			continue;
-		if (cur->IfType == IF_TYPE_SOFTWARE_LOOPBACK || cur->IfType == IF_TYPE_TUNNEL)
-			continue;
-		if (cur->FirstUnicastAddress == NULL)
-			continue;
-
-		struct sockaddr_in *sa = (struct sockaddr_in *) cur->FirstUnicastAddress->Address.lpSockaddr;
-		if (sa == NULL || sa->sin_family != AF_INET)
+		if (cur->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
 			continue;
 
 		char ip_buf[64];
 		ip_buf[0] = '\0';
-		const unsigned char *b = (const unsigned char *) &sa->sin_addr;
-		if (b[0] == 169 && b[1] == 254)
-			continue; /* Skip APIPA link-local */
-		g_snprintf (ip_buf, sizeof (ip_buf), "%u.%u.%u.%u", b[0], b[1], b[2], b[3]);
+		for (IP_ADAPTER_UNICAST_ADDRESS *ua = cur->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
+			if (ua->Address.lpSockaddr == NULL || ua->Address.lpSockaddr->sa_family != AF_INET)
+				continue;
+			struct sockaddr_in *sa = (struct sockaddr_in *) ua->Address.lpSockaddr;
+			const unsigned char *b = (const unsigned char *) &sa->sin_addr;
+			if (b[0] == 127 || (b[0] == 169 && b[1] == 254))
+				continue;
+			g_snprintf (ip_buf, sizeof (ip_buf), "%u.%u.%u.%u", b[0], b[1], b[2], b[3]);
+			break;
+		}
+		if (ip_buf[0] == '\0')
+			continue;
 
-		const char *ctype = (cur->IfType == IF_TYPE_IEEE80211) ? "wifi" : "ethernet";
-		if (is_connected) *is_connected = 1;
-		if (out_type) { g_free (*out_type); *out_type = g_strdup (ctype); }
-		if (out_name) { g_free (*out_name); *out_name = sys_wide_to_utf8 (cur->FriendlyName); }
-		if (out_ip) { g_free (*out_ip); *out_ip = g_strdup (ip_buf); }
-		break;
+		char gw_buf[64];
+		gw_buf[0] = '\0';
+		if (cur->FirstGatewayAddress != NULL && cur->FirstGatewayAddress->Address.lpSockaddr != NULL) {
+			struct sockaddr_in *gwa = (struct sockaddr_in *) cur->FirstGatewayAddress->Address.lpSockaddr;
+			if (gwa->sin_family == AF_INET) {
+				const unsigned char *gb = (const unsigned char *) &gwa->sin_addr;
+				g_snprintf (gw_buf, sizeof (gw_buf), "%u.%u.%u.%u", gb[0], gb[1], gb[2], gb[3]);
+			}
+		}
+
+		char *friendly = sys_wide_to_utf8 (cur->FriendlyName);
+		char *desc = sys_wide_to_utf8 (cur->Description);
+		int is_virt = win32_is_virtual_adapter (cur->IfType, desc, friendly);
+		int is_wifi = (cur->IfType == IF_TYPE_IEEE80211 && !is_virt) ? 1 : 0;
+		const char *kind = is_wifi ? "wifi" : (is_virt ? "virtual" : "ethernet");
+
+		char *display = (friendly != NULL && friendly[0] != '\0') ? g_strdup (friendly) : g_strdup (desc);
+		int wifi_q = 0;
+		if (is_wifi) {
+			char *ssid = NULL;
+			int real_q = query_wifi_signal_and_ssid_for_adapter (cur->AdapterName, &ssid);
+			wifi_q = (real_q >= 0) ? real_q : 80;
+			if (ssid != NULL && ssid[0] != '\0') {
+				g_free (display);
+				display = ssid;
+			} else {
+				g_free (ssid);
+			}
+		}
+
+		uint64_t rx_bytes = 0, tx_bytes = 0;
+		win32_query_if_octets (cur->Luid, cur->IfIndex, &rx_bytes, &tx_bytes);
+
+		const char *iface_id = (cur->AdapterName != NULL && cur->AdapterName[0] != '\0')
+			? cur->AdapterName : display;
+		cb (iface_id, display, kind, wifi_q, ip_buf, gw_buf, rx_bytes, tx_bytes, user_data);
+
+		g_free (display);
+		g_free (friendly);
+		g_free (desc);
 	}
 
 	g_free (addrs);
+#else
+	(void) user_data;
+#endif
+}
+
+typedef struct {
+	int best_rank;
+	int best_has_gw;
+	int best_wifi_q;
+	int found;
+	char *type;
+	char *name;
+	char *ip;
+	char *gw;
+	int wifi_q;
+} Win32BestNetCtx;
+
+static void
+win32_best_net_cb (
+	const char *iface_id,
+	const char *display_name,
+	const char *kind,
+	int wifi_strength,
+	const char *ip_address,
+	const char *gateway,
+	uint64_t rx_bytes,
+	uint64_t tx_bytes,
+	void *user_data
+)
+{
+	(void) iface_id;
+	(void) rx_bytes;
+	(void) tx_bytes;
+	Win32BestNetCtx *ctx = (Win32BestNetCtx *) user_data;
+	int rank = (g_strcmp0 (kind, "wifi") == 0) ? 0 : ((g_strcmp0 (kind, "ethernet") == 0) ? 1 : 2);
+	int has_gw = (gateway != NULL && gateway[0] != '\0') ? 1 : 0;
+
+	int better = 0;
+	if (!ctx->found)
+		better = 1;
+	else if (rank < ctx->best_rank)
+		better = 1;
+	else if (rank == ctx->best_rank && has_gw > ctx->best_has_gw)
+		better = 1;
+	else if (rank == ctx->best_rank && has_gw == ctx->best_has_gw && rank == 0 && wifi_strength > ctx->best_wifi_q)
+		better = 1;
+
+	if (better) {
+		ctx->found = 1;
+		ctx->best_rank = rank;
+		ctx->best_has_gw = has_gw;
+		ctx->best_wifi_q = wifi_strength;
+		g_free (ctx->type); ctx->type = g_strdup (kind);
+		g_free (ctx->name); ctx->name = g_strdup (display_name);
+		g_free (ctx->ip); ctx->ip = g_strdup (ip_address);
+		g_free (ctx->gw); ctx->gw = g_strdup (gateway);
+		ctx->wifi_q = wifi_strength;
+	}
+}
+
+int
+win32_sys_network_probe (
+	int *is_connected,
+	char **out_type,
+	char **out_name,
+	char **out_ip,
+	char **out_gateway,
+	int *out_wifi_strength
+)
+{
+	if (is_connected) *is_connected = 0;
+	if (out_type) *out_type = g_strdup ("none");
+	if (out_name) *out_name = g_strdup ("");
+	if (out_ip) *out_ip = g_strdup ("");
+	if (out_gateway) *out_gateway = g_strdup ("");
+	if (out_wifi_strength) *out_wifi_strength = 0;
+
+#ifdef _WIN32
+	Win32BestNetCtx ctx;
+	memset (&ctx, 0, sizeof (ctx));
+	ctx.best_rank = 99;
+	win32_sys_network_list_interfaces (win32_best_net_cb, &ctx);
+	if (ctx.found) {
+		if (is_connected) *is_connected = 1;
+		if (out_type) { g_free (*out_type); *out_type = ctx.type; ctx.type = NULL; }
+		if (out_name) { g_free (*out_name); *out_name = ctx.name; ctx.name = NULL; }
+		if (out_ip) { g_free (*out_ip); *out_ip = ctx.ip; ctx.ip = NULL; }
+		if (out_gateway) { g_free (*out_gateway); *out_gateway = ctx.gw; ctx.gw = NULL; }
+		if (out_wifi_strength) *out_wifi_strength = ctx.wifi_q;
+	}
+	g_free (ctx.type);
+	g_free (ctx.name);
+	g_free (ctx.ip);
+	g_free (ctx.gw);
 	return 1;
 #else
 	return 0;
@@ -832,6 +1431,34 @@ win32_sys_get_user_and_host (char **out_user, char **out_host)
 #else
 	if (out_user) *out_user = g_strdup ("");
 	if (out_host) *out_host = g_strdup ("");
+#endif
+}
+
+void
+win32_sys_query_power_caps (int *can_hibernate, int *can_hybrid_sleep)
+{
+	if (can_hibernate) *can_hibernate = 0;
+	if (can_hybrid_sleep) *can_hybrid_sleep = 0;
+#ifdef _WIN32
+	typedef BOOLEAN (WINAPI *PFN_GetPwrCapabilities) (PSYSTEM_POWER_CAPABILITIES);
+	static int loaded = 0;
+	static PFN_GetPwrCapabilities pfn = NULL;
+	if (!loaded) {
+		loaded = 1;
+		HMODULE hPowr = LoadLibraryW (L"powrprof.dll");
+		if (hPowr != NULL)
+			pfn = (PFN_GetPwrCapabilities) (void *) GetProcAddress (hPowr, "GetPwrCapabilities");
+	}
+	if (pfn != NULL) {
+		SYSTEM_POWER_CAPABILITIES spc;
+		memset (&spc, 0, sizeof (spc));
+		if (pfn (&spc)) {
+			if (can_hibernate)
+				*can_hibernate = (spc.SystemS4 && spc.HiberFilePresent) ? 1 : 0;
+			if (can_hybrid_sleep)
+				*can_hybrid_sleep = (spc.SystemS3 && spc.HiberFilePresent) ? 1 : 0;
+		}
+	}
 #endif
 }
 
@@ -899,6 +1526,149 @@ win32_sys_query_prefer_dark (int *out_prefer_dark)
 	return 0;
 #else
 	return 0;
+#endif
+}
+
+double
+win32_sys_query_font_scale_factor (void)
+{
+#ifdef _WIN32
+	DWORD val = 100;
+	DWORD sz = sizeof (val);
+	LSTATUS st = RegGetValueW (
+		HKEY_CURRENT_USER,
+		L"Software\\Microsoft\\Accessibility",
+		L"TextScaleFactor",
+		RRF_RT_REG_DWORD,
+		NULL,
+		&val,
+		&sz
+	);
+	if (st == ERROR_SUCCESS && val >= 100 && val <= 225)
+		return (double) val / 100.0;
+	return 1.0;
+#else
+	return 1.0;
+#endif
+}
+
+int
+win32_sys_query_dnd_inhibited (void)
+{
+#ifdef _WIN32
+	/* 1. Windows 10/11 Focus Assist / Quiet Hours via WNF (ntdll.dll, dynamic) */
+	typedef LONG (WINAPI *PFN_NtQueryWnfStateData) (const ULONG *, const void *, const void *, ULONG *, void *, ULONG *);
+	static int wnf_resolved = 0;
+	static PFN_NtQueryWnfStateData pNtWnf = NULL;
+	if (!wnf_resolved) {
+		wnf_resolved = 1;
+		HMODULE hNt = GetModuleHandleW (L"ntdll.dll");
+		if (hNt != NULL)
+			pNtWnf = (PFN_NtQueryWnfStateData) (void *) GetProcAddress (hNt, "NtQueryWnfStateData");
+	}
+	if (pNtWnf != NULL) {
+		/* WNF_SHEL_QUIETHOURS_ACTIVE_PROFILE_CHANGED */
+		static const ULONG wnf_qh[2] = { 0xA3BF1C75U, 0x0D83063EU };
+		ULONG stamp = 0;
+		DWORD profile = 0;
+		ULONG buf_sz = sizeof (profile);
+		if (pNtWnf (wnf_qh, NULL, NULL, &stamp, &profile, &buf_sz) == 0 && buf_sz >= sizeof (DWORD)) {
+			if (profile > 0)
+				return 1;
+		}
+	}
+
+	/* 2. Official Shell user notification state (busy / D3D fullscreen / presentation) */
+	typedef HRESULT (WINAPI *PFN_SHQueryUserNotificationState) (int *);
+	static int sh_resolved = 0;
+	static PFN_SHQueryUserNotificationState pQuns = NULL;
+	if (!sh_resolved) {
+		sh_resolved = 1;
+		HMODULE hShell = GetModuleHandleW (L"shell32.dll");
+		if (hShell == NULL)
+			hShell = LoadLibraryW (L"shell32.dll");
+		if (hShell != NULL)
+			pQuns = (PFN_SHQueryUserNotificationState) (void *) GetProcAddress (hShell, "SHQueryUserNotificationState");
+	}
+	if (pQuns != NULL) {
+		int state = 0;
+		/* QUNS_BUSY=2, QUNS_RUNNING_D3D_FULL_SCREEN=3, QUNS_PRESENTATION_MODE=4 */
+		if (SUCCEEDED (pQuns (&state)) && (state == 2 || state == 3 || state == 4))
+			return 1;
+	}
+	return 0;
+#else
+	return 0;
+#endif
+}
+
+#ifdef _WIN32
+static HWND g_toast_hwnd = NULL;
+static guint g_toast_cleanup_id = 0;
+
+static gboolean
+toast_cleanup_cb (gpointer user_data)
+{
+	(void) user_data;
+	g_toast_cleanup_id = 0;
+	if (g_toast_hwnd != NULL) {
+		NOTIFYICONDATAW nid;
+		memset (&nid, 0, sizeof (nid));
+		nid.cbSize = sizeof (nid);
+		nid.hWnd = g_toast_hwnd;
+		nid.uID = 0x5750;
+		Shell_NotifyIconW (NIM_DELETE, &nid);
+		DestroyWindow (g_toast_hwnd);
+		g_toast_hwnd = NULL;
+	}
+	return G_SOURCE_REMOVE;
+}
+#endif
+
+void
+win32_sys_send_toast (const char *summary, const char *body)
+{
+#ifdef _WIN32
+	if ((summary == NULL || summary[0] == '\0') && (body == NULL || body[0] == '\0'))
+		return;
+
+	if (g_toast_cleanup_id != 0) {
+		g_source_remove (g_toast_cleanup_id);
+		g_toast_cleanup_id = 0;
+	}
+	if (g_toast_hwnd == NULL) {
+		g_toast_hwnd = CreateWindowExW (0, L"STATIC", L"WayPlankToast", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, GetModuleHandleW (NULL), NULL);
+		if (g_toast_hwnd == NULL)
+			return;
+	}
+
+	NOTIFYICONDATAW nid;
+	memset (&nid, 0, sizeof (nid));
+	nid.cbSize = sizeof (nid);
+	nid.hWnd = g_toast_hwnd;
+	nid.uID = 0x5750;
+	nid.uFlags = NIF_ICON | NIF_TIP | NIF_INFO;
+	nid.hIcon = LoadIconW (GetModuleHandleW (NULL), MAKEINTRESOURCEW (1));
+	if (nid.hIcon == NULL)
+		nid.hIcon = LoadIconW (NULL, MAKEINTRESOURCEW (32512)); /* IDI_APPLICATION */
+	wcsncpy (nid.szTip, L"WayPlank", (sizeof (nid.szTip) / sizeof (WCHAR)) - 1);
+	nid.dwInfoFlags = NIIF_INFO;
+
+	WCHAR *wsum = sys_utf8_to_wide (summary ? summary : "WayPlank");
+	WCHAR *wbod = sys_utf8_to_wide (body ? body : "");
+	if (wsum != NULL)
+		wcsncpy (nid.szInfoTitle, wsum, (sizeof (nid.szInfoTitle) / sizeof (WCHAR)) - 1);
+	if (wbod != NULL)
+		wcsncpy (nid.szInfo, wbod, (sizeof (nid.szInfo) / sizeof (WCHAR)) - 1);
+	g_free (wsum);
+	g_free (wbod);
+
+	Shell_NotifyIconW (NIM_DELETE, &nid);
+	Shell_NotifyIconW (NIM_ADD, &nid);
+	g_toast_cleanup_id = g_timeout_add_seconds (6, toast_cleanup_cb, NULL);
+#else
+	(void) summary;
+	(void) body;
 #endif
 }
 

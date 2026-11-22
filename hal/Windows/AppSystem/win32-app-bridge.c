@@ -66,9 +66,54 @@ static const GUID WP_IID_IShellItem =
 	{ 0x43826D1E, 0xE718, 0x42EE, { 0xBC, 0x55, 0xA1, 0xE2, 0x61, 0xC3, 0x7B, 0xFE } };
 static const PROPERTYKEY WP_APP_PKEY_AppUserModel_ID =
 	{ { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3 } }, 5 };
+static const PROPERTYKEY WP_APP_PKEY_AppUserModel_PackageInstallPath =
+	{ { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3 } }, 15 };
+static const GUID WP_CLSID_ApplicationActivationManager =
+	{ 0x45BA127D, 0x10A8, 0x46EA, { 0x8A, 0xB7, 0x56, 0xEA, 0x90, 0x78, 0x94, 0x3C } };
+static const GUID WP_IID_IApplicationActivationManager =
+	{ 0x2E941141, 0x7F97, 0x4756, { 0xBA, 0x1D, 0x9D, 0xEC, 0xDE, 0x89, 0x4A, 0x3D } };
+static const GUID WP_FOLDERID_AppsFolder =
+	{ 0x1E87508D, 0x89C2, 0x42F0, { 0x8A, 0x7E, 0x64, 0x5A, 0x0F, 0x50, 0xCA, 0x58 } };
+static const GUID WP_BHID_EnumItems =
+	{ 0x94F60519, 0x2850, 0x4924, { 0xAA, 0x5A, 0xD1, 0x5E, 0x84, 0x86, 0x80, 0x39 } };
+static const GUID WP_IID_IEnumShellItems =
+	{ 0x70629033, 0xE363, 0x4A28, { 0xA5, 0x67, 0x0D, 0xB7, 0x80, 0x06, 0xE6, 0xD7 } };
+static const GUID WP_IID_IShellItem2 =
+	{ 0x7E9FB0D3, 0x919F, 0x4307, { 0xAB, 0x2E, 0x9B, 0x18, 0x60, 0x31, 0x0C, 0x93 } };
+static const GUID WP_IID_IShellItemImageFactory =
+	{ 0xBCC18B79, 0xBA16, 0x442F, { 0x80, 0xC4, 0x8A, 0x59, 0xC3, 0x0C, 0x46, 0x3B } };
 
 typedef HRESULT (WINAPI *PFN_SHGetImageList) (int iImageList, REFIID riid, void **ppvObj);
 typedef HRESULT (WINAPI *PFN_SHGetStockIconInfo) (SHSTOCKICONID siid, UINT uFlags, SHSTOCKICONINFO *psii);
+typedef HRESULT (WINAPI *PFN_SHGetKnownFolderItem) (REFKNOWNFOLDERID rfid, DWORD flags, HANDLE hToken, REFIID riid, void **ppv);
+typedef HRESULT (WINAPI *PFN_SHCreateItemFromParsingName) (PCWSTR pszPath, IBindCtx *pbc, REFIID riid, void **ppv);
+typedef LONG (WINAPI *PFN_GetApplicationUserModelId) (HANDLE hProcess, UINT32 *applicationUserModelIdLength, PWSTR applicationUserModelId);
+
+/* Explicit Vista+ COM IShellItemImageFactory vtable */
+typedef struct WP_IShellItemImageFactory WP_IShellItemImageFactory;
+typedef struct WP_IShellItemImageFactoryVtbl {
+	HRESULT (STDMETHODCALLTYPE *QueryInterface) (WP_IShellItemImageFactory *This, REFIID riid, void **ppvObject);
+	ULONG   (STDMETHODCALLTYPE *AddRef) (WP_IShellItemImageFactory *This);
+	ULONG   (STDMETHODCALLTYPE *Release) (WP_IShellItemImageFactory *This);
+	HRESULT (STDMETHODCALLTYPE *GetImage) (WP_IShellItemImageFactory *This, SIZE size, int flags, HBITMAP *phbm);
+} WP_IShellItemImageFactoryVtbl;
+struct WP_IShellItemImageFactory {
+	const WP_IShellItemImageFactoryVtbl *lpVtbl;
+};
+
+/* Explicit Win8+ COM IApplicationActivationManager vtable (safe with _WIN32_WINNT=0x0601) */
+typedef struct WP_IApplicationActivationManager WP_IApplicationActivationManager;
+typedef struct WP_IApplicationActivationManagerVtbl {
+	HRESULT (STDMETHODCALLTYPE *QueryInterface) (WP_IApplicationActivationManager *This, REFIID riid, void **ppvObject);
+	ULONG   (STDMETHODCALLTYPE *AddRef) (WP_IApplicationActivationManager *This);
+	ULONG   (STDMETHODCALLTYPE *Release) (WP_IApplicationActivationManager *This);
+	HRESULT (STDMETHODCALLTYPE *ActivateApplication) (WP_IApplicationActivationManager *This, LPCWSTR appUserModelId, LPCWSTR arguments, DWORD options, DWORD *processId);
+	HRESULT (STDMETHODCALLTYPE *ActivateForFile) (WP_IApplicationActivationManager *This, LPCWSTR appUserModelId, IShellItemArray *itemArray, LPCWSTR verb, DWORD *processId);
+	HRESULT (STDMETHODCALLTYPE *ActivateForProtocol) (WP_IApplicationActivationManager *This, LPCWSTR appUserModelId, IShellItemArray *itemArray, DWORD *processId);
+} WP_IApplicationActivationManagerVtbl;
+struct WP_IApplicationActivationManager {
+	const WP_IApplicationActivationManagerVtbl *lpVtbl;
+};
 
 static int g_com_initialized = 0;
 
@@ -809,6 +854,159 @@ win32_app_extract_stock_icon_rgba (
 #endif
 }
 
+int
+win32_app_extract_aumid_icon_rgba (
+	const char *aumid,
+	int desired_size,
+	uint8_t **out_rgba,
+	int *out_w,
+	int *out_h
+)
+{
+	if (out_rgba) *out_rgba = NULL;
+	if (out_w) *out_w = 0;
+	if (out_h) *out_h = 0;
+
+#ifdef _WIN32
+	if (aumid == NULL || aumid[0] == '\0')
+		return 0;
+	ensure_com ();
+
+	static PFN_SHCreateItemFromParsingName pfn_create_item = NULL;
+	static int resolved = 0;
+	if (!resolved) {
+		resolved = 1;
+		HMODULE hShell = GetModuleHandleW (L"shell32.dll");
+		if (hShell == NULL)
+			hShell = LoadLibraryW (L"shell32.dll");
+		if (hShell != NULL)
+			pfn_create_item = (PFN_SHCreateItemFromParsingName) (void *) GetProcAddress (hShell, "SHCreateItemFromParsingName");
+	}
+	if (pfn_create_item == NULL)
+		return 0;
+
+	WCHAR *waumid = utf8_to_wide (aumid);
+	if (waumid == NULL)
+		return 0;
+
+	gsize prefix_len = wcslen (L"shell:AppsFolder\\");
+	gsize id_len = wcslen (waumid);
+	WCHAR *parse_name = (WCHAR *) g_malloc ((prefix_len + id_len + 1) * sizeof (WCHAR));
+	memcpy (parse_name, L"shell:AppsFolder\\", prefix_len * sizeof (WCHAR));
+	memcpy (parse_name + prefix_len, waumid, (id_len + 1) * sizeof (WCHAR));
+	g_free (waumid);
+
+	WP_IShellItemImageFactory *factory = NULL;
+	HRESULT hr = pfn_create_item (parse_name, NULL, &WP_IID_IShellItemImageFactory, (void **) &factory);
+	g_free (parse_name);
+	if (FAILED (hr) || factory == NULL)
+		return 0;
+
+	int size = (desired_size > 0) ? desired_size : 64;
+	if (size > 256) size = 256;
+	int render_sz = (size <= 48) ? 64 : ((size < 128) ? 128 : size);
+
+	SIZE sz;
+	sz.cx = render_sz;
+	sz.cy = render_sz;
+	HBITMAP hbm = NULL;
+	/* Prefer clean transparent icon logo without solid UWP Start tile background */
+	hr = factory->lpVtbl->GetImage (factory, sz, 0x04 | 0x01 /* SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK */, &hbm);
+	if (FAILED (hr) || hbm == NULL) {
+		hbm = NULL;
+		hr = factory->lpVtbl->GetImage (factory, sz, 0x01 /* SIIGBF_BIGGERSIZEOK */, &hbm);
+	}
+	factory->lpVtbl->Release (factory);
+	if (FAILED (hr) || hbm == NULL)
+		return 0;
+
+	BITMAP bm;
+	memset (&bm, 0, sizeof (bm));
+	if (GetObjectW (hbm, sizeof (bm), &bm) == 0 || bm.bmWidth <= 0 || bm.bmHeight <= 0) {
+		DeleteObject (hbm);
+		return 0;
+	}
+
+	int w = bm.bmWidth;
+	int h = bm.bmHeight;
+	size_t byte_len = (size_t) w * (size_t) h * 4;
+	uint8_t *bgra = (uint8_t *) g_malloc0 (byte_len);
+
+	BITMAPINFO bmi;
+	memset (&bmi, 0, sizeof (bmi));
+	bmi.bmiHeader.biSize = sizeof (BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = w;
+	bmi.bmiHeader.biHeight = -h; /* Top-down */
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	HDC hdc = GetDC (NULL);
+	int got = (hdc != NULL) ? GetDIBits (hdc, hbm, 0, (UINT) h, bgra, &bmi, DIB_RGB_COLORS) : 0;
+	if (hdc != NULL)
+		ReleaseDC (NULL, hdc);
+	DeleteObject (hbm);
+
+	if (got == 0) {
+		g_free (bgra);
+		return 0;
+	}
+
+	int has_alpha = 0;
+	for (size_t i = 3; i < byte_len; i += 4) {
+		if (bgra[i] != 0) {
+			has_alpha = 1;
+			break;
+		}
+	}
+
+	uint8_t *rgba = (uint8_t *) g_malloc (byte_len);
+	if (has_alpha) {
+		/* Un-premultiply 32-bit BGRA Shell bitmap -> straight RGBA for GdkPixbuf */
+		for (size_t i = 0; i < byte_len; i += 4) {
+			uint8_t a = bgra[i + 3];
+			if (a == 0) {
+				rgba[i + 0] = 0;
+				rgba[i + 1] = 0;
+				rgba[i + 2] = 0;
+				rgba[i + 3] = 0;
+			} else if (a == 255) {
+				rgba[i + 0] = bgra[i + 2];
+				rgba[i + 1] = bgra[i + 1];
+				rgba[i + 2] = bgra[i + 0];
+				rgba[i + 3] = 255;
+			} else {
+				unsigned int r = ((unsigned int) bgra[i + 2] * 255U + (unsigned int) (a / 2)) / (unsigned int) a;
+				unsigned int g = ((unsigned int) bgra[i + 1] * 255U + (unsigned int) (a / 2)) / (unsigned int) a;
+				unsigned int b = ((unsigned int) bgra[i + 0] * 255U + (unsigned int) (a / 2)) / (unsigned int) a;
+				rgba[i + 0] = (uint8_t) (r > 255U ? 255U : r);
+				rgba[i + 1] = (uint8_t) (g > 255U ? 255U : g);
+				rgba[i + 2] = (uint8_t) (b > 255U ? 255U : b);
+				rgba[i + 3] = a;
+			}
+		}
+	} else {
+		for (size_t i = 0; i < byte_len; i += 4) {
+			rgba[i + 0] = bgra[i + 2];
+			rgba[i + 1] = bgra[i + 1];
+			rgba[i + 2] = bgra[i + 0];
+			rgba[i + 3] = 255;
+		}
+	}
+	g_free (bgra);
+
+	if (out_rgba) *out_rgba = rgba;
+	else g_free (rgba);
+	if (out_w) *out_w = w;
+	if (out_h) *out_h = h;
+	return 1;
+#else
+	(void) aumid;
+	(void) desired_size;
+	return 0;
+#endif
+}
+
 void
 win32_app_enum_system_icon_stores (Win32EnumIconTokenCallback cb, void *user_data)
 {
@@ -1166,6 +1364,353 @@ win32_app_shell_execute (
 	(void) args;
 	(void) working_dir;
 	return 0;
+#endif
+}
+
+int
+win32_app_activate_aumid (
+	const char *aumid,
+	const char *args
+)
+{
+#ifdef _WIN32
+	if (aumid == NULL || aumid[0] == '\0')
+		return 0;
+	ensure_com ();
+
+	WCHAR *waumid = utf8_to_wide (aumid);
+	if (waumid == NULL)
+		return 0;
+	WCHAR *wargs = (args != NULL && args[0] != '\0') ? utf8_to_wide (args) : NULL;
+
+	int launched = 0;
+	WP_IApplicationActivationManager *paam = NULL;
+	HRESULT hr = CoCreateInstance (
+		&WP_CLSID_ApplicationActivationManager,
+		NULL,
+		CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER,
+		&WP_IID_IApplicationActivationManager,
+		(void **) &paam
+	);
+	if (SUCCEEDED (hr) && paam != NULL) {
+		DWORD pid = 0;
+		hr = paam->lpVtbl->ActivateApplication (paam, waumid, wargs, 0 /* AO_NONE */, &pid);
+		if (SUCCEEDED (hr))
+			launched = 1;
+		paam->lpVtbl->Release (paam);
+	}
+
+	if (!launched) {
+		gsize prefix_len = wcslen (L"shell:AppsFolder\\");
+		gsize id_len = wcslen (waumid);
+		WCHAR *shell_uri = (WCHAR *) g_malloc ((prefix_len + id_len + 1) * sizeof (WCHAR));
+		memcpy (shell_uri, L"shell:AppsFolder\\", prefix_len * sizeof (WCHAR));
+		memcpy (shell_uri + prefix_len, waumid, (id_len + 1) * sizeof (WCHAR));
+		HINSTANCE res = ShellExecuteW (NULL, L"open", shell_uri, wargs, NULL, SW_SHOWNORMAL);
+		g_free (shell_uri);
+		if ((intptr_t) res > 32)
+			launched = 1;
+	}
+
+	g_free (waumid);
+	g_free (wargs);
+	return launched;
+#else
+	(void) aumid;
+	(void) args;
+	return 0;
+#endif
+}
+
+char *
+win32_app_get_process_aumid (int pid)
+{
+#ifdef _WIN32
+	if (pid <= 0)
+		return NULL;
+	static PFN_GetApplicationUserModelId pfn_get_aumid = NULL;
+	static int resolved = 0;
+	if (!resolved) {
+		resolved = 1;
+		HMODULE hKernel = GetModuleHandleW (L"kernel32.dll");
+		if (hKernel != NULL)
+			pfn_get_aumid = (PFN_GetApplicationUserModelId) (void *) GetProcAddress (hKernel, "GetApplicationUserModelId");
+	}
+	if (pfn_get_aumid == NULL)
+		return NULL;
+
+	HANDLE hProc = OpenProcess (PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD) pid);
+	if (hProc == NULL)
+		return NULL;
+
+	UINT32 len = 0;
+	LONG rc = pfn_get_aumid (hProc, &len, NULL);
+	char *result = NULL;
+	if (rc == ERROR_INSUFFICIENT_BUFFER && len > 1 && len < 2048) {
+		WCHAR *buf = (WCHAR *) g_malloc0 ((gsize) (len + 2) * sizeof (WCHAR));
+		if (pfn_get_aumid (hProc, &len, buf) == ERROR_SUCCESS && buf[0] != L'\0')
+			result = wide_to_utf8 (buf);
+		g_free (buf);
+	}
+	CloseHandle (hProc);
+	return result;
+#else
+	(void) pid;
+	return NULL;
+#endif
+}
+
+#ifdef _WIN32
+static int
+extract_windowsapps_family_and_stem (const char *exe_path, char **out_family, char **out_stem)
+{
+	if (out_family) *out_family = NULL;
+	if (out_stem) *out_stem = NULL;
+	if (exe_path == NULL || exe_path[0] == '\0')
+		return 0;
+
+	char *lower = g_ascii_strdown (exe_path, -1);
+	const char *marker = strstr (lower, "\\windowsapps\\");
+	if (marker == NULL)
+		marker = strstr (lower, "/windowsapps/");
+	if (marker == NULL) {
+		g_free (lower);
+		return 0;
+	}
+
+	gsize offset = (gsize) (marker - lower) + 13;
+	const char *pkg_start = exe_path + offset;
+	const char *pkg_end = pkg_start;
+	while (*pkg_end != '\0' && *pkg_end != '\\' && *pkg_end != '/')
+		pkg_end++;
+	if (pkg_end <= pkg_start) {
+		g_free (lower);
+		return 0;
+	}
+
+	char *pkg_full = g_strndup (pkg_start, (gsize) (pkg_end - pkg_start));
+	const char *first_us = strchr (pkg_full, '_');
+	const char *last_us = strrchr (pkg_full, '_');
+	if (first_us != NULL && last_us != NULL && last_us > first_us && last_us[1] != '\0') {
+		char *pkg_name = g_strndup (pkg_full, (gsize) (first_us - pkg_full));
+		char *family = g_strdup_printf ("%s_%s", pkg_name, last_us + 1);
+		if (out_family) *out_family = family;
+		else g_free (family);
+		g_free (pkg_name);
+	}
+	g_free (pkg_full);
+
+	const char *base = strrchr (exe_path, '\\');
+	const char *slash = strrchr (exe_path, '/');
+	if (slash != NULL && (base == NULL || slash > base))
+		base = slash;
+	base = (base != NULL) ? (base + 1) : exe_path;
+	const char *dot = strrchr (base, '.');
+	if (out_stem) {
+		*out_stem = (dot != NULL && dot > base)
+			? g_strndup (base, (gsize) (dot - base))
+			: g_strdup (base);
+	}
+
+	g_free (lower);
+	return 1;
+}
+#endif
+
+char *
+win32_app_find_aumid_for_package_path (const char *exe_path)
+{
+#ifdef _WIN32
+	if (exe_path == NULL || exe_path[0] == '\0')
+		return NULL;
+	ensure_com ();
+
+	static PFN_SHGetKnownFolderItem pfn_get_kf_item = NULL;
+	static int kf_resolved = 0;
+	if (!kf_resolved) {
+		kf_resolved = 1;
+		HMODULE hShell = GetModuleHandleW (L"shell32.dll");
+		if (hShell == NULL)
+			hShell = LoadLibraryW (L"shell32.dll");
+		if (hShell != NULL)
+			pfn_get_kf_item = (PFN_SHGetKnownFolderItem) (void *) GetProcAddress (hShell, "SHGetKnownFolderItem");
+	}
+	if (pfn_get_kf_item == NULL)
+		return NULL;
+
+	char *expected_family = NULL;
+	char *exe_stem = NULL;
+	extract_windowsapps_family_and_stem (exe_path, &expected_family, &exe_stem);
+	char *exe_lower = g_ascii_strdown (exe_path, -1);
+	for (char *p = exe_lower; *p != '\0'; p++) {
+		if (*p == '/') *p = '\\';
+	}
+	char *fam_lower = (expected_family != NULL) ? g_ascii_strdown (expected_family, -1) : NULL;
+	char *stem_lower = (exe_stem != NULL) ? g_ascii_strdown (exe_stem, -1) : NULL;
+
+	IShellItem *apps_folder = NULL;
+	HRESULT hr = pfn_get_kf_item (&WP_FOLDERID_AppsFolder, 0, NULL, &WP_IID_IShellItem, (void **) &apps_folder);
+	if (FAILED (hr) || apps_folder == NULL) {
+		g_free (expected_family);
+		g_free (exe_stem);
+		g_free (exe_lower);
+		g_free (fam_lower);
+		g_free (stem_lower);
+		return NULL;
+	}
+
+	IEnumShellItems *enum_items = NULL;
+	hr = IShellItem_BindToHandler (apps_folder, NULL, &WP_BHID_EnumItems, &WP_IID_IEnumShellItems, (void **) &enum_items);
+	IShellItem_Release (apps_folder);
+
+	char *best_aumid = NULL;
+	int best_score = 0;
+
+	if (SUCCEEDED (hr) && enum_items != NULL) {
+		IShellItem *item = NULL;
+		ULONG fetched = 0;
+		while (IEnumShellItems_Next (enum_items, 1, &item, &fetched) == S_OK && fetched == 1 && item != NULL) {
+			IShellItem2 *item2 = NULL;
+			if (SUCCEEDED (IShellItem_QueryInterface (item, &WP_IID_IShellItem2, (void **) &item2)) && item2 != NULL) {
+				PWSTR waumid = NULL;
+				if (SUCCEEDED (IShellItem2_GetString (item2, &WP_APP_PKEY_AppUserModel_ID, &waumid)) && waumid != NULL) {
+					char *aumid = wide_to_utf8 (waumid);
+					CoTaskMemFree (waumid);
+
+					int score = 0;
+					PWSTR winstall = NULL;
+					if (SUCCEEDED (IShellItem2_GetString (item2, &WP_APP_PKEY_AppUserModel_PackageInstallPath, &winstall)) && winstall != NULL) {
+						char *install = wide_to_utf8 (winstall);
+						CoTaskMemFree (winstall);
+						char *inst_lower = g_ascii_strdown (install, -1);
+						gsize ilen = strlen (inst_lower);
+						while (ilen > 0 && (inst_lower[ilen - 1] == '\\' || inst_lower[ilen - 1] == '/'))
+							inst_lower[--ilen] = '\0';
+						if (ilen > 0 && strncmp (exe_lower, inst_lower, ilen) == 0
+							&& (exe_lower[ilen] == '\\' || exe_lower[ilen] == '\0')) {
+							score = 20;
+						}
+						g_free (inst_lower);
+						g_free (install);
+					}
+
+					if (score == 0 && fam_lower != NULL && aumid != NULL) {
+						char *aumid_lower = g_ascii_strdown (aumid, -1);
+						char *bang = strchr (aumid_lower, '!');
+						if (bang != NULL) {
+							*bang = '\0';
+							if (strcmp (aumid_lower, fam_lower) == 0)
+								score = 10;
+						}
+						g_free (aumid_lower);
+					}
+
+					if (score > 0 && stem_lower != NULL && aumid != NULL) {
+						char *aumid_lower = g_ascii_strdown (aumid, -1);
+						const char *bang = strchr (aumid_lower, '!');
+						if (bang != NULL && strstr (bang + 1, stem_lower) != NULL)
+							score += 5;
+						g_free (aumid_lower);
+					}
+
+					if (score > best_score) {
+						g_free (best_aumid);
+						best_aumid = aumid;
+						best_score = score;
+					} else {
+						g_free (aumid);
+					}
+				}
+				IShellItem2_Release (item2);
+			}
+			IShellItem_Release (item);
+		}
+		IEnumShellItems_Release (enum_items);
+	}
+
+	g_free (expected_family);
+	g_free (exe_stem);
+	g_free (exe_lower);
+	g_free (fam_lower);
+	g_free (stem_lower);
+	return best_aumid;
+#else
+	(void) exe_path;
+	return NULL;
+#endif
+}
+
+void
+win32_app_enum_uwp_apps (Win32EnumUwpAppCallback cb, void *user_data)
+{
+#ifdef _WIN32
+	if (cb == NULL)
+		return;
+	ensure_com ();
+
+	static PFN_SHGetKnownFolderItem pfn_get_kf_item = NULL;
+	static int kf_resolved = 0;
+	if (!kf_resolved) {
+		kf_resolved = 1;
+		HMODULE hShell = GetModuleHandleW (L"shell32.dll");
+		if (hShell == NULL)
+			hShell = LoadLibraryW (L"shell32.dll");
+		if (hShell != NULL)
+			pfn_get_kf_item = (PFN_SHGetKnownFolderItem) (void *) GetProcAddress (hShell, "SHGetKnownFolderItem");
+	}
+	if (pfn_get_kf_item == NULL)
+		return;
+
+	IShellItem *apps_folder = NULL;
+	HRESULT hr = pfn_get_kf_item (&WP_FOLDERID_AppsFolder, 0, NULL, &WP_IID_IShellItem, (void **) &apps_folder);
+	if (FAILED (hr) || apps_folder == NULL)
+		return;
+
+	IEnumShellItems *enum_items = NULL;
+	hr = IShellItem_BindToHandler (apps_folder, NULL, &WP_BHID_EnumItems, &WP_IID_IEnumShellItems, (void **) &enum_items);
+	IShellItem_Release (apps_folder);
+	if (FAILED (hr) || enum_items == NULL)
+		return;
+
+	IShellItem *item = NULL;
+	ULONG fetched = 0;
+	while (IEnumShellItems_Next (enum_items, 1, &item, &fetched) == S_OK && fetched == 1 && item != NULL) {
+		IShellItem2 *item2 = NULL;
+		if (SUCCEEDED (IShellItem_QueryInterface (item, &WP_IID_IShellItem2, (void **) &item2)) && item2 != NULL) {
+			PWSTR waumid = NULL;
+			if (SUCCEEDED (IShellItem2_GetString (item2, &WP_APP_PKEY_AppUserModel_ID, &waumid)) && waumid != NULL) {
+				char *aumid = wide_to_utf8 (waumid);
+				CoTaskMemFree (waumid);
+
+				/* Only emit packaged UWP/MSIX apps (AUMID contains '!' and has PackageInstallPath or packaged family) */
+				if (aumid != NULL && strchr (aumid, '!') != NULL) {
+					char *install = NULL;
+					PWSTR winstall = NULL;
+					if (SUCCEEDED (IShellItem2_GetString (item2, &WP_APP_PKEY_AppUserModel_PackageInstallPath, &winstall)) && winstall != NULL) {
+						install = wide_to_utf8 (winstall);
+						CoTaskMemFree (winstall);
+					}
+					char *display = NULL;
+					PWSTR wdisp = NULL;
+					if (SUCCEEDED (IShellItem_GetDisplayName (item, SIGDN_NORMALDISPLAY, &wdisp)) && wdisp != NULL) {
+						display = wide_to_utf8 (wdisp);
+						CoTaskMemFree (wdisp);
+					}
+					if (display != NULL && display[0] != '\0')
+						cb (aumid, display, install != NULL ? install : "", user_data);
+					g_free (display);
+					g_free (install);
+				}
+				g_free (aumid);
+			}
+			IShellItem2_Release (item2);
+		}
+		IShellItem_Release (item);
+	}
+	IEnumShellItems_Release (enum_items);
+#else
+	(void) cb;
+	(void) user_data;
 #endif
 }
 

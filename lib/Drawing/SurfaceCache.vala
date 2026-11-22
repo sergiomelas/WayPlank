@@ -246,10 +246,21 @@ namespace Plank
 			current_info = new SurfaceInfo ((uint16) width, (uint16) height, finish_time, time_elapsed);
 			current_info.access_count++;
 			
+			if ((flags & SurfaceCacheFlags.ALLOW_DOWNSCALE) != 0) {
+				var cache_it = cache_map.map_iterator ();
+				while (cache_it.next ()) {
+					var existing = cache_it.get_key ();
+					if (existing.width < width && existing.height < height) {
+						infos.remove (existing);
+						cache_it.unset ();
+					}
+				}
+				scaled_cache.clear ();
+				last_info = null;
+			}
+			
 			cache_map.set (current_info, surface);
 			infos.add (current_info);
-			if ((flags & SurfaceCacheFlags.ALLOW_DOWNSCALE) != 0)
-				scaled_cache.clear ();
 			
 			cache_mutex.unlock ();
 			

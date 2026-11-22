@@ -159,6 +159,7 @@ namespace Plank
 			cr.save ();
 			cr.scale ((double) width / Width, (double) height / Height);
 			cr.set_source_surface (Internal, 0, 0);
+			cr.get_source ().set_filter (Cairo.Filter.BEST);
 			cr.paint ();
 			cr.restore ();
 			

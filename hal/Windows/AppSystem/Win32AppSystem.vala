@@ -62,6 +62,8 @@ namespace Plank
 		Gee.ArrayList<string>? cached_native_icon_tokens = null;
 		Gee.HashMap<string, CachedLnkRecord> disk_lnk_records;
 		Gee.HashMap<string, AppDescriptor?> lnk_cache;
+		Gee.HashMap<string, AppDescriptor> uwp_apps_by_aumid;
+		bool uwp_apps_enumerated = false;
 		Gee.HashMap<string, string> apps_by_id;
 		Gee.HashSet<string> failed_icon_keys;
 		Gee.HashMap<string, Gdk.Pixbuf> icon_cache;
@@ -77,6 +79,7 @@ namespace Plank
 		{
 			disk_lnk_records = new Gee.HashMap<string, CachedLnkRecord> ();
 			lnk_cache = new Gee.HashMap<string, AppDescriptor?> ();
+			uwp_apps_by_aumid = new Gee.HashMap<string, AppDescriptor> ();
 			apps_by_id = new Gee.HashMap<string, string> ();
 			failed_icon_keys = new Gee.HashSet<string> ();
 			icon_cache = new Gee.HashMap<string, Gdk.Pixbuf> ();
@@ -462,8 +465,65 @@ namespace Plank
 				}
 			}
 
+			/* 3. Include cold-discovered packaged UWP/MSIX apps from FOLDERID_AppsFolder */
+			ensure_uwp_apps_loaded ();
+			foreach (var uwp_desc in uwp_apps_by_aumid.values) {
+				string ukey = uwp_desc.uri.down ();
+				if (seen_uris.add (ukey)) {
+					next_apps.add (uwp_desc);
+					if (uwp_desc.base_id.length > 0 && !next_by_id.has_key (uwp_desc.base_id))
+						next_by_id.set (uwp_desc.base_id, uwp_desc.uri);
+					string dlow = uwp_desc.display_name.down ();
+					if (dlow.length > 0 && !next_by_id.has_key (dlow))
+						next_by_id.set (dlow, uwp_desc.uri);
+				}
+			}
+
 			cached_apps = next_apps;
 			apps_by_id = next_by_id;
+		}
+
+		void ensure_uwp_apps_loaded ()
+		{
+			if (uwp_apps_enumerated)
+				return;
+			uwp_apps_enumerated = true;
+			Win32AppBridge.enum_uwp_apps ((aumid, display_name, install_path) => {
+				string clean_id = aumid.strip ();
+				string clean_name = display_name.strip ();
+				if (clean_id.length == 0 || clean_name.length == 0)
+					return;
+				string akey = clean_id.down ();
+				if (uwp_apps_by_aumid.has_key (akey))
+					return;
+
+				var d = new AppDescriptor ();
+				d.uri = "aumid://" + clean_id;
+				d.display_name = clean_name;
+				d.unlocalized_name = clean_name;
+				int bang = clean_id.index_of_char ('!');
+				string pkg_prefix = (bang > 0) ? clean_id.substring (0, bang) : clean_id;
+				int us = pkg_prefix.index_of_char ('_');
+				string short_pkg = (us > 0) ? pkg_prefix.substring (0, us) : pkg_prefix;
+				d.base_id = normalize_app_id (short_pkg);
+				d.startup_wm_class_or_aumid = clean_id;
+				d.wm_classes_or_aumids.add (akey);
+				if (short_pkg.length > 0)
+					d.wm_classes_or_aumids.add (normalize_app_id (short_pkg));
+				d.exec_command = (install_path.length > 0) ? quote_win_arg (install_path) : clean_id;
+				d.icon_token = "aumidico:" + clean_id;
+				if (custom_icon_overrides.has_key (d.uri.down ())) {
+					d.icon_token = custom_icon_overrides.get (d.uri.down ());
+					d.has_custom_icon_override = true;
+				}
+				d.is_launchable = true;
+				d.has_explicit_app_type = true;
+				d.try_exec_satisfied = true;
+				d.supports_files = false;
+				d.supports_uris = true;
+				d.is_shown_in_current_desktop = true;
+				uwp_apps_by_aumid.set (akey, d);
+			});
 		}
 
 		bool load_disk_cache_file ()
@@ -824,7 +884,15 @@ namespace Plank
 				d.icon_token = kf.has_key ("WayPlankApp", "Icon") ? kf.get_string ("WayPlankApp", "Icon") : "";
 				d.working_dir = kf.has_key ("WayPlankApp", "WorkingDir") ? kf.get_string ("WayPlankApp", "WorkingDir") : "";
 				string raw_wm = kf.has_key ("WayPlankApp", "WmClass") ? kf.get_string ("WayPlankApp", "WmClass") : "";
-				d.startup_wm_class_or_aumid = Win32Backend.is_generic_win32_class (raw_wm) ? "" : raw_wm;
+				string raw_aumid = kf.has_key ("WayPlankApp", "Aumid") ? kf.get_string ("WayPlankApp", "Aumid").strip () : "";
+				if (raw_aumid.length > 0) {
+					d.startup_wm_class_or_aumid = raw_aumid;
+					d.wm_classes_or_aumids.add (raw_aumid.down ());
+				} else {
+					d.startup_wm_class_or_aumid = Win32Backend.is_generic_win32_class (raw_wm) ? "" : raw_wm;
+				}
+				if (raw_wm.length > 0 && !Win32Backend.is_generic_win32_class (raw_wm) && !d.wm_classes_or_aumids.contains (raw_wm.down ()))
+					d.wm_classes_or_aumids.add (raw_wm.down ());
 
 				string stem = file_stem;
 				if (d.exec_command.length > 0) {
@@ -835,10 +903,13 @@ namespace Plank
 							d.icon_token = argv[0];
 					}
 				}
+				/* Pure fallback: only use aumidico: if no valid native icon exists on disk */
+				if (raw_aumid.length > 0 && !is_win_icon_spec (d.icon_token))
+					d.icon_token = "aumidico:" + raw_aumid;
 				d.base_id = normalize_app_id (stem);
-				if (d.startup_wm_class_or_aumid.length > 0)
+				if (d.startup_wm_class_or_aumid.length > 0 && !d.wm_classes_or_aumids.contains (d.startup_wm_class_or_aumid.down ()))
 					d.wm_classes_or_aumids.add (d.startup_wm_class_or_aumid.down ());
-				d.is_launchable = d.exec_command.length > 0;
+				d.is_launchable = (d.exec_command.length > 0 || raw_aumid.length > 0);
 				d.has_explicit_app_type = true;
 				d.is_synthetic = true;
 				d.try_exec_satisfied = true;
@@ -855,6 +926,33 @@ namespace Plank
 		{
 			if (uri_or_path.length == 0 || uri_or_path.has_prefix ("docklet://"))
 				return null;
+
+			if (uri_or_path.down ().has_prefix ("aumid://")) {
+				string aumid = uri_or_path.substring (8).strip ();
+				if (aumid.length == 0)
+					return null;
+				ensure_uwp_apps_loaded ();
+				string akey = aumid.down ();
+				if (uwp_apps_by_aumid.has_key (akey))
+					return uwp_apps_by_aumid.get (akey);
+
+				var d = new AppDescriptor ();
+				d.uri = "aumid://" + aumid;
+				int bang = aumid.index_of_char ('!');
+				string tail = (bang >= 0 && bang + 1 < aumid.length) ? aumid.substring (bang + 1) : aumid;
+				d.display_name = tail;
+				d.unlocalized_name = tail;
+				d.base_id = normalize_app_id (tail);
+				d.startup_wm_class_or_aumid = aumid;
+				d.wm_classes_or_aumids.add (akey);
+				d.exec_command = aumid;
+				d.icon_token = "aumidico:" + aumid;
+				d.is_launchable = true;
+				d.has_explicit_app_type = true;
+				d.try_exec_satisfied = true;
+				d.is_shown_in_current_desktop = true;
+				return d;
+			}
 
 			string path = to_local_path (uri_or_path);
 			string lower = path.down ();
@@ -1022,18 +1120,64 @@ namespace Plank
 			return is_launcher_uri (launcher_uri) && candidate_uri.length > 0;
 		}
 
+		static bool is_windows_apps_path (string path)
+		{
+			string low = path.down ().replace ("/", "\\");
+			return low.contains ("\\windowsapps\\");
+		}
+
+		static string read_synthetic_aumid (string path)
+		{
+			var kf = new KeyFile ();
+			try {
+				kf.load_from_file (path, KeyFileFlags.NONE);
+				if (kf.has_group ("WayPlankApp") && kf.has_key ("WayPlankApp", "Aumid"))
+					return kf.get_string ("WayPlankApp", "Aumid").strip ();
+			} catch (Error e) {}
+			return "";
+		}
+
+		static void persist_synthetic_aumid (string path, string aumid)
+		{
+			if (path.length == 0 || aumid.length == 0)
+				return;
+			var kf = new KeyFile ();
+			try {
+				kf.load_from_file (path, KeyFileFlags.NONE);
+				if (!kf.has_group ("WayPlankApp"))
+					return;
+				kf.set_string ("WayPlankApp", "Aumid", aumid);
+				FileUtils.set_contents (path, kf.to_data ());
+			} catch (Error e) {}
+		}
+
+		static string build_uri_args (string[] uris)
+		{
+			var sb = new StringBuilder ();
+			foreach (var u in uris) {
+				if (sb.len > 0) sb.append_c (' ');
+				sb.append (quote_win_arg (to_local_path (u)));
+			}
+			return sb.str;
+		}
+
 		public bool launch_app (string launcher_uri, string[] uris)
 		{
 			if (launcher_uri.length == 0)
 				return false;
 
+			if (launcher_uri.down ().has_prefix ("aumid://")) {
+				string aumid = launcher_uri.substring (8).strip ();
+				if (aumid.length == 0)
+					return false;
+				string uargs = build_uri_args (uris);
+				return Win32AppBridge.activate_aumid (aumid, uargs.length > 0 ? uargs : null) != 0;
+			}
+
 			string path = to_local_path (launcher_uri);
 			string lower = path.down ();
 
 			if (lower.has_suffix (".lnk")) {
-				if (uris.length == 0)
-					return Win32AppBridge.shell_execute (path, null, null) != 0;
-
 				string? target = null;
 				string? args = null;
 				string? workdir = null;
@@ -1041,23 +1185,50 @@ namespace Plank
 				string? icon_path = null;
 				int icon_idx = 0;
 				string? aumid = null;
-				if (Win32AppBridge.resolve_lnk (path, out target, out args, out workdir, out desc_str, out icon_path, out icon_idx, out aumid) != 0
-					&& target != null && target.length > 0) {
-					var sb = new StringBuilder ();
-					if (args != null && args.strip ().length > 0)
-						sb.append (args.strip ());
-					foreach (var u in uris) {
-						if (sb.len > 0) sb.append_c (' ');
-						sb.append (quote_win_arg (to_local_path (u)));
+				if (Win32AppBridge.resolve_lnk (path, out target, out args, out workdir, out desc_str, out icon_path, out icon_idx, out aumid) != 0) {
+					bool target_is_uwp = (target != null && target.length > 0 && is_windows_apps_path (target));
+					if (aumid != null && aumid.strip ().length > 0 && (target == null || target.length == 0 || target_is_uwp)) {
+						string uargs = build_uri_args (uris);
+						if (Win32AppBridge.activate_aumid (aumid.strip (), uargs.length > 0 ? uargs : null) != 0)
+							return true;
 					}
-					return Win32AppBridge.shell_execute (target, sb.str, workdir) != 0;
+					if (uris.length == 0)
+						return Win32AppBridge.shell_execute (path, null, null) != 0;
+					if (target != null && target.length > 0) {
+						var sb = new StringBuilder ();
+						if (args != null && args.strip ().length > 0)
+							sb.append (args.strip ());
+						foreach (var u in uris) {
+							if (sb.len > 0) sb.append_c (' ');
+							sb.append (quote_win_arg (to_local_path (u)));
+						}
+						return Win32AppBridge.shell_execute (target, sb.str, workdir) != 0;
+					}
 				}
 				return Win32AppBridge.shell_execute (path, null, null) != 0;
 			}
 
 			if (lower.has_suffix (".wayplank-app")) {
 				var d = load_synthetic_descriptor (path);
-				if (d == null || d.exec_command.length == 0)
+				if (d == null)
+					return false;
+				string aumid = read_synthetic_aumid (path);
+				if (aumid.length == 0 && d.exec_command.length > 0) {
+					var argv = Hal.Runtime.parse_command_argv (d.exec_command);
+					if (argv.length > 0 && is_windows_apps_path (argv[0])) {
+						string? found = Win32AppBridge.find_aumid_for_package_path (argv[0]);
+						if (found != null && found.strip ().length > 0) {
+							aumid = found.strip ();
+							persist_synthetic_aumid (path, aumid);
+						}
+					}
+				}
+				if (aumid.length > 0) {
+					string uargs = build_uri_args (uris);
+					if (Win32AppBridge.activate_aumid (aumid, uargs.length > 0 ? uargs : null) != 0)
+						return true;
+				}
+				if (d.exec_command.length == 0)
 					return false;
 				var sb = new StringBuilder (d.exec_command);
 				foreach (var u in uris) {
@@ -1068,12 +1239,16 @@ namespace Plank
 			}
 
 			if (lower.has_suffix (".exe")) {
-				var sb = new StringBuilder ();
-				foreach (var u in uris) {
-					if (sb.len > 0) sb.append_c (' ');
-					sb.append (quote_win_arg (to_local_path (u)));
+				if (is_windows_apps_path (path)) {
+					string? found = Win32AppBridge.find_aumid_for_package_path (path);
+					if (found != null && found.strip ().length > 0) {
+						string uargs = build_uri_args (uris);
+						if (Win32AppBridge.activate_aumid (found.strip (), uargs.length > 0 ? uargs : null) != 0)
+							return true;
+					}
 				}
-				return Win32AppBridge.shell_execute (path, sb.len > 0 ? sb.str : null, null) != 0;
+				string uargs = build_uri_args (uris);
+				return Win32AppBridge.shell_execute (path, uargs.length > 0 ? uargs : null, null) != 0;
 			}
 
 			return Win32AppBridge.shell_execute (path, null, null) != 0;
@@ -1106,18 +1281,32 @@ namespace Plank
 
 		public string get_default_app_for_role (DefaultAppRole role)
 		{
+			string windir = Environment.get_variable ("WINDIR") ?? "C:\\Windows";
 			switch (role) {
 			case DefaultAppRole.FILE_MANAGER:
-				return to_file_uri ("C:\\Windows\\explorer.exe");
+				return to_file_uri (Path.build_filename (windir, "explorer.exe"));
 			case DefaultAppRole.TERMINAL:
-				return to_file_uri ("C:\\Windows\\System32\\cmd.exe");
+				ensure_uwp_apps_loaded ();
+				foreach (var entry in uwp_apps_by_aumid.entries) {
+					if (entry.key.contains ("windowsterminal"))
+						return entry.value.uri;
+				}
+				string ps = Path.build_filename (windir, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+				if (FileUtils.test (ps, FileTest.EXISTS))
+					return to_file_uri (ps);
+				return to_file_uri (Path.build_filename (windir, "System32", "cmd.exe"));
 			case DefaultAppRole.TEXT_EDITOR:
-				return to_file_uri ("C:\\Windows\\System32\\notepad.exe");
+				return to_file_uri (Path.build_filename (windir, "System32", "notepad.exe"));
 			case DefaultAppRole.WEB_BROWSER:
-				string chrome = find_installed_browser_binary (BrowserFamily.CHROME);
-				if (chrome.length > 0) return to_file_uri (chrome);
-				string edge = find_installed_browser_binary (BrowserFamily.EDGE);
-				if (edge.length > 0) return to_file_uri (edge);
+				BrowserFamily[] fams = {
+					BrowserFamily.CHROME, BrowserFamily.EDGE, BrowserFamily.BRAVE,
+					BrowserFamily.FIREFOX, BrowserFamily.VIVALDI, BrowserFamily.OPERA
+				};
+				foreach (var fam in fams) {
+					string bin = find_installed_browser_binary (fam);
+					if (bin.length > 0)
+						return to_file_uri (bin);
+				}
 				return "";
 			default:
 				return "";
@@ -1136,9 +1325,107 @@ namespace Plank
 			return seeds;
 		}
 
+		static bool matches_windows_category_keywords (AppDescriptor desc, string[] category_tags)
+		{
+			string hay = "%s %s %s".printf (desc.display_name, desc.base_id, desc.exec_command).down ();
+			bool want_internet = false, want_office = false, want_media = false, want_games = false, want_utils = false;
+			foreach (unowned string tag in category_tags) {
+				string t = tag.down ();
+				if (t == "webbrowser" || t == "network" || t == "email" || t == "chat") want_internet = true;
+				else if (t == "office" || t == "development" || t == "ide" || t == "texteditor" || t == "calculator") want_office = true;
+				else if (t == "audiovideo" || t == "audio" || t == "video" || t == "graphics" || t == "music") want_media = true;
+				else if (t == "game" || t == "emulator") want_games = true;
+				else if (t == "system" || t == "utility" || t == "settings" || t == "filemanager") want_utils = true;
+			}
+
+			if (want_internet) {
+				string[] kws = { "chrome", "msedge", "edge", "firefox", "brave", "vivaldi", "opera", "thunderbird", "outlook", "teams", "whatsapp", "telegram", "discord", "slack", "zoom" };
+				foreach (unowned string kw in kws) { if (hay.contains (kw)) return true; }
+			}
+			if (want_office) {
+				string[] kws = { "winword", "excel", "powerpnt", "onenote", "libreoffice", "soffice", "code.exe", "visual studio", "notepad", "calc", "calculator", "acrobat", "foxit", "obsidian", "notion" };
+				foreach (unowned string kw in kws) { if (hay.contains (kw)) return true; }
+			}
+			if (want_media) {
+				string[] kws = { "vlc", "spotify", "gimp", "inkscape", "blender", "obs64", "audacity", "photos", "mediaplayer", "paint", "snipping", "photoshop", "itunes", "mpv" };
+				foreach (unowned string kw in kws) { if (hay.contains (kw)) return true; }
+			}
+			if (want_games) {
+				string[] kws = { "steam", "epicgames", "xbox", "gog galaxy", "retroarch", "minecraft", "battle.net", "ea desktop", "ubisoft", "solitaire" };
+				foreach (unowned string kw in kws) { if (hay.contains (kw)) return true; }
+			}
+			if (want_utils) {
+				string[] kws = { "windowsterminal", "powershell", "cmd.exe", "taskmgr", "explorer", "7-zip", "7zfm", "winrar", "settings", "control.exe", "regedit", "putty" };
+				foreach (unowned string kw in kws) { if (hay.contains (kw)) return true; }
+			}
+			return false;
+		}
+
+		bool write_uwp_app_into_dir (AppDescriptor desc, GLib.File dest_dir)
+		{
+			string aumid = desc.startup_wm_class_or_aumid;
+			if (aumid.length == 0 && desc.uri.has_prefix ("aumid://"))
+				aumid = desc.uri.substring (8);
+			if (aumid.length == 0)
+				return false;
+			string safe = (desc.base_id.length > 0 ? desc.base_id : desc.display_name)
+				.replace ("/", "_").replace ("\\", "_").replace (":", "_").replace ("!", "_").replace (" ", "_");
+			if (safe.length == 0)
+				return false;
+			var dest = dest_dir.get_child (safe + ".wayplank-app");
+			string? dp = dest.get_path ();
+			if (dp == null || dp.length == 0)
+				return false;
+			var kf = new KeyFile ();
+			kf.set_string ("WayPlankApp", "Name", desc.display_name);
+			kf.set_string ("WayPlankApp", "Exec", desc.exec_command.length > 0 ? desc.exec_command : aumid);
+			kf.set_string ("WayPlankApp", "Aumid", aumid);
+			kf.set_string ("WayPlankApp", "Icon", "aumidico:" + aumid);
+			try {
+				FileUtils.set_contents (dp, kf.to_data ());
+				return true;
+			} catch (Error e) {
+				return false;
+			}
+		}
+
 		public int populate_category_folder (GLib.File folder, string icon_name, string[] priority_ids, string[] category_tags, int max_items = 6)
 		{
-			return 0;
+			var apps = discover_installed_apps (false);
+			var matched = new Gee.ArrayList<AppDescriptor> ();
+			var seen_names = new Gee.HashSet<string> ();
+
+			foreach (var app in apps) {
+				if (matched.size >= max_items)
+					break;
+				if (!app.is_launchable || app.is_non_app_launcher || app.is_synthetic)
+					continue;
+				if (!matches_windows_category_keywords (app, category_tags))
+					continue;
+				string nkey = app.display_name.down ();
+				if (nkey.length == 0 || !seen_names.add (nkey))
+					continue;
+				matched.add (app);
+			}
+
+			if (matched.size == 0)
+				return 0;
+
+			if (!ensure_launcher_folder (folder, "", icon_name))
+				return 0;
+
+			int written = 0;
+			foreach (var app in matched) {
+				if (app.uri.has_prefix ("aumid://")) {
+					if (write_uwp_app_into_dir (app, folder))
+						written++;
+				} else {
+					var src = File.new_for_uri (app.uri);
+					if (copy_launcher_to_directory (src, folder) != null)
+						written++;
+				}
+			}
+			return written;
 		}
 
 		public bool ensure_launcher_folder (GLib.File folder, string display_name = "", string icon_token = "")
@@ -1190,6 +1477,11 @@ namespace Plank
 				kf.set_string ("WayPlankApp", "Name", desc.display_name.length > 0 ? desc.display_name : stem);
 				kf.set_string ("WayPlankApp", "Exec", desc.exec_command);
 				kf.set_string ("WayPlankApp", "Icon", desc.icon_token.length > 0 ? desc.icon_token : src_path);
+				if (is_windows_apps_path (src_path)) {
+					string? found_aumid = Win32AppBridge.find_aumid_for_package_path (src_path);
+					if (found_aumid != null && found_aumid.strip ().length > 0)
+						kf.set_string ("WayPlankApp", "Aumid", found_aumid.strip ());
+				}
 				try {
 					string? dp = dest.get_path ();
 					if (dp == null || dp.length == 0)
@@ -1265,6 +1557,49 @@ namespace Plank
 				kf.set_string ("WayPlankApp", "Icon", resolved_icon);
 			if (wm_class_or_aumid.length > 0 && !Win32Backend.is_generic_win32_class (wm_class_or_aumid))
 				kf.set_string ("WayPlankApp", "WmClass", wm_class_or_aumid);
+
+			/* Persist official UWP/MSIX AUMID so packaged WindowsApps (Teams, Calculator,
+			 * Terminal, Settings, WhatsApp, etc.) launch via IApplicationActivationManager. */
+			string detected_aumid = "";
+			try {
+				if (kf.has_key ("WayPlankApp", "Aumid"))
+					detected_aumid = kf.get_string ("WayPlankApp", "Aumid").strip ();
+			} catch (Error e) {}
+			if (detected_aumid.length == 0) {
+				var exec_argv = Hal.Runtime.parse_command_argv (exec_cmd);
+				string exec_exe = (exec_argv.length > 0) ? exec_argv[0] : "";
+				string exec_exe_low = exec_exe.down ();
+				string needle = safe_stem.down ();
+				string wm_needle = wm_class_or_aumid.down ();
+				foreach (var w in Hal.Windows.get_windows ()) {
+					if (w.Pid <= 0)
+						continue;
+					bool matches_win = (exec_exe_low.length > 0 && w.Executable.down () == exec_exe_low)
+						|| w.ApplicationId.down () == needle
+						|| w.ResourceName.down () == needle
+						|| (wm_needle.length > 0 && w.ResourceClass.down () == wm_needle);
+					if (matches_win) {
+						string? proc_aumid = Win32AppBridge.get_process_aumid (w.Pid);
+						if (proc_aumid != null && proc_aumid.strip ().length > 0) {
+							detected_aumid = proc_aumid.strip ();
+							break;
+						}
+					}
+				}
+				if (detected_aumid.length == 0 && exec_exe.length > 0 && is_windows_apps_path (exec_exe)) {
+					string? found_aumid = Win32AppBridge.find_aumid_for_package_path (exec_exe);
+					if (found_aumid != null && found_aumid.strip ().length > 0)
+						detected_aumid = found_aumid.strip ();
+				}
+			}
+			if (detected_aumid.length > 0) {
+				kf.set_string ("WayPlankApp", "Aumid", detected_aumid);
+				/* Pure fallback: only assign aumidico: if no extractable Win32 icon was resolved */
+				if (!is_win_icon_spec (resolved_icon)) {
+					resolved_icon = "aumidico:" + detected_aumid;
+					kf.set_string ("WayPlankApp", "Icon", resolved_icon);
+				}
+			}
 
 			try {
 				string new_data = kf.to_data ();
@@ -1683,6 +2018,8 @@ namespace Plank
 				return false;
 			if (token.has_prefix ("resource://"))
 				return false;
+			if (token.has_prefix ("aumidico:"))
+				return token.length > 9;
 			string base_path = token.has_prefix ("winico:") ? token.substring (7) : token;
 			int comma = base_path.last_index_of_char (',');
 			if (comma > 0)
@@ -1928,9 +2265,6 @@ namespace Plank
 			case "application-x-archive":
 			case "package-x-generic":
 				return 105; /* SIID_ZIPFILE */
-			case "preferences-system":
-			case "configure":
-				return 106; /* SIID_SETTINGS */
 			default:
 				return -1;
 			}
@@ -1978,6 +2312,34 @@ namespace Plank
 			if (failed_icon_keys.contains (key))
 				return null;
 
+			if (token.has_prefix ("aumidico:")) {
+				string aumid = token.substring (9).strip ();
+				uint8* a_rgba = null;
+				int aw = 0, ah = 0;
+				if (aumid.length > 0
+					&& Win32AppBridge.extract_aumid_icon_rgba (aumid, req, out a_rgba, out aw, out ah) != 0
+					&& a_rgba != null && aw > 0 && ah > 0) {
+					int a_row = aw * 4;
+					int a_bytes = a_row * ah;
+					uint8[] a_px = new uint8[a_bytes];
+					Memory.copy (a_px, a_rgba, a_bytes);
+					Win32AppBridge.free_buffer (a_rgba);
+					var apb = new Gdk.Pixbuf.from_data ((owned) a_px, Gdk.Colorspace.RGB, true, 8, aw, ah, a_row);
+					if (aw != req || ah != req)
+						apb = apb.scale_simple (req, req, Gdk.InterpType.BILINEAR);
+					if (icon_cache.size > 1024)
+						icon_cache.clear ();
+					icon_cache.set (key, apb);
+					return apb;
+				}
+				if (a_rgba != null)
+					Win32AppBridge.free_buffer (a_rgba);
+				if (failed_icon_keys.size > 1024)
+					failed_icon_keys.clear ();
+				failed_icon_keys.add (key);
+				return null;
+			}
+
 			/* Direct raster/vector/ico image files */
 			string base_path = token.has_prefix ("winico:") ? token.substring (7) : token;
 			int comma = base_path.last_index_of_char (',');
@@ -2015,15 +2377,33 @@ namespace Plank
 				|| rgba_ptr == null || out_w <= 0 || out_h <= 0) {
 				if (rgba_ptr != null)
 					Win32AppBridge.free_buffer (rgba_ptr);
-				/* Fallback: if .lnk failed, extract directly from its target .exe */
+				/* Fallback: if .lnk failed, extract from target .exe or UWP AUMID;
+				 * if a WindowsApps .exe has no embedded Win32 icon, fall back to shell:AppsFolder\<AUMID>. */
 				if (lower.has_suffix (".lnk")) {
 					string? target = null, args = null, workdir = null, desc_str = null, icon_p = null, aumid = null;
 					int icon_i = 0;
-					if (Win32AppBridge.resolve_lnk (base_path, out target, out args, out workdir, out desc_str, out icon_p, out icon_i, out aumid) != 0
-						&& target != null && target.length > 0 && target.down () != base_path.down ()) {
-						var fallback_pb = load_native_icon (target, req);
-						if (fallback_pb != null)
-							return fallback_pb;
+					if (Win32AppBridge.resolve_lnk (base_path, out target, out args, out workdir, out desc_str, out icon_p, out icon_i, out aumid) != 0) {
+						if (target != null && target.length > 0 && target.down () != base_path.down ()) {
+							var fallback_pb = load_native_icon (target, req);
+							if (fallback_pb != null)
+								return fallback_pb;
+						}
+						if (aumid != null && aumid.strip ().length > 0) {
+							var uwp_pb = load_native_icon ("aumidico:" + aumid.strip (), req);
+							if (uwp_pb != null)
+								return uwp_pb;
+						}
+					}
+				} else if (is_windows_apps_path (base_path)) {
+					string? found_aumid = Win32AppBridge.find_aumid_for_package_path (base_path);
+					if (found_aumid != null && found_aumid.strip ().length > 0) {
+						var uwp_pb = load_native_icon ("aumidico:" + found_aumid.strip (), req);
+						if (uwp_pb != null) {
+							if (icon_cache.size > 1024)
+								icon_cache.clear ();
+							icon_cache.set (key, uwp_pb);
+							return uwp_pb;
+						}
 					}
 				}
 				if (failed_icon_keys.size > 1024)

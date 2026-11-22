@@ -65,7 +65,7 @@ All communication from Zone 1 (`src/` + `lib/`) into Zone 3 (`hal/*/`) flows exc
 
 1. **`PlatformCapabilities` (Capability-Driven Honest UI Translator):**
    - Immutable struct queried by `PreferencesWindow`, `HideManager`, `WindowCardsWindow`, `PoofWindow`, `PlankDockItem`, and `PreferencesDockItem`:
-     - `supports_live_thumbnails`, `supports_panel_struts`, `supports_primary_display`, `supports_dodge_active`, `supports_dodge_all`, `supports_pressure_reveal`, `supports_poof_overlay`, `supports_quit_action`, `supports_hardware_brightness`, `fallback_hide_mode`.
+     - `supports_live_thumbnails`, `supports_panel_struts`, `supports_primary_display`, `supports_dodge_active`, `supports_dodge_all`, `supports_pressure_reveal`, `supports_poof_overlay`, `supports_quit_action`, `supports_hardware_brightness`, `supports_workspace_filtering`, `workspace_filtering_unavailable_reason`, `fallback_hide_mode`.
    - Eliminates `WindowControl.is_labwc()`, `WindowControl.is_mutter()`, `GtkLayerShell.is_supported()`, and `environment_is_session_desktop(PANTHEON)` from all Core/UI widgets.
 2. **`IDockShell` (Surface, Strut, Popup & Input-Region Translator):**
    - `init_dock_surface (Gtk.Window)`

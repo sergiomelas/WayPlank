@@ -45,6 +45,7 @@ namespace Plank
 		uint dismiss_timer_id = 0U;
 		ulong theme_changed_id = 0UL;
 		ulong custom_name_changed_id = 0UL;
+		ulong custom_icon_changed_id = 0UL;
 		bool pointer_inside = false;
 		bool context_menu_active = false;
 		string? hovered_app_uri = null;
@@ -138,9 +139,15 @@ namespace Plank
 			WindowManager.get_default ().windows_refreshed.connect (on_windows_refreshed);
 			theme_changed_id = SystemTheme.get_default ().theme_changed.connect (on_system_theme_changed);
 			custom_name_changed_id = CustomNameService.get_default ().name_changed.connect (on_custom_name_changed);
+			custom_icon_changed_id = CustomIconService.get_default ().icon_changed.connect (on_custom_icon_changed);
 		}
 
 		void on_custom_name_changed (string launcher_uri)
+		{
+			refresh_if_visible ();
+		}
+
+		void on_custom_icon_changed (string launcher_uri)
 		{
 			refresh_if_visible ();
 		}
@@ -417,6 +424,10 @@ namespace Plank
 			if (custom_name_changed_id != 0UL) {
 				CustomNameService.get_default ().disconnect (custom_name_changed_id);
 				custom_name_changed_id = 0UL;
+			}
+			if (custom_icon_changed_id != 0UL) {
+				CustomIconService.get_default ().disconnect (custom_icon_changed_id);
+				custom_icon_changed_id = 0UL;
 			}
 			cancel_dismiss_timer ();
 			cancel_position_timer ();
@@ -829,6 +840,9 @@ namespace Plank
 					string custom_title = CustomNameService.get_default ().get_custom_name (uri);
 					if (custom_title != "")
 						text = custom_title;
+					string custom_icon = CustomIconService.get_default ().get_custom_icon (uri);
+					if (custom_icon != "" && DrawingService.has_icon (custom_icon))
+						icon = custom_icon;
 					if (icon == null || icon == "")
 						icon = "application-x-executable";
 
@@ -879,7 +893,7 @@ namespace Plank
 							return true;
 						} else if (event.button == 3) {
 							// Right click: show app context menu anchored to row
-							show_app_context_menu (row, event, child, uri, text, win_count);
+							show_app_context_menu (row, event, child, uri, text, icon, win_count);
 							return true;
 						}
 						return false;
@@ -1140,7 +1154,7 @@ namespace Plank
 			return eb;
 		}
 
-		void show_app_context_menu (Gtk.Widget row, Gdk.EventButton event, File child, string uri, string title, int win_count)
+		void show_app_context_menu (Gtk.Widget row, Gdk.EventButton event, File child, string uri, string title, string current_icon, int win_count)
 		{
 			cancel_dismiss_timer ();
 			context_menu_active = true;
@@ -1256,6 +1270,14 @@ namespace Plank
 					close_menu (true);
 				});
 				menu.append (move_dock_item);
+
+				var change_icon_item = DockElement.create_menu_item (_("Change _Icon..."), "preferences-desktop-theme", true);
+				change_icon_item.activate.connect (() => {
+					var ctrl = ctrl_ref.get () as DockController;
+					close_menu (true);
+					IconChooserDialog.show_for_launcher_uri (uri, current_icon, title, ctrl);
+				});
+				menu.append (change_icon_item);
 
 				var rename_item = DockElement.create_menu_item (_("Rename _Shortcut..."), "text-x-generic", true);
 				rename_item.activate.connect (() => {

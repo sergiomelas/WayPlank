@@ -69,8 +69,10 @@ namespace Plank
 		public bool supports_quit_action { get; set; default = true; }
 		public bool supports_pressure_reveal { get; set; default = false; }
 		public bool supports_hardware_brightness { get; set; default = true; }
+		public bool supports_workspace_filtering { get; set; default = false; }
 		public bool uses_shell_anchored_surfaces { get; set; default = false; }
 		public string unsupported_hide_mode_suffix { get; set; default = ""; }
+		public string workspace_filtering_unavailable_reason { get; set; default = ""; }
 		public string fully_supported_summary { get; set; default = ""; }
 		public string partially_supported_summary { get; set; default = ""; }
 

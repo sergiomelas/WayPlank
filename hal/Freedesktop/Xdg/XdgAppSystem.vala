@@ -1577,9 +1577,14 @@ namespace Plank
 		{
 			if (categories == null || categories == "")
 				return false;
-			foreach (unowned string tag in search_tags) {
-				if (categories.contains (tag))
-					return true;
+			foreach (unowned string raw_cat in categories.split (";")) {
+				string cat = raw_cat.strip ();
+				if (cat == "")
+					continue;
+				foreach (unowned string tag in search_tags) {
+					if (cat == tag)
+						return true;
+				}
 			}
 			return false;
 		}
@@ -1587,6 +1592,45 @@ namespace Plank
 		public int populate_category_folder (GLib.File folder, string icon_name, string[] priority_ids,
 			string[] category_tags, int max_items = 6)
 		{
+			var matched_paths = new Gee.ArrayList<string> ();
+			var seen_paths = new Gee.HashSet<string> ();
+
+			foreach (unowned string id in priority_ids) {
+				if (matched_paths.size >= max_items)
+					break;
+				string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
+				var app = new DesktopAppInfo (desktop_id);
+				if (app == null && !id.has_suffix (".desktop"))
+					app = new DesktopAppInfo (desktop_id + ".desktop");
+				if (app != null && app.should_show ()) {
+					unowned string? fn = app.get_filename ();
+					if (fn != null && !seen_paths.contains (fn)) {
+						seen_paths.add (fn);
+						matched_paths.add (fn);
+					}
+				}
+			}
+
+			if (matched_paths.size < max_items) {
+				foreach (var info in AppInfo.get_all ()) {
+					if (matched_paths.size >= max_items)
+						break;
+					var d_info = info as DesktopAppInfo;
+					if (d_info == null || !d_info.should_show ())
+						continue;
+					unowned string? fn = d_info.get_filename ();
+					if (fn == null || seen_paths.contains (fn))
+						continue;
+					if (categories_contain (d_info.get_categories (), category_tags)) {
+						seen_paths.add (fn);
+						matched_paths.add (fn);
+					}
+				}
+			}
+
+			if (matched_paths.size == 0)
+				return 0;
+
 			try {
 				if (!folder.query_exists ())
 					folder.make_directory_with_parents ();
@@ -1606,44 +1650,14 @@ namespace Plank
 				folder.set_attribute_string (FILE_ATTRIBUTE_CUSTOM_ICON_NAME, icon_name, FileQueryInfoFlags.NONE, null);
 			} catch { }
 
-			var added_files = new Gee.HashSet<string> ();
-
-			foreach (unowned string id in priority_ids) {
-				if (added_files.size >= max_items)
-					break;
-				string desktop_id = id.has_suffix (".desktop") ? id : id + ".desktop";
-				var app = new DesktopAppInfo (desktop_id);
-				if (app == null && !id.has_suffix (".desktop"))
-					app = new DesktopAppInfo (desktop_id + ".desktop");
-				if (app != null && app.should_show ()) {
-					unowned string? fn = app.get_filename ();
-					if (fn != null && !added_files.contains (fn)) {
-						var copied = copy_launcher_to_directory (File.new_for_path (fn), folder);
-						if (copied != null)
-							added_files.add (fn);
-					}
-				}
+			int added_count = 0;
+			foreach (string fn in matched_paths) {
+				var copied = copy_launcher_to_directory (File.new_for_path (fn), folder);
+				if (copied != null)
+					added_count++;
 			}
 
-			if (added_files.size < max_items) {
-				foreach (var info in AppInfo.get_all ()) {
-					if (added_files.size >= max_items)
-						break;
-					var d_info = info as DesktopAppInfo;
-					if (d_info == null || !d_info.should_show ())
-						continue;
-					unowned string? fn = d_info.get_filename ();
-					if (fn == null || added_files.contains (fn))
-						continue;
-					if (categories_contain (d_info.get_categories (), category_tags)) {
-						var copied = copy_launcher_to_directory (File.new_for_path (fn), folder);
-						if (copied != null)
-							added_files.add (fn);
-					}
-				}
-			}
-
-			return added_files.size;
+			return added_count;
 		}
 
 		public bool ensure_launcher_folder (GLib.File folder, string display_name = "", string icon_token = "")

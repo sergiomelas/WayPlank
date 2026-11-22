@@ -57,6 +57,13 @@ typedef void (*Win32EnumRecentDocCallback) (
 	void *user_data
 );
 
+typedef void (*Win32EnumUwpAppCallback) (
+	const char *aumid,
+	const char *display_name,
+	const char *install_path,
+	void *user_data
+);
+
 /* Known folders & fast metadata/drive helpers */
 char *win32_app_get_known_folder (int folder_id);
 int win32_app_get_file_stamp (const char *path, int64_t *out_mtime_sec, int64_t *out_size);
@@ -91,6 +98,14 @@ int win32_app_extract_stock_icon_rgba (
 	int *out_w,
 	int *out_h
 );
+/* Fallback UWP/MSIX Shell icon extraction via shell:AppsFolder\<AUMID> + IShellItemImageFactory -> 32-bit RGBA */
+int win32_app_extract_aumid_icon_rgba (
+	const char *aumid,
+	int desired_size,
+	uint8_t **out_rgba,
+	int *out_w,
+	int *out_h
+);
 /* Enumerate canonical Windows Explorer icon stores (imageres.dll, ddores.dll, shell32.dll) via GetSystemDirectoryW + EnumResourceNamesW */
 void win32_app_enum_system_icon_stores (Win32EnumIconTokenCallback cb, void *user_data);
 void win32_app_free_buffer (void *ptr);
@@ -106,12 +121,19 @@ int win32_app_enum_jump_list_recent (
 	void *user_data
 );
 
-/* Native launching via ShellExecuteW */
+/* Native launching via ShellExecuteW & official COM IApplicationActivationManager (UWP/MSIX) */
 int win32_app_shell_execute (
 	const char *target,
 	const char *args,
 	const char *working_dir
 );
+int win32_app_activate_aumid (
+	const char *aumid,
+	const char *args
+);
+char *win32_app_get_process_aumid (int pid);
+char *win32_app_find_aumid_for_package_path (const char *exe_path);
+void win32_app_enum_uwp_apps (Win32EnumUwpAppCallback cb, void *user_data);
 
 /* Process inspection */
 int win32_app_is_process_alive (int pid);

@@ -105,18 +105,43 @@ namespace Plank
 			}
 		}
 
-		static bool probe_network_manager (out string out_type, out string out_name, out int out_strength, out string out_ip, out string out_gw)
+		static int kind_rank (string kind)
 		{
-			out_type = "none";
-			out_name = "";
-			out_strength = 0;
-			out_ip = "";
-			out_gw = "";
+			if (kind == "wifi") return 0;
+			if (kind == "ethernet") return 1;
+			return 2;
+		}
 
+		static string extract_variant_string (Variant? val)
+		{
+			if (val == null)
+				return "";
+			var v = val.is_of_type (VariantType.VARIANT) ? val.get_variant () : val;
+			if (v.is_of_type (VariantType.STRING) || v.is_of_type (VariantType.OBJECT_PATH))
+				return v.get_string ();
+			return "";
+		}
+
+		static bool is_nm_virtual_type (string nm_type)
+		{
+			string low = nm_type.ascii_down ();
+			return low.contains ("bridge")
+				|| low.contains ("tun")
+				|| low.contains ("tap")
+				|| low.contains ("vpn")
+				|| low.contains ("wireguard")
+				|| low.contains ("veth")
+				|| low.contains ("dummy")
+				|| low.contains ("loopback");
+		}
+
+		static void enrich_from_network_manager (Gee.ArrayList<NetworkInterfaceInfo> interfaces)
+		{
 			try {
 				var bus = DbusBroker.get_default ().get_system_bus ();
 				if (bus == null)
-					return false;
+					return;
+
 				var nm_props_var = bus.call_sync (
 					"org.freedesktop.NetworkManager",
 					"/org/freedesktop/NetworkManager",
@@ -128,80 +153,99 @@ namespace Plank
 					300,
 					null
 				);
-
 				var nm_props = nm_props_var.get_child_value (0);
-				var primary_conn_type_val = nm_props.lookup_value ("PrimaryConnectionType", null);
-				string raw_type = "";
-				if (primary_conn_type_val != null) {
-					var v = primary_conn_type_val.is_of_type (VariantType.VARIANT)
-						? primary_conn_type_val.get_variant () : primary_conn_type_val;
-					raw_type = v.get_string ();
-				}
+				var active_val = nm_props.lookup_value ("ActiveConnections", null);
+				if (active_val == null)
+					return;
+				var active_arr = active_val.is_of_type (VariantType.VARIANT) ? active_val.get_variant () : active_val;
+				size_t n_active = active_arr.n_children ();
 
-				var primary_conn_val = nm_props.lookup_value ("PrimaryConnection", null);
-				string primary_conn_path = "";
-				if (primary_conn_val != null) {
-					var v = primary_conn_val.is_of_type (VariantType.VARIANT)
-						? primary_conn_val.get_variant () : primary_conn_val;
-					primary_conn_path = v.get_string ();
-				}
+				var by_iface = new Gee.HashMap<string, NetworkInterfaceInfo> ();
+				foreach (var info in interfaces)
+					by_iface.set (info.iface_id, info);
 
-				if (primary_conn_path != "" && primary_conn_path != "/") {
-					var conn_props_var = bus.call_sync (
-						"org.freedesktop.NetworkManager",
-						primary_conn_path,
-						"org.freedesktop.DBus.Properties",
-						"GetAll",
-						new Variant ("(s)", "org.freedesktop.NetworkManager.Connection.Active"),
-						null,
-						DBusCallFlags.NO_AUTO_START,
-						300,
-						null
-					);
+				for (size_t i = 0; i < n_active; i++) {
+					string conn_path = extract_variant_string (active_arr.get_child_value (i));
+					if (conn_path == "" || conn_path == "/")
+						continue;
+
+					Variant conn_props_var;
+					try {
+						conn_props_var = bus.call_sync (
+							"org.freedesktop.NetworkManager",
+							conn_path,
+							"org.freedesktop.DBus.Properties",
+							"GetAll",
+							new Variant ("(s)", "org.freedesktop.NetworkManager.Connection.Active"),
+							null,
+							DBusCallFlags.NO_AUTO_START,
+							250,
+							null
+						);
+					} catch { continue; }
 
 					var conn_props = conn_props_var.get_child_value (0);
-					var id_val = conn_props.lookup_value ("Id", null);
-					string cid = "";
-					if (id_val != null) {
-						var v = id_val.is_of_type (VariantType.VARIANT) ? id_val.get_variant () : id_val;
-						cid = v.get_string ();
+					string cid = extract_variant_string (conn_props.lookup_value ("Id", null));
+					string ctype_raw = extract_variant_string (conn_props.lookup_value ("Type", null));
+					string spec_path = extract_variant_string (conn_props.lookup_value ("SpecificObject", null));
+					string ip4_path = extract_variant_string (conn_props.lookup_value ("Ip4Config", null));
+
+					/* Skip loopback or non-activated connections */
+					var state_val = conn_props.lookup_value ("State", null);
+					if (state_val != null) {
+						var sv = state_val.is_of_type (VariantType.VARIANT) ? state_val.get_variant () : state_val;
+						if (sv.is_of_type (VariantType.UINT32) && sv.get_uint32 () != 2U) /* NM_ACTIVE_CONNECTION_STATE_ACTIVATED */
+							continue;
+					}
+					if (ctype_raw == "loopback")
+						continue;
+
+					/* Resolve kernel device interface name */
+					string dev_iface = "";
+					var devs_val = conn_props.lookup_value ("Devices", null);
+					if (devs_val != null) {
+						var dv = devs_val.is_of_type (VariantType.VARIANT) ? devs_val.get_variant () : devs_val;
+						if (dv.n_children () > 0) {
+							string dev_path = extract_variant_string (dv.get_child_value (0));
+							if (dev_path != "" && dev_path != "/") {
+								try {
+									var dev_if_var = bus.call_sync (
+										"org.freedesktop.NetworkManager",
+										dev_path,
+										"org.freedesktop.DBus.Properties",
+										"Get",
+										new Variant ("(ss)", "org.freedesktop.NetworkManager.Device", "Interface"),
+										null,
+										DBusCallFlags.NO_AUTO_START,
+										150,
+										null
+									);
+									dev_iface = extract_variant_string (dev_if_var.get_child_value (0));
+								} catch {}
+							}
+						}
 					}
 
-					var spec_val = conn_props.lookup_value ("SpecificObject", null);
-					string spec_path = "";
-					if (spec_val != null) {
-						var v = spec_val.is_of_type (VariantType.VARIANT) ? spec_val.get_variant () : spec_val;
-						spec_path = v.get_string ();
-					}
-
-					var ip4_val = conn_props.lookup_value ("Ip4Config", null);
-					string ip4_path = "";
-					if (ip4_val != null) {
-						var v = ip4_val.is_of_type (VariantType.VARIANT) ? ip4_val.get_variant () : ip4_val;
-						ip4_path = v.get_string ();
-					}
-
-					int strength = 0;
-					if (raw_type.contains ("wireless") && spec_path != "" && spec_path != "/") {
+					int strength = -1;
+					if (ctype_raw.contains ("wireless") && spec_path != "" && spec_path != "/") {
 						try {
 							var ap_props_var = bus.call_sync (
 								"org.freedesktop.NetworkManager",
 								spec_path,
 								"org.freedesktop.DBus.Properties",
-								"GetAll",
-								new Variant ("(s)", "org.freedesktop.NetworkManager.AccessPoint"),
+								"Get",
+								new Variant ("(ss)", "org.freedesktop.NetworkManager.AccessPoint", "Strength"),
 								null,
 								DBusCallFlags.NO_AUTO_START,
-								200,
+								150,
 								null
 							);
-							var ap_props = ap_props_var.get_child_value (0);
-							var strength_val = ap_props.lookup_value ("Strength", null);
-							if (strength_val != null) {
-								var v = strength_val.is_of_type (VariantType.VARIANT) ? strength_val.get_variant () : strength_val;
-								strength = (int) v.get_byte ();
-							}
-						} catch { }
+							var sv = ap_props_var.get_child_value (0);
+							if (sv.is_of_type (VariantType.VARIANT))
+								sv = sv.get_variant ();
+							if (sv.is_of_type (VariantType.BYTE))
+								strength = (int) sv.get_byte ();
+						} catch {}
 					}
 
 					string ip = "";
@@ -216,7 +260,7 @@ namespace Plank
 								new Variant ("(s)", "org.freedesktop.NetworkManager.IP4Config"),
 								null,
 								DBusCallFlags.NO_AUTO_START,
-								200,
+								150,
 								null
 							);
 							var ip_props = ip_props_var.get_child_value (0);
@@ -225,47 +269,77 @@ namespace Plank
 								var v = addr_data_val.is_of_type (VariantType.VARIANT) ? addr_data_val.get_variant () : addr_data_val;
 								if (v.n_children () > 0) {
 									var first_dict = v.get_child_value (0);
-									var a_val = first_dict.lookup_value ("address", null);
-									if (a_val != null) {
-										var av = a_val.is_of_type (VariantType.VARIANT) ? a_val.get_variant () : a_val;
-										ip = av.get_string ();
-									}
+									ip = extract_variant_string (first_dict.lookup_value ("address", null));
 								}
 							}
-							var gw_val = ip_props.lookup_value ("Gateway", null);
-							if (gw_val != null) {
-								var v = gw_val.is_of_type (VariantType.VARIANT) ? gw_val.get_variant () : gw_val;
-								gw = v.get_string ();
-							}
-						} catch { }
+							gw = extract_variant_string (ip_props.lookup_value ("Gateway", null));
+						} catch {}
 					}
 
-					out_name = cid;
-					out_strength = strength;
-					out_ip = ip;
-					out_gw = gw;
-					out_type = raw_type.contains ("wireless") ? "wifi" : "ethernet";
-					return true;
+					if (dev_iface != "" && by_iface.has_key (dev_iface)) {
+						var existing = by_iface.get (dev_iface);
+						if (cid != "")
+							existing.display_name = cid;
+						if (ctype_raw.contains ("wireless"))
+							existing.kind = "wifi";
+						else if (is_nm_virtual_type (ctype_raw))
+							existing.kind = "virtual";
+						if (strength >= 0)
+							existing.wifi_strength = strength;
+						if (existing.ip_address == "" && ip != "")
+							existing.ip_address = ip;
+						if (existing.gateway == "" && gw != "")
+							existing.gateway = gw;
+					} else if (ip != "" || ctype_raw.contains ("wireless")) {
+						var info = new NetworkInterfaceInfo ();
+						info.iface_id = (dev_iface != "") ? dev_iface : conn_path;
+						info.display_name = (cid != "") ? cid : info.iface_id;
+						info.kind = ctype_raw.contains ("wireless")
+							? "wifi"
+							: (is_nm_virtual_type (ctype_raw) ? "virtual" : "ethernet");
+						info.wifi_strength = (strength >= 0) ? strength : 0;
+						info.ip_address = ip;
+						info.gateway = gw;
+						interfaces.add (info);
+						by_iface.set (info.iface_id, info);
+					}
 				}
-			} catch { }
+			} catch {}
+		}
 
-			return false;
+		public Gee.ArrayList<NetworkInterfaceInfo> list_interfaces_sync ()
+		{
+			var list = hal_kernel_list_network_interfaces ();
+			enrich_from_network_manager (list);
+
+			/* Strict priority: Wi-Fi -> Physical Ethernet -> Virtual (gateway first, signal desc) */
+			list.sort ((a, b) => {
+				int ra = kind_rank (a.kind);
+				int rb = kind_rank (b.kind);
+				if (ra != rb) return ra - rb;
+				int ga = (a.gateway != "") ? 0 : 1;
+				int gb = (b.gateway != "") ? 0 : 1;
+				if (ga != gb) return ga - gb;
+				if (ra == 0 && a.wifi_strength != b.wifi_strength)
+					return b.wifi_strength - a.wifi_strength;
+				return 0;
+			});
+
+			return list;
 		}
 
 		public NetworkState probe_state_sync ()
 		{
-			string nm_type, nm_name, nm_ip, nm_gw;
-			int nm_strength;
-			bool found_nm = probe_network_manager (out nm_type, out nm_name, out nm_strength, out nm_ip, out nm_gw);
-
-			if (found_nm) {
+			var list = list_interfaces_sync ();
+			if (list.size > 0) {
+				var top = list.get (0);
 				return NetworkState () {
 					is_connected = true,
-					connection_type = nm_type,
-					connection_name = nm_name,
-					wifi_strength = nm_strength,
-					ip_address = nm_ip,
-					gateway = nm_gw
+					connection_type = top.kind,
+					connection_name = top.display_name,
+					wifi_strength = top.wifi_strength,
+					ip_address = top.ip_address,
+					gateway = top.gateway
 				};
 			}
 

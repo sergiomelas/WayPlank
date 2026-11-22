@@ -39,6 +39,7 @@ namespace Plank
 		string[]? cached_tile_icons = null;
 		Gdk.Pixbuf?[]? cached_tile_pixbufs = null;
 		bool is_window_connected = false;
+		ulong custom_icon_changed_id = 0UL;
 		
 		/**
 		 * {@inheritDoc}
@@ -124,6 +125,9 @@ namespace Plank
 				if (!is_window_connected) {
 					WindowManager.get_default ().windows_refreshed.connect (update_indicator);
 					is_window_connected = true;
+				}
+				if (custom_icon_changed_id == 0UL) {
+					custom_icon_changed_id = CustomIconService.get_default ().icon_changed.connect (handle_custom_icon_changed);
 				}
 				update_indicator ();
 			}
@@ -227,6 +231,19 @@ namespace Plank
 				WindowManager.get_default ().windows_refreshed.disconnect (update_indicator);
 				is_window_connected = false;
 			}
+			if (custom_icon_changed_id != 0UL) {
+				CustomIconService.get_default ().disconnect (custom_icon_changed_id);
+				custom_icon_changed_id = 0UL;
+			}
+		}
+
+		void handle_custom_icon_changed (string uri)
+		{
+			if (!is_directory ())
+				return;
+			cached_tile_icons = null;
+			cached_tile_pixbufs = null;
+			reset_icon_buffer ();
 		}
 		
 		[CCode (instance_pos = -1)]
@@ -513,6 +530,9 @@ namespace Plank
 				var uri = file.get_uri ();
 				if (Hal.Apps.is_launcher_uri (uri)) {
 					ApplicationDockItem.parse_launcher (uri, out icon, out text);
+					string custom_icon = CustomIconService.get_default ().get_custom_icon (uri);
+					if (custom_icon != "" && DrawingService.has_icon (custom_icon))
+						icon = custom_icon;
 				} else {
 					icon = DrawingService.get_icon_from_file (file) ?? "";
 					text = display_name ?? "";
@@ -834,6 +854,9 @@ namespace Plank
 					} else if (Hal.Apps.is_launcher_uri (uri)) {
 						string icon, text;
 						ApplicationDockItem.parse_launcher (uri, out icon, out text);
+						string custom_icon = CustomIconService.get_default ().get_custom_icon (uri);
+						if (custom_icon != "" && DrawingService.has_icon (custom_icon))
+							icon = custom_icon;
 						if (text == null || text == "")
 							text = display_name;
 						if (icon == null || icon == "")

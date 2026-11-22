@@ -808,8 +808,25 @@ bsd_kernel_backlight_write_raw (const char *device, guint32 raw_value)
  * Native Network Probe (`getifaddrs` + `SIOCGIFMEDIA` + `SIOCG80211` + `PF_ROUTE`)
  * ============================================================================ */
 
+static gboolean
+bsd_is_virtual_iface_name (const char *name)
+{
+	if (name == NULL || name[0] == '\0')
+		return FALSE;
+	static const char *const prefixes[] = {
+		"lo", "vmnet", "tap", "tun", "bridge", "epair", "wg", "gif", "gre",
+		"vxlan", "enc", "pflog", "pfsync", "ng", "tailscale", "zt", "utun",
+		NULL
+	};
+	for (int i = 0; prefixes[i] != NULL; i++) {
+		if (g_str_has_prefix (name, prefixes[i]))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 static void
-read_default_ipv4_gateway (char *out_gw, size_t out_gw_len)
+read_default_ipv4_gateway_with_if (char *out_gw, size_t out_gw_len, char *out_if, size_t out_if_len)
 {
 	int mib[6] = { CTL_NET, PF_ROUTE, 0, AF_INET, NET_RT_DUMP, 0 };
 	size_t needed = 0;
@@ -818,6 +835,8 @@ read_default_ipv4_gateway (char *out_gw, size_t out_gw_len)
 	char *lim;
 
 	out_gw[0] = '\0';
+	if (out_if != NULL && out_if_len > 0)
+		out_if[0] = '\0';
 
 	if (sysctl (mib, 6, NULL, &needed, NULL, 0) < 0 || needed == 0)
 		return;
@@ -867,6 +886,11 @@ read_default_ipv4_gateway (char *out_gw, size_t out_gw_len)
 		}
 		if (gw != NULL && gw->sa_family == AF_INET) {
 			inet_ntop (AF_INET, &((struct sockaddr_in *) gw)->sin_addr, out_gw, (socklen_t) out_gw_len);
+			if (out_if != NULL && out_if_len >= IFNAMSIZ && rtm->rtm_index > 0) {
+				char ifname_tmp[IFNAMSIZ];
+				if (if_indextoname (rtm->rtm_index, ifname_tmp) != NULL)
+					g_strlcpy (out_if, ifname_tmp, out_if_len);
+			}
 			break;
 		}
 	}
@@ -874,40 +898,56 @@ read_default_ipv4_gateway (char *out_gw, size_t out_gw_len)
 	g_free (buf);
 }
 
-gboolean
-bsd_kernel_probe_network (char **out_type,
-                          char **out_name,
-                          int *out_strength,
-                          char **out_ip,
-                          char **out_gateway)
+typedef struct {
+	char name[IFNAMSIZ];
+	guint64 rx_bytes;
+	guint64 tx_bytes;
+} BsdIfCounters;
+
+void
+bsd_kernel_list_network_interfaces (BsdNetInterfaceCallback cb, gpointer user_data)
 {
 	struct ifaddrs *ifap = NULL;
 	struct ifaddrs *ifa;
 	int sock = -1;
-	gboolean found = FALSE;
-	gboolean found_wifi = FALSE;
-	char best_if[IFNAMSIZ] = { 0 };
-	char best_ip[INET_ADDRSTRLEN] = { 0 };
-	char best_ssid[64] = { 0 };
-	int best_strength = 0;
 
-	if (out_type != NULL) *out_type = g_strdup ("none");
-	if (out_name != NULL) *out_name = g_strdup ("");
-	if (out_strength != NULL) *out_strength = 0;
-	if (out_ip != NULL) *out_ip = g_strdup ("");
-	if (out_gateway != NULL) *out_gateway = g_strdup ("");
-
+	if (cb == NULL)
+		return;
 	if (getifaddrs (&ifap) != 0 || ifap == NULL)
-		return FALSE;
+		return;
+
+	char gwbuf[INET_ADDRSTRLEN] = { 0 };
+	char gwif[IFNAMSIZ] = { 0 };
+	read_default_ipv4_gateway_with_if (gwbuf, sizeof (gwbuf), gwif, sizeof (gwif));
+
+	/* Pass 1: collect 64-bit RX/TX byte counters from AF_LINK if_data */
+	GArray *counters = g_array_new (FALSE, TRUE, sizeof (BsdIfCounters));
+	for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
+		if (ifa->ifa_name == NULL || ifa->ifa_addr == NULL || ifa->ifa_data == NULL)
+			continue;
+		if (ifa->ifa_addr->sa_family != AF_LINK)
+			continue;
+		const struct if_data *ifd = (const struct if_data *) ifa->ifa_data;
+		BsdIfCounters c;
+		memset (&c, 0, sizeof (c));
+		g_strlcpy (c.name, ifa->ifa_name, sizeof (c.name));
+		c.rx_bytes = (guint64) ifd->ifi_ibytes;
+		c.tx_bytes = (guint64) ifd->ifi_obytes;
+		g_array_append_val (counters, c);
+	}
 
 	sock = socket (AF_INET, SOCK_DGRAM, 0);
+	GHashTable *seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
+	/* Pass 2: emit every active IPv4 interface with kind + counters + gateway */
 	for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
+		if (ifa->ifa_name == NULL || ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
 			continue;
 		if ((ifa->ifa_flags & IFF_LOOPBACK) != 0)
 			continue;
-		if ((ifa->ifa_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING))
+		if ((ifa->ifa_flags & IFF_UP) == 0)
+			continue;
+		if (g_hash_table_contains (seen, ifa->ifa_name))
 			continue;
 
 		char ipbuf[INET_ADDRSTRLEN];
@@ -915,6 +955,8 @@ bsd_kernel_probe_network (char **out_type,
 			continue;
 		if (g_str_has_prefix (ipbuf, "127.") || g_str_has_prefix (ipbuf, "169.254."))
 			continue;
+
+		g_hash_table_add (seen, g_strdup (ifa->ifa_name));
 
 		gboolean is_wifi = FALSE;
 		char ssid[64] = { 0 };
@@ -946,46 +988,123 @@ bsd_kernel_probe_network (char **out_type,
 			}
 		}
 
-		/* Prefer wired ethernet if already found, otherwise take first active */
-		if (!found || (found_wifi && !is_wifi)) {
-			found = TRUE;
-			found_wifi = is_wifi;
-			g_strlcpy (best_if, ifa->ifa_name, sizeof (best_if));
-			g_strlcpy (best_ip, ipbuf, sizeof (best_ip));
-			g_strlcpy (best_ssid, ssid, sizeof (best_ssid));
-			best_strength = strength;
+		gboolean is_virt = !is_wifi && bsd_is_virtual_iface_name (ifa->ifa_name);
+		const char *kind = is_wifi ? "wifi" : (is_virt ? "virtual" : "ethernet");
+		const char *display = (is_wifi && ssid[0] != '\0') ? ssid : ifa->ifa_name;
+		const char *if_gw = (gwbuf[0] != '\0' && (gwif[0] == '\0' || g_strcmp0 (gwif, ifa->ifa_name) == 0))
+			? gwbuf : "";
+
+		guint64 rx = 0, tx = 0;
+		for (guint k = 0; k < counters->len; k++) {
+			BsdIfCounters *c = &g_array_index (counters, BsdIfCounters, k);
+			if (g_strcmp0 (c->name, ifa->ifa_name) == 0) {
+				rx = c->rx_bytes;
+				tx = c->tx_bytes;
+				break;
+			}
 		}
+
+		cb (ifa->ifa_name, display, kind, strength, ipbuf, if_gw, rx, tx, user_data);
 	}
 
+	g_hash_table_destroy (seen);
+	g_array_free (counters, TRUE);
 	if (sock >= 0)
 		close (sock);
 	freeifaddrs (ifap);
+}
 
-	if (!found)
+typedef struct {
+	int best_rank;
+	int best_has_gw;
+	int best_strength;
+	gboolean found;
+	char *type;
+	char *name;
+	char *ip;
+	char *gw;
+	int strength;
+} BsdBestNetCtx;
+
+static void
+bsd_best_net_cb (
+	const char *iface_id,
+	const char *display_name,
+	const char *kind,
+	int wifi_strength,
+	const char *ip_address,
+	const char *gateway,
+	guint64 rx_bytes,
+	guint64 tx_bytes,
+	gpointer user_data
+)
+{
+	(void) iface_id;
+	(void) rx_bytes;
+	(void) tx_bytes;
+	BsdBestNetCtx *ctx = (BsdBestNetCtx *) user_data;
+	int rank = (g_strcmp0 (kind, "wifi") == 0) ? 0 : ((g_strcmp0 (kind, "ethernet") == 0) ? 1 : 2);
+	int has_gw = (gateway != NULL && gateway[0] != '\0') ? 1 : 0;
+
+	gboolean better = FALSE;
+	if (!ctx->found)
+		better = TRUE;
+	else if (rank < ctx->best_rank)
+		better = TRUE;
+	else if (rank == ctx->best_rank && has_gw > ctx->best_has_gw)
+		better = TRUE;
+	else if (rank == ctx->best_rank && has_gw == ctx->best_has_gw && rank == 0 && wifi_strength > ctx->best_strength)
+		better = TRUE;
+
+	if (better) {
+		ctx->found = TRUE;
+		ctx->best_rank = rank;
+		ctx->best_has_gw = has_gw;
+		ctx->best_strength = wifi_strength;
+		g_free (ctx->type); ctx->type = g_strdup (kind);
+		g_free (ctx->name); ctx->name = g_strdup (display_name);
+		g_free (ctx->ip); ctx->ip = g_strdup (ip_address);
+		g_free (ctx->gw); ctx->gw = g_strdup (gateway);
+		ctx->strength = wifi_strength;
+	}
+}
+
+gboolean
+bsd_kernel_probe_network (char **out_type,
+                          char **out_name,
+                          int *out_strength,
+                          char **out_ip,
+                          char **out_gateway)
+{
+	if (out_type != NULL) *out_type = g_strdup ("none");
+	if (out_name != NULL) *out_name = g_strdup ("");
+	if (out_strength != NULL) *out_strength = 0;
+	if (out_ip != NULL) *out_ip = g_strdup ("");
+	if (out_gateway != NULL) *out_gateway = g_strdup ("");
+
+	BsdBestNetCtx ctx;
+	memset (&ctx, 0, sizeof (ctx));
+	ctx.best_rank = 99;
+	bsd_kernel_list_network_interfaces (bsd_best_net_cb, &ctx);
+
+	if (!ctx.found) {
+		g_free (ctx.type);
+		g_free (ctx.name);
+		g_free (ctx.ip);
+		g_free (ctx.gw);
 		return FALSE;
-
-	char gwbuf[INET_ADDRSTRLEN] = { 0 };
-	read_default_ipv4_gateway (gwbuf, sizeof (gwbuf));
-
-	if (out_type != NULL) {
-		g_free (*out_type);
-		*out_type = g_strdup (found_wifi ? "wifi" : "ethernet");
-	}
-	if (out_name != NULL) {
-		g_free (*out_name);
-		*out_name = g_strdup ((found_wifi && best_ssid[0] != '\0') ? best_ssid : best_if);
-	}
-	if (out_strength != NULL)
-		*out_strength = best_strength;
-	if (out_ip != NULL) {
-		g_free (*out_ip);
-		*out_ip = g_strdup (best_ip);
-	}
-	if (out_gateway != NULL) {
-		g_free (*out_gateway);
-		*out_gateway = g_strdup (gwbuf);
 	}
 
+	if (out_type != NULL) { g_free (*out_type); *out_type = ctx.type; ctx.type = NULL; }
+	if (out_name != NULL) { g_free (*out_name); *out_name = ctx.name; ctx.name = NULL; }
+	if (out_strength != NULL) *out_strength = ctx.strength;
+	if (out_ip != NULL) { g_free (*out_ip); *out_ip = ctx.ip; ctx.ip = NULL; }
+	if (out_gateway != NULL) { g_free (*out_gateway); *out_gateway = ctx.gw; ctx.gw = NULL; }
+
+	g_free (ctx.type);
+	g_free (ctx.name);
+	g_free (ctx.ip);
+	g_free (ctx.gw);
 	return TRUE;
 }
 
@@ -1154,6 +1273,13 @@ bsd_kernel_probe_network (char **out_type,
 	if (out_ip != NULL) *out_ip = g_strdup ("");
 	if (out_gateway != NULL) *out_gateway = g_strdup ("");
 	return FALSE;
+}
+
+void
+bsd_kernel_list_network_interfaces (BsdNetInterfaceCallback cb, gpointer user_data)
+{
+	(void) cb;
+	(void) user_data;
 }
 
 #endif

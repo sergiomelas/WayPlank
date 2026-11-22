@@ -32,12 +32,18 @@ namespace Plank
 				last_prefer_dark = dark;
 				initialized = true;
 			}
-			poll_timer_id = GLib.Timeout.add_seconds (5, on_theme_poll);
+			Win32Bridge.set_theme_callback (on_win32_theme_event);
+			poll_timer_id = GLib.Timeout.add_seconds (30, on_theme_poll);
 		}
 
 		~Win32DesktopThemeBus ()
 		{
 			cleanup ();
+		}
+
+		void on_win32_theme_event ()
+		{
+			on_theme_poll ();
 		}
 
 		bool on_theme_poll ()
@@ -63,11 +69,12 @@ namespace Plank
 
 		public double get_font_scale_factor ()
 		{
-			return 1.0;
+			return Win32SysBridge.query_font_scale_factor ();
 		}
 
 		public void cleanup ()
 		{
+			Win32Bridge.set_theme_callback (null);
 			if (poll_timer_id != 0U) {
 				Source.remove (poll_timer_id);
 				poll_timer_id = 0U;
@@ -114,28 +121,47 @@ namespace Plank
 
 	class Win32NotificationBus : GLib.Object, INotificationBus
 	{
-		bool dnd_active = false;
+		bool dnd_manual_override = false;
+		bool dnd_manual_state = false;
 
 		public bool show_launcher_badges { get { return true; } }
 		public bool has_instant_dnd_settings () { return true; }
 		public bool has_push_dnd_subscription () { return false; }
-		public bool get_instant_dnd_inhibited () { return dnd_active; }
-		public bool probe_dnd_inhibited_sync () { return dnd_active; }
+
+		public bool get_instant_dnd_inhibited ()
+		{
+			if (dnd_manual_override)
+				return dnd_manual_state;
+			return Win32SysBridge.query_dnd_inhibited () != 0;
+		}
+
+		public bool probe_dnd_inhibited_sync ()
+		{
+			bool os_dnd = (Win32SysBridge.query_dnd_inhibited () != 0);
+			if (os_dnd) {
+				dnd_manual_override = false;
+				return true;
+			}
+			return dnd_manual_override ? dnd_manual_state : false;
+		}
 
 		public void inhibit_dnd ()
 		{
-			dnd_active = true;
+			dnd_manual_override = true;
+			dnd_manual_state = true;
 			dnd_state_changed (true);
 		}
 
 		public void uninhibit_dnd ()
 		{
-			dnd_active = false;
+			dnd_manual_override = true;
+			dnd_manual_state = false;
 			dnd_state_changed (false);
 		}
 
 		public void send_toast (string summary, string body, string icon_name)
 		{
+			Win32SysBridge.send_toast (summary, body);
 		}
 
 		public void cleanup () {}
@@ -187,14 +213,26 @@ namespace Plank
 			return "";
 		}
 
+		static BrowserFamily? browser_family_for_app_id (string low_app)
+		{
+			switch (low_app) {
+			case "chrome": return BrowserFamily.CHROME;
+			case "msedge": return BrowserFamily.EDGE;
+			case "brave": return BrowserFamily.BRAVE;
+			case "vivaldi": return BrowserFamily.VIVALDI;
+			case "opera": return BrowserFamily.OPERA;
+			case "chromium": return BrowserFamily.CHROMIUM;
+			default: return null;
+			}
+		}
+
 		public Gee.ArrayList<string> query_ordered_window_profile_labels (int pid, string[]? known_profile_labels = null)
 		{
 			var labels = new Gee.ArrayList<string> ();
 			if (pid <= 0)
 				return labels;
 
-			Gee.HashMap<string, string>? chrome_names = null;
-			Gee.HashMap<string, string>? edge_names = null;
+			var family_cache = new Gee.HashMap<int, Gee.HashMap<string, string>> ();
 
 			foreach (var w in Hal.Windows.get_windows ()) {
 				if (w.Pid != pid)
@@ -205,16 +243,14 @@ namespace Plank
 
 				string low_app = w.ApplicationId.down ();
 				string resolved = prof_dir;
-				if (low_app == "chrome") {
-					if (chrome_names == null)
-						chrome_names = load_profile_names_for_browser (BrowserFamily.CHROME);
-					if (chrome_names.has_key (prof_dir.down ()))
-						resolved = chrome_names.get (prof_dir.down ());
-				} else if (low_app == "msedge") {
-					if (edge_names == null)
-						edge_names = load_profile_names_for_browser (BrowserFamily.EDGE);
-					if (edge_names.has_key (prof_dir.down ()))
-						resolved = edge_names.get (prof_dir.down ());
+				BrowserFamily? fam = browser_family_for_app_id (low_app);
+				if (fam != null) {
+					int fkey = (int) fam;
+					if (!family_cache.has_key (fkey))
+						family_cache.set (fkey, load_profile_names_for_browser (fam));
+					var names = family_cache.get (fkey);
+					if (names != null && names.has_key (prof_dir.down ()))
+						resolved = names.get (prof_dir.down ());
 				}
 
 				if (known_profile_labels != null) {

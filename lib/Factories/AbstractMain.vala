@@ -1146,15 +1146,26 @@ namespace Plank
 				about_dlg.set_logo_icon_name (app_icon);
 			}
 			
-			var fully_supported_compositors = Hal.Capabilities.fully_supported_summary;
+			var meta = ReleaseMetadata.get_default ();
+			var supported_os_list = meta.supported_os;
+			var fully_supported_compositors = (meta.fully_supported_compositors.length > 0
+				? meta.fully_supported_compositors
+				: Hal.Capabilities.fully_supported_summary);
 			var fully_supported = (fully_supported_compositors == ""
 				? _("Fully supported compositors: none")
 				: _("Fully supported compositors: %s").printf (fully_supported_compositors));
-			var partially_supported_compositors = Hal.Capabilities.partially_supported_summary;
+			var partially_supported_compositors = (meta.partially_supported_compositors.length > 0
+				? meta.partially_supported_compositors
+				: Hal.Capabilities.partially_supported_summary);
 			var partially_supported = (partially_supported_compositors == ""
 				? _("Partially supported compositors: none")
 				: _("Partially supported compositors: %s").printf (partially_supported_compositors));
-			about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
+			if (supported_os_list.length > 0) {
+				var supported_os = _("Supported operating systems: %s").printf (supported_os_list);
+				about_dlg.set_comments ("%s. %s\n%s\n%s\n%s".printf (program_name, build_release_name, supported_os, fully_supported, partially_supported));
+			} else {
+				about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
+			}
 			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
 			about_dlg.set_website (main_url);
 			about_dlg.set_website_label (_("Website"));
@@ -2192,7 +2203,21 @@ namespace Plank
 			env_error_dlg.set_position (Gtk.WindowPosition.CENTER);
 			env_error_dlg.set_keep_above (true);
 
-			env_error_dlg.response.connect (() => {
+			env_error_dlg.response.connect ((resp) => {
+				if (resp == Gtk.ResponseType.OK) {
+					DockPreferences.allow_disk_writes_after_user_action ();
+					if (docks != null && docks.size > 0) {
+						foreach (var d in docks) {
+							if (d != null && d.prefs != null) {
+								d.prefs.purge_discarded_dockitems (d.launchers_folder);
+								d.prefs.flush_to_disk ();
+							}
+						}
+					} else if (controller != null && controller.prefs != null) {
+						controller.prefs.purge_discarded_dockitems (controller.launchers_folder);
+						controller.prefs.flush_to_disk ();
+					}
+				}
 				if (env_error_dlg != null)
 					env_error_dlg.hide ();
 			});

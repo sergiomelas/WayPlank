@@ -64,7 +64,7 @@ flowchart TD
     FDO_BOOT <==>|"14 C Link-Seam Calls (0 compile-time dependency)"| KBOOT
 ```
 
-**Horizontal Isolation Law (Enforced by Gate 4, Gate 5, Gate 6A & Gate 6B in [`BuildBin.sh`](../../BuildBin.sh)):**
+**Horizontal Isolation Law (Enforced by Gate 4, Gate 5, Gate 6A & Gate 6B in [`BuildBin.sh`](../../builders/linux/BuildBin.sh)):**
 - `hal/Freedesktop/` **MUST NEVER** reference any `Linux*` class name, `/proc/`, `/sys/`, or `/dev/i2c`. It compiles standalone (`Gate 4`) without `hal/Linux/`.
 - `hal/Linux/` **MUST NEVER** reference `DbusBroker`, `DBus*`, `Xdg*`, `GtkLayerShell`, `KWin`, `Mutter`, or `Labwc`. It compiles standalone (`Gate 5`) without `hal/Freedesktop/`.
 - The **sole bridge** between `hal/Freedesktop/` and `hal/Linux/` is the 14-symbol C link-seam declared `extern` in [`hal/Freedesktop/FreedesktopHalBootstrap.vala`](../../hal/Freedesktop/FreedesktopHalBootstrap.vala) and exported by [`hal/Linux/LinuxKernelBootstrap.vala`](../../hal/Linux/LinuxKernelBootstrap.vala).
@@ -144,8 +144,8 @@ flowchart TD
   - **Gate 5:** `hal/Linux/` compiles standalone without `hal/Freedesktop/`.
   - **Gates 6A & 6B:** Zero horizontal symbol/path leaks between `hal/Freedesktop/` and `hal/Linux/`.
   - **Gate 7:** `DbusBroker.vala` is the sole `GLib.Bus.*` entry point across all of `hal/`.
-  - **Gate 8:** Post-link `objdump -d build/wayplank` verification proving `0` Pitfall #14 closure UAF patterns (`gdk_threads_add_{timeout,timeout_seconds,idle}` without `_full`).
-- **Monolithic Delivery (`"Il Monolito di Kubrick"`):** Single ELF binary `build/wayplank` (`~13.3 MB`) statically embedding `104` SVGs, `6` stock themes, `8` compiled `.mo` locales (`572/572` messages), `VERSION` (`meta/VERSION`), and `USER_GUIDE.md` (`doc/guide.md`) via `GResource` — zero `libplank.so`, zero host pollution.
+  - **Gate 8:** Post-link `objdump -d build/linux/wayplank` verification proving `0` Pitfall #14 closure UAF patterns (`gdk_threads_add_{timeout,timeout_seconds,idle}` without `_full`).
+- **Monolithic Delivery (`"Il Monolito di Kubrick"`):** Single ELF binary `build/linux/wayplank` (`~14 MB`) statically embedding `107` SVGs, `6` stock themes, `8` compiled `.mo` locales (`581/581` messages), `VERSION` (`meta/VERSION`), and `USER_GUIDE.md` (`doc/guide.md`) via `GResource` — zero `libplank.so`, zero host pollution.
 
 ---
 

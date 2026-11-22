@@ -28,9 +28,24 @@ extern "C" {
 #endif
 
 typedef void (*Win32RemovableDriveCallback) (const char *drive_root, const char *label, void *user_data);
+typedef void (*Win32TrashItemCallback) (const char *id, const char *display_name, const char *original_path, int is_directory, void *user_data);
+typedef void (*Win32NetInterfaceCallback) (
+	const char *iface_id,
+	const char *display_name,
+	const char *kind,
+	int wifi_strength,
+	const char *ip_address,
+	const char *gateway,
+	uint64_t rx_bytes,
+	uint64_t tx_bytes,
+	void *user_data
+);
 
 /* Trash / Recycle Bin */
 uint32_t win32_sys_trash_get_count (void);
+void win32_sys_trash_list_items (Win32TrashItemCallback cb, void *user_data);
+int win32_sys_trash_restore_item (const char *id);
+int win32_sys_trash_delete_item (const char *id);
 int win32_sys_trash_move_path (const char *path);
 int win32_sys_trash_empty (void);
 void win32_sys_trash_open_ui (void);
@@ -42,8 +57,9 @@ int win32_sys_eject_drive (const char *drive_root);
 /* Battery */
 int win32_sys_query_battery (int *has_battery, int *percent, int *is_charging, int *is_full);
 
-/* CPU & Memory */
+/* CPU, Memory & Disk I/O */
 int win32_sys_sample_cpu_mem (int *cpu_pct, int *ram_pct, double *ram_used_gb, double *ram_total_gb);
+int win32_sys_sample_disk_io (void);
 
 /* CoreAudio Volume */
 int win32_sys_audio_probe (int *volume_percent, int *is_muted);
@@ -60,17 +76,24 @@ int win32_sys_network_probe (
 	int *is_connected,
 	char **out_type,
 	char **out_name,
-	char **out_ip
+	char **out_ip,
+	char **out_gateway,
+	int *out_wifi_strength
 );
+void win32_sys_network_list_interfaces (Win32NetInterfaceCallback cb, void *user_data);
 
 /* Session & Power */
 void win32_sys_get_user_and_host (char **out_user, char **out_host);
+void win32_sys_query_power_caps (int *can_hibernate, int *can_hybrid_sleep);
 void win32_sys_lock_workstation (void);
 void win32_sys_suspend (int hibernate);
 void win32_sys_logout (void);
 
-/* Desktop Theme (AppsUseLightTheme) */
+/* Desktop Theme (AppsUseLightTheme), Accessibility Font Scale, Focus Assist DND & Toast */
 int win32_sys_query_prefer_dark (int *out_prefer_dark);
+double win32_sys_query_font_scale_factor (void);
+int win32_sys_query_dnd_inhibited (void);
+void win32_sys_send_toast (const char *summary, const char *body);
 
 /* Media Keys (VK_MEDIA_*) */
 void win32_sys_send_media_key (int kind); /* 0=play/pause, 1=next, 2=prev, 3=stop */

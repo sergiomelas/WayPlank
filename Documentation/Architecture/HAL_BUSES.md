@@ -145,7 +145,7 @@ The Zone 1 Core hooks into Zone 2 exclusively through pure, OS-blind Vala transl
    - `ApplicationDockItemProvider` implements `ILauncherBadgeClient` receiving pre-unpacked `LauncherBadgeState` — **zero `'(sa{sv})'` `GLib.Variant` unpacking in `lib/`**.
 7. **`ISystemTelemetry` (9 Pure Hardware, Storage & Session Providers for the 16 Docklets):**
    - `ISessionPowerProvider` (`SessionDockItem` + `SessionWindow` 3×3 power actions & `can_hibernate` / `can_hybrid_sleep` / `can_reboot_to_firmware` flags).
-   - `IBatteryProvider`, `IAudioProvider`, `IBrightnessProvider`, `INetworkProvider`, `ICpuMemoryProvider`, `IScreenshotProvider`.
+   - `IBatteryProvider`, `IAudioProvider`, `IBrightnessProvider`, `INetworkProvider` (including `NetworkInterfaceInfo` / `list_interfaces_sync()` for multi-interface priority & 64-bit RX/TX byte counters), `ICpuMemoryProvider`, `IScreenshotProvider`.
    - **`ITrashProvider`** (`TrashItemInfo` struct: `id`, `display_name`, `original_path`, `deletion_date`, `is_directory`; `trash_changed ()`, `get_item_count ()`, `list_items ()`, `move_uri_to_trash (uri)`, `restore_item (id)`, `empty_trash ()`, `open_trash_ui ()` — eliminates GVFS `trash:///`, `~/.local/share/Trash`, and `file.trash()` from `TrashDockItem.vala`).
    - **`IEjectorProvider`** (`RemovableDriveInfo` struct: `id`, `display_name`, `icon_name`, `mount_label`, `can_eject`; `drives_changed ()`, `get_removable_drives ()`, `eject_drive (id)`, `eject_all ()` — eliminates `GLib.VolumeMonitor` and `/media`/`/run/media`/`/mnt` from `EjectorDockItem.vala`).
 8. **`IPlatformRuntime` (OS Lifecycle, Desktop Utilities, Safe Argv, HTTP & Archive Translator):**

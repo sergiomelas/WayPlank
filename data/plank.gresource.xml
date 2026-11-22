@@ -67,6 +67,13 @@
 		<file alias="docklets/weather-storm.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-storm.svg</file>
 		<file alias="docklets/weather-fog.svg" compressed="true" preprocess="xml-stripblanks">docklets/weather-fog.svg</file>
 		<file alias="docklets/network.svg" compressed="true" preprocess="xml-stripblanks">docklets/network.svg</file>
+		<file alias="docklets/network-wireless-excellent.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-wireless-excellent.svg</file>
+		<file alias="docklets/network-wireless-good.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-wireless-good.svg</file>
+		<file alias="docklets/network-wireless-ok.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-wireless-ok.svg</file>
+		<file alias="docklets/network-wireless-weak.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-wireless-weak.svg</file>
+		<file alias="docklets/network-wireless-none.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-wireless-none.svg</file>
+		<file alias="docklets/network-wired.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-wired.svg</file>
+		<file alias="docklets/network-virtual.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-virtual.svg</file>
 		<file alias="docklets/network-offline.svg" compressed="true" preprocess="xml-stripblanks">docklets/network-offline.svg</file>
 		<file alias="docklets/dnd.svg" compressed="true" preprocess="xml-stripblanks">docklets/dnd.svg</file>
 		<file alias="docklets/dnd-muted.svg" compressed="true" preprocess="xml-stripblanks">docklets/dnd-muted.svg</file>

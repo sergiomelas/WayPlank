@@ -88,7 +88,7 @@ namespace Plank
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v072_bridge_5";
+		const string BRIDGE_GEN = "v074_bridge_7";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -741,7 +741,17 @@ export default class WayplankBridgeImpl {
         if (exactDockTitle || role === 'dock' || type === Meta.WindowType.DOCK)
             return 'dock';
 
-        if (!win.mapped && lowerTitle === '' && role === '')
+        // Native Wayland xdg_popup / override-redirect / untitled transient menus (Gtk.Menu, Gtk.ComboBox):
+        // NEVER classify as 'dialog' or call activate() / move_frame() / _centerWindow() on them,
+        // which corrupts Mutter 47 MetaStack (warn_on_incorrectly_unmanaged_window -> SIGSEGV).
+        if (lowerTitle === '' && role === '')
+            return 'unknown';
+        if ((win.is_override_redirect && win.is_override_redirect()) ||
+            type === Meta.WindowType.POPUP_MENU ||
+            type === Meta.WindowType.DROPDOWN_MENU ||
+            type === Meta.WindowType.MENU ||
+            type === Meta.WindowType.TOOLTIP ||
+            type === Meta.WindowType.COMBO)
             return 'unknown';
 
         // 3. Dialog Windows: Any remaining WayPlank-owned window (Preferences, FirstRunWindow,
@@ -984,11 +994,10 @@ export default class WayplankBridgeImpl {
                     }
                     win._wpApplyingGeometry = true;
                     try {
-                        if (win.move_frame) {
-                            win.move_frame(true, targetX, targetY);
-                        }
                         if (win.move_resize_frame) {
                             win.move_resize_frame(true, targetX, targetY, width, height);
+                        } else if (win.move_frame) {
+                            win.move_frame(true, targetX, targetY);
                         }
                     } finally {
                         win._wpApplyingGeometry = false;
@@ -1157,11 +1166,10 @@ export default class WayplankBridgeImpl {
                         win.demands_attention = false;
                     win._wpApplyingGeometry = true;
                     try {
-                        if (win.move_frame) {
-                            win.move_frame(true, targetX, targetY);
-                        }
                         if (win.move_resize_frame) {
                             win.move_resize_frame(true, targetX, targetY, width, height);
+                        } else if (win.move_frame) {
+                            win.move_frame(true, targetX, targetY);
                         }
                     } finally {
                         win._wpApplyingGeometry = false;

@@ -191,6 +191,7 @@ namespace Plank
 		public bool load_environment_failed { get; private set; default = false; }
 		public string load_environment_failed_details { get; private set; default = ""; }
 		public string discarded_dockitems_details { get; private set; default = ""; }
+		public Gee.ArrayList<string> discarded_dockitems { get; private set; default = new Gee.ArrayList<string> (); }
 
 		/**
 		 * Converts a Gee.Collection<string> into a Vala string[] allocated via new string[n]
@@ -216,7 +217,49 @@ namespace Plank
 				return;
 			load_environment_failed = true;
 			preserve_disk_on_load_fault = true;
-			discarded_dockitems_details = string.joinv (", ", list_to_strv (bad_items));
+			discarded_dockitems.clear ();
+			foreach (var item in bad_items) {
+				if (item != null && item != "" && !discarded_dockitems.contains (item))
+					discarded_dockitems.add (item);
+			}
+			discarded_dockitems_details = string.joinv (", ", list_to_strv (discarded_dockitems));
+		}
+
+		static string[] filter_out_dockitems (string[]? items, Gee.Collection<string> removed)
+		{
+			if (items == null || items.length == 0)
+				return new string[0];
+			var kept = new Gee.ArrayList<string> ();
+			foreach (unowned string s in items) {
+				if (s != null && s != "" && !removed.contains (s))
+					kept.add (s);
+			}
+			return list_to_strv (kept);
+		}
+
+		public void purge_discarded_dockitems (File? launchers_folder)
+		{
+			if (discarded_dockitems.size > 0) {
+				if (launchers_folder != null) {
+					foreach (var fname in discarded_dockitems) {
+						if (fname == "" || !fname.has_suffix (".dockitem")
+							|| fname.contains ("/") || fname.contains ("\\") || fname.contains (".."))
+							continue;
+						var f = launchers_folder.get_child (fname);
+						try {
+							if (f.query_exists ())
+								f.delete ();
+						} catch (Error e) {
+							warning ("Unable to remove invalid dockitem '%s': %s", fname, e.message);
+						}
+					}
+				}
+				DockItems = filter_out_dockitems (DockItems, discarded_dockitems);
+				CategorizedDockItems = filter_out_dockitems (CategorizedDockItems, discarded_dockitems);
+				FreeDockItems = filter_out_dockitems (FreeDockItems, discarded_dockitems);
+				discarded_dockitems.clear ();
+				discarded_dockitems_details = "";
+			}
 		}
 
 		bool updating_sr_latch = false;

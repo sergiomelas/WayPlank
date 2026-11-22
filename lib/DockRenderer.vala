@@ -1112,19 +1112,16 @@ namespace Plank
 		
 		inline Surface get_item_surface (DockItem item, int icon_size)
 		{
-			var private_icon_surface = item.get_surface (icon_size, icon_size, main_buffer);
-			if (!screen_is_composited)
-				return private_icon_surface;
-			
-			string? drawing_status;
 			unowned PositionManager position_manager = controller.position_manager;
 			var max_icon_size = position_manager.ZoomIconSize * window_scale_factor;
-			if (icon_size < max_icon_size
-				&& ((drawing_status = private_icon_surface.steal_qdata<string> (quark_surface_stats)) != null
-				&& drawing_status == SURFACE_STATS_DRAWING_TIME_EXCEEDED))
+			if (screen_is_composited && icon_size < max_icon_size) {
+				// Pre-render the icon once at ZoomIconSize so SurfaceCache (ALLOW_DOWNSCALE)
+				// downscales all intermediate sizes from one consistent high-resolution master
+				// surface instead of re-querying Gtk.IconTheme across zoom thresholds.
 				item.get_surface (max_icon_size, max_icon_size, main_buffer);
+			}
 			
-			return private_icon_surface;
+			return item.get_surface (icon_size, icon_size, main_buffer);
 		}
 		
 		inline Surface get_scratch_icon_surface (int size)

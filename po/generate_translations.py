@@ -1014,6 +1014,42 @@ translations = {
         "de": "Ethernet: %s - %s",
         "uk": "Ethernet: %s - %s"
     },
+    "Virtual: %s": {
+        "zh_CN": "虚拟网络: %s",
+        "it": "Virtuale: %s",
+        "es": "Virtual: %s",
+        "fr": "Virtuel : %s",
+        "ca": "Virtual: %s",
+        "de": "Virtuell: %s",
+        "uk": "Віртуальна: %s"
+    },
+    "Virtual: %s - %s": {
+        "zh_CN": "虚拟网络: %s - %s",
+        "it": "Virtuale: %s - %s",
+        "es": "Virtual: %s - %s",
+        "fr": "Virtuel : %s - %s",
+        "ca": "Virtual: %s - %s",
+        "de": "Virtuell: %s - %s",
+        "uk": "Віртуальна: %s - %s"
+    },
+    "Gateway": {
+        "zh_CN": "网关",
+        "it": "Gateway",
+        "es": "Puerta de enlace",
+        "fr": "Passerelle",
+        "ca": "Passarel·la",
+        "de": "Gateway",
+        "uk": "Шлюз"
+    },
+    "Click to copy IP address": {
+        "zh_CN": "点击复制 IP 地址",
+        "it": "Clicca per copiare l'indirizzo IP",
+        "es": "Haz clic para copiar la dirección IP",
+        "fr": "Cliquer pour copier l'adresse IP",
+        "ca": "Fes clic per copiar l'adreça IP",
+        "de": "Klicken, um die IP-Adresse zu kopieren",
+        "uk": "Натисніть, щоб скопіювати IP-адресу"
+    },
     "Feels like %d%s": {
         "zh_CN": "体感温度 %d%s",
         "it": "Percepita %d%s",
@@ -2399,6 +2435,60 @@ translations = {
         "ca": "L'espera emergent (500 ms) porta la finestra objectiu a primer pla",
         "de": "Schwebefokus (500 ms) bringt das Zielfenster in den Vordergrund",
         "uk": "Наведення курсора (500 мс) виводить цільове вікно на передній план"
+    },
+    "Not supported by Labwc/wlroots (the zwlr_foreign_toplevel_management_v1 protocol does not expose virtual workspaces)": {
+        "zh_CN": "Labwc/wlroots 不支持 (zwlr_foreign_toplevel_management_v1 协议未暴露虚拟工作区)",
+        "it": "Non supportato da Labwc/wlroots (il protocollo zwlr_foreign_toplevel_management_v1 non espone i workspace virtuali)",
+        "es": "No compatible con Labwc/wlroots (el protocolo zwlr_foreign_toplevel_management_v1 no expone los espacios de trabajo virtuales)",
+        "fr": "Non pris en charge par Labwc/wlroots (le protocole zwlr_foreign_toplevel_management_v1 n'expose pas les espaces de travail virtuels)",
+        "ca": "No compatible amb Labwc/wlroots (el protocol zwlr_foreign_toplevel_management_v1 no exposa els espais de treball virtuals)",
+        "de": "Nicht unterstützt unter Labwc/wlroots (das Protokoll zwlr_foreign_toplevel_management_v1 stellt keine virtuellen Arbeitsflächen bereit)",
+        "uk": "Не підтримується в Labwc/wlroots (протокол zwlr_foreign_toplevel_management_v1 не передає віртуальні робочі простори)"
+    },
+    "Not supported by this compositor (virtual workspace membership is not exposed)": {
+        "zh_CN": "此混成器不支持 (未暴露虚拟工作区归属信息)",
+        "it": "Non supportato da questo compositore (l'appartenenza ai workspace virtuali non è esposta)",
+        "es": "No compatible con este compositor (no expone la pertenencia a espacios de trabajo virtuales)",
+        "fr": "Non pris en charge par ce compositeur (l'appartenance aux espaces de travail virtuels n'est pas exposée)",
+        "ca": "No compatible amb aquest compositor (no exposa la pertinença als espais de treball virtuals)",
+        "de": "Von diesem Compositor nicht unterstützt (Zugehörigkeit zu virtuellen Arbeitsflächen wird nicht bereitgestellt)",
+        "uk": "Не підтримується цим композитором (належність до віртуальних робочих просторів не передається)"
+    },
+    "Not supported on Windows 7/8 (Virtual Desktops require Windows 10 or newer)": {
+        "zh_CN": "Windows 7/8 不支持 (虚拟桌面需要 Windows 10 或更高版本)",
+        "it": "Non supportato su Windows 7/8 (i desktop virtuali richiedono Windows 10 o successivo)",
+        "es": "No compatible con Windows 7/8 (los escritorios virtuales requieren Windows 10 o posterior)",
+        "fr": "Non pris en charge sur Windows 7/8 (les bureaux virtuels nécessitent Windows 10 ou une version ultérieure)",
+        "ca": "No compatible amb Windows 7/8 (els escriptoris virtuals requereixen Windows 10 o posterior)",
+        "de": "Unter Windows 7/8 nicht unterstützt (Virtuelle Desktops erfordern Windows 10 oder neuer)",
+        "uk": "Не підтримується у Windows 7/8 (віртуальні робочі столи потребують Windows 10 або новішої версії)"
+    },
+    "Show only windows and running indicators from the current workspace": {
+        "zh_CN": "仅显示当前工作区的窗口和运行指示点",
+        "it": "Mostra solo le finestre e gli indicatori di esecuzione del workspace corrente",
+        "es": "Mostrar solo las ventanas e indicadores de ejecución del espacio de trabajo actual",
+        "fr": "Afficher uniquement les fenêtres et indicateurs d'exécution de l'espace de travail actuel",
+        "ca": "Mostra només les finestres i els indicadors d'execució de l'espai de treball actual",
+        "de": "Nur Fenster und Ausführungsindikatoren der aktuellen Arbeitsfläche anzeigen",
+        "uk": "Показувати лише вікна та індикатори запуску поточного робочого простору"
+    },
+    "Workspace filtering is not supported by this compositor": {
+        "zh_CN": "此混成器不支持工作区过滤",
+        "it": "Il filtro per workspace non è supportato da questo compositore",
+        "es": "El filtrado por espacio de trabajo no es compatible con este compositor",
+        "fr": "Le filtrage par espace de travail n'est pas pris en charge par ce compositeur",
+        "ca": "El filtratge per espai de treball no és compatible amb aquest compositor",
+        "de": "Arbeitsflächen-Filterung wird von diesem Compositor nicht unterstützt",
+        "uk": "Фільтрація за робочим простором не підтримується цим композитором"
+    },
+    "Supported operating systems: %s": {
+        "zh_CN": "支持的操作系统: %s",
+        "it": "Sistemi operativi supportati: %s",
+        "es": "Sistemas operativos compatibles: %s",
+        "fr": "Systèmes d'exploitation pris en charge : %s",
+        "ca": "Sistemes operatius compatibles: %s",
+        "de": "Unterstützte Betriebssysteme: %s",
+        "uk": "Підтримувані операційні системи: %s"
     },
     "Suspend": {
         "zh_CN": "待机/睡眠",

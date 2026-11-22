@@ -57,10 +57,23 @@ gboolean bsd_kernel_backlight_lid_is_open (void);
 gint64   bsd_kernel_backlight_read_raw (const char *device);
 gboolean bsd_kernel_backlight_write_raw (const char *device, guint32 raw_value);
 
+typedef void (*BsdNetInterfaceCallback) (
+	const char *iface_id,
+	const char *display_name,
+	const char *kind,
+	int wifi_strength,
+	const char *ip_address,
+	const char *gateway,
+	guint64 rx_bytes,
+	guint64 tx_bytes,
+	gpointer user_data
+);
+
 gboolean bsd_kernel_probe_network (char **out_type,
                                    char **out_name,
                                    int *out_strength,
                                    char **out_ip,
                                    char **out_gateway);
+void     bsd_kernel_list_network_interfaces (BsdNetInterfaceCallback cb, gpointer user_data);
 
 G_END_DECLS

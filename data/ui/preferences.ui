@@ -1445,7 +1445,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="margin_left">12</property>
                 <property name="label" translatable="yes">Workspace Only:</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
+                <property name="tooltip_text" translatable="yes">Show only windows and running indicators from the current workspace</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -1459,7 +1459,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can_focus">True</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Workspace filtering is not yet supported under Wayland</property>
+                <property name="tooltip_text" translatable="yes">Show only windows and running indicators from the current workspace</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>

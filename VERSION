@@ -1,6 +1,6 @@
 [Release]
-Version=0.7.3.2
-Decoration=Public Beta 4
+Version=0.7.4
+Decoration=Public Beta 5
 Year=2026
 ProgramName=WayPlank
 CopyrightHolder=Sergio Melas
@@ -8,6 +8,9 @@ CopyrightEmail=sergiomelas@gmail.com
 Homepage=https://github.com/sergiomelas/WayPlank
 IssuesUrl=https://github.com/sergiomelas/WayPlank/issues
 CompanyName=WayPlank Project (Sergio Melas)
+SupportedOS=Linux, FreeBSD, Windows
+FullySupportedCompositors=KWin (KDE Plasma), GNOME Shell (Mutter), Labwc, Windows (Win32/DWM)
+PartiallySupportedCompositors=wlroots-compatible compositors
 
 [Credits]
 TabTitle=🚀 WayPlank (2026)

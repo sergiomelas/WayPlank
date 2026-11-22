@@ -115,6 +115,7 @@ namespace Plank
 				pinned_expanded = is_pinned_accordion_enabled () && Prefs.pinned_expanded_latch;
 			}
 			Prefs.notify["CurrentWorkspaceOnly"].connect (handle_setting_changed);
+			WindowManager.get_default ().filter_current_workspace = is_current_workspace_only ();
 			Prefs.notify["PinnedOnly"].connect (handle_pinned_only_changed);
 			Prefs.notify["CategorizeItems"].connect (handle_categorize_items_changed);
 			Prefs.notify["AnchorAlwaysLeft"].connect (handle_category_layout_changed);
@@ -1651,9 +1652,27 @@ namespace Plank
 			}
 		}
 
+		public override bool is_current_workspace_only ()
+		{
+			return Hal.Capabilities.supports_workspace_filtering && Prefs != null && Prefs.CurrentWorkspaceOnly;
+		}
+
 		void handle_setting_changed ()
 		{
+			WindowManager.get_default ().filter_current_workspace = is_current_workspace_only ();
+			sync_compositor_windows ();
 			update_visible_elements ();
+
+			unowned DockController? dock = get_dock ();
+			if (dock != null && dock.renderer != null && dock.renderer.theme != null) {
+				dock.refresh_visible_elements ();
+				dock.position_manager.update (dock.renderer.theme);
+				dock.renderer.reset_buffers ();
+				if (dock.window != null) {
+					dock.window.set_input_mask ();
+				}
+				dock.renderer.animated_draw ();
+			}
 		}
 
 		void handle_pinned_only_changed ()
@@ -1858,6 +1877,14 @@ namespace Plank
 
 			string dst_uri = dst_file.get_uri ();
 			CustomNameService.get_default ().transfer_custom_name (launcher_uri, dst_uri);
+			string custom_icon = CustomIconService.get_default ().get_custom_icon (launcher_uri);
+			if (custom_icon == "" && app_item.Prefs.CustomIcon != "")
+				custom_icon = app_item.Prefs.CustomIcon;
+			if (custom_icon != "") {
+				CustomIconService.get_default ().set_custom_icon (dst_uri, custom_icon);
+				if (launcher_uri.strip ().down () != dst_uri.strip ().down ())
+					CustomIconService.get_default ().set_custom_icon (launcher_uri, "");
+			}
 
 			delay_items_monitor ();
 
@@ -1904,6 +1931,7 @@ namespace Plank
 
 			string pin_uri = pin_file.get_uri ();
 			CustomNameService.get_default ().transfer_custom_name (folder_launcher.get_uri (), pin_uri);
+			CustomIconService.get_default ().transfer_custom_icon (folder_launcher.get_uri (), pin_uri);
 
 			unowned DockItem? existing = item_for_uri (pin_uri);
 			if (existing is TransientDockItem && existing.Prefs != null && existing.Prefs.Launcher != pin_uri)

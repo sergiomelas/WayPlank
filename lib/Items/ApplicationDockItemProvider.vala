@@ -265,14 +265,22 @@ namespace Plank
 			return false;
 		}
 
+		public virtual bool is_current_workspace_only ()
+		{
+			return false;
+		}
+
 		public void sync_compositor_windows ()
 		{
 			var windows = Hal.Windows.get_windows ();
 			var discovery = ApplicationDiscovery.get_default ();
 			var my_pid = Hal.Runtime.get_current_pid ();
 			var active_transient_launchers = new Gee.HashSet<string> ();
+			bool workspace_only = is_current_workspace_only ();
 
 			foreach (var window in windows) {
+				if (workspace_only && !window.CurrentDesktop)
+					continue;
 				// Ignore windows belonging to Wayplank itself
 				if (window.Pid > 0 && window.Pid == my_pid)
 					continue;

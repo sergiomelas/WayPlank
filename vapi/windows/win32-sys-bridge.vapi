@@ -23,8 +23,32 @@ namespace Win32SysBridge
 	[CCode (cname = "Win32RemovableDriveCallback", has_target = true)]
 	public delegate void RemovableDriveCallback (string drive_root, string label);
 
+	[CCode (cname = "Win32TrashItemCallback", has_target = true)]
+	public delegate void TrashItemCallback (string id, string display_name, string original_path, int is_directory);
+
+	[CCode (cname = "Win32NetInterfaceCallback", has_target = true)]
+	public delegate void NetInterfaceCallback (
+		string iface_id,
+		string display_name,
+		string kind,
+		int wifi_strength,
+		string ip_address,
+		string gateway,
+		uint64 rx_bytes,
+		uint64 tx_bytes
+	);
+
 	[CCode (cname = "win32_sys_trash_get_count")]
 	public static uint32 trash_get_count ();
+
+	[CCode (cname = "win32_sys_trash_list_items")]
+	public static void trash_list_items (TrashItemCallback cb);
+
+	[CCode (cname = "win32_sys_trash_restore_item")]
+	public static int trash_restore_item (string id);
+
+	[CCode (cname = "win32_sys_trash_delete_item")]
+	public static int trash_delete_item (string id);
 
 	[CCode (cname = "win32_sys_trash_move_path")]
 	public static int trash_move_path (string path);
@@ -47,6 +71,9 @@ namespace Win32SysBridge
 	[CCode (cname = "win32_sys_sample_cpu_mem")]
 	public static int sample_cpu_mem (out int cpu_pct, out int ram_pct, out double ram_used_gb, out double ram_total_gb);
 
+	[CCode (cname = "win32_sys_sample_disk_io")]
+	public static int sample_disk_io ();
+
 	[CCode (cname = "win32_sys_audio_probe")]
 	public static int audio_probe (out int volume_percent, out int is_muted);
 
@@ -66,10 +93,16 @@ namespace Win32SysBridge
 	public static void brightness_set_percent (int percent);
 
 	[CCode (cname = "win32_sys_network_probe")]
-	public static int network_probe (out int is_connected, out string? out_type, out string? out_name, out string? out_ip);
+	public static int network_probe (out int is_connected, out string? out_type, out string? out_name, out string? out_ip, out string? out_gateway, out int out_wifi_strength);
+
+	[CCode (cname = "win32_sys_network_list_interfaces")]
+	public static void network_list_interfaces (NetInterfaceCallback cb);
 
 	[CCode (cname = "win32_sys_get_user_and_host")]
 	public static void get_user_and_host (out string? out_user, out string? out_host);
+
+	[CCode (cname = "win32_sys_query_power_caps")]
+	public static void query_power_caps (out int can_hibernate, out int can_hybrid_sleep);
 
 	[CCode (cname = "win32_sys_lock_workstation")]
 	public static void lock_workstation ();
@@ -82,6 +115,15 @@ namespace Win32SysBridge
 
 	[CCode (cname = "win32_sys_query_prefer_dark")]
 	public static int query_prefer_dark (out int out_prefer_dark);
+
+	[CCode (cname = "win32_sys_query_font_scale_factor")]
+	public static double query_font_scale_factor ();
+
+	[CCode (cname = "win32_sys_query_dnd_inhibited")]
+	public static int query_dnd_inhibited ();
+
+	[CCode (cname = "win32_sys_send_toast")]
+	public static void send_toast (string summary, string body);
 
 	[CCode (cname = "win32_sys_send_media_key")]
 	public static void send_media_key (int kind);

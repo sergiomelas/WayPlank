@@ -81,6 +81,7 @@ namespace Plank
 			Matcher.get_default ().processes_changed.connect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.connect (handle_window_state_changed);
 			CustomNameService.get_default ().name_changed.connect (handle_custom_name_changed);
+			CustomIconService.get_default ().icon_changed.connect (handle_custom_icon_changed);
 			Prefs.notify["BrowserProfile"].connect (handle_browser_profile_changed);
 
 			load_from_launcher ();
@@ -99,6 +100,7 @@ namespace Plank
 			Matcher.get_default ().processes_changed.disconnect (handle_processes_changed);
 			WindowManager.get_default ().windows_refreshed.disconnect (handle_window_state_changed);
 			CustomNameService.get_default ().name_changed.disconnect (handle_custom_name_changed);
+			CustomIconService.get_default ().icon_changed.disconnect (handle_custom_icon_changed);
 			Prefs.notify["BrowserProfile"].disconnect (handle_browser_profile_changed);
 
 			if (browser_profile_reg_id > 0) {
@@ -615,6 +617,30 @@ namespace Plank
 			update_profile_tooltip_text ();
 		}
 
+		void handle_custom_icon_changed (string uri)
+		{
+			if (Prefs == null || Prefs.Launcher == "" || uri.strip ().down () != Prefs.Launcher.strip ().down ())
+				return;
+
+			string custom_icon = CustomIconService.get_default ().get_custom_icon (Prefs.Launcher);
+			if (custom_icon != "" && DrawingService.has_icon (custom_icon)) {
+				if (Icon != custom_icon)
+					Icon = custom_icon;
+				return;
+			}
+
+			if (Prefs.CustomIcon != "" && DrawingService.has_icon (Prefs.CustomIcon)) {
+				if (Icon != Prefs.CustomIcon)
+					Icon = Prefs.CustomIcon;
+				return;
+			}
+
+			string icon, text;
+			parse_launcher (Prefs.Launcher, out icon, out text);
+			if (icon != null && icon != "" && Icon != icon)
+				Icon = icon;
+		}
+
 		void update_profile_tooltip_text ()
 		{
 			if (Prefs.Launcher == "")
@@ -690,9 +716,12 @@ namespace Plank
 				accepts_payload = (desc.supports_files || desc.supports_uris);
 			}
 
-			string effective_icon = (Prefs.CustomIcon != "" && DrawingService.has_icon (Prefs.CustomIcon))
-				? Prefs.CustomIcon
-				: icon;
+			string stored_custom_icon = CustomIconService.get_default ().get_custom_icon (Prefs.Launcher);
+			string effective_icon = (stored_custom_icon != "" && DrawingService.has_icon (stored_custom_icon))
+				? stored_custom_icon
+				: ((Prefs.CustomIcon != "" && DrawingService.has_icon (Prefs.CustomIcon))
+					? Prefs.CustomIcon
+					: icon);
 			if (effective_icon != null && effective_icon != "")
 				Icon = effective_icon;
 			ForcePixbuf = null;

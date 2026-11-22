@@ -291,24 +291,24 @@ namespace Plank
 
 			// 1. Internet Folder
 			var internet_folder = folders_base.get_child ("Internet");
-			Hal.Apps.populate_category_folder (internet_folder, "applications-internet", PRIORITY_INTERNET, {
+			if (Hal.Apps.populate_category_folder (internet_folder, "applications-internet", PRIORITY_INTERNET, {
 				"WebBrowser", "Network", "Email", "Chat", "InstantMessaging", "IRCClient", "Feed"
-			});
-			make_dock_item (internet_folder.get_uri ());
+			}) > 0)
+				make_dock_item (internet_folder.get_uri ());
 
 			// 2. Office & Productivity Folder
 			var office_folder = folders_base.get_child ("Office");
-			Hal.Apps.populate_category_folder (office_folder, "applications-office", PRIORITY_OFFICE, {
+			if (Hal.Apps.populate_category_folder (office_folder, "applications-office", PRIORITY_OFFICE, {
 				"Office", "Development", "IDE", "TextEditor", "WordProcessor", "Spreadsheet", "Calculator", "Viewer"
-			});
-			make_dock_item (office_folder.get_uri ());
+			}) > 0)
+				make_dock_item (office_folder.get_uri ());
 
 			// 3. Media & Creative Folder
 			var media_folder = folders_base.get_child ("Media");
-			Hal.Apps.populate_category_folder (media_folder, "applications-multimedia", PRIORITY_MEDIA, {
+			if (Hal.Apps.populate_category_folder (media_folder, "applications-multimedia", PRIORITY_MEDIA, {
 				"AudioVideo", "Audio", "Video", "Graphics", "Player", "Recorder", "Music"
-			});
-			make_dock_item (media_folder.get_uri ());
+			}) > 0)
+				make_dock_item (media_folder.get_uri ());
 
 			// 4. Games Folder (or Utilities fallback if no games exist)
 			var games_folder = folders_base.get_child ("Games");
@@ -320,10 +320,10 @@ namespace Plank
 				make_dock_item (games_folder.get_uri ());
 			} else {
 				var utils_folder = folders_base.get_child ("Utilities");
-				Hal.Apps.populate_category_folder (utils_folder, "applications-utilities", { "org.gnome.DiskUtility", "gnome-system-monitor", "org.kde.ark", "file-roller" }, {
+				if (Hal.Apps.populate_category_folder (utils_folder, "applications-utilities", { "org.gnome.DiskUtility", "gnome-system-monitor", "org.kde.ark", "file-roller" }, {
 					"System", "Utility", "Archiving", "Settings", "FileManager"
-				});
-				make_dock_item (utils_folder.get_uri ());
+				}) > 0)
+					make_dock_item (utils_folder.get_uri ());
 			}
 		}
 

@@ -1,0 +1,12 @@
+<svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+ <linearGradient id="wiredgrad" x2="1" gradientTransform="matrix(0 -44 44 0 24 46)" gradientUnits="userSpaceOnUse">
+  <stop stop-color="#006783" offset="0"/>
+  <stop stop-color="#20ccff" offset="1"/>
+ </linearGradient>
+ <circle cx="24" cy="24" r="22.5" fill="url(#wiredgrad)"/>
+ <rect x="13" y="13.5" width="22" height="17" rx="2.6" fill="none" stroke="#ffffff" stroke-width="2.6"/>
+ <path d="M 18,13.5 L 18,19 M 22,13.5 L 22,19 M 26,13.5 L 26,19 M 30,13.5 L 30,19" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+ <path d="M 24,30.5 L 24,35.5 M 16.5,35.5 L 31.5,35.5" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+ <circle cx="16.5" cy="35.5" r="2.2" fill="#ffffff"/>
+ <circle cx="31.5" cy="35.5" r="2.2" fill="#ffffff"/>
+</svg>

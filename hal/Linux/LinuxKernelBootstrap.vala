@@ -113,12 +113,28 @@ namespace Plank
 		[CCode (cname = "wayplank_hal_kernel_probe_network_fallback")]
 		public static bool probe_network_fallback (out string conn_type, out string conn_name, out int wifi_strength, out string ip_address, out string gateway)
 		{
+			var list = LinuxNetworkTelemetry.list_interfaces ();
+			if (list.size > 0) {
+				var top = list.get (0);
+				conn_type = top.kind;
+				conn_name = top.display_name;
+				wifi_strength = top.wifi_strength;
+				ip_address = top.ip_address;
+				gateway = top.gateway;
+				return true;
+			}
 			conn_type = "none";
 			conn_name = "";
 			wifi_strength = 0;
 			ip_address = "";
 			gateway = "";
 			return false;
+		}
+
+		[CCode (cname = "wayplank_hal_kernel_list_network_interfaces")]
+		public static Gee.ArrayList<NetworkInterfaceInfo> list_network_interfaces ()
+		{
+			return LinuxNetworkTelemetry.list_interfaces ();
 		}
 	}
 }

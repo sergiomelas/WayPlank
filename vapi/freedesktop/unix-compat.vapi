@@ -30,4 +30,16 @@ namespace Plank
 
 	[CCode (cheader_filename = "unistd.h", cname = "getpid")]
 	public int getpid ();
+
+	[Compact, CCode (cname = "struct ifaddrs", cheader_filename = "sys/types.h,ifaddrs.h", free_function = "freeifaddrs", has_type_id = false)]
+	public class UnixIfAddrs
+	{
+		public unowned UnixIfAddrs? ifa_next;
+		public unowned string ifa_name;
+		public uint ifa_flags;
+		public Posix.SockAddr* ifa_addr;
+	}
+
+	[CCode (cheader_filename = "sys/types.h,ifaddrs.h", cname = "getifaddrs")]
+	public int unix_getifaddrs (out UnixIfAddrs ifap);
 }

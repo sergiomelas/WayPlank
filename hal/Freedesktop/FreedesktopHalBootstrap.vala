@@ -64,6 +64,9 @@ namespace Plank
 	[CCode (cname = "wayplank_hal_kernel_probe_network_fallback")]
 	extern bool hal_kernel_probe_network_fallback (out string conn_type, out string conn_name, out int wifi_strength, out string ip_address, out string gateway);
 
+	[CCode (cname = "wayplank_hal_kernel_list_network_interfaces")]
+	extern Gee.ArrayList<NetworkInterfaceInfo> hal_kernel_list_network_interfaces ();
+
 	/**
 	 * Pure 1-to-1 pass-through adapter bridging the northbound OS-blind
 	 * `IWindowBackend` translator contract directly to the untouched
@@ -386,8 +389,14 @@ namespace Plank
 			caps.supports_quit_action = !environment_is_session_desktop (XdgSessionDesktop.PANTHEON);
 			caps.supports_pressure_reveal = !environment_is_session_type (XdgSessionType.WAYLAND);
 			caps.supports_hardware_brightness = true;
+			caps.supports_workspace_filtering = WindowControl.is_kwin () || WindowControl.is_mutter ();
 			caps.uses_shell_anchored_surfaces = environment_is_session_type (XdgSessionType.WAYLAND) || GtkLayerShell.is_supported ();
 			caps.unsupported_hide_mode_suffix = WindowControl.is_labwc () ? _(" (Requires KWin)") : "";
+			caps.workspace_filtering_unavailable_reason = caps.supports_workspace_filtering
+				? ""
+				: (WindowControl.is_labwc ()
+					? _("Not supported by Labwc/wlroots (the zwlr_foreign_toplevel_management_v1 protocol does not expose virtual workspaces)")
+					: _("Not supported by this compositor (virtual workspace membership is not exposed)"));
 			caps.fully_supported_summary = WindowCapabilities.fully_supported_compositors ();
 			caps.partially_supported_summary = WindowCapabilities.partially_supported_compositors ();
 

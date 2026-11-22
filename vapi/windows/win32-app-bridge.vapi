@@ -52,6 +52,9 @@ namespace Win32AppBridge
 	[CCode (cname = "Win32EnumRecentDocCallback", has_target = true)]
 	public delegate void EnumRecentDocCallback (string doc_path);
 
+	[CCode (cname = "Win32EnumUwpAppCallback", has_target = true)]
+	public delegate void EnumUwpAppCallback (string aumid, string display_name, string install_path);
+
 	[CCode (cname = "win32_app_get_known_folder")]
 	public static string? get_known_folder (int folder_id);
 
@@ -94,6 +97,15 @@ namespace Win32AppBridge
 		out int out_h
 	);
 
+	[CCode (cname = "win32_app_extract_aumid_icon_rgba")]
+	public static int extract_aumid_icon_rgba (
+		string aumid,
+		int desired_size,
+		out uint8* out_rgba,
+		out int out_w,
+		out int out_h
+	);
+
 	[CCode (cname = "win32_app_enum_system_icon_stores")]
 	public static void enum_system_icon_stores (EnumIconTokenCallback cb);
 
@@ -108,6 +120,18 @@ namespace Win32AppBridge
 
 	[CCode (cname = "win32_app_shell_execute")]
 	public static int shell_execute (string target, string? args, string? working_dir);
+
+	[CCode (cname = "win32_app_activate_aumid")]
+	public static int activate_aumid (string aumid, string? args);
+
+	[CCode (cname = "win32_app_get_process_aumid")]
+	public static string? get_process_aumid (int pid);
+
+	[CCode (cname = "win32_app_find_aumid_for_package_path")]
+	public static string? find_aumid_for_package_path (string exe_path);
+
+	[CCode (cname = "win32_app_enum_uwp_apps")]
+	public static void enum_uwp_apps (EnumUwpAppCallback cb);
 
 	[CCode (cname = "win32_app_is_process_alive")]
 	public static int is_process_alive (int pid);

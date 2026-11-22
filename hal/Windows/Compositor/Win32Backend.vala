@@ -160,7 +160,9 @@ namespace Plank
 			string low = clean.down ();
 			string low_stem = stem.down ();
 			bool is_chromium = (low_stem == "chrome" || low_stem == "msedge" || low_stem == "brave" || low_stem == "vivaldi"
-				|| low.has_prefix ("chrome") || low.has_prefix ("msedge") || low.has_prefix ("brave"));
+				|| low_stem == "opera" || low_stem == "chromium"
+				|| low.has_prefix ("chrome") || low.has_prefix ("msedge") || low.has_prefix ("brave")
+				|| low.has_prefix ("vivaldi") || low.has_prefix ("opera") || low.has_prefix ("chromium"));
 			if (!is_chromium)
 				return "";
 
@@ -233,7 +235,7 @@ namespace Plank
 			var live_ids = new Gee.HashSet<string> ();
 
 			Win32Bridge.enum_windows ((hwnd, pid, caption, class_name, exe_path, aumid,
-				x, y, width, height, minimized, active, maximized, fullscreen, is_dialog, urgent) => {
+				x, y, width, height, minimized, active, maximized, fullscreen, is_dialog, urgent, current_desktop) => {
 				string id = "hwnd:0x%016llx".printf (hwnd);
 				live_ids.add (id);
 
@@ -266,7 +268,7 @@ namespace Plank
 				info.Fullscreen = (fullscreen != 0);
 				info.IsDialog = (is_dialog != 0);
 				info.DemandsAttention = (urgent != 0);
-				info.CurrentDesktop = true;
+				info.CurrentDesktop = (current_desktop != 0);
 				info.Geometry = { x, y, width, height };
 
 				if (info.Minimized) {

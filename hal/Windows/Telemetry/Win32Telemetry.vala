@@ -30,8 +30,18 @@ namespace Plank
 			host = h ?? Environment.get_host_name ();
 		}
 
-		public bool can_hibernate () { return true; }
-		public bool can_hybrid_sleep () { return true; }
+		public bool can_hibernate ()
+		{
+			int hib = 0, hyb = 0;
+			Win32SysBridge.query_power_caps (out hib, out hyb);
+			return hib != 0;
+		}
+		public bool can_hybrid_sleep ()
+		{
+			int hib = 0, hyb = 0;
+			Win32SysBridge.query_power_caps (out hib, out hyb);
+			return hyb != 0;
+		}
 		public bool can_reboot_to_firmware () { return true; }
 
 		public void lock_screen ()
@@ -229,11 +239,12 @@ namespace Plank
 			int cpu = 0, ram = 0;
 			double used_gb = 0.0, total_gb = 0.0;
 			Win32SysBridge.sample_cpu_mem (out cpu, out ram, out used_gb, out total_gb);
-			int pressure = int.max (cpu, ram);
+			int io = Win32SysBridge.sample_disk_io ();
+			int pressure = int.max (int.max (cpu, ram), io);
 			return CpuMemDiskSample () {
 				cpu_pct = cpu,
 				ram_pct = ram,
-				io_pct = 0,
+				io_pct = io,
 				system_pressure = pressure,
 				ram_used_gb = used_gb,
 				ram_total_gb = total_gb
@@ -243,19 +254,65 @@ namespace Plank
 
 	class Win32NetworkProvider : GLib.Object, INetworkProvider
 	{
+		static int kind_rank (string kind)
+		{
+			if (kind == "wifi") return 0;
+			if (kind == "ethernet") return 1;
+			return 2;
+		}
+
+		public Gee.ArrayList<NetworkInterfaceInfo> list_interfaces_sync ()
+		{
+			var list = new Gee.ArrayList<NetworkInterfaceInfo> ();
+			Win32SysBridge.network_list_interfaces ((iface_id, display_name, kind, wifi_strength, ip_address, gateway, rx_bytes, tx_bytes) => {
+				var info = new NetworkInterfaceInfo ();
+				info.iface_id = iface_id;
+				info.display_name = display_name;
+				info.kind = kind;
+				info.wifi_strength = wifi_strength;
+				info.ip_address = ip_address;
+				info.gateway = gateway;
+				info.rx_bytes = rx_bytes;
+				info.tx_bytes = tx_bytes;
+				list.add (info);
+			});
+
+			/* Strict priority: Wi-Fi -> Physical Ethernet -> Virtual (gateway first, signal desc) */
+			list.sort ((a, b) => {
+				int ra = kind_rank (a.kind);
+				int rb = kind_rank (b.kind);
+				if (ra != rb) return ra - rb;
+				int ga = (a.gateway != "") ? 0 : 1;
+				int gb = (b.gateway != "") ? 0 : 1;
+				if (ga != gb) return ga - gb;
+				if (ra == 0 && a.wifi_strength != b.wifi_strength)
+					return b.wifi_strength - a.wifi_strength;
+				return 0;
+			});
+			return list;
+		}
+
 		public NetworkState probe_state_sync ()
 		{
-			int conn = 0;
-			string? ctype = null;
-			string? cname = null;
-			string? ip = null;
-			Win32SysBridge.network_probe (out conn, out ctype, out cname, out ip);
+			var list = list_interfaces_sync ();
+			if (list.size > 0) {
+				var top = list.get (0);
+				return NetworkState () {
+					is_connected = true,
+					connection_type = top.kind,
+					connection_name = top.display_name,
+					wifi_strength = top.wifi_strength,
+					ip_address = top.ip_address,
+					gateway = top.gateway
+				};
+			}
+
 			return NetworkState () {
-				is_connected = (conn != 0),
-				connection_type = ctype ?? "none",
-				connection_name = cname ?? "",
-				wifi_strength = (conn != 0 && ctype == "wifi") ? 80 : 0,
-				ip_address = ip ?? "",
+				is_connected = false,
+				connection_type = "none",
+				connection_name = "",
+				wifi_strength = 0,
+				ip_address = "",
 				gateway = ""
 			};
 		}
@@ -525,7 +582,16 @@ namespace Plank
 
 		public Gee.ArrayList<TrashItemInfo> list_items ()
 		{
-			return new Gee.ArrayList<TrashItemInfo> ();
+			var list = new Gee.ArrayList<TrashItemInfo> ();
+			Win32SysBridge.trash_list_items ((id, display_name, original_path, is_directory) => {
+				var info = new TrashItemInfo ();
+				info.id = id;
+				info.display_name = display_name;
+				info.original_path = original_path;
+				info.is_directory = (is_directory != 0);
+				list.add (info);
+			});
+			return list;
 		}
 
 		public bool move_uri_to_trash (string uri)
@@ -543,8 +609,25 @@ namespace Plank
 			return ok;
 		}
 
-		public bool restore_item (string id) { return false; }
-		public bool delete_item_permanently (string id) { return false; }
+		public bool restore_item (string id)
+		{
+			bool ok = Win32SysBridge.trash_restore_item (id) != 0;
+			if (ok) {
+				last_count = Win32SysBridge.trash_get_count ();
+				trash_changed ();
+			}
+			return ok;
+		}
+
+		public bool delete_item_permanently (string id)
+		{
+			bool ok = Win32SysBridge.trash_delete_item (id) != 0;
+			if (ok) {
+				last_count = Win32SysBridge.trash_get_count ();
+				trash_changed ();
+			}
+			return ok;
+		}
 
 		public bool empty_trash ()
 		{

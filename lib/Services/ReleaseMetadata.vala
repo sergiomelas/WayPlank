@@ -50,6 +50,9 @@ namespace Plank
 		public string copyright_email { get; private set; default = ""; }
 		public string homepage { get; private set; default = ""; }
 		public string issues_url { get; private set; default = ""; }
+		public string supported_os { get; private set; default = ""; }
+		public string fully_supported_compositors { get; private set; default = ""; }
+		public string partially_supported_compositors { get; private set; default = ""; }
 		public string credits_tab_title { get; private set; default = ""; }
 
 		string[] wayplank_authors = {};
@@ -162,6 +165,9 @@ namespace Plank
 			copyright_email = read_key (kf, "Release", "CopyrightEmail");
 			homepage = read_key (kf, "Release", "Homepage", Build.PACKAGE_URL);
 			issues_url = read_key (kf, "Release", "IssuesUrl", Build.PACKAGE_BUGREPORT);
+			supported_os = read_key (kf, "Release", "SupportedOS");
+			fully_supported_compositors = read_key (kf, "Release", "FullySupportedCompositors");
+			partially_supported_compositors = read_key (kf, "Release", "PartiallySupportedCompositors");
 			credits_tab_title = read_key (kf, "Credits", "TabTitle", "🚀 %s (%s)".printf (program_name, year));
 
 			var authors_list = new Gee.ArrayList<string> ();

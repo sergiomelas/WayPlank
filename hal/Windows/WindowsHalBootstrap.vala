@@ -78,7 +78,7 @@ namespace Plank
 			}
 
 			cached_schema_dir = schema_dir;
-			Environment.set_variable ("G_SETTINGS_SCHEMA_DIR", schema_dir, true);
+			Environment.set_variable ("GSETTINGS_SCHEMA_DIR", schema_dir, true);
 			return schema_dir;
 		}
 
@@ -375,8 +375,12 @@ namespace Plank
 			caps.supports_quit_action = true;
 			caps.supports_pressure_reveal = false;
 			caps.supports_hardware_brightness = telemetry.get_cached_brightness_available ();
+			caps.supports_workspace_filtering = (Win32Bridge.has_virtual_desktop_manager () != 0);
 			caps.uses_shell_anchored_surfaces = false;
 			caps.unsupported_hide_mode_suffix = "";
+			caps.workspace_filtering_unavailable_reason = caps.supports_workspace_filtering
+				? ""
+				: _("Not supported on Windows 7/8 (Virtual Desktops require Windows 10 or newer)");
 			caps.fully_supported_summary = "Windows (Win32/DWM)";
 			caps.partially_supported_summary = "";
 

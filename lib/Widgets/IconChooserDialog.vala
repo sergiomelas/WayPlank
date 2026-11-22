@@ -23,6 +23,7 @@ namespace Plank
 	{
 		private static int open_count = 0;
 		private static Gee.HashMap<DockItem, unowned IconChooserDialog>? active_item_dialogs = null;
+		private static Gee.HashMap<string, unowned IconChooserDialog>? active_uri_dialogs = null;
 		public static bool is_open {
 			get { return open_count > 0; }
 		}
@@ -523,10 +524,15 @@ namespace Plank
 			if (item.Container == null || item.Prefs.Launcher == "")
 				return;
 
-			string updated_uri = Hal.Apps.apply_custom_launcher_icon (item.Prefs.Launcher, new_icon);
-			if (updated_uri != "")
+			string old_uri = item.Prefs.Launcher;
+			string updated_uri = Hal.Apps.apply_custom_launcher_icon (old_uri, new_icon);
+			if (updated_uri != "") {
 				item.Prefs.Launcher = updated_uri;
+				if (updated_uri.strip ().down () != old_uri.strip ().down ())
+					CustomIconService.get_default ().set_custom_icon (old_uri, "");
+			}
 			item.Prefs.CustomIcon = new_icon;
+			CustomIconService.get_default ().set_custom_icon (item.Prefs.Launcher, new_icon);
 			item.Icon = new_icon;
 			ApplicationDiscovery.get_default ().schedule_refresh ();
 		}
@@ -536,11 +542,15 @@ namespace Plank
 			if (item.Container == null || item.Prefs.Launcher == "")
 				return;
 
+			string old_uri = item.Prefs.Launcher;
 			string restored_icon;
-			string updated_uri = Hal.Apps.reset_custom_launcher_icon (item.Prefs.Launcher, out restored_icon);
+			string updated_uri = Hal.Apps.reset_custom_launcher_icon (old_uri, out restored_icon);
 			item.Prefs.CustomIcon = "";
-			if (updated_uri != "")
+			CustomIconService.get_default ().set_custom_icon (old_uri, "");
+			if (updated_uri != "") {
 				item.Prefs.Launcher = updated_uri;
+				CustomIconService.get_default ().set_custom_icon (updated_uri, "");
+			}
 
 			if (restored_icon != "") {
 				item.Icon = restored_icon;
@@ -550,6 +560,44 @@ namespace Plank
 				item.Icon = icon;
 			}
 			ApplicationDiscovery.get_default ().schedule_refresh ();
+		}
+
+		public static void show_for_launcher_uri (string launcher_uri, string current_icon, string display_title, DockController? controller = null)
+		{
+			string clean_uri = launcher_uri.strip ();
+			if (clean_uri.length == 0)
+				return;
+
+			string key = clean_uri.down ();
+			if (active_uri_dialogs == null)
+				active_uri_dialogs = new Gee.HashMap<string, unowned IconChooserDialog> ();
+			var existing = active_uri_dialogs.get (key);
+			if (existing != null && !existing.is_destroyed) {
+				existing.present ();
+				return;
+			}
+
+			string initial_icon = (current_icon != null && current_icon != "") ? current_icon : "application-x-executable";
+			string title_label = (display_title != null && display_title != "") ? display_title : clean_uri;
+			var dlg = new IconChooserDialog (initial_icon, title_label);
+			var ctrl_ref = GLib.WeakRef (controller);
+			active_uri_dialogs.set (key, dlg);
+			dlg.response.connect ((resp) => {
+				if (resp == Gtk.ResponseType.OK && dlg.selected_icon != null) {
+					CustomIconService.get_default ().set_custom_icon (clean_uri, dlg.selected_icon);
+				} else if (resp == Gtk.ResponseType.APPLY || dlg.is_reset_to_default) {
+					CustomIconService.get_default ().set_custom_icon (clean_uri, "");
+				}
+				dlg.destroy ();
+			});
+			dlg.destroy.connect (() => {
+				if (active_uri_dialogs != null && active_uri_dialogs.get (key) == dlg)
+					active_uri_dialogs.unset (key);
+				var ctrl = ctrl_ref.get () as DockController;
+				if (ctrl != null)
+					ctrl.check_collapse_after_interaction (dlg);
+			});
+			dlg.present ();
 		}
 
 		public static void show_for_folder (FileDockItem item)

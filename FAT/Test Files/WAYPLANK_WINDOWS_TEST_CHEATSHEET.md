@@ -67,14 +67,14 @@ Works on any desktop or server hypervisor (**QEMU/KVM `virt-manager`**, **Virtua
 3. **Host ↔ VM File Transfer:** Use a shared folder, SMB share, or built-in Windows OpenSSH Server (`Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0` + `Start-Service sshd`) to copy `build/wayplank.exe`, `build/WayPlank-<ver>-Setup.exe`, and `FAT/Test Files/` directly into the guest.
 4. **Clean FAT Snapshot:** Take a clean VM snapshot **before** installing WayPlank so First-Run Onboarding (`1.9`) and fresh-install tests (`15.1`–`15.6`) can be re-run cleanly anytime.
 
-### 6.2 FreeBSD / GhostBSD Test VM (`v0.7.4` `hal/BSD/` Prep)
+### 6.2 FreeBSD / GhostBSD Test VM (`v0.7.4` `hal/BSD/`)
 1. **VM Sizing:** FreeBSD 64-bit (`x86_64`) using a **GhostBSD** or stock **FreeBSD 15.x-RELEASE** ISO; `2–4` vCPUs, `4 GB` RAM, `30–40 GB` disk, **Bridged** or **NAT** NIC (with host-to-guest routing or port-forwarding `2222 -> 22` under user-mode NAT).
 2. **Cap ZFS ARC Memory (Prevents VM RAM Ballooning):**
    ```sh
    sudo sysrc -f /boot/loader.conf vfs.zfs.arc_max="512M"
    # Reboot once, or apply live: sudo sysctl vfs.zfs.arc.max=536870912
    ```
-3. **Enable SSH & SFTP for Host File-Manager Access:**
+3. **Enable SSH & SFTP for Host File-Manager / `rsync` Access:**
    ```sh
    sudo sysrc sshd_enable="YES"
    sudo service sshd start
@@ -83,24 +83,26 @@ Works on any desktop or server hypervisor (**QEMU/KVM `virt-manager`**, **Virtua
    sudo sysrc firewall_enable="NO"
    sudo service ipfw onestop
    ```
-4. **Check Guest IP & Connect from Linux Host:**
-   ```sh
-   # Inside VM:
+4. **Passwordless SSH & Fast `rsync` Sync from Linux Host:**
+   ```bash
+   # Inside VM (find guest IP):
    ifconfig | grep "inet "
 
-   # From Linux host (mount in Dolphin/Nautilus/Thunar as sftp://<user>@<VM_IP>/home/<user>/):
-   ssh <user>@<VM_IP> "uname -a"
+   # From Linux host (install SSH key once, then sync sources before each remote build):
+   ssh-copy-id -i ~/.ssh/id_ed25519.pub <user>@<VM_IP>
+   rsync -avz --delete --exclude='.git/' --exclude='build/' --exclude='deps/' \
+       /path/to/WayPlank/ <user>@<VM_IP>:~/WayPlank/
    ```
    *(Tip: To keep `<VM_IP>` fixed across reboots, configure a DHCP reservation on your virtual router or set a static IP with `sysrc ifconfig_<nic>="inet <IP>/24"` and `sysrc defaultrouter="<GW>"`.)*
-5. **Install WayPlank Build & Wayland Test Packages Inside the VM:**
+5. **Install WayPlank Build, Wayland & Clipboard-Bridge Packages Inside the VM:**
    ```sh
    sudo pkg update
    sudo pkg install -y \
-       git vala pkgconf gmake gettext-tools python3 \
+       rsync git vala pkgconf gmake gettext-tools python3 \
        gtk3 gtk-layer-shell libgee json-glib wayland wayland-protocols \
-       labwc seatd dbus
+       labwc seatd dbus gvfs grim slurp swaylock dunst wl-clipboard xclip
    ```
-6. **Enable Wayland Session Services (`dbus` + `seatd`):**
+6. **Enable Wayland Session Services (`dbus` + `seatd` + `video` group):**
    ```sh
    sudo sysrc dbus_enable="YES"
    sudo sysrc seatd_enable="YES"
@@ -108,4 +110,22 @@ Works on any desktop or server hypervisor (**QEMU/KVM `virt-manager`**, **Virtua
    sudo service seatd start
    sudo pw groupmod video -m "$USER"
    ```
-   Log out and back in, then start a Wayland session with `dbus-run-session labwc` (or KDE Plasma Wayland) to build and test WayPlank natively on FreeBSD.
+   On bare-metal Intel/AMD hardware (`drm-kmod` providing `/dev/dri/card0`), log out and start a Wayland session directly (`dbus-run-session startxfce4 --wayland`, `dbus-run-session labwc`, or KDE Plasma Wayland).
+7. **Fullscreen Wayland Session on Hypervisors Without FreeBSD Kernel DRM (`VMware SVGA II` / `VirtualBox`):**
+   FreeBSD `drm-kmod` ships only bare-metal GPU drivers (`amdgpu`, `i915kms`, `radeonkms`) — `vmwgfx` and `vboxvideo` were removed, so `/dev/dri/card0` does not exist inside VMware/VirtualBox guests. To boot **100% native fullscreen Wayland (`XFCE 4.20 Wayland + labwc + Xwayland`)** directly from LightDM while preserving host ↔ guest resize and clipboard:
+   - Compile a minimal `libX11` borderless fullscreen helper (`/usr/local/bin/wlr-x11-fullscreen`) that tracks `MapNotify`/`ConfigureNotify` on the outer SVGA II framebuffer (`:0`) and calls `XMoveResizeWindow(dpy, win, 0, 0, DisplayWidth, DisplayHeight)`.
+   - Install a bidirectional clipboard bridge (`/usr/local/bin/wlr-x11-clipbridge`) using `xclip` (`:0`, synced by `vmtoolsd -n vmusr`) ↔ `wl-copy`/`wl-paste` (`$WAYLAND_DISPLAY`).
+   - Wrap the session in `/usr/local/bin/start-vmware-wayland` exporting `WLR_BACKENDS=x11`, `WLR_RENDERER=pixman`, `WLR_X11_OUTPUTS=1`, `XDG_SESSION_TYPE=wayland`, `GDK_BACKEND=wayland`, `QT_QPA_PLATFORM=wayland`, starting `vmware-user-suid-wrapper`, `wlr-x11-fullscreen`, and `wlr-x11-clipbridge`, and executing `dbus-run-session -- startxfce4 --wayland`.
+   - Register `/usr/local/share/xsessions/xfce-vmware-wayland.desktop` pointing to `/usr/local/bin/start-vmware-wayland xfce`, and clean `/usr/local/etc/lightdm/lightdm.conf` to show only the working Wayland & X11 fallback sessions:
+     ```ini
+     [LightDM]
+     sessions-directory=/usr/local/share/xsessions
+     [Seat:*]
+     user-session=xfce-vmware-wayland
+     ```
+   - Take a clean VM snapshot once logged into `Xfce Wayland (VMware Fullscreen)` with `labwc` and `Xwayland :1` verified active.
+8. **Native FreeBSD Build (`8-Gate Firewall`) & Verbose Launch:**
+   ```sh
+   cd ~/WayPlank && WAYPLANK_NO_PROMPT=1 ./BuildBsd.sh
+   GSETTINGS_SCHEMA_DIR="$PWD/data/glib-2.0/schemas" ./build/wayplank -v
+   ```

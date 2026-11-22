@@ -1714,7 +1714,7 @@ namespace Plank
 			if (scroll_mode) {
 				s_iconsize.get_style_context ().remove_class ("slider-exceeded");
 				if (l_iconsize_hint != null) {
-					l_iconsize_hint.set_markup ("<small><span alpha='75%'>%s</span></small>".printf (
+					l_iconsize_hint.set_markup ("<small><span alpha='75%%'>%s</span></small>".printf (
 						_("Scroll on Overflow active: %dpx preserved").printf (current_val)));
 				}
 
@@ -1738,7 +1738,7 @@ namespace Plank
 				s_iconsize.get_style_context ().remove_class ("slider-exceeded");
 				if (l_iconsize_hint != null) {
 					l_iconsize_hint.set_markup (
-						"<small><span alpha='75%'>%s</span></small>".printf (
+						"<small><span alpha='75%%'>%s</span></small>".printf (
 							_("Fits on screen without shrinking (limit: %dpx)").printf (fit_size)));
 				}
 				string tt = _("Target icon size: %dpx.\nFits comfortably on screen (screen capacity limit: %dpx before auto-shrinking activates).").printf (current_val, fit_size);

@@ -23,7 +23,7 @@
 #
 set -euo pipefail
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 read_version_key() {
     awk -F'=' -v sec="$1" -v key="$2" '
         /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }

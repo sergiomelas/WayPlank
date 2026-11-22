@@ -28,7 +28,7 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
     fi
 fi
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 read_version_key() {
     awk -F'=' -v sec="$1" -v key="$2" '
         /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }

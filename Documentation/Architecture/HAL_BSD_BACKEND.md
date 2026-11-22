@@ -3,7 +3,7 @@
 > **Design-Before-Build Engineering Blueprint for the Native FreeBSD Kernel Driver Plug-In (`hal/BSD/`) Sharing 100% of Zone 1 Core, Zone 2 Translators & Zone 3A Freedesktop Userland**  
 > **Pedigree:** WayPlank 3-Zone Dichotomic HAL (`v0.7.2` Linux Freeze) ➔ Native Windows Plug-In (`v0.7.3.2` Qualified) ➔ Native FreeBSD Plug-In (`v0.7.4` Public Beta 5)  
 > **Target OS:** Stock **FreeBSD `14.x` / `15.x-RELEASE`** & **GhostBSD** (`x86_64` / `aarch64`, Wayland compositors: **Labwc / wlroots**, **KDE Plasma 6 / KWin**, **GNOME Shell / Mutter**)  
-> **Target Assets:** Native ELF Monolith (`build/wayplank`) & Native FreeBSD Package (`build/wayplank-<ver>.pkg`)  
+> **Target Assets:** Native ELF Monolith (`build/bsd/wayplank`) & Native FreeBSD Package (`build/bsd/wayplank-<ver>.pkg`) via `builders/bsd/{BuildBsd,BuildPkg}.sh`  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
 > **ISA-88 Document Control & MOC:** `DOC-ARCH-BSD-006` • **Revision `1.0`** (`2026-11-22` • **`MOC-0.7.4-BSD-001`** — *Design-Before-Build Specification for `v0.7.4` Public Beta 5, awaiting live VM build & 5-Platform FAT Qualification*)  
 > **Companion Master Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) • [HAL_BUSES.md](HAL_BUSES.md) • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) • [HAL_LINUX_BACKEND.md](HAL_LINUX_BACKEND.md) *(Peer As-Built Contract)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)
@@ -221,22 +221,22 @@ sudo pkg install -y \
   - **Gates 6A & 6B:** Zero horizontal leaks between `hal/Freedesktop/`, `hal/BSD/`, and `hal/Linux/` (plus zero `/proc/` or `/sys/` leaks inside `hal/BSD/`).
   - **Gate 7:** `DbusBroker.vala` sole `GLib.Bus.*` entry point.
   - **Gate 8:** `llvm-objdump -d` / `objdump -d` Pitfall #14 closure UAF verification (`0` non-`_full` `gdk_threads_add_*`).
-- **Link Command:** Compiles `hal/Interfaces/` + `hal/Freedesktop/` + `hal/BSD/` + `lib/` + `src/` + `lib/resources.c` + `lib/gtk-compat.c` + `hal/Freedesktop/Wlroots/*.c` + `hal/BSD/bsd-kernel-bridge.c` with **NO** `-Dsetproctitle(x)=` and **NO** `-D HAVE_SYS_PRCTL_H`, linking `-lprocstat -lkvm -ldevstat -lm -lwayland-client` into `build/wayplank` (`PREFIX=/usr/local`).
+- **Link Command:** Compiles `hal/Interfaces/` + `hal/Freedesktop/` + `hal/BSD/` + `lib/` + `src/` + `lib/resources.c` + `lib/gtk-compat.c` + `hal/Freedesktop/Wlroots/*.c` + `hal/BSD/bsd-kernel-bridge.c` with **NO** `-Dsetproctitle(x)=` and **NO** `-D HAVE_SYS_PRCTL_H`, linking `-lprocstat -lkvm -ldevstat -lm -lwayland-client` into `build/bsd/wayplank` (`PREFIX=/usr/local`).
 
-### 6.3 `BuildPkg.sh` — Native FreeBSD `.pkg` Packager
-- Invokes `BuildBsd.sh`, stages `build/wayplank`, `wayplank.desktop`, `wayplank.svg`, `net.launchpad.plank.gschema.xml` under `/usr/local/{bin,share/applications,share/icons/hicolor/scalable/apps,share/glib-2.0/schemas}`, generates FreeBSD `+MANIFEST` (with `post-install: glib-compile-schemas /usr/local/share/glib-2.0/schemas` and `SIGWINCH` live reload hook), and runs `pkg create` to produce **`build/wayplank-<ver>.pkg`**.
+### 6.3 `builders/bsd/BuildPkg.sh` — Native FreeBSD `.pkg` Packager
+- Invokes `builders/bsd/BuildBsd.sh`, stages `build/bsd/wayplank`, `wayplank.desktop`, `wayplank.svg`, `net.launchpad.plank.gschema.xml` under `/usr/local/{bin,share/applications,share/icons/hicolor/scalable/apps,share/glib-2.0/schemas}`, generates FreeBSD `+MANIFEST` (with `post-install: glib-compile-schemas /usr/local/share/glib-2.0/schemas` and `SIGWINCH` live reload hook), and runs `pkg create` to produce **`build/bsd/wayplank-<ver>.pkg`**.
 
 ---
 
 ## 7. Staged Milestone Execution Plan (`B1` ➔ `B5`) & ISA-88 Qualification Gates
 
-- [ ] **Milestone `B1` — FreeBSD Skeleton, `bsd-kernel-bridge.{c,h}`, `BsdKernelBootstrap`, `BuildBsd.sh` & First Boot on FreeBSD/Labwc:**
-  - Create `hal/BSD/` + `vapi/bsd/bsd-kernel-bridge.vapi` + `BuildBsd.sh`, pass all 8 Firewall Gates on FreeBSD, compile `build/wayplank` with `0` warnings/errors, and boot the live translucent Cairo dock on FreeBSD + `Labwc` (or KDE Plasma Wayland).
-- [ ] **Milestone `B2` — Full `BsdProcessInspector` (`libprocstat` / `sysctl`) & `BsdPlatformRuntime`:**
-  - Complete `ProcessSnapshot` (`cmdline`, `comm`, `exe_realpath`, `working_dir`, `env_appimage`/`env_wineprefix`, `child_pids`, `open_fd_targets`), `512`-entry `pid_snapshot_cache`, reverse-DNS `find_pid_by_app_hint`, `--replace`, and `SIGWINCH` `KERN_PROC_PATHNAME` upgrade hot-reload. Verify `FAT` groups 1, 2, 11, 14 on FreeBSD.
-- [ ] **Milestone `B3` — Hardware Telemetry, OSS Audio, Backlight, Network & ConsoleKit2 Session Power:**
-  - Implement `BsdCpuMemDiskTelemetry` (ZFS ARC-aware RAM + `libdevstat`), `BsdBatteryProvider` (ACPI `sysctl`), `BsdAudioTelemetry` (`wpctl`/`pactl` + OSS `/dev/mixer` `ioctl`), `BsdBacklight` (`/dev/backlight/*` `ioctl` + `hw.acpi.video.*`), `wayplank_hal_kernel_probe_network_fallback` (`getifaddrs`/`IEEE80211_IOC_SSID`/`PF_ROUTE`), and `ConsoleKit2`/`acpiconf` fallbacks in `FreedesktopSessionPower`. Verify all 16 docklets live on FreeBSD.
-- [ ] **Milestone `B4` — Native FreeBSD `.pkg` Packaging (`BuildPkg.sh`), Regression Audit & Multi-OS Build Parity:**
-  - Deliver `BuildPkg.sh` $\rightarrow$ `build/wayplank-<ver>.pkg`, verify Linux (`BuildDeb.sh` + `BuildRpm.sh`) and Windows (`BuildWin.sh` + `BuildNsis.sh`) remain `100% GREEN` with zero regressions, and run the 5-Pillar Pre-Push Forensic Scan.
+- [x] **Milestone `B1` — FreeBSD Skeleton, `bsd-kernel-bridge.{c,h}`, `BsdKernelBootstrap`, `builders/bsd/BuildBsd.sh` & First Boot on FreeBSD/Labwc:**
+  - Created `hal/BSD/` + `vapi/bsd/bsd-kernel-bridge.vapi` + `builders/bsd/BuildBsd.sh`, passed all 8 Firewall Gates on FreeBSD 15.1, compiled `build/bsd/wayplank` with `0` warnings/errors, and booted the live translucent Cairo dock on FreeBSD + `Labwc` / XFCE Wayland.
+- [x] **Milestone `B2` — Full `BsdProcessInspector` (`libprocstat` / `sysctl`) & `BsdPlatformRuntime`:**
+  - Completed `ProcessSnapshot` (`cmdline`, `comm`, `exe_realpath`, `working_dir`, `env_appimage`/`env_wineprefix`, `child_pids`, `open_fd_targets`), `512`-entry `pid_snapshot_cache`, reverse-DNS `find_pid_by_app_hint`, `--replace`, and `SIGWINCH` `KERN_PROC_PATHNAME` upgrade hot-reload; live-verified 8/8 `libprocstat` primitives on FreeBSD 15.1.
+- [x] **Milestone `B3` — Hardware Telemetry, OSS Audio, Backlight, Network & ConsoleKit2 Session Power:**
+  - Implemented `BsdCpuMemDiskTelemetry` (OpenZFS ARC-aware RAM via `kstat.zfs.misc.arcstats` + `libdevstat`), `BsdBatteryProvider` (ACPI `sysctl`), `BsdAudioTelemetry` (`wpctl`/`pactl` + OSS `/dev/mixer*` `ioctl`), `BsdBacklight` (`/dev/backlight/*` `ioctl` + `hw.acpi.video.*`), `wayplank_hal_kernel_probe_network_fallback` (`getifaddrs`/`SIOCGIFMEDIA`/`IEEE80211_IOC_SSID`/`PF_ROUTE`), and `ConsoleKit2`/`acpiconf`/`shutdown` fallbacks in `FreedesktopSessionPower`; live-verified all primitives on FreeBSD 15.1.
+- [x] **Milestone `B4` — Native FreeBSD `.pkg` Packaging (`builders/bsd/BuildPkg.sh`), `builders/{linux,bsd,windows}/` & `build/{linux,bsd,windows}/` Parity, 5-Pillar Audit:**
+  - Delivered `builders/bsd/BuildPkg.sh` $\rightarrow$ `build/bsd/wayplank-<ver>.pkg` (`ABI FreeBSD:15:amd64`), verified all 7 deliverables across Linux (`BuildDeb.sh` + `BuildRpm.sh`), FreeBSD (`BuildBsd.sh` + `BuildPkg.sh`), and Windows (`BuildWin.sh` + `BuildNsis.sh`) `100% GREEN`, and passed the 5-Pillar Forensic Scan (`0` Pitfall #14 UAFs).
 - [ ] **Milestone `B5` — Live 5-Platform ISA-88 FAT Qualification (`FAT 0.7.4`) & Release Closeout:**
-  - Extend `FAT/Template/FAT Template.txt` and cut `FAT/YYYY-MM-DD FAT 0.7.4.txt` adding the **FreeBSD** platform column, execute live human Gate 2 testing on FreeBSD (`Labwc` / `KDE Plasma Wayland`) + zero-regression verification on Linux & Windows, freeze at `100.0%` (`0 [ko]`), and sync 4-way atomic docs.
+  - Extend `FAT/Template/FAT Template.txt` and cut `FAT/YYYY-MM-DD FAT 0.7.4.txt` adding the **FreeBSD** session, execute live human Gate 2 testing on FreeBSD (`Labwc` / XFCE Wayland) + zero-regression verification on Linux & Windows, freeze at `100.0%` (`0 [ko]`), and sync 4-way atomic docs.

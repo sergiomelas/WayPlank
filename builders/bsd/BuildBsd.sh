@@ -25,7 +25,8 @@ if [ "$HOST_OS" != "FreeBSD" ]; then
     exit 1
 fi
 
-BASE_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+BASE_DIR="$(CDPATH= cd -- "${SCRIPT_DIR}/../.." && pwd)"
 cd "$BASE_DIR"
 
 read_version_key() {

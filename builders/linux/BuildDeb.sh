@@ -33,7 +33,8 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
 fi
 
 PKG_NAME="wayplank"
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 read_version_key() {
     awk -F'=' -v sec="$1" -v key="$2" '
         /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
@@ -60,8 +61,8 @@ echo "────────────────────────�
 echo ""
 
 # 1. Call the binary build script (BuildBin.sh)
-if [ -f "${BASE_DIR}/BuildBin.sh" ]; then
-    if ! WAYPLANK_NO_PROMPT=1 bash "${BASE_DIR}/BuildBin.sh"; then
+if [ -f "${SCRIPT_DIR}/BuildBin.sh" ]; then
+    if ! WAYPLANK_NO_PROMPT=1 bash "${SCRIPT_DIR}/BuildBin.sh"; then
         echo ""
         echo "❌ Build failed! Compilation error in BuildBin.sh"
         echo ""

@@ -136,7 +136,7 @@ flowchart TD
 
 ## 4. Native Linux Build, 8-Gate HAL Purity Firewall & Packaging Pipeline
 
-- **Build Mandate:** Always package via `WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh` (Debian/Ubuntu `.deb`) and sequentially `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh` (openSUSE/Fedora/RHEL `.rpm`), both of which invoke [`BuildBin.sh`](../../BuildBin.sh) internally.
+- **Build Mandate:** Always package via `WAYPLANK_NO_PROMPT=1 ./builders/linux/BuildDeb.sh` (Debian/Ubuntu `.deb`) and sequentially `WAYPLANK_NO_PROMPT=1 ./builders/linux/BuildRpm.sh` (openSUSE/Fedora/RHEL `.rpm`), both of which invoke [`builders/linux/BuildBin.sh`](../../builders/linux/BuildBin.sh) internally (outputs under `build/linux/`).
 - **8-Gate Automated Firewall (`BuildBin.sh`):**
   - **Gates 1 & 2:** Zero OS/compositor/D-Bus/POSIX/Win32/path leaks in Zone 1 (`src/`, `lib/`, `vapi/core/`) and Zone 2 (`hal/Interfaces/`).
   - **Gate 3:** `hal/Interfaces/` compiles standalone with 0 OS packages.
@@ -151,5 +151,5 @@ flowchart TD
 
 ## 5. Qualification Status & Non-Negotiable Invariants
 
-- **Current Qualification (`v0.7.3.2` — `2026-11-22`):** `100.0%` 3-Compositor Linux FAT Qualified (`393/393` applicable: GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127`, `5 [NA]`, `0 [ko]`) in [`FAT/2026-11-22 FAT 0.7.3.2.txt`](../../FAT/2026-11-22%20FAT%200.7.3.2.txt).
+- **Current Qualification (`v0.7.3.2` — `2026-11-22`):** `100.0%` 3-Compositor Linux FAT Qualified (`393/393` applicable: GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127`, `5 [NA]`, `0 [ko]`) in [`FAT/2026-11-22 FAT 0.7.3.txt`](../../FAT/2026-11-22%20FAT%200.7.3.txt).
 - **Zero-Regression Freeze for `v0.7.4`:** Plugging `hal/BSD/` in `v0.7.4` **MUST NOT** regress any Linux FAT point, **MUST** keep `BuildBin.sh` 8/8 Gates `GREEN`, and **MUST** keep `hal/Linux/` completely free of BSD symbols (`Gate 6B`).

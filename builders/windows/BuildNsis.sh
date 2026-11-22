@@ -31,7 +31,8 @@ if [ ! -t 0 ] && [ -z "${VSCODE_INJECTION:-}" ] && [ -z "${WAYPLANK_NO_PROMPT:-}
     fi
 fi
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 read_version_key() {
     awk -F'=' -v sec="$1" -v key="$2" '
         /^\[.*\]/ { in_sec = ($0 == "[" sec "]"); next }
@@ -63,7 +64,7 @@ if ! command -v makensis >/dev/null 2>&1; then
 fi
 
 echo "🏗️ Step 1/2: Building Zero-DLL Windows monolith via BuildWin.sh..."
-WAYPLANK_NO_PROMPT=1 "${BASE_DIR}/BuildWin.sh"
+WAYPLANK_NO_PROMPT=1 "${SCRIPT_DIR}/BuildWin.sh"
 
 if [ ! -f "$EXE_PATH" ]; then
     echo "❌ Error: Expected binary not found at ${EXE_PATH}"

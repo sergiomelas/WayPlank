@@ -5,22 +5,23 @@
 > Maintained by Sergio Melas (sergiomelas@gmail.com) © 2026
 >
 > [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-> [![Current Live Release: v0.7.3.2 (Public Beta 4 Hotfix — Unified Linux Wayland & Windows)](https://img.shields.io/badge/Live_on_GitHub-v0.7.3.2_%28Public_Beta_4_Hotfix%29-brightgreen.svg)](Changelogs/CHANGELOG_v0.7.3.md)
-> [![FAT v0.7.3.2 Hotfix: 529/529 (100.0% 4-Platform Qualified) | 0 ko](https://img.shields.io/badge/FAT_v0.7.3.2_Hotfix-529%2F529_%28100.0%25%29_%7C_0_ko-brightgreen.svg)](FAT/2026-11-22%20FAT%200.7.3.2.txt)
+> [![Current Development Release: v0.7.4 (Public Beta 5 — Linux Wayland • FreeBSD • Windows)](https://img.shields.io/badge/Release-v0.7.4_%28Public_Beta_5_%E2%80%94_Linux_%E2%80%A2_FreeBSD_%E2%80%A2_Windows%29-blue.svg)](Documentation/Architecture/HAL_BSD_BACKEND.md)
+> [![FAT Baseline v0.7.3.2: 529/529 (100.0%) | v0.7.4 B5 5-Platform FAT Pending](https://img.shields.io/badge/FAT_Baseline_v0.7.3.2-529%2F529_%28100.0%25%29_%7C_v0.7.4_B5_Pending-yellowgreen.svg)](FAT/2026-11-22%20FAT%200.7.3.txt)
 > [![Localization: 8 Languages (572/572 In-RAM)](https://img.shields.io/badge/Localization-8_Languages_%28572%2F572_In--RAM%29-blueviolet.svg)](po/README.md)
 > [![Architecture: 100% Monolithic Single Binary](https://img.shields.io/badge/Architecture-Single_Binary_%7C_Zero_Host_Pollution-informational.svg)](README.md)
 
 ![Wayplank Release Banner](Beta%20Release%20Pic%20-%20github.png)
 
-<sub>*WayPlank is an independent, non-commercial open-source project licensed under GPLv3 and is not affiliated with, endorsed by, or sponsored by Microsoft Corporation, Apple Inc., Google LLC, or The Linux Foundation. Windows, macOS, Chrome, Linux, and all related names/logos are trademarks of their respective owners.*</sub>
+<sub>*WayPlank is an independent, non-commercial open-source project licensed under GPLv3 and is not affiliated with, endorsed by, or sponsored by Microsoft Corporation, Apple Inc., Google LLC, The Linux Foundation, or The FreeBSD Foundation. Windows, macOS, Chrome, Linux, FreeBSD, and all related names/logos are trademarks of their respective owners.*</sub>
 
-> *📌 **Public Beta 4 Hotfix (`v0.7.3.2`) — `100.0%` 4-Platform FAT Qualified (`529/529` — `2026-11-22`):** Concluded & frozen across **Windows 11 (`Win32/DWM`)**, **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, and **`Labwc` (`wlroots`)** in [`FAT/2026-11-22 FAT 0.7.3.2.txt`](FAT/2026-11-22%20FAT%200.7.3.2.txt) (`529/529` applicable passed: `463 [ok]` + `66 [ko->ok]`, `8 [NA]`, `0 [ko]`). **`v0.7.3.2` (Public Beta 4 Hotfix)** delivers `< 0.5 s` Windows startup (`lnk-index-cache.ini`), Windows Taskbar suppression (`ITaskbarList::DeleteTab`), WinRT GSMTC Media Player, per-app Windows COM `IApplicationDocumentLists` Recent Files, instant Linux folder `Change Icon...`, live Light/Dark popups, cross-dock folder-pinned app suppression, per-family Chromium profiles, universal non-destructive `Rename Shortcut...`, unified `VERSION` GResource metadata, and `572/572` 8-language localization (`build/wayplank.exe` `24 MB` Zero-DLL at 25 stock Windows OS DLLs + `build/WayPlank-0.7.3.2-Setup.exe` `8.9 MB`) — see [**PROJECT ROADMAP & THE WAYLAND MILESTONES**](#project-roadmap--the-wayland-milestones).*
+> *📌 **Public Beta 5 (`v0.7.4`) — Native FreeBSD Kernel Backend (`hal/BSD/`, `MOC-0.7.4-BSD-001` — Milestones `B1`–`B4` Complete, `B5` 5-Platform FAT Pending):** Extends the `100.0%` 4-platform qualified **`v0.7.3.2`** baseline ([`FAT/2026-11-22 FAT 0.7.3.txt`](FAT/2026-11-22%20FAT%200.7.3.txt), `529/529`, `0 [ko]`) with a native **FreeBSD 14.x / 15.x & GhostBSD** kernel backend (`libprocstat(3)`, `sysctl(3)`, `libdevstat(3)`, OpenZFS ARC-aware RAM, OSS `<sys/soundcard.h>`, `<sys/backlight.h>`, `getifaddrs`/`PF_ROUTE` network telemetry, `ConsoleKit2`, `builders/bsd/{BuildBsd,BuildPkg}.sh` ➔ `build/bsd/wayplank-<ver>.pkg`) and unified **`builders/{linux,bsd,windows}/`** ➔ **`build/{linux,bsd,windows}/`** delivery across all 3 operating systems — see [**PROJECT ROADMAP & THE WAYLAND MILESTONES**](#project-roadmap--the-wayland-milestones).*
 
 > [!TIP]
-> ## 🐧🪟 WAYPLANK `v0.7.3.2` — PUBLIC BETA 4 HOTFIX (`100.0%` 4-PLATFORM QUALIFIED)
-> Powered by **19 qualified milestones** (**112,000+ lines of legacy X11/Autotools code purged**, **84,000+ new lines of modern Wayland/Windows HAL & Core code added** since `v0.1.0` — **142,900+ lines total** with architecture docs, FAT & 8-language i18n, **188 unique bugs squashed**, and **`100.0%` 4-platform qualification (`529/529`)** across Windows 11, KDE Plasma 6, GNOME & Labwc), **`v0.7.3.2` (Public Beta 4 Hotfix)** hardens and unifies both Linux Wayland and Windows (`7 ⟷ 11+`) from a single 100% OS-agnostic Core ([`CHANGELOG_v0.7.3.md`](Changelogs/CHANGELOG_v0.7.3.md) • [`FAT/2026-11-22 FAT 0.7.3.2.txt`](FAT/2026-11-22%20FAT%200.7.3.2.txt)):
-> - 🏛️ **3-Zone Dichotomic HAL & Pure Vala Boundary Translators (`MOC-0.7.2-HAL-001`, [`Architecture/README.md`](Documentation/Architecture/README.md))**: Strict separation of **Zone 1 Agnostic Core** (`src/`, `lib/`), **Zone 2 Pure Vala Contracts** (`hal/Interfaces/`: `IDockShell`, `IWindowBackend`, `IThumbnailProvider`, `IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`, `IAppSystem`), and **Zone 3 Native OS/Compositor Drivers** (**`hal/Freedesktop/` shared Linux 🐧 & BSD 😈 userland**, `hal/Linux/`, `hal/Windows/`, and planned `hal/BSD/`), enforced at every build by the **8-Gate Dual-Zone HAL Purity Firewall (`0` leaks)**.
-> - 🐧🪟 **Unified Linux + Windows Delivery (`BuildDeb.sh` • `BuildRpm.sh` • `BuildWin.sh` • `BuildNsis.sh`, [`HAL_WINDOWS_BACKEND.md`](Documentation/Architecture/HAL_WINDOWS_BACKEND.md))**: Produces native Linux `.deb`/`.rpm` packages alongside the 100% Linux-cross-compiled Zero-DLL `build/wayplank.exe` (`24 MB`, **25 stock Windows OS DLLs only**, `< 0.5 s` persistent `.lnk` index startup, built-in static `lunasvg` SVG loader, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` struts, Windows Taskbar suppression via `ITaskbarList::DeleteTab`, `IShellLinkW` + `AUMID` + per-family `Local State` multi-profile tracking, WinRT GSMTC Media Player, CoreAudio/WMI+DXVA2/WinHTTP/Recycle Bin/Ejector) and 64-bit `build/WayPlank-0.7.3.2-Setup.exe` (`8.9 MB` LZMA with auto-close upgrade).
+> ## 🐧😈🪟 WAYPLANK `v0.7.4` — PUBLIC BETA 5 (LINUX WAYLAND • NATIVE FREEBSD • NATIVE WINDOWS)
+> Powered by **20 engineering milestones** (**112,000+ lines of legacy X11/Autotools code purged**, **86,000+ new lines of modern Wayland/BSD/Windows HAL & Core code added** since `v0.1.0`, **188 unique bugs squashed**, and **`100.0%` 4-platform baseline qualification (`529/529`)** now expanding to **5 platforms** with FreeBSD), **`v0.7.4` (Public Beta 5)** delivers a unified dock across **Linux Wayland**, **FreeBSD Wayland**, and **Windows (`7 ⟷ 11+`)** from one 100% OS-agnostic Core ([`HAL_BSD_BACKEND.md`](Documentation/Architecture/HAL_BSD_BACKEND.md) • [`HAL_LINUX_BACKEND.md`](Documentation/Architecture/HAL_LINUX_BACKEND.md) • [`HAL_WINDOWS_BACKEND.md`](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)):
+> - 🏛️ **3-Zone Dichotomic HAL & Pure Vala Boundary Translators (`MOC-0.7.2-HAL-001` & `MOC-0.7.4-BSD-001`, [`Architecture/README.md`](Documentation/Architecture/README.md))**: Strict separation of **Zone 1 Agnostic Core** (`src/`, `lib/`), **Zone 2 Pure Vala Contracts** (`hal/Interfaces/`: `IDockShell`, `IWindowBackend`, `IThumbnailProvider`, `IBusBackend`, `ISystemTelemetry`, `IPlatformRuntime`, `IAppSystem`), and **Zone 3 Native OS/Compositor Drivers** (**`hal/Freedesktop/` shared Linux 🐧 & FreeBSD 😈 userland**, `hal/Linux/`, **`hal/BSD/`**, and `hal/Windows/`), enforced at every build by the **8-Gate Dual-Zone HAL Purity Firewall (`0` leaks, `0` Pitfall #14 UAFs)**.
+> - 😈 **Native FreeBSD Kernel Backend (`hal/BSD/`, `builders/bsd/{BuildBsd,BuildPkg}.sh`, [`HAL_BSD_BACKEND.md`](Documentation/Architecture/HAL_BSD_BACKEND.md))**: Reuses 100% of Zone 1 Core, Zone 2 Translators, and `hal/Freedesktop/` (`KWin`, `Mutter`, `Labwc / wlroots`, `gtk-layer-shell`, D-Bus, XDG) while plugging native FreeBSD kernel drivers with **zero `/proc` and zero `/sys`**: `libprocstat(3)` + `sysctl(3)` process & child/FD/env inspection, `kern.cp_time` CPU + OpenZFS ARC-aware RAM (`kstat.zfs.misc.arcstats`) + `libdevstat(3)` Disk I/O, ACPI `hw.acpi.battery.*`, PipeWire/PulseAudio + native OSS `/dev/mixer*` `ioctl`, `<sys/backlight.h>` + `hw.acpi.video.*` brightness, `getifaddrs`/`SIOCGIFMEDIA`/`IEEE80211_IOC_SSID`/`PF_ROUTE` network telemetry, `ConsoleKit2` session power, `setproctitle`/`KERN_PROC_PATHNAME`/`SIGWINCH` hot-reload, and native `pkg create` (`build/bsd/wayplank-0.7.4.pkg`).
+> - 🐧😈🪟 **Unified 3-OS Delivery (`builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/`)**: Produces native Linux `.deb`/`.rpm` packages (`build/linux/`), native FreeBSD ELF & `.pkg` (`build/bsd/`), and the 100% Linux-cross-compiled Zero-DLL `build/windows/wayplank.exe` (`24 MB`, **25 stock Windows OS DLLs only**, `< 0.5 s` persistent `.lnk` index startup, built-in static `lunasvg` SVG loader, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` struts, Windows Taskbar suppression via `ITaskbarList::DeleteTab`, `IShellLinkW` + `AUMID` + per-family `Local State` multi-profile tracking, WinRT GSMTC Media Player, CoreAudio/WMI+DXVA2/WinHTTP/Recycle Bin/Ejector) + 64-bit `build/windows/WayPlank-0.7.4-Setup.exe` (`8.9 MB` LZMA with auto-close upgrade).
 > - 🌐 **Zero-Timer `inotify` Browser Session & 6-Layer Identity Engine (`#20`, `#30`)**: `0ms` launch-intent attribution + kernel `GFileMonitor` (`inotify` / `ReadDirectoryChangesW`) per-family Chromium profile resolution (`Chrome:`, `Edge:`, `Brave:`, `Vivaldi:`, `Chromium:`, `Opera:`) with **`0` polling timers** and **`65,025/65,025` (`100.0%`) SHA-256 identity-matrix parity** across browser profiles, PWAs, Flatpaks, AppImages, and CLI VMs.
 > - 🪟 **Mutter 51 Hot-Unplug VSync Safety, Focus-Preserving Preferences & Live Light/Dark Popups (`#32`, `#34`)**: `Meta.LaterType.BEFORE_REDRAW` first-frame deferral eliminating `gnome-shell` `SIGABRT` on monitor cable hot-unplug (`v072_bridge_2`), active focus retention on `PreferencesWindow` across `Position`/`Screen` changes (`focus_on_map=false`), single-monitor Mutter struts, `AnticipateZoom` input-mask clamping, and live Light/Dark `SystemTheme` synchronization across `HoverWindow`, `FolderMenuWindow`, and `WindowCardsWindow`.
 > - 📌 **Single-Process Multi-Dock Engine (`dock1`–`dock4`), Folder Drawers, Universal `Rename Shortcut...` & Smart Accordion (`›|` / `«|`) (`#26`, `#35`)**: Up to **4 concurrent docks** inside one `wayplank` process with Multi-Seat logical `Screen 1..4` assignment, 2D `(Screen, Edge)` collision gray-out, `Open Dock...` $\leftrightarrow$ `Close This Dock` / `Delete This Dock...`, interactive **Preferences Dock Selector Dropdown**, `dock1`-exclusive WayPlank anchor icon & unpinned running apps (`TransientDockItem`) with automatic secondary-dock cleanup when emptied, direct **cross-dock & running-app-to-folder drag**, folder-pinned app suppression of duplicate unpinned icons across all docks, universal non-destructive **`Rename Shortcut...`** (`launcher-names.ini`), `Add Folder...` chooser, bidirectional `Pinned <-> Folder` moves, `_Docklets` `Apply` button, global $O(\log N)$ `AppUsageService`, and First-Run Onboarding (`Classic` vs `Explorer`).
@@ -63,7 +64,7 @@ A huge thank you to our 400+ users, issue reporters, and translators!
 * 😈 [FreeBSD Kernel Backend Blueprint — `v0.7.4` (`HAL_BSD_BACKEND.md`)](Documentation/Architecture/HAL_BSD_BACKEND.md)
 * 🤝 [Contributing Guidelines & Live Issue Tracker (`CONTRIBUTING.md`)](CONTRIBUTING.md)
 * 🌍 [Monolithic Localization & i18n Guide (`po/README.md`)](po/README.md)
-* 🖥️ [Compositors & Nested Desktops Cheatsheet (Freedesktop)](FAT/Test%20Files/Freedesktop/WAYPLANK_COMPOSITORS_CHEATSHEET.md) • [Windows & VM Testing Cheatsheet](FAT/Test%20Files/WAYPLANK_WINDOWS_TEST_CHEATSHEET.md)
+* 🖥️ [Compositors & Nested Desktops Cheatsheet (Linux/Freedesktop)](FAT/Test%20Files/WAYPLANK_COMPOSITORS_CHEATSHEET.md) • [FreeBSD Build & Test Cheatsheet](FAT/Test%20Files/WAYPLANK_BSD_TEST_CHEATSHEET.md) • [Windows Build & Test Cheatsheet](FAT/Test%20Files/WAYPLANK_WINDOWS_TEST_CHEATSHEET.md)
 * 🗺️ [Community Fork Integration Roadmap *(Historic)*](Documentation/Historic/WAYPLANK_FORK_INTEGRATION_ROADMAP.md)
 * 📖 [X11-to-Wayland Technical Migration Report *(Historic)*](Documentation/Historic/wayplank_x11_to_wayland_report_en.md)
 * 🛡️ [Lifetime Master Bug & Defect Register](FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
@@ -148,24 +149,32 @@ To compile Wayplank from source and enable all docklets, ensure your distributio
 
 ---
 
-## 2. COMPILATION
+## 2. COMPILATION (LINUX)
 
-### Option A: Universal Automated Build Script (Recommended for Any Distro)
+> **Unified Multi-OS Build Layout (`v0.7.4+`):** All build and packaging scripts live cleanly under **`builders/{linux,bsd,windows}/`**, and every compiled binary or installer is written strictly to its isolated output folder **`build/{linux,bsd,windows}/`**:
+>
+> | Platform | Build Mode | Builders (`builders/`) | Deliverables (`build/`) |
+> | :--- | :--- | :--- | :--- |
+> | **Linux** | **Native on Linux** | `builders/linux/{BuildBin,BuildDeb,BuildRpm}.sh` | `build/linux/{wayplank, wayplank_<ver>_amd64.deb, wayplank-<ver>-1.x86_64.rpm}` |
+> | **FreeBSD** | **Native on FreeBSD** *(not cross-compiled from Linux)* | `builders/bsd/{BuildBsd,BuildPkg}.sh` | `build/bsd/{wayplank, wayplank-<ver>.pkg}` |
+> | **Windows** | **Cross-compiled on Linux** *(MinGW-w64 Zero-DLL)* | `builders/windows/{BuildWin,BuildNsis}.sh` | `build/windows/{wayplank.exe, WayPlank-<ver>-Setup.exe}` |
 
-Wayplank includes an automated standalone build script that compiles all Vala sources, C bridges, and GLib resources directly without distribution-specific dependencies:
+### Option A: Universal Automated Linux Build Script (Recommended for Any Distro)
+
+WayPlank includes an automated standalone build script that enforces all 8 HAL Purity Firewall gates and compiles all Vala sources, C bridges, and GLib resources directly without distribution-specific dependencies:
 
 ```bash
-chmod +x BuildBin.sh
-./BuildBin.sh
+chmod +x builders/linux/BuildBin.sh
+./builders/linux/BuildBin.sh
 ```
 
-The resulting standalone binary is generated in `build/wayplank`.
+The resulting standalone Linux binary is generated in **`build/linux/wayplank`**.
 
 ---
 
-### Option B: Manual Step-by-Step Compilation
+### Option B: Manual Step-by-Step Linux Compilation
 
-If you prefer building manually in your terminal (mirroring every step of `./BuildBin.sh`, including in-RAM `.mo` localization catalogs, embedded stock themes, and `VERSION` metadata):
+If you prefer building manually in your terminal (mirroring every step of `./builders/linux/BuildBin.sh`, including in-RAM `.mo` localization catalogs, embedded stock themes, and `VERSION` INI metadata):
 
 ```bash
 # Step 1: Generate and compile embedded localization catalogs (.mo) into GResource XML
@@ -188,10 +197,14 @@ glib-compile-schemas data/glib-2.0/schemas
 glib-compile-resources --sourcedir=data --target=lib/resources.c --generate-source data/.plank.build.gresource.xml
 rm -rf data/locale
 
-# Step 3: Compile native monolithic Wayplank binary (Vala + C bridges)
-PKG_VER="$(sed -n '1p' VERSION | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' VERSION | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-mkdir -p build
+# Step 3: Compile native monolithic WayPlank binary (Vala + C bridges)
+read_ver() { awk -F'=' -v k="$1" '/^\[Release\]/{s=1;next}/^\[/{s=0}s&&$1==k{sub(/^[^=]*=/,"");gsub(/^[ \t]+|[ \t]+$/,"");print;exit}' VERSION; }
+PKG_VER="$(read_ver Version)"
+PKG_DECO="$(read_ver Decoration)"
+PKG_YEAR="$(read_ver Year)"
+PKG_URL="$(read_ver Homepage)"
+PKG_ISSUES="$(read_ver IssuesUrl)"
+mkdir -p build/linux
 valac -g \
     --gresources=data/.plank.build.gresource.xml \
     --gresourcesdir=data \
@@ -199,10 +212,14 @@ valac -g \
     --vapidir=vapi/freedesktop \
     --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
     --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg unix-compat --pkg config --pkg wlr-bridge \
+    -D HAVE_SYS_PRCTL_H \
     -X -D_GNU_SOURCE -X "-Dsetproctitle(x)=" \
     -X -DGETTEXT_PACKAGE=\"wayplank\" \
     -X -DPACKAGE_VERSION=\"${PKG_VER}\" \
     -X "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
+    -X -DPACKAGE_YEAR=\"${PKG_YEAR}\" \
+    -X -DPACKAGE_URL=\"${PKG_URL}\" \
+    -X -DPACKAGE_BUGREPORT=\"${PKG_ISSUES}\" \
     -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
     -X -include -X include/config.h \
     -X -Ilib -X -Ihal/Freedesktop/Wlroots -X -Iinclude -X -w -X -lm -X -lwayland-client \
@@ -211,19 +228,19 @@ valac -g \
     lib/gtk-compat.c \
     hal/Freedesktop/Wlroots/wlr-foreign-toplevel-management-protocol.c \
     hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c \
-    -o build/wayplank
+    -o build/linux/wayplank
 rm -f lib/resources.c data/.plank.build.gresource.xml
 ```
 
 ---
 
-### Step 4: Install Binary and Desktop Assets
+### Step 4: Install Binary and Desktop Assets (Linux)
 
-Once built (via Option A or Option B), install the binary, desktop entry, hicolor icons, and GSettings schemas *(all 5 stock themes and 8 language catalogs are already embedded in RAM inside the binary)*:
+Once built (via Option A or Option B), install the binary, desktop entry, hicolor icons, and GSettings schemas *(all 6 stock themes and 8 language catalogs are already embedded in RAM inside the binary)*:
 
 ```bash
 # 1. Install the binary into /usr/local/bin and link it as plank
-[ -f build/wayplank ] && sudo install -Dm755 build/wayplank /usr/local/bin/wayplank || sudo install -Dm755 wayplank /usr/local/bin/wayplank
+sudo install -Dm755 build/linux/wayplank /usr/local/bin/wayplank
 sudo ln -sf /usr/local/bin/wayplank /usr/local/bin/plank
 
 # 2. Create the target directories safely (on distros where /usr/local/share subdirs do not exist yet)
@@ -233,10 +250,12 @@ sudo mkdir -p /usr/local/share/glib-2.0/schemas
 
 # 3. Install the desktop launcher and hicolor SVG icons
 sudo install -Dm644 data/wayplank.desktop /usr/local/share/applications/wayplank.desktop
-for sz in 16x16 22x22 24x24 32x32 48x48 64x64 128x128 scalable; do
-    sudo install -Dm644 data/icons/wayplank.svg "/usr/local/share/icons/hicolor/${sz}/apps/wayplank.svg"
-    sudo install -Dm644 data/icons/plank.svg "/usr/local/share/icons/hicolor/${sz}/apps/plank.svg"
+for sz in 16x16 22x22 24x24 32x32 48x48 64x64 128x128; do
+    sudo install -Dm644 "data/icons/${sz}/plank.svg" "/usr/local/share/icons/hicolor/${sz}/apps/wayplank.svg"
+    sudo install -Dm644 "data/icons/${sz}/plank.svg" "/usr/local/share/icons/hicolor/${sz}/apps/plank.svg"
 done
+sudo install -Dm644 data/wayplank.svg /usr/local/share/icons/hicolor/scalable/apps/wayplank.svg
+sudo install -Dm644 data/wayplank.svg /usr/local/share/icons/hicolor/scalable/apps/plank.svg
 
 # 4. Copy and compile the GSettings schemas
 sudo install -Dm644 data/glib-2.0/schemas/net.launchpad.plank.gschema.xml \
@@ -251,12 +270,12 @@ sudo glib-compile-schemas /usr/local/share/glib-2.0/schemas/
 If running Debian, Ubuntu, or derivative distributions, run the automated packager to create a native `.deb`:
 
 ```bash
-chmod +x BuildDeb.sh
-./BuildDeb.sh
+chmod +x builders/linux/BuildDeb.sh
+./builders/linux/BuildDeb.sh
 # Install with automatic dependency resolution:
-sudo apt install ./build/wayplank_0.7.3.2_amd64.deb
+sudo apt install ./build/linux/wayplank_0.7.4_amd64.deb
 # Or via dpkg:
-# sudo dpkg -i build/wayplank_0.7.3.2_amd64.deb && sudo apt install -f
+# sudo dpkg -i build/linux/wayplank_0.7.4_amd64.deb && sudo apt install -f
 ```
 
 ---
@@ -266,26 +285,123 @@ sudo apt install ./build/wayplank_0.7.3.2_amd64.deb
 If running openSUSE (Tumbleweed / Leap), Fedora, or RHEL-based distributions, run the automated RPM packager:
 
 ```bash
-chmod +x BuildRpm.sh
-./BuildRpm.sh
+chmod +x builders/linux/BuildRpm.sh
+./builders/linux/BuildRpm.sh
 
 # Install on openSUSE with zypper:
-sudo zypper install ./build/wayplank-0.7.3.2-1.x86_64.rpm
+sudo zypper install ./build/linux/wayplank-0.7.4-1.x86_64.rpm
 
 # Or install on Fedora/RHEL with dnf:
-sudo dnf install ./build/wayplank-0.7.3.2-1.x86_64.rpm
+sudo dnf install ./build/linux/wayplank-0.7.4-1.x86_64.rpm
 
 # Or install via rpm directly:
-sudo rpm -Uvh ./build/wayplank-0.7.3.2-1.x86_64.rpm
+sudo rpm -Uvh ./build/linux/wayplank-0.7.4-1.x86_64.rpm
 ```
 
-> 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./BuildRpm.sh`).
+> 💡 **Headless / CI Environments:** You can bypass interactive prompts across all build scripts using `WAYPLANK_NO_PROMPT=1` (e.g. `WAYPLANK_NO_PROMPT=1 ./builders/linux/BuildRpm.sh`).
 
 ---
 
-## 5. WINDOWS ZERO-DLL CROSS-COMPILATION (Linux Host ➔ Windows 7 ⟷ 11+)
+## 5. NATIVE FREEBSD COMPILATION & `.pkg` PACKAGING (FreeBSD 14.x / 15.x & GhostBSD)
 
-WayPlank cross-compiles its native Windows monolith (`build/wayplank.exe`, **0 external DLLs**) **100% on Linux** using MinGW-w64 and a gitignored 4-Tier 16-library static sysroot (`./deps/win32/sysroot`, including a built-in static `lunasvg` SVG loader compiled directly into `libgdk_pixbuf-2.0.a`).
+WayPlank builds **100% natively on FreeBSD** (`hal/BSD/` sharing 100% of Zone 1 Core, Zone 2 Translators, and `hal/Freedesktop/`) using official FreeBSD kernel APIs (`libprocstat(3)`, `sysctl(3)`, `libdevstat(3)`, OpenZFS ARC-aware RAM via `kstat.zfs.misc.arcstats`, OSS `<sys/soundcard.h>` `/dev/mixer*`, `<sys/backlight.h>`, `getifaddrs(3)` + `SIOCGIFMEDIA` + `IEEE80211_IOC_SSID` + `PF_ROUTE`, `setproctitle(3)`, `ConsoleKit2`) with **zero `/proc` or `/sys` dependency**.
+
+### Bare-Metal Wayland Prerequisites (FreeBSD / GhostBSD)
+WayPlank on FreeBSD is **Wayland-only** (it does not run on legacy X11/Xorg sessions). On bare-metal hardware, make sure:
+1. A kernel DRM/KMS GPU driver is loaded (`drm-kmod` for Intel `i915kms` / AMD `amdgpu`, or `nvidia-drm-kmod`, exposing `/dev/dri/card0`).
+2. `dbus` and `seatd` services are enabled and your user belongs to the `video` group (`sudo sysrc dbus_enable="YES" seatd_enable="YES" && sudo pw groupmod video -m "$USER"`).
+3. You are logged into a Wayland compositor (**KDE Plasma 6 Wayland (`KWin`)**, **GNOME Wayland (`Mutter`)**, **Labwc (`wlroots`)**, or **XFCE 4.20 Wayland**).
+4. *(Laptop Hardware Brightness Note)* Native internal panel brightness uses `/dev/backlight/*` (`drm-kmod`, requires `video` group) or `acpi_video(4)` (`kldload acpi_video`); external monitors are supported via `ddcutil`.
+
+### Prebuilt `.pkg` vs. Building from Source (FreeBSD ABI Note)
+- The prebuilt archive in **`build/bsd/wayplank-<ver>.pkg`** targets **`FreeBSD:15:amd64`** (ready to install on **FreeBSD 15.x / GhostBSD 15.x `amd64`** via `sudo pkg add -f ./build/bsd/wayplank-<ver>.pkg`).
+- On **FreeBSD 14.x**, **`aarch64` (ARM64)**, or custom `ports` trees, build natively in ~2 minutes with `./builders/bsd/BuildPkg.sh` so `pkg create` binds your exact local ABI and library versions.
+- *(For Linux maintainers setting up a FreeBSD/GhostBSD build & FAT test VM — including VMware/VirtualBox fullscreen Wayland without `/dev/dri/card0` — see [`FAT/Test Files/WAYPLANK_BSD_TEST_CHEATSHEET.md`](FAT/Test%20Files/WAYPLANK_BSD_TEST_CHEATSHEET.md).)*
+
+### Host Build Dependencies (FreeBSD)
+```sh
+sudo pkg install -y \
+    git vala pkgconf gmake gettext-tools python3 \
+    gtk3 gtk-layer-shell libgee json-glib wayland wayland-protocols
+```
+*(Optional Wayland desktop/runtime tools: `labwc`, `seatd`, `dbus`, `gvfs`, `grim`, `slurp`, `swaylock`, `dunst`.)*
+
+### Option A: Automated FreeBSD Binary & Native `.pkg` Builder (Recommended)
+```sh
+# Build standalone ELF binary (enforces all 8 HAL Purity Firewall gates -> build/bsd/wayplank):
+./builders/bsd/BuildBsd.sh
+
+# Build + package native FreeBSD .pkg archive (-> build/bsd/wayplank-<ver>.pkg):
+./builders/bsd/BuildPkg.sh
+
+# Install the generated FreeBSD package under /usr/local:
+sudo pkg add -f ./build/bsd/wayplank-0.7.4.pkg
+```
+
+### Option B: Manual Step-by-Step FreeBSD Compilation
+If you prefer compiling manually in a POSIX `/bin/sh` terminal on FreeBSD (mirroring `./builders/bsd/BuildBsd.sh`):
+
+```sh
+# Step 1: Generate embedded .mo localization catalogs & GResource C source
+python3 po/generate_translations.py
+rm -rf data/locale
+EMBEDDED_LANGS=""
+LOCALE_XML_ENTRIES=""
+for po in po/*.po; do
+    lang="$(basename "$po" .po)"
+    mkdir -p "data/locale/${lang}"
+    msgfmt "$po" -o "data/locale/${lang}/wayplank.mo"
+    EMBEDDED_LANGS="${EMBEDDED_LANGS:+${EMBEDDED_LANGS}:}${lang}"
+    LOCALE_XML_ENTRIES="${LOCALE_XML_ENTRIES}		<file compressed=\"true\">locale/${lang}/wayplank.mo</file>\n"
+done
+awk -v entries="$LOCALE_XML_ENTRIES" '/<\/gresource>/ { printf "%s", entries } { print }' \
+    data/plank.gresource.xml > data/.plank.build.gresource.xml
+glib-compile-schemas data/glib-2.0/schemas
+glib-compile-resources --sourcedir=data --target=lib/resources.c --generate-source data/.plank.build.gresource.xml
+rm -rf data/locale
+
+# Step 2: Compile native monolithic FreeBSD ELF binary (Vala + C bridges -> build/bsd/wayplank)
+read_ver() { awk -F'=' -v k="$1" '/^\[Release\]/{s=1;next}/^\[/{s=0}s&&$1==k{sub(/^[^=]*=/,"");gsub(/^[ \t]+|[ \t]+$/,"");print;exit}' VERSION; }
+PKG_VER="$(read_ver Version)"
+PKG_DECO="$(read_ver Decoration)"
+PKG_YEAR="$(read_ver Year)"
+PKG_URL="$(read_ver Homepage)"
+PKG_ISSUES="$(read_ver IssuesUrl)"
+mkdir -p build/bsd
+valac -g \
+    --gresources=data/.plank.build.gresource.xml \
+    --gresourcesdir=data \
+    --vapidir=vapi/core --vapidir=vapi/freedesktop --vapidir=vapi/bsd \
+    --pkg posix --pkg gio-unix-2.0 --pkg gtk+-3.0 --pkg gtk-layer-shell-0 \
+    --pkg json-glib-1.0 --pkg gee-0.8 --pkg compat --pkg unix-compat --pkg config \
+    --pkg wlr-bridge --pkg bsd-kernel-bridge \
+    -X -DGETTEXT_PACKAGE=\"wayplank\" \
+    -X -DPACKAGE_VERSION=\"${PKG_VER}\" \
+    -X "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
+    -X -DPACKAGE_YEAR=\"${PKG_YEAR}\" \
+    -X -DPACKAGE_URL=\"${PKG_URL}\" \
+    -X -DPACKAGE_BUGREPORT=\"${PKG_ISSUES}\" \
+    -X -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
+    -X -Ilib -X -Ihal/Freedesktop/Wlroots -X -Ihal/BSD -X -Iinclude \
+    -X -include -X include/config.h \
+    -X -w -X -lprocstat -X -lkvm -X -ldevstat -X -lm -X -lwayland-client \
+    $(find hal/Interfaces hal/Freedesktop hal/BSD lib src -name "*.vala" | sort) \
+    lib/resources.c lib/gtk-compat.c \
+    hal/Freedesktop/Wlroots/wlr-foreign-toplevel-management-protocol.c \
+    hal/Freedesktop/Wlroots/wlr-toplevel-bridge.c \
+    hal/BSD/bsd-kernel-bridge.c \
+    -o build/bsd/wayplank
+rm -f lib/resources.c data/.plank.build.gresource.xml
+
+# Run directly from the build tree before installing the .pkg:
+GSETTINGS_SCHEMA_DIR="$PWD/data/glib-2.0/schemas" ./build/bsd/wayplank -v
+```
+
+---
+
+## 6. WINDOWS ZERO-DLL CROSS-COMPILATION (Linux Host ➔ Windows 7 ⟷ 11+)
+
+WayPlank cross-compiles its native Windows monolith (`build/windows/wayplank.exe`, **0 external DLLs**) **100% on Linux** using MinGW-w64 and a gitignored 4-Tier 16-library static sysroot (`./deps/win32/sysroot`, including a built-in static `lunasvg` SVG loader compiled directly into `libgdk_pixbuf-2.0.a`).
 
 ### Host Cross-Build Dependencies (Linux)
 In addition to the standard Linux build tools (`valac`, `meson`, `ninja`, `cmake`, `pkg-config`, `make`, `curl`, `tar`, `xz`, `python3`, `msgfmt`, `glib-compile-resources`, `glib-compile-schemas`):
@@ -305,16 +421,16 @@ In addition to the standard Linux build tools (`valac`, `meson`, `ninja`, `cmake
 ### Option A: Automated Windows Cross-Build Script (Recommended)
 
 ```bash
-chmod +x BuildWin.sh
-./BuildWin.sh
+chmod +x builders/windows/BuildWin.sh
+./builders/windows/BuildWin.sh
 ```
 
-- **First run:** Downloads and statically cross-compiles all 16 upstream libraries (Tiers 1–4 + `lunasvg` static SVG loader) into `./deps/win32/sysroot` (gitignored and cached via per-library `.built` stamps), then transpiles Zone 1 + Zone 2 + `hal/Windows/`, links `build/wayplank.exe`, strips it, and verifies via `x86_64-w64-mingw32-objdump -p` that **only evergreen Windows OS DLLs** are imported.
-- **Subsequent runs:** Reuses the cached sysroot and rebuilds `build/wayplank.exe` in seconds.
+- **First run:** Downloads and statically cross-compiles all 16 upstream libraries (Tiers 1–4 + `lunasvg` static SVG loader) into `./deps/win32/sysroot` (gitignored and cached via per-library `.built` stamps), then transpiles Zone 1 + Zone 2 + `hal/Windows/`, links **`build/windows/wayplank.exe`**, strips it, and verifies via `x86_64-w64-mingw32-objdump -p` that **only evergreen Windows OS DLLs** are imported.
+- **Subsequent runs:** Reuses the cached sysroot and rebuilds **`build/windows/wayplank.exe`** in seconds.
 - **Helper flags:**
-  - `./BuildWin.sh --build-sysroot` — build/cache the 4-Tier static sysroot only.
-  - `./BuildWin.sh --rebuild-lib <name>` — force-rebuild a single sysroot library (e.g. `gdk-pixbuf` or `gtk3`).
-  - `WAYPLANK_NO_PROMPT=1 ./BuildWin.sh` — non-interactive / CI mode.
+  - `./builders/windows/BuildWin.sh --build-sysroot` — build/cache the 4-Tier static sysroot only.
+  - `./builders/windows/BuildWin.sh --rebuild-lib <name>` — force-rebuild a single sysroot library (e.g. `gdk-pixbuf` or `gtk3`).
+  - `WAYPLANK_NO_PROMPT=1 ./builders/windows/BuildWin.sh` — non-interactive / CI mode.
 
 ### Option B: Manual Step-by-Step Windows Cross-Compilation
 
@@ -322,7 +438,7 @@ If you prefer executing the Windows cross-build steps manually after preparing t
 
 ```bash
 # Step 1: Build and cache the 4-Tier 16-library static MinGW sysroot (one-time)
-./BuildWin.sh --build-sysroot
+./builders/windows/BuildWin.sh --build-sysroot
 
 # Step 2: Generate embedded .mo locales, gschemas.compiled, and GResource C source
 python3 po/generate_translations.py
@@ -340,33 +456,40 @@ glib-compile-schemas data/glib-2.0/schemas
 EXTRA_XML_ENTRIES="${EXTRA_XML_ENTRIES}		<file compressed=\"true\">glib-2.0/schemas/gschemas.compiled</file>\n"
 awk -v entries="$EXTRA_XML_ENTRIES" '/<\/gresource>/ { printf "%s", entries } { print }' \
     data/plank.gresource.xml > data/.plank.win.gresource.xml
-mkdir -p build/win_c
-glib-compile-resources --sourcedir=data --target=build/win_c/resources.c --generate-source data/.plank.win.gresource.xml
+mkdir -p build/windows/win_c
+glib-compile-resources --sourcedir=data --target=build/windows/win_c/resources.c --generate-source data/.plank.win.gresource.xml
 rm -rf data/locale
 
 # Step 3: Transpile Zone 1 + Zone 2 + hal/Windows/ Vala sources to portable C (0 Unix/Wayland packages)
-valac -C -d build/win_c \
+valac -C -d build/windows/win_c \
     --gresources=data/.plank.win.gresource.xml \
     --gresourcesdir=data \
     --vapidir=vapi/core --vapidir=vapi/windows \
-    --pkg gtk+-3.0 --pkg gee-0.8 --pkg json-glib-1.0 --pkg compat --pkg config --pkg win32-bridge \
+    --pkg gtk+-3.0 --pkg gee-0.8 --pkg json-glib-1.0 --pkg compat --pkg config \
+    --pkg win32-bridge --pkg win32-app-bridge --pkg win32-sys-bridge --pkg win32-media-bridge \
     $(find hal/Interfaces hal/Windows lib src -name "*.vala" | sort)
 
 # Step 4: Compile Windows manifest resource, cross-compile C, link static Zero-DLL PE32+, strip & verify
-PKG_VER="$(sed -n '1p' VERSION | tr -d '[:space:]')"
-PKG_DECO="$(sed -n '2p' VERSION | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+read_ver() { awk -F'=' -v k="$1" '/^\[Release\]/{s=1;next}/^\[/{s=0}s&&$1==k{sub(/^[^=]*=/,"");gsub(/^[ \t]+|[ \t]+$/,"");print;exit}' VERSION; }
+PKG_VER="$(read_ver Version)"
+PKG_DECO="$(read_ver Decoration)"
+PKG_YEAR="$(read_ver Year)"
+PKG_URL="$(read_ver Homepage)"
+PKG_ISSUES="$(read_ver IssuesUrl)"
 WIN_PKG_CONFIG="./deps/win32/sysroot/bin/x86_64-w64-mingw32-pkg-config"
-x86_64-w64-mingw32-windres -DWAYPLANK_VER_STR="\"${PKG_VER}\"" -I hal/Windows hal/Windows/wayplank.rc -O coff -o build/win_c/wayplank.res.o
+x86_64-w64-mingw32-windres -DWAYPLANK_VER_STR="\"${PKG_VER}\"" -I hal/Windows hal/Windows/wayplank.rc -O coff -o build/windows/win_c/wayplank.res.o
 
 x86_64-w64-mingw32-g++-posix -static -static-libgcc -static-libstdc++ -mwindows -O2 \
     -D_WIN32_WINNT=0x0601 -DWINVER=0x0601 \
     -DGLIB_STATIC_COMPILATION -DGOBJECT_STATIC_COMPILATION -DGIO_STATIC_COMPILATION -DGMODULE_STATIC_COMPILATION -DCAIRO_WIN32_STATIC_BUILD \
     -DGETTEXT_PACKAGE=\"wayplank\" -DPACKAGE_VERSION=\"${PKG_VER}\" "-DPACKAGE_VERSION_DECO=\"${PKG_DECO}\"" \
+    -DPACKAGE_YEAR=\"${PKG_YEAR}\" -DPACKAGE_URL=\"${PKG_URL}\" -DPACKAGE_BUGREPORT=\"${PKG_ISSUES}\" \
     -DWAYPLANK_EMBEDDED_LANGS=\"${EMBEDDED_LANGS}\" \
-    -Ilib -Iinclude -Ihal/Windows/Compositor -include include/config.h -w \
+    -Ilib -Iinclude -Ihal/Windows/Compositor -Ihal/Windows/AppSystem -Ihal/Windows/Telemetry -Ihal/Windows/Bus \
+    -include include/config.h -w \
     $("$WIN_PKG_CONFIG" --cflags gtk+-3.0 gee-0.8 json-glib-1.0) \
-    $(find build/win_c -name "*.c" | sort) lib/gtk-compat.c $(find hal/Windows -name "*.c" | sort) \
-    build/win_c/wayplank.res.o \
+    $(find build/windows/win_c -name "*.c" | sort) lib/gtk-compat.c $(find hal/Windows -name "*.c" | sort) \
+    build/windows/win_c/wayplank.res.o \
     -L./deps/win32/sysroot/lib -Wl,--start-group \
     $("$WIN_PKG_CONFIG" --libs gtk+-3.0 gee-0.8 json-glib-1.0) \
     -llunasvg -lgtk-3 -lgdk-3 -latk-1.0 -lpangowin32-1.0 -lpangocairo-1.0 -lpango-1.0 \
@@ -377,22 +500,22 @@ x86_64-w64-mingw32-g++-posix -static -static-libgcc -static-libstdc++ -mwindows 
     -limm32 -lwinmm -lgdi32 -lmsimg32 -lshell32 -lshlwapi -lcomctl32 -lcomdlg32 \
     -lole32 -loleaut32 -luuid -ldwmapi -luxtheme -lws2_32 -lwinhttp -liphlpapi \
     -ldnsapi -lsetupapi -lhid -lwtsapi32 -ldxva2 -lpowrprof -luser32 -ladvapi32 -lkernel32 -lm \
-    -o build/wayplank.exe
+    -o build/windows/wayplank.exe
 
-x86_64-w64-mingw32-strip --strip-all build/wayplank.exe
-x86_64-w64-mingw32-objdump -p build/wayplank.exe | grep "DLL Name:"
+x86_64-w64-mingw32-strip --strip-all build/windows/wayplank.exe
+x86_64-w64-mingw32-objdump -p build/windows/wayplank.exe | grep "DLL Name:"
 rm -f data/.plank.win.gresource.xml
 ```
 
-- **Automated 64-Bit Windows Installer (`BuildNsis.sh`, Optional — requires `sudo apt install nsis`):**
+- **Automated 64-Bit Windows Installer (`builders/windows/BuildNsis.sh`, Optional — requires `sudo apt install nsis`):**
   ```bash
-  chmod +x BuildNsis.sh
-  ./BuildNsis.sh
+  chmod +x builders/windows/BuildNsis.sh
+  ./builders/windows/BuildNsis.sh
   ```
-  Invokes `./BuildWin.sh` and packages `build/wayplank.exe` into **`build/WayPlank-0.7.3.2-Setup.exe`** (`~8.9 MB` LZMA) supporting both System-Wide Admin (`C:\Program Files\WayPlank`) and Per-User (`%LOCALAPPDATA%\Programs\WayPlank`) installs, Start Menu/Desktop shortcuts, optional Autostart, and a clean `Uninstall.exe`.
+  Invokes `./builders/windows/BuildWin.sh` and packages `build/windows/wayplank.exe` into **`build/windows/WayPlank-0.7.4-Setup.exe`** (`~8.9 MB` LZMA) supporting both System-Wide Admin (`C:\Program Files\WayPlank`) and Per-User (`%LOCALAPPDATA%\Programs\WayPlank`) installs, Start Menu/Desktop shortcuts, optional Autostart, and a clean `Uninstall.exe`.
 
 ### Windows Deployment & Runtime Paths
-- **Zero-Installer Portable Run:** Copy `build/wayplank.exe` anywhere on Windows `7 ⟷ 11+` and double-click — no external DLLs, no GTK/MSYS2 runtime, and no installer required.
+- **Zero-Installer Portable Run:** Copy `build/windows/wayplank.exe` anywhere on Windows `7 ⟷ 11+` and double-click — no external DLLs, no GTK/MSYS2 runtime, and no installer required.
 - **Auto-Extracted GSettings Schema:** `%LOCALAPPDATA%\WayPlank\glib-2.0\schemas\gschemas.compiled` *(automatically unpacked from embedded `GResource` on startup)*.
 - **Windows Config & User Data:** `%LOCALAPPDATA%\WayPlank\` / `%APPDATA%\WayPlank\`.
 
@@ -476,8 +599,8 @@ wayplank -d
   - [x] **`v0.7.1` / `v0.7.1.2` (Public Beta 2 + Burn-In Hotfix — CONCLUDED & FROZEN at 100.0% FAT Qualified, [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt) — `375/375` Applicable)**: First-Run Onboarding (`Classic` vs `Explorer`) & read-only `~/.config/plank` migration, Smart Pinned Apps Accordion (`›|`/`«|`), Chrome D-Bus multi-profile & browser-family isolation (`#30`), `latch-state.ini` 43-key persistence & `/usr/local` schema guard (`#33`), GNOME single-monitor hotplug strut sync (`#32`), `AnticipateZoom` headroom clamp (`#34`), universal `_Docklets` submenu (`#35`), and 2-Tab Credits / Easter Egg.
   - [x] Broaden community field testing across additional wlroots compositors (Sway, Hyprland, Wayfire).
   - [x] **`v0.7.2` (Public Beta 3 — CONCLUDED 2026-11-18 at 100.0% FAT Qualified: Concentrated Linux HAL/Bus Freeze & Single-Process Multi-Dock Engine, [`Changelogs/CHANGELOG_v0.7.2.md`](Changelogs/CHANGELOG_v0.7.2.md) & [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt) — `402` Tests Defined)**: Physical extraction of all diffused Linux compositor drivers ([`HAL_COMPOSITORS.md`](Documentation/Architecture/HAL_COMPOSITORS.md)), Session/System D-Bus endpoints ([`HAL_BUSES.md`](Documentation/Architecture/HAL_BUSES.md)), and `.desktop`/`/proc`/`/sys` adapters ([`APPLICATION_IDENTITY_ENGINE.md`](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)) into `hal/{Interfaces,Freedesktop,Linux}/` per [`Architecture/README.md`](Documentation/Architecture/README.md), plus the single-process **Multi-Dock Engine (`dock1`–`dock4`)** with full-width Preferences dock selector, 2D `(Screen, Edge)` collision gray-out, `dock1`-exclusive WayPlank icon & unpinned running apps, cross-dock drag/pinning, and Labwc zero-stall hardening — **Moves 1–6 (`M1` ➔ `M6`) 100% complete, 8-Gate HAL Purity Firewall `GREEN` (`0` leaks) & 65,025-case Identity Matrix `100.0% PASS`; live 3-compositor `FAT 0.7.2` `100.0% PASSED` (`397/397` applicable, `5 [NA]`, `0 [ko]`): GNOME `Mutter` `135/135`, KDE Plasma 6 `KWin` `134/134` & `Labwc` `128/128`**.
-  - [x] **`v0.7.3` / `v0.7.3.2` (Public Beta 4 + Hotfix — CONCLUDED & FROZEN 2026-11-22 at `100.0%` 4-Platform FAT Qualified `529/529`, `0 [ko]`: First Unified Linux Wayland & Native Windows Zero-DLL Monolith, [`Changelogs/CHANGELOG_v0.7.3.md`](Changelogs/CHANGELOG_v0.7.3.md) & [`FAT/2026-11-22 FAT 0.7.3.2.txt`](FAT/2026-11-22%20FAT%200.7.3.2.txt) — `537` Tests Defined)**: Plugged complete native **Windows `7 ⟷ 11+`** drivers (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`), `./BuildWin.sh` (`24 MB` Zero-DLL `build/wayplank.exe`, 25 stock Windows OS DLLs only, built-in static `lunasvg` SVG loader + embedded GTK3 GSchemas), and `./BuildNsis.sh` (`8.9 MB` 64-bit `build/WayPlank-0.7.3.2-Setup.exe` with auto-close upgrade) directly into the frozen `v0.7.2` `hal/Interfaces/` contracts, followed by **`v0.7.3.2` Hotfix** (`< 0.5 s` startup `.lnk` cache, Windows Taskbar suppression, WinRT GSMTC Media Player, Windows COM `IApplicationDocumentLists` per-app Recent Files, instant Linux folder `Change Icon...`, live Light/Dark popups, folder-pinned app suppression, per-family Chromium profiles, universal `Rename Shortcut...`, unified `VERSION` GResource metadata, and `572/572` 8-language localization — **Windows 11 `136/136`, GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127` = `529/529` (`100.0%`), `8 [NA]`, `0 [ko]`**).
-  - [ ] **`v0.7.4` (Public Beta 5 — Planned: Native FreeBSD Backend `hal/BSD/`)**: Reuses 100% of Zone 1 (`src/`, `lib/`), Zone 2 (`hal/Interfaces/`), and Freedesktop userland (`hal/Freedesktop/`) while plugging native kernel drivers in `hal/BSD/` (`sysctl`/`libprocstat` process inspection, `sysctl` CPU/RAM/Battery/Audio telemetry, FreeBSD runtime & packaging — see [`Architecture/README.md`](Documentation/Architecture/README.md)).
+  - [x] **`v0.7.3` / `v0.7.3.2` (Public Beta 4 + Hotfix — CONCLUDED & FROZEN 2026-11-22 at `100.0%` 4-Platform FAT Qualified `529/529`, `0 [ko]`: First Unified Linux Wayland & Native Windows Zero-DLL Monolith, [`Changelogs/CHANGELOG_v0.7.3.md`](Changelogs/CHANGELOG_v0.7.3.md) & [`FAT/2026-11-22 FAT 0.7.3.txt`](FAT/2026-11-22%20FAT%200.7.3.txt) — `537` Tests Defined)**: Plugged complete native **Windows `7 ⟷ 11+`** drivers (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`), `./BuildWin.sh` (`24 MB` Zero-DLL `build/wayplank.exe`, 25 stock Windows OS DLLs only, built-in static `lunasvg` SVG loader + embedded GTK3 GSchemas), and `./BuildNsis.sh` (`8.9 MB` 64-bit `build/WayPlank-0.7.3.2-Setup.exe` with auto-close upgrade) directly into the frozen `v0.7.2` `hal/Interfaces/` contracts, followed by **`v0.7.3.2` Hotfix** (`< 0.5 s` startup `.lnk` cache, Windows Taskbar suppression, WinRT GSMTC Media Player, Windows COM `IApplicationDocumentLists` per-app Recent Files, instant Linux folder `Change Icon...`, live Light/Dark popups, folder-pinned app suppression, per-family Chromium profiles, universal `Rename Shortcut...`, unified `VERSION` GResource metadata, and `572/572` 8-language localization — **Windows 11 `136/136`, GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127` = `529/529` (`100.0%`), `8 [NA]`, `0 [ko]`**).
+  - [ ] **`v0.7.4` (Public Beta 5 — Active: Native FreeBSD Backend `hal/BSD/`, `MOC-0.7.4-BSD-001` — Milestones `B1`–`B4` Complete, `B5` Live 5-Platform FAT Pending)**: Reuses 100% of Zone 1 (`src/`, `lib/`), Zone 2 (`hal/Interfaces/`), and Freedesktop userland (`hal/Freedesktop/`) while plugging native FreeBSD kernel drivers in `hal/BSD/` (`libprocstat`/`sysctl` process inspection, OpenZFS ARC-aware RAM & `libdevstat` Disk I/O, ACPI battery, PipeWire/PulseAudio + OSS `/dev/mixer*`, `<sys/backlight.h>` + `hw.acpi.video.*`, `getifaddrs`/`SIOCGIFMEDIA`/`IEEE80211_IOC_SSID`/`PF_ROUTE` network telemetry, `ConsoleKit2` session power, `builders/bsd/{BuildBsd,BuildPkg}.sh` ➔ `build/bsd/wayplank-0.7.4.pkg`) and unifying all builders & outputs under `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` (see [`HAL_BSD_BACKEND.md`](Documentation/Architecture/HAL_BSD_BACKEND.md)).
 - [ ] Phase 8 (Planned) WayPlank Release Candidate (v0.8.x)
   - [ ] Strict Feature Freeze — no new architectural features, focusing purely on stability and hardening.
   - [ ] Systematic memory leak profiling (Valgrind / AddressSanitizer) and CPU efficiency audits.
@@ -496,6 +619,8 @@ wayplank -d
 
 Here is a recap of the journey so far! For complete technical breakdown and FAT test matrix, see [`Changelogs/`](Changelogs/) and [`FAT/`](FAT/). 🚀
 
+* 🚀 **v0.7.4 (Public Beta 5 — Native FreeBSD Kernel Backend `hal/BSD/`, Native `.pkg` Packaging & Unified `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` Layout) — 2026-11-22 [IN PROGRESS — MILESTONES `B1`–`B4` COMPLETE, `B5` 5-PLATFORM FAT PENDING | `Documentation/Architecture/HAL_BSD_BACKEND.md`]**:  
+  Native FreeBSD 14.x / 15.x & GhostBSD kernel backend (`hal/BSD/` + `bsd-kernel-bridge.c`, **0 `/proc`**, **0 `/sys`**, **8/8 HAL Purity Firewall GREEN**): `libprocstat(3)`/`sysctl(3)` process/child/FD/env inspection, OpenZFS ARC-aware RAM (`kstat.zfs.misc.arcstats`) + `libdevstat(3)` Disk I/O, ACPI battery, PipeWire/PulseAudio + native OSS `/dev/mixer*` `ioctl`, `<sys/backlight.h>` + `hw.acpi.video.*` backlight, `getifaddrs`/`SIOCGIFMEDIA`/`IEEE80211_IOC_SSID`/`PF_ROUTE` network probe, `ConsoleKit2`/`acpiconf`/`shutdown` session power, `setproctitle`/`KERN_PROC_PATHNAME`/`SIGWINCH` hot-reload, native `pkg create` (`builders/bsd/BuildPkg.sh` ➔ `build/bsd/wayplank-0.7.4.pkg`), and unified 3-OS `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` repository layout.
 * 🚀 **v0.7.3.2 (Public Beta 4 + Hotfix — Unified Linux Wayland & Native Windows Zero-DLL Monolith `wayplank.exe` & 64-Bit NSIS Installer) — 2026-11-22 [CONCLUDED & FROZEN / 100.0% 4-PLATFORM FAT PASSED — 529/529 Applicable | `Changelogs/CHANGELOG_v0.7.3.md`]**:  
   **All 6 Windows Milestones (`W1` ➔ `W6`) + `v0.7.3.2` Public Beta 4 Hotfix live-certified across all 4 platforms (`529/529` = `100.0%`: Windows 11 `136/136`, GNOME `133/133`, KDE Plasma 6 `133/133`, Labwc `127/127`, `463 [ok]` + `66 [ko->ok]`, `8 [NA]`, `0 [ko]` • `build/wayplank.exe` `24 MB` at 25 stock Windows OS DLLs + `build/WayPlank-0.7.3.2-Setup.exe` `8.9 MB`):** `< 0.5 s` Windows startup via persistent `.lnk` index cache (`lnk-index-cache.ini`), Windows Taskbar suppression (`ITaskbarList::DeleteTab` + `taskbar_hidden` guard), 1st-click minimize, WinRT `GSMTC` Media Player, WMI+`DXVA2` brightness, Explorer icon stores, Windows COM `IApplicationDocumentLists` per-app Recent Files (with strict default-handler fallback), instant Linux folder `Change Icon...` (`Hal.Apps.is_folder_metadata_file()` + debounced `FileDockItem`/`ApplicationDiscovery` refresh + non-destructive `XdgAppSystem` cache pruning), live Light/Dark popups (`HoverWindow`/`FolderMenuWindow`/`WindowCardsWindow`), cross-dock folder-pinned app suppression, per-family Chromium `Local State` profiles (`Edge:`, `Brave:`, `Vivaldi:`, `Chromium:`, `Opera:`, `Chrome:`), universal non-destructive **`Rename Shortcut...`** (`launcher-names.ini`), unified `VERSION` GResource metadata (`ReleaseMetadata.vala`), `572/572` 8-language localization, `0` non-`_full` `Gdk.threads_add_*` calls, `0` Pitfall #14 UAFs, and `8/8` HAL Purity Firewall `GREEN`.
 * 🚀 **v0.7.2 (Public Beta 3: 3-Zone Linux HAL & Bus Structural Freeze + Multi-Dock Engine) — 2026-11-18 [`Changelogs/CHANGELOG_v0.7.2.md`]**:  

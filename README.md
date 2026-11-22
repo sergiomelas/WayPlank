@@ -32,7 +32,7 @@
 > [!IMPORTANT]
 > ### 🏛️ Community Burn-In, Architecture Review & Translations (`v0.7.x`)
 > - ❄️ **Core Feature Freeze (Open to Community Requests):** WayPlank's internal Linux feature roadmap is frozen for stability on the road to `v0.8.x` RC; new features through **December 31, 2026** are driven by community requests in [GitHub Issues](https://github.com/sergiomelas/WayPlank/issues) and [Discussions](https://github.com/sergiomelas/WayPlank/discussions).
-> - 🔌 **Call for HAL Architecture Review (`v0.7.2` Freeze Gate):** Review the [**Master Architecture Overview (`Architecture/README.md`)**](Documentation/Architecture/README.md) along with [**`HAL_COMPOSITORS.md`**](Documentation/Architecture/HAL_COMPOSITORS.md), [**`HAL_BUSES.md`**](Documentation/Architecture/HAL_BUSES.md), [**`APPLICATION_IDENTITY_ENGINE.md`**](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md), and [**`HAL_WINDOWS_BACKEND.md`**](Documentation/Architecture/HAL_WINDOWS_BACKEND.md).
+> - 🔌 **Call for HAL Architecture Review (`v0.7.2`–`v0.7.4`):** Review the [**Master Architecture Overview (`Architecture/README.md`)**](Documentation/Architecture/README.md) along with [**`HAL_COMPOSITORS.md`**](Documentation/Architecture/HAL_COMPOSITORS.md), [**`HAL_BUSES.md`**](Documentation/Architecture/HAL_BUSES.md), [**`APPLICATION_IDENTITY_ENGINE.md`**](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md), [**`HAL_LINUX_BACKEND.md`**](Documentation/Architecture/HAL_LINUX_BACKEND.md), [**`HAL_WINDOWS_BACKEND.md`**](Documentation/Architecture/HAL_WINDOWS_BACKEND.md), and [**`HAL_BSD_BACKEND.md`**](Documentation/Architecture/HAL_BSD_BACKEND.md).
 > - 🌍 **Call for Translators (`po/generate_translations.py`):** Add or refine languages directly in the structured Python dictionary in [`po/generate_translations.py`](po/generate_translations.py) (see [`po/README.md`](po/README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md)).
 
 ---
@@ -58,7 +58,9 @@ A huge thank you to our 400+ users, issue reporters, and translators!
 * 🏛️ [Master Compositor & Shell HAL Architecture (`HAL_COMPOSITORS.md`)](Documentation/Architecture/HAL_COMPOSITORS.md)
 * 🚌 [Master IPC & System Bus HAL Architecture (`HAL_BUSES.md`)](Documentation/Architecture/HAL_BUSES.md)
 * 🎯 [6-Layer Application Identity Engine & `IAppSystem` (`APPLICATION_IDENTITY_ENGINE.md`)](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)
+* 🐧 [Linux Kernel Backend As-Built Specification (`HAL_LINUX_BACKEND.md`)](Documentation/Architecture/HAL_LINUX_BACKEND.md)
 * 🪟 [Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Blueprint (`HAL_WINDOWS_BACKEND.md`)](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)
+* 😈 [FreeBSD Kernel Backend Blueprint — `v0.7.4` (`HAL_BSD_BACKEND.md`)](Documentation/Architecture/HAL_BSD_BACKEND.md)
 * 🤝 [Contributing Guidelines & Live Issue Tracker (`CONTRIBUTING.md`)](CONTRIBUTING.md)
 * 🌍 [Monolithic Localization & i18n Guide (`po/README.md`)](po/README.md)
 * 🖥️ [Compositors & Nested Desktops Cheatsheet (Freedesktop)](FAT/Test%20Files/Freedesktop/WAYPLANK_COMPOSITORS_CHEATSHEET.md) • [Windows & VM Testing Cheatsheet](FAT/Test%20Files/WAYPLANK_WINDOWS_TEST_CHEATSHEET.md)

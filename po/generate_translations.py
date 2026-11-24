@@ -5351,6 +5351,141 @@ translations = {
         "ca": "Mostra automàticament el dock al monitor principal; desactiveu-ho per triar un índex lògic de pantalla multiseient",
         "de": "Zeigt das Dock automatisch auf dem primären Monitor an; deaktivieren, um einen logischen Multi-Seat-Bildschirmindex zu wählen",
         "uk": "Автоматично показувати панель на основному моніторі; вимкніть, щоб вибрати логічний індекс екрана мультисіту"
+    },
+    "Smart Accordion:": {
+        "zh_CN": "智能手风琴:",
+        "it": "Fisarmonica intelligente:",
+        "es": "Acordeón inteligente:",
+        "fr": "Accordéon intelligent :",
+        "ca": "Acordió intel·ligent:",
+        "de": "Intelligentes Akkordeon:",
+        "uk": "Розумний акордеон:"
+    },
+    "Hide the least used items behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, folders with running apps, urgent apps and items marked Keep Always Visible always stay": {
+        "zh_CN": "将最少使用的项目隐藏在展开按钮后。自动适应尽可能保留屏幕可容纳的项目，最常使用保留最常用的 N 项。正在运行的应用、包含运行中应用的文件夹、需要关注的应用以及标记为始终显示的项目会一直保留",
+        "it": "Nasconde gli elementi meno usati dietro un pulsante di espansione. Auto-Fit mantiene quanti ne entrano sullo schermo, Top Most Used mantiene gli N più usati. App in esecuzione, cartelle con app attive, app urgenti ed elementi segnati Mantieni sempre visibile restano sempre",
+        "es": "Oculta los elementos menos usados tras un botón desplegable. Autoajuste mantiene tantos como quepan en pantalla, Más usados mantiene los N más usados. Las aplicaciones en ejecución, carpetas con aplicaciones activas, aplicaciones urgentes y elementos marcados Mantener siempre visible permanecen siempre",
+        "fr": "Masque les éléments les moins utilisés derrière un bouton d'expansion. Ajustement auto conserve autant d'éléments que l'écran peut en afficher, Les plus utilisés garde les N plus utilisés. Les applications en cours, dossiers contenant des applications actives, applications urgentes et éléments marqués Toujours visible restent toujours",
+        "ca": "Amaga els elements menys usats darrere d'un botó desplegable. Autoajust manté tants com càpiguen en pantalla, Més usats manté els N més usats. Les aplicacions en execució, carpetes amb aplicacions actives, aplicacions urgents i elements marcats Mantén sempre visible resten sempre",
+        "de": "Blendet die am seltensten verwendeten Elemente hinter einer Erweiterung aus. Auto-Fit behält so viele wie auf den Bildschirm passen, Meistgenutzte behält die N häufigsten. Laufende Apps, Ordner mit laufenden Apps, dringende Apps und als Immer sichtbar markierte Elemente bleiben immer sichtbar",
+        "uk": "Приховує найрідше використовувані елементи за кнопкою розгортання. Автопідбір залишає стільки, скільки вміщується на екрані, Найуживаніші залишає N найпопулярніших. Запущені програми, теки із запущеними програмами, термінові програми та елементи з позначкою Завжди видимий залишаються завжди"
+    },
+    "Number of most used items kept visible": {
+        "zh_CN": "保持可见的最常用项目数量",
+        "it": "Numero di elementi più usati mantenuti visibili",
+        "es": "Número de elementos más usados que permanecen visibles",
+        "fr": "Nombre d'éléments les plus utilisés maintenus visibles",
+        "ca": "Nombre d'elements més usats que romanen visibles",
+        "de": "Anzahl der meistgenutzten Elemente, die sichtbar bleiben",
+        "uk": "Кількість найуживаніших елементів, що залишаються видимими"
+    },
+    "Expand accordions only when clicking the expander instead of on hover": {
+        "zh_CN": "仅在点击展开按钮时展开手风琴，而非悬停时展开",
+        "it": "Espandi le fisarmoniche solo cliccando sul pulsante di espansione anziché al passaggio del mouse",
+        "es": "Expandir los acordeones solo al hacer clic en el botón desplegable en lugar de al pasar el cursor",
+        "fr": "Déplier les accordéons uniquement en cliquant sur le bouton plutôt qu'au survol",
+        "ca": "Desplega els acordions només en fer clic al botó en lloc de passar-hi el cursor",
+        "de": "Akkordeons nur beim Klicken auf die Erweiterung statt beim Überfahren ausklappen",
+        "uk": "Розгортати акордеони лише після натискання на кнопку замість наведення курсора"
+    },
+    "Delay before collapsing accordions": {
+        "zh_CN": "折叠手风琴前的延迟",
+        "it": "Ritardo prima di richiudere le fisarmoniche",
+        "es": "Retraso antes de contraer los acordeones",
+        "fr": "Délai avant de replier les accordéons",
+        "ca": "Retard abans de plegar els acordions",
+        "de": "Verzögerung vor dem Einklappen der Akkordeons",
+        "uk": "Затримка перед згортанням акордеонів"
+    },
+    "Collapse hidden items": {
+        "zh_CN": "折叠隐藏的项目",
+        "it": "Comprimi elementi nascosti",
+        "es": "Contraer elementos ocultos",
+        "fr": "Replier les éléments masqués",
+        "ca": "Plega els elements ocults",
+        "de": "Ausgeblendete Elemente einklappen",
+        "uk": "Згорнути приховані елементи"
+    },
+    "Hidden items: %d": {
+        "zh_CN": "已隐藏项目: %d",
+        "it": "Elementi nascosti: %d",
+        "es": "Elementos ocultos: %d",
+        "fr": "Éléments masqués : %d",
+        "ca": "Elements ocults: %d",
+        "de": "Ausgeblendete Elemente: %d",
+        "uk": "Приховані елементи: %d"
+    },
+    "Accordion (Pinned):": {
+        "zh_CN": "手风琴 (固定):",
+        "it": "Fisarmonica (Fissate):",
+        "es": "Acordeón (Fijadas):",
+        "fr": "Accordéon (Épinglées) :",
+        "ca": "Acordió (Fixades):",
+        "de": "Akkordeon (Angeheftet):",
+        "uk": "Акордеон (Закріплені):"
+    },
+    "Accordion (Docklets):": {
+        "zh_CN": "手风琴 (插件):",
+        "it": "Fisarmonica (Docklet):",
+        "es": "Acordeón (Docklets):",
+        "fr": "Accordéon (Docklets) :",
+        "ca": "Acordió (Docklets):",
+        "de": "Akkordeon (Docklets):",
+        "uk": "Акордеон (Доклети):"
+    },
+    "Accordion (All):": {
+        "zh_CN": "手风琴 (全部):",
+        "it": "Fisarmonica (Tutti):",
+        "es": "Acordeón (Todos):",
+        "fr": "Accordéon (Tous) :",
+        "ca": "Acordió (Tots):",
+        "de": "Akkordeon (Alle):",
+        "uk": "Акордеон (Усі):"
+    },
+    "Accordion (N/A):": {
+        "zh_CN": "手风琴 (不适用):",
+        "it": "Fisarmonica (N/D):",
+        "es": "Acordeón (N/D):",
+        "fr": "Accordéon (S/O) :",
+        "ca": "Acordió (N/D):",
+        "de": "Akkordeon (k. A.):",
+        "uk": "Акордеон (Н/Д):"
+    },
+    "Hide the least used docklets behind an expander in Categorized mode. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Docklets marked Keep Always Visible always stay": {
+        "zh_CN": "在分类模式下将最少使用的插件隐藏在展开按钮后。自动适应尽可能保留屏幕可容纳的插件，最常使用保留最常用的 N 个插件。标记为始终显示的插件会一直保留",
+        "it": "Nasconde i docklet meno usati dietro un pulsante di espansione in modalità categorizzata. Auto-Fit mantiene quanti ne entrano sullo schermo, Top Most Used mantiene gli N più usati. I docklet segnati Mantieni sempre visibile restano sempre",
+        "es": "Oculta los docklets menos usados tras un botón desplegable en modo categorizado. Autoajuste mantiene tantos como quepan en pantalla, Más usados mantiene los N más usados. Los docklets marcados Mantener siempre visible permanecen siempre",
+        "fr": "Masque les docklets les moins utilisés derrière un bouton d'expansion en mode catégorisé. Ajustement auto conserve autant de docklets que l'écran peut en afficher, Les plus utilisés garde les N plus utilisés. Les docklets marqués Toujours visible restent toujours",
+        "ca": "Amaga els docklets menys usats darrere d'un botó desplegable en mode categoritzat. Autoajust manté tants com càpiguen en pantalla, Més usats manté els N més usats. Els docklets marcats Mantén sempre visible resten sempre",
+        "de": "Blendet im kategorisierten Modus die am seltensten verwendeten Docklets hinter einer Erweiterung aus. Auto-Fit behält so viele wie auf den Bildschirm passen, Meistgenutzte behält die N häufigsten. Als Immer sichtbar markierte Docklets bleiben immer sichtbar",
+        "uk": "Приховує найрідше використовувані доклети за кнопкою розгортання в категорізованому режимі. Автопідбір залишає стільки, скільки вміщується на екрані, Найуживаніші залишає N найпопулярніших. Доклети з позначкою Завжди видимий залишаються завжди"
+    },
+    "Number of most used docklets kept visible": {
+        "zh_CN": "保持可见的最常用插件数量",
+        "it": "Numero di docklet più usati mantenuti visibili",
+        "es": "Número de docklets más usados que permanecen visibles",
+        "fr": "Nombre de docklets les plus utilisés maintenus visibles",
+        "ca": "Nombre de docklets més usats que romanen visibles",
+        "de": "Anzahl der meistgenutzten Docklets, die sichtbar bleiben",
+        "uk": "Кількість найуживаніших доклетів, що залишаються видимими"
+    },
+    "Collapse docklets": {
+        "zh_CN": "折叠插件",
+        "it": "Comprimi docklet",
+        "es": "Contraer docklets",
+        "fr": "Replier les docklets",
+        "ca": "Plega els docklets",
+        "de": "Docklets einklappen",
+        "uk": "Згорнути доклети"
+    },
+    "Hidden docklets: %d": {
+        "zh_CN": "已隐藏插件: %d",
+        "it": "Docklet nascosti: %d",
+        "es": "Docklets ocultos: %d",
+        "fr": "Docklets masqués : %d",
+        "ca": "Docklets ocults: %d",
+        "de": "Ausgeblendete Docklets: %d",
+        "uk": "Приховані доклети: %d"
     }
 }
 

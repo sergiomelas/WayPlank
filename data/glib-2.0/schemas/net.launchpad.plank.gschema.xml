@@ -213,14 +213,26 @@
 		<key name="pinned-accordion-mode" type="i">
 			<range min="0" max="2"/>
 			<default>2</default>
-			<summary>Smart pinned apps accordion mode</summary>
-			<description>0 Off, 1 Auto-Fit Capacity (keep as many of the most used pinned apps as fit on screen), 2 Top Most Used (keep the N most used pinned apps). Running, urgent and Keep Always Visible apps are never hidden. Requires Categorize Items.</description>
+			<summary>Smart accordion mode</summary>
+			<description>0 Off, 1 Auto-Fit Capacity (keep as many of the most used items as fit on screen), 2 Top Most Used (keep the N most used items). Works in both Categorized and Free mode. Running apps, folders with running apps, urgent apps and Keep Always Visible items are never hidden.</description>
 		</key>
 		<key name="pinned-accordion-count" type="i">
 			<range min="1" max="20"/>
 			<default>6</default>
-			<summary>Number of pinned apps kept visible</summary>
-			<description>How many of the most used pinned apps stay visible when the pinned apps accordion is set to Top Most Used.</description>
+			<summary>Number of items kept visible</summary>
+			<description>How many of the most used items stay visible when the smart accordion is set to Top Most Used.</description>
+		</key>
+		<key name="docklet-accordion-mode" type="i">
+			<range min="0" max="2"/>
+			<default>2</default>
+			<summary>Docklet accordion mode</summary>
+			<description>0 Off, 1 Auto-Fit Capacity (keep as many of the most used docklets as fit on screen), 2 Top Most Used (keep the N most used docklets). Active in Categorized mode. Docklets marked Keep Always Visible are never hidden.</description>
+		</key>
+		<key name="docklet-accordion-count" type="i">
+			<range min="1" max="14"/>
+			<default>1</default>
+			<summary>Number of docklets kept visible</summary>
+			<description>How many of the most used docklets stay visible when the docklet accordion is set to Top Most Used.</description>
 		</key>
 		<key name="zoom-percent" type="i">
 			<range min="100" max="200"/>

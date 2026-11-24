@@ -3,7 +3,7 @@
 > **As-Built Specification for the Southbound Linux Kernel & OS Plumbing Layer (`hal/Linux/`) Behind the Freedesktop Shared Userland (`hal/Freedesktop/`) and Agnostic Boundary Translators (`hal/Interfaces/`)**  
 > **Pedigree:** Scattered `/proc` & `/sys` Calls (`v0.2.0`–`v0.7.1.2`) ➔ Concentrated Linux Kernel Driver Layer (`v0.7.2` Public Beta 3) ➔ Qualified Production Baseline (`v0.7.3.2` Public Beta 4 Hotfix)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-LIN-007` • **Revision `1.0`** (`2026-11-22` — **As-Built Baseline** matching `v0.7.3.2` / `main` `7a5bdb6`, `100.0%` 4-Platform FAT Qualified `529/529`, 8/8 HAL Purity Firewall `GREEN`)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-LIN-007` • **Revision `1.1`** (`2026-11-25` — **As-Built Baseline** matching `v0.7.4` Final Public Beta 5, **`100.0%` 7-Platform FAT Qualified `942/942`** [Linux `396/396`: GNOME `134/134`, KDE `134/134`, Labwc `128/128`], 8/8 HAL Purity Firewall `GREEN`)  
 > **Companion Master Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) • [HAL_BUSES.md](HAL_BUSES.md) • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) • [HAL_BSD_BACKEND.md](HAL_BSD_BACKEND.md)  
 > **Single Source of Truth:** Canonical **As-Built** reference for Zone 3B (`hal/Linux/`) and its `14` C link-seam exports (`wayplank_hal_kernel_*`) consumed by `hal/Freedesktop/`. Serves as the exact behavioral contract mirrored by [`HAL_BSD_BACKEND.md`](HAL_BSD_BACKEND.md) (`DOC-ARCH-BSD-006`) for `v0.7.4`.
 
@@ -35,6 +35,7 @@
 | Revision | Date | Author | Summary of Architectural Changes |
 | :---: | :---: | :--- | :--- |
 | **`1.0`** | `2026-11-22` | Sergio Melas | **Initial As-Built Specification (`DOC-ARCH-LIN-007`):** Formally documented the qualified `v0.7.2`–`v0.7.3.2` Zone 3B Linux kernel backend (`hal/Linux/`, 7 files / 1,759 LOC), all 14 `wayplank_hal_kernel_*` link-seam contracts, `BuildBin.sh` 8-Gate HAL Purity Firewall, and `.deb`/`.rpm` packaging invariants as the peer reference for [`HAL_BSD_BACKEND.md`](HAL_BSD_BACKEND.md). |
+| **`1.1`** | `2026-11-25` | Sergio Melas | **`v0.7.4` Final Public Beta 5 As-Built Sync (`942/942` `100.0%` 7-Platform Qualified):** Added `hal/Linux/SysFs/LinuxNetworkTelemetry.vala` (priority multi-interface sysfs/netlink fallback), moved builders to `builders/linux/{BuildBin,BuildDeb,BuildRpm}.sh` ➔ `build/linux/`, and verified zero Linux regressions (`396/396` in [`FAT/2026-11-25 FAT 0.7.4.txt`](../../FAT/2026-11-25%20FAT%200.7.4.txt)) alongside `hal/BSD/`. |
 
 ### 1.2 Dichotomic Split: Shared `hal/Freedesktop/` vs. Kernel-Only `hal/Linux/`
 
@@ -145,11 +146,11 @@ flowchart TD
   - **Gates 6A & 6B:** Zero horizontal symbol/path leaks between `hal/Freedesktop/` and `hal/Linux/`.
   - **Gate 7:** `DbusBroker.vala` is the sole `GLib.Bus.*` entry point across all of `hal/`.
   - **Gate 8:** Post-link `objdump -d build/linux/wayplank` verification proving `0` Pitfall #14 closure UAF patterns (`gdk_threads_add_{timeout,timeout_seconds,idle}` without `_full`).
-- **Monolithic Delivery (`"Il Monolito di Kubrick"`):** Single ELF binary `build/linux/wayplank` (`~14 MB`) statically embedding `107` SVGs, `6` stock themes, `8` compiled `.mo` locales (`581/581` messages), `VERSION` (`meta/VERSION`), and `USER_GUIDE.md` (`doc/guide.md`) via `GResource` — zero `libplank.so`, zero host pollution.
+- **Monolithic Delivery (`"Il Monolito di Kubrick"`):** Single ELF binary `build/linux/wayplank` (`~14 MB`) statically embedding `107` SVGs, `6` stock themes, `8` compiled `.mo` locales (`583/583` messages), `VERSION` (`meta/VERSION`), and `USER_GUIDE.md` (`doc/guide.md`) via `GResource` — zero `libplank.so`, zero host pollution.
 
 ---
 
 ## 5. Qualification Status & Non-Negotiable Invariants
 
-- **Current Qualification (`v0.7.3.2` — `2026-11-22`):** `100.0%` 3-Compositor Linux FAT Qualified (`393/393` applicable: GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127`, `5 [NA]`, `0 [ko]`) in [`FAT/2026-11-22 FAT 0.7.3.txt`](../../FAT/2026-11-22%20FAT%200.7.3.txt).
-- **Zero-Regression Freeze for `v0.7.4`:** Plugging `hal/BSD/` in `v0.7.4` **MUST NOT** regress any Linux FAT point, **MUST** keep `BuildBin.sh` 8/8 Gates `GREEN`, and **MUST** keep `hal/Linux/` completely free of BSD symbols (`Gate 6B`).
+- **Current Qualification (`v0.7.4` — `2026-11-25`):** `100.0%` 3-Compositor Linux FAT Qualified (`396/396` applicable: GNOME `Mutter` `134/134`, KDE Plasma 6 `KWin` `134/134`, `Labwc` `128/128`, `5 [NA]`, `0 [ko]`) inside the `942/942` 7-Platform protocol [`FAT/2026-11-25 FAT 0.7.4.txt`](../../FAT/2026-11-25%20FAT%200.7.4.txt).
+- **Zero-Regression Invariant (Verified in `v0.7.4`):** Plugging `hal/BSD/` produced zero Linux FAT regressions, kept `builders/linux/BuildBin.sh` 8/8 Gates `GREEN` (`0` Pitfall #14 UAFs), and kept `hal/Linux/` completely free of BSD symbols (`Gate 6B`).

@@ -384,7 +384,8 @@ namespace Plank
 			prefs.ShowAttentionIndicators = true;
 			prefs.DockletsOnRight = true;
 			prefs.AccordionClickToExpand = true;
-			prefs.PinnedAccordionCount = 6;
+			prefs.PinnedAccordionCount = DockPreferences.DEFAULT_PINNED_ACCORDION_COUNT;
+			prefs.DockletAccordionCount = DockPreferences.DEFAULT_DOCKLET_ACCORDION_COUNT;
 		}
 
 		DockItemProvider create_default_provider ()
@@ -446,6 +447,7 @@ namespace Plank
 							prefs.CategorizedDockItems = new string[0];
 							apply_common_first_run_defaults ();
 							prefs.CategorizeItems = false;
+							prefs.DockletAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 							prefs.AccordionDocklets = false;
 							prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 							prefs.SystemMenuAccess = 3;
@@ -461,6 +463,8 @@ namespace Plank
 							prefs.FreeDockItems = new string[0];
 							prefs.CategorizedDockItems = new string[0];
 							apply_common_first_run_defaults ();
+							prefs.DockletAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
+							prefs.DockletAccordionCount = DockPreferences.DEFAULT_DOCKLET_ACCORDION_COUNT;
 							prefs.AccordionDocklets = true;
 							prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
 							prefs.SystemMenuAccess = 4;
@@ -480,6 +484,7 @@ namespace Plank
 							prefs.FreeDockItems = new string[0];
 							prefs.CategorizedDockItems = new string[0];
 							apply_common_first_run_defaults ();
+							prefs.DockletAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 							prefs.AccordionDocklets = false;
 							prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 							prefs.SystemMenuAccess = 3;
@@ -527,6 +532,7 @@ namespace Plank
 					prefs.CategorizedDockItems = new string[0];
 				}
 				apply_common_first_run_defaults ();
+				prefs.DockletAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 				prefs.AccordionDocklets = false;
 				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_OFF;
 				prefs.SystemMenuAccess = 3;
@@ -557,10 +563,12 @@ namespace Plank
 				}
 				apply_common_first_run_defaults ();
 				prefs.DockletsOnRight = true;
+				prefs.DockletAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
+				prefs.DockletAccordionCount = DockPreferences.DEFAULT_DOCKLET_ACCORDION_COUNT;
 				prefs.AccordionDocklets = true;
 				prefs.AccordionClickToExpand = true;
 				prefs.PinnedAccordionMode = DockPreferences.PINNED_ACCORDION_TOP_N;
-				prefs.PinnedAccordionCount = 6;
+				prefs.PinnedAccordionCount = DockPreferences.DEFAULT_PINNED_ACCORDION_COUNT;
 				prefs.ShowWindowCards = true;
 				prefs.SystemMenuAccess = 4;
 				prefs.AnchorAlwaysLeft = true;
@@ -575,6 +583,7 @@ namespace Plank
 				def_prov.deduplicate_items ();
 				def_prov.refresh_separators ();
 				def_prov.refresh_pinned_accordion ();
+				def_prov.refresh_docklets_accordion ();
 			}
 
 			prefs.flush_to_disk ();

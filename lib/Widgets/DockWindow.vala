@@ -435,15 +435,23 @@ namespace Plank
 				if (button == PopupButton.LEFT && ClickedItem is PinnedExpanderDockItem && controller.app_provider != null) {
 					var expander = (PinnedExpanderDockItem) ClickedItem;
 					if (expander.IsDockletExpander) {
-						if (!controller.app_provider.docklets_expanded)
+						if (!controller.app_provider.docklets_expanded) {
+							suppress_docklets_hover_open = false;
 							controller.app_provider.expand_docklets (true);
-						else
+						} else {
+							if (!controller.prefs.AccordionClickToExpand)
+								suppress_docklets_hover_open = true;
 							controller.app_provider.collapse_docklets (true);
+						}
 					} else {
-						if (!controller.app_provider.pinned_expanded)
+						if (!controller.app_provider.pinned_expanded) {
+							suppress_pinned_hover_open = false;
 							controller.app_provider.expand_pinned (true);
-						else
+						} else {
+							if (!controller.prefs.AccordionClickToExpand)
+								suppress_pinned_hover_open = true;
 							controller.app_provider.collapse_pinned (true);
+						}
 					}
 					ClickedItem = null;
 					return Gdk.EVENT_STOP;
@@ -453,6 +461,8 @@ namespace Plank
 					if (controller.folder_menu.get_visible () && controller.folder_menu.TargetItem == ClickedItem) {
 						controller.folder_menu.close_menu ();
 					} else {
+						if (ClickedItem.Launcher != null && ClickedItem.Launcher != "")
+							AppUsageService.get_default ().note_item_launch (ClickedItem);
 						controller.folder_menu.show_for_item ((FileDockItem) ClickedItem);
 						ClickedItem.clicked (button, event.state, event.time);
 					}
@@ -479,6 +489,15 @@ namespace Plank
 				}
 				if (controller.window_cards.get_visible ())
 					controller.window_cards.close_cards ();
+				if (!(HoveredItem is ApplicationDockItem)
+					&& !(HoveredItem is TrashDockItem)
+					&& !(HoveredItem is PreferencesDockItem)
+					&& !(HoveredItem is SeparatorDockItem)
+					&& !(HoveredItem is PinnedExpanderDockItem)
+					&& !(HoveredItem is PlaceholderDockItem)
+					&& HoveredItem.Launcher != null && HoveredItem.Launcher != "") {
+					AppUsageService.get_default ().note_item_launch (HoveredItem);
+				}
 				HoveredItem.clicked (button, event.state, event.time);
 			}
 
@@ -513,6 +532,8 @@ namespace Plank
 
 			if (!menu_is_visible ()) {
 				ClickedItem = null;
+				suppress_docklets_hover_open = false;
+				suppress_pinned_hover_open = false;
 				set_hovered_provider (null);
 				set_hovered (null);
 				controller.hide_manager.update_hovered_with_coords (-1, -1);
@@ -578,6 +599,9 @@ namespace Plank
 			}
 		}
 
+		bool suppress_docklets_hover_open = false;
+		bool suppress_pinned_hover_open = false;
+
 		public bool is_hovering_docklets (int x, int y)
 		{
 			if (HoveredItem != null && controller.app_provider != null
@@ -585,6 +609,15 @@ namespace Plank
 					|| (HoveredItem is PinnedExpanderDockItem && ((PinnedExpanderDockItem) HoveredItem).IsDockletExpander)))
 				return true;
 			return is_in_docklet_zone (x, y);
+		}
+
+		bool is_hovering_pinned ()
+		{
+			if (HoveredItem == null || controller.app_provider == null)
+				return false;
+			if (HoveredItem is PinnedExpanderDockItem && !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander)
+				return true;
+			return controller.app_provider.is_accordion_candidate (HoveredItem);
 		}
 
 		public override bool enter_notify_event (Gdk.EventCrossing event)
@@ -608,23 +641,27 @@ namespace Plank
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
 			if (!controller.drag_manager.InternalDragActive && !controller.drag_manager.ExternalDragActive) {
-				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				bool over_docklets = is_hovering_docklets ((int) event.x, (int) event.y);
+				if (!over_docklets)
+					suppress_docklets_hover_open = false;
+				if (controller.app_provider != null && controller.app_provider.is_docklets_accordion_enabled ()) {
 					if (controller.app_provider.docklets_expanded) {
 						if (!controller.app_provider.has_drag_expansion ())
 							controller.app_provider.cancel_collapse_timer ();
-					} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
+					} else if (!controller.prefs.AccordionClickToExpand && over_docklets && !suppress_docklets_hover_open) {
 						controller.app_provider.expand_docklets ();
 					}
 				}
 
-				// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
+				// Smart Pinned Accordion: hovering any item in the group or the expander expands it (unless "Click to Expand")
+				bool over_pinned = is_hovering_pinned ();
+				if (!over_pinned)
+					suppress_pinned_hover_open = false;
 				if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
 					if (controller.app_provider.pinned_expanded) {
 						if (!controller.app_provider.has_drag_expansion ())
 							controller.app_provider.cancel_collapse_timer ();
-					} else if (!controller.prefs.AccordionClickToExpand
-						&& HoveredItem is PinnedExpanderDockItem
-						&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
+					} else if (!controller.prefs.AccordionClickToExpand && over_pinned && !suppress_pinned_hover_open) {
 						controller.app_provider.expand_pinned ();
 					}
 				}
@@ -672,23 +709,27 @@ namespace Plank
 			controller.hide_manager.update_hovered_with_coords ((int) event.x, (int) event.y);
 
 			if (!controller.drag_manager.InternalDragActive && !controller.drag_manager.ExternalDragActive) {
-				if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+				bool over_docklets = is_hovering_docklets ((int) event.x, (int) event.y);
+				if (!over_docklets)
+					suppress_docklets_hover_open = false;
+				if (controller.app_provider != null && controller.app_provider.is_docklets_accordion_enabled ()) {
 					if (controller.app_provider.docklets_expanded) {
 						if (!controller.app_provider.has_drag_expansion ())
 							controller.app_provider.cancel_collapse_timer ();
-					} else if (!controller.prefs.AccordionClickToExpand && is_hovering_docklets ((int) event.x, (int) event.y)) {
+					} else if (!controller.prefs.AccordionClickToExpand && over_docklets && !suppress_docklets_hover_open) {
 						controller.app_provider.expand_docklets ();
 					}
 				}
 
-				// Smart Pinned Accordion: hovering the expander expands it (unless "Click to Expand")
+				// Smart Pinned Accordion: hovering any item in the group or the expander expands it (unless "Click to Expand")
+				bool over_pinned = is_hovering_pinned ();
+				if (!over_pinned)
+					suppress_pinned_hover_open = false;
 				if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
 					if (controller.app_provider.pinned_expanded) {
 						if (!controller.app_provider.has_drag_expansion ())
 							controller.app_provider.cancel_collapse_timer ();
-					} else if (!controller.prefs.AccordionClickToExpand
-						&& HoveredItem is PinnedExpanderDockItem
-						&& !((PinnedExpanderDockItem) HoveredItem).IsDockletExpander) {
+					} else if (!controller.prefs.AccordionClickToExpand && over_pinned && !suppress_pinned_hover_open) {
 						controller.app_provider.expand_pinned ();
 					}
 				}
@@ -712,6 +753,9 @@ namespace Plank
 			disarm_drag_candidate ();
 			ClickedItem = null;
 		}
+
+		string? last_scroll_usage_launcher = null;
+		int64 last_scroll_usage_time = 0;
 
 		/**
 		 * {@inheritDoc}
@@ -805,6 +849,15 @@ namespace Plank
 			}
 
 			if (HoveredItem != null) {
+				if ((HoveredItem is VolumeDockItem || HoveredItem is BrightnessDockItem || HoveredItem is MprisDockItem)
+					&& HoveredItem.Launcher != null && HoveredItem.Launcher != "") {
+					int64 now_us = GLib.get_monotonic_time ();
+					if (last_scroll_usage_launcher != HoveredItem.Launcher || (now_us - last_scroll_usage_time) >= 3000000) {
+						last_scroll_usage_launcher = HoveredItem.Launcher;
+						last_scroll_usage_time = now_us;
+						AppUsageService.get_default ().note_item_launch (HoveredItem);
+					}
+				}
 				controller.hover.hide ();
 				HoveredItem.scrolled (direction, event.state, event.time);
 				controller.renderer.animated_draw ();
@@ -1178,7 +1231,34 @@ namespace Plank
 				set_hovered_provider (null);
 				set_hovered (null);
 			} else if (item != null && item.is_valid () && item.has_menu_for_button (button)) {
+				if ((button & PopupButton.RIGHT) != 0
+					&& DefaultApplicationDockItemProvider.is_docklet_element (item)
+					&& !(item is PreferencesDockItem)
+					&& item.Launcher != null && item.Launcher != "") {
+					AppUsageService.get_default ().note_item_launch (item);
+				}
 				menu_items = item.get_menu_items_for_button (button);
+				bool can_keep_visible = (controller.app_provider != null
+					&& ((controller.app_provider.is_pinned_accordion_enabled () && controller.app_provider.is_accordion_candidate (item))
+						|| (controller.app_provider.is_docklets_accordion_enabled () && controller.app_provider.is_accordion_docklet (item))));
+				if ((button & PopupButton.RIGHT) != 0
+					&& controller.app_provider != null
+					&& !controller.prefs.LockItems
+					&& can_keep_visible
+					&& !(item is ApplicationDockItem)
+					&& item.Prefs != null) {
+					if (menu_items.size > 0)
+						menu_items.add (new Gtk.SeparatorMenuItem ());
+					var keep_item = new Gtk.CheckMenuItem.with_mnemonic (_("Keep Always _Visible"));
+					keep_item.active = item.Prefs.KeepVisible;
+					var item_ref = GLib.WeakRef (item);
+					keep_item.activate.connect (() => {
+						var target = (DockItem?) item_ref.get ();
+						if (target != null && target.Prefs != null)
+							target.Prefs.KeepVisible = !target.Prefs.KeepVisible;
+					});
+					menu_items.add (keep_item);
+				}
 				if (is_debug_combo)
 					menu_items.add_all (get_item_debug_menu_items (item));
 				position_func = (Gtk.MenuPositionFunc) position_menu;
@@ -1420,9 +1500,9 @@ namespace Plank
 
 			menu_item = new Gtk.MenuItem.with_mnemonic (_("Print usage score"));
 			menu_item.activate.connect (() => {
-				print ("%s\n", AppUsageService.get_default ().describe (item.Launcher));
+				print ("%s\n", AppUsageService.get_default ().describe_item (item));
 			});
-			menu_item.sensitive = (item is ApplicationDockItem && item.Launcher != null && item.Launcher != "");
+			menu_item.sensitive = (item.Launcher != null && item.Launcher != "" && !(item is SeparatorDockItem) && !(item is PinnedExpanderDockItem));
 			dev_submenu.append (menu_item);
 
 			dev_submenu.show_all ();

@@ -1,9 +1,9 @@
 # 📦 WayPlank Static Cross-Build Dependencies (`deps/`)
 
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Governed By:** [`Documentation/Architecture/HAL_WINDOWS_BACKEND.md`](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md) • [`BuildWin.sh`](../BuildWin.sh)
+> **Governed By:** [`Documentation/Architecture/HAL_WINDOWS_BACKEND.md`](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md) • [`builders/windows/BuildWin.sh`](../builders/windows/BuildWin.sh)
 
-This directory holds the **locally generated, gitignored** static cross-compilation sysroot used to build WayPlank's Zero-DLL Windows executable (`build/wayplank.exe`) 100% on Linux.
+This directory holds the **locally generated, gitignored** static cross-compilation sysroot used to build WayPlank's Zero-DLL Windows executable (`build/windows/wayplank.exe`) 100% on Linux.
 
 > [!NOTE]
 > Everything inside `deps/` except this `README.md` is ignored by `.gitignore` (`deps/*` + `!deps/README.md`). Nothing downloaded or compiled here is ever committed to Git.
@@ -12,7 +12,7 @@ This directory holds the **locally generated, gitignored** static cross-compilat
 
 ## 📁 Directory Structure (`deps/win32/`)
 
-Created and managed automatically by [`./BuildWin.sh`](../BuildWin.sh):
+Created and managed automatically by [`./builders/windows/BuildWin.sh`](../builders/windows/BuildWin.sh):
 
 ```text
 deps/
@@ -22,7 +22,7 @@ deps/
     ├── x86_64-w64-mingw32.cmake       # Auto-generated CMake toolchain file
     ├── src/                           # Cached upstream release tarballs (.tar.xz/.tar.gz/.tar.bz2)
     ├── build/                         # Temporary extracted source & compile trees (safe to delete after sysroot completes)
-    ├── stamps/                        # Per-library .built markers so ./BuildWin.sh skips already-built libraries
+    ├── stamps/                        # Per-library .built markers so BuildWin.sh skips already-built libraries
     └── sysroot/                       # Installed static MinGW-w64 libraries & headers
         ├── bin/                       # Dedicated static pkg-config wrapper (x86_64-w64-mingw32-pkg-config)
         ├── include/                   # Cross-compiled C/C++ headers
@@ -64,10 +64,10 @@ All libraries are cross-compiled with `x86_64-w64-mingw32-gcc-posix` / `g++-posi
 
 ```bash
 # Build or resume the static sysroot only:
-./BuildWin.sh --build-sysroot
+./builders/windows/BuildWin.sh --build-sysroot
 
 # Force-rebuild a single library (e.g. after changing win32-svg-loader.cpp):
-./BuildWin.sh --rebuild-lib gdk-pixbuf
+./builders/windows/BuildWin.sh --rebuild-lib gdk-pixbuf
 
 # Reclaim disk space after sysroot is built (keeps cached tarballs & installed sysroot):
 rm -rf deps/win32/build

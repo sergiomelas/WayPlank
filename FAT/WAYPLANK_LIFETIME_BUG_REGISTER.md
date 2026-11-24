@@ -2,8 +2,8 @@
 
 > **Project:** WayPlank (Lightweight native Wayland dock based on Plank architecture)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397` • `v0.7.3` / `v0.7.3.2` Public Beta 4 + Hotfix `100.0%` 4-Platform Qualified `529/529` • **`v0.7.4` Final Public Beta 5 `100.0%` 5-Platform Qualified `661/661`** — CONCLUDED & FROZEN in [`FAT/2026-11-22 FAT 0.7.4.txt`](2026-11-22%20FAT%200.7.4.txt): `675` Tests Defined / `661` Applicable: `653 [ok]` + `8 [ko->ok]` across `3` unique IDs, `14 [NA]`, `0 [ko]`)  
-> **Period:** 2026-09-19 to 2026-11-23  
+> **Scope:** Complete Lifetime Audit — From Inception (`v0.1.0`) to Present (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397` • `v0.7.3` / `v0.7.3.2` Public Beta 4 + Hotfix `100.0%` 4-Platform Qualified `529/529` • **`v0.7.4` Final Public Beta 5 `100.0%` 7-Platform Qualified `942/942`** — CONCLUDED & FROZEN in [`FAT/2026-11-25 FAT 0.7.4.txt`](2026-11-25%20FAT%200.7.4.txt): `958` Tests Defined / `942` Applicable across 7 Platforms [3 FreeBSD + 1 Windows + 3 Linux]: `881 [ok]` + `61 [ko->ok]` numbered tests + `2 [ko->ok]` on `0. Crashes` [`63` verifications across `14` unique IDs], `16 [NA]`, `0 [ko]`)  
+> **Period:** 2026-09-19 to 2026-11-25  
 > **Standard:** ISA-88 Qualification Standard  
 > **Master HAL Specifications:** [Documentation/Architecture/README.md](../Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](../Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](../Documentation/Architecture/HAL_BUSES.md), [APPLICATION_IDENTITY_ENGINE.md](../Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md), [HAL_LINUX_BACKEND.md](../Documentation/Architecture/HAL_LINUX_BACKEND.md), [HAL_WINDOWS_BACKEND.md](../Documentation/Architecture/HAL_WINDOWS_BACKEND.md) & [HAL_BSD_BACKEND.md](../Documentation/Architecture/HAL_BSD_BACKEND.md)
 
@@ -14,17 +14,16 @@
 * **ERA 1 (Pre-FAT Foundation & X11 Purge: `v0.1.0` – `v0.4.2`)**:
   - **Milestones**: 6 (`v0.1.0`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.4.1`, `v0.4.2`)
   - **Architectural Bugs & Blockers Resolved**: **34** `[ko->ok]`
-* **ERA 2 (Multi-Compositor Qualification & Public Beta Series: `v0.4.3` – `v0.7.1`)**:
-  - **Milestones**: 11 (`v0.4.3`, `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.6.0`, `v0.6.1`, `v0.6.2.1`, `v0.6.2.2`, `v0.6.2.3`, `v0.7.0`, `v0.7.1`)
-  - **Formal Tests Executed**: **2,793** Total Test Definitions across Compositors
-  - **Tests Passed on First Run / Baseline**: **2,550** `[ok]`
-  - **Unique Functional Bugs Squashed**: **100** `[ko->ok]` (`+12` unique `[ko->ok]` in `v0.7.1` / `v0.7.1.2` across `39` compositor test verifications)
-  - **Total Compositor Test Verifications**: **192** `[ko->ok]` (`+39` `[ko->ok]` in `v0.7.1` / `v0.7.1.2`)
-  - **Open FAT Regressions Remaining (`2026-11-18` — `v0.7.0` Concluded & Frozen; `v0.7.1.2` 100.0% Qualified; `v0.7.2` `100.0%` Qualified on `hal-v0.7.2`)**: **0 Open `[ko]` Defects** (**`336 [ok]` Consolidated Baseline + `39 [ko->ok]` Squashed + `0 [ko->test]` + `0 [  ]` + `2 [NA]` + `0 [ko]` = `375/375` Applicable `100.0% PASS`** across all 3 compositors in [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt); `v0.7.2` Move 6 Multi-Dock qualification at `402` test definitions / `397` applicable in [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt): **GNOME `Mutter` `100.0% PASSED` (`135/135` — `113 [ok]` + `22 [ko->ok]`)**, **KDE Plasma 6 `KWin` `100.0% PASSED` (`134/134` — `114 [ok]` + `20 [ko->ok]`)**, **`Labwc` `100.0% PASSED` (`128/128` — `111 [ok]` + `17 [ko->ok]`, `5 [NA]`)** = **`397/397` Applicable `100.0% PASSED` (`338 [ok]` + `59 [ko->ok]` across `24` unique IDs, `5 [NA]`, `0 [ko]`), `0 [ko->test]`, `0 [  ]`**)
+* **ERA 2 (Multi-Compositor & Multi-OS Qualification — Public Beta Series: `v0.4.3` – `v0.7.4`)**:
+  - **Milestones**: 14 (`v0.4.3`, `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.6.0`, `v0.6.1`, `v0.6.2.1`, `v0.6.2.2`, `v0.6.2.3`, `v0.7.0`, `v0.7.1.2`, `v0.7.2`, `v0.7.3.2`, **`v0.7.4`**)
+  - **Formal Tests Executed**: **4,690** Total Test Definitions across Platforms & Compositors (**`958`** in `v0.7.4` across **7 platforms**: 3 FreeBSD + 1 Windows + 3 Linux)
+  - **Unique Functional Bugs Squashed**: **168** `[ko->ok]` (`100` through `v0.7.1.2` + `24` in `v0.7.2` + `30` in `v0.7.3.2` + **`14` in `v0.7.4`**)
+  - **Total Multi-Compositor / Multi-OS Verifications**: **380** `[ko->ok]` in ERA 2 (`192` through `v0.7.1.2` + `59` in `v0.7.2` + `66` in `v0.7.3.2` + **`63` in `v0.7.4`** [`61` numbered + `2` on `0. Crashes`] across 7 platforms)
+  - **Open FAT Regressions Remaining (`2026-11-25` — `v0.7.4` Final Public Beta 5 CONCLUDED & FROZEN at `100.0%` 7-Platform Qualified)**: **0 Open `[ko]` Defects** (**`881 [ok]` + `61 [ko->ok]` + `2 [ko->ok]` on `0. Crashes` [`63` verifications across `14` unique IDs] + `0 [ko->test]` + `0 [  ]` + `16 [NA]` + `0 [ko]` = `942/942` Applicable `100.0% PASS`** across all **7 platforms** in [`FAT/2026-11-25 FAT 0.7.4.txt`](2026-11-25%20FAT%200.7.4.txt): **FreeBSD GNOME `138/138`**, **FreeBSD KDE Plasma 6 `138/138`**, **FreeBSD Labwc `133/133`**, **Windows 11 `137/137`**, **Linux GNOME `134/134`**, **Linux KDE Plasma 6 `134/134`**, **Linux Labwc `128/128`**)
 * **GRAND TOTAL ACROSS LIFETIME**:
-  - **Total Milestones**: **20 Qualified Releases** (`v0.7.2` Public Beta 3 `100.0%` 3-Compositor Linux Qualified `397/397`; `v0.7.3` / `v0.7.3.2` Public Beta 4 + Hotfix `100.0%` 4-Platform Linux + Windows FAT Qualified `529/529`; **`v0.7.4` Final Public Beta 5 `100.0%` 5-Platform FreeBSD + Windows + Linux FAT Qualified `661/661`**)
-  - **Total Unique Functional & Architectural Bugs Squashed**: **191** `[ko->ok]` (`188` through `v0.7.3.2` + `3` unique `[ko->ok]` IDs `1.10`, `2.6`, `15.6` verified live across FreeBSD 15.1, Windows 11, GNOME `Mutter`, KDE Plasma 6 `KWin`, and `Labwc` in `v0.7.4`)
-  - **Total Multi-Compositor / Multi-OS Verification Instances**: **359** `[ko->ok]` (`351` through `v0.7.3.2` + `8` `[ko->ok]` verifications in `v0.7.4`)
+  - **Total Milestones**: **20 Qualified Releases** (`6` ERA 1 Pre-FAT + `14` ERA 2 Formal FAT, culminating in **`v0.7.4` Final Public Beta 5 `100.0%` 7-Platform Qualified `942/942`**)
+  - **Total Unique Functional & Architectural Bugs Squashed**: **202** `[ko->ok]` (`34` ERA 1 + `168` ERA 2: `188` through `v0.7.3.2` + **`14` unique `[ko->ok]` IDs** `0. Crashes`, `1.9`, `1.10`, `2.6`, `3.3`, `3.4`, `5.3`, `6.5`, `6.13`, `7.2`, `7.8`, `7.17`, `15.3`, `15.6` verified live across 7 platforms in `v0.7.4`)
+  - **Total Multi-Compositor / Multi-OS Verification Instances**: **414** `[ko->ok]` (`34` ERA 1 + `380` ERA 2: `351` through `v0.7.3.2` + **`63` `[ko->ok]` verifications** across 7 platforms in `v0.7.4`)
 
 ---
 
@@ -40,15 +39,15 @@ Every non-trivial bugfix, feature, or refactoring follows seven sequential gates
 2. **Three-Tier HAL Change Classification & Plan:** Classify every change honestly under [`Documentation/Architecture/README.md`](../Documentation/Architecture/README.md):
    - **Tier 1 — Pure Core / UI (`Zone 1`, HAL-Neutral):** Themes, rendering math, localization, animations, and pure Vala models with zero compositor or OS dependency.
    - **Tier 2 — Core HAL-Consumer (`Zone 1` consuming `Zone 2`):** Portable logic consuming existing `Hal.*` contracts (`hal/Interfaces/`) with **zero driver edits**; verify contract data availability and graceful degradation across **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, and **`Labwc` (`wlroots`)**.
-   - **Tier 3 — True HAL / Bus / OS Driver Modification (`Zone 2` Contracts or `Zone 3` Drivers):** Touches `hal/Interfaces/*`, `hal/Freedesktop/*`, `hal/Linux/*`, or `hal/Windows/*`; requires an explicit **3-Compositor Contract Matrix** (`KWin` + `Mutter` + `Labwc`) before implementation.
+   - **Tier 3 — True HAL / Bus / OS Driver Modification (`Zone 2` Contracts or `Zone 3` Drivers):** Touches `hal/Interfaces/*`, `hal/Freedesktop/*`, `hal/Linux/*`, `hal/BSD/*`, or `hal/Windows/*`; requires an explicit **Multi-Compositor / Multi-OS Contract Matrix** (`KWin` + `Mutter` + `Labwc` + `Windows` / `FreeBSD`) before implementation.
 3. **Maintainer Approval Gate:** Present the file-level change plan, HAL tier classification, and affected `FAT` test IDs before landing structural changes.
 4. **Layered Implementation & Zone Purity:** Implement in strict discrete layers (`Zone 3` Drivers $\rightarrow$ `Zone 2` Boundary Translators $\rightarrow$ `Zone 1` Agnostic Core/UI). Never leak compositor conditionals, raw D-Bus proxies, POSIX headers, or OS paths (`/proc`, `/sys`, `.desktop`) into `Zone 1` (`src/`, `lib/`, `vapi/core/`).
-5. **Atomic Packaging & Firewall Build Gate (`Gate 1`):** Build exclusively via the non-interactive full-package builder (never raw partial binary builds):
+5. **Atomic Packaging & Firewall Build Gate (`Gate 1`):** Build exclusively via the non-interactive full-package builders under `builders/{linux,bsd,windows}/` (never raw partial binary builds):
    ```bash
-   WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh
+   WAYPLANK_NO_PROMPT=1 ./builders/linux/BuildDeb.sh
    ```
-   Every build must pass the automated **Dual-Zone HAL Purity Firewall** (`0` leaks across `Zone 1` & `Zone 2`), compile with **zero warnings and zero errors**, embed all GResource/schema/localization assets atomically, and preserve community-contributed translations in `po/generate_translations.py`.
-6. **Live Multi-Compositor Human Test Gate (`Gate 2`):** Live interactive verification on target compositors (**GNOME `Mutter`**, **KDE Plasma 6 `KWin`**, **`Labwc`**). Automated unit tests or matrix oracles qualify code to *enter* the Test Gate (`[  ]` or `[ko->test]`), **never** to bypass human sign-off.
+   Every build must pass the automated **8-Gate Dual-Zone HAL Purity Firewall** (`0` leaks across `Zone 1` & `Zone 2`), compile with **zero warnings and zero errors**, embed all GResource/schema/localization assets atomically, and preserve community-contributed translations in `po/generate_translations.py`.
+6. **Live Multi-Compositor Human Test Gate (`Gate 2`):** Live interactive verification across target platforms (**FreeBSD GNOME/KDE/Labwc**, **Windows**, **Linux GNOME/KDE/Labwc**). Automated unit tests or matrix oracles qualify code to *enter* the Test Gate (`[  ]` or `[ko->test]`), **never** to bypass human sign-off.
 7. **4-Way Atomic Documentation Synchronization:** Synchronize the active `FAT/YYYY-MM-DD FAT X.X.X.txt`, [`FAT/Template/FAT Template.txt`](Template/FAT%20Template.txt), this `WAYPLANK_LIFETIME_BUG_REGISTER.md`, and [`README.md`](../README.md) in the same atomic closeout step.
 
 ---
@@ -73,7 +72,7 @@ Every test item in `FAT/*.txt` occupies exactly one of **7 canonical states**, g
 | **`[  ]`** | **Pending Test Gate** | Enters via Gate 1 | Open / unverified test point (new milestone feature, or prior `[ok]` baseline invalidated by code / MOC modification). |
 | **`[ok]`** | **Qualified Clean** | **Human Only (Gate 2)** | Passed live human compositor testing cleanly (`[  ] -> [ok]`), or consolidated untouched from the prior release (`Phase B.1`). |
 | **`[ko]`** | **Non-Conformance (Open)** | **Human / Audit** | Defect detected (`[  ] -> [ko]`, live regression `[ok] -> [ko]`, or rejected remediation `[ko->test] -> [ko]`). |
-| **`[ko->test]`** | **Pending Re-Test Gate** | Enters via Gate 1 | Remediation built & packaged (`BuildDeb.sh`), awaiting live human compositor re-test (`Gate 2`). Never skipped. |
+| **`[ko->test]`** | **Pending Re-Test Gate** | Enters via Gate 1 | Remediation built & packaged (`builders/*/Build*.sh`), awaiting live human re-test (`Gate 2`). Never skipped. |
 | **`[ko->ok]`** | **Defect Squashed** | **Human Only (Gate 2)** | Remediation verified live on re-test (`[ko->test] -> [ko->ok]`). **Indelible for the entire milestone** (never overwritten as `[ok]`). |
 | **`[ko->imp]`** | **Verified (Minor Polish)** | **Human Only (Gate 2)** | Core defect resolved on re-test (`[ko->test] -> [ko->imp]`), minor non-blocking UX/code polish noted; follow-up code re-enters `[ko->test]`. |
 | **`[NA]`** | **Protocol Limitation** | **Maintainer** | Structural compositor/OS protocol ceiling (e.g. `zwlr_foreign_toplevel` urgency on `Labwc`) or formally deferred scope. |
@@ -101,14 +100,14 @@ stateDiagram-v2
     OK --> PENDING : Gate 1 Code or MOC Modification
     OK --> KO : Live Regression Detected
 
-    KO --> KOTEST : Gate 1 Fix Built (BuildDeb.sh)
+    KO --> KOTEST : Gate 1 Fix Built (builders/*/Build*.sh)
 
     KOTEST --> KOOK : Gate 2 Human Re-Test PASS
     KOTEST --> KOIMP : Gate 2 Re-Test PASS (Polish Queued)
     KOTEST --> KO : Gate 2 Human Re-Test FAIL
 
     KOOK --> KOTEST : Gate 1 Subsequent Code/MOC Touch
-    KOIMP --> KOTEST : Gate 1 Polish Fix Built (BuildDeb.sh)
+    KOIMP --> KOTEST : Gate 1 Polish Fix Built (builders/*/Build*.sh)
 
     NA --> PENDING : Compositor Protocol Support Added
 ```
@@ -157,16 +156,66 @@ When cutting the formal FAT protocol for a new milestone, every prior test point
 | **`v0.7.0`** | 2026-11-06 | Public Beta 1 (Concluded) | 379 | 15 | 4 `ko`** |
 | **`v0.7.1.2`** | 2026-11-14 | Public Beta 2 + Hotfix (100% Pass) | 377 | `12 [ko->ok] (39 inst.)` | 0 |
 | **`v0.7.2`** | 2026-11-18 | Public Beta 3 — 3-Zone HAL & Multi-Dock (100% Pass) | 402 | `24 [ko->ok] (59 inst.)` | 0 |
-| **`v0.7.3.2`** | 2026-11-22 | Public Beta 4 + Hotfix — Unified Linux & Native Windows (100% Pass) | 537 | `30 [ko->ok] (66 inst.)` | 0 |
-| **ERA 2 SUB** | **Formal FAT** | **13 Concluded Milestones** | **3,732+** | **154** | **0** |
-| **TOTAL** | **All Eras** | **19 Qualified Milestones** | **3,732+** | **188** | **0** |
+| **`v0.7.3.2`** | 2026-11-22 | Public Beta 4 + Hotfix — Unified Linux & Native Windows (4 Platforms, 100% Pass) | 537 | `30 [ko->ok] (66 inst.)` | 0 |
+| **`v0.7.4`** | 2026-11-25 | Final Public Beta 5 — Native FreeBSD, Windows & Linux (7 Platforms, 100% Pass) | 958 | `14 [ko->ok] (63 inst.)` | 0 |
+| **ERA 2 SUB** | **Formal FAT** | **14 Concluded Milestones** | **4,690** | **168** | **0** |
+| **TOTAL** | **All Eras** | **20 Qualified Milestones** | **4,690** | **202** | **0** |
 
 *\*Note on `v0.5.0`: The 7 `[ko]` defects logged were remediated and qualified in `v0.5.1`.*  
 *\*\*Note on `v0.7.0` $\longrightarrow$ `v0.7.1.2`: `FAT/2026-11-05 FAT 0.7.0.txt` concluded at `359/377` (`95.2%`); all 18 transferred `[ko]` instances plus all `v0.7.1` / `v0.7.1.2` burn-in hotfixes achieved `100.0%` qualification (`375/375` applicable: `336 [ok]` + `39 [ko->ok]` + `2 [NA]` + `0 [ko]`) in `FAT/2026-11-13 FAT 0.7.1.txt`.*
 
 ---
 
-## 🖥️ 4-Platform Qualification Breakdown (`v0.7.3.2` — CONCLUDED & FROZEN `100.0%`)
+## 🖥️ 7-Platform Qualification Breakdown (`v0.7.4` — CONCLUDED & FROZEN `100.0%`)
+
+| # | Platform / OS & Compositor Backend | `0. Crashes` | Qualified `[ok]` | Squashed `[ko->ok]` | `[NA]` | Open `[ko]` | Final Result |
+| :-: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1 | **FreeBSD — GNOME Shell (`Mutter` Backend)** | **`[ko->ok]`** | **127** | **11** | 1 | 0 | **`138 / 138` (`100.0%`)** |
+| 2 | **FreeBSD — KDE Plasma 6 (`KWin` Backend)** | `[ok]` | **129** | **9** | 1 | 0 | **`138 / 138` (`100.0%`)** |
+| 3 | **FreeBSD — Labwc (`wlroots` Backend)** | `[ok]` | **126** | **7** | 6 | 0 | **`133 / 133` (`100.0%`)** |
+| 4 | **Windows (`Win32 / DWM`, `7 ⟷ 11+`)** | **`[ko->ok]`** | **127** | **10** | 3 | 0 | **`137 / 137` (`100.0%`)** |
+| 5 | **Linux — GNOME Shell (`Mutter` Backend)** | `[ok]` | **124** | **10** | 0 | 0 | **`134 / 134` (`100.0%`)** |
+| 6 | **Linux — KDE Plasma 6 (`KWin` Backend)** | `[ok]` | **126** | **8** | 0 | 0 | **`134 / 134` (`100.0%`)** |
+| 7 | **Linux — Labwc (`wlroots` Backend)** | `[ok]` | **122** | **6** | 5 | 0 | **`128 / 128` (`100.0%`)** |
+| — | **TOTAL (`958` Defined / `942` Applicable — 7 Platforms)** | **2 `[ko->ok]`** | **`881`** | **`61` (+2 on `0.` = `63` / `14` unique)** | **16** | **0** | **`942 / 942` (`100.0%`)** |
+
+---
+
+## 🟢 Remediated & Qualified Defects (`[ko->ok]`) in `v0.7.4` Final Public Beta 5 (`2026-11-25` — `100.0%` 7-Platform Qualified `942/942`, `0` Open `[ko]`)
+
+All **14 unique defects** (`63` multi-OS verification instances: `61` numbered tests + `2` crash-gate remediations on `0. Crashes`) passed Gate 1 across all 3 operating-system toolchains (`0` compiler warnings/errors, `8/8` Linux & FreeBSD HAL Purity Firewall `GREEN`, `0` Pitfall #14 UAFs on Linux ELF, FreeBSD ELF & Windows PE32+, Zero-DLL Gate `GREEN` at 25 stock Windows OS DLLs) and were live-certified by the human maintainer at Gate 2 across all **7 platforms** (**FreeBSD GNOME/KDE/Labwc**, **Windows 11**, **Linux GNOME/KDE/Labwc**, including live dual-monitor `FAT 7.6` verification on all 7 platforms) in [`FAT/2026-11-25 FAT 0.7.4.txt`](2026-11-25%20FAT%200.7.4.txt):
+
+1. **Live Crash Remediations (`FAT 0. Crashes during test` — `[ko->ok]` ×2 on FreeBSD GNOME & Windows 11):**
+   - **FreeBSD GNOME (`Mutter 47.10` `SIGSEGV`):** `gnome-shell` crashed systematically inside `meta_window_set_transient_for()` ➔ `meta_stack_update_transient()` (`W8 [untitled]`, `warn_on_incorrectly_unmanaged_window`) whenever WayPlank opened a GTK3 `Gtk.Menu` / `Gtk.ComboBox` (`xdg_popup`). Fixed in `hal/Freedesktop/Mutter/MutterBackend.vala` (`v074_bridge_7`) by returning `'unknown'` in `_classifyWindow()` for untitled/role-less, `override_redirect`, and popup/menu/tooltip/combo window types (`0` crashes on re-test).
+   - **Windows 11 (`IconChooserDialog` Browse File Crash):** Clicking *Browse File...* aborted `wayplank.exe` with `GLib-GIO ERROR: No GSettings schemas are installed on the system (0x40000015)` due to a single-character env-var typo (`G_SETTINGS_SCHEMA_DIR` ➔ `GSETTINGS_SCHEMA_DIR`) in `hal/Windows/WindowsHalBootstrap.vala` (`0` crashes on re-test).
+2. **Explorer Smart Folders Category Substring Bug & Empty Folders (`FAT 1.9` — `[ko->ok]` ×7 across all 7 platforms; discovered on FreeBSD):**
+   - Replaced substring `categories.contains(tag)` with exact `;`-delimited token matching in `hal/Freedesktop/Xdg/XdgAppSystem.vala` and deferred folder creation until `matched_paths.size > 0` (`lib/Factories/ItemFactory.vala`), preventing unrelated terminals/apps from appearing inside Explorer *Games* and avoiding empty smart folders.
+3. **Universal Folder `Change Icon...` Parity (`FAT 1.10` — `[ko->ok]` ×7 across all 7 platforms):**
+   - Added Zone 1 `lib/Services/CustomIconService.vala`, `IconChooserDialog.show_for_launcher_uri()`, and backwards-compatible migration so right-click *Change Icon...* works cleanly on folders and launchers inside folders across Linux, FreeBSD, and Windows.
+4. **GNOME Mutter Native `xdg_popup` Context-Menu Guard (`FAT 2.6` — `[ko->ok]` ×2 on FreeBSD GNOME & Linux GNOME):**
+   - Eliminated `MetaStack` Use-After-Free `SIGSEGV` on GTK3 context menus (`MutterBackend.vala` `v074_bridge_7`).
+5. **Cross-OS Intellihide & Dodge Active Popup/Dialog Parent-Focus Retention (`FAT 3.3` `[ko->ok]` ×5 & `FAT 3.4` `[ko->ok]` ×5 on FreeBSD GNOME, FreeBSD KDE, Windows 11, Linux GNOME & Linux KDE; `[NA]` on Linux & FreeBSD Labwc):**
+   - Propagated active state to the root owner / transient parent when a popup, toolwindow, or dialog (e.g. Notepad++ *Find/Search*, *Save As*, *Preferences*) holds focus across all three geometric drivers: `GetAncestor(fg_hwnd, GA_ROOTOWNER)` in `hal/Windows/Compositor/win32-bridge.c`, `workspace.activeWindow.transientFor` walk (`guard < 8`) in `hal/Freedesktop/KWin/KWinBridge.vala`, and `focusWin.get_transient_for()` walk (`v074_bridge_8`) in `hal/Freedesktop/Mutter/MutterBackend.vala`, paired with Zone 1 `HideManager.active_family_intersects()` (`lib/HideManager.vala`, zero Zone 2 edits).
+6. **Zoom-Consistent Master `SurfaceCache` Folder Hover Fix (`FAT 5.3` — `[ko->ok]` ×7 across all 7 platforms; discovered on FreeBSD):**
+   - Pre-rendered icons once at `ZoomIconSize` in Zone 1 `lib/DockRenderer.vala`, evicted lower-res downscale entries in `lib/Drawing/SurfaceCache.vala`, and enforced `Cairo.Filter.BEST` in `lib/Drawing/Surface.vala`, eliminating the square fallback icon glitch when hovering zoomed folder items.
+7. **Non-Systemd Session & Power `ConsoleKit2` / `acpiconf` / `shutdown` Fallback (`FAT 6.5` — `[ko->ok]` ×3 on FreeBSD GNOME, FreeBSD KDE & FreeBSD Labwc):**
+   - Guarded `systemctl`/`loginctl` existence checks and wired `org.freedesktop.ConsoleKit.Manager`, `acpiconf -s 3`, and `shutdown -r/-p now` in `hal/Freedesktop/Dbus/FreedesktopSessionPower.vala`.
+8. **Multi-OS Priority Network Docklet, 4-Arc Wi-Fi SVGs & Copy-All IPs (`FAT 6.13` — `[ko->ok]` ×7 across all 7 platforms):**
+   - Fixed single-interface / virtual-adapter masking (e.g. VMware NIC hiding real Wi-Fi/Wired links) and single-IP clipboard copy in Zone 1 `lib/Items/NetworkDockItem.vala` + `lib/Drawing/DrawingService.vala` (`107` SVGs) and Zone 3 drivers (`NetworkManagerDbusService`, `LinuxNetworkTelemetry`, `bsd-kernel-bridge.c`, `Win32Telemetry`), adding priority ordering (`Wi-Fi ➔ Wired ➔ Virtual`), live 1 s RX/TX telemetry, per-interface submenus, and labeled *Copy All IPs*.
+9. **GNOME Mutter Atomic Monitor/Edge Move-Resize (`FAT 7.2` — `[ko->ok]` ×2 on FreeBSD GNOME & Linux GNOME):**
+   - Replaced non-atomic two-step `move_frame` + `move_resize_frame` in `_applyDockPosition` / `_applyPoofPosition` with a single atomic `win.move_resize_frame(true, targetX, targetY, width, height)` (`MutterBackend.vala` `v074_bridge_6`).
+10. **HiDPI Preferences Docklets Selector Icons (`FAT 7.8` — `[ko->ok]` ×7 across all 7 platforms):**
+    - Replaced unscaled `35×35` fallback icons in Zone 1 `lib/Widgets/PreferencesWindow.vala` (`ensure_docklet_icon()`) with HiDPI `DrawingService.load_icon(spec, 36 * scale, 36 * scale)` + `Gdk.cairo_surface_create_from_pixbuf`.
+11. **One-Click `OK` Cleanup of Stale Internal `.dockitem` Files (`FAT 7.17` — `[ko->ok]` ×7 across all 7 platforms):**
+    - Fixed startup infinite warning loop on orphaned/corrupted internal `.dockitem`s in Zone 1 `lib/DockPreferences.vala` (`purge_discarded_dockitems()`) + `lib/Factories/AbstractMain.vala` (`ResponseType.OK`), while preserving 100% non-destructive disk immunity until explicit user `OK`.
+12. **Windows Embedded GSchemas `GSETTINGS_SCHEMA_DIR` Fix & UWP/Metro Launcher + Stock Icon Parity (`FAT 15.3` `[ko->ok]` ×1 & `FAT 15.6` `[ko->ok]` ×1 on Windows 11):**
+    - Fixed `G_SETTINGS_SCHEMA_DIR` ➔ `GSETTINGS_SCHEMA_DIR` (`hal/Windows/WindowsHalBootstrap.vala`), fixed UWP/Metro app launching (e.g. Microsoft Teams via `aumid://`) & synthetic icon fallback (`Win32AppSystem.vala` / `win32-app-bridge.c`), and removed broken `SIID_SETTINGS` (`106`) mapping so context menus render crisp `settings-gear.svg`.
+13. **New `v0.7.4` Multi-OS Capabilities Certified `[ok]` Across All 7 Platforms (`0` regressions):**
+    - Native FreeBSD 14.x / 15.x & GhostBSD kernel backend (`hal/BSD/` + `bsd-kernel-bridge.c`: `libprocstat`/`sysctl`, OpenZFS ARC-aware RAM, `libdevstat`, ACPI battery, PipeWire/PulseAudio + OSS `/dev/mixer*`, `<sys/backlight.h>` + `hw.acpi.video.*`, `getifaddrs`/`SIOCGIFMEDIA`/`IEEE80211_IOC_SSID`/`PF_ROUTE`, `builders/bsd/BuildPkg.sh` ➔ `build/bsd/wayplank-0.7.4.pkg`), capability-driven multi-OS **`Workspace Only`** filtering (`FAT 7.13`), and live dual-monitor positioning (`FAT 7.6`) across all 7 platforms. *(Note: VM-environment issues on FreeBSD — `qt6-base 6.11.2` `kwin_wayland` startup, missing `kactivitymanagerd`/`plasma-integration-qt6` packages, nested `plasma-shutdown`, and VMware `svga.numDisplays` — were external guest-OS issues, not WayPlank defects.)*
+
+---
+
+## 🖥️ Historical 4-Platform Qualification Breakdown (`v0.7.3.2` — CONCLUDED & FROZEN `100.0%`)
 
 | Platform / Compositor Backend | Qualified `[ok]` | Squashed `[ko->ok]` | `[NA]` | Open `[ko]` | Pending | Final Result |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -370,4 +419,4 @@ All remediations below passed Gate 1 (`0` compiler warnings/errors, `8/8` HAL Pu
 12. [`FAT/2026-11-13 FAT 0.7.1.txt`](2026-11-13%20FAT%200.7.1.txt) — Covers `v0.7.1` / `v0.7.1.2` (Public Beta 2 + Hotfix — 100.0% Multi-Compositor Qualification: 377 tests defined, 375/375 applicable passed — `100.0% PASS`: 336 `[ok]` consolidated baseline + 39 `[ko->ok]` squashed across GNOME Shell, KDE Plasma 6, and Labwc, 2 `[NA]`, 0 `[ko]` open defects)
 13. [`FAT/2026-11-18 FAT 0.7.2.txt`](2026-11-18%20FAT%200.7.2.txt) — Covers `v0.7.2` (Public Beta 3 — 3-Zone Linux HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine `dock1`–`dock4`, Multi-Seat `Screen 1..4` arbitration, 2D `(Screen, Edge)` collision gray-out, non-destructive 9-profile fault armor, `dock1`-only WayPlank icon & unpinned running apps, automatic secondary-dock deletion when emptied, cross-dock drag/pinning/suppression, global $O(\log N)$ dichotomic `AppUsageService` vector, strict `(Same Type) ∧ (Target Zone)` accordion unfold, and Labwc zero-stall portal/AppMenu/reverse-DNS PID hardening — **100.0% Multi-Compositor Qualified: `402` tests defined / `397/397` Applicable Passed [`338 [ok]` + `59 [ko->ok]` across `24` unique IDs], `5 [NA]`, `0 [ko]`**: GNOME `Mutter` `135/135`, KDE Plasma 6 `KWin` `134/134`, `Labwc` `128/128`)
 14. [`FAT/2026-11-22 FAT 0.7.3.txt`](2026-11-22%20FAT%200.7.3.txt) — Covers `v0.7.3` / `v0.7.3.2` (Public Beta 4 + Hotfix — First Unified Linux Wayland & Native Windows Zero-DLL Monolith `build/wayplank.exe` + 64-Bit NSIS Installer `build/WayPlank-0.7.3.2-Setup.exe` — **CONCLUDED & FROZEN at `100.0%` 4-Platform FAT Qualified: `537` tests defined / `529/529` Applicable Passed [`463 [ok]` + `66 [ko->ok]` across `30` unique IDs], `8 [NA]`, `0 [ko]`**: Windows 11 `136/136`, GNOME `Mutter` `133/133`, KDE Plasma 6 `KWin` `133/133`, `Labwc` `127/127`)
-15. [`FAT/2026-11-22 FAT 0.7.4.txt`](2026-11-22%20FAT%200.7.4.txt) — Covers `v0.7.4` (Final Public Beta 5 — Native FreeBSD Kernel Backend `hal/BSD/`, Multi-OS Priority Network & Live 1s RX/TX Menu, Capability-Driven `Workspace Only`, Folder `Change Icon...`, HiDPI Docklets Icons, Mutter `v074_bridge_7` Atomic Positioning & Native `xdg_popup` SIGSEGV Protection, One-Click `OK` Cleanup of Stale `.dockitem`s, and Unified 3-OS `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` Delivery — **CONCLUDED & FROZEN at `100.0%` 5-Platform FAT Qualified: `675` tests defined / `661/661` Applicable Passed [`653 [ok]` + `8 [ko->ok]` across `3` unique IDs: `1.10`, `2.6`, `15.6`], `14 [NA]`, `0 [ko]`**: FreeBSD 15.1 `132/132` [Labwc + KWin + GNOME], Windows 11 `136/136`, GNOME `Mutter` Linux `133/133`, KDE Plasma 6 `KWin` Linux `133/133`, `Labwc` Linux `127/127`)
+15. [`FAT/2026-11-25 FAT 0.7.4.txt`](2026-11-25%20FAT%200.7.4.txt) — Covers `v0.7.4` (Final Public Beta 5 — Native FreeBSD Kernel Backend `hal/BSD/`, Multi-OS Priority Network & Live 1s RX/TX Menu, Capability-Driven `Workspace Only`, Folder `Change Icon...`, HiDPI Docklets Icons, Mutter `v074_bridge_8` Atomic Positioning, Native `xdg_popup` SIGSEGV Protection & Transient Parent Focus, Cross-OS Intellihide / Dodge Active Popup & Dialog Parent-Focus Retention, Zoom-Consistent Master `SurfaceCache`, Exact XDG Category Tokens, Windows `GSETTINGS_SCHEMA_DIR`, UWP/Metro & 4-Tier Brightness Hardening [Issue #38, `6.10a`/`6.10b`], Free Mode Smart Accordion + Damped-$L^2$ Folder Norm + Per-Dock Mode/Count [Issue #31, `6.19`, `7.9`, `7.17`, `14.6`], One-Click `OK` Cleanup of Stale `.dockitem`s, and Unified 3-OS `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` Delivery — **CONCLUDED & FROZEN at `100.0%` 7-Platform FAT Qualified: `958` tests defined / `942/942` Applicable Passed [`881 [ok]` + `61 [ko->ok]` + `2 [ko->ok]` on `0. Crashes` = `63` verifications across `14` unique IDs: `0.`, `1.9`, `1.10`, `2.6`, `3.3`, `3.4`, `5.3`, `6.5`, `6.13`, `7.2`, `7.8`, `7.17`, `15.3`, `15.6`], `16 [NA]`, `0 [ko]`**: FreeBSD GNOME `138/138`, FreeBSD KDE Plasma 6 `138/138`, FreeBSD Labwc `133/133`, Windows 11 `137/137`, Linux GNOME `134/134`, Linux KDE Plasma 6 `134/134`, Linux Labwc `128/128`)

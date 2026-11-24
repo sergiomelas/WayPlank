@@ -484,6 +484,56 @@ namespace Plank
 		// intelligent hiding code
 		//
 		
+		bool active_family_intersects (Gdk.Rectangle dock_rect, bool whole_app)
+		{
+			var windows = Hal.Windows.get_windows ();
+			if (windows.size == 0)
+				return Hal.Windows.active_window_intersects (dock_rect);
+
+			var active_wins = new Gee.ArrayList<WindowInfo> ();
+			foreach (var w in windows) {
+				if (!w.Active || w.Minimized || !w.CurrentDesktop)
+					continue;
+				if (w.Geometry.width > 0 && w.Geometry.height > 0
+					&& w.Geometry.intersect (dock_rect, null))
+					return true;
+				active_wins.add (w);
+			}
+
+			if (active_wins.size == 0)
+				return Hal.Windows.active_window_intersects (dock_rect);
+
+			foreach (var aw in active_wins) {
+				if (!whole_app && !aw.IsDialog)
+					continue;
+
+				foreach (var w in windows) {
+					if (w == aw || w.Minimized || !w.CurrentDesktop)
+						continue;
+					if (w.Geometry.width <= 0 || w.Geometry.height <= 0
+						|| !w.Geometry.intersect (dock_rect, null))
+						continue;
+
+					if (aw.Pid > 0 && w.Pid == aw.Pid)
+						return true;
+
+					if (whole_app && aw.ApplicationId != "" && w.ApplicationId != ""
+						&& aw.ApplicationId.ascii_casecmp (w.ApplicationId) == 0)
+						return true;
+
+					if (aw.IsDialog && aw.Pid > 0 && w.Pid > 0 && w.Pid != aw.Pid) {
+						var snap = Hal.Apps.inspect_process (w.Pid, true);
+						foreach (int child_pid in snap.child_pids) {
+							if (child_pid == aw.Pid)
+								return true;
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
 		void update_window_intersect ()
 		{
 			var dock_rect = controller.position_manager.get_static_dock_region ();
@@ -496,9 +546,12 @@ namespace Plank
 			} else {
 				switch (get_effective_hide_mode ()) {
 				case HideType.INTELLIGENT:
-				case HideType.DODGE_ACTIVE:
-					active_application_intersect = Hal.Windows.active_window_intersects (dock_rect);
+					active_application_intersect = active_family_intersects (dock_rect, true);
 					active_window_intersect = active_application_intersect;
+					break;
+				case HideType.DODGE_ACTIVE:
+					active_window_intersect = active_family_intersects (dock_rect, false);
+					active_application_intersect = active_window_intersect;
 					break;
 				case HideType.DODGE_MAXIMIZED:
 					active_maximized_window_intersect = Hal.Windows.maximized_window_intersects (dock_rect);

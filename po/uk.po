@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.4\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-23 12:46+0100\n"
-"PO-Revision-Date: 2026-11-23 12:46+0100\n"
+"POT-Creation-Date: 2026-11-25 22:16+0100\n"
+"PO-Revision-Date: 2026-11-25 22:16+0100\n"
 "Last-Translator: Michailo Buchko <mixabuchko@gmail.com>\n"
 "Language-Team: Ukrainian <uk@li.org>\n"
 "Language: uk\n"
@@ -49,13 +49,13 @@ msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank розроблено виключно для сеансів Wayland."
 
 #: hal/Freedesktop/Xdg/FreedesktopScreenshotProvider.vala:78
-#: lib/Items/ScreenshotDockItem.vala:38 data/ui/preferences.ui:2309
+#: lib/Items/ScreenshotDockItem.vala:38 data/ui/preferences.ui:2356
 msgid "Screenshot"
 msgstr "Знімок екрана"
 
 #: hal/Interfaces/ISystemTelemetry.vala:316
-#: hal/Windows/Telemetry/Win32Telemetry.vala:423
-#: hal/Windows/Telemetry/Win32Telemetry.vala:434
+#: hal/Windows/Telemetry/Win32Telemetry.vala:479
+#: hal/Windows/Telemetry/Win32Telemetry.vala:490
 msgid "Drive not available"
 msgstr "Диск недоступний"
 
@@ -64,55 +64,51 @@ msgid ""
 "Not supported on Windows 7/8 (Virtual Desktops require Windows 10 or newer)"
 msgstr "Не підтримується у Windows 7/8 (віртуальні робочі столи потребують Windows 10 або новішої версії)"
 
-#: lib/DockPreferences.vala:887 lib/DockPreferences.vala:898
-#: lib/Factories/AbstractMain.vala:2178
+#: lib/DockPreferences.vala:1096 lib/DockPreferences.vala:1107
+#: lib/Factories/AbstractMain.vala:2241
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "Усі параметри (latch-state.ini пошкоджено)"
 
-#: lib/Factories/AbstractMain.vala:1124
+#: lib/Factories/AbstractMain.vala:1134 lib/Factories/AbstractMain.vala:1449
 msgid "About WayPlank"
 msgstr "Про WayPlank"
 
-#: lib/Factories/AbstractMain.vala:1155
+#: lib/Factories/AbstractMain.vala:1163
 msgid "Fully supported compositors: none"
 msgstr "Повністю підтримувані композитори: немає"
 
-#: lib/Factories/AbstractMain.vala:1156
+#: lib/Factories/AbstractMain.vala:1164
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "Повністю підтримувані композитори: %s"
 
-#: lib/Factories/AbstractMain.vala:1161
+#: lib/Factories/AbstractMain.vala:1169
 msgid "Partially supported compositors: none"
 msgstr "Частково підтримувані композитори: немає"
 
-#: lib/Factories/AbstractMain.vala:1162
+#: lib/Factories/AbstractMain.vala:1170
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "Частково підтримувані композитори: %s"
 
-#: lib/Factories/AbstractMain.vala:1164
+#: lib/Factories/AbstractMain.vala:1174
 #, c-format
 msgid "Supported operating systems: %s"
 msgstr "Підтримувані операційні системи: %s"
 
-#: lib/Factories/AbstractMain.vala:1171
+#: lib/Factories/AbstractMain.vala:1229
 msgid "Website"
 msgstr "Вебсайт"
 
-#: lib/Factories/AbstractMain.vala:1185 src/Main.vala:191
-msgid "translator-credits"
-msgstr "Michailo Buchko <mixabuchko@gmail.com>"
-
-#: lib/Factories/AbstractMain.vala:2169 lib/Factories/AbstractMain.vala:2179
+#: lib/Factories/AbstractMain.vala:2232 lib/Factories/AbstractMain.vala:2242
 msgid "Defaulting partially to default config for:"
 msgstr "Часткове скидання до типової конфігурації для:"
 
-#: lib/Factories/AbstractMain.vala:2171 lib/Factories/AbstractMain.vala:2175
+#: lib/Factories/AbstractMain.vala:2234 lib/Factories/AbstractMain.vala:2238
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "Відхилено пошкоджений або недійсний елемент dockitem:"
 
-#: lib/Factories/AbstractMain.vala:2198 lib/Factories/AbstractMain.vala:2201
+#: lib/Factories/AbstractMain.vala:2261 lib/Factories/AbstractMain.vala:2264
 msgid "Load environment failed"
 msgstr "Помилка завантаження середовища"
 
@@ -126,12 +122,12 @@ msgstr "Закрити _всі"
 msgid "_Close"
 msgstr "_Закрити"
 
-#: lib/Items/ApplicationDockItem.vala:371 lib/Items/FileDockItem.vala:752
-#: lib/Items/FileDockItem.vala:904
+#: lib/Items/ApplicationDockItem.vala:371 lib/Items/FileDockItem.vala:776
+#: lib/Items/FileDockItem.vala:928
 msgid "_Keep in Dock"
 msgstr "_Залишити в доку"
 
-#: lib/Items/ApplicationDockItem.vala:377
+#: lib/Items/ApplicationDockItem.vala:377 lib/Widgets/DockWindow.vala:1252
 msgid "Keep Always _Visible"
 msgstr "Завжди _видима"
 
@@ -140,12 +136,12 @@ msgid "Move to _Folder"
 msgstr "Перемістити до _теки"
 
 #: lib/Items/ApplicationDockItem.vala:393 lib/Widgets/DockFolderDialogs.vala:65
-#: lib/Widgets/DockWindow.vala:888
+#: lib/Widgets/DockWindow.vala:941
 msgid "Folder"
 msgstr "Тека"
 
-#: lib/Items/ApplicationDockItem.vala:412 lib/Items/FileDockItem.vala:770
-#: lib/Items/FileDockItem.vala:928 lib/Widgets/FolderMenuWindow.vala:1274
+#: lib/Items/ApplicationDockItem.vala:412 lib/Items/FileDockItem.vala:794
+#: lib/Items/FileDockItem.vala:952 lib/Widgets/FolderMenuWindow.vala:1274
 msgid "Change _Icon..."
 msgstr "Змінити _піктограму..."
 
@@ -171,7 +167,7 @@ msgstr "Розряджається"
 msgid "Not charging"
 msgstr "Не заряджається"
 
-#: lib/Items/BatteryDockItem.vala:122 lib/Items/FileDockItem.vala:998
+#: lib/Items/BatteryDockItem.vala:122 lib/Items/FileDockItem.vala:1022
 msgid "Unknown"
 msgstr "Невідомо"
 
@@ -209,7 +205,7 @@ msgstr "Параметри _живлення..."
 msgid "_Remove from Dock"
 msgstr "_Вилучити з дока"
 
-#: lib/Items/BrightnessDockItem.vala:85 data/ui/preferences.ui:2411
+#: lib/Items/BrightnessDockItem.vala:85 data/ui/preferences.ui:2458
 msgid "Screen Brightness"
 msgstr "Яскравість екрана"
 
@@ -256,33 +252,44 @@ msgstr "Система: %d%% | ЦП: %d%% | ОЗП: %d%% (%.1f / %.1f ГБ) | Д
 msgid "_System Monitor..."
 msgstr "_Системний монітор..."
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:683
+#: lib/Items/DefaultApplicationDockItemProvider.vala:901
 msgid "Collapse pinned apps"
 msgstr "Згорнути закріплені програми"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:685
+#: lib/Items/DefaultApplicationDockItemProvider.vala:902
+msgid "Collapse hidden items"
+msgstr "Згорнути приховані елементи"
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:905
 #, c-format
 msgid "Hidden pinned apps: %d"
 msgstr "Приховані закріплені програми: %d"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:687
-#: lib/Items/DefaultApplicationDockItemProvider.vala:699
+#: lib/Items/DefaultApplicationDockItemProvider.vala:906
+#, c-format
+msgid "Hidden items: %d"
+msgstr "Приховані елементи: %d"
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:908
+#: lib/Items/DefaultApplicationDockItemProvider.vala:921
 msgid "Click to expand"
 msgstr "Натисніть, щоб розгорнути"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:696
-#: lib/Items/DefaultApplicationDockItemProvider.vala:699
-#: lib/Items/DefaultApplicationDockItemProvider.vala:700
-#: data/ui/preferences.ui:2594
-msgid "Docklets"
-msgstr "Докліти"
+#: lib/Items/DefaultApplicationDockItemProvider.vala:917
+msgid "Collapse docklets"
+msgstr "Згорнути доклети"
 
-#: lib/Items/DigitalClockDockItem.vala:39 data/ui/preferences.ui:2103
+#: lib/Items/DefaultApplicationDockItemProvider.vala:919
+#, c-format
+msgid "Hidden docklets: %d"
+msgstr "Приховані доклети: %d"
+
+#: lib/Items/DigitalClockDockItem.vala:39 data/ui/preferences.ui:2150
 msgid "Digital Clock"
 msgstr "Цифровий годинник"
 
 #: lib/Items/DoNotDisturbDockItem.vala:46
-#: lib/Items/DoNotDisturbDockItem.vala:216 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:216 data/ui/preferences.ui:1993
 msgid "Do Not Disturb"
 msgstr "Не турбувати"
 
@@ -306,7 +313,7 @@ msgstr "Вимкнути звук сповіщень"
 msgid "_Notification Settings..."
 msgstr "_Параметри сповіщень..."
 
-#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2462
+#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2509
 msgid "Removable Drives"
 msgstr "Знімні диски"
 
@@ -345,55 +352,55 @@ msgstr "Знімні пристрої не підключено"
 msgid "No Removable Devices"
 msgstr "Немає знімних пристроїв"
 
-#: lib/Items/FileDockItem.vala:597
+#: lib/Items/FileDockItem.vala:621
 #, c-format
 msgid "Drop to copy into %s"
 msgstr "Відпустіть, щоб скопіювати до %s"
 
-#: lib/Items/FileDockItem.vala:737 lib/Widgets/FolderMenuWindow.vala:692
+#: lib/Items/FileDockItem.vala:761 lib/Widgets/FolderMenuWindow.vala:692
 #: lib/Widgets/FolderMenuWindow.vala:982
 msgid "Empty Folder"
 msgstr "Порожня тека"
 
-#: lib/Items/FileDockItem.vala:764
+#: lib/Items/FileDockItem.vala:788
 msgid "_Open in File Browser"
 msgstr "_Відкрити у файловому менеджері"
 
-#: lib/Items/FileDockItem.vala:836
+#: lib/Items/FileDockItem.vala:860
 msgid "Empty"
 msgstr "Порожньо"
 
-#: lib/Items/FileDockItem.vala:916 lib/Widgets/FolderMenuWindow.vala:1238
-#: lib/Widgets/PreferencesWindow.vala:978
+#: lib/Items/FileDockItem.vala:940 lib/Widgets/FolderMenuWindow.vala:1238
+#: lib/Widgets/PreferencesWindow.vala:990
 msgid "_Open"
 msgstr "_Відкрити"
 
-#: lib/Items/FileDockItem.vala:920
+#: lib/Items/FileDockItem.vala:944
 msgid "Open Containing _Folder"
 msgstr "Відкрити _теку з файлом"
 
-#: lib/Items/FileDockItem.vala:982
+#: lib/Items/FileDockItem.vala:1006
 msgid "Internet"
 msgstr "Інтернет"
 
-#: lib/Items/FileDockItem.vala:984
+#: lib/Items/FileDockItem.vala:1008
 msgid "Office"
 msgstr "Офіс"
 
-#: lib/Items/FileDockItem.vala:986
+#: lib/Items/FileDockItem.vala:1010
 msgid "Media"
 msgstr "Мультимедіа"
 
-#: lib/Items/FileDockItem.vala:988
+#: lib/Items/FileDockItem.vala:1012
 msgid "Games"
 msgstr "Ігри"
 
-#: lib/Items/FileDockItem.vala:990
+#: lib/Items/FileDockItem.vala:1014
 msgid "Utilities"
 msgstr "Утиліти"
 
 #: lib/Items/MprisDockItem.vala:49 lib/Items/MprisDockItem.vala:265
-#: lib/Services/ApplicationIdentity.vala:3546 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3546 data/ui/preferences.ui:2201
 msgid "Media Player"
 msgstr "Медіапрогравач"
 
@@ -512,20 +519,20 @@ msgstr "Перетягніть сюди програми чи файли"
 msgid "Drop to add to dock"
 msgstr "Відпустіть, щоб додати до дока"
 
-#: lib/Items/PlankDockItem.vala:74 lib/Items/PreferencesDockItem.vala:366
+#: lib/Items/PlankDockItem.vala:74 lib/Items/PreferencesDockItem.vala:377
 msgid "Report a _Bug Online..."
 msgstr "Повідомити про _помилку в мережі..."
 
-#: lib/Items/PlankDockItem.vala:78 lib/Items/PreferencesDockItem.vala:358
-#: lib/Widgets/DockWindow.vala:1300
+#: lib/Items/PlankDockItem.vala:78 lib/Items/PreferencesDockItem.vala:369
+#: lib/Widgets/DockWindow.vala:1380
 msgid "_Shortcuts & Gestures..."
 msgstr "_Скорочення та жести..."
 
-#: lib/Items/PlankDockItem.vala:89 lib/Items/PreferencesDockItem.vala:297
+#: lib/Items/PlankDockItem.vala:89 lib/Items/PreferencesDockItem.vala:308
 msgid "Add _Folder..."
 msgstr "Додати _теку..."
 
-#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:304
+#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:315
 msgid "Open _Dock..."
 msgstr "Відкрити _панель..."
 
@@ -533,21 +540,21 @@ msgstr "Відкрити _панель..."
 msgid "_Preferences"
 msgstr "_Параметри"
 
-#: lib/Items/PlankDockItem.vala:114 lib/Items/PreferencesDockItem.vala:362
+#: lib/Items/PlankDockItem.vala:114 lib/Items/PreferencesDockItem.vala:373
 msgid "User Guide..."
 msgstr "Посібник користувача..."
 
-#: lib/Items/PlankDockItem.vala:118 lib/Items/PreferencesDockItem.vala:370
+#: lib/Items/PlankDockItem.vala:118 lib/Items/PreferencesDockItem.vala:381
 msgid "_About"
 msgstr "_Про програму"
 
-#: lib/Items/PlankDockItem.vala:124 lib/Items/PreferencesDockItem.vala:376
-#: lib/Widgets/PreferencesWindow.vala:526
+#: lib/Items/PlankDockItem.vala:124 lib/Items/PreferencesDockItem.vala:387
+#: lib/Widgets/PreferencesWindow.vala:532
 msgid "_Close This Dock"
 msgstr "_Закрити цю панель"
 
-#: lib/Items/PlankDockItem.vala:137 lib/Items/PreferencesDockItem.vala:388
-#: lib/Widgets/DockWindow.vala:1316
+#: lib/Items/PlankDockItem.vala:137 lib/Items/PreferencesDockItem.vala:399
+#: lib/Widgets/DockWindow.vala:1396
 msgid "_Quit"
 msgstr "_Завершити"
 
@@ -619,27 +626,27 @@ msgstr "_Мережа / Wi-Fi"
 msgid "_Do Not Disturb"
 msgstr "_Не турбувати"
 
-#: lib/Items/PreferencesDockItem.vala:271
+#: lib/Items/PreferencesDockItem.vala:282
 msgid "_Apply"
 msgstr "_Застосувати"
 
-#: lib/Items/PreferencesDockItem.vala:313 lib/Widgets/DockWindow.vala:1306
+#: lib/Items/PreferencesDockItem.vala:324 lib/Widgets/DockWindow.vala:1386
 msgid "_Preferences..."
 msgstr "_Параметри..."
 
-#: lib/Items/PreferencesDockItem.vala:322
+#: lib/Items/PreferencesDockItem.vala:333
 msgid "_Appearance..."
 msgstr "_Вигляд..."
 
-#: lib/Items/PreferencesDockItem.vala:331
+#: lib/Items/PreferencesDockItem.vala:342
 msgid "_Behaviour..."
 msgstr "_Поведінка..."
 
-#: lib/Items/PreferencesDockItem.vala:340
+#: lib/Items/PreferencesDockItem.vala:351
 msgid "A_pplications..."
 msgstr "_Програми..."
 
-#: lib/Items/PreferencesDockItem.vala:349
+#: lib/Items/PreferencesDockItem.vala:360
 msgid "_Docklets..."
 msgstr "_Докліти..."
 
@@ -659,7 +666,7 @@ msgstr "Захопити активне вікно"
 msgid "Open Screenshots Folder"
 msgstr "Відкрити теку знімків екрана"
 
-#: lib/Items/SessionDockItem.vala:38 data/ui/preferences.ui:2360
+#: lib/Items/SessionDockItem.vala:38 data/ui/preferences.ui:2407
 msgid "Session / Power"
 msgstr "Сеанс / Живлення"
 
@@ -759,7 +766,7 @@ msgstr "Вимкнути"
 msgid "Cancel"
 msgstr "Скасувати"
 
-#: lib/Items/ShowDesktopDockItem.vala:38 data/ui/preferences.ui:2051
+#: lib/Items/ShowDesktopDockItem.vala:38 data/ui/preferences.ui:2098
 msgid "Show Desktop"
 msgstr "Показати стільницю"
 
@@ -969,8 +976,8 @@ msgstr "Додати теку"
 #: lib/Widgets/DockFolderDialogs.vala:300
 #: lib/Widgets/DockFolderDialogs.vala:550
 #: lib/Widgets/DockFolderDialogs.vala:617
-#: lib/Widgets/PreferencesWindow.vala:977
-#: lib/Widgets/PreferencesWindow.vala:1074
+#: lib/Widgets/PreferencesWindow.vala:989
+#: lib/Widgets/PreferencesWindow.vala:1086
 msgid "_Cancel"
 msgstr "_Скасувати"
 
@@ -1053,22 +1060,22 @@ msgid "_Position:"
 msgstr "_Розташування:"
 
 #: lib/Widgets/DockFolderDialogs.vala:357
-#: lib/Widgets/PreferencesWindow.vala:290 data/ui/preferences.ui:215
+#: lib/Widgets/PreferencesWindow.vala:294 data/ui/preferences.ui:222
 msgid "Bottom"
 msgstr "Знизу"
 
 #: lib/Widgets/DockFolderDialogs.vala:358
-#: lib/Widgets/PreferencesWindow.vala:283 data/ui/preferences.ui:214
+#: lib/Widgets/PreferencesWindow.vala:287 data/ui/preferences.ui:221
 msgid "Top"
 msgstr "Зверху"
 
 #: lib/Widgets/DockFolderDialogs.vala:359
-#: lib/Widgets/PreferencesWindow.vala:285 data/ui/preferences.ui:212
+#: lib/Widgets/PreferencesWindow.vala:289 data/ui/preferences.ui:219
 msgid "Left"
 msgstr "Ліворуч"
 
 #: lib/Widgets/DockFolderDialogs.vala:360
-#: lib/Widgets/PreferencesWindow.vala:287 data/ui/preferences.ui:213
+#: lib/Widgets/PreferencesWindow.vala:291 data/ui/preferences.ui:220
 msgid "Right"
 msgstr "Праворуч"
 
@@ -1133,43 +1140,43 @@ msgstr "Скинути до _типового"
 msgid "_Rename"
 msgstr "_Перейменувати"
 
-#: lib/Widgets/DockWindow.vala:890
+#: lib/Widgets/DockWindow.vala:943
 msgid "Running"
 msgstr "Запущено"
 
-#: lib/Widgets/DockWindow.vala:892
+#: lib/Widgets/DockWindow.vala:945
 msgid "Docklet"
 msgstr "Докліт"
 
-#: lib/Widgets/DockWindow.vala:1346 lib/Widgets/DockWindow.vala:1388
+#: lib/Widgets/DockWindow.vala:1426 lib/Widgets/DockWindow.vala:1468
 msgid "Developer _Tools"
 msgstr "_Засоби розробника"
 
-#: lib/Widgets/DockWindow.vala:1353
+#: lib/Widgets/DockWindow.vala:1433
 msgid "Open config folder"
 msgstr "Відкрити теку конфігурації"
 
-#: lib/Widgets/DockWindow.vala:1362
+#: lib/Widgets/DockWindow.vala:1442
 msgid "Open current theme file"
 msgstr "Відкрити файл поточної теми"
 
-#: lib/Widgets/DockWindow.vala:1369
+#: lib/Widgets/DockWindow.vala:1449
 msgid "Print app usage ranking"
 msgstr "Вивести рейтинг використання програм"
 
-#: lib/Widgets/DockWindow.vala:1395
+#: lib/Widgets/DockWindow.vala:1475
 msgid "Print info to stdout"
 msgstr "Вивести інформацію в stdout"
 
-#: lib/Widgets/DockWindow.vala:1405
+#: lib/Widgets/DockWindow.vala:1485
 msgid "Open dockitem file"
 msgstr "Відкрити файл dockitem"
 
-#: lib/Widgets/DockWindow.vala:1414
+#: lib/Widgets/DockWindow.vala:1494
 msgid "Open launcher file"
 msgstr "Відкрити файл запускача"
 
-#: lib/Widgets/DockWindow.vala:1421
+#: lib/Widgets/DockWindow.vala:1501
 msgid "Print usage score"
 msgstr "Вивести оцінку використання"
 
@@ -1558,7 +1565,7 @@ msgstr "Скорочення та інструменти"
 msgid "WayPlank Shortcuts & Gestures"
 msgstr "Скорочення та жести WayPlank"
 
-#: lib/Widgets/HelpWindow.vala:175 lib/Widgets/PreferencesWindow.vala:546
+#: lib/Widgets/HelpWindow.vala:175 lib/Widgets/PreferencesWindow.vala:552
 msgid "OK"
 msgstr "OK"
 
@@ -1608,114 +1615,130 @@ msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "Файли зображень (*.png, *.svg, *.ico, *.jpg)"
 
 #: lib/Widgets/IconChooserDialog.vala:451
-#: lib/Widgets/PreferencesWindow.vala:995
+#: lib/Widgets/PreferencesWindow.vala:1007
 msgid "All Files"
 msgstr "Усі файли"
 
-#: lib/Widgets/PreferencesWindow.vala:310
+#: lib/Widgets/PreferencesWindow.vala:314
 #, c-format
 msgid "Screen %d"
 msgstr "Екран %d"
 
-#: lib/Widgets/PreferencesWindow.vala:341
-#: lib/Widgets/PreferencesWindow.vala:342
+#: lib/Widgets/PreferencesWindow.vala:345
+#: lib/Widgets/PreferencesWindow.vala:346
 msgid "WayPlank Preferences"
 msgstr "Параметри WayPlank"
 
-#: lib/Widgets/PreferencesWindow.vala:529
+#: lib/Widgets/PreferencesWindow.vala:535
 msgid ""
 "Hide and close this dock while keeping all of its pinned items and screen "
 "settings for later"
 msgstr "Приховує й закриває цю панель, зберігаючи всі закріплені елементи та налаштування екрана на майбутнє"
 
-#: lib/Widgets/PreferencesWindow.vala:536
+#: lib/Widgets/PreferencesWindow.vala:542
 msgid "_Delete This Dock..."
 msgstr "_Видалити цю панель..."
 
-#: lib/Widgets/PreferencesWindow.vala:539
+#: lib/Widgets/PreferencesWindow.vala:545
 msgid "Permanently remove this dock and delete its pinned item configuration"
 msgstr "Назавжди видаляє цю панель та її конфігурацію закріплених елементів"
 
-#: lib/Widgets/PreferencesWindow.vala:960
+#: lib/Widgets/PreferencesWindow.vala:972
 #, c-format
 msgid "Delete user theme '%s'"
 msgstr "Видалити користувацьку тему '%s'"
 
-#: lib/Widgets/PreferencesWindow.vala:962
+#: lib/Widgets/PreferencesWindow.vala:974
 msgid "System themes cannot be deleted"
 msgstr "Системні теми не можна видалити"
 
-#: lib/Widgets/PreferencesWindow.vala:974
+#: lib/Widgets/PreferencesWindow.vala:986
 msgid "Install WayPlank Theme"
 msgstr "Встановлення теми WayPlank"
 
-#: lib/Widgets/PreferencesWindow.vala:982
+#: lib/Widgets/PreferencesWindow.vala:994
 msgid "Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 msgstr "Архіви тем (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 
-#: lib/Widgets/PreferencesWindow.vala:1024
+#: lib/Widgets/PreferencesWindow.vala:1036
 msgid ""
 "No valid WayPlank/Plank theme found in the selected file.\n"
 "A valid theme must contain a 'dock.theme' configuration file."
 msgstr "У вибраному файлі не знайдено дійсної теми WayPlank/Plank.\nДійсна тема має містити файл конфігурації 'dock.theme'."
 
-#: lib/Widgets/PreferencesWindow.vala:1049
+#: lib/Widgets/PreferencesWindow.vala:1061
 #, c-format
 msgid ""
 "A theme named '%s' already exists.\n"
 "Do you want to replace it?"
 msgstr "Тема з назвою '%s' вже існує.\nЗамінити її?"
 
-#: lib/Widgets/PreferencesWindow.vala:1071
+#: lib/Widgets/PreferencesWindow.vala:1083
 msgid "Install Themes"
 msgstr "Встановити теми"
 
-#: lib/Widgets/PreferencesWindow.vala:1075
+#: lib/Widgets/PreferencesWindow.vala:1087
 msgid "_Install"
 msgstr "_Встановити"
 
-#: lib/Widgets/PreferencesWindow.vala:1083
+#: lib/Widgets/PreferencesWindow.vala:1095
 msgid "The archive contains multiple themes. Select which ones to install:"
 msgstr "Архів містить кілька тем. Виберіть, які встановити:"
 
-#: lib/Widgets/PreferencesWindow.vala:1149
+#: lib/Widgets/PreferencesWindow.vala:1161
 #, c-format
 msgid ""
 "Are you sure you want to delete the theme '%s'?\n"
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "Справді видалити тему '%s'?\nЇї буде вилучено з ~/.local/share/wayplank/themes/."
 
-#: lib/Widgets/PreferencesWindow.vala:1371 data/ui/preferences.ui:1448
-#: data/ui/preferences.ui:1462
+#: lib/Widgets/PreferencesWindow.vala:1383 data/ui/preferences.ui:1455
+#: data/ui/preferences.ui:1469
 msgid "Show only windows and running indicators from the current workspace"
 msgstr "Показувати лише вікна та індикатори запуску поточного робочого простору"
 
-#: lib/Widgets/PreferencesWindow.vala:1376
+#: lib/Widgets/PreferencesWindow.vala:1388
 msgid "Workspace filtering is not supported by this compositor"
 msgstr "Фільтрація за робочим простором не підтримується цим композитором"
 
-#: lib/Widgets/PreferencesWindow.vala:1548 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1554 data/ui/preferences.ui:561
 msgid "Docklets Only"
 msgstr "Лише докліти"
 
-#: lib/Widgets/PreferencesWindow.vala:1549 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1555 data/ui/preferences.ui:562
 msgid "Docklets Only (with fallback)"
 msgstr "Лише докліти (з запасним варіантом)"
 
-#: lib/Widgets/PreferencesWindow.vala:1550 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1556 data/ui/preferences.ui:563
 msgid "All Icons (integrated)"
 msgstr "Усі піктограми (вбудовано)"
 
-#: lib/Widgets/PreferencesWindow.vala:1551 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1557 data/ui/preferences.ui:564
 msgid "Dedicated Icon (on dock)"
 msgstr "Окрема піктограма (на доці)"
 
-#: lib/Widgets/PreferencesWindow.vala:1738
+#: lib/Widgets/PreferencesWindow.vala:1574 data/ui/preferences.ui:1639
+msgid "Accordion (Pinned):"
+msgstr "Акордеон (Закріплені):"
+
+#: lib/Widgets/PreferencesWindow.vala:1574
+msgid "Accordion (All):"
+msgstr "Акордеон (Усі):"
+
+#: lib/Widgets/PreferencesWindow.vala:1581 data/ui/preferences.ui:1705
+msgid "Accordion (Docklets):"
+msgstr "Акордеон (Доклети):"
+
+#: lib/Widgets/PreferencesWindow.vala:1581
+msgid "Accordion (N/A):"
+msgstr "Акордеон (Н/Д):"
+
+#: lib/Widgets/PreferencesWindow.vala:1768
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "Прокручування при переповненні активне: збережено %d пікс."
 
-#: lib/Widgets/PreferencesWindow.vala:1741
+#: lib/Widgets/PreferencesWindow.vala:1771
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1723,12 +1746,12 @@ msgid ""
 "the dock smoothly scrolls with mouse wheel when items exceed screen space."
 msgstr "Цільовий розмір піктограм: %d пікс.\nУвімкнено «Прокручування при переповненні» в розділі «Поведінка»: піктограми ніколи не зменшуватимуться, а док плавно прокручується колесом миші, коли елементи не вміщуються на екрані."
 
-#: lib/Widgets/PreferencesWindow.vala:1752
+#: lib/Widgets/PreferencesWindow.vala:1782
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ Обмежено до %d пікс. через місце на екрані (автозменшення)"
 
-#: lib/Widgets/PreferencesWindow.vala:1754
+#: lib/Widgets/PreferencesWindow.vala:1784
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1737,12 +1760,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ Розмір піктограм установлено %d пікс., але обмежено до %d пікс. через місце на екрані.\nПіктограми автоматично зменшуватимуться, щоб вміститися.\nЩоб розблокувати більші розміри без зменшення, увімкніть «Прокручування при переповненні» в розділі «Поведінка»."
 
-#: lib/Widgets/PreferencesWindow.vala:1762
+#: lib/Widgets/PreferencesWindow.vala:1792
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "Вміщується на екрані без зменшення (ліміт: %d пікс.)"
 
-#: lib/Widgets/PreferencesWindow.vala:1764
+#: lib/Widgets/PreferencesWindow.vala:1794
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1750,31 +1773,31 @@ msgid ""
 "shrinking activates)."
 msgstr "Цільовий розмір піктограм: %d пікс.\nКомфортно вміщується на екрані (ліміт екрана: %d пікс. до початку автозменшення)."
 
-#: lib/Widgets/PreferencesWindow.vala:2015
+#: lib/Widgets/PreferencesWindow.vala:2047
 #, c-format
 msgid "Screen %d (Disconnected)"
 msgstr "Екран %d (Від'єднано)"
 
-#: lib/Widgets/PreferencesWindow.vala:2021
+#: lib/Widgets/PreferencesWindow.vala:2053
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "logical multi-seat screen index"
 msgstr "Автоматично показувати панель на основному моніторі; вимкніть, щоб вибрати логічний індекс екрана мультисіту"
 
-#: lib/Widgets/PreferencesWindow.vala:2022
+#: lib/Widgets/PreferencesWindow.vala:2054
 msgid "Not supported by this compositor"
 msgstr "Не підтримується цим композитором"
 
-#: lib/Widgets/PreferencesWindow.vala:2102 data/ui/preferences.ui:849
-#: data/ui/preferences.ui:862
+#: lib/Widgets/PreferencesWindow.vala:2134 data/ui/preferences.ui:856
+#: data/ui/preferences.ui:869
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
 "preventing accidental triggers; when disabled, reveals 10px before the edge "
 "for fluid unhiding"
 msgstr "Вимагає торкання фізичного краю екрана (1 пікс.) для показу дока, що запобігає випадковому спрацюванню; якщо вимкнено, док з'являється за 10 пікс. до краю для плавного показу"
 
-#: lib/Widgets/PreferencesWindow.vala:2106 data/ui/preferences.ui:876
-#: data/ui/preferences.ui:889
+#: lib/Widgets/PreferencesWindow.vala:2138 data/ui/preferences.ui:883
+#: data/ui/preferences.ui:896
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
 "windows tile without overlapping the dock; enabling this automatically turns "
@@ -1782,8 +1805,8 @@ msgid ""
 "Reserve Screen Space"
 msgstr "Резервує простір екрана відповідно до товщини дока (режим панелі), щоб максимізовані вікна не перекривали док; увімкнення автоматично вимикає «Приховувати док» і «Збільшення піктограм», а увімкнення будь-якої з них автоматично вимикає «Резервувати простір екрана»"
 
-#: lib/Widgets/PreferencesWindow.vala:2109 data/ui/preferences.ui:1008
-#: data/ui/preferences.ui:1022
+#: lib/Widgets/PreferencesWindow.vala:2141 data/ui/preferences.ui:1015
+#: data/ui/preferences.ui:1029
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
 "magnetic feel; disable to strictly pass mouse clicks through to windows "
@@ -1955,7 +1978,7 @@ msgstr "Зберегти й застосувати"
 msgid "Location not found. Please choose from suggestions or leave blank."
 msgstr "Місцезнаходження не знайдено. Виберіть із запропонованих або залиште поле порожнім."
 
-#: lib/Widgets/WeatherWindow.vala:125 data/ui/preferences.ui:2513
+#: lib/Widgets/WeatherWindow.vala:125 data/ui/preferences.ui:2560
 msgid "Weather Forecast"
 msgstr "Прогноз погоди"
 
@@ -2008,563 +2031,567 @@ msgstr "Згорнуто"
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - Непідтримуваний сеанс"
 
-#: data/ui/preferences.ui:114
+#: src/Main.vala:191
+msgid "translator-credits"
+msgstr "Michailo Buchko <mixabuchko@gmail.com>"
+
+#: data/ui/preferences.ui:121
 msgid "Theme:"
 msgstr "Тема:"
 
-#: data/ui/preferences.ui:148
+#: data/ui/preferences.ui:155
 msgid "Install Theme from Archive (.zip, .tar.gz, .theme)..."
 msgstr "Встановити тему з архіву (.zip, .tar.gz, .theme)..."
 
-#: data/ui/preferences.ui:169
+#: data/ui/preferences.ui:176
 msgid "Delete Selected User Theme"
 msgstr "Видалити вибрану тему користувача"
 
-#: data/ui/preferences.ui:197
+#: data/ui/preferences.ui:204
 msgid "Position:"
 msgstr "Розташування:"
 
-#: data/ui/preferences.ui:230
+#: data/ui/preferences.ui:237
 msgid "On Primary Display:"
 msgstr "На основному дисплеї:"
 
-#: data/ui/preferences.ui:232 data/ui/preferences.ui:245
+#: data/ui/preferences.ui:239 data/ui/preferences.ui:252
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "Автоматично показувати док на основному моніторі; вимкніть, щоб вибрати певний дисплей"
 
-#: data/ui/preferences.ui:270
+#: data/ui/preferences.ui:277
 msgid "Alignment:"
 msgstr "Вирівнювання:"
 
-#: data/ui/preferences.ui:292
+#: data/ui/preferences.ui:299
 msgid "Fill"
 msgstr "Заповнити"
 
-#: data/ui/preferences.ui:293 data/ui/preferences.ui:368
+#: data/ui/preferences.ui:300 data/ui/preferences.ui:375
 msgid "Start"
 msgstr "На початку"
 
-#: data/ui/preferences.ui:294 data/ui/preferences.ui:369
+#: data/ui/preferences.ui:301 data/ui/preferences.ui:376
 msgid "End"
 msgstr "У кінці"
 
-#: data/ui/preferences.ui:295 data/ui/preferences.ui:370
+#: data/ui/preferences.ui:302 data/ui/preferences.ui:377
 msgid "Center"
 msgstr "По центру"
 
-#: data/ui/preferences.ui:315 data/ui/preferences.ui:329
+#: data/ui/preferences.ui:322 data/ui/preferences.ui:336
 msgid "Offset in percent from the center of the screen-edge"
 msgstr "Зміщення у відсотках від центру краю екрана"
 
-#: data/ui/preferences.ui:354
+#: data/ui/preferences.ui:361
 msgid "Icon Alignment:"
 msgstr "Вирівнювання піктограм:"
 
-#: data/ui/preferences.ui:387
+#: data/ui/preferences.ui:394
 msgid "Icon Size:"
 msgstr "Розмір піктограм:"
 
-#: data/ui/preferences.ui:389
+#: data/ui/preferences.ui:396
 msgid ""
 "Preferred dock item size in pixels (24px to 128px); when screen space is "
 "full, items auto-shrink unless Scroll on Overflow is enabled"
 msgstr "Бажаний розмір піктограм у пікселях (від 24 до 128 пікс.); при заповненні екрана елементи автозменшуються, якщо не ввімкнено «Прокручування при переповненні»"
 
-#: data/ui/preferences.ui:420
+#: data/ui/preferences.ui:427
 msgid "Adjust dock item size in pixels (24px to 128px)"
 msgstr "Налаштувати розмір піктограм дока в пікселях (від 24 до 128 пікс.)"
 
-#: data/ui/preferences.ui:438
+#: data/ui/preferences.ui:445
 msgid ""
 "Adjust dock item size in pixels; turning red indicates the screen capacity "
 "is exceeded and icons are auto-shrunk"
 msgstr "Налаштувати розмір піктограм у пікселях; червоний колір означає перевищення місткості екрана й автоматичне зменшення піктограм"
 
-#: data/ui/preferences.ui:460
+#: data/ui/preferences.ui:467
 msgid "Dynamic indicator of screen space capacity and auto-shrink status"
 msgstr "Динамічний індикатор місткості екранного простору та стану автозменшення"
 
-#: data/ui/preferences.ui:481
+#: data/ui/preferences.ui:488
 msgid "Scroll on Overflow:"
 msgstr "Прокручування при переповненні:"
 
-#: data/ui/preferences.ui:483 data/ui/preferences.ui:496
+#: data/ui/preferences.ui:490 data/ui/preferences.ui:503
 msgid ""
 "Smoothly scroll items with mouse wheel when dock exceeds screen space, "
 "preserving full icon size instead of auto-shrinking icons"
 msgstr "Плавно прокручувати елементи колесом миші, коли док перевищує розмір екрана, зберігаючи повний розмір піктограм замість автозменшення"
 
-#: data/ui/preferences.ui:510
+#: data/ui/preferences.ui:517
 msgid "Icon Tooltips:"
 msgstr "Підказки піктограм:"
 
-#: data/ui/preferences.ui:512 data/ui/preferences.ui:525
+#: data/ui/preferences.ui:519 data/ui/preferences.ui:532
 msgid "Show a name tooltip when hovering dock icons"
 msgstr "Показувати назву піктограми при наведенні вказівника на піктограми панелі"
 
-#: data/ui/preferences.ui:538
+#: data/ui/preferences.ui:545
 msgid "Preferences & System Menu:"
 msgstr "Параметри та системне меню:"
 
-#: data/ui/preferences.ui:540 data/ui/preferences.ui:552
+#: data/ui/preferences.ui:547 data/ui/preferences.ui:559
 msgid ""
 "Controls where the Preferences icon and system control menu appear on the "
 "dock"
 msgstr "Визначає, де на доці показуються піктограма параметрів та системне меню керування"
 
-#: data/ui/preferences.ui:572
+#: data/ui/preferences.ui:579
 msgid "WayPlank Always Left:"
 msgstr "WayPlank завжди ліворуч:"
 
-#: data/ui/preferences.ui:574 data/ui/preferences.ui:587
+#: data/ui/preferences.ui:581 data/ui/preferences.ui:594
 msgid ""
 "Always anchor the WayPlank icon at the far left of the dock with its own "
 "vertical separator"
 msgstr "Завжди закріплювати піктограму WayPlank крайньою ліворуч на доці з власним вертикальним розділювачем"
 
-#: data/ui/preferences.ui:601
+#: data/ui/preferences.ui:608
 msgid "Show Trash:"
 msgstr "Показувати смітник:"
 
-#: data/ui/preferences.ui:603 data/ui/preferences.ui:616
+#: data/ui/preferences.ui:610 data/ui/preferences.ui:623
 msgid "Show the Trash Bin icon on the dock"
 msgstr "Показувати піктограму смітника на доці"
 
-#: data/ui/preferences.ui:626
+#: data/ui/preferences.ui:633
 msgid "Appearance"
 msgstr "Вигляд"
 
-#: data/ui/preferences.ui:647
+#: data/ui/preferences.ui:654
 msgid "Hide Dock"
 msgstr "Сховати док"
 
-#: data/ui/preferences.ui:663
+#: data/ui/preferences.ui:670
 msgid "Hide Dock:"
 msgstr "Приховувати док:"
 
-#: data/ui/preferences.ui:664 data/ui/preferences.ui:677
+#: data/ui/preferences.ui:671 data/ui/preferences.ui:684
 msgid ""
 "Enable automatic dock hiding according to the selected Hide Mode; when "
 "disabled, the dock remains permanently visible"
 msgstr "Увімкнути автоматичне приховування дока відповідно до вибраного режиму; якщо вимкнено, док залишається постійно видимим"
 
-#: data/ui/preferences.ui:690
+#: data/ui/preferences.ui:697
 msgid "Hide Mode:"
 msgstr "Режим приховування:"
 
-#: data/ui/preferences.ui:703
+#: data/ui/preferences.ui:710
 msgid "Intellihide"
 msgstr "Розумне приховування (Intellihide)"
 
-#: data/ui/preferences.ui:704
+#: data/ui/preferences.ui:711
 msgid "Autohide"
 msgstr "Автоматичне приховування (Autohide)"
 
-#: data/ui/preferences.ui:705
+#: data/ui/preferences.ui:712
 msgid "Dodge maximized window"
 msgstr "Уникати максимізованого вікна"
 
-#: data/ui/preferences.ui:706
+#: data/ui/preferences.ui:713
 msgid "Window Dodge"
 msgstr "Уникати вікон"
 
-#: data/ui/preferences.ui:707
+#: data/ui/preferences.ui:714
 msgid "Dodge active window"
 msgstr "Уникати активного вікна"
 
-#: data/ui/preferences.ui:720
+#: data/ui/preferences.ui:727
 msgid "Hide Delay (ms):"
 msgstr "Затримка приховування (мс):"
 
-#: data/ui/preferences.ui:721 data/ui/preferences.ui:739
-#: data/ui/preferences.ui:764
+#: data/ui/preferences.ui:728 data/ui/preferences.ui:746
+#: data/ui/preferences.ui:771
 msgid "Delay in ms before hiding the dock"
 msgstr "Затримка в мс перед приховуванням дока"
 
-#: data/ui/preferences.ui:784
+#: data/ui/preferences.ui:791
 msgid "Unhide Delay (ms):"
 msgstr "Затримка показу (мс):"
 
-#: data/ui/preferences.ui:785 data/ui/preferences.ui:803
-#: data/ui/preferences.ui:828
+#: data/ui/preferences.ui:792 data/ui/preferences.ui:810
+#: data/ui/preferences.ui:835
 msgid "Delay in ms before showing the dock"
 msgstr "Затримка в мс перед показом дока"
 
-#: data/ui/preferences.ui:848
+#: data/ui/preferences.ui:855
 msgid "Pressure Reveal:"
 msgstr "Показ при натисканні краю:"
 
-#: data/ui/preferences.ui:875
+#: data/ui/preferences.ui:882
 msgid "Reserve Screen Space:"
 msgstr "Зарезервувати екранний простір:"
 
-#: data/ui/preferences.ui:904
+#: data/ui/preferences.ui:911
 msgid "Item Management"
 msgstr "Керування елементами"
 
-#: data/ui/preferences.ui:920
+#: data/ui/preferences.ui:927
 msgid "Icon Zoom:"
 msgstr "Збільшення піктограм:"
 
-#: data/ui/preferences.ui:922 data/ui/preferences.ui:942
-#: data/ui/preferences.ui:961 data/ui/preferences.ui:979
+#: data/ui/preferences.ui:929 data/ui/preferences.ui:949
+#: data/ui/preferences.ui:968 data/ui/preferences.ui:986
 msgid "Smoothly magnify icons under the mouse cursor"
 msgstr "Плавно збільшувати піктограми під курсором миші"
 
-#: data/ui/preferences.ui:1007
+#: data/ui/preferences.ui:1014
 msgid "Anticipate Icon Zoom:"
 msgstr "Передбачати збільшення значків:"
 
-#: data/ui/preferences.ui:1036
+#: data/ui/preferences.ui:1043
 msgid "Lock Icons:"
 msgstr "Заблокувати піктограми:"
 
-#: data/ui/preferences.ui:1037 data/ui/preferences.ui:1051
+#: data/ui/preferences.ui:1044 data/ui/preferences.ui:1058
 msgid ""
 "Lock dock icons in place to prevent accidental dragging, reordering, or "
 "removal"
 msgstr "Зафіксувати піктограми дока, щоб запобігти випадковому перетягуванню, переміщенню чи вилученню"
 
-#: data/ui/preferences.ui:1065
+#: data/ui/preferences.ui:1072
 msgid "Start on Login:"
 msgstr "Запускати під час входу:"
 
-#: data/ui/preferences.ui:1066 data/ui/preferences.ui:1079
+#: data/ui/preferences.ui:1073 data/ui/preferences.ui:1086
 msgid "Automatically launch WayPlank when logging into your desktop session"
 msgstr "Автоматично запускати WayPlank під час входу до сеансу стільниці"
 
-#: data/ui/preferences.ui:1101
+#: data/ui/preferences.ui:1108
 msgid "Icons Visual Effects"
 msgstr "Візуальні ефекти піктограм"
 
-#: data/ui/preferences.ui:1132
+#: data/ui/preferences.ui:1139
 msgid "Launch Effect:"
 msgstr "Ефект запуску:"
 
-#: data/ui/preferences.ui:1133 data/ui/preferences.ui:1141
+#: data/ui/preferences.ui:1140 data/ui/preferences.ui:1148
 msgid "Animation played when launching or clicking an application icon"
 msgstr "Анімація під час запуску або клацання на піктограмі програми"
 
-#: data/ui/preferences.ui:1143
+#: data/ui/preferences.ui:1150
 msgid "Bounce"
 msgstr "Стрибок"
 
-#: data/ui/preferences.ui:1144
+#: data/ui/preferences.ui:1151
 msgid "Elastic"
 msgstr "Пружний"
 
-#: data/ui/preferences.ui:1145
+#: data/ui/preferences.ui:1152
 msgid "Pulse"
 msgstr "Імпульс"
 
-#: data/ui/preferences.ui:1146
+#: data/ui/preferences.ui:1153
 msgid "Spring"
 msgstr "Пружина"
 
-#: data/ui/preferences.ui:1147
+#: data/ui/preferences.ui:1154
 msgid "Ripple"
 msgstr "Хвиля"
 
-#: data/ui/preferences.ui:1148
+#: data/ui/preferences.ui:1155
 msgid "Flip"
 msgstr "Обертання"
 
-#: data/ui/preferences.ui:1149
+#: data/ui/preferences.ui:1156
 msgid "Swing"
 msgstr "Маятник"
 
-#: data/ui/preferences.ui:1150
+#: data/ui/preferences.ui:1157
 msgid "Flash"
 msgstr "Спалах"
 
-#: data/ui/preferences.ui:1151 data/ui/preferences.ui:1187
-#: data/ui/preferences.ui:1224
+#: data/ui/preferences.ui:1158 data/ui/preferences.ui:1194
+#: data/ui/preferences.ui:1231
 msgid "None"
 msgstr "Немає"
 
-#: data/ui/preferences.ui:1169
+#: data/ui/preferences.ui:1176
 msgid "Focused App:"
 msgstr "Активна програма:"
 
-#: data/ui/preferences.ui:1170 data/ui/preferences.ui:1178
+#: data/ui/preferences.ui:1177 data/ui/preferences.ui:1185
 msgid "Highlight style for the currently focused application on the dock"
 msgstr "Стиль підсвічування для поточної активної програми на доці"
 
-#: data/ui/preferences.ui:1180
+#: data/ui/preferences.ui:1187
 msgid "Classic Box"
 msgstr "Класична рамка"
 
-#: data/ui/preferences.ui:1181
+#: data/ui/preferences.ui:1188
 msgid "Icon Glow"
 msgstr "Сяйво піктограми"
 
-#: data/ui/preferences.ui:1182
+#: data/ui/preferences.ui:1189
 msgid "Spotlight"
 msgstr "Прожектор"
 
-#: data/ui/preferences.ui:1183
+#: data/ui/preferences.ui:1190
 msgid "Rounded Card"
 msgstr "Округлена картка"
 
-#: data/ui/preferences.ui:1184
+#: data/ui/preferences.ui:1191
 msgid "Accent Bar"
 msgstr "Акцентна смужка"
 
-#: data/ui/preferences.ui:1185
+#: data/ui/preferences.ui:1192
 msgid "Rim Halo"
 msgstr "Контурне сяйво"
 
-#: data/ui/preferences.ui:1186
+#: data/ui/preferences.ui:1193
 msgid "Floor Reflection"
 msgstr "Віддзеркалення"
 
-#: data/ui/preferences.ui:1205
+#: data/ui/preferences.ui:1212
 msgid "Unpin Effect:"
 msgstr "Ефект вилучення:"
 
-#: data/ui/preferences.ui:1206 data/ui/preferences.ui:1214
+#: data/ui/preferences.ui:1213 data/ui/preferences.ui:1221
 msgid "Animation played when removing or unpinning an icon from the dock"
 msgstr "Анімація під час вилучення або відкріплення піктограми з дока"
 
-#: data/ui/preferences.ui:1216
+#: data/ui/preferences.ui:1223
 msgid "Poof Cloud"
 msgstr "Хмарка диму"
 
-#: data/ui/preferences.ui:1217
+#: data/ui/preferences.ui:1224
 msgid "Shrink & Fade"
 msgstr "Зменшення і згасання"
 
-#: data/ui/preferences.ui:1218
+#: data/ui/preferences.ui:1225
 msgid "Implode Spin"
 msgstr "Вихровий колапс"
 
-#: data/ui/preferences.ui:1219
+#: data/ui/preferences.ui:1226
 msgid "Shatter Burst"
 msgstr "Розліт уламків"
 
-#: data/ui/preferences.ui:1220
+#: data/ui/preferences.ui:1227
 msgid "Vaporize"
 msgstr "Випаровування"
 
-#: data/ui/preferences.ui:1221
+#: data/ui/preferences.ui:1228
 msgid "3D Tumble"
 msgstr "3D-переворот"
 
-#: data/ui/preferences.ui:1222
+#: data/ui/preferences.ui:1229
 msgid "Shockwave"
 msgstr "Ударна хвиля"
 
-#: data/ui/preferences.ui:1223
+#: data/ui/preferences.ui:1230
 msgid "Pixel Dissolve"
 msgstr "Піксельне розчинення"
 
-#: data/ui/preferences.ui:1243
+#: data/ui/preferences.ui:1250
 msgid "Effect Duration:"
 msgstr "Тривалість ефектів:"
 
-#: data/ui/preferences.ui:1244 data/ui/preferences.ui:1269
-#: data/ui/preferences.ui:1287
+#: data/ui/preferences.ui:1251 data/ui/preferences.ui:1276
+#: data/ui/preferences.ui:1294
 msgid "Duration in milliseconds (300 ms to 1500 ms) for icon visual animations"
 msgstr "Тривалість візуальних анімацій піктограм у мілісекундах (від 300 мс до 1500 мс)"
 
-#: data/ui/preferences.ui:1305
+#: data/ui/preferences.ui:1312
 msgid "Behaviour"
 msgstr "Поведінка"
 
-#: data/ui/preferences.ui:1326
+#: data/ui/preferences.ui:1333
 msgid "Window Management"
 msgstr "Керування вікнами"
 
-#: data/ui/preferences.ui:1339
+#: data/ui/preferences.ui:1346
 msgid "Click Behavior:"
 msgstr "Поведінка при клацанні:"
 
-#: data/ui/preferences.ui:1340 data/ui/preferences.ui:1352
+#: data/ui/preferences.ui:1347 data/ui/preferences.ui:1359
 msgid "How clicking a running application icon interacts with its windows"
 msgstr "Як клацання піктограми запущеної програми взаємодіє з її вікнами"
 
-#: data/ui/preferences.ui:1354
+#: data/ui/preferences.ui:1361
 msgid "Smart: Focus, toggle or cycle windows"
 msgstr "Розумний: фокус, згортання або перемикання вікон по колу"
 
-#: data/ui/preferences.ui:1355
+#: data/ui/preferences.ui:1362
 msgid "Focus: Raise active window to front"
 msgstr "Фокус: виводити активне вікно на передній план"
 
-#: data/ui/preferences.ui:1356
+#: data/ui/preferences.ui:1363
 msgid "Cycle: Step through open windows"
 msgstr "Цикл: послідовний перехід між відкритими вікнами"
 
-#: data/ui/preferences.ui:1369
+#: data/ui/preferences.ui:1376
 msgid "Window Preview Cards:"
 msgstr "Картки перегляду вікон:"
 
-#: data/ui/preferences.ui:1370 data/ui/preferences.ui:1382
+#: data/ui/preferences.ui:1377 data/ui/preferences.ui:1389
 msgid ""
 "Display floating visual preview cards when interacting with applications "
 "that have multiple open windows"
 msgstr "Показувати спливні картки візуального перегляду під час взаємодії з програмами, що мають кілька відкритих вікон"
 
-#: data/ui/preferences.ui:1394
+#: data/ui/preferences.ui:1401
 msgid "Restore Minimized:"
 msgstr "Відновлювати згорнуті:"
 
-#: data/ui/preferences.ui:1395 data/ui/preferences.ui:1407
+#: data/ui/preferences.ui:1402 data/ui/preferences.ui:1414
 msgid "Restore and unminimize windows when clicking their dock icon"
 msgstr "Відновлювати та розгортати згорнуті вікна при клацанні їхньої піктограми в доці"
 
-#: data/ui/preferences.ui:1419
+#: data/ui/preferences.ui:1426
 msgid "Show Unpinned:"
 msgstr "Показувати незакріплені:"
 
-#: data/ui/preferences.ui:1420 data/ui/preferences.ui:1433
+#: data/ui/preferences.ui:1427 data/ui/preferences.ui:1440
 msgid "Display running applications on the dock even if they are not pinned"
 msgstr "Показувати запущені програми на доці, навіть якщо вони не закріплені"
 
-#: data/ui/preferences.ui:1446
+#: data/ui/preferences.ui:1453
 msgid "Workspace Only:"
 msgstr "Лише робочий простір:"
 
-#: data/ui/preferences.ui:1476
+#: data/ui/preferences.ui:1483
 msgid "Indicators"
 msgstr "Індикатори"
 
-#: data/ui/preferences.ui:1489
+#: data/ui/preferences.ui:1496
 msgid "Show Running:"
 msgstr "Показувати запущені:"
 
-#: data/ui/preferences.ui:1490 data/ui/preferences.ui:1502
+#: data/ui/preferences.ui:1497 data/ui/preferences.ui:1509
 msgid "Display indicator dots beneath icons for actively running applications"
 msgstr "Показувати точки-індикатори під піктограмами активно запущених програм"
 
-#: data/ui/preferences.ui:1514
+#: data/ui/preferences.ui:1521
 msgid "Show Attention:"
 msgstr "Показувати запити уваги:"
 
-#: data/ui/preferences.ui:1515 data/ui/preferences.ui:1527
+#: data/ui/preferences.ui:1522 data/ui/preferences.ui:1534
 msgid ""
 "Highlight or animate indicator dots when an application requests user "
 "attention"
 msgstr "Підсвічувати або анімувати точки-індикатори, коли програма потребує уваги користувача"
 
-#: data/ui/preferences.ui:1542
+#: data/ui/preferences.ui:1549
 msgid "Categories & Layout"
 msgstr "Категорії та макет"
 
-#: data/ui/preferences.ui:1556
+#: data/ui/preferences.ui:1563
 msgid "Categorize Items:"
 msgstr "Категоризувати елементи:"
 
-#: data/ui/preferences.ui:1558 data/ui/preferences.ui:1577
+#: data/ui/preferences.ui:1565 data/ui/preferences.ui:1584
 msgid ""
 "Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with "
 "dynamic separators"
 msgstr "Групувати елементи дока в Теки, Закріплені програми, Докліти та Запущені програми за допомогою динамічних роздільників"
 
-#: data/ui/preferences.ui:1590
+#: data/ui/preferences.ui:1597
 msgid ""
 "One-shot reorder: arrange dock items by Folders, Docklets, and Applications "
 "without enabling rigid categories or extra separators"
 msgstr "Одноразове впорядкування: розташувати елементи за Теками, Доклітами та Програмами без жорстких категорій чи додаткових роздільників"
 
-#: data/ui/preferences.ui:1608
+#: data/ui/preferences.ui:1615
 msgid "Align by Type"
 msgstr "Вирівняти за типом"
 
-#: data/ui/preferences.ui:1632
+#: data/ui/preferences.ui:1641 data/ui/preferences.ui:1660
+msgid ""
+"Hide the least used items behind an expander. Auto-Fit keeps as many as fit "
+"on screen, Top Most Used keeps the N most used. Running apps, folders with "
+"running apps, urgent apps and items marked Keep Always Visible always stay"
+msgstr "Приховує найрідше використовувані елементи за кнопкою розгортання. Автопідбір залишає стільки, скільки вміщується на екрані, Найуживаніші залишає N найпопулярніших. Запущені програми, теки із запущеними програмами, термінові програми та елементи з позначкою Завжди видимий залишаються завжди"
+
+#: data/ui/preferences.ui:1662 data/ui/preferences.ui:1728
+msgid "Off"
+msgstr "Вимкнено"
+
+#: data/ui/preferences.ui:1663 data/ui/preferences.ui:1729
+msgid "Auto-Fit Capacity"
+msgstr "Автопідбір за місткістю"
+
+#: data/ui/preferences.ui:1664 data/ui/preferences.ui:1730
+msgid "Top Most Used"
+msgstr "Найуживаніші (Top N)"
+
+#: data/ui/preferences.ui:1685
+msgid "Number of most used items kept visible"
+msgstr "Кількість найуживаніших елементів, що залишаються видимими"
+
+#: data/ui/preferences.ui:1707 data/ui/preferences.ui:1726
+msgid ""
+"Hide the least used docklets behind an expander in Categorized mode. Auto-"
+"Fit keeps as many as fit on screen, Top Most Used keeps the N most used. "
+"Docklets marked Keep Always Visible always stay"
+msgstr "Приховує найрідше використовувані доклети за кнопкою розгортання в категорізованому режимі. Автопідбір залишає стільки, скільки вміщується на екрані, Найуживаніші залишає N найпопулярніших. Доклети з позначкою Завжди видимий залишаються завжди"
+
+#: data/ui/preferences.ui:1751
+msgid "Number of most used docklets kept visible"
+msgstr "Кількість найуживаніших доклетів, що залишаються видимими"
+
+#: data/ui/preferences.ui:1771
+msgid "Collapse Delay:"
+msgstr "Затримка згортання:"
+
+#: data/ui/preferences.ui:1798 data/ui/preferences.ui:1816
+msgid "Delay before collapsing accordions"
+msgstr "Затримка перед згортанням акордеонів"
+
+#: data/ui/preferences.ui:1836
+msgid "Click to Expand/Compress:"
+msgstr "Клацніть для розгортання/згортання:"
+
+#: data/ui/preferences.ui:1837 data/ui/preferences.ui:1850
+msgid "Expand accordions only when clicking the expander instead of on hover"
+msgstr "Розгортати акордеони лише після натискання на кнопку замість наведення курсора"
+
+#: data/ui/preferences.ui:1863
 msgid "Docklets on Right:"
 msgstr "Докліти праворуч:"
 
-#: data/ui/preferences.ui:1633 data/ui/preferences.ui:1646
+#: data/ui/preferences.ui:1864 data/ui/preferences.ui:1877
 msgid ""
 "Place the Docklets group on the right near the Trash (System Tray style) "
 "instead of on the left before applications"
 msgstr "Розмістити групу доклітів праворуч біля Смітника (у стилі системного лотка) замість ліворуч перед програмами"
 
-#: data/ui/preferences.ui:1658
-msgid "Docklet Accordion:"
-msgstr "Акордеон доклітів:"
-
-#: data/ui/preferences.ui:1659 data/ui/preferences.ui:1672
-msgid "Collapse docklets in-line showing only the first item; expand on hover"
-msgstr "Згортати докліти в рядок, показуючи лише перший елемент; розгортати при наведенні курсора"
-
-#: data/ui/preferences.ui:1685
-msgid "Click to Expand/Compress:"
-msgstr "Клацніть для розгортання/згортання:"
-
-#: data/ui/preferences.ui:1686 data/ui/preferences.ui:1699
-msgid ""
-"Expand docklets only when clicking the Master Preferences icon instead of on "
-"hover"
-msgstr "Розгортати докліти лише після клацання головної піктограми параметрів, а не при наведенні курсора"
-
-#: data/ui/preferences.ui:1711
-msgid "Pinned Accordion:"
-msgstr "Згортання закріплених програм:"
-
-#: data/ui/preferences.ui:1713 data/ui/preferences.ui:1732
-msgid ""
-"Hide the least used pinned apps behind an expander. Auto-Fit keeps as many "
-"as fit on screen, Top Most Used keeps the N most used. Running apps, apps "
-"needing attention and apps marked Keep Always Visible always stay. Requires "
-"Categorize Items"
-msgstr "Приховує найрідше використовувані закріплені програми за кнопкою розгортання. Автопідбір залишає стільки, скільки вміщується на екрані, Найуживаніші залишає N найуживаніших. Запущені програми, програми, що потребують уваги, та позначені «Завжди видима» завжди залишаються. Потрібне «Категоризувати елементи»"
-
-#: data/ui/preferences.ui:1734
-msgid "Off"
-msgstr "Вимкнено"
-
-#: data/ui/preferences.ui:1735
-msgid "Auto-Fit Capacity"
-msgstr "Автопідбір за місткістю"
-
-#: data/ui/preferences.ui:1736
-msgid "Top Most Used"
-msgstr "Найуживаніші (Top N)"
-
-#: data/ui/preferences.ui:1757
-msgid "Number of most used pinned apps kept visible"
-msgstr "Кількість найуживаніших закріплених програм, що залишаються видимими"
-
-#: data/ui/preferences.ui:1777
-msgid "Collapse Delay:"
-msgstr "Затримка згортання:"
-
-#: data/ui/preferences.ui:1804 data/ui/preferences.ui:1822
-msgid "Delay before collapsing docklets accordion back to master icon"
-msgstr "Затримка перед згортанням акордеона доклітів назад до головної піктограми"
-
-#: data/ui/preferences.ui:1840
+#: data/ui/preferences.ui:1887
 msgid "Apps & Layout"
 msgstr "Програми та макет"
 
-#: data/ui/preferences.ui:1861
+#: data/ui/preferences.ui:1908
 msgid "Built-in Docklets"
 msgstr "Вбудовані докліти"
 
-#: data/ui/preferences.ui:1895
+#: data/ui/preferences.ui:1942
 msgid "CPU & RAM Monitor"
 msgstr "Монітор ЦП та ОЗП"
 
-#: data/ui/preferences.ui:1947 data/ui/preferences.ui:1961
+#: data/ui/preferences.ui:1994 data/ui/preferences.ui:2008
 msgid "Toggle desktop notifications and Do Not Disturb mode"
 msgstr "Перемикання сповіщень стільниці та режиму «Не турбувати»"
 
-#: data/ui/preferences.ui:2000
+#: data/ui/preferences.ui:2047
 msgid "Analog Clock"
 msgstr "Аналоговий годинник"
 
-#: data/ui/preferences.ui:2206
+#: data/ui/preferences.ui:2253
 msgid "Battery Monitor"
 msgstr "Монітор батареї"
 
-#: data/ui/preferences.ui:2257
+#: data/ui/preferences.ui:2304
 msgid "Volume Control"
 msgstr "Керування гучністю"
 
-#: data/ui/preferences.ui:2564
+#: data/ui/preferences.ui:2611
 msgid "Network / Wi-Fi"
 msgstr "Мережа / Wi-Fi"
+
+#: data/ui/preferences.ui:2641
+msgid "Docklets"
+msgstr "Докліти"

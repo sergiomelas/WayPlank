@@ -260,6 +260,17 @@ namespace Plank
 				c_item.set_data_full ("wayplank-docklet-uri", d.uri.dup (), GLib.g_free);
 				c_item.button_release_event.connect (on_docklet_check_button_release);
 				docklets_menu.add (c_item);
+				if (d.uri == "docklet://trash") {
+					var sep = new Gtk.SeparatorMenuItem ();
+					var sep_css = new Gtk.CssProvider ();
+					try {
+						sep_css.load_from_data (
+							"separator { min-height: 3px; margin-top: 3px; margin-bottom: 3px; background-color: alpha(currentColor, 0.28); }"
+						);
+						sep.get_style_context ().add_provider (sep_css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+					} catch (Error e) { }
+					docklets_menu.add (sep);
+				}
 			}
 			docklets_menu.key_press_event.connect (on_docklet_menu_key_press);
 

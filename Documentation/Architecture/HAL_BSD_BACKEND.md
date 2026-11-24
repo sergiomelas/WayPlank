@@ -1,11 +1,11 @@
 # 😈 WAYPLANK FREEBSD KERNEL BACKEND ARCHITECTURE (`HAL_BSD_BACKEND`)
 
-> **Design-Before-Build Engineering Blueprint for the Native FreeBSD Kernel Driver Plug-In (`hal/BSD/`) Sharing 100% of Zone 1 Core, Zone 2 Translators & Zone 3A Freedesktop Userland**  
-> **Pedigree:** WayPlank 3-Zone Dichotomic HAL (`v0.7.2` Linux Freeze) ➔ Native Windows Plug-In (`v0.7.3.2` Qualified) ➔ Native FreeBSD Plug-In (`v0.7.4` Public Beta 5)  
-> **Target OS:** Stock **FreeBSD `14.x` / `15.x-RELEASE`** & **GhostBSD** (`x86_64` / `aarch64`, Wayland compositors: **Labwc / wlroots**, **KDE Plasma 6 / KWin**, **GNOME Shell / Mutter**)  
+> **As-Built Engineering Specification for the Native FreeBSD Kernel Driver Plug-In (`hal/BSD/`) Sharing 100% of Zone 1 Core, Zone 2 Translators & Zone 3A Freedesktop Userland**  
+> **Pedigree:** WayPlank 3-Zone Dichotomic HAL (`v0.7.2` Linux Freeze) ➔ Native Windows Plug-In (`v0.7.3.2` Qualified) ➔ Native FreeBSD Plug-In (`v0.7.4` Final Public Beta 5 — `100.0%` 7-Platform Qualified)  
+> **Target OS:** Stock **FreeBSD `14.x` / `15.x-RELEASE`** & **GhostBSD** (`x86_64` / `aarch64`, Wayland compositors: **GNOME Shell / Mutter**, **KDE Plasma 6 / KWin**, **Labwc / wlroots**)  
 > **Target Assets:** Native ELF Monolith (`build/bsd/wayplank`) & Native FreeBSD Package (`build/bsd/wayplank-<ver>.pkg`) via `builders/bsd/{BuildBsd,BuildPkg}.sh`  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-BSD-006` • **Revision `1.0`** (`2026-11-22` • **`MOC-0.7.4-BSD-001`** — *Design-Before-Build Specification for `v0.7.4` Public Beta 5, awaiting live VM build & 5-Platform FAT Qualification*)  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-BSD-006` • **Revision `1.1`** (`2026-11-25` • **`MOC-0.7.4-BSD-001` — CONCLUDED & FROZEN As-Built (`v0.7.4` Final Public Beta 5 `100.0%` 7-Platform FAT Qualified `942/942`, `0 [ko]` in [`FAT/2026-11-25 FAT 0.7.4.txt`](../../FAT/2026-11-25%20FAT%200.7.4.txt): FreeBSD GNOME `138/138`, FreeBSD KDE `138/138`, FreeBSD Labwc `133/133`)**)  
 > **Companion Master Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) • [HAL_BUSES.md](HAL_BUSES.md) • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) • [HAL_LINUX_BACKEND.md](HAL_LINUX_BACKEND.md) *(Peer As-Built Contract)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)
 
 ---
@@ -46,7 +46,8 @@
 
 | Revision | Date | Author | Summary of Architectural Changes (`MOC-0.7.4-BSD-001`) |
 | :---: | :---: | :--- | :--- |
-| **`1.0`** | `2026-11-22` | Sergio Melas | **Initial Design-Before-Build Blueprint (`DOC-ARCH-BSD-006`):** Defined the complete Zone 3C `hal/BSD/` kernel backend mirroring [`HAL_LINUX_BACKEND.md`](HAL_LINUX_BACKEND.md), all 14+1 `wayplank_hal_kernel_*` link-seams, the native C `bsd-kernel-bridge.{c,h}` API surface (`libprocstat`, `sysctl`, `libdevstat`, OSS `<sys/soundcard.h>`, `<sys/backlight.h>`, `getifaddrs`), `ConsoleKit2`/`acpiconf` session-power coordination, `BuildBsd.sh` / `BuildPkg.sh`, and Milestones `B1`–`B5`. |
+| **`1.0`** | `2026-11-22` | Sergio Melas | **Initial Design-Before-Build Blueprint (`DOC-ARCH-BSD-006`):** Defined the complete Zone 3C `hal/BSD/` kernel backend mirroring [`HAL_LINUX_BACKEND.md`](HAL_LINUX_BACKEND.md), all 14+1 `wayplank_hal_kernel_*` link-seams, the native C `bsd-kernel-bridge.{c,h}` API surface (`libprocstat`, `sysctl`, `libdevstat`, OSS `<sys/soundcard.h>`, `<sys/backlight.h>`, `getifaddrs`), `ConsoleKit2`/`acpiconf` session-power coordination, `builders/bsd/BuildBsd.sh` / `builders/bsd/BuildPkg.sh`, and Milestones `B1`–`B5`. |
+| **`1.1`** | `2026-11-25` | Sergio Melas | **As-Built Closure (`v0.7.4` Final Public Beta 5 — `100.0%` 7-Platform Qualified):** Closed Milestones `B1`–`B5` across all 3 FreeBSD Wayland compositors (GNOME/Mutter `138/138`, KDE Plasma 6/KWin `138/138`, Labwc `133/133` — including live dual-monitor `FAT 7.6`), Windows 11 (`137/137`), and Linux (`396/396`) = **`942/942` (`100.0% FROZEN`)** in [`FAT/2026-11-25 FAT 0.7.4.txt`](../../FAT/2026-11-25%20FAT%200.7.4.txt). |
 
 ### 1.2 Zero-Hack Mandate & 100% Official FreeBSD Kernel APIs
 
@@ -238,5 +239,5 @@ sudo pkg install -y \
   - Implemented `BsdCpuMemDiskTelemetry` (OpenZFS ARC-aware RAM via `kstat.zfs.misc.arcstats` + `libdevstat`), `BsdBatteryProvider` (ACPI `sysctl`), `BsdAudioTelemetry` (`wpctl`/`pactl` + OSS `/dev/mixer*` `ioctl`), `BsdBacklight` (`/dev/backlight/*` `ioctl` + `hw.acpi.video.*`), `wayplank_hal_kernel_probe_network_fallback` (`getifaddrs`/`SIOCGIFMEDIA`/`IEEE80211_IOC_SSID`/`PF_ROUTE`), and `ConsoleKit2`/`acpiconf`/`shutdown` fallbacks in `FreedesktopSessionPower`; live-verified all primitives on FreeBSD 15.1.
 - [x] **Milestone `B4` — Native FreeBSD `.pkg` Packaging (`builders/bsd/BuildPkg.sh`), `builders/{linux,bsd,windows}/` & `build/{linux,bsd,windows}/` Parity, 5-Pillar Audit:**
   - Delivered `builders/bsd/BuildPkg.sh` $\rightarrow$ `build/bsd/wayplank-<ver>.pkg` (`ABI FreeBSD:15:amd64`), verified all 7 deliverables across Linux (`BuildDeb.sh` + `BuildRpm.sh`), FreeBSD (`BuildBsd.sh` + `BuildPkg.sh`), and Windows (`BuildWin.sh` + `BuildNsis.sh`) `100% GREEN`, and passed the 5-Pillar Forensic Scan (`0` Pitfall #14 UAFs).
-- [ ] **Milestone `B5` — Live 5-Platform ISA-88 FAT Qualification (`FAT 0.7.4`) & Release Closeout:**
-  - Extend `FAT/Template/FAT Template.txt` and cut `FAT/YYYY-MM-DD FAT 0.7.4.txt` adding the **FreeBSD** session, execute live human Gate 2 testing on FreeBSD (`Labwc` / XFCE Wayland) + zero-regression verification on Linux & Windows, freeze at `100.0%` (`0 [ko]`), and sync 4-way atomic docs.
+- [x] **Milestone `B5` — Live 7-Platform ISA-88 FAT Qualification (`FAT 0.7.4`) & Release Closeout (`CONCLUDED & FROZEN 2026-11-25`):**
+  - Expanded [`FAT/Template/FAT Template.txt`](../../FAT/Template/FAT%20Template.txt) and signed [`FAT/2026-11-25 FAT 0.7.4.txt`](../../FAT/2026-11-25%20FAT%200.7.4.txt) across all **7 platforms** (**FreeBSD GNOME `138/138`**, **FreeBSD KDE `138/138`**, **FreeBSD Labwc `133/133`**, **Windows 11 `137/137`**, **Linux GNOME `134/134`**, **Linux KDE `134/134`**, **Linux Labwc `128/128`** = **`942/942` `100.0%`**, `0 [ko]`), live-certified dual-monitor `FAT 7.6` on all 7 platforms, and synchronized all release documentation atomically.

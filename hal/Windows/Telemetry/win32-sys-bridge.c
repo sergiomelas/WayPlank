@@ -715,10 +715,16 @@ win32_sys_audio_set_volume_percent (int percent)
 }
 
 /* ============================================================================
- * 6. Display Brightness (WMI root\WMI Laptop Backlight + Dynamic dxva2.dll Multi-Monitor DDC/CI)
+ * 6. Display Brightness (4-Tier Hardened Cascade:
+ *    1) WMI root\WMI Laptop Backlight (Active-preferred + enumerator proxy blanket)
+ *    2) Kernel \\.\LCD IOCTL (discrete level snapping, zero extra DLLs)
+ *    3) Dynamic dxva2.dll High-Level DDC/CI (Get/SetMonitorBrightness)
+ *    4) Dynamic dxva2.dll Low-Level DDC/CI VCP 0x10 Luminance fallback)
  * ============================================================================ */
 
 #ifdef _WIN32
+
+G_LOCK_DEFINE_STATIC (bright_hw);
 
 static const GUID WP_CLSID_WbemLocator =
 	{ 0x4590F811, 0x1D3A, 0x11D0, { 0x89, 0x1F, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24 } };
@@ -727,6 +733,80 @@ static const GUID WP_IID_IWbemLocator =
 
 static int g_wmi_bright_checked = 0;
 static int g_wmi_bright_supported = 0;
+
+static void
+wmi_set_proxy_blanket (IUnknown *unk)
+{
+	if (unk == NULL)
+		return;
+	CoSetProxyBlanket (
+		unk,
+		RPC_C_AUTHN_WINNT,
+		RPC_C_AUTHZ_NONE,
+		NULL,
+		RPC_C_AUTHN_LEVEL_CALL,
+		RPC_C_IMP_LEVEL_IMPERSONATE,
+		NULL,
+		EOAC_NONE
+	);
+}
+
+static int
+wmi_variant_to_int (const VARIANT *vt, int *out_val)
+{
+	if (vt == NULL || out_val == NULL)
+		return 0;
+	if (vt->vt == VT_UI1) { *out_val = (int) vt->bVal; return 1; }
+	if (vt->vt == VT_I4)  { *out_val = (int) vt->lVal; return 1; }
+	if (vt->vt == VT_UI4) { *out_val = (int) vt->ulVal; return 1; }
+	if (vt->vt == VT_I2)  { *out_val = (int) vt->iVal; return 1; }
+	if (vt->vt == VT_UI2) { *out_val = (int) vt->uiVal; return 1; }
+	return 0;
+}
+
+static int
+wmi_object_is_active (IWbemClassObject *obj)
+{
+	VARIANT vt;
+	VariantInit (&vt);
+	int active = -1;
+	if (SUCCEEDED (IWbemClassObject_Get (obj, L"Active", 0, &vt, NULL, NULL))) {
+		if (vt.vt == VT_BOOL)
+			active = (vt.boolVal != VARIANT_FALSE) ? 1 : 0;
+	}
+	VariantClear (&vt);
+	return active;
+}
+
+static int
+wmi_exec_set_brightness_on_path (IWbemServices *svc, IWbemClassObject *in_def, BSTR relpath, BSTR method_name, int target_pct)
+{
+	int ok = 0;
+	IWbemClassObject *in_inst = NULL;
+	if (SUCCEEDED (IWbemClassObject_SpawnInstance (in_def, 0, &in_inst)) && in_inst != NULL) {
+		VARIANT vt_to, vt_br;
+		VariantInit (&vt_to);
+		vt_to.vt = VT_I4;
+		vt_to.lVal = 1;
+		IWbemClassObject_Put (in_inst, L"Timeout", 0, &vt_to, 0);
+
+		VariantInit (&vt_br);
+		vt_br.vt = VT_UI1;
+		vt_br.bVal = (BYTE) target_pct;
+		IWbemClassObject_Put (in_inst, L"Brightness", 0, &vt_br, 0);
+
+		IWbemClassObject *out_params = NULL;
+		if (SUCCEEDED (IWbemServices_ExecMethod (
+			svc, relpath, method_name, 0, NULL, in_inst, &out_params, NULL
+		))) {
+			ok = 1;
+			if (out_params != NULL)
+				IWbemClassObject_Release (out_params);
+		}
+		IWbemClassObject_Release (in_inst);
+	}
+	return ok;
+}
 
 static int
 wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
@@ -742,8 +822,6 @@ wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
 		&WP_IID_IWbemLocator, (void **) &loc
 	);
 	if (FAILED (hr) || loc == NULL) {
-		g_wmi_bright_checked = 1;
-		g_wmi_bright_supported = 0;
 		sys_com_leave (com_init);
 		return 0;
 	}
@@ -754,28 +832,17 @@ wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
 	SysFreeString (ns);
 	IWbemLocator_Release (loc);
 	if (FAILED (hr) || svc == NULL) {
-		g_wmi_bright_checked = 1;
-		g_wmi_bright_supported = 0;
 		sys_com_leave (com_init);
 		return 0;
 	}
 
-	CoSetProxyBlanket (
-		(IUnknown *) svc,
-		RPC_C_AUTHN_WINNT,
-		RPC_C_AUTHZ_NONE,
-		NULL,
-		RPC_C_AUTHN_LEVEL_CALL,
-		RPC_C_IMP_LEVEL_IMPERSONATE,
-		NULL,
-		EOAC_NONE
-	);
+	wmi_set_proxy_blanket ((IUnknown *) svc);
 
 	BSTR wql = SysAllocString (L"WQL");
 	int ok = 0;
 
 	if (!do_set) {
-		BSTR q = SysAllocString (L"SELECT CurrentBrightness FROM WmiMonitorBrightness");
+		BSTR q = SysAllocString (L"SELECT CurrentBrightness, Active FROM WmiMonitorBrightness");
 		IEnumWbemClassObject *en = NULL;
 		hr = IWbemServices_ExecQuery (
 			svc, wql, q,
@@ -784,29 +851,35 @@ wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
 		);
 		SysFreeString (q);
 		if (SUCCEEDED (hr) && en != NULL) {
+			wmi_set_proxy_blanket ((IUnknown *) en);
 			IWbemClassObject *obj = NULL;
 			ULONG ret = 0;
-			if (SUCCEEDED (IEnumWbemClassObject_Next (en, 1000, 1, &obj, &ret)) && ret == 1 && obj != NULL) {
+			int first_pct = -1;
+			int active_pct = -1;
+			while (SUCCEEDED (IEnumWbemClassObject_Next (en, 1000, 1, &obj, &ret)) && ret == 1 && obj != NULL) {
 				VARIANT vt;
 				VariantInit (&vt);
 				if (SUCCEEDED (IWbemClassObject_Get (obj, L"CurrentBrightness", 0, &vt, NULL, NULL))) {
 					int pct = -1;
-					if (vt.vt == VT_UI1) pct = (int) vt.bVal;
-					else if (vt.vt == VT_I4) pct = (int) vt.lVal;
-					else if (vt.vt == VT_UI4) pct = (int) vt.ulVal;
-					else if (vt.vt == VT_I2) pct = (int) vt.iVal;
-					else if (vt.vt == VT_UI2) pct = (int) vt.uiVal;
-					if (pct >= 0 && pct <= 100) {
-						if (out_pct) *out_pct = pct;
-						ok = 1;
+					if (wmi_variant_to_int (&vt, &pct) && pct >= 0 && pct <= 100) {
+						if (first_pct < 0)
+							first_pct = pct;
+						if (wmi_object_is_active (obj) == 1 && active_pct < 0)
+							active_pct = pct;
 					}
 				}
 				VariantClear (&vt);
 				IWbemClassObject_Release (obj);
+				if (active_pct >= 0)
+					break;
 			}
 			IEnumWbemClassObject_Release (en);
-		}
-		if (!g_wmi_bright_checked) {
+
+			int chosen = (active_pct >= 0) ? active_pct : first_pct;
+			if (chosen >= 0) {
+				if (out_pct) *out_pct = chosen;
+				ok = 1;
+			}
 			g_wmi_bright_checked = 1;
 			g_wmi_bright_supported = ok;
 		}
@@ -821,47 +894,42 @@ wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
 
 		if (SUCCEEDED (IWbemServices_GetObject (svc, cls_name, 0, NULL, &cls_obj, NULL)) && cls_obj != NULL) {
 			if (SUCCEEDED (IWbemClassObject_GetMethod (cls_obj, L"WmiSetBrightness", 0, &in_def, NULL)) && in_def != NULL) {
-				BSTR q = SysAllocString (L"SELECT InstanceName FROM WmiMonitorBrightnessMethods");
+				BSTR q = SysAllocString (L"SELECT InstanceName, Active FROM WmiMonitorBrightnessMethods");
 				IEnumWbemClassObject *en = NULL;
 				if (SUCCEEDED (IWbemServices_ExecQuery (
 					svc, wql, q,
 					WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
 					NULL, &en
 				)) && en != NULL) {
+					wmi_set_proxy_blanket ((IUnknown *) en);
 					IWbemClassObject *obj = NULL;
 					ULONG ret = 0;
+					BSTR fallback_paths[8];
+					int fallback_count = 0;
 					while (SUCCEEDED (IEnumWbemClassObject_Next (en, 1000, 1, &obj, &ret)) && ret == 1 && obj != NULL) {
 						VARIANT vt_path;
 						VariantInit (&vt_path);
 						if (SUCCEEDED (IWbemClassObject_Get (obj, L"__RELPATH", 0, &vt_path, NULL, NULL))
 							&& vt_path.vt == VT_BSTR && vt_path.bstrVal != NULL) {
-							IWbemClassObject *in_inst = NULL;
-							if (SUCCEEDED (IWbemClassObject_SpawnInstance (in_def, 0, &in_inst)) && in_inst != NULL) {
-								VARIANT vt_to, vt_br;
-								VariantInit (&vt_to);
-								vt_to.vt = VT_I4;
-								vt_to.lVal = 0;
-								IWbemClassObject_Put (in_inst, L"Timeout", 0, &vt_to, 0);
-
-								VariantInit (&vt_br);
-								vt_br.vt = VT_UI1;
-								vt_br.bVal = (BYTE) target_pct;
-								IWbemClassObject_Put (in_inst, L"Brightness", 0, &vt_br, 0);
-
-								IWbemClassObject *out_params = NULL;
-								if (SUCCEEDED (IWbemServices_ExecMethod (
-									svc, vt_path.bstrVal, method_name, 0, NULL, in_inst, &out_params, NULL
-								))) {
+							int act = wmi_object_is_active (obj);
+							if (act != 0) {
+								if (wmi_exec_set_brightness_on_path (svc, in_def, vt_path.bstrVal, method_name, target_pct))
 									ok = 1;
-									if (out_params != NULL)
-										IWbemClassObject_Release (out_params);
-								}
-								IWbemClassObject_Release (in_inst);
+							} else if (fallback_count < 8) {
+								fallback_paths[fallback_count++] = SysAllocString (vt_path.bstrVal);
 							}
 						}
 						VariantClear (&vt_path);
 						IWbemClassObject_Release (obj);
 					}
+					if (!ok) {
+						for (int i = 0; i < fallback_count; i++) {
+							if (wmi_exec_set_brightness_on_path (svc, in_def, fallback_paths[i], method_name, target_pct))
+								ok = 1;
+						}
+					}
+					for (int i = 0; i < fallback_count; i++)
+						SysFreeString (fallback_paths[i]);
 					IEnumWbemClassObject_Release (en);
 				}
 				SysFreeString (q);
@@ -879,6 +947,71 @@ wmi_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
 	return ok;
 }
 
+#define WP_IOCTL_VIDEO_QUERY_SUPPORTED_BRIGHTNESS 0x00230494UL
+#define WP_IOCTL_VIDEO_QUERY_DISPLAY_BRIGHTNESS   0x00230498UL
+#define WP_IOCTL_VIDEO_SET_DISPLAY_BRIGHTNESS     0x0023049CUL
+
+typedef struct {
+	UCHAR ucDisplayPolicy;
+	UCHAR ucACBrightness;
+	UCHAR ucDCBrightness;
+} WP_DISPLAY_BRIGHTNESS;
+
+static int
+lcd_ioctl_brightness_get_or_set (int do_set, int target_pct, int *out_pct)
+{
+	HANDLE h = CreateFileW (
+		L"\\\\.\\LCD",
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL, OPEN_EXISTING, 0, NULL
+	);
+	if (h == INVALID_HANDLE_VALUE)
+		return 0;
+
+	int ok = 0;
+	DWORD bytes = 0;
+	if (!do_set) {
+		WP_DISPLAY_BRIGHTNESS db;
+		memset (&db, 0, sizeof (db));
+		if (DeviceIoControl (h, WP_IOCTL_VIDEO_QUERY_DISPLAY_BRIGHTNESS, NULL, 0, &db, sizeof (db), &bytes, NULL)
+			&& bytes >= sizeof (db)) {
+			int pct = (db.ucDisplayPolicy == 2) ? (int) db.ucDCBrightness : (int) db.ucACBrightness;
+			if (pct < 0) pct = 0;
+			if (pct > 100) pct = 100;
+			if (out_pct) *out_pct = pct;
+			ok = 1;
+		}
+	} else {
+		if (target_pct < 0) target_pct = 0;
+		if (target_pct > 100) target_pct = 100;
+		UCHAR snapped = (UCHAR) target_pct;
+		UCHAR levels[256];
+		DWORD lvl_bytes = 0;
+		if (DeviceIoControl (h, WP_IOCTL_VIDEO_QUERY_SUPPORTED_BRIGHTNESS, NULL, 0, levels, sizeof (levels), &lvl_bytes, NULL)
+			&& lvl_bytes > 0 && lvl_bytes <= sizeof (levels)) {
+			int best_diff = 1000;
+			for (DWORD i = 0; i < lvl_bytes; i++) {
+				int diff = (int) levels[i] - target_pct;
+				if (diff < 0) diff = -diff;
+				if (diff < best_diff) {
+					best_diff = diff;
+					snapped = levels[i];
+				}
+			}
+		}
+		WP_DISPLAY_BRIGHTNESS db;
+		db.ucDisplayPolicy = 3; /* DISPLAYPOLICY_BOTH (AC + DC) */
+		db.ucACBrightness = snapped;
+		db.ucDCBrightness = snapped;
+		if (DeviceIoControl (h, WP_IOCTL_VIDEO_SET_DISPLAY_BRIGHTNESS, &db, sizeof (db), NULL, 0, &bytes, NULL))
+			ok = 1;
+	}
+
+	CloseHandle (h);
+	return ok;
+}
+
 typedef struct {
 	HANDLE hPhysicalMonitor;
 	WCHAR szPhysicalMonitorDescription[128];
@@ -889,12 +1022,16 @@ typedef BOOL (WINAPI *PFN_GetPhys) (HMONITOR, DWORD, WP_PHYSICAL_MONITOR *);
 typedef BOOL (WINAPI *PFN_DestroyPhys) (DWORD, WP_PHYSICAL_MONITOR *);
 typedef BOOL (WINAPI *PFN_GetBright) (HANDLE, LPDWORD, LPDWORD, LPDWORD);
 typedef BOOL (WINAPI *PFN_SetBright) (HANDLE, DWORD);
+typedef BOOL (WINAPI *PFN_GetVCP) (HANDLE, BYTE, DWORD *, LPDWORD, LPDWORD);
+typedef BOOL (WINAPI *PFN_SetVCP) (HANDLE, BYTE, DWORD);
 
 static PFN_GetNumPhys pfn_GetNumPhys = NULL;
 static PFN_GetPhys pfn_GetPhys = NULL;
 static PFN_DestroyPhys pfn_DestroyPhys = NULL;
 static PFN_GetBright pfn_GetBright = NULL;
 static PFN_SetBright pfn_SetBright = NULL;
+static PFN_GetVCP pfn_GetVCP = NULL;
+static PFN_SetVCP pfn_SetVCP = NULL;
 static int g_dxva2_loaded = 0;
 
 static void
@@ -911,6 +1048,8 @@ ensure_dxva2 (void)
 	pfn_DestroyPhys = (PFN_DestroyPhys) GetProcAddress (h, "DestroyPhysicalMonitors");
 	pfn_GetBright = (PFN_GetBright) GetProcAddress (h, "GetMonitorBrightness");
 	pfn_SetBright = (PFN_SetBright) GetProcAddress (h, "SetMonitorBrightness");
+	pfn_GetVCP = (PFN_GetVCP) GetProcAddress (h, "GetVCPFeatureAndVCPFeatureReply");
+	pfn_SetVCP = (PFN_SetVCP) GetProcAddress (h, "SetVCPFeature");
 }
 
 typedef struct {
@@ -940,19 +1079,50 @@ dxva2_enum_mon_cb (HMONITOR hMon, HDC hdc, LPRECT rc, LPARAM lparam)
 	}
 
 	for (DWORD i = 0; i < count; i++) {
+		int mon_handled = 0;
 		DWORD min_b = 0, cur_b = 0, max_b = 0;
-		if (pfn_GetBright (mons[i].hPhysicalMonitor, &min_b, &cur_b, &max_b) && max_b > min_b) {
+		if (pfn_GetBright != NULL && pfn_SetBright != NULL
+			&& pfn_GetBright (mons[i].hPhysicalMonitor, &min_b, &cur_b, &max_b) && max_b > min_b) {
 			if (ctx->do_set) {
 				int pct = ctx->target_pct;
 				if (pct < 0) pct = 0;
 				if (pct > 100) pct = 100;
-				DWORD val = min_b + ((max_b - min_b) * (DWORD) pct) / 100;
-				if (pfn_SetBright (mons[i].hPhysicalMonitor, val))
+				DWORD val = min_b + ((max_b - min_b) * (DWORD) pct + 50) / 100;
+				if (val < min_b) val = min_b;
+				if (val > max_b) val = max_b;
+				if (pfn_SetBright (mons[i].hPhysicalMonitor, val)) {
 					ctx->any_ok = 1;
+					mon_handled = 1;
+				}
 			} else {
+				if (cur_b < min_b) cur_b = min_b;
+				if (cur_b > max_b) cur_b = max_b;
 				ctx->out_pct = (int) (((cur_b - min_b) * 100) / (max_b - min_b));
 				ctx->any_ok = 1;
+				mon_handled = 1;
 				break;
+			}
+		}
+
+		/* Low-Level DDC/CI VCP 0x10 (Luminance) fallback for desktop monitors whose MCCS
+		 * capabilities string fails High-Level GetMonitorBrightness/SetMonitorBrightness */
+		if (!mon_handled && pfn_GetVCP != NULL && pfn_SetVCP != NULL) {
+			DWORD cur_v = 0, max_v = 0;
+			if (pfn_GetVCP (mons[i].hPhysicalMonitor, 0x10, NULL, &cur_v, &max_v) && max_v > 0) {
+				if (ctx->do_set) {
+					int pct = ctx->target_pct;
+					if (pct < 0) pct = 0;
+					if (pct > 100) pct = 100;
+					DWORD val = (max_v * (DWORD) pct + 50) / 100;
+					if (val > max_v) val = max_v;
+					if (pfn_SetVCP (mons[i].hPhysicalMonitor, 0x10, val))
+						ctx->any_ok = 1;
+				} else {
+					if (cur_v > max_v) cur_v = max_v;
+					ctx->out_pct = (int) ((cur_v * 100) / max_v);
+					ctx->any_ok = 1;
+					break;
+				}
 			}
 		}
 	}
@@ -967,7 +1137,9 @@ static int
 dxva2_get_or_set (int do_set, int target_pct, int *out_pct)
 {
 	ensure_dxva2 ();
-	if (!pfn_GetNumPhys || !pfn_GetPhys || !pfn_DestroyPhys || !pfn_GetBright || !pfn_SetBright)
+	if (!pfn_GetNumPhys || !pfn_GetPhys || !pfn_DestroyPhys)
+		return 0;
+	if ((!pfn_GetBright || !pfn_SetBright) && (!pfn_GetVCP || !pfn_SetVCP))
 		return 0;
 
 	Dxva2EnumCtx ctx;
@@ -988,10 +1160,17 @@ int
 win32_sys_brightness_is_available (void)
 {
 #ifdef _WIN32
+	G_LOCK (bright_hw);
 	int pct = 100;
+	int ok = 0;
 	if (wmi_brightness_get_or_set (0, 0, &pct))
-		return 1;
-	return dxva2_get_or_set (0, 0, &pct);
+		ok = 1;
+	else if (lcd_ioctl_brightness_get_or_set (0, 0, &pct))
+		ok = 1;
+	else if (dxva2_get_or_set (0, 0, &pct))
+		ok = 1;
+	G_UNLOCK (bright_hw);
+	return ok;
 #else
 	return 0;
 #endif
@@ -1001,11 +1180,21 @@ int
 win32_sys_brightness_get_percent (void)
 {
 #ifdef _WIN32
+	G_LOCK (bright_hw);
 	int pct = 100;
-	if (wmi_brightness_get_or_set (0, 0, &pct))
+	if (wmi_brightness_get_or_set (0, 0, &pct)) {
+		G_UNLOCK (bright_hw);
 		return pct;
-	if (dxva2_get_or_set (0, 0, &pct))
+	}
+	if (lcd_ioctl_brightness_get_or_set (0, 0, &pct)) {
+		G_UNLOCK (bright_hw);
 		return pct;
+	}
+	if (dxva2_get_or_set (0, 0, &pct)) {
+		G_UNLOCK (bright_hw);
+		return pct;
+	}
+	G_UNLOCK (bright_hw);
 	return 100;
 #else
 	return 100;
@@ -1016,8 +1205,12 @@ void
 win32_sys_brightness_set_percent (int percent)
 {
 #ifdef _WIN32
-	wmi_brightness_get_or_set (1, percent, NULL);
+	G_LOCK (bright_hw);
+	int wmi_ok = wmi_brightness_get_or_set (1, percent, NULL);
+	if (!wmi_ok)
+		lcd_ioctl_brightness_get_or_set (1, percent, NULL);
 	dxva2_get_or_set (1, percent, NULL);
+	G_UNLOCK (bright_hw);
 #else
 	(void) percent;
 #endif

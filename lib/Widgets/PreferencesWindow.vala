@@ -143,7 +143,11 @@ namespace Plank
 		[GtkChild]
 		unowned Gtk.Label l_accordion_docklets;
 		[GtkChild]
-		unowned Gtk.Switch sw_accordion_docklets;
+		unowned Gtk.ComboBoxText cb_docklet_accordion;
+		[GtkChild]
+		unowned Gtk.SpinButton sp_docklet_count;
+		[GtkChild]
+		unowned Gtk.Adjustment adj_docklet_count;
 		[GtkChild]
 		unowned Gtk.Label l_accordion_click_to_expand;
 		[GtkChild]
@@ -403,6 +407,8 @@ namespace Plank
 				sp_accordion_delay.select_region (0, 0);
 			if (sp_pinned_count != null)
 				sp_pinned_count.select_region (0, 0);
+			if (sp_docklet_count != null)
+				sp_docklet_count.select_region (0, 0);
 		}
 
 		void on_stack_page_changed (GLib.Object sender, ParamSpec prop)
@@ -851,8 +857,6 @@ namespace Plank
 				sw_docklets_on_right.set_active (prefs.DockletsOnRight);
 				break;
 			case "AccordionDocklets":
-				sw_accordion_docklets.set_active (prefs.AccordionDocklets);
-				update_accordion_visibility ();
 				break;
 			case "AccordionClickToExpand":
 				sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
@@ -871,6 +875,14 @@ namespace Plank
 			case "PinnedAccordionCount":
 				if ((int) Math.round (adj_pinned_count.value) != prefs.PinnedAccordionCount)
 					adj_pinned_count.value = prefs.PinnedAccordionCount.clamp (DockPreferences.MIN_PINNED_ACCORDION_COUNT, DockPreferences.MAX_PINNED_ACCORDION_COUNT);
+				break;
+			case "DockletAccordionMode":
+				cb_docklet_accordion.active_id = prefs.DockletAccordionMode.clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N).to_string ();
+				update_accordion_visibility ();
+				break;
+			case "DockletAccordionCount":
+				if ((int) Math.round (adj_docklet_count.value) != prefs.DockletAccordionCount)
+					adj_docklet_count.value = prefs.DockletAccordionCount.clamp (DockPreferences.MIN_DOCKLET_ACCORDION_COUNT, DockPreferences.MAX_DOCKLET_ACCORDION_COUNT);
 				break;
 			case "ZoomPercent":
 				adj_zoom_percent.value = prefs.ZoomPercent;
@@ -1528,12 +1540,6 @@ namespace Plank
 				prefs.AnchorAlwaysLeft = active;
 		}
 
-		void accordion_docklets_toggled (GLib.Object widget, ParamSpec param)
-		{
-			prefs.AccordionDocklets = ((Gtk.Switch) widget).get_active ();
-			update_accordion_visibility ();
-		}
-
 		void accordion_click_to_expand_toggled (GLib.Object widget, ParamSpec param)
 		{
 			prefs.AccordionClickToExpand = ((Gtk.Switch) widget).get_active ();
@@ -1557,29 +1563,37 @@ namespace Plank
 		void update_accordion_visibility ()
 		{
 			bool cat_active = prefs.CategorizeItems;
-			bool acc_active = cat_active && prefs.AccordionDocklets;
-			bool pin_active = cat_active && prefs.PinnedAccordionMode != DockPreferences.PINNED_ACCORDION_OFF;
+			bool acc_active = cat_active && (prefs.DockletAccordionMode != DockPreferences.PINNED_ACCORDION_OFF);
+			bool pin_active = prefs.PinnedAccordionMode != DockPreferences.PINNED_ACCORDION_OFF;
 			// Click to Expand and Collapse Delay are shared by both accordions
 			bool any_acc_active = acc_active || pin_active;
 
 			btn_reorder_free_items.sensitive = !cat_active;
 
-			l_docklets_on_right.sensitive = cat_active;
-			sw_docklets_on_right.sensitive = cat_active;
-			l_accordion_docklets.sensitive = cat_active;
-			sw_accordion_docklets.sensitive = cat_active;
-			l_pinned_accordion.sensitive = cat_active;
-			cb_pinned_accordion.sensitive = cat_active;
-			sp_pinned_count.sensitive = cat_active;
+			// Smart Accordion (Pinned / All) works in both Categorized and Free mode
+			l_pinned_accordion.label = cat_active ? _("Accordion (Pinned):") : _("Accordion (All):");
+			l_pinned_accordion.sensitive = true;
+			cb_pinned_accordion.sensitive = true;
+			sp_pinned_count.sensitive = true;
 			sp_pinned_count.visible = (prefs.PinnedAccordionMode == DockPreferences.PINNED_ACCORDION_TOP_N);
-			l_accordion_click_to_expand.sensitive = any_acc_active;
-			sw_accordion_click_to_expand.sensitive = any_acc_active;
+
+			// Smart Accordion (Docklets) is Categorized-only (entire row greyed out in Free mode)
+			l_accordion_docklets.label = cat_active ? _("Accordion (Docklets):") : _("Accordion (N/A):");
+			l_accordion_docklets.sensitive = cat_active;
+			cb_docklet_accordion.sensitive = cat_active;
+			sp_docklet_count.sensitive = cat_active;
+			sp_docklet_count.visible = (prefs.DockletAccordionMode == DockPreferences.PINNED_ACCORDION_TOP_N);
 
 			bool delay_active = any_acc_active && !prefs.AccordionClickToExpand;
 			l_accordion_delay.sensitive = delay_active;
 			box_accordion_delay.sensitive = delay_active;
 			sp_accordion_delay.sensitive = delay_active;
 			s_accordion_delay.sensitive = delay_active;
+
+			l_accordion_click_to_expand.sensitive = any_acc_active;
+			sw_accordion_click_to_expand.sensitive = any_acc_active;
+			l_docklets_on_right.sensitive = cat_active;
+			sw_docklets_on_right.sensitive = cat_active;
 		}
 
 		void pinned_accordion_changed (Gtk.ComboBox widget)
@@ -1596,6 +1610,22 @@ namespace Plank
 			int val = ((int) Math.round (adj.value)).clamp (DockPreferences.MIN_PINNED_ACCORDION_COUNT, DockPreferences.MAX_PINNED_ACCORDION_COUNT);
 			if (prefs.PinnedAccordionCount != val)
 				prefs.PinnedAccordionCount = val;
+		}
+
+		void docklet_accordion_changed (Gtk.ComboBox widget)
+		{
+			var active_id = widget.get_active_id ();
+			if (active_id == null || active_id == "")
+				return;
+			prefs.DockletAccordionMode = int.parse (active_id).clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N);
+			update_accordion_visibility ();
+		}
+
+		void docklet_count_changed (Gtk.Adjustment adj)
+		{
+			int val = ((int) Math.round (adj.value)).clamp (DockPreferences.MIN_DOCKLET_ACCORDION_COUNT, DockPreferences.MAX_DOCKLET_ACCORDION_COUNT);
+			if (prefs.DockletAccordionCount != val)
+				prefs.DockletAccordionCount = val;
 		}
 
 		void accordion_delay_changed (Gtk.Adjustment adj)
@@ -1854,6 +1884,8 @@ namespace Plank
 			adj_accordion_delay.value_changed.connect (accordion_delay_changed);
 			cb_pinned_accordion.changed.connect (pinned_accordion_changed);
 			adj_pinned_count.value_changed.connect (pinned_count_changed);
+			cb_docklet_accordion.changed.connect (docklet_accordion_changed);
+			adj_docklet_count.value_changed.connect (docklet_count_changed);
 			cb_window_click_behavior.changed.connect (window_click_behavior_changed);
 			cb_active_highlight.changed.connect (active_highlight_changed);
 			cb_launch_animation.changed.connect (launch_animation_changed);
@@ -1876,7 +1908,6 @@ namespace Plank
 			btn_reorder_free_items.clicked.connect (reorder_free_items_clicked);
 			sw_docklets_on_right.notify["active"].connect (docklets_on_right_toggled);
 			sw_anchor_always_left.notify["active"].connect (anchor_always_left_toggled);
-			sw_accordion_docklets.notify["active"].connect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].connect (accordion_click_to_expand_toggled);
 			sw_show_window_cards.notify["active"].connect (show_window_cards_toggled);
 			sw_restore_minimized.notify["active"].connect (restore_minimized_toggled);
@@ -1935,6 +1966,8 @@ namespace Plank
 			adj_accordion_delay.value_changed.disconnect (accordion_delay_changed);
 			cb_pinned_accordion.changed.disconnect (pinned_accordion_changed);
 			adj_pinned_count.value_changed.disconnect (pinned_count_changed);
+			cb_docklet_accordion.changed.disconnect (docklet_accordion_changed);
+			adj_docklet_count.value_changed.disconnect (docklet_count_changed);
 			cb_window_click_behavior.changed.disconnect (window_click_behavior_changed);
 			cb_active_highlight.changed.disconnect (active_highlight_changed);
 			cb_launch_animation.changed.disconnect (launch_animation_changed);
@@ -1957,7 +1990,6 @@ namespace Plank
 			btn_reorder_free_items.clicked.disconnect (reorder_free_items_clicked);
 			sw_docklets_on_right.notify["active"].disconnect (docklets_on_right_toggled);
 			sw_anchor_always_left.notify["active"].disconnect (anchor_always_left_toggled);
-			sw_accordion_docklets.notify["active"].disconnect (accordion_docklets_toggled);
 			sw_accordion_click_to_expand.notify["active"].disconnect (accordion_click_to_expand_toggled);
 			sw_show_window_cards.notify["active"].disconnect (show_window_cards_toggled);
 			sw_restore_minimized.notify["active"].disconnect (restore_minimized_toggled);
@@ -2112,11 +2144,12 @@ namespace Plank
 			sw_categorize_items.set_active (prefs.CategorizeItems);
 			sw_docklets_on_right.set_active (prefs.DockletsOnRight);
 			sw_anchor_always_left.set_active (prefs.AnchorAlwaysLeft);
-			sw_accordion_docklets.set_active (prefs.AccordionDocklets);
 			sw_accordion_click_to_expand.set_active (prefs.AccordionClickToExpand);
 			adj_accordion_delay.value = (prefs.AccordionDelay >= DockPreferences.MIN_ACCORDION_DELAY ? prefs.AccordionDelay : DockPreferences.DEFAULT_ACCORDION_DELAY) / 1000.0;
 			cb_pinned_accordion.active_id = prefs.PinnedAccordionMode.clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N).to_string ();
 			adj_pinned_count.value = prefs.PinnedAccordionCount.clamp (DockPreferences.MIN_PINNED_ACCORDION_COUNT, DockPreferences.MAX_PINNED_ACCORDION_COUNT);
+			cb_docklet_accordion.active_id = prefs.DockletAccordionMode.clamp (DockPreferences.PINNED_ACCORDION_OFF, DockPreferences.PINNED_ACCORDION_TOP_N).to_string ();
+			adj_docklet_count.value = prefs.DockletAccordionCount.clamp (DockPreferences.MIN_DOCKLET_ACCORDION_COUNT, DockPreferences.MAX_DOCKLET_ACCORDION_COUNT);
 			update_accordion_visibility ();
 			cb_alignment.active_id = ((int) prefs.Alignment).to_string ();
 			cb_items_alignment.active_id = ((int) prefs.ItemsAlignment).to_string ();

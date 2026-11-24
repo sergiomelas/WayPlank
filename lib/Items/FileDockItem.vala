@@ -235,6 +235,8 @@ namespace Plank
 				CustomIconService.get_default ().disconnect (custom_icon_changed_id);
 				custom_icon_changed_id = 0UL;
 			}
+			if (Launcher != null && Launcher != "")
+				AppUsageService.get_default ().unregister_folder_apps (Launcher);
 		}
 
 		void handle_custom_icon_changed (string uri)
@@ -285,6 +287,9 @@ namespace Plank
 				} else {
 					self.update_indicator ();
 				}
+				unowned DefaultApplicationDockItemProvider? prov = (self.Container as DefaultApplicationDockItemProvider);
+				if (prov != null)
+					prov.refresh_pinned_accordion ();
 				return false;
 			});
 		}
@@ -298,6 +303,9 @@ namespace Plank
 			update_indicator ();
 			if (AbstractMain.app_instance != null)
 				AbstractMain.app_instance.sync_windows_across_all_docks ();
+			unowned DefaultApplicationDockItemProvider? prov = (Container as DefaultApplicationDockItemProvider);
+			if (prov != null)
+				prov.refresh_pinned_accordion ();
 			needs_redraw ();
 		}
 
@@ -362,6 +370,22 @@ namespace Plank
 			} catch (Error e) {
 				debug ("FileDockItem: Failed to enumerate directory '%s': %s", OwnedFile.get_path () ?? "", e.message);
 			}
+			if (Launcher != null && Launcher != "")
+				AppUsageService.get_default ().register_folder_apps (Launcher, contained_launchers);
+		}
+
+		public bool has_running_or_urgent_app (bool check_attention)
+		{
+			if (!is_directory () || contained_launchers.size == 0)
+				return false;
+			var wm = WindowManager.get_default ();
+			foreach (var uri in contained_launchers) {
+				if (wm.window_count_for_app (uri) > 0)
+					return true;
+				if (check_attention && wm.app_demands_attention (uri))
+					return true;
+			}
+			return false;
 		}
 
 		public void update_indicator ()

@@ -1787,7 +1787,7 @@ namespace Plank
 				|| (peer_item != null && peer_item is ApplicationDockItem)
 				|| folder_app_drag;
 
-			if (controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets && controller.app_provider != null) {
+			if (controller.app_provider != null && controller.app_provider.is_docklets_accordion_enabled ()) {
 				if (controller.app_provider.docklets_expanded) {
 					controller.app_provider.cancel_collapse_timer ();
 				} else if (dragging_docklet && zone_cat == DragCategory.DOCKLET) {
@@ -1795,14 +1795,20 @@ namespace Plank
 				}
 			}
 
-			// Smart Pinned Accordion: unfold strictly when positioning a Pinned/Unpinned App
-			// (same-dock, inter-dock, or Folder Drawer drag) inside the target APP zone —
-			// NEVER when dragging Folders/Docklets or hovering Folders/Docklets/Trash.
+			// Smart Accordion: unfold when positioning an eligible item inside the target zone
+			// (Categorized: apps in APP zone only; Free mode: any non-Trash item outside Trash).
 			if (controller.app_provider != null && controller.app_provider.is_pinned_accordion_enabled ()) {
 				if (controller.app_provider.pinned_expanded) {
 					controller.app_provider.cancel_collapse_timer ();
-				} else if (dragging_app && zone_cat == DragCategory.APP) {
-					controller.app_provider.expand_pinned (false, true);
+				} else if (controller.prefs.CategorizeItems) {
+					if (dragging_app && zone_cat == DragCategory.APP)
+						controller.app_provider.expand_pinned (false, true);
+				} else {
+					bool dragging_free_item = (InternalDragActive && InternalReorderIntent && DragItem != null && !(DragItem is TrashDockItem))
+						|| (peer_item != null && !(peer_item is TrashDockItem))
+						|| folder_app_drag;
+					if (dragging_free_item && zone_cat != DragCategory.TRASH)
+						controller.app_provider.expand_pinned (false, true);
 				}
 			}
 			
@@ -1877,8 +1883,8 @@ namespace Plank
 				unowned DefaultApplicationDockItemProvider? ap = controller.app_provider;
 				if (!InternalReorderIntent && ap != null) {
 					bool pinned_pending = ap.is_pinned_accordion_enabled () && !ap.pinned_expanded
-						&& DragItem is ApplicationDockItem;
-					bool docklets_pending = controller.prefs.CategorizeItems && controller.prefs.AccordionDocklets
+						&& (controller.prefs.CategorizeItems ? (DragItem is ApplicationDockItem) : ap.is_accordion_candidate (DragItem));
+					bool docklets_pending = ap.is_docklets_accordion_enabled ()
 						&& !ap.docklets_expanded && DefaultApplicationDockItemProvider.is_docklet_element (DragItem);
 					if (pinned_pending || docklets_pending)
 						return;

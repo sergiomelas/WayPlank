@@ -115,12 +115,21 @@ namespace Plank
 
 	class Win32BrightnessProvider : GLib.Object, IBrightnessProvider
 	{
+		const int CAPS_PROBE_VERSION = 2;
+		const int64 SET_CACHE_WINDOW_US = 1500000LL;
+
 		int cached_percent = 100;
 		bool probed = false;
 		bool probe_in_flight = false;
 		bool available = true;
 		bool has_cached_availability = false;
 		bool is_cleaned_up = false;
+
+		Mutex set_mutex = Mutex ();
+		bool set_worker_running = false;
+		bool has_pending_set = false;
+		int pending_set_percent = 100;
+		int64 last_set_us = 0LL;
 
 		static string get_caps_cache_path ()
 		{
@@ -141,7 +150,8 @@ namespace Plank
 					var kf = new KeyFile ();
 					try {
 						kf.load_from_file (path, KeyFileFlags.NONE);
-						if (kf.has_key ("Caps", "HardwareBrightnessSupported"))
+						int ver = kf.has_key ("Caps", "ProbeVersion") ? kf.get_integer ("Caps", "ProbeVersion") : 0;
+						if (ver >= CAPS_PROBE_VERSION && kf.has_key ("Caps", "HardwareBrightnessSupported"))
 							available = kf.get_boolean ("Caps", "HardwareBrightnessSupported");
 					} catch (Error e) {}
 				}
@@ -153,6 +163,7 @@ namespace Plank
 		{
 			string path = get_caps_cache_path ();
 			var kf = new KeyFile ();
+			kf.set_integer ("Caps", "ProbeVersion", CAPS_PROBE_VERSION);
 			kf.set_boolean ("Caps", "HardwareBrightnessSupported", supp);
 			try {
 				FileUtils.set_contents (path, kf.to_data ());
@@ -177,11 +188,12 @@ namespace Plank
 					self.probed = true;
 					self.available = supp;
 					self.has_cached_availability = true;
-					self.cached_percent = pct;
+					if (self.last_set_us == 0LL)
+						self.cached_percent = pct;
 					Hal.Capabilities.supports_hardware_brightness = supp;
 					save_cached_availability (supp);
 					if (supp)
-						self.brightness_changed (pct);
+						self.brightness_changed (self.cached_percent);
 					return Source.REMOVE;
 				});
 				return null;
@@ -205,20 +217,61 @@ namespace Plank
 			}
 			if (!available)
 				return 100;
+			bool worker_busy;
+			set_mutex.lock ();
+			worker_busy = set_worker_running || has_pending_set;
+			set_mutex.unlock ();
+			if (worker_busy || (last_set_us > 0LL && GLib.get_monotonic_time () - last_set_us < SET_CACHE_WINDOW_US))
+				return cached_percent;
 			cached_percent = Win32SysBridge.brightness_get_percent ();
 			return cached_percent;
 		}
 
 		public void set_percent (int percent, bool immediate = false)
 		{
+			if (is_cleaned_up)
+				return;
 			if (!probed && !get_cached_availability ())
 				return;
 			if (probed && !available)
 				return;
 			int clamped = int.max (5, int.min (100, percent));
-			Win32SysBridge.brightness_set_percent (clamped);
 			cached_percent = clamped;
+			last_set_us = GLib.get_monotonic_time ();
 			brightness_changed (clamped);
+
+			bool start_worker = false;
+			set_mutex.lock ();
+			pending_set_percent = clamped;
+			has_pending_set = true;
+			if (!set_worker_running) {
+				set_worker_running = true;
+				start_worker = true;
+			}
+			set_mutex.unlock ();
+
+			if (start_worker) {
+				GLib.WeakRef weak_self = GLib.WeakRef (this);
+				new Thread<void*> ("wayplank-bright-set", () => {
+					while (true) {
+						var self = (Win32BrightnessProvider?) weak_self.get ();
+						if (self == null || self.is_cleaned_up)
+							break;
+						int target = 100;
+						self.set_mutex.lock ();
+						if (!self.has_pending_set || self.is_cleaned_up) {
+							self.set_worker_running = false;
+							self.set_mutex.unlock ();
+							break;
+						}
+						target = self.pending_set_percent;
+						self.has_pending_set = false;
+						self.set_mutex.unlock ();
+						Win32SysBridge.brightness_set_percent (target);
+					}
+					return null;
+				});
+			}
 		}
 
 		public void adjust_percent (int delta)
@@ -228,7 +281,10 @@ namespace Plank
 
 		public void cleanup ()
 		{
+			set_mutex.lock ();
 			is_cleaned_up = true;
+			has_pending_set = false;
+			set_mutex.unlock ();
 		}
 	}
 

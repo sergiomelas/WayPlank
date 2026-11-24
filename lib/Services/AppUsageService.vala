@@ -51,6 +51,8 @@ namespace Plank
 		public const double FOCUS_MAX_POINTS = 3.0;
 		/** Scores closer than this are considered a tie (manual dock order decides). */
 		public const double TIE_EPSILON = 0.05;
+		/** Per-rank damping factor for folder damped-Euclidean app aggregation (bound <= 1.155 * s_max). */
+		public const double FOLDER_DAMPING = 0.5;
 
 		const int64 SAVE_THROTTLE_SECONDS = 300;
 		const double PRUNE_BELOW = 0.01;
@@ -104,6 +106,7 @@ namespace Plank
 		}
 
 		Gee.HashMap<string, UsageEntry> entries;
+		Gee.HashMap<string, Gee.ArrayList<string>> folder_apps;
 		GlobalKeyBucket[] global_key_vector = new GlobalKeyBucket[0];
 		bool vector_dirty = true;
 		int64 vector_built_s = 0;
@@ -117,6 +120,7 @@ namespace Plank
 		construct
 		{
 			entries = new Gee.HashMap<string, UsageEntry> ();
+			folder_apps = new Gee.HashMap<string, Gee.ArrayList<string>> ();
 			if (Paths.AppDataFolder != null)
 				store_file = Paths.AppDataFolder.get_child (STORE_FILE_NAME);
 			last_save_s = now_seconds ();
@@ -141,6 +145,61 @@ namespace Plank
 			return launcher;
 		}
 
+		/**
+		 * Collision-free usage key for a dock folder or file item ("folder:<path>").
+		 */
+		public static string folder_key_for (string launcher)
+		{
+			if (launcher == "")
+				return "";
+			if (launcher.has_prefix ("file://")) {
+				string? p = File.new_for_uri (launcher).get_path ();
+				return "folder:" + (p ?? launcher);
+			}
+			return "folder:" + launcher;
+		}
+
+		/**
+		 * Typed usage key for any dock item: folder_key_for() for FileDockItem,
+		 * key_for() for apps and docklets (100% pure Zone 1, zero I/O, zero HAL calls).
+		 */
+		public static string key_for_item (DockItem item)
+		{
+			if (item.Launcher == null || item.Launcher == "")
+				return "";
+			if (item is FileDockItem)
+				return folder_key_for (item.Launcher);
+			return key_for (item.Launcher);
+		}
+
+		/**
+		 * Registers the app launchers contained inside a dock folder so its priority in the
+		 * expanded global vector is computed as the damped Euclidean norm of its apps' scores.
+		 */
+		public void register_folder_apps (string folder_launcher, Gee.Collection<string> app_launchers)
+		{
+			if (folder_launcher == "")
+				return;
+			var fkey = folder_key_for (folder_launcher);
+			var seen = new Gee.HashSet<string> ();
+			var list = new Gee.ArrayList<string> ();
+			foreach (var app_uri in app_launchers) {
+				var akey = key_for (app_uri);
+				if (akey != "" && seen.add (akey))
+					list.add (akey);
+			}
+			folder_apps.set (fkey, list);
+			vector_dirty = true;
+		}
+
+		public void unregister_folder_apps (string folder_launcher)
+		{
+			if (folder_launcher == "")
+				return;
+			if (folder_apps.unset (folder_key_for (folder_launcher)))
+				vector_dirty = true;
+		}
+
 		static double decayed (UsageEntry entry, int64 now_s)
 		{
 			var dt = (double) (now_s - entry.stamp);
@@ -149,15 +208,52 @@ namespace Plank
 			return entry.score * Math.pow (2.0, -dt / HALF_LIFE_SECONDS);
 		}
 
+		double compute_folder_aggregated_score (Gee.ArrayList<string> app_keys, int64 now_s)
+		{
+			if (app_keys.size == 0)
+				return 0.0;
+			var scores = new Gee.ArrayList<double?> ();
+			foreach (var app_key in app_keys) {
+				var e = entries.get (app_key);
+				if (e == null)
+					continue;
+				double s = decayed (e, now_s);
+				if (s > 0.0)
+					scores.add (s);
+			}
+			if (scores.size == 0)
+				return 0.0;
+			scores.sort ((a, b) => (a < b) ? 1 : ((a > b) ? -1 : 0));
+
+			double sum_sq = 0.0;
+			double w = 1.0;
+			foreach (var s in scores) {
+				double ws = w * s;
+				sum_sq += ws * ws;
+				w *= FOLDER_DAMPING;
+			}
+			return double.min (SCORE_MAX, Math.sqrt (sum_sq));
+		}
+
+		double effective_score_for_key (string key, int64 now_s)
+		{
+			var entry = entries.get (key);
+			double direct = (entry != null) ? decayed (entry, now_s) : 0.0;
+			var fapps = folder_apps.get (key);
+			if (fapps != null && fapps.size > 0) {
+				double agg = compute_folder_aggregated_score (fapps, now_s);
+				return double.min (SCORE_MAX, double.max (direct, agg));
+			}
+			return direct;
+		}
+
 		/**
-		 * Current (lazily decayed) score of a launcher. 0.0 for apps never used.
+		 * Current (lazily decayed) score of a launcher (or damped-Euclidean aggregated
+		 * score for a registered folder). 0.0 for items never used.
 		 */
 		public double get_score (string launcher)
 		{
-			var entry = entries.get (key_for (launcher));
-			if (entry == null)
-				return 0.0;
-			return decayed (entry, now_seconds ());
+			return effective_score_for_key (key_for (launcher), now_seconds ());
 		}
 
 		void ensure_global_vector (int64 now_s)
@@ -165,31 +261,40 @@ namespace Plank
 			if (!vector_dirty && (now_s - vector_built_s) < 60 && (now_s >= vector_built_s))
 				return;
 
+			var combined = new Gee.HashMap<string, double?> ();
+			foreach (var kv in entries.entries) {
+				double s = decayed (kv.value, now_s);
+				if (s > 0.0)
+					combined.set (kv.key, s);
+			}
+			foreach (var fkv in folder_apps.entries) {
+				double agg = compute_folder_aggregated_score (fkv.value, now_s);
+				double direct = combined.has_key (fkv.key) ? combined.get (fkv.key) : 0.0;
+				double eff = double.min (SCORE_MAX, double.max (direct, agg));
+				if (eff > 0.0)
+					combined.set (fkv.key, eff);
+			}
+
 			var sorted_keys = new Gee.ArrayList<string> ();
-			sorted_keys.add_all (entries.keys);
+			sorted_keys.add_all (combined.keys);
 			sorted_keys.sort ((a, b) => strcmp (a, b));
 
 			global_key_vector = new GlobalKeyBucket[sorted_keys.size];
 			for (int i = 0; i < sorted_keys.size; i++) {
 				string k = sorted_keys.get (i);
-				var e = entries.get (k);
-				int64 b = (e != null) ? (int64) Math.round (decayed (e, now_s) / TIE_EPSILON) : 0;
+				double sc = combined.get (k);
+				int64 b = (int64) Math.round (sc / TIE_EPSILON);
 				global_key_vector[i] = GlobalKeyBucket () { key = k, bucket = b };
 			}
 			vector_built_s = now_s;
 			vector_dirty = false;
 		}
 
-		/**
-		 * Global dichotomic (O(log N) binary-search) rank-bucket lookup across the single
-		 * global usage statistics vector shared by all docks.
-		 */
-		public int64 get_global_rank_bucket (string launcher)
+		int64 lookup_rank_bucket_for_key (string target)
 		{
-			if (launcher == "" || entries.size == 0)
+			if (target == "" || entries.size == 0)
 				return 0;
 			ensure_global_vector (now_seconds ());
-			string target = key_for (launcher);
 			int lo = 0;
 			int hi = global_key_vector.length - 1;
 			while (lo <= hi) {
@@ -206,11 +311,32 @@ namespace Plank
 		}
 
 		/**
+		 * Global dichotomic (O(log N) binary-search) rank-bucket lookup across the single
+		 * global usage statistics vector shared by all docks.
+		 */
+		public int64 get_global_rank_bucket (string launcher)
+		{
+			if (launcher == "")
+				return 0;
+			return lookup_rank_bucket_for_key (key_for (launcher));
+		}
+
+		public int64 get_global_rank_bucket_for_item (DockItem item)
+		{
+			return lookup_rank_bucket_for_key (key_for_item (item));
+		}
+
+		/**
 		 * Registers an explicit launch/click of a launcher from the dock.
 		 */
 		public void note_launch (string launcher)
 		{
 			add_points (key_for (launcher), LAUNCH_POINTS);
+		}
+
+		public void note_item_launch (DockItem item)
+		{
+			add_points (key_for_item (item), LAUNCH_POINTS);
 		}
 
 		/**
@@ -298,26 +424,56 @@ namespace Plank
 		/**
 		 * Human readable score of a single launcher (Developer Tools / debug log).
 		 */
-		public string describe (string launcher)
+		string describe_key (string key)
 		{
-			var key = key_for (launcher);
+			var now_s = now_seconds ();
+			var fapps = folder_apps.get (key);
+			if (fapps != null && fapps.size > 0) {
+				var agg = compute_folder_aggregated_score (fapps, now_s);
+				var entry = entries.get (key);
+				var direct = (entry != null) ? decayed (entry, now_s) : 0.0;
+				var eff = double.min (SCORE_MAX, double.max (direct, agg));
+				return "%s: score %.2f (damped L2 over %d apps = %.2f, direct clicks = %.2f)".printf (
+					key, eff, fapps.size, agg, direct
+				);
+			}
 			var entry = entries.get (key);
 			if (entry == null)
 				return "%s: score 0.00 (never used)".printf (key);
-			return "%s: score %.2f (raw %.2f)".printf (key, decayed (entry, now_seconds ()), entry.score);
+			return "%s: score %.2f (raw %.2f)".printf (key, decayed (entry, now_s), entry.score);
+		}
+
+		public string describe (string launcher)
+		{
+			return describe_key (key_for (launcher));
+		}
+
+		public string describe_item (DockItem item)
+		{
+			return describe_key (key_for_item (item));
 		}
 
 		/**
-		 * Multi-line ranking of the most used apps (Developer Tools / debug log).
+		 * Multi-line ranking of the most used items (Developer Tools / debug log).
 		 */
 		public string describe_top (int limit = 15)
 		{
 			var now_s = now_seconds ();
+			var combined = new Gee.HashMap<string, double?> ();
+			foreach (var kv in entries.entries)
+				combined.set (kv.key, decayed (kv.value, now_s));
+			foreach (var fkv in folder_apps.entries) {
+				double agg = compute_folder_aggregated_score (fkv.value, now_s);
+				double direct = combined.has_key (fkv.key) ? combined.get (fkv.key) : 0.0;
+				double eff = double.min (SCORE_MAX, double.max (direct, agg));
+				if (eff > 0.0)
+					combined.set (fkv.key, eff);
+			}
 			var keys = new Gee.ArrayList<string> ();
-			keys.add_all (entries.keys);
+			keys.add_all (combined.keys);
 			keys.sort ((a, b) => {
-				var score_a = decayed (entries.get (a), now_s);
-				var score_b = decayed (entries.get (b), now_s);
+				var score_a = combined.get (a);
+				var score_b = combined.get (b);
 				return (score_a < score_b) ? 1 : ((score_a > score_b) ? -1 : 0);
 			});
 
@@ -326,7 +482,7 @@ namespace Plank
 			foreach (var key in keys) {
 				if (n++ >= limit)
 					break;
-				text.append ("  %2d. %s  %.2f\n".printf (n, key, decayed (entries.get (key), now_s)));
+				text.append ("  %2d. %s  %.2f\n".printf (n, key, combined.get (key)));
 			}
 			if (n == 0)
 				text.append ("  (no usage data yet)\n");

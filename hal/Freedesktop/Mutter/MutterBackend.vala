@@ -88,7 +88,7 @@ namespace Plank
 		bool reload_attempted = false;
 
 		const string EXTENSION_UUID = "wayplank-bridge@wayplank.org";
-		const string BRIDGE_GEN = "v074_bridge_7";
+		const string BRIDGE_GEN = "v074_bridge_8";
 
 		const string EXTENSION_METADATA = """{
   "name": "WayPlank Bridge",
@@ -1502,6 +1502,14 @@ export default class WayplankBridgeImpl {
             : [];
         const topWin = (tabList && tabList.length > 0) ? tabList[0] : null;
         const focusWin = global.display.get_focus_window ? global.display.get_focus_window() : global.display.focus_window;
+        let focusRoot = focusWin || null;
+        let trGuard = 0;
+        while (focusRoot && focusRoot.get_transient_for && trGuard++ < 8) {
+            const parent = focusRoot.get_transient_for();
+            if (!parent || parent === focusRoot)
+                break;
+            focusRoot = parent;
+        }
         const focusId = focusWin ? (focusWin.get_stable_sequence ? focusWin.get_stable_sequence().toString() : (focusWin.get_id ? focusWin.get_id().toString() : null)) : null;
 
         for (const win of winList) {
@@ -1526,7 +1534,7 @@ export default class WayplankBridgeImpl {
             const gtkAppId = win.get_gtk_application_id ? win.get_gtk_application_id() : '';
             const title = win.get_title ? win.get_title() : '';
             const isMinimized = win.minimized;
-            const isTop = (win === topWin) || (win === focusWin) || (focusId === id) || (this._lastActiveUuid === id) || (win.has_focus ? win.has_focus() : false);
+            const isTop = (win === topWin) || (win === focusWin) || (focusRoot !== null && win === focusRoot) || (focusId === id) || (this._lastActiveUuid === id) || (win.has_focus ? win.has_focus() : false);
             const isActive = !isMinimized && isTop;
             const isFullscreen = win.is_fullscreen ? win.is_fullscreen() : false;
             const isDialog = (windowType === Meta.WindowType.DIALOG) || (win.get_transient_for ? win.get_transient_for() !== null : false);

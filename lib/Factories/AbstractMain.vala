@@ -227,7 +227,10 @@ namespace Plank
 			}
 		}
 
-		Gtk.AboutDialog? about_dlg;
+		Gtk.Window? about_dlg;
+		Gtk.Box? about_content_box;
+		Gtk.Stack? about_top_stack;
+		string about_saved_tab = "main";
 		PreferencesWindow? preferences_dlg;
 		HelpWindow? help_dlg;
 		FirstRunWindow? first_run_dlg;
@@ -519,7 +522,12 @@ namespace Plank
 				|| prop_name == "Monitor"
 				|| prop_name == "DockItems"
 				|| prop_name == "FreeDockItems"
-				|| prop_name == "CategorizedDockItems");
+				|| prop_name == "CategorizedDockItems"
+				|| prop_name == "PinnedAccordionMode"
+				|| prop_name == "PinnedAccordionCount"
+				|| prop_name == "DockletAccordionMode"
+				|| prop_name == "DockletAccordionCount"
+				|| prop_name == "AccordionDocklets");
 		}
 
 		void copy_global_prefs_between (DockPreferences src, DockPreferences dst)
@@ -1108,7 +1116,9 @@ namespace Plank
 		}
 		
 		/**
-		 * Displays the about dialog.
+		 * Displays the handmade about dialog (About / Credits / Full GPLv3 License)
+		 * with a single homogeneous Gtk.Stack so all 3 tabs share the exact same
+		 * fixed window geometry across all supported platforms.
 		 */
 		void show_about ()
 		{
@@ -1117,8 +1127,8 @@ namespace Plank
 				raise_and_focus_window (about_dlg, click_time);
 				return;
 			}
-			
-			about_dlg = new Gtk.AboutDialog ();
+
+			about_dlg = new Gtk.Window (Gtk.WindowType.TOPLEVEL);
 			is_about_open = true;
 			about_dlg.set_role ("help");
 			about_dlg.set_title (_("About WayPlank"));
@@ -1132,20 +1142,18 @@ namespace Plank
 			about_dlg.set_skip_pager_hint (true);
 			about_dlg.set_keep_above (true);
 			about_dlg.set_focus_on_map (true);
-			
-			about_dlg.set_program_name (program_name);
-			about_dlg.set_version ("%s\n%s".printf (build_version, build_version_info));
+			about_dlg.set_resizable (false);
+
 			Gdk.Pixbuf? logo_buf = null;
 			try {
 				logo_buf = new Gdk.Pixbuf.from_resource_at_scale (
 					"%s/img/wayplank.svg".printf (G_RESOURCE_PATH),
 					128, 128, true
 				);
-				about_dlg.set_logo (logo_buf);
 			} catch (Error e) {
-				about_dlg.set_logo_icon_name (app_icon);
+				logo_buf = null;
 			}
-			
+
 			var meta = ReleaseMetadata.get_default ();
 			var supported_os_list = meta.supported_os;
 			var fully_supported_compositors = (meta.fully_supported_compositors.length > 0
@@ -1160,65 +1168,315 @@ namespace Plank
 			var partially_supported = (partially_supported_compositors == ""
 				? _("Partially supported compositors: none")
 				: _("Partially supported compositors: %s").printf (partially_supported_compositors));
+
+			string comments_text;
 			if (supported_os_list.length > 0) {
 				var supported_os = _("Supported operating systems: %s").printf (supported_os_list);
-				about_dlg.set_comments ("%s. %s\n%s\n%s\n%s".printf (program_name, build_release_name, supported_os, fully_supported, partially_supported));
+				comments_text = "%s. %s\n%s\n%s\n%s".printf (program_name, build_release_name, supported_os, fully_supported, partially_supported);
 			} else {
-				about_dlg.set_comments ("%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported));
+				comments_text = "%s. %s\n%s\n%s".printf (program_name, build_release_name, fully_supported, partially_supported);
 			}
-			about_dlg.set_copyright ("Copyright © %s %s Developers".printf (app_copyright, program_name));
-			about_dlg.set_website (main_url);
-			about_dlg.set_website_label (_("Website"));
-			about_dlg.activate_link.connect ((uri) => {
+
+			var top_stack = new Gtk.Stack ();
+			top_stack.set_transition_type (Gtk.StackTransitionType.NONE);
+			top_stack.set_transition_duration (0);
+			top_stack.set_homogeneous (true);
+			top_stack.set_hexpand (true);
+			top_stack.set_vexpand (true);
+
+			// ── Tab 1: About ─────────────────────────────────────────────────
+			var main_page = new Gtk.Box (Gtk.Orientation.VERTICAL, 8);
+			main_page.margin_top = 18;
+			main_page.margin_bottom = 18;
+			main_page.margin_start = 28;
+			main_page.margin_end = 28;
+			main_page.set_halign (Gtk.Align.CENTER);
+			main_page.set_valign (Gtk.Align.CENTER);
+
+			Gtk.Image logo_img;
+			if (logo_buf != null)
+				logo_img = new Gtk.Image.from_pixbuf (logo_buf);
+			else
+				logo_img = new Gtk.Image.from_icon_name (app_icon, Gtk.IconSize.DIALOG);
+			logo_img.set_halign (Gtk.Align.CENTER);
+			logo_img.margin_bottom = 4;
+			main_page.pack_start (logo_img, false, false, 0);
+
+			var title_lbl = new Gtk.Label (null);
+			title_lbl.set_use_markup (true);
+			title_lbl.set_markup ("<b><span size=\"x-large\">%s</span></b>".printf (GLib.Markup.escape_text (program_name)));
+			title_lbl.set_halign (Gtk.Align.CENTER);
+			main_page.pack_start (title_lbl, false, false, 0);
+
+			var ver_lbl = new Gtk.Label ("%s\n%s".printf (build_version, build_version_info));
+			ver_lbl.set_justify (Gtk.Justification.CENTER);
+			ver_lbl.set_halign (Gtk.Align.CENTER);
+			ver_lbl.opacity = 0.85;
+			main_page.pack_start (ver_lbl, false, false, 0);
+
+			var comments_lbl = new Gtk.Label (comments_text);
+			comments_lbl.set_justify (Gtk.Justification.CENTER);
+			comments_lbl.set_halign (Gtk.Align.CENTER);
+			comments_lbl.set_line_wrap (true);
+			comments_lbl.set_max_width_chars (68);
+			comments_lbl.margin_top = 4;
+			main_page.pack_start (comments_lbl, false, false, 0);
+
+			var web_lbl = new Gtk.Label (null);
+			web_lbl.set_use_markup (true);
+			web_lbl.set_markup ("<a href=\"%s\">%s</a>".printf (
+				GLib.Markup.escape_text (main_url),
+				GLib.Markup.escape_text (_("Website"))
+			));
+			web_lbl.set_track_visited_links (false);
+			web_lbl.set_halign (Gtk.Align.CENTER);
+			web_lbl.margin_top = 4;
+			web_lbl.activate_link.connect ((uri) => {
 				return Hal.Runtime.open_uri (uri, about_dlg);
 			});
-			
-			if (about_authors != null && about_authors.length > 0)
-				about_dlg.set_authors (about_authors);
-			if (about_documenters != null && about_documenters.length > 0)
-				about_dlg.set_documenters (about_documenters);
-			if (about_artists != null && about_artists.length > 0)
-				about_dlg.set_artists (about_artists);
-			if (about_translators != null && about_translators != "")
-				about_dlg.set_translator_credits (about_translators);
-			else
-				about_dlg.set_translator_credits (_("translator-credits"));
-			about_dlg.set_license_type (about_license_type);
-			about_dlg.set_wrap_license (true);
-			about_dlg.set_license (
-				"WayPlank is free software: you can redistribute it and/or modify " +
-				"it under the terms of the GNU General Public License as published by " +
-				"the Free Software Foundation, either version 3 of the License, or " +
-				"(at your option) any later version.\n\n" +
-				"WayPlank is distributed in the hope that it will be useful, " +
-				"but WITHOUT ANY WARRANTY; without even the implied warranty of " +
-				"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the " +
-				"GNU General Public License for more details.\n\n" +
-				"You should have received a copy of the GNU General Public License " +
-				"along with this program.  If not, see <https://www.gnu.org/licenses/>."
+			main_page.pack_start (web_lbl, false, false, 0);
+
+			var copy_lbl = new Gtk.Label (null);
+			copy_lbl.set_use_markup (true);
+			copy_lbl.set_markup ("<span size=\"small\">%s</span>".printf (
+				GLib.Markup.escape_text ("Copyright © %s %s Developers".printf (app_copyright, program_name))
+			));
+			copy_lbl.set_halign (Gtk.Align.CENTER);
+			copy_lbl.margin_top = 4;
+			copy_lbl.opacity = 0.82;
+			main_page.pack_start (copy_lbl, false, false, 0);
+
+			var short_lic_lbl = new Gtk.Label (null);
+			short_lic_lbl.set_use_markup (true);
+			short_lic_lbl.set_markup (
+				"<span size=\"x-small\">This program comes with absolutely no warranty. " +
+				"See the <a href=\"license\">GNU General Public License, version 3 or later</a> for details.</span>"
 			);
+			short_lic_lbl.set_track_visited_links (false);
+			short_lic_lbl.set_justify (Gtk.Justification.CENTER);
+			short_lic_lbl.set_halign (Gtk.Align.CENTER);
+			short_lic_lbl.opacity = 0.78;
+			short_lic_lbl.activate_link.connect ((uri) => {
+				if (uri == "license") {
+					top_stack.set_visible_child_name ("license");
+					return true;
+				}
+				return Hal.Runtime.open_uri (uri, about_dlg);
+			});
+			main_page.pack_start (short_lic_lbl, false, false, 0);
+
+			top_stack.add_titled (main_page, "main", "About");
+
+			// ── Tab 2: Credits (WayPlank + Historic Plank) ───────────────────
+			var credits_page = new Gtk.Box (Gtk.Orientation.VERTICAL, 8);
+			credits_page.margin_top = 10;
+			credits_page.margin_bottom = 12;
+			credits_page.margin_start = 16;
+			credits_page.margin_end = 16;
+
+			var credits_stack = new Gtk.Stack ();
+			credits_stack.set_transition_type (Gtk.StackTransitionType.NONE);
+			credits_stack.set_transition_duration (0);
+			credits_stack.set_vhomogeneous (false);
+			credits_stack.set_hexpand (true);
+			credits_stack.set_vexpand (true);
+
+			var credits_switcher = new Gtk.StackSwitcher ();
+			credits_switcher.set_stack (credits_stack);
+			credits_switcher.set_halign (Gtk.Align.FILL);
+			credits_switcher.set_hexpand (true);
+			credits_switcher.set_homogeneous (true);
+			credits_page.pack_start (credits_switcher, false, true, 0);
+
+			var wp_grid = new Gtk.Grid ();
+			wp_grid.set_row_spacing (3);
+			wp_grid.set_column_spacing (12);
+			wp_grid.margin_top = 6;
+			wp_grid.margin_bottom = 6;
+			wp_grid.margin_start = 8;
+			wp_grid.margin_end = 8;
+			wp_grid.set_halign (Gtk.Align.FILL);
+			wp_grid.set_valign (Gtk.Align.START);
+			wp_grid.set_hexpand (true);
+
+			int wp_row = 0;
+			foreach (var grp in meta.get_credit_groups ())
+				add_credit_group_to_grid (wp_grid, ref wp_row, grp.heading, grp.lines);
+
+			var plank_grid = new Gtk.Grid ();
+			plank_grid.set_row_spacing (3);
+			plank_grid.set_column_spacing (12);
+			plank_grid.margin_top = 6;
+			plank_grid.margin_bottom = 6;
+			plank_grid.margin_start = 8;
+			plank_grid.margin_end = 8;
+			plank_grid.set_halign (Gtk.Align.FILL);
+			plank_grid.set_valign (Gtk.Align.START);
+			plank_grid.set_hexpand (true);
+
+			int plank_row = 0;
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Created by", {
+				"<a href=\"mailto:psybers@gmail.com\">Robert Dyer &lt;psybers@gmail.com&gt;</a>",
+				"<a href=\"mailto:michal.mhr@gmail.com\">Michal Hruby &lt;michal.mhr@gmail.com&gt;</a>",
+				"<a href=\"https://launchpad.net/~ricotz\">Rico Tzschichholz</a> &lt;<a href=\"mailto:ricotz@ubuntu.com\">ricotz@ubuntu.com</a>&gt;"
+			});
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Artwork by", {
+				"<a href=\"https://github.com/danrabbit\">Daniel Foré</a> &lt;<a href=\"mailto:daniel@elementaryos.org\">daniel@elementaryos.org</a>&gt;"
+			});
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Documented by", {
+				"<a href=\"mailto:psybers@gmail.com\">Robert Dyer &lt;psybers@gmail.com&gt;</a>",
+				"<a href=\"https://launchpad.net/~ricotz\">Rico Tzschichholz</a> &lt;<a href=\"mailto:ricotz@ubuntu.com\">ricotz@ubuntu.com</a>&gt;"
+			});
+			add_credit_group_to_grid (plank_grid, ref plank_row, "Upstream Tribute", {
+				"Modernized for native Wayland from the original X11 Plank",
+				"project (<a href=\"https://launchpad.net/plank\">https://launchpad.net/plank</a> — GPL-3.0+)."
+			});
+
+			credits_stack.add_titled (wp_grid, "wayplank", meta.credits_tab_title);
+			credits_stack.add_titled (plank_grid, "plank_historic", "🏛️ Plank (Historic)");
+
+			var credits_sw = new Gtk.ScrolledWindow (null, null);
+			credits_sw.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC);
+			credits_sw.set_shadow_type (Gtk.ShadowType.NONE);
+			credits_sw.set_propagate_natural_width (false);
+			credits_sw.set_propagate_natural_height (false);
+			credits_sw.set_min_content_width (1);
+			credits_sw.set_min_content_height (1);
+			credits_sw.set_hexpand (true);
+			credits_sw.set_vexpand (true);
+			credits_sw.add (credits_stack);
+			var credits_vp = credits_sw.get_child ();
+			if (credits_vp is Gtk.Viewport)
+				((Gtk.Viewport) credits_vp).set_shadow_type (Gtk.ShadowType.NONE);
+			credits_page.pack_start (credits_sw, true, true, 0);
+
+			credits_stack.notify["visible-child-name"].connect (() => {
+				var vadj = credits_sw.get_vadjustment ();
+				if (vadj != null)
+					vadj.set_value (0.0);
+			});
+
+			top_stack.add_titled (credits_page, "credits", "Credits");
+
+			// ── Tab 3: License (Full GPLv3 Text + Always-Visible Slider + GNU Link) ──
+			var license_page = new Gtk.Box (Gtk.Orientation.VERTICAL, 8);
+			license_page.margin_top = 10;
+			license_page.margin_bottom = 12;
+			license_page.margin_start = 16;
+			license_page.margin_end = 16;
+
+			var license_sw = new Gtk.ScrolledWindow (null, null);
+			license_sw.set_policy (Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.ALWAYS);
+			license_sw.set_overlay_scrolling (false);
+			license_sw.set_shadow_type (Gtk.ShadowType.IN);
+			license_sw.set_propagate_natural_width (false);
+			license_sw.set_propagate_natural_height (false);
+			license_sw.set_min_content_width (1);
+			license_sw.set_min_content_height (1);
+			license_sw.set_hexpand (true);
+			license_sw.set_vexpand (true);
+
+			var lic_tv = new Gtk.TextView ();
+			lic_tv.set_editable (false);
+			lic_tv.set_cursor_visible (false);
+			lic_tv.set_wrap_mode (Gtk.WrapMode.WORD_CHAR);
+			lic_tv.set_left_margin (12);
+			lic_tv.set_right_margin (12);
+			lic_tv.set_top_margin (10);
+			lic_tv.set_bottom_margin (10);
+			lic_tv.set_hexpand (true);
+			lic_tv.set_vexpand (true);
+			lic_tv.buffer.set_text (load_full_license_text ());
+			license_sw.add (lic_tv);
+
+			var lic_css = new Gtk.CssProvider ();
+			try {
+				lic_css.load_from_data (
+					"scrolledwindow { " +
+					"  border: 1px solid alpha(currentColor, 0.22); " +
+					"  border-radius: 4px; " +
+					"  background-color: @theme_base_color; " +
+					"} " +
+					"textview, textview text { " +
+					"  font-family: monospace; " +
+					"  font-size: 9pt; " +
+					"  background-color: @theme_base_color; " +
+					"  color: @theme_fg_color; " +
+					"}"
+				);
+				license_sw.get_style_context ().add_provider (lic_css, Gtk.STYLE_PROVIDER_PRIORITY_USER);
+				lic_tv.get_style_context ().add_provider (lic_css, Gtk.STYLE_PROVIDER_PRIORITY_USER);
+			} catch (Error e) {
+			}
+
+			license_page.pack_start (license_sw, true, true, 0);
+
+			var license_footer = new Gtk.Label (null);
+			license_footer.set_use_markup (true);
+			license_footer.set_markup (
+				"<span size=\"small\">GNU General Public License v3.0 — " +
+				"<a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">www.gnu.org/licenses/gpl-3.0.html</a></span>"
+			);
+			license_footer.set_track_visited_links (false);
+			license_footer.set_halign (Gtk.Align.CENTER);
+			license_footer.margin_top = 2;
+			license_footer.activate_link.connect ((uri) => {
+				return Hal.Runtime.open_uri (uri, about_dlg);
+			});
+			license_page.pack_end (license_footer, false, true, 0);
+
+			top_stack.add_titled (license_page, "license", "License");
+			about_top_stack = top_stack;
+
+			top_stack.notify["visible-child-name"].connect (() => {
+				if (is_easter_egg_running)
+					return;
+				var cur = top_stack.get_visible_child_name ();
+				if (cur == "license") {
+					var vadj = license_sw.get_vadjustment ();
+					if (vadj != null)
+						vadj.set_value (0.0);
+				} else if (cur == "credits") {
+					var vadj = credits_sw.get_vadjustment ();
+					if (vadj != null)
+						vadj.set_value (0.0);
+				}
+			});
+
+			// ── CSD HeaderBar with 3-tab StackSwitcher ───────────────────────
+			var header = new Gtk.HeaderBar ();
+			header.show_close_button = true;
+			header.title = _("About WayPlank");
+
+			var top_switcher = new Gtk.StackSwitcher ();
+			top_switcher.set_stack (top_stack);
+			top_switcher.set_homogeneous (true);
+			foreach (var tab_btn in top_switcher.get_children ()) {
+				tab_btn.button_press_event.connect (() => {
+					if (is_easter_egg_running) {
+						stop_about_easter_egg ();
+						return Gdk.EVENT_STOP;
+					}
+					return Gdk.EVENT_PROPAGATE;
+				});
+			}
+			header.set_custom_title (top_switcher);
+			header.show_all ();
+			about_dlg.set_titlebar (header);
+
+			about_content_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+			about_content_box.pack_start (top_stack, true, true, 0);
+			about_dlg.add (about_content_box);
+			about_content_box.show_all ();
+			top_stack.set_visible_child_name ("main");
 
 			foreach (var dock in docks) {
 				if (dock.hide_manager != null)
 					dock.hide_manager.refresh_visibility ();
 			}
 
-			setup_about_two_tab_credits (about_dlg);
 			setup_about_easter_egg (about_dlg, logo_buf);
-			
-			about_dlg.response.connect ((response_id) => {
-				if (response_id == Gtk.ResponseType.DELETE_EVENT) {
-					stop_about_easter_egg (true);
-					about_dlg.destroy ();
-					return;
-				}
-				if (is_easter_egg_running) {
-					stop_about_easter_egg ();
-					return;
-				}
-				about_dlg.destroy ();
-			});
-			
+
 			about_dlg.hide.connect (() => {
 				stop_about_easter_egg (true);
 				is_about_open = false;
@@ -1226,6 +1484,8 @@ namespace Plank
 					return;
 				Gtk.Window? old = about_dlg;
 				about_dlg = null;
+				about_content_box = null;
+				about_top_stack = null;
 				old.destroy ();
 				check_collapse_all_docks (old);
 				foreach (var dock in docks) {
@@ -1237,6 +1497,8 @@ namespace Plank
 			about_dlg.destroy.connect (() => {
 				stop_about_easter_egg (true);
 				is_about_open = false;
+				about_content_box = null;
+				about_top_stack = null;
 				if (about_dlg != null) {
 					Gtk.Window? old = about_dlg;
 					about_dlg = null;
@@ -1247,39 +1509,8 @@ namespace Plank
 					}
 				}
 			});
-			
+
 			raise_and_focus_window (about_dlg, click_time);
-		}
-
-		static Gtk.Stack? find_about_internal_stack (Gtk.Widget root)
-		{
-			if (root is Gtk.Stack) {
-				var st = (Gtk.Stack) root;
-				if (st.get_child_by_name ("credits") != null)
-					return st;
-			}
-			if (root is Gtk.Container) {
-				foreach (var child in ((Gtk.Container) root).get_children ()) {
-					var found = find_about_internal_stack (child);
-					if (found != null)
-						return found;
-				}
-			}
-			return null;
-		}
-
-		static Gtk.Box? find_first_vbox_in_credits (Gtk.Widget root)
-		{
-			if (root is Gtk.Box)
-				return (Gtk.Box) root;
-			if (root is Gtk.Container) {
-				foreach (var child in ((Gtk.Container) root).get_children ()) {
-					var found = find_first_vbox_in_credits (child);
-					if (found != null)
-						return found;
-				}
-			}
-			return null;
 		}
 
 		static void add_credit_group_to_grid (Gtk.Grid grid, ref int row, string heading, string[] lines)
@@ -1323,224 +1554,17 @@ namespace Plank
 			row += int.max (1, lines.length);
 		}
 
-		static void apply_credits_bg_css (Gtk.Widget w, Gtk.CssProvider css)
+		static string load_full_license_text ()
 		{
-			w.get_style_context ().add_provider (css, Gtk.STYLE_PROVIDER_PRIORITY_USER);
-			if (w is Gtk.Container) {
-				foreach (var ch in ((Gtk.Container) w).get_children ())
-					apply_credits_bg_css (ch, css);
-			}
-		}
-
-		static void attach_solid_bg_painter (Gtk.Widget w, Gtk.Widget ref_dlg)
-		{
-			w.app_paintable = true;
-			w.draw.connect ((cr) => {
-				Gdk.RGBA bg = { 0.95, 0.95, 0.95, 1.0 };
-				var ctx = ref_dlg.get_style_context ();
-				if (!ctx.lookup_color ("theme_bg_color", out bg))
-					ctx.get (ctx.get_state (), "background-color", out bg, null);
-				if (bg.alpha < 0.1)
-					bg = { 0.95, 0.95, 0.95, 1.0 };
-				cr.save ();
-				cr.set_source_rgb (bg.red, bg.green, bg.blue);
-				cr.paint ();
-				cr.restore ();
-				return false;
-			});
-		}
-
-		void setup_about_two_tab_credits (Gtk.AboutDialog dlg)
-		{
-			var st = find_about_internal_stack (dlg);
-			if (st == null)
-				return;
-
-			var credits_css = new Gtk.CssProvider ();
 			try {
-				credits_css.load_from_data (
-					"viewport, scrolledwindow, stack, grid, box, .view { " +
-					"  background-color: @theme_bg_color; " +
-					"  background-image: none; " +
-					"  border: none; " +
-					"  box-shadow: none; " +
-					"} " +
-					"grid { padding: 8px 12px; }"
-				);
+				var bytes = GLib.resources_lookup_data ("%s/doc/LICENSE".printf (G_RESOURCE_PATH), GLib.ResourceLookupFlags.NONE);
+				unowned uint8[] data = bytes.get_data ();
+				if (data.length > 0)
+					return ((string) data).strip ();
 			} catch (Error e) {
+				warning ("Unable to load embedded GPLv3 LICENSE resource: %s", e.message);
 			}
-
-			// Instant opaque page switch without transparent overlay transitions
-			st.set_transition_type (Gtk.StackTransitionType.NONE);
-			st.set_transition_duration (0);
-			st.set_vhomogeneous (false);
-			apply_credits_bg_css (st, credits_css);
-			var main_page = st.get_child_by_name ("main");
-			if (main_page != null)
-				apply_credits_bg_css (main_page, credits_css);
-			var license_page = st.get_child_by_name ("license");
-			if (license_page != null) {
-				if (license_page is Gtk.ScrolledWindow) {
-					((Gtk.ScrolledWindow) license_page).set_shadow_type (Gtk.ShadowType.NONE);
-					((Gtk.ScrolledWindow) license_page).set_min_content_height (260);
-				}
-				apply_credits_bg_css (license_page, credits_css);
-				attach_solid_bg_painter (license_page, dlg);
-			}
-
-			var credits_page = st.get_child_by_name ("credits");
-			if (credits_page == null)
-				return;
-			Gtk.ScrolledWindow? outer_sw = credits_page as Gtk.ScrolledWindow;
-			if (outer_sw != null) {
-				outer_sw.set_policy (Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
-				outer_sw.set_shadow_type (Gtk.ShadowType.NONE);
-				outer_sw.set_min_content_height (240);
-				outer_sw.set_min_content_width (460);
-				var outer_vp = outer_sw.get_child ();
-				if (outer_vp != null) {
-					if (outer_vp is Gtk.Viewport)
-						((Gtk.Viewport) outer_vp).set_shadow_type (Gtk.ShadowType.NONE);
-					attach_solid_bg_painter (outer_vp, dlg);
-				}
-			}
-			attach_solid_bg_painter (credits_page, dlg);
-			var target_box = find_first_vbox_in_credits (credits_page);
-			if (target_box == null)
-				return;
-			target_box.border_width = 0;
-			target_box.margin = 0;
-			target_box.set_halign (Gtk.Align.FILL);
-			target_box.set_valign (Gtk.Align.FILL);
-			attach_solid_bg_painter (target_box, dlg);
-
-			var orig_children = target_box.get_children ();
-			foreach (var ch in orig_children) {
-				ch.set_no_show_all (true);
-				ch.hide ();
-			}
-
-			var credits_stack = new Gtk.Stack ();
-			credits_stack.set_transition_type (Gtk.StackTransitionType.NONE);
-			credits_stack.set_transition_duration (0);
-			credits_stack.set_vhomogeneous (false);
-			credits_stack.set_hexpand (true);
-			credits_stack.set_vexpand (true);
-			attach_solid_bg_painter (credits_stack, dlg);
-
-			var switcher = new Gtk.StackSwitcher ();
-			switcher.set_stack (credits_stack);
-			switcher.set_halign (Gtk.Align.FILL);
-			switcher.set_hexpand (true);
-			switcher.set_homogeneous (true);
-			switcher.margin_bottom = 6;
-			switcher.set_no_show_all (true);
-			switcher.hide ();
-
-			// Tab 1: WayPlank (loaded from embedded root VERSION metadata)
-			var meta = ReleaseMetadata.get_default ();
-			var wp_grid = new Gtk.Grid ();
-			wp_grid.set_row_spacing (3);
-			wp_grid.set_column_spacing (12);
-			wp_grid.set_halign (Gtk.Align.FILL);
-			wp_grid.set_valign (Gtk.Align.FILL);
-			wp_grid.set_hexpand (true);
-			wp_grid.set_vexpand (true);
-			wp_grid.border_width = 0;
-			attach_solid_bg_painter (wp_grid, dlg);
-
-			int wp_row = 0;
-			foreach (var grp in meta.get_credit_groups ())
-				add_credit_group_to_grid (wp_grid, ref wp_row, grp.heading, grp.lines);
-
-			// Tab 2: Plank (Historic 2011–2015) — 2-Column Native GTK Grid Layout
-			var plank_grid = new Gtk.Grid ();
-			plank_grid.set_row_spacing (3);
-			plank_grid.set_column_spacing (12);
-			plank_grid.set_halign (Gtk.Align.FILL);
-			plank_grid.set_valign (Gtk.Align.FILL);
-			plank_grid.set_hexpand (true);
-			plank_grid.set_vexpand (true);
-			plank_grid.border_width = 0;
-			attach_solid_bg_painter (plank_grid, dlg);
-
-			int plank_row = 0;
-			add_credit_group_to_grid (plank_grid, ref plank_row, "Created by", {
-				"<a href=\"mailto:psybers@gmail.com\">Robert Dyer &lt;psybers@gmail.com&gt;</a>",
-				"<a href=\"mailto:michal.mhr@gmail.com\">Michal Hruby &lt;michal.mhr@gmail.com&gt;</a>",
-				"<a href=\"https://launchpad.net/~ricotz\">Rico Tzschichholz</a> &lt;<a href=\"mailto:ricotz@ubuntu.com\">ricotz@ubuntu.com</a>&gt;"
-			});
-			add_credit_group_to_grid (plank_grid, ref plank_row, "Artwork by", {
-				"<a href=\"https://github.com/danrabbit\">Daniel Foré</a> &lt;<a href=\"mailto:daniel@elementaryos.org\">daniel@elementaryos.org</a>&gt;"
-			});
-			add_credit_group_to_grid (plank_grid, ref plank_row, "Documented by", {
-				"<a href=\"mailto:psybers@gmail.com\">Robert Dyer &lt;psybers@gmail.com&gt;</a>",
-				"<a href=\"https://launchpad.net/~ricotz\">Rico Tzschichholz</a> &lt;<a href=\"mailto:ricotz@ubuntu.com\">ricotz@ubuntu.com</a>&gt;"
-			});
-			add_credit_group_to_grid (plank_grid, ref plank_row, "Upstream Tribute", {
-				"Modernized for native Wayland from the original X11 Plank",
-				"project (<a href=\"https://launchpad.net/plank\">https://launchpad.net/plank</a> — GPL-3.0+)."
-			});
-
-			credits_stack.add_titled (wp_grid, "wayplank", meta.credits_tab_title);
-			credits_stack.add_titled (plank_grid, "plank_historic", "🏛️ Plank (Historic)");
-
-			if (outer_sw != null) {
-				credits_stack.notify["visible-child-name"].connect (() => {
-					var vadj = outer_sw.get_vadjustment ();
-					if (vadj != null)
-						vadj.set_value (0.0);
-				});
-			}
-
-			var st_parent = st.get_parent () as Gtk.Box;
-			var header_widgets = new Gee.ArrayList<Gtk.Widget> ();
-			if (st_parent != null) {
-				foreach (var w in st_parent.get_children ()) {
-					if (w != st)
-						header_widgets.add (w);
-				}
-				st_parent.pack_start (switcher, false, true, 0);
-				st_parent.reorder_child (switcher, 0);
-			} else {
-				target_box.pack_start (switcher, false, true, 0);
-			}
-
-			target_box.pack_start (credits_stack, true, true, 0);
-			apply_credits_bg_css (credits_page, credits_css);
-			credits_stack.show_all ();
-			target_box.show ();
-
-			st.notify["visible-child-name"].connect (() => {
-				var cur_page = st.get_visible_child_name ();
-				if (cur_page == "credits") {
-					foreach (var hw in header_widgets) {
-						hw.set_no_show_all (true);
-						hw.hide ();
-					}
-					switcher.set_no_show_all (false);
-					switcher.show_all ();
-					switcher.set_no_show_all (true);
-				} else if (cur_page == "license") {
-					foreach (var hw in header_widgets) {
-						hw.set_no_show_all (true);
-						hw.hide ();
-					}
-					switcher.hide ();
-				} else {
-					switcher.hide ();
-					foreach (var hw in header_widgets) {
-						hw.set_no_show_all (false);
-						hw.show ();
-					}
-				}
-				if (cur_page != "credits")
-					return;
-				foreach (var ch in orig_children)
-					ch.hide ();
-				credits_stack.show_all ();
-				target_box.show ();
-			});
+			return "GNU General Public License v3.0 — https://www.gnu.org/licenses/gpl-3.0.html";
 		}
 
 		// =====================================================================
@@ -1555,10 +1579,13 @@ namespace Plank
 		int64 easter_last_beat_us = 0LL;
 		int64 easter_last_wave_cascade_us = 0LL;
 		int64 easter_last_ticker_us = 0LL;
+		int64 easter_last_tab_cycle_us = 0LL;
 		int easter_cascade_idx = -1;
+		int easter_tab_idx = 0;
 		string easter_ticker_line = "⚓ All 8 Launch Engines & 7 Glow Halos Armed!";
 		Gdk.Pixbuf? easter_logo_pixbuf = null;
 
+		const string[] EASTER_ABOUT_TABS = { "main", "credits", "license" };
 		const string[] EASTER_EFFECT_NAMES = {
 			"BOUNCE", "ELASTIC", "PULSE", "SPRING", "RIPPLE", "FLIP 360°", "SWING", "FLASH"
 		};
@@ -1580,7 +1607,7 @@ namespace Plank
 			return null;
 		}
 
-		void setup_about_easter_egg (Gtk.AboutDialog dlg, Gdk.Pixbuf? logo_buf)
+		void setup_about_easter_egg (Gtk.Window dlg, Gdk.Pixbuf? logo_buf)
 		{
 			easter_logo_pixbuf = logo_buf;
 			dlg.add_events (Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.KEY_PRESS_MASK);
@@ -1588,6 +1615,10 @@ namespace Plank
 			dlg.key_press_event.connect ((ev) => {
 				if (is_easter_egg_running) {
 					stop_about_easter_egg ();
+					return Gdk.EVENT_STOP;
+				}
+				if (ev.keyval == Gdk.Key.Escape) {
+					dlg.destroy ();
 					return Gdk.EVENT_STOP;
 				}
 				return Gdk.EVENT_PROPAGATE;
@@ -1622,7 +1653,7 @@ namespace Plank
 
 		void start_about_easter_egg ()
 		{
-			if (is_easter_egg_running || about_dlg == null)
+			if (is_easter_egg_running || about_dlg == null || about_content_box == null)
 				return;
 
 			is_easter_egg_running = true;
@@ -1630,10 +1661,33 @@ namespace Plank
 			easter_last_beat_us = 0LL;
 			easter_last_wave_cascade_us = easter_start_us;
 			easter_last_ticker_us = easter_start_us;
+			easter_last_tab_cycle_us = easter_start_us;
 			easter_cascade_idx = 0;
 			easter_ticker_line = "⚓ AHOY! Full Dock Choreography Engaged!";
 
-			var content = about_dlg.get_content_area ();
+			about_saved_tab = (about_top_stack != null && about_top_stack.get_visible_child_name () != null)
+				? about_top_stack.get_visible_child_name ()
+				: "main";
+			easter_tab_idx = 0;
+			for (int i = 0; i < EASTER_ABOUT_TABS.length; i++) {
+				if (EASTER_ABOUT_TABS[i] == about_saved_tab) {
+					easter_tab_idx = i;
+					break;
+				}
+			}
+
+			int canvas_w = 520;
+			int canvas_h = 360;
+			if (about_top_stack != null) {
+				Gtk.Allocation st_alloc;
+				about_top_stack.get_allocation (out st_alloc);
+				if (st_alloc.width > 120 && st_alloc.height > 120) {
+					canvas_w = st_alloc.width;
+					canvas_h = st_alloc.height;
+				}
+			}
+
+			var content = about_content_box;
 			easter_hidden_widgets = new Gee.ArrayList<Gtk.Widget> ();
 			foreach (var child in content.get_children ()) {
 				if (child != easter_canvas && child.get_visible ()) {
@@ -1644,7 +1698,7 @@ namespace Plank
 
 			if (easter_canvas == null) {
 				easter_canvas = new Gtk.DrawingArea ();
-				easter_canvas.set_size_request (520, 360);
+				easter_canvas.set_size_request (canvas_w, canvas_h);
 				easter_canvas.set_hexpand (true);
 				easter_canvas.set_vexpand (true);
 				easter_canvas.set_can_focus (true);
@@ -1665,9 +1719,9 @@ namespace Plank
 
 			foreach (var dock in docks) {
 				if (dock.app_provider != null) {
-					if (dock.prefs.CategorizeItems && dock.prefs.AccordionDocklets && !dock.app_provider.docklets_expanded)
+					if (dock.app_provider.is_docklets_accordion_enabled () && !dock.app_provider.docklets_expanded)
 						dock.app_provider.expand_docklets ();
-					if (dock.prefs.CategorizeItems && dock.prefs.PinnedAccordionMode != DockPreferences.PINNED_ACCORDION_OFF && !dock.app_provider.pinned_expanded)
+					if (dock.app_provider.is_pinned_accordion_enabled () && !dock.app_provider.pinned_expanded)
 						dock.app_provider.expand_pinned ();
 				}
 				if (dock.renderer != null) {
@@ -1716,6 +1770,9 @@ namespace Plank
 				easter_hidden_widgets = null;
 			}
 
+			if (!destroying && about_top_stack != null)
+				about_top_stack.set_visible_child_name (about_saved_tab);
+
 			foreach (var dock in docks) {
 				foreach (var item in dock.VisibleItems)
 					item.stop_dance ();
@@ -1733,6 +1790,12 @@ namespace Plank
 
 		void tick_easter_egg_dock_dance (int64 now_us)
 		{
+			if (about_top_stack != null && now_us - easter_last_tab_cycle_us >= 400000LL) {
+				easter_last_tab_cycle_us = now_us;
+				easter_tab_idx = (easter_tab_idx + 1) % EASTER_ABOUT_TABS.length;
+				about_top_stack.set_visible_child_name (EASTER_ABOUT_TABS[easter_tab_idx]);
+			}
+
 			foreach (var dock in docks) {
 				var items = dock.VisibleItems;
 				if (items.size == 0)

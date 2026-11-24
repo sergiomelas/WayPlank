@@ -9,33 +9,33 @@ WayPlank is designed from the ground up as a high-performance, standalone, and m
 
 ## 🔒 Core Principle: 100% Standalone Monolithic Binary Guarantee
 
-WayPlank will **NEVER** be distributed as a multi-file bundle requiring external locale directories. The primary build output is **ONE SINGLE STANDALONE FILE** (`build/wayplank` `~14 MB` on Linux, `build/wayplank.exe` `~24 MB` Zero-DLL on Windows). All translations, icons, themes, and logic reside inside this single executable. When launched on a computer with any supported language, it translates automatically directly from internal memory without accessing the filesystem or requiring installation.
+WayPlank will **NEVER** be distributed as a multi-file bundle requiring external locale directories. The primary build output is **ONE SINGLE STANDALONE FILE** (`build/linux/wayplank` `~14 MB` on Linux, `build/bsd/wayplank` `~13 MB` on FreeBSD, `build/windows/wayplank.exe` `~24 MB` Zero-DLL on Windows). All translations, icons, themes, and logic reside inside this single executable. When launched on a computer with any supported language, it translates automatically directly from internal memory without accessing the filesystem or requiring installation.
 
 ---
 
-## 1. 🗣️ Supported Languages & Status (572 / 572 Strings Qualified — 100%)
+## 1. 🗣️ Supported Languages & Status (588 / 588 Strings Qualified — 100%)
 
 | # | Language | Locale | Contributor & Reviewer | Status |
 | :---: | :--- | :---: | :--- | :---: |
-| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (572/572) |
-| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
-| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
-| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
-| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (572/572) |
-| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (572/572) |
-| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (572/572) |
+| 1 | **简体中文** (Simplified Chinese) | `zh_CN` | 史有虎 (IFtiger-hu) `<2212363803@qq.com>` | **100% Translated** (588/588) |
+| 2 | **Italiano** (Italian) | `it` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (588/588) |
+| 3 | **Español** (Spanish) | `es` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (588/588) |
+| 4 | **Français** (French) | `fr` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (588/588) |
+| 5 | **Català** (Catalan) | `ca` | Sergio Melas `<sergiomelas@gmail.com>` | **100% Translated** (588/588) |
+| 6 | **Deutsch** (German) | `de` | Renate Schwiedernoch `<renate.schwiedernoch@gmail.com>` | **100% Translated** (588/588) |
+| 7 | **Українська** (Ukrainian) | `uk` | Michailo Buchko `<mixabuchko@gmail.com>` | **100% Translated** (588/588) |
 | 8 | **English** | `en` | Native in-source fallback language | **100% Native** (Zero files needed) |
 
 ---
 
-## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Public Beta 4 Hotfix `v0.7.3.2`)
+## 2. 🗺️ Monolithic Integration Architecture & Step-by-Step Implementation (Final Public Beta 5 `v0.7.4`)
 
-In **WayPlank Public Beta 4 Hotfix (`v0.7.3.2`)**, all 7 translation catalogs (`572/572` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration across both Linux (`wayplank`) and Windows (`wayplank.exe`).
+In **WayPlank Final Public Beta 5 (`v0.7.4`)**, all 7 translation catalogs (`588/588` strings — 100%) and generation tools are maintained in the `po/` directory for monolithic in-memory `GResource` integration across Linux (`build/linux/wayplank`), FreeBSD (`build/bsd/wayplank`), and Windows (`build/windows/wayplank.exe`).
 
-The 100% monolithic embedded localization engine for Public Beta (`v0.7.1`) follows these exact technical steps:
+The 100% monolithic embedded localization engine follows these exact technical steps:
 
-### Step 1: Single Entry Point & Automatic Build-Time Discovery (`po/generate_translations.py` $\rightarrow$ `BuildBin.sh`)
-`po/generate_translations.py` is the **sole and exclusive entry point** for defining or adding languages. When `BuildBin.sh` runs:
+### Step 1: Single Entry Point & Automatic Build-Time Discovery (`po/generate_translations.py` $\rightarrow$ `builders/{linux,bsd,windows}/`)
+`po/generate_translations.py` is the **sole and exclusive entry point** for defining or adding languages. When `builders/linux/BuildBin.sh`, `builders/bsd/BuildBsd.sh`, or `builders/windows/BuildWin.sh` runs:
 1. It executes `python3 po/generate_translations.py` to generate `po/wayplank.pot` and all `po/<lang>.po` catalogs.
 2. It automatically scans all available `po/*.po` files, compiles each into `data/locale/<lang>/wayplank.mo` via `msgfmt`, dynamically injects `<file compressed="true">locale/<lang>/wayplank.mo</file>` into the build `GResource` XML, and passes the discovered list of embedded languages to the compiler via `-DWAYPLANK_EMBEDDED_LANGS="<lang1>:<lang2>:..."`:
 
@@ -50,7 +50,7 @@ for po in "${BASE_DIR}"/po/*.po; do
 done
 ```
 
-This bakes all discovered language catalogs and the `WAYPLANK_EMBEDDED_LANGS` registry directly into `lib/resources.c` and the monolithic binary ELF (`build/wayplank`), followed immediately by `rm -rf data/locale` to keep the source tree 100% clean. **Adding a new language in the future requires modifying ONLY `po/generate_translations.py`** — zero C code, zero XML, and zero build script changes are ever required.
+This bakes all discovered language catalogs and the `WAYPLANK_EMBEDDED_LANGS` registry directly into `lib/resources.c` and the monolithic executable (`build/linux/wayplank`, `build/bsd/wayplank`, or `build/windows/wayplank.exe`), followed immediately by `rm -rf data/locale` to keep the source tree 100% clean. **Adding a new language in the future requires modifying ONLY `po/generate_translations.py`** — zero C code, zero XML, and zero build script changes are ever required.
 
 ### Step 2: Zero-Hardcode In-Memory Translation Resolver (`lib/gtk-compat.c`)
 `lib/gtk-compat.c` implements the lightweight, language-agnostic in-memory lookup and GtkBuilder widget translation functions:
@@ -85,10 +85,10 @@ Because Vala compiles every `_("text")` in source code to `_( "text" )`, this tr
 wayplank_i18n_init ();
 ```
 
-### Step 5: Zero Host Pollution & Pure Monolithic Packaging (`BuildDeb.sh` & `BuildRpm.sh`)
+### Step 5: Zero Host Pollution & Pure Monolithic Packaging (`builders/{linux,bsd,windows}/`)
 In strict compliance with WayPlank's **Zero Host Pollution** architecture (identical to how embedded docklet SVG assets are handled):
-- **Zero `/usr/share/locale/` Files**: Neither `BuildDeb.sh` nor `BuildRpm.sh` installs external `.mo` files into `/usr/share/locale/`. All 7 language catalogs live exclusively inside the single `/usr/bin/wayplank` binary via `GResource` in RAM.
-- **Full Debian Policy & Lintian Compliance**: Because the binary resolves translations entirely from internal memory and no `/usr/share/locale/` directory is created in the package payload, `dpkg-deb`, `lintian`, and `rpmbuild` validate the package with **0 warnings and 0 errors**.
+- **Zero `/usr/share/locale/` Files**: Neither `builders/linux/BuildDeb.sh`, `builders/linux/BuildRpm.sh`, `builders/bsd/BuildPkg.sh`, nor `builders/windows/BuildNsis.sh` installs external `.mo` files into system locale directories. All 7 language catalogs live exclusively inside the single monolithic executable via `GResource` in RAM.
+- **Full Debian, RPM & FreeBSD `pkg(8)` Policy Compliance**: Because the binary resolves translations entirely from internal memory and no external locale tree is created in the package payload, `dpkg-deb`, `lintian`, `rpmbuild`, and `pkg create` validate the package with **0 warnings and 0 errors**.
 
 ---
 
@@ -101,7 +101,7 @@ python3 po/generate_translations.py
 ```
 
 This script guarantees:
-- **100% message coverage** (`572/572` messages across all 7 languages).
+- **100% message coverage** (`588/588` messages across all 7 languages).
 - **Validation** with GNU `msgfmt -c -v`.
 - **Consistent ordering and validation** across all catalogs.
 

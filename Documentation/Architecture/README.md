@@ -2,10 +2,10 @@
 
 > **Canonical Top-Level Engineering Blueprint for the Unified Multi-Compositor & Multi-OS WayPlank Codebase**  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.8`** (`2026-11-22` • `v0.7.3.2` Public Beta 4 Hotfix `100.0%` 4-Platform Qualified `529/529` + **`MOC-0.7.4-BSD-001`** FreeBSD Design-Before-Build Blueprint [`HAL_BSD_BACKEND.md`](HAL_BSD_BACKEND.md) & Linux Kernel As-Built Spec [`HAL_LINUX_BACKEND.md`](HAL_LINUX_BACKEND.md); 8-Gate HAL Purity Firewall `GREEN`, Zero-DLL `wayplank.exe` at 25 Stock OS DLLs)  
-> **Unified Brand & Executables:** **WayPlank** (`build/wayplank` on Linux / BSD • `build/wayplank.exe` on Windows `7 ⟷ 11+`)  
-> **Active Public Baseline (`main`):** **`v0.7.3.2` (Public Beta 4 Hotfix — CONCLUDED & FROZEN at `100.0%` 4-Platform FAT Qualified `529/529`, `0 [ko]`)**  
-> **Completed Consolidation Gate:** **`v0.7.2` (Public Beta 3 — Agnostic Boundary Translator & Linux HAL/Bus Freeze)** $\longrightarrow$ **`v0.7.3` (Public Beta 4 — Native `hal/Windows/` Southbound Driver Plug-In — 100.0% Qualified)**  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-MASTER-001` • **Revision `2.9`** (`2026-11-25` • **`v0.7.4` Final Public Beta 5 — `100.0%` 7-Platform Qualified `942/942`, `0 [ko]`**: **`MOC-0.7.4-BSD-001`** Native FreeBSD `hal/BSD/` As-Built & Live-Certified across GNOME/KDE/Labwc, Smart Accordion Free Mode & Per-Dock `#31`, Windows 4-Tier Brightness `#38`, Unified `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/`, 8-Gate HAL Purity Firewall `GREEN` on Linux & FreeBSD, Zero-DLL `wayplank.exe` at 25 Stock OS DLLs)  
+> **Unified Brand & Executables:** **WayPlank** (`build/linux/wayplank` on Linux • `build/bsd/wayplank` on FreeBSD • `build/windows/wayplank.exe` on Windows `7 ⟷ 11+`)  
+> **Active Public Baseline (`main`):** **`v0.7.4` (Final Public Beta 5 — CONCLUDED & FROZEN at `100.0%` 7-Platform FAT Qualified `942/942`, `0 [ko]`)**  
+> **Completed Consolidation Gate:** **`v0.7.2`** (Linux HAL Freeze) $\longrightarrow$ **`v0.7.3.2`** (Windows `hal/Windows/` Plug-In) $\longrightarrow$ **`v0.7.4`** (FreeBSD `hal/BSD/` Plug-In — `100.0%` 7-Platform Qualified)  
 > **Quick Links:** [Repository Root `README.md`](../../README.md) • [User Guide (`USER_GUIDE.md`)](../USER_GUIDE.md) • [Historic Archive (`Historic/`)](../Historic/README.md) • [Contributing (`CONTRIBUTING.md`)](../../CONTRIBUTING.md) • [Lifetime Bug Register](../../FAT/WAYPLANK_LIFETIME_BUG_REGISTER.md)
 
 ---
@@ -52,6 +52,7 @@ Every structural modification between the qualified **`v0.7.1.2`** baseline and 
 | **`2.6`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Public Beta 4 Closure (Milestones `W1` ➔ `W6`):** Completed native Windows `7 ⟷ 11+` southbound driver plug-in (`hal/Windows/{Compositor,Bus,AppSystem,Telemetry}/`, `BuildWin.sh` 20-lib static MinGW sysroot + built-in `lunasvg`, `BuildNsis.sh` 64-bit installer) with `0` edits to frozen Zone 2 `hal/Interfaces/` or Linux HAL (`8/8` HAL Purity Firewall `GREEN`, Zero-DLL Gate `GREEN` at 24 stock Windows OS DLLs), achieving **`100.0%` 4-Platform FAT Qualification (`525/525` Applicable Passed, `0 [ko]`)** in `FAT/2026-11-22 FAT 0.7.3.txt`. |
 | **`2.7`** | `2026-11-22` | Sergio Melas | **`v0.7.3.2` Public Beta 4 Hotfix Closure (`529/529` `100.0%` 4-Platform Qualified):** Added Zone 1 `ReleaseMetadata.vala` (root `VERSION` INI compiled into `GResource` `meta/VERSION`), Zone 1 `CustomNameService.vala` (non-destructive `Rename Shortcut...` in `launcher-names.ini`), cross-dock folder-pinned app suppression, per-family Chromium `Local State` profile formatting, live Light/Dark sync on `HoverWindow`/`FolderMenuWindow`/`WindowCardsWindow`, Zone 3 `Hal.Apps.is_folder_metadata_file()` + debounced `FileDockItem`/`ApplicationDiscovery` refresh & non-destructive `XdgAppSystem` cache pruning (instant Linux `1.10` `Change Icon...`), Windows COM `IApplicationDocumentLists` per-app Recent Files (`12.2`), Windows `< 0.5 s` persistent `.lnk` index cache + deleted local `.lnk` eviction, `ITaskbarList::DeleteTab` with `taskbar_hidden` guard, WinRT `GSMTC` (`win32-media-bridge.c`), WMI+DXVA2 brightness, `572/572` 8-language localization, and removal of all remaining non-`_full` `Gdk.threads_add_*` calls (`8/8` HAL Firewall `GREEN`, `0` Pitfall #14 UAFs, Zero-DLL Gate `GREEN` at 25 stock Windows OS DLLs). |
 | **`2.8`** | `2026-11-22` | Sergio Melas | **`MOC-0.7.4-BSD-001` Spec-First Architecture Expansion:** Added **`HAL_LINUX_BACKEND.md`** (`DOC-ARCH-LIN-007` Rev 1.0 — As-Built Zone 3B Linux kernel backend specification & 14 `wayplank_hal_kernel_*` link-seams) and **`HAL_BSD_BACKEND.md`** (`DOC-ARCH-BSD-006` Rev 1.0 — Design-Before-Build FreeBSD Zone 3C kernel backend blueprint using `libprocstat`, `sysctl`, `libdevstat`, OSS `<sys/soundcard.h>`, `<sys/backlight.h>`, `getifaddrs`/`PF_ROUTE`, `BuildBsd.sh` & `BuildPkg.sh`), establishing full 1:1 backend specification symmetry across Linux, FreeBSD, and Windows. |
+| **`2.9`** | `2026-11-25` | Sergio Melas | **`v0.7.4` Final Public Beta 5 & `MOC-0.7.4-BSD-001` As-Built Closure (`942/942` `100.0%` 7-Platform Qualified):** Promoted `hal/BSD/` to Live As-Built across all 3 FreeBSD compositors (GNOME/Mutter, KDE Plasma 6/KWin, Labwc), unified `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` (`builders/README.md` & `build/README.md`), added Zone 1 Free Mode Smart Accordion with damped-$L^2$ folder scoring and per-dock Mode/Count (`#31`, `FAT 6.19`), 4-tier Windows hardware brightness hardening (`#38`, `FAT 6.10a/b`), capability-driven multi-OS `Workspace Only`, priority Network Docklet + 4-arc Wi-Fi SVGs (`107` SVGs, `583/583` strings), `CustomIconService`, Mutter `v074_bridge_8` (`xdg_popup` `MetaStack` guard + atomic `move_resize_frame` + transient parent focus), cross-OS Intellihide/Dodge Active popup parent-focus retention (`HideManager.active_family_intersects()`), and one-click `OK` stale `.dockitem` cleanup. |
 
 ### 1.1 Zero-Hack Engineering Mandate (Official APIs & Typed Properties Only)
 
@@ -70,9 +71,9 @@ Every structural modification between the qualified **`v0.7.1.2`** baseline and 
 
 WayPlank is engineered as a **single, monolithic, zero-host-pollution dock engine** partitioned into **three strictly isolated architectural zones**:
 
-1. **Zone 1 — Northbound 100% Agnostic Portable Core (`src/` + `lib/` + `vapi/core/`):** Renders 100% of dock backgrounds, parabolic icon zoom, 26 visual effects, badges, tooltips (`HoverWindow`), smart folder drawers (`FolderMenuWindow`), window preview cards (`WindowCardsWindow`), **16 built-in docklets**, and the **6-Layer Mathematical Application Identity Solver** in software via **Cairo + Pango + GTK3**, with all stock themes, 63 vector icons, and 8 language catalogs compiled into RAM (`GResource`). **Zero Linux, BSD, Wayland, D-Bus, XDG, POSIX, or Windows calls, types, paths, or names exist in Zone 1.**
+1. **Zone 1 — Northbound 100% Agnostic Portable Core (`src/` + `lib/` + `vapi/core/`):** Renders 100% of dock backgrounds, parabolic icon zoom, 26 visual effects, badges, tooltips (`HoverWindow`), smart folder drawers (`FolderMenuWindow`), window preview cards (`WindowCardsWindow`), **16 built-in docklets**, and the **6-Layer Mathematical Application Identity Solver** in software via **Cairo + Pango + GTK3**, with all 6 stock themes, **107 embedded vector SVGs**, and 8 language catalogs (`583/583` strings) compiled into RAM (`GResource`). **Zero Linux, BSD, Wayland, D-Bus, XDG, POSIX, or Windows calls, types, paths, or names exist in Zone 1.**
 2. **Zone 2 — The Agnostic Boundary Translator Layer (`hal/Interfaces/` — Frozen in `v0.7.2`):** The **universal semantic & data translator** between Portable Core and native OS drivers. Core interacts **exclusively** with `Hal` (`Hal.Capabilities`, `Hal.Shell`, `Hal.Windows`, `Hal.Thumbnails`, `Hal.Bus`, `Hal.Apps`, `Hal.Telemetry`, `Hal.Runtime`) using pure Vala domain interfaces, normalized DTO structs, and OS-blind enums.
-3. **Zone 3 — Southbound Native Platform Drivers (`hal/{Freedesktop,Linux,BSD,Windows}/`):** Interchangeable protocol/kernel translators and drivers implementing Zone 2 contracts on **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, **Labwc / `wlroots`**, **BSD (`sysctl`/`acpi`)**, and **Windows (`Win 7 ⟷ 11+` Win32/DWM/AppBar/Named Pipes)** — producing `build/wayplank` (`.deb`, `.rpm`, BSD) and `build/wayplank.exe` (Zero-DLL PE32+) from the **exact same Zone 1 + Zone 2 sources**.
+3. **Zone 3 — Southbound Native Platform Drivers (`hal/{Freedesktop,Linux,BSD,Windows}/`):** Interchangeable protocol/kernel translators and drivers implementing Zone 2 contracts on **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, **Labwc / `wlroots`**, **FreeBSD (`libprocstat`/`sysctl`/`OpenZFS ARC`/OSS/ACPI)**, and **Windows (`Win 7 ⟷ 11+` Win32/DWM/AppBar/Named Pipes)** — producing `build/linux/wayplank` (`.deb`, `.rpm`), `build/bsd/wayplank` (`.pkg`), and `build/windows/wayplank.exe` (Zero-DLL PE32+ / NSIS) from the **exact same Zone 1 + Zone 2 sources**.
 
 ### 2.1 Formal Definition of the Agnostic Boundary Translator Layer (`hal/Interfaces/`)
 
@@ -111,9 +112,9 @@ flowchart TD
 
     subgraph ZONE3 ["⚙️ ZONE 3: Southbound Protocol Translators & Native OS Drivers (hal/)"]
         direction LR
-        FDO_DRV["🐧😈 hal/Freedesktop/ (Shared Linux & BSD Userland — v0.7.2): FreedesktopHalBootstrap • KWin • Mutter • Wlroots • LayerShell • DbusBroker • XdgAppSystem • Trash"];
-        LIN_DRV["🐧 hal/Linux/ (Linux Kernel — v0.7.2): /proc Inspector & Telemetry • /sys Power & Backlight • DDC/CI • systemd-logind • PipeWire/ALSA"];
-        BSD_DRV["😈 hal/BSD/ (FreeBSD Kernel — v0.7.4 Planned): sysctl KERN_PROC • kern.cp_time • hw.acpi • sndio • seatd"];
+        FDO_DRV["🐧😈 hal/Freedesktop/ (Shared Linux & BSD Userland): FreedesktopHalBootstrap • KWin • Mutter v074_bridge_8 • Wlroots • LayerShell • DbusBroker • SessionPower • XdgAppSystem • Trash"];
+        LIN_DRV["🐧 hal/Linux/ (Linux Kernel): /proc Inspector & Telemetry • /sys Power, Network & Backlight • DDC/CI • PipeWire/ALSA"];
+        BSD_DRV["😈 hal/BSD/ (FreeBSD Kernel — v0.7.4 Live): libprocstat • OpenZFS ARC • libdevstat • hw.acpi • OSS /dev/mixer* • sys/backlight.h • getifaddrs/PF_ROUTE"];
         WIN_DRV["🪟 hal/Windows/ (v0.7.3+): WindowsHalBootstrap • Win32Shell AppBar/Layered • DWM • Named Pipes • CoreAudio • DXVA2 • IShellLinkW • AUMID • WinHTTP"];
     end
 
@@ -126,11 +127,11 @@ flowchart TD
     T_BUS ==>|"Linux Kernel Telemetry"| LIN_DRV;
     T_APP ==>|"Linux / BSD Launchers"| FDO_DRV;
     T_APP ==>|"Linux /proc Inspector"| LIN_DRV;
-    T_BUS -.->|"BSD Kernel (v0.7.4)"| BSD_DRV;
-    T_APP -.->|"BSD sysctl (v0.7.4)"| BSD_DRV;
-    T_COMP ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
-    T_BUS ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
-    T_APP ==>|"Windows Build — BuildWin.sh"| WIN_DRV;
+    T_BUS ==>|"FreeBSD Kernel (v0.7.4)"| BSD_DRV;
+    T_APP ==>|"FreeBSD libprocstat (v0.7.4)"| BSD_DRV;
+    T_COMP ==>|"Windows Build — builders/windows/BuildWin.sh"| WIN_DRV;
+    T_BUS ==>|"Windows Build — builders/windows/BuildWin.sh"| WIN_DRV;
+    T_APP ==>|"Windows Build — builders/windows/BuildWin.sh"| WIN_DRV;
 ```
 
 ---
@@ -146,8 +147,8 @@ All living architectural specifications reside in `Documentation/Architecture/`.
 | **[`HAL_BUSES.md`](HAL_BUSES.md)** | Payload/wire translation from D-Bus `Variant` & Win32 IPC into typed Vala signals: dock RPC, `dbusmenu` (`id=61`) browser profiles, MPRIS/WinRT media, DND, desktop dark/light theme, launcher badges, 16-docklet hardware telemetry (`ITrashProvider`, `IEjectorProvider`, `IScreenshotProvider`), and `IPlatformRuntime`. | `IBusBackend` (`IDockIpcServer`, `IAppMenuBus`, `IMediaController`, `INotificationBus`, `IDesktopThemeBus`, `ILauncherBadgeBus`)<br>`ISystemTelemetry`<br>`IPlatformRuntime` | `hal/Freedesktop/Dbus/`<br>`hal/Freedesktop/Xdg/`<br>`hal/Linux/` (`*.vala` + `{ProcFs,SysFs}/`)<br>`hal/Windows/{Bus,Telemetry}/` |
 | **[`APPLICATION_IDENTITY_ENGINE.md`](APPLICATION_IDENTITY_ENGINE.md)** | Multi-OS launcher, process & recent-files translation (`AppDescriptor`, `ProcessSnapshot`, `RecentDocInfo`), cross-OS command-line tokenization (`\`-safe), 6-Layer deterministic scoring matrix $S(I,W) \in [0..124]$, and CLI fallback launcher synthesis. | `IAppSystem` (`AppDescriptor`, `ProcessSnapshot`, `RecentDocInfo`) | `lib/Services/ApplicationIdentity.vala` *(Pure Solver)*<br>`hal/Freedesktop/Xdg/`<br>`hal/Linux/ProcFs/`<br>`hal/Windows/AppSystem/` |
 | **[`HAL_WINDOWS_BACKEND.md`](HAL_WINDOWS_BACKEND.md)** | Native `Win 7 ⟷ 11+` southbound translator/driver implementation (`WindowsHalBootstrap`, `SetWinEventHook`, dynamic `GetProcAddress("DwmGetWindowAttribute")`, `SHAppBarMessage`, `WS_EX_LAYERED`, `IShellLinkW`, `AUMID`, `IApplicationDocumentLists`, `SHQueryRecycleBinW`, CoreAudio, WinRT `GSMTC`, `DXVA2`, `WinHTTP`) and Linux cross-build (`builders/windows/BuildWin.sh` $\rightarrow$ `build/windows/wayplank.exe`, `builders/windows/BuildNsis.sh`). | Implements all `hal/Interfaces/` translators on Windows | `hal/Windows/{WindowsHalBootstrap,Compositor,Bus,AppSystem,Telemetry}/`<br>`vapi/windows/`<br>`builders/windows/{BuildWin,BuildNsis}.sh` |
-| **[`HAL_LINUX_BACKEND.md`](HAL_LINUX_BACKEND.md)** | **As-Built** specification of Zone 3B Linux kernel plumbing (`LinuxKernelBootstrap`, `14` `wayplank_hal_kernel_*` C link-seams, `/proc/<pid>` `LinuxProcessInspector`, `/proc/{stat,meminfo,diskstats}`, `/sys/class/{power_supply,backlight,drm}`, `wpctl`/`pactl`/`amixer`, `prctl`/`SIGWINCH`), `BuildBin.sh` 8-Gate Firewall, and `.deb`/`.rpm` packaging. | Implements all `14+1` `wayplank_hal_kernel_*` seams below `hal/Freedesktop/` | `hal/Linux/{LinuxKernelBootstrap,LinuxPlatformRuntime,LinuxAudioTelemetry}.vala`<br>`hal/Linux/{ProcFs,SysFs}/`<br>`builders/linux/{BuildBin,BuildDeb,BuildRpm}.sh` |
-| **[`HAL_BSD_BACKEND.md`](HAL_BSD_BACKEND.md)** | **Design-Before-Build (`MOC-0.7.4-BSD-001`)** specification for Zone 3C native **FreeBSD** kernel drivers (`BsdKernelBootstrap`, `bsd-kernel-bridge.c` using `libprocstat(3)`, `sysctl(3)`, `libdevstat(3)`, OSS `<sys/soundcard.h>`, `<sys/backlight.h>`, `getifaddrs`/`PF_ROUTE`, `setproctitle`, `KERN_PROC_PATHNAME`), `ConsoleKit2` coordination, `BuildBsd.sh` 8-Gate Firewall & `BuildPkg.sh` (`.pkg`), sharing 100% of `hal/Freedesktop/`. | Implements all `14+1` `wayplank_hal_kernel_*` seams below `hal/Freedesktop/` | `hal/BSD/`<br>`vapi/bsd/`<br>`builders/bsd/{BuildBsd,BuildPkg}.sh` |
+| **[`HAL_LINUX_BACKEND.md`](HAL_LINUX_BACKEND.md)** | **As-Built** specification of Zone 3B Linux kernel plumbing (`LinuxKernelBootstrap`, `14+1` `wayplank_hal_kernel_*` C link-seams, `/proc/<pid>` `LinuxProcessInspector`, `/proc/{stat,meminfo,diskstats}`, `/sys/class/{power_supply,backlight,drm}`, `LinuxNetworkTelemetry`, `wpctl`/`pactl`/`amixer`, `prctl`/`SIGWINCH`), `builders/linux/BuildBin.sh` 8-Gate Firewall, and `.deb`/`.rpm` packaging. | Implements all `14+1` `wayplank_hal_kernel_*` seams below `hal/Freedesktop/` | `hal/Linux/{LinuxKernelBootstrap,LinuxPlatformRuntime,LinuxAudioTelemetry}.vala`<br>`hal/Linux/{ProcFs,SysFs}/`<br>`builders/linux/{BuildBin,BuildDeb,BuildRpm}.sh` |
+| **[`HAL_BSD_BACKEND.md`](HAL_BSD_BACKEND.md)** | **As-Built (`MOC-0.7.4-BSD-001` — Qualified in `v0.7.4`)** specification for Zone 3C native **FreeBSD** kernel drivers (`BsdKernelBootstrap`, `bsd-kernel-bridge.{c,h}` using `libprocstat(3)`, `sysctl(3)`, OpenZFS ARC, `libdevstat(3)`, OSS `/dev/mixer*`, `<sys/backlight.h>`, `getifaddrs`/`PF_ROUTE`, `setproctitle`, `KERN_PROC_PATHNAME`), `ConsoleKit2` coordination, `builders/bsd/BuildBsd.sh` 8-Gate Firewall & `builders/bsd/BuildPkg.sh` (`.pkg`), sharing 100% of `hal/Freedesktop/`. | Implements all `14+1` `wayplank_hal_kernel_*` seams below `hal/Freedesktop/` | `hal/BSD/`<br>`vapi/bsd/`<br>`builders/bsd/{BuildBsd,BuildPkg}.sh` |
 
 ---
 
@@ -187,21 +188,22 @@ WayPlank/
 │   │   ├── FreedesktopHalBootstrap.vala # Runtime Wayland compositor router & Hal.* binder
 │   │   ├── Window{Backend,Capabilities,Control}.vala # Internal Freedesktop compositor facade & router
 │   │   ├── KWin/                   # KWinBackend, KWinBridge, KWinDbus, KWinThumbnailService, KWinTrashBridge
-│   │   ├── Mutter/                 # MutterBackend & embedded wayplank-bridge@wayplank.org JS extension (v5)
+│   │   ├── Mutter/                 # MutterBackend & embedded wayplank-bridge@wayplank.org JS extension (v074_bridge_8)
 │   │   ├── Wlroots/                # LabwcBackend, wlr-toplevel-bridge.c & wlr-foreign-toplevel protocol
-│   │   ├── Dbus/                   # DbusBroker, DockIpc{Server,Client}, AppMenu, Mpris, Notification, DesktopTheme, LauncherEntry, NetworkManager
+│   │   ├── Dbus/                   # DbusBroker, DockIpc{Server,Client}, AppMenu, Mpris, Notification, DesktopTheme, LauncherEntry, NetworkManager, FreedesktopSessionPower
 │   │   ├── Shell/                  # LayerShellDockShell & SurfaceCoordinateService
 │   │   └── Xdg/                    # XdgEnvironment, XdgAppSystem (.desktop/Recent), XdgAutostart, Freedesktop{Trash,Ejector,Screenshot}Provider
-│   ├── Linux/                      # 🐧 ZONE 3B: Linux Kernel & Userland Drivers (Frozen in v0.7.2)
+│   ├── Linux/                      # 🐧 ZONE 3B: Linux Kernel & Userland Drivers
+│   │   ├── LinuxKernelBootstrap.vala # Registers Linux kernel providers into FreedesktopHalBootstrap
 │   │   ├── LinuxPlatformRuntime.vala # DesktopUtilityKind, HTTP/Archive, Unix signals, fork KeyFile validator, /proc/self/exe restart
-│   │   ├── LinuxSessionPower.vala  # systemd-logind / KDE / GNOME / ScreenSaver session & power provider
 │   │   ├── LinuxAudioTelemetry.vala # wpctl / pactl / amixer audio volume & mute telemetry
 │   │   ├── ProcFs/                 # LinuxProcessInspector (/proc/<pid>/* -> ProcessSnapshot), LinuxCpuMemDiskTelemetry (/proc/{stat,meminfo,diskstats})
-│   │   └── SysFs/                  # BrightnessControl (/sys/class/backlight + DDC/CI), LinuxBatteryProvider (UPower + /sys/class/power_supply)
-│   ├── BSD/                        # 😈 ZONE 3C: Future FreeBSD / OpenBSD Kernel Drivers (Contributor Plug-In)
-│   │   ├── Sysctl/                 # KERN_PROC_ARGS / KERN_PROC_PATHNAME -> ProcessSnapshot, kern.cp_time, vm.stats
-│   │   └── Hardware/               # hw.acpi.battery, getifaddrs/net80211, OSS/sndio, ConsoleKit2/seatd
-│   └── Windows/                    # 🪟 ZONE 3D: Native Win32 Drivers (Plugged in v0.7.3 -> build/wayplank.exe)
+│   │   └── SysFs/                  # LinuxSysfsBacklight (/sys/class/backlight + DDC/CI), LinuxBatteryProvider, LinuxNetworkTelemetry
+│   ├── BSD/                        # 😈 ZONE 3C: Native FreeBSD 14.x/15.x & GhostBSD Kernel Drivers (Live in v0.7.4 -> build/bsd/wayplank)
+│   │   ├── BsdKernelBootstrap.vala # Registers FreeBSD kernel providers into FreedesktopHalBootstrap
+│   │   ├── bsd-kernel-bridge.{c,h} # libprocstat, sysctl, OpenZFS ARC, libdevstat, OSS /dev/mixer*, <sys/backlight.h>, getifaddrs/IEEE80211/PF_ROUTE
+│   │   └── Bsd{ProcessInspector,CpuMemDiskTelemetry,BatteryProvider,Backlight,AudioTelemetry,PlatformRuntime}.vala
+│   └── Windows/                    # 🪟 ZONE 3D: Native Win32 Drivers (Live in v0.7.3+ -> build/windows/wayplank.exe)
 │       ├── WindowsHalBootstrap.vala
 │       ├── Compositor/             # Win32Backend, Win32Shell (AppBar/WS_EX_LAYERED), Win32ThumbnailProvider, win32-bridge.c
 │       ├── Bus/                    # Win32BusBroker (Named Pipes DockIpc, UIAutomation AppMenu, Media, FocusAssist, Theme, Taskbar Badges)

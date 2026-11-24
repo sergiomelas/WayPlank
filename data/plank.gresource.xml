@@ -134,6 +134,7 @@
 		<file alias="themes/IFtiger Theme Light/dock.theme" compressed="true">themes/IFtiger Theme Light/dock.theme</file>
 		<file alias="themes/IFtiger Theme Dark/dock.theme" compressed="true">themes/IFtiger Theme Dark/dock.theme</file>
 		<file alias="doc/guide.md" compressed="true">../Documentation/USER_GUIDE.md</file>
+		<file alias="doc/LICENSE" compressed="true">../LICENSE</file>
 		<file alias="doc/banner.png" compressed="true">../Beta Release Pic - github.png</file>
 		<file alias="meta/VERSION" compressed="true">../VERSION</file>
 	</gresource>

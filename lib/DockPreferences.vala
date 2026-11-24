@@ -42,6 +42,10 @@ namespace Plank
 		public const int MAX_PINNED_ACCORDION_COUNT = 20;
 		public const int DEFAULT_PINNED_ACCORDION_COUNT = 6;
 
+		public const int MIN_DOCKLET_ACCORDION_COUNT = 1;
+		public const int MAX_DOCKLET_ACCORDION_COUNT = 14;
+		public const int DEFAULT_DOCKLET_ACCORDION_COUNT = 1;
+
 		public const int MAX_ACTIVE_HIGHLIGHT = 7;
 		public const int MAX_LAUNCH_ANIMATION = 8;
 		public const int MAX_UNPIN_ANIMATION = 8;
@@ -169,6 +173,12 @@ namespace Plank
 		[Description(nick = "pinned-accordion-count", blurb = "Number of most used pinned apps kept visible in top most used mode.")]
 		public int PinnedAccordionCount { get; set; default = DEFAULT_PINNED_ACCORDION_COUNT; }
 
+		[Description(nick = "docklet-accordion-mode", blurb = "Smart docklets accordion (Categorized mode): 0 off, 1 auto-fit capacity, 2 top most used. Docklets marked Keep Always Visible are never hidden.")]
+		public int DockletAccordionMode { get; set; default = PINNED_ACCORDION_TOP_N; }
+
+		[Description(nick = "docklet-accordion-count", blurb = "Number of most used docklets kept visible in top most used mode.")]
+		public int DockletAccordionCount { get; set; default = DEFAULT_DOCKLET_ACCORDION_COUNT; }
+
 		[Description(nick = "scroll-overflow", blurb = "Whether to smoothly scroll when items overflow the screen instead of shrinking.")]
 		public bool ScrollOverflow { get; set; }
 
@@ -263,6 +273,7 @@ namespace Plank
 		}
 
 		bool updating_sr_latch = false;
+		bool syncing_docklet_mode_compat = false;
 		bool loading_profile_settings = false;
 		bool profile_settings_dirty = false;
 		HideType saved_hide_mode_before_reserve = HideType.NONE;
@@ -301,6 +312,10 @@ namespace Plank
 		static int[]? slot_enabled;
 		static int[]? slot_positions;
 		static int[]? slot_screens;
+		static int[]? slot_pinned_modes;
+		static int[]? slot_pinned_counts;
+		static int[]? slot_docklet_modes;
+		static int[]? slot_docklet_counts;
 		static string[]? slot1_items;
 		static string[]? slot1_free_items;
 		static string[]? slot1_cat_items;
@@ -324,6 +339,14 @@ namespace Plank
 				slot_positions = { (int) Gtk.PositionType.BOTTOM, -1, -1, -1 };
 			if (slot_screens == null || slot_screens.length < MAX_DOCK_SLOTS)
 				slot_screens = { 0, -1, -1, -1 };
+			if (slot_pinned_modes == null || slot_pinned_modes.length < MAX_DOCK_SLOTS)
+				slot_pinned_modes = { -1, -1, -1, -1 };
+			if (slot_pinned_counts == null || slot_pinned_counts.length < MAX_DOCK_SLOTS)
+				slot_pinned_counts = { -1, -1, -1, -1 };
+			if (slot_docklet_modes == null || slot_docklet_modes.length < MAX_DOCK_SLOTS)
+				slot_docklet_modes = { -1, -1, -1, -1 };
+			if (slot_docklet_counts == null || slot_docklet_counts.length < MAX_DOCK_SLOTS)
+				slot_docklet_counts = { -1, -1, -1, -1 };
 		}
 
 		public static void finish_startup_phase ()
@@ -511,7 +534,11 @@ namespace Plank
 			for (int s = 1; s <= MAX_DOCK_SLOTS; s++) {
 				if (key == "Dock%dEnabled".printf (s)
 					|| key == "Dock%dPosition".printf (s)
-					|| key == "Dock%dScreen".printf (s))
+					|| key == "Dock%dScreen".printf (s)
+					|| key == "Dock%dPinnedAccordionMode".printf (s)
+					|| key == "Dock%dPinnedAccordionCount".printf (s)
+					|| key == "Dock%dDockletAccordionMode".printf (s)
+					|| key == "Dock%dDockletAccordionCount".printf (s))
 					return true;
 				if (s >= 2 && (key == "Dock%dItems".printf (s)
 					|| key == "Dock%dFreeItems".printf (s)
@@ -533,10 +560,18 @@ namespace Plank
 				slot_enabled[0] = 1;
 				slot_positions[0] = (int) Gtk.PositionType.BOTTOM;
 				slot_screens[0] = 0;
+				slot_pinned_modes[0] = PINNED_ACCORDION_TOP_N;
+				slot_pinned_counts[0] = DEFAULT_PINNED_ACCORDION_COUNT;
+				slot_docklet_modes[0] = PINNED_ACCORDION_TOP_N;
+				slot_docklet_counts[0] = DEFAULT_DOCKLET_ACCORDION_COUNT;
 				for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
 					slot_enabled[i] = -1;
 					slot_positions[i] = -1;
 					slot_screens[i] = -1;
+					slot_pinned_modes[i] = -1;
+					slot_pinned_counts[i] = -1;
+					slot_docklet_modes[i] = -1;
+					slot_docklet_counts[i] = -1;
 				}
 				multidock_loaded = true;
 				return;
@@ -546,6 +581,10 @@ namespace Plank
 				kf.load_from_file (path, KeyFileFlags.NONE);
 				int fallback_p1 = (int) Gtk.PositionType.BOTTOM;
 				int fallback_s1 = 0;
+				int fallback_m1 = PINNED_ACCORDION_TOP_N;
+				int fallback_c1 = DEFAULT_PINNED_ACCORDION_COUNT;
+				int fallback_dm1 = PINNED_ACCORDION_TOP_N;
+				int fallback_dc1 = DEFAULT_DOCKLET_ACCORDION_COUNT;
 				if (kf.has_group ("DockPreferences")) {
 					try {
 						if (kf.has_key ("DockPreferences", "Position")) {
@@ -561,12 +600,47 @@ namespace Plank
 								fallback_s1 = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), m_tok);
 						}
 					} catch { }
+					try {
+						if (kf.has_key ("DockPreferences", "PinnedAccordionMode")) {
+							int pm = kf.get_integer ("DockPreferences", "PinnedAccordionMode");
+							if (pm >= PINNED_ACCORDION_OFF && pm <= PINNED_ACCORDION_TOP_N)
+								fallback_m1 = pm;
+						}
+					} catch { }
+					try {
+						if (kf.has_key ("DockPreferences", "PinnedAccordionCount")) {
+							int pc = kf.get_integer ("DockPreferences", "PinnedAccordionCount");
+							if (pc >= MIN_PINNED_ACCORDION_COUNT && pc <= MAX_PINNED_ACCORDION_COUNT)
+								fallback_c1 = pc;
+						}
+					} catch { }
+					try {
+						if (kf.has_key ("DockPreferences", "DockletAccordionMode")) {
+							int dm = kf.get_integer ("DockPreferences", "DockletAccordionMode");
+							if (dm >= PINNED_ACCORDION_OFF && dm <= PINNED_ACCORDION_TOP_N)
+								fallback_dm1 = dm;
+						} else if (kf.has_key ("DockPreferences", "AccordionDocklets")) {
+							bool legacy_ad = kf.get_boolean ("DockPreferences", "AccordionDocklets");
+							fallback_dm1 = legacy_ad ? PINNED_ACCORDION_TOP_N : PINNED_ACCORDION_OFF;
+						}
+					} catch { }
+					try {
+						if (kf.has_key ("DockPreferences", "DockletAccordionCount")) {
+							int dc = kf.get_integer ("DockPreferences", "DockletAccordionCount");
+							if (dc >= MIN_DOCKLET_ACCORDION_COUNT && dc <= MAX_DOCKLET_ACCORDION_COUNT)
+								fallback_dc1 = dc;
+						}
+					} catch { }
 				}
 				if (kf.has_group ("MultiDock")) {
 					for (int s = 1; s <= MAX_DOCK_SLOTS; s++) {
 						string ek = "Dock%dEnabled".printf (s);
 						string pk = "Dock%dPosition".printf (s);
 						string sk = "Dock%dScreen".printf (s);
+						string mk = "Dock%dPinnedAccordionMode".printf (s);
+						string ck = "Dock%dPinnedAccordionCount".printf (s);
+						string dmk = "Dock%dDockletAccordionMode".printf (s);
+						string dck = "Dock%dDockletAccordionCount".printf (s);
 						try {
 							if (kf.has_key ("MultiDock", pk)) {
 								bool ok_tok;
@@ -607,24 +681,84 @@ namespace Plank
 							} catch {
 								slot_screens[s - 1] = (s == 1) ? fallback_s1 : 0;
 							}
+
+							try {
+								if (kf.has_key ("MultiDock", mk)) {
+									int mv = kf.get_integer ("MultiDock", mk);
+									slot_pinned_modes[s - 1] = (mv >= PINNED_ACCORDION_OFF && mv <= PINNED_ACCORDION_TOP_N) ? mv : fallback_m1;
+								} else {
+									slot_pinned_modes[s - 1] = fallback_m1;
+								}
+							} catch {
+								slot_pinned_modes[s - 1] = fallback_m1;
+							}
+
+							try {
+								if (kf.has_key ("MultiDock", ck)) {
+									int cv = kf.get_integer ("MultiDock", ck);
+									slot_pinned_counts[s - 1] = (cv >= MIN_PINNED_ACCORDION_COUNT && cv <= MAX_PINNED_ACCORDION_COUNT) ? cv : fallback_c1;
+								} else {
+									slot_pinned_counts[s - 1] = fallback_c1;
+								}
+							} catch {
+								slot_pinned_counts[s - 1] = fallback_c1;
+							}
+
+							try {
+								if (kf.has_key ("MultiDock", dmk)) {
+									int dmv = kf.get_integer ("MultiDock", dmk);
+									slot_docklet_modes[s - 1] = (dmv >= PINNED_ACCORDION_OFF && dmv <= PINNED_ACCORDION_TOP_N) ? dmv : fallback_dm1;
+								} else {
+									slot_docklet_modes[s - 1] = fallback_dm1;
+								}
+							} catch {
+								slot_docklet_modes[s - 1] = fallback_dm1;
+							}
+
+							try {
+								if (kf.has_key ("MultiDock", dck)) {
+									int dcv = kf.get_integer ("MultiDock", dck);
+									slot_docklet_counts[s - 1] = (dcv >= MIN_DOCKLET_ACCORDION_COUNT && dcv <= MAX_DOCKLET_ACCORDION_COUNT) ? dcv : fallback_dc1;
+								} else {
+									slot_docklet_counts[s - 1] = fallback_dc1;
+								}
+							} catch {
+								slot_docklet_counts[s - 1] = fallback_dc1;
+							}
 						} else {
 							slot_enabled[s - 1] = (s == 1) ? 1 : -1;
 							slot_screens[s - 1] = -1;
+							slot_pinned_modes[s - 1] = (s == 1) ? fallback_m1 : -1;
+							slot_pinned_counts[s - 1] = (s == 1) ? fallback_c1 : -1;
+							slot_docklet_modes[s - 1] = (s == 1) ? fallback_dm1 : -1;
+							slot_docklet_counts[s - 1] = (s == 1) ? fallback_dc1 : -1;
 						}
 					}
 					if (slot_positions[0] < 0) {
 						slot_enabled[0] = 1;
 						slot_positions[0] = fallback_p1;
 						slot_screens[0] = fallback_s1;
+						slot_pinned_modes[0] = fallback_m1;
+						slot_pinned_counts[0] = fallback_c1;
+						slot_docklet_modes[0] = fallback_dm1;
+						slot_docklet_counts[0] = fallback_dc1;
 					}
 				} else {
 					slot_enabled[0] = 1;
 					slot_positions[0] = fallback_p1;
 					slot_screens[0] = fallback_s1;
+					slot_pinned_modes[0] = fallback_m1;
+					slot_pinned_counts[0] = fallback_c1;
+					slot_docklet_modes[0] = fallback_dm1;
+					slot_docklet_counts[0] = fallback_dc1;
 					for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
 						slot_enabled[i] = -1;
 						slot_positions[i] = -1;
 						slot_screens[i] = -1;
+						slot_pinned_modes[i] = -1;
+						slot_pinned_counts[i] = -1;
+						slot_docklet_modes[i] = -1;
+						slot_docklet_counts[i] = -1;
 					}
 				}
 			} catch {
@@ -632,10 +766,18 @@ namespace Plank
 				slot_enabled[0] = 1;
 				slot_positions[0] = (int) Gtk.PositionType.BOTTOM;
 				slot_screens[0] = 0;
+				slot_pinned_modes[0] = PINNED_ACCORDION_TOP_N;
+				slot_pinned_counts[0] = DEFAULT_PINNED_ACCORDION_COUNT;
+				slot_docklet_modes[0] = PINNED_ACCORDION_TOP_N;
+				slot_docklet_counts[0] = DEFAULT_DOCKLET_ACCORDION_COUNT;
 				for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
 					slot_enabled[i] = -1;
 					slot_positions[i] = -1;
 					slot_screens[i] = -1;
+					slot_pinned_modes[i] = -1;
+					slot_pinned_counts[i] = -1;
+					slot_docklet_modes[i] = -1;
+					slot_docklet_counts[i] = -1;
 				}
 			}
 			multidock_loaded = true;
@@ -699,9 +841,21 @@ namespace Plank
 			if (pos >= 0) {
 				slot_enabled[slot - 1] = 1;
 				slot_screens[slot - 1] = screen_idx.clamp (0, MAX_DOCK_SLOTS - 1);
+				if (slot_pinned_modes[slot - 1] < 0)
+					slot_pinned_modes[slot - 1] = (slot_pinned_modes[0] >= 0) ? slot_pinned_modes[0] : PINNED_ACCORDION_TOP_N;
+				if (slot_pinned_counts[slot - 1] < MIN_PINNED_ACCORDION_COUNT)
+					slot_pinned_counts[slot - 1] = (slot_pinned_counts[0] >= MIN_PINNED_ACCORDION_COUNT) ? slot_pinned_counts[0] : DEFAULT_PINNED_ACCORDION_COUNT;
+				if (slot_docklet_modes[slot - 1] < 0)
+					slot_docklet_modes[slot - 1] = (slot_docklet_modes[0] >= 0) ? slot_docklet_modes[0] : PINNED_ACCORDION_TOP_N;
+				if (slot_docklet_counts[slot - 1] < MIN_DOCKLET_ACCORDION_COUNT)
+					slot_docklet_counts[slot - 1] = (slot_docklet_counts[0] >= MIN_DOCKLET_ACCORDION_COUNT) ? slot_docklet_counts[0] : DEFAULT_DOCKLET_ACCORDION_COUNT;
 			} else {
 				slot_enabled[slot - 1] = -1;
 				slot_screens[slot - 1] = -1;
+				slot_pinned_modes[slot - 1] = -1;
+				slot_pinned_counts[slot - 1] = -1;
+				slot_docklet_modes[slot - 1] = -1;
+				slot_docklet_counts[slot - 1] = -1;
 				if (slot >= 2) {
 					set_slot_item_array (slot, "DockItems", new string[0]);
 					set_slot_item_array (slot, "FreeDockItems", new string[0]);
@@ -847,6 +1001,10 @@ namespace Plank
 				return (val >= PINNED_ACCORDION_OFF && val <= PINNED_ACCORDION_TOP_N);
 			case "PinnedAccordionCount":
 				return (val >= MIN_PINNED_ACCORDION_COUNT && val <= MAX_PINNED_ACCORDION_COUNT);
+			case "DockletAccordionMode":
+				return (val >= PINNED_ACCORDION_OFF && val <= PINNED_ACCORDION_TOP_N);
+			case "DockletAccordionCount":
+				return (val >= MIN_DOCKLET_ACCORDION_COUNT && val <= MAX_DOCKLET_ACCORDION_COUNT);
 			case "SystemMenuAccess":
 				return (val >= 1 && val <= 4);
 			case "ActiveHighlight":
@@ -902,10 +1060,18 @@ namespace Plank
 			slot_enabled[0] = 1;
 			slot_positions[0] = (int) Gtk.PositionType.BOTTOM;
 			slot_screens[0] = 0;
+			slot_pinned_modes[0] = PINNED_ACCORDION_TOP_N;
+			slot_pinned_counts[0] = DEFAULT_PINNED_ACCORDION_COUNT;
+			slot_docklet_modes[0] = PINNED_ACCORDION_TOP_N;
+			slot_docklet_counts[0] = DEFAULT_DOCKLET_ACCORDION_COUNT;
 			for (int i = 1; i < MAX_DOCK_SLOTS; i++) {
 				slot_enabled[i] = -1;
 				slot_positions[i] = -1;
 				slot_screens[i] = -1;
+				slot_pinned_modes[i] = -1;
+				slot_pinned_counts[i] = -1;
+				slot_docklet_modes[i] = -1;
+				slot_docklet_counts[i] = -1;
 			}
 			multidock_loaded = true;
 			base.reset_all ();
@@ -1079,8 +1245,37 @@ namespace Plank
 				unowned string prop_name = prop.get_name ();
 				var type = prop.value_type;
 				try {
-					if (!kf.has_key ("DockPreferences", prop_name))
+					if (!kf.has_key ("DockPreferences", prop_name)) {
+						// Backward-compatible silent migration from legacy AccordionDocklets (pre-v0.7.4.1)
+						if (prop_name == "DockletAccordionMode") {
+							bool legacy_ad = true;
+							try {
+								if (kf.has_key ("DockPreferences", "AccordionDocklets"))
+									legacy_ad = kf.get_boolean ("DockPreferences", "AccordionDocklets");
+							} catch { }
+							int migrated_mode = legacy_ad ? PINNED_ACCORDION_TOP_N : PINNED_ACCORDION_OFF;
+							if (DockletAccordionMode != migrated_mode)
+								DockletAccordionMode = migrated_mode;
+							needs_startup_sync = true;
+							continue;
+						}
+						if (prop_name == "DockletAccordionCount") {
+							if (DockletAccordionCount != DEFAULT_DOCKLET_ACCORDION_COUNT)
+								DockletAccordionCount = DEFAULT_DOCKLET_ACCORDION_COUNT;
+							needs_startup_sync = true;
+							continue;
+						}
+						if (prop_name == "AccordionDocklets" && kf.has_key ("DockPreferences", "DockletAccordionMode")) {
+							bool derived_ad = true;
+							try {
+								derived_ad = (kf.get_integer ("DockPreferences", "DockletAccordionMode") != PINNED_ACCORDION_OFF);
+							} catch { }
+							if (AccordionDocklets != derived_ad)
+								AccordionDocklets = derived_ad;
+							continue;
+						}
 						throw new KeyFileError.KEY_NOT_FOUND ("Missing key");
+					}
 
 					var schema_key = settings.settings_schema.get_key (key);
 					if (type == typeof (bool)) {
@@ -1145,6 +1340,13 @@ namespace Plank
 
 				int fallback_pos1 = (int) Position;
 				int fallback_scr1 = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), Monitor);
+				int fallback_mode1 = PinnedAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+				int fallback_count1 = PinnedAccordionCount.clamp (MIN_PINNED_ACCORDION_COUNT, MAX_PINNED_ACCORDION_COUNT);
+				int fallback_dmode1 = DockletAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+				int fallback_dcount1 = DockletAccordionCount.clamp (MIN_DOCKLET_ACCORDION_COUNT, MAX_DOCKLET_ACCORDION_COUNT);
+				bool synced_ad1 = (fallback_dmode1 != PINNED_ACCORDION_OFF);
+				if (AccordionDocklets != synced_ad1)
+					AccordionDocklets = synced_ad1;
 				if (kf.has_group ("MultiDock")) {
 					try {
 						foreach (unowned string mk in kf.get_keys ("MultiDock")) {
@@ -1216,9 +1418,87 @@ namespace Plank
 						if (slot_positions[s - 1] >= 0) {
 							slot_enabled[s - 1] = (s == 1) ? 1 : ((parsed_en >= 0) ? parsed_en : 1);
 							slot_screens[s - 1] = (parsed_scr >= 0) ? parsed_scr : ((s == 1) ? fallback_scr1 : 0);
+
+							string mode_k = "Dock%dPinnedAccordionMode".printf (s);
+							string cnt_k = "Dock%dPinnedAccordionCount".printf (s);
+							try {
+								if (kf.has_key ("MultiDock", mode_k)) {
+									int mv = kf.get_integer ("MultiDock", mode_k);
+									if (mv < PINNED_ACCORDION_OFF || mv > PINNED_ACCORDION_TOP_N) {
+										failed_keys.add (mode_k);
+										slot_pinned_modes[s - 1] = fallback_mode1;
+									} else {
+										slot_pinned_modes[s - 1] = mv;
+									}
+								} else {
+									// Backward-compatible migration: initialize all active slots from global PinnedAccordionMode
+									slot_pinned_modes[s - 1] = fallback_mode1;
+								}
+							} catch {
+								failed_keys.add (mode_k);
+								slot_pinned_modes[s - 1] = fallback_mode1;
+							}
+							try {
+								if (kf.has_key ("MultiDock", cnt_k)) {
+									int cv = kf.get_integer ("MultiDock", cnt_k);
+									if (cv < MIN_PINNED_ACCORDION_COUNT || cv > MAX_PINNED_ACCORDION_COUNT) {
+										failed_keys.add (cnt_k);
+										slot_pinned_counts[s - 1] = fallback_count1;
+									} else {
+										slot_pinned_counts[s - 1] = cv;
+									}
+								} else {
+									// Backward-compatible migration: initialize all active slots from global PinnedAccordionCount
+									slot_pinned_counts[s - 1] = fallback_count1;
+								}
+							} catch {
+								failed_keys.add (cnt_k);
+								slot_pinned_counts[s - 1] = fallback_count1;
+							}
+
+							string dmode_k = "Dock%dDockletAccordionMode".printf (s);
+							string dcnt_k = "Dock%dDockletAccordionCount".printf (s);
+							try {
+								if (kf.has_key ("MultiDock", dmode_k)) {
+									int dmv = kf.get_integer ("MultiDock", dmode_k);
+									if (dmv < PINNED_ACCORDION_OFF || dmv > PINNED_ACCORDION_TOP_N) {
+										failed_keys.add (dmode_k);
+										slot_docklet_modes[s - 1] = fallback_dmode1;
+									} else {
+										slot_docklet_modes[s - 1] = dmv;
+									}
+								} else {
+									// Backward-compatible migration: copy migrated DockletAccordionMode onto all active slots
+									slot_docklet_modes[s - 1] = fallback_dmode1;
+								}
+							} catch {
+								failed_keys.add (dmode_k);
+								slot_docklet_modes[s - 1] = fallback_dmode1;
+							}
+							try {
+								if (kf.has_key ("MultiDock", dcnt_k)) {
+									int dcv = kf.get_integer ("MultiDock", dcnt_k);
+									if (dcv < MIN_DOCKLET_ACCORDION_COUNT || dcv > MAX_DOCKLET_ACCORDION_COUNT) {
+										failed_keys.add (dcnt_k);
+										slot_docklet_counts[s - 1] = fallback_dcount1;
+									} else {
+										slot_docklet_counts[s - 1] = dcv;
+									}
+								} else {
+									// Backward-compatible migration: copy migrated DockletAccordionCount onto all active slots
+									slot_docklet_counts[s - 1] = fallback_dcount1;
+								}
+							} catch {
+								failed_keys.add (dcnt_k);
+								slot_docklet_counts[s - 1] = fallback_dcount1;
+							}
 						} else {
 							slot_enabled[s - 1] = (s == 1) ? 1 : -1;
 							slot_screens[s - 1] = -1;
+							slot_pinned_modes[s - 1] = (s == 1) ? fallback_mode1 : -1;
+							slot_pinned_counts[s - 1] = (s == 1) ? fallback_count1 : -1;
+							slot_docklet_modes[s - 1] = (s == 1) ? fallback_dmode1 : -1;
+							slot_docklet_counts[s - 1] = (s == 1) ? fallback_dcount1 : -1;
 						}
 
 						if (s >= 2) {
@@ -1262,6 +1542,10 @@ namespace Plank
 								slot_enabled[s - 1] = -1;
 								slot_positions[s - 1] = -1;
 								slot_screens[s - 1] = -1;
+								slot_pinned_modes[s - 1] = -1;
+								slot_pinned_counts[s - 1] = -1;
+								slot_docklet_modes[s - 1] = -1;
+								slot_docklet_counts[s - 1] = -1;
 								set_slot_item_array (s, "DockItems", new string[0]);
 								set_slot_item_array (s, "FreeDockItems", new string[0]);
 								set_slot_item_array (s, "CategorizedDockItems", new string[0]);
@@ -1275,10 +1559,18 @@ namespace Plank
 					slot_enabled[0] = 1;
 					slot_positions[0] = fallback_pos1;
 					slot_screens[0] = fallback_scr1;
+					slot_pinned_modes[0] = fallback_mode1;
+					slot_pinned_counts[0] = fallback_count1;
+					slot_docklet_modes[0] = fallback_dmode1;
+					slot_docklet_counts[0] = fallback_dcount1;
 					for (int s = 2; s <= MAX_DOCK_SLOTS; s++) {
 						slot_enabled[s - 1] = -1;
 						slot_positions[s - 1] = -1;
 						slot_screens[s - 1] = -1;
+						slot_pinned_modes[s - 1] = -1;
+						slot_pinned_counts[s - 1] = -1;
+						slot_docklet_modes[s - 1] = -1;
+						slot_docklet_counts[s - 1] = -1;
 						set_slot_item_array (s, "DockItems", new string[0]);
 						set_slot_item_array (s, "FreeDockItems", new string[0]);
 						set_slot_item_array (s, "CategorizedDockItems", new string[0]);
@@ -1294,6 +1586,19 @@ namespace Plank
 					string target_mon_tok = PositionManager.monitor_token_for_screen_index (int.max (0, slot_screens[my_slot - 1]));
 					if (Monitor != target_mon_tok)
 						Monitor = target_mon_tok;
+					if (slot_pinned_modes[my_slot - 1] >= PINNED_ACCORDION_OFF && PinnedAccordionMode != slot_pinned_modes[my_slot - 1])
+						PinnedAccordionMode = slot_pinned_modes[my_slot - 1];
+					if (slot_pinned_counts[my_slot - 1] >= MIN_PINNED_ACCORDION_COUNT && PinnedAccordionCount != slot_pinned_counts[my_slot - 1])
+						PinnedAccordionCount = slot_pinned_counts[my_slot - 1];
+					if (slot_docklet_modes[my_slot - 1] >= PINNED_ACCORDION_OFF) {
+						if (DockletAccordionMode != slot_docklet_modes[my_slot - 1])
+							DockletAccordionMode = slot_docklet_modes[my_slot - 1];
+						bool slot_ad = (slot_docklet_modes[my_slot - 1] != PINNED_ACCORDION_OFF);
+						if (AccordionDocklets != slot_ad)
+							AccordionDocklets = slot_ad;
+					}
+					if (slot_docklet_counts[my_slot - 1] >= MIN_DOCKLET_ACCORDION_COUNT && DockletAccordionCount != slot_docklet_counts[my_slot - 1])
+						DockletAccordionCount = slot_docklet_counts[my_slot - 1];
 				}
 				if (my_slot == 1 && is_slot_empty_after_onboarding (1) && SystemMenuAccess != 4) {
 					SystemMenuAccess = 4;
@@ -1370,12 +1675,20 @@ namespace Plank
 			if (my_slot == 1) {
 				slot_positions[0] = (int) Position;
 				slot_screens[0] = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), Monitor);
+				slot_pinned_modes[0] = PinnedAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+				slot_pinned_counts[0] = PinnedAccordionCount.clamp (MIN_PINNED_ACCORDION_COUNT, MAX_PINNED_ACCORDION_COUNT);
+				slot_docklet_modes[0] = DockletAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+				slot_docklet_counts[0] = DockletAccordionCount.clamp (MIN_DOCKLET_ACCORDION_COUNT, MAX_DOCKLET_ACCORDION_COUNT);
 				slot1_items = get_strv_property ("DockItems");
 				slot1_free_items = get_strv_property ("FreeDockItems");
 				slot1_cat_items = get_strv_property ("CategorizedDockItems");
 			} else if (my_slot >= 2 && my_slot <= MAX_DOCK_SLOTS && slot_positions[my_slot - 1] >= 0) {
 				slot_positions[my_slot - 1] = (int) Position;
 				slot_screens[my_slot - 1] = PositionManager.screen_index_for_monitor_token (Gdk.Display.get_default (), Monitor);
+				slot_pinned_modes[my_slot - 1] = PinnedAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+				slot_pinned_counts[my_slot - 1] = PinnedAccordionCount.clamp (MIN_PINNED_ACCORDION_COUNT, MAX_PINNED_ACCORDION_COUNT);
+				slot_docklet_modes[my_slot - 1] = DockletAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+				slot_docklet_counts[my_slot - 1] = DockletAccordionCount.clamp (MIN_DOCKLET_ACCORDION_COUNT, MAX_DOCKLET_ACCORDION_COUNT);
 				set_slot_item_array (my_slot, "DockItems", get_strv_property ("DockItems"));
 				set_slot_item_array (my_slot, "FreeDockItems", get_strv_property ("FreeDockItems"));
 				set_slot_item_array (my_slot, "CategorizedDockItems", get_strv_property ("CategorizedDockItems"));
@@ -1394,6 +1707,9 @@ namespace Plank
 			kf.set_boolean ("LatchState", "DockletsExpanded", docklets_expanded_latch);
 			kf.set_boolean ("LatchState", "PinnedExpanded", pinned_expanded_latch);
 
+			int d1_dmode = (slot_docklet_modes[0] >= 0) ? slot_docklet_modes[0] : DockletAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+			int d1_dcnt = (slot_docklet_counts[0] >= MIN_DOCKLET_ACCORDION_COUNT) ? slot_docklet_counts[0] : DockletAccordionCount.clamp (MIN_DOCKLET_ACCORDION_COUNT, MAX_DOCKLET_ACCORDION_COUNT);
+
 			(unowned ParamSpec)[] properties = get_class ().list_properties ();
 			foreach (unowned string key in settings.settings_schema.list_keys ()) {
 				ParamSpec? prop = null;
@@ -1411,12 +1727,24 @@ namespace Plank
 
 				if (type == typeof (bool)) {
 					bool v = false;
-					@get (prop_name, out v);
+					if (prop_name == "AccordionDocklets") {
+						v = (d1_dmode != PINNED_ACCORDION_OFF);
+					} else {
+						@get (prop_name, out v);
+					}
 					kf.set_boolean ("DockPreferences", prop_name, v);
 				} else if (type == typeof (int) || type.is_enum ()) {
 					int v = 0;
 					if (prop_name == "Position") {
 						v = slot_positions[0];
+					} else if (prop_name == "PinnedAccordionMode" && slot_pinned_modes[0] >= 0) {
+						v = slot_pinned_modes[0];
+					} else if (prop_name == "PinnedAccordionCount" && slot_pinned_counts[0] >= MIN_PINNED_ACCORDION_COUNT) {
+						v = slot_pinned_counts[0];
+					} else if (prop_name == "DockletAccordionMode") {
+						v = d1_dmode;
+					} else if (prop_name == "DockletAccordionCount") {
+						v = d1_dcnt;
 					} else {
 						@get (prop_name, out v);
 					}
@@ -1443,9 +1771,15 @@ namespace Plank
 				}
 			}
 
+			int d1_mode = (slot_pinned_modes[0] >= 0) ? slot_pinned_modes[0] : PinnedAccordionMode.clamp (PINNED_ACCORDION_OFF, PINNED_ACCORDION_TOP_N);
+			int d1_cnt = (slot_pinned_counts[0] >= MIN_PINNED_ACCORDION_COUNT) ? slot_pinned_counts[0] : PinnedAccordionCount.clamp (MIN_PINNED_ACCORDION_COUNT, MAX_PINNED_ACCORDION_COUNT);
 			kf.set_string ("MultiDock", "Dock1Enabled", "true");
 			kf.set_integer ("MultiDock", "Dock1Position", slot_positions[0] >= 0 ? slot_positions[0] : (int) Gtk.PositionType.BOTTOM);
 			kf.set_integer ("MultiDock", "Dock1Screen", int.max (0, slot_screens[0]));
+			kf.set_integer ("MultiDock", "Dock1PinnedAccordionMode", d1_mode);
+			kf.set_integer ("MultiDock", "Dock1PinnedAccordionCount", d1_cnt);
+			kf.set_integer ("MultiDock", "Dock1DockletAccordionMode", d1_dmode);
+			kf.set_integer ("MultiDock", "Dock1DockletAccordionCount", d1_dcnt);
 			for (int s = 2; s <= MAX_DOCK_SLOTS; s++) {
 				int sp = slot_positions[s - 1];
 				int se = slot_enabled[s - 1];
@@ -1453,6 +1787,10 @@ namespace Plank
 					kf.set_string ("MultiDock", "Dock%dEnabled".printf (s), (se == 1) ? "true" : "false");
 					kf.set_integer ("MultiDock", "Dock%dPosition".printf (s), sp);
 					kf.set_integer ("MultiDock", "Dock%dScreen".printf (s), int.max (0, slot_screens[s - 1]));
+					kf.set_integer ("MultiDock", "Dock%dPinnedAccordionMode".printf (s), (slot_pinned_modes[s - 1] >= 0) ? slot_pinned_modes[s - 1] : d1_mode);
+					kf.set_integer ("MultiDock", "Dock%dPinnedAccordionCount".printf (s), (slot_pinned_counts[s - 1] >= MIN_PINNED_ACCORDION_COUNT) ? slot_pinned_counts[s - 1] : d1_cnt);
+					kf.set_integer ("MultiDock", "Dock%dDockletAccordionMode".printf (s), (slot_docklet_modes[s - 1] >= 0) ? slot_docklet_modes[s - 1] : d1_dmode);
+					kf.set_integer ("MultiDock", "Dock%dDockletAccordionCount".printf (s), (slot_docklet_counts[s - 1] >= MIN_DOCKLET_ACCORDION_COUNT) ? slot_docklet_counts[s - 1] : d1_dcnt);
 					string[] s_items = get_slot_item_array (s, "DockItems");
 					string[] s_free = get_slot_item_array (s, "FreeDockItems");
 					string[] s_cat = get_slot_item_array (s, "CategorizedDockItems");
@@ -1523,17 +1861,45 @@ namespace Plank
 			notify["ZoomEnabled"].connect (on_sr_reset_changed);
 			notify["SystemMenuAccess"].connect (on_sr_system_menu_access_changed);
 			notify["AnchorAlwaysLeft"].connect (on_sr_anchor_always_left_changed);
+			notify["DockletAccordionMode"].connect (on_docklet_accordion_mode_changed);
+			notify["AccordionDocklets"].connect (on_legacy_accordion_docklets_changed);
 			notify.connect (on_any_pref_changed);
 		}
 		
 		~DockPreferences ()
 		{
 			notify.disconnect (on_any_pref_changed);
+			notify["DockletAccordionMode"].disconnect (on_docklet_accordion_mode_changed);
+			notify["AccordionDocklets"].disconnect (on_legacy_accordion_docklets_changed);
 			notify["ReserveSpace"].disconnect (on_sr_reserve_changed);
 			notify["HideMode"].disconnect (on_sr_reset_changed);
 			notify["ZoomEnabled"].disconnect (on_sr_reset_changed);
 			notify["SystemMenuAccess"].disconnect (on_sr_system_menu_access_changed);
 			notify["AnchorAlwaysLeft"].disconnect (on_sr_anchor_always_left_changed);
+		}
+
+		void on_docklet_accordion_mode_changed ()
+		{
+			if (loading_profile_settings || syncing_docklet_mode_compat)
+				return;
+			bool target_ad = (DockletAccordionMode != PINNED_ACCORDION_OFF);
+			if (AccordionDocklets != target_ad) {
+				syncing_docklet_mode_compat = true;
+				AccordionDocklets = target_ad;
+				syncing_docklet_mode_compat = false;
+			}
+		}
+
+		void on_legacy_accordion_docklets_changed ()
+		{
+			if (loading_profile_settings || syncing_docklet_mode_compat)
+				return;
+			syncing_docklet_mode_compat = true;
+			if (!AccordionDocklets && DockletAccordionMode != PINNED_ACCORDION_OFF)
+				DockletAccordionMode = PINNED_ACCORDION_OFF;
+			else if (AccordionDocklets && DockletAccordionMode == PINNED_ACCORDION_OFF)
+				DockletAccordionMode = PINNED_ACCORDION_TOP_N;
+			syncing_docklet_mode_compat = false;
 		}
 
 		void on_sr_reserve_changed ()
@@ -1720,6 +2086,16 @@ namespace Plank
 					PinnedAccordionCount = MIN_PINNED_ACCORDION_COUNT;
 				else if (PinnedAccordionCount > MAX_PINNED_ACCORDION_COUNT)
 					PinnedAccordionCount = MAX_PINNED_ACCORDION_COUNT;
+				break;
+			case "DockletAccordionMode":
+				if (DockletAccordionMode < PINNED_ACCORDION_OFF || DockletAccordionMode > PINNED_ACCORDION_TOP_N)
+					DockletAccordionMode = PINNED_ACCORDION_OFF;
+				break;
+			case "DockletAccordionCount":
+				if (DockletAccordionCount < MIN_DOCKLET_ACCORDION_COUNT)
+					DockletAccordionCount = MIN_DOCKLET_ACCORDION_COUNT;
+				else if (DockletAccordionCount > MAX_DOCKLET_ACCORDION_COUNT)
+					DockletAccordionCount = MAX_DOCKLET_ACCORDION_COUNT;
 				break;
 			case "EffectDuration":
 				if (EffectDuration < MIN_EFFECT_DURATION)

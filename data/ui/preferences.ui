@@ -77,6 +77,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step_increment">1</property>
     <property name="page_increment">2</property>
   </object>
+  <object class="GtkAdjustment" id="adj_docklet_count">
+    <property name="lower">1</property>
+    <property name="upper">14</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">2</property>
+  </object>
   <template class="PlankPreferencesWindow" parent="GtkWindow">
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
@@ -1567,7 +1574,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">horizontal</property>
-                <property name="spacing">6</property>
+                <property name="spacing">10</property>
                 <child>
                   <object class="GtkSwitch" id="sw_categorize_items">
                     <property name="visible">True</property>
@@ -1621,86 +1628,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_docklets_on_right">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Docklets on Right:</property>
-                <property name="tooltip_text" translatable="yes">Place the Docklets group on the right near the Trash (System Tray style) instead of on the left before applications</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_docklets_on_right">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Place the Docklets group on the right near the Trash (System Tray style) instead of on the left before applications</property>
-              </object>
-              <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_accordion_docklets">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="label" translatable="yes">Docklet Accordion:</property>
-                <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_accordion_docklets">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Collapse docklets in-line showing only the first item; expand on hover</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="l_accordion_click_to_expand">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="margin_left">12</property>
-                <property name="label" translatable="yes">Click to Expand/Compress:</property>
-                <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="sw_accordion_click_to_expand">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="tooltip_text" translatable="yes">Expand docklets only when clicking the Master Preferences icon instead of on hover</property>
-              </object>
-              <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">8</property>
+                <property name="width">3</property>
               </packing>
             </child>
             <child>
@@ -1708,13 +1636,13 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Pinned Accordion:</property>
+                <property name="label" translatable="yes">Accordion (Pinned):</property>
                 <property name="justify">right</property>
-                <property name="tooltip_text" translatable="yes">Hide the least used pinned apps behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, apps needing attention and apps marked Keep Always Visible always stay. Requires Categorize Items</property>
+                <property name="tooltip_text" translatable="yes">Hide the least used items behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, folders with running apps, urgent apps and items marked Keep Always Visible always stay</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">9</property>
+                <property name="top_attach">8</property>
               </packing>
             </child>
             <child>
@@ -1729,7 +1657,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="hexpand">True</property>
-                    <property name="tooltip_text" translatable="yes">Hide the least used pinned apps behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, apps needing attention and apps marked Keep Always Visible always stay. Requires Categorize Items</property>
+                    <property name="tooltip_text" translatable="yes">Hide the least used items behind an expander. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Running apps, folders with running apps, urgent apps and items marked Keep Always Visible always stay</property>
                     <items>
                       <item id="0" translatable="yes">Off</item>
                       <item id="1" translatable="yes">Auto-Fit Capacity</item>
@@ -1754,7 +1682,73 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="invisible_char">•</property>
                     <property name="adjustment">adj_pinned_count</property>
                     <property name="numeric">True</property>
-                    <property name="tooltip_text" translatable="yes">Number of most used pinned apps kept visible</property>
+                    <property name="tooltip_text" translatable="yes">Number of most used items kept visible</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">8</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_accordion_docklets">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Accordion (Docklets):</property>
+                <property name="justify">right</property>
+                <property name="tooltip_text" translatable="yes">Hide the least used docklets behind an expander in Categorized mode. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Docklets marked Keep Always Visible always stay</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box_docklet_accordion">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">6</property>
+                <property name="hexpand">True</property>
+                <child>
+                  <object class="GtkComboBoxText" id="cb_docklet_accordion">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="tooltip_text" translatable="yes">Hide the least used docklets behind an expander in Categorized mode. Auto-Fit keeps as many as fit on screen, Top Most Used keeps the N most used. Docklets marked Keep Always Visible always stay</property>
+                    <items>
+                      <item id="0" translatable="yes">Off</item>
+                      <item id="1" translatable="yes">Auto-Fit Capacity</item>
+                      <item id="2" translatable="yes">Top Most Used</item>
+                    </items>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="sp_docklet_count">
+                    <property name="visible">False</property>
+                    <property name="no_show_all">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="width_chars">3</property>
+                    <property name="xalign">0.5</property>
+                    <property name="invisible_char">•</property>
+                    <property name="adjustment">adj_docklet_count</property>
+                    <property name="numeric">True</property>
+                    <property name="tooltip_text" translatable="yes">Number of most used docklets kept visible</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1801,7 +1795,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="adjustment">adj_accordion_delay</property>
                     <property name="digits">1</property>
                     <property name="numeric">True</property>
-                    <property name="tooltip_text" translatable="yes">Delay before collapsing docklets accordion back to master icon</property>
+                    <property name="tooltip_text" translatable="yes">Delay before collapsing accordions</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1819,7 +1813,7 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="round_digits">1</property>
                     <property name="digits">1</property>
                     <property name="draw_value">False</property>
-                    <property name="tooltip_text" translatable="yes">Delay before collapsing docklets accordion back to master icon</property>
+                    <property name="tooltip_text" translatable="yes">Delay before collapsing accordions</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -1832,6 +1826,59 @@ along with plank.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="left_attach">1</property>
                 <property name="top_attach">10</property>
                 <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_accordion_click_to_expand">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Click to Expand/Compress:</property>
+                <property name="tooltip_text" translatable="yes">Expand accordions only when clicking the expander instead of on hover</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_accordion_click_to_expand">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Expand accordions only when clicking the expander instead of on hover</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="l_docklets_on_right">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin_left">12</property>
+                <property name="label" translatable="yes">Docklets on Right:</property>
+                <property name="tooltip_text" translatable="yes">Place the Docklets group on the right near the Trash (System Tray style) instead of on the left before applications</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="sw_docklets_on_right">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="tooltip_text" translatable="yes">Place the Docklets group on the right near the Trash (System Tray style) instead of on the left before applications</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">11</property>
               </packing>
             </child>
           </object>

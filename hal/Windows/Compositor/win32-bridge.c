@@ -709,6 +709,7 @@ typedef struct {
 	Win32EnumWindowCallback cb;
 	void *user_data;
 	HWND fg_hwnd;
+	HWND fg_root_owner;
 	DWORD self_pid;
 	int off_x;
 	int off_y;
@@ -885,7 +886,8 @@ enum_windows_proc (HWND hwnd, LPARAM lParam)
 
 	int minimized = IsIconic (hwnd) ? 1 : 0;
 	int maximized = IsZoomed (hwnd) ? 1 : 0;
-	int active = (hwnd == ctx->fg_hwnd) ? 1 : 0;
+	int active = (hwnd == ctx->fg_hwnd
+		|| (ctx->fg_root_owner != NULL && hwnd == ctx->fg_root_owner)) ? 1 : 0;
 	int is_dialog = ((ex_style & WS_EX_DLGMODALFRAME) != 0 || wcscmp (cls_w, L"#32770") == 0) ? 1 : 0;
 
 	RECT rc = { 0, 0, 0, 0 };
@@ -976,6 +978,7 @@ win32_bridge_enum_windows (Win32EnumWindowCallback cb, void *user_data)
 	ctx.cb = cb;
 	ctx.user_data = user_data;
 	ctx.fg_hwnd = GetForegroundWindow ();
+	ctx.fg_root_owner = (ctx.fg_hwnd != NULL) ? GetAncestor (ctx.fg_hwnd, GA_ROOTOWNER) : NULL;
 	ctx.self_pid = GetCurrentProcessId ();
 	if (ctx.fg_hwnd != NULL) {
 		DWORD fg_pid = 0;

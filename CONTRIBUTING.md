@@ -30,14 +30,13 @@ Whether you are reporting a bug, contributing translations, improving themes, te
 
 ## 🗺️ Current Project Status & Roadmap
 
-* **Current Public Beta Release**: `v0.7.3.2` (**Public Beta 4 Hotfix — Unified Linux Wayland & Native Windows Zero-DLL Monolith**: `100.0%` 4-Platform Qualified `529/529` across Windows 11, GNOME `Mutter`, KDE Plasma 6 `KWin`, and `Labwc`, [`FAT/2026-11-22 FAT 0.7.3.txt`](FAT/2026-11-22%20FAT%200.7.3.txt); `v0.7.2` Public Beta 3 concluded at `100.0%` (`397/397`), `v0.7.1.2` Public Beta 2 Hotfix concluded at `100.0%` (`375/375`), and `v0.7.0` Public Beta 1 concluded & frozen at `95.2% PASS`).
-* **Upcoming Public Beta Roadmap (`v0.7.x`)**: **`v0.7.1.2`** (Public Beta 2 Hotfix — *Concluded*), **`v0.7.2`** (Public Beta 3 — *Concluded 2026-11-18*: **Linux-Only HAL & Bus Structural Freeze + Single-Process Multi-Dock Engine (`dock1`–`dock4`)** in `hal/{Interfaces,Freedesktop,Linux}/` — see [Documentation/Architecture/README.md](Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)), **`v0.7.3` / `v0.7.3.2`** (Public Beta 4 + Hotfix: **Native Windows Zero-DLL Monolith Plug-In** `hal/Windows/` + `./BuildWin.sh` + 64-bit `./BuildNsis.sh` producing `wayplank.exe` & `WayPlank-0.7.3.2-Setup.exe` — see [HAL_WINDOWS_BACKEND.md](Documentation/Architecture/HAL_WINDOWS_BACKEND.md) and [CHANGELOG_v0.7.3.md](Changelogs/CHANGELOG_v0.7.3.md)), followed by **`v0.7.4`** (FreeBSD `hal/BSD/`) and iterative `v0.7.x` stabilization releases remaining open until the community signals readiness for the `v0.8.x` Release Candidate freeze, up to **December 31, 2026**.
+* **Current Public Beta Release**: `v0.7.4` (**Final Public Beta 5 — Native FreeBSD Kernel Backend `hal/BSD/`, Linux Wayland & Native Windows**: `100.0%` 7-Platform Qualified `942/942` across FreeBSD [GNOME/KDE/Labwc], Windows 11, and Linux [GNOME/KDE/Labwc], [`FAT/2026-11-25 FAT 0.7.4.txt`](FAT/2026-11-25%20FAT%200.7.4.txt); `v0.7.3.2` Public Beta 4 Hotfix concluded at `100.0%` (`529/529`), `v0.7.2` Public Beta 3 concluded at `100.0%` (`397/397`), `v0.7.1.2` Public Beta 2 Hotfix concluded at `100.0%` (`375/375`), and `v0.7.0` Public Beta 1 concluded & frozen at `95.2% PASS`).
+* **Public Beta Roadmap (`v0.7.x` ➔ `v0.8.x` RC)**: **`v0.7.1.2`** (*Concluded*), **`v0.7.2`** (*Concluded 2026-11-18*: **3-Zone HAL & Bus Freeze + Multi-Dock Engine** in `hal/{Interfaces,Freedesktop,Linux}/`), **`v0.7.3` / `v0.7.3.2`** (*Concluded 2026-11-22*: **Native Windows Zero-DLL Monolith** `hal/Windows/`), and **`v0.7.4`** (*Concluded 2026-11-25*: **Native FreeBSD Kernel Backend** `hal/BSD/`, unified `builders/{linux,bsd,windows}/` ➔ `build/{linux,bsd,windows}/` layout — see [HAL_BSD_BACKEND.md](Documentation/Architecture/HAL_BSD_BACKEND.md) and [CHANGELOG_v0.7.4.md](Changelogs/CHANGELOG_v0.7.4.md)). **`v0.7.4` is the Final Public Beta** before the **`v0.8.x` Release Candidate Feature Freeze in January 2027**.
 * **Completed Foundation Release**: `v0.6.2.3` (Official Closure of the Alpha & Pre-Beta Era).
-* **Tier 1 Supported Compositors & OS Backends**:
-  - **Windows (`Win32 / DWM`, `Windows 7 ⟷ 11+`)**: Zero-DLL PE32+ monolith (`wayplank.exe`), `SetWinEventHook` + `EnumWindows`, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` Panel Mode struts, COM `IShellLinkW` / UWP `AUMID`, CoreAudio / `DXVA2` / `WinHTTP` / Recycle Bin / Ejector.
-  - **KDE Plasma (KWin 6.x)**: Full layer-shell integration, D-Bus scripting bridge, live Cairo preview thumbnails.
-  - **GNOME Shell (Mutter 46/47/48)**: Dedicated Mutter extension bridge, live window previews, window Dodge/Intellihide.
-  - **Labwc (wlroots)**: Pure `zwlr_foreign_toplevel_manager_v1` protocol tracking, honest UI matrix, Dodge.
+* **7 Qualified Tier 1 Desktop Platforms**:
+  - **Linux Wayland (`hal/Linux/` + `hal/Freedesktop/`):** **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, and **`Labwc` (`wlroots`)**.
+  - **FreeBSD 14.x / 15.x & GhostBSD Wayland (`hal/BSD/` + `hal/Freedesktop/`):** **KDE Plasma 6 (`KWin`)**, **GNOME Shell (`Mutter`)**, and **`Labwc` (`wlroots`)** — native `libprocstat`/`sysctl`/OpenZFS ARC/OSS/ACPI/ConsoleKit2 kernel backend with zero `/proc` and zero `/sys`.
+  - **Windows (`Win32 / DWM`, `Windows 7 ⟷ 11+`, `hal/Windows/`):** Zero-DLL PE32+ monolith (`build/windows/wayplank.exe`), `SetWinEventHook` + `EnumWindows`, off-thread 60 FPS `PrintWindow` preview cards, `SHAppBarMessage` Panel Mode struts, `IVirtualDesktopManager` Workspace Only, COM `IShellLinkW` / UWP `AUMID`, WinRT GSMTC, CoreAudio / WMI+`DXVA2` / `WinHTTP` / Recycle Bin / Ejector.
 
 ---
 
@@ -47,14 +46,14 @@ Whether you are reporting a bug, contributing translations, improving themes, te
 
 A warm, heartfelt thank you to every contributor, translator, tester, and bug reporter who has helped shape WayPlank across KDE Plasma, GNOME Shell, and Labwc:
 
-* **[@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) — 史有虎 (IFtiger-hu)**: Author of the WayPlank community fork, contributor of native RPM packaging (`BuildRpm.sh`), overflow smooth scrolling, launcher deduplication, Flatpak & matcher hardening ([PR #15](https://github.com/sergiomelas/WayPlank/pull/15)), and Simplified Chinese (`zh_CN`) localization.
-* **[@reni001](https://github.com/reni001) — Renate Schwiedernoch**: Author and maintainer of the German (`de`) localization catalog ([#7](https://github.com/sergiomelas/WayPlank/issues/7)), Arch / Garuda Linux manual binary installation documentation improvements ([#28](https://github.com/sergiomelas/WayPlank/issues/28)), and startup `DockRenderer` / `GtkWindow` initialization log reporting ([#29](https://github.com/sergiomelas/WayPlank/issues/29)).
+* **[@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) — 史有虎 (IFtiger-hu)**: Author of the WayPlank community fork, contributor of native RPM packaging (`builders/linux/BuildRpm.sh`), overflow smooth scrolling, launcher deduplication, Flatpak & matcher hardening ([PR #15](https://github.com/sergiomelas/WayPlank/pull/15)), Simplified Chinese (`zh_CN`) localization, and Windows brightness widget feedback ([#38](https://github.com/sergiomelas/WayPlank/issues/38)).
+* **[@reni001](https://github.com/reni001) — Renate Schwiedernoch**: Author and maintainer of the German (`de`) localization catalog ([#7](https://github.com/sergiomelas/WayPlank/issues/7)), Arch / Garuda Linux manual binary installation documentation improvements ([#28](https://github.com/sergiomelas/WayPlank/issues/28)), and `v0.7.1`/`v0.7.3` Garuda Linux startup & terminal diagnostic reporting ([#29](https://github.com/sergiomelas/WayPlank/issues/29), [#37](https://github.com/sergiomelas/WayPlank/issues/37)).
 * **[@Gabenoh](https://github.com/Gabenoh) — Michailo Buchko**: Author of the Ukrainian (`uk`) localization catalog ([#8](https://github.com/sergiomelas/WayPlank/issues/8)), minimalist docklets / `SystemMenuAccess` ergonomics proposal ([Discussion #3](https://github.com/sergiomelas/WayPlank/discussions/3)), and layer-shell click passthrough & above-dock input-mask deadzone testing ([#12](https://github.com/sergiomelas/WayPlank/issues/12), [#34](https://github.com/sergiomelas/WayPlank/issues/34)).
-* **[@tcliuqiang](https://github.com/tcliuqiang)**: Extensive multi-compositor bug hunting and feature proposals — Cold-start HiDPI 4K@1.5x fractional scaling ([#5](https://github.com/sergiomelas/WayPlank/issues/5)), Reserve Screen Space / Panel Mode & SR Flip-Flop ([#9](https://github.com/sergiomelas/WayPlank/issues/9), [#17](https://github.com/sergiomelas/WayPlank/issues/17)), Fullscreen Auto-Hide ([#10](https://github.com/sergiomelas/WayPlank/issues/10)), Show Desktop persistence ([#13](https://github.com/sergiomelas/WayPlank/issues/13)), CLI/QEMU/AppImage discovery ([#14](https://github.com/sergiomelas/WayPlank/issues/14), [#16](https://github.com/sergiomelas/WayPlank/issues/16)), screen lock / DPMS self-healing ([#18](https://github.com/sergiomelas/WayPlank/issues/18)), and `v0.7.1` GNOME re-layout upward dock drift reporting ([#32](https://github.com/sergiomelas/WayPlank/issues/32)).
+* **[@tcliuqiang](https://github.com/tcliuqiang)**: Extensive multi-compositor bug hunting and feature proposals — Cold-start HiDPI 4K@1.5x fractional scaling ([#5](https://github.com/sergiomelas/WayPlank/issues/5)), Reserve Screen Space / Panel Mode & SR Flip-Flop ([#9](https://github.com/sergiomelas/WayPlank/issues/9), [#17](https://github.com/sergiomelas/WayPlank/issues/17), [#36](https://github.com/sergiomelas/WayPlank/issues/36)), Fullscreen Auto-Hide ([#10](https://github.com/sergiomelas/WayPlank/issues/10)), Show Desktop persistence ([#13](https://github.com/sergiomelas/WayPlank/issues/13)), CLI/QEMU/AppImage discovery ([#14](https://github.com/sergiomelas/WayPlank/issues/14), [#16](https://github.com/sergiomelas/WayPlank/issues/16)), screen lock / DPMS self-healing ([#18](https://github.com/sergiomelas/WayPlank/issues/18)), and `v0.7.1` GNOME re-layout upward dock drift reporting ([#32](https://github.com/sergiomelas/WayPlank/issues/32)).
 * **[@winteriscariot](https://github.com/winteriscariot)**: Multi-monitor primary display resolution ([#1](https://github.com/sergiomelas/WayPlank/issues/1)) and Application Identity / Chromium PWA isolation testing ([#6](https://github.com/sergiomelas/WayPlank/issues/6)), and `v0.7.x` browser-tab / terminal app-matching regression reporting ([#30](https://github.com/sergiomelas/WayPlank/issues/30)).
 * **[@Jolmas](https://github.com/Jolmas)**: Labwc / wlroots multi-workspace dock visibility reporting and verification ([#11](https://github.com/sergiomelas/WayPlank/issues/11)).
 * **[@polpodan](https://github.com/polpodan)**: KDE Plasma 6 Desktop & Panel Edit Mode interaction reporting ([#27](https://github.com/sergiomelas/WayPlank/issues/27)).
-* **[@Play-InTheWay](https://github.com/Play-InTheWay)**: Garuda Linux (Arch) / KDE Plasma 6 settings persistence reporting ([#33](https://github.com/sergiomelas/WayPlank/issues/33)).
+* **[@Play-Forward](https://github.com/Play-Forward)**: Garuda Linux (Arch) / KDE Plasma 6 settings persistence reporting ([#33](https://github.com/sergiomelas/WayPlank/issues/33)).
 
 ---
 
@@ -62,16 +61,27 @@ A warm, heartfelt thank you to every contributor, translator, tester, and bug re
 
 We actively track all community suggestions, bug reports, post-release audits, and translations on [GitHub Issues](https://github.com/sergiomelas/WayPlank/issues) and [GitHub Discussions](https://github.com/sergiomelas/WayPlank/discussions):
 
-> **Current Status (`2026-11-22` — `v0.7.3.2` Public Beta 4 Hotfix `100.0%` 4-Platform Qualified [`529/529`, `0` Open Bugs]):** **`0` Open Bug Reports + `1` Open Community Feature RFC (`#31`)** • **`32` Closed Community Issues, PRs & Discussions Preserved in FINO ("First In, Never Out") Pile (`5` in `v0.7.1.2`: `#30`, `#32` – `#35` • `10` in `#20` – `#29` • `9` in `#11` – `#19` • `8` in `#1` – `#10` & `Discussion #3`)**
+> **Current Status (`2026-11-25` — `v0.7.4` Final Public Beta 5 `100.0%` 7-Platform Qualified [`942/942`]):** **`2` Open Issues (`1` Community Diagnostic Follow-Up: `#37` + `1` Parked Feature Request: `#36`)** • **`34` Closed Community Issues, PRs & Discussions Preserved in FINO ("First In, Never Out") Pile (`2` in `v0.7.4`: `#31`, `#38` • `5` in `v0.7.1.2`: `#30`, `#32` – `#35` • `10` in `#20` – `#29` • `9` in `#11` – `#19` • `8` in `#1` – `#10` & `Discussion #3`)**
 
 <details>
 
-<summary><b>🔴 Open GitHub Issues & Proposals (0 Open Bugs • 1 Open Community RFC: #31) — Click to expand</b></summary>
+<summary><b>🔴 Open GitHub Issues & Proposals (2 Open: #36, #37) — Click to expand</b></summary>
 
 | Issue | Author | Title | Area | Status | Technical Summary & Target Milestone |
 |:---:|:---:|---|---|:---:|---|
-| *—* | *Community* | ***Placeholder — `0` Open Bug Reports (All bug reports through `#35` remediated & `100.0%` FAT-qualified in `v0.7.1.2` / `v0.7.2`)*** | *All Areas* | `[0 Open Bugs]` | Ready for `v0.7.2` Public Beta 3 Community Burn-In feedback! New bug reports and proposals opened on [GitHub Issues](https://github.com/sergiomelas/WayPlank/issues) enter here before graduating into the permanent FINO closed archive below. |
-| **[#31](https://github.com/sergiomelas/WayPlank/issues/31)** | [@sergiomelas](https://github.com/sergiomelas) | **[Feature Proposal] Smart Accordion in Free Mode (Categorize Items OFF) — Community Feedback Welcome!** | Core UX / Feature RFC | `[Open]` (Community RFC) | Proposal to extend the usage-adaptive frecency Smart Accordion ([#26](https://github.com/sergiomelas/WayPlank/issues/26)) and per-icon `Keep Always Visible` override to **Free Mode** (`Categorize Items = OFF`, *WayPlank Classic*), ranking apps, folders, and docklets together behind a single `›\|` / `«\|` expander while preserving manual left-to-right order. Open for community voting & feedback before scheduling (`v0.7.x` / `v0.8.x`). |
+| **[#37](https://github.com/sergiomelas/WayPlank/issues/37)** | [@reni001](https://github.com/reni001) | **wayplank 0.7.3 on Arch - most errors fixed** | Arch / Garuda Linux Diagnostics | `[Open]` (Verified Fixed in `v0.7.3.2`/`v0.7.4`) | Confirms previous Garuda Linux errors resolved and system icon theme integration working cleanly; remaining logs audited and confirmed already fixed in `v0.7.3.2`/`v0.7.4` (reporter had an older `v0.7.0` binary earlier in `$PATH`). |
+| **[#36](https://github.com/sergiomelas/WayPlank/issues/36)** | [@tcliuqiang](https://github.com/tcliuqiang) | **[Feature Request] Allow "Reserve Screen Space" and "Icon Zoom" to coexist like traditional Plank** | Core UX / Geometry & Layer-Shell | `[Open]` (Parked / Deferred) | Requests allowing `Reserve Screen Space` (Panel Mode) and `Icon Zoom` simultaneously rather than mutually excluded by the SR Flip-Flop (`#17`); parked due to Wayland layer-shell geometry/input-mask regression risk unless a non-regressing community design is proposed. |
+
+</details>
+
+<details>
+
+<summary><b>🟢 Closed Issues #31, #38 (2 Issues — FINO Pile Layer 5, Qualified in v0.7.4) — Click to expand</b></summary>
+
+| Issue | Author | Title | Area | Status | Technical Details & FAT Reference |
+|:---:|:---:|---|---|:---:|---|
+| **[#38](https://github.com/sergiomelas/WayPlank/issues/38)** | [@IFtiger-hu-hub](https://github.com/IFtiger-hu-hub) | **Windows feedback: works very well overall, but the brightness widget cannot adjust brightness** | Windows HAL / Brightness | `[Closed]` (`FAT 6.10a/b [ok]`) | Implemented 4-tier thread-safe (`G_LOCK`) Windows brightness cascade in `hal/Windows/Telemetry/{win32-sys-bridge.c,Win32Telemetry.vala}`: WMI `ROOT\WMI` (`Active == TRUE` preference + first-instance fallback, `CoSetProxyBlanket`), kernel `\\.\LCD` IOCTL with `IOCTL_VIDEO_QUERY_SUPPORTED_BRIGHTNESS` snapping, dynamic `dxva2.dll` High-Level `Get/SetMonitorBrightness`, and Low-Level `VCP 0x10` Luminance fallback, plus `ProbeVersion=2` cache invalidation and single-worker coalesced async scroll writing. |
+| **[#31](https://github.com/sergiomelas/WayPlank/issues/31)** | [@sergiomelas](https://github.com/sergiomelas) | **[Feature Proposal] Smart Accordion in Free Mode (Categorize Items OFF) — Community Feedback Welcome!** | Core UX / Smart Accordion | `[Closed]` (`FAT 6.19, 7.9, 7.17, 14.6 [ok]`) | Implemented pure Zone 1 / Tier 1 Smart Accordion in Free Mode (`Auto-Fit` & `Top Most Used` `1..20`) ranking apps, folders (damped $L^2$ norm over contained apps + click fallback for pure-file folders), and docklets in one unified global pool behind a single `›\|` / `«\|` expander, with universal `Keep Always Visible`, folder-with-running-app protection, Free Mode drag-expand, clean 5-row *Categories & Layout* UI, and independent per-dock `Dock1..4PinnedAccordionMode/Count` with silent legacy migration. |
 
 </details>
 
@@ -83,7 +93,7 @@ We actively track all community suggestions, bug reports, post-release audits, a
 |:---:|:---:|---|---|:---:|---|
 | **[#30](https://github.com/sergiomelas/WayPlank/issues/30)** | [@winteriscariot](https://github.com/winteriscariot) | **Bad application matching: make it match app_id *only*** | Core / Matching | `[Closed]` (`FAT 2.14 [ko->ok]`) | Remediated & qualified `[ko->ok]` across all 3 compositors in `v0.7.1.2` (`ApplicationIdentity.vala`, `ApplicationDiscovery.vala`): added Beta/Dev/Nightly & Flatpak browser IDs, browser-family isolation (`get_window_browser_family()` / `is_google_chrome_window()` / `shares_browser_family_with()` preventing Chrome `Local State` profiles from cross-matching Brave/Firefox/Chromium/Edge), `" - brave browser"` suffixes, Wayland base browser `app_id` caption guard, and `is_terminal_app` guard for terminal child processes (`kitty` $\rightarrow$ `kate`/`neovide`). |
 | **[#32](https://github.com/sergiomelas/WayPlank/issues/32)** | [@tcliuqiang](https://github.com/tcliuqiang) | **[Regression] Dock drifts upwards from the bottom edge on desktop refresh/re-layout in v0.7.1** | GNOME Mutter / Geometry | `[Closed]` (`FAT 3.10 [ko->ok]`) | Remediated & qualified `[ko->ok]` on GNOME Mutter in `v0.7.1.2` (`MutterBackend.vala`, `BRIDGE_GEN = "v0712_bridge_2"`, extension `version: 5`): anchored `_baseWorkArea()` & `_syncReserveStrut()` strictly to physical `monGeo` + primary `Main.panel.height` (Rule §5.9), synchronized `_strutActor` to WayPlank's active monitor across `PositionDock` and cable hotplug/unplug (`_lastDockOnPrimary` + persistent `trackFullscreen: false` chrome actor), and added 1-shot `workareas-changed` self-healing + `_applyDockPosition` re-assertion. |
-| **[#33](https://github.com/sergiomelas/WayPlank/issues/33)** | [@Play-InTheWay](https://github.com/Play-InTheWay) | **Most settings aren't saved** | Preferences / Persistence | `[Closed]` (`FAT 7.17 [ko->ok]`) | Remediated & qualified `[ko->ok]` across all 3 compositors in `v0.7.1.2` (`Utils.vala`, `README.md`): added `"/usr/local/share/glib-2.0/schemas"` ahead of `"/usr/share/glib-2.0/schemas"` and required `schema.has_key ("effect-duration")` in `Utils.get_schema_source()` so legacy `plank` schemas never shadow WayPlank's 43-key schema, and documented `dconf` + `sudo pacman -Rns plank` in Arch/Garuda prerequisites. |
+| **[#33](https://github.com/sergiomelas/WayPlank/issues/33)** | [@Play-Forward](https://github.com/Play-Forward) | **Most settings aren't saved** | Preferences / Persistence | `[Closed]` (`FAT 7.17 [ko->ok]`) | Remediated & qualified `[ko->ok]` across all 3 compositors in `v0.7.1.2` (`Utils.vala`, `README.md`): added `"/usr/local/share/glib-2.0/schemas"` ahead of `"/usr/share/glib-2.0/schemas"` and required `schema.has_key ("effect-duration")` in `Utils.get_schema_source()` so legacy `plank` schemas never shadow WayPlank's 43-key schema, and documented `dconf` + `sudo pacman -Rns plank` in Arch/Garuda prerequisites. |
 | **[#34](https://github.com/sergiomelas/WayPlank/issues/34)** | [@Gabenoh](https://github.com/Gabenoh) | **Wayplank blocks mouse clicks on windows behind it when a non-fullscreen window is active V 2** | Layer Shell / Input Mask | `[Closed]` (`FAT 5.4 [ko->ok]`) | Remediated & qualified `[ko->ok]` across all 3 compositors (`KDE Plasma 6`, `GNOME Mutter`, `Labwc`) in `v0.7.1.2` (`PositionManager.vala`): clamped `allow_anticipate` perpendicular input-mask expansion from `static_dock_region` strictly to `zoom_headroom = ZoomIconSize - IconSize` across `BOTTOM`/`TOP`/`LEFT`/`RIGHT`, freeing the upper `UrgentBounceHeight` air-space for 100% click and cursor passthrough. |
 | **[#35](https://github.com/sergiomelas/WayPlank/issues/35)** | [@sergiomelas](https://github.com/sergiomelas) | **Add the 'Docklets' selector submenu to all docklets' right-click context menus** | Core UI / Docklets | `[Closed]` (`FAT 6.12 [ko->ok]`) | Remediated & qualified `[ko->ok]` across all 3 compositors in `v0.7.1.2` (`PreferencesDockItem.vala`, `DockWindow.vala`): extracted `PreferencesDockItem.create_docklets_submenu_item()` and prepended `_Docklets` checkbox submenu on all docklets and `TrashDockItem` in `SystemMenuAccess == 4`. |
 
@@ -151,7 +161,7 @@ We actively track all community suggestions, bug reports, post-release audits, a
 
 WayPlank features a standalone translation architecture managed through a central dictionary script: [`po/generate_translations.py`](po/generate_translations.py).
 
-Currently, **7 languages** are qualified at **100% (572/572 strings)**:
+Currently, **7 translated languages + English** are qualified at **100% (583/583 strings)**:
 
 * **Natively Maintained by Author** *(Complete & Closed)*:
   - English (`en`) — In-source native fallback
@@ -221,10 +231,11 @@ WayPlank supports modular themes compatible with the Plank/WayPlank theme specif
 
 ### Track 5: Distribution Packaging
 
-We currently provide native build scripts for:
-* **Debian / Ubuntu** (`.deb`): `./BuildDeb.sh`
-* **Fedora / openSUSE / RHEL** (`.rpm`): `./BuildRpm.sh`
-* **Windows (`7 ⟷ 11+`, Linux-hosted cross-build)** (Zero-DLL `.exe` & 64-bit NSIS installer): `./BuildWin.sh` & `./BuildNsis.sh`
+We currently provide native & cross-build scripts under [`builders/`](builders/README.md) outputting to [`build/`](build/README.md):
+* **Debian / Ubuntu** (`.deb`): `./builders/linux/BuildDeb.sh` ➔ `build/linux/`
+* **Fedora / openSUSE / RHEL** (`.rpm`): `./builders/linux/BuildRpm.sh` ➔ `build/linux/`
+* **FreeBSD / GhostBSD** (`.pkg`, native on FreeBSD): `./builders/bsd/BuildPkg.sh` ➔ `build/bsd/`
+* **Windows (`7 ⟷ 11+`, Linux-hosted cross-build)** (Zero-DLL `.exe` & 64-bit NSIS installer): `./builders/windows/BuildWin.sh` & `./builders/windows/BuildNsis.sh` ➔ `build/windows/`
 
 Community packages for other package managers are warmly welcome:
 * **Arch Linux AUR** (`PKGBUILD`)
@@ -245,7 +256,7 @@ Community packages for other package managers are warmly welcome:
 
 * WayPlank runs seamlessly across **KWin**, **Mutter**, and **Labwc** (with physical multi-OS HAL and Bus isolation documented in [Documentation/Architecture/README.md](Documentation/Architecture/README.md), [HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [APPLICATION_IDENTITY_ENGINE.md](Documentation/Architecture/APPLICATION_IDENTITY_ENGINE.md)). 
 * **Never write compositor-specific or OS-specific logic inside core dock code** (`lib/Widgets/`, `lib/Items/`, `src/`).
-* All compositor-specific and OS-bus interactions (window tracking, thumbnails, active desktop detection, panel avoidance, IPC buses, launcher/process discovery) MUST reside strictly behind the frozen Zone 2 HAL contracts (`hal/Interfaces/`) inside `hal/{Freedesktop,Linux,Windows}/` (enforced at every build by the 8-Gate Dual-Zone HAL Purity Firewall per [Documentation/Architecture/HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [Documentation/Architecture/HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), and [Documentation/Architecture/HAL_WINDOWS_BACKEND.md](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)).
+* All compositor-specific and OS-bus interactions (window tracking, thumbnails, active desktop detection, panel avoidance, IPC buses, launcher/process discovery) MUST reside strictly behind the frozen Zone 2 HAL contracts (`hal/Interfaces/`) inside `hal/{Freedesktop,Linux,BSD,Windows}/` (enforced at every build by the 8-Gate Dual-Zone HAL Purity Firewall per [Documentation/Architecture/HAL_COMPOSITORS.md](Documentation/Architecture/HAL_COMPOSITORS.md), [Documentation/Architecture/HAL_BUSES.md](Documentation/Architecture/HAL_BUSES.md), [Documentation/Architecture/HAL_LINUX_BACKEND.md](Documentation/Architecture/HAL_LINUX_BACKEND.md), [Documentation/Architecture/HAL_BSD_BACKEND.md](Documentation/Architecture/HAL_BSD_BACKEND.md), and [Documentation/Architecture/HAL_WINDOWS_BACKEND.md](Documentation/Architecture/HAL_WINDOWS_BACKEND.md)).
 * Any fix for one compositor **must be verified not to break other compositors**.
 * 🛑 **MANDATORY PR & FORK QUALIFICATION POLICY**:
   - **No pull request from forks will be accepted or merged without an accompanying verified FAT document.**
@@ -253,31 +264,31 @@ Community packages for other package managers are warmly welcome:
     ```
     FAT/<YYYY-MM-DD> FAT from <Contributor Name> <version>.txt
     ```
-    *(e.g., `FAT/2026-11-05 FAT from JohnDoe v0.7.0.txt`)*.
+    *(e.g., `FAT/2026-11-25 FAT from JohnDoe v0.7.4.txt`)*.
   - The project maintainer will **NOT** test unverified third-party PRs across multiple compositors on your behalf. Submissions without a complete FAT run are rejected outright.
 
 ### Building Locally
 
-WayPlank uses a native, high-speed compilation script (`BuildBin.sh`) with zero complex build systems:
+WayPlank uses native, high-speed compilation scripts under [`builders/`](builders/README.md) with zero complex build systems:
 
 ```bash
 # Clone the repository
 git clone https://github.com/sergiomelas/WayPlank.git
 cd WayPlank
 
-# Build standalone monolithic executable (or full packages via WAYPLANK_NO_PROMPT=1 ./BuildDeb.sh / ./BuildRpm.sh)
-./BuildBin.sh
+# Linux: Build standalone monolithic executable (or full packages via WAYPLANK_NO_PROMPT=1 ./builders/linux/BuildDeb.sh / ./builders/linux/BuildRpm.sh)
+./builders/linux/BuildBin.sh
 
 # Run locally in debug mode
-./build/wayplank -d
+./build/linux/wayplank -d
 
 # Replace any existing running instance
-./build/wayplank -r
+./build/linux/wayplank -r
 ```
 
 ### Testing & Quality Assurance (FAT)
 
-WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering **537** validation points (`529` applicable) across all 4 Tier 1 platforms (`359/377` = `95.2% PASS` in concluded [`FAT/2026-11-05 FAT 0.7.0.txt`](FAT/2026-11-05%20FAT%200.7.0.txt), `375/375` = `100.0% PASS` in [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt), `397/397` = `100.0% PASS` in [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt), and `529/529` = `100.0% PASS` in concluded & frozen [`FAT/2026-11-22 FAT 0.7.3.txt`](FAT/2026-11-22%20FAT%200.7.3.txt)):
+WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol covering **958** validation points (**`942` applicable**) across all **7 Tier 1 platforms** (3 FreeBSD + 1 Windows + 3 Linux — `359/377` = `95.2% PASS` in [`FAT/2026-11-05 FAT 0.7.0.txt`](FAT/2026-11-05%20FAT%200.7.0.txt), `375/375` = `100.0% PASS` in [`FAT/2026-11-13 FAT 0.7.1.txt`](FAT/2026-11-13%20FAT%200.7.1.txt), `397/397` = `100.0% PASS` in [`FAT/2026-11-18 FAT 0.7.2.txt`](FAT/2026-11-18%20FAT%200.7.2.txt), `529/529` = `100.0% PASS` in [`FAT/2026-11-22 FAT 0.7.3.txt`](FAT/2026-11-22%20FAT%200.7.3.txt), and **`942/942` = `100.0% PASS`** in concluded & frozen [`FAT/2026-11-25 FAT 0.7.4.txt`](FAT/2026-11-25%20FAT%200.7.4.txt)):
 * Test protocols and matrices are maintained in [`FAT/`](FAT/).
 * Any PR introducing new UI, docklets, or window management changes **MUST** be accompanied by verification against the checklist in [`FAT/Template/FAT Template.txt`](FAT/Template/FAT%20Template.txt).
 * Fill out the template across tested compositors, save it as `FAT/<date> FAT from <Contributor name> <version>.txt`, and commit it as part of your pull request.
@@ -291,7 +302,7 @@ WayPlank adheres to a rigorous **Factory Acceptance Test (FAT)** protocol coveri
    git checkout -b feature/my-cool-feature
    ```
 2. **Keep PRs focused**: One feature or bugfix per PR.
-3. **Ensure a clean build**: `./BuildBin.sh` must compile with 0 errors.
+3. **Ensure a clean build**: `./builders/linux/BuildBin.sh` (or `./builders/bsd/BuildBsd.sh` / `./builders/windows/BuildWin.sh`) must compile with 0 errors and all HAL Firewall gates `GREEN`.
 4. **Mandatory FAT Verification Attached**: Execute the tests against [`FAT/Template/FAT Template.txt`](FAT/Template/FAT%20Template.txt) and commit your completed `FAT/<date> FAT from <Contributor name> <version>.txt` file. PRs without an executed FAT document will be closed without review.
 5. **Follow commit conventions**: Use clear, concise commit messages (e.g. `feat(docklet): ...`, `fix(mutter): ...`, `i18n(uk): ...`).
 6. **Open your Pull Request**: Reference any relevant issue (e.g., `Fixes #6` or `Addresses #10`).

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wayplank 0.7.4\n"
 "Report-Msgid-Bugs-To: sergiomelas@gmail.com\n"
-"POT-Creation-Date: 2026-11-23 12:46+0100\n"
-"PO-Revision-Date: 2026-11-23 12:46+0100\n"
+"POT-Creation-Date: 2026-11-25 22:16+0100\n"
+"PO-Revision-Date: 2026-11-25 22:16+0100\n"
 "Last-Translator: 史有虎 (IFtiger-hu) <2212363803@qq.com>\n"
 "Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
 "Language: zh_CN\n"
@@ -47,13 +47,13 @@ msgid "WayPlank is designed exclusively for Wayland sessions."
 msgstr "WayPlank 专为 Wayland 桌面会话设计。"
 
 #: hal/Freedesktop/Xdg/FreedesktopScreenshotProvider.vala:78
-#: lib/Items/ScreenshotDockItem.vala:38 data/ui/preferences.ui:2309
+#: lib/Items/ScreenshotDockItem.vala:38 data/ui/preferences.ui:2356
 msgid "Screenshot"
 msgstr "截屏"
 
 #: hal/Interfaces/ISystemTelemetry.vala:316
-#: hal/Windows/Telemetry/Win32Telemetry.vala:423
-#: hal/Windows/Telemetry/Win32Telemetry.vala:434
+#: hal/Windows/Telemetry/Win32Telemetry.vala:479
+#: hal/Windows/Telemetry/Win32Telemetry.vala:490
 msgid "Drive not available"
 msgstr "驱动器不可用"
 
@@ -62,55 +62,51 @@ msgid ""
 "Not supported on Windows 7/8 (Virtual Desktops require Windows 10 or newer)"
 msgstr "Windows 7/8 不支持 (虚拟桌面需要 Windows 10 或更高版本)"
 
-#: lib/DockPreferences.vala:887 lib/DockPreferences.vala:898
-#: lib/Factories/AbstractMain.vala:2178
+#: lib/DockPreferences.vala:1096 lib/DockPreferences.vala:1107
+#: lib/Factories/AbstractMain.vala:2241
 msgid "All settings (corrupted latch-state.ini)"
 msgstr "全部设置 (latch-state.ini 已损坏)"
 
-#: lib/Factories/AbstractMain.vala:1124
+#: lib/Factories/AbstractMain.vala:1134 lib/Factories/AbstractMain.vala:1449
 msgid "About WayPlank"
 msgstr "关于 WayPlank"
 
-#: lib/Factories/AbstractMain.vala:1155
+#: lib/Factories/AbstractMain.vala:1163
 msgid "Fully supported compositors: none"
 msgstr "完全支持的混成器: 无"
 
-#: lib/Factories/AbstractMain.vala:1156
+#: lib/Factories/AbstractMain.vala:1164
 #, c-format
 msgid "Fully supported compositors: %s"
 msgstr "完全支持的混成器: %s"
 
-#: lib/Factories/AbstractMain.vala:1161
+#: lib/Factories/AbstractMain.vala:1169
 msgid "Partially supported compositors: none"
 msgstr "部分支持的混成器: 无"
 
-#: lib/Factories/AbstractMain.vala:1162
+#: lib/Factories/AbstractMain.vala:1170
 #, c-format
 msgid "Partially supported compositors: %s"
 msgstr "部分支持的混成器: %s"
 
-#: lib/Factories/AbstractMain.vala:1164
+#: lib/Factories/AbstractMain.vala:1174
 #, c-format
 msgid "Supported operating systems: %s"
 msgstr "支持的操作系统: %s"
 
-#: lib/Factories/AbstractMain.vala:1171
+#: lib/Factories/AbstractMain.vala:1229
 msgid "Website"
 msgstr "官方网站"
 
-#: lib/Factories/AbstractMain.vala:1185 src/Main.vala:191
-msgid "translator-credits"
-msgstr "史有虎 (IFtiger-hu) <2212363803@qq.com>"
-
-#: lib/Factories/AbstractMain.vala:2169 lib/Factories/AbstractMain.vala:2179
+#: lib/Factories/AbstractMain.vala:2232 lib/Factories/AbstractMain.vala:2242
 msgid "Defaulting partially to default config for:"
 msgstr "以下配置项已部分恢复为默认配置："
 
-#: lib/Factories/AbstractMain.vala:2171 lib/Factories/AbstractMain.vala:2175
+#: lib/Factories/AbstractMain.vala:2234 lib/Factories/AbstractMain.vala:2238
 msgid "Discarded corrupted or invalid dockitem:"
 msgstr "已丢弃损坏或无效的启动器项 (.dockitem)："
 
-#: lib/Factories/AbstractMain.vala:2198 lib/Factories/AbstractMain.vala:2201
+#: lib/Factories/AbstractMain.vala:2261 lib/Factories/AbstractMain.vala:2264
 msgid "Load environment failed"
 msgstr "加载环境配置失败"
 
@@ -124,12 +120,12 @@ msgstr "全部关闭(_A)"
 msgid "_Close"
 msgstr "关闭(_C)"
 
-#: lib/Items/ApplicationDockItem.vala:371 lib/Items/FileDockItem.vala:752
-#: lib/Items/FileDockItem.vala:904
+#: lib/Items/ApplicationDockItem.vala:371 lib/Items/FileDockItem.vala:776
+#: lib/Items/FileDockItem.vala:928
 msgid "_Keep in Dock"
 msgstr "固定到 Dock(_K)"
 
-#: lib/Items/ApplicationDockItem.vala:377
+#: lib/Items/ApplicationDockItem.vala:377 lib/Widgets/DockWindow.vala:1252
 msgid "Keep Always _Visible"
 msgstr "始终保持可见(_V)"
 
@@ -138,12 +134,12 @@ msgid "Move to _Folder"
 msgstr "移动到文件夹(_F)"
 
 #: lib/Items/ApplicationDockItem.vala:393 lib/Widgets/DockFolderDialogs.vala:65
-#: lib/Widgets/DockWindow.vala:888
+#: lib/Widgets/DockWindow.vala:941
 msgid "Folder"
 msgstr "文件夹"
 
-#: lib/Items/ApplicationDockItem.vala:412 lib/Items/FileDockItem.vala:770
-#: lib/Items/FileDockItem.vala:928 lib/Widgets/FolderMenuWindow.vala:1274
+#: lib/Items/ApplicationDockItem.vala:412 lib/Items/FileDockItem.vala:794
+#: lib/Items/FileDockItem.vala:952 lib/Widgets/FolderMenuWindow.vala:1274
 msgid "Change _Icon..."
 msgstr "更改图标(_I)..."
 
@@ -169,7 +165,7 @@ msgstr "放电中"
 msgid "Not charging"
 msgstr "未充电"
 
-#: lib/Items/BatteryDockItem.vala:122 lib/Items/FileDockItem.vala:998
+#: lib/Items/BatteryDockItem.vala:122 lib/Items/FileDockItem.vala:1022
 msgid "Unknown"
 msgstr "未知"
 
@@ -207,7 +203,7 @@ msgstr "电源设置(_P)..."
 msgid "_Remove from Dock"
 msgstr "从 Dock 移除(_R)"
 
-#: lib/Items/BrightnessDockItem.vala:85 data/ui/preferences.ui:2411
+#: lib/Items/BrightnessDockItem.vala:85 data/ui/preferences.ui:2458
 msgid "Screen Brightness"
 msgstr "屏幕亮度"
 
@@ -254,33 +250,44 @@ msgstr "系统: %d%% | CPU: %d%% | 内存: %d%% (%.1f / %.1f GB) | 磁盘: %d%%"
 msgid "_System Monitor..."
 msgstr "系统监控(_S)..."
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:683
+#: lib/Items/DefaultApplicationDockItemProvider.vala:901
 msgid "Collapse pinned apps"
 msgstr "收起固定应用"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:685
+#: lib/Items/DefaultApplicationDockItemProvider.vala:902
+msgid "Collapse hidden items"
+msgstr "折叠隐藏的项目"
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:905
 #, c-format
 msgid "Hidden pinned apps: %d"
 msgstr "已隐藏的固定应用: %d"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:687
-#: lib/Items/DefaultApplicationDockItemProvider.vala:699
+#: lib/Items/DefaultApplicationDockItemProvider.vala:906
+#, c-format
+msgid "Hidden items: %d"
+msgstr "已隐藏项目: %d"
+
+#: lib/Items/DefaultApplicationDockItemProvider.vala:908
+#: lib/Items/DefaultApplicationDockItemProvider.vala:921
 msgid "Click to expand"
 msgstr "点击展开"
 
-#: lib/Items/DefaultApplicationDockItemProvider.vala:696
-#: lib/Items/DefaultApplicationDockItemProvider.vala:699
-#: lib/Items/DefaultApplicationDockItemProvider.vala:700
-#: data/ui/preferences.ui:2594
-msgid "Docklets"
-msgstr "插件 / Docklets"
+#: lib/Items/DefaultApplicationDockItemProvider.vala:917
+msgid "Collapse docklets"
+msgstr "折叠插件"
 
-#: lib/Items/DigitalClockDockItem.vala:39 data/ui/preferences.ui:2103
+#: lib/Items/DefaultApplicationDockItemProvider.vala:919
+#, c-format
+msgid "Hidden docklets: %d"
+msgstr "已隐藏插件: %d"
+
+#: lib/Items/DigitalClockDockItem.vala:39 data/ui/preferences.ui:2150
 msgid "Digital Clock"
 msgstr "数字时钟"
 
 #: lib/Items/DoNotDisturbDockItem.vala:46
-#: lib/Items/DoNotDisturbDockItem.vala:216 data/ui/preferences.ui:1946
+#: lib/Items/DoNotDisturbDockItem.vala:216 data/ui/preferences.ui:1993
 msgid "Do Not Disturb"
 msgstr "请勿打扰"
 
@@ -304,7 +311,7 @@ msgstr "静音桌面通知"
 msgid "_Notification Settings..."
 msgstr "通知设置(_N)..."
 
-#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2462
+#: lib/Items/EjectorDockItem.vala:41 data/ui/preferences.ui:2509
 msgid "Removable Drives"
 msgstr "可移动驱动器"
 
@@ -343,55 +350,55 @@ msgstr "没有连接的可移动设备"
 msgid "No Removable Devices"
 msgstr "无移动存储设备"
 
-#: lib/Items/FileDockItem.vala:597
+#: lib/Items/FileDockItem.vala:621
 #, c-format
 msgid "Drop to copy into %s"
 msgstr "松手复制到 %s"
 
-#: lib/Items/FileDockItem.vala:737 lib/Widgets/FolderMenuWindow.vala:692
+#: lib/Items/FileDockItem.vala:761 lib/Widgets/FolderMenuWindow.vala:692
 #: lib/Widgets/FolderMenuWindow.vala:982
 msgid "Empty Folder"
 msgstr "空文件夹"
 
-#: lib/Items/FileDockItem.vala:764
+#: lib/Items/FileDockItem.vala:788
 msgid "_Open in File Browser"
 msgstr "在文件管理器中打开(_O)"
 
-#: lib/Items/FileDockItem.vala:836
+#: lib/Items/FileDockItem.vala:860
 msgid "Empty"
 msgstr "空"
 
-#: lib/Items/FileDockItem.vala:916 lib/Widgets/FolderMenuWindow.vala:1238
-#: lib/Widgets/PreferencesWindow.vala:978
+#: lib/Items/FileDockItem.vala:940 lib/Widgets/FolderMenuWindow.vala:1238
+#: lib/Widgets/PreferencesWindow.vala:990
 msgid "_Open"
 msgstr "打开(_O)"
 
-#: lib/Items/FileDockItem.vala:920
+#: lib/Items/FileDockItem.vala:944
 msgid "Open Containing _Folder"
 msgstr "打开所在文件夹(_F)"
 
-#: lib/Items/FileDockItem.vala:982
+#: lib/Items/FileDockItem.vala:1006
 msgid "Internet"
 msgstr "互联网"
 
-#: lib/Items/FileDockItem.vala:984
+#: lib/Items/FileDockItem.vala:1008
 msgid "Office"
 msgstr "办公与效率"
 
-#: lib/Items/FileDockItem.vala:986
+#: lib/Items/FileDockItem.vala:1010
 msgid "Media"
 msgstr "影音与创意"
 
-#: lib/Items/FileDockItem.vala:988
+#: lib/Items/FileDockItem.vala:1012
 msgid "Games"
 msgstr "游戏"
 
-#: lib/Items/FileDockItem.vala:990
+#: lib/Items/FileDockItem.vala:1014
 msgid "Utilities"
 msgstr "实用工具"
 
 #: lib/Items/MprisDockItem.vala:49 lib/Items/MprisDockItem.vala:265
-#: lib/Services/ApplicationIdentity.vala:3546 data/ui/preferences.ui:2154
+#: lib/Services/ApplicationIdentity.vala:3546 data/ui/preferences.ui:2201
 msgid "Media Player"
 msgstr "媒体播放器"
 
@@ -510,20 +517,20 @@ msgstr "拖放应用或文件至此"
 msgid "Drop to add to dock"
 msgstr "松手固定至 Dock"
 
-#: lib/Items/PlankDockItem.vala:74 lib/Items/PreferencesDockItem.vala:366
+#: lib/Items/PlankDockItem.vala:74 lib/Items/PreferencesDockItem.vala:377
 msgid "Report a _Bug Online..."
 msgstr "在线报告问题(_B)..."
 
-#: lib/Items/PlankDockItem.vala:78 lib/Items/PreferencesDockItem.vala:358
-#: lib/Widgets/DockWindow.vala:1300
+#: lib/Items/PlankDockItem.vala:78 lib/Items/PreferencesDockItem.vala:369
+#: lib/Widgets/DockWindow.vala:1380
 msgid "_Shortcuts & Gestures..."
 msgstr "快捷键与手势(_S)..."
 
-#: lib/Items/PlankDockItem.vala:89 lib/Items/PreferencesDockItem.vala:297
+#: lib/Items/PlankDockItem.vala:89 lib/Items/PreferencesDockItem.vala:308
 msgid "Add _Folder..."
 msgstr "添加文件夹(_F)..."
 
-#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:304
+#: lib/Items/PlankDockItem.vala:96 lib/Items/PreferencesDockItem.vala:315
 msgid "Open _Dock..."
 msgstr "打开程序坞(_D)..."
 
@@ -531,21 +538,21 @@ msgstr "打开程序坞(_D)..."
 msgid "_Preferences"
 msgstr "首选项(_P)"
 
-#: lib/Items/PlankDockItem.vala:114 lib/Items/PreferencesDockItem.vala:362
+#: lib/Items/PlankDockItem.vala:114 lib/Items/PreferencesDockItem.vala:373
 msgid "User Guide..."
 msgstr "用户指南..."
 
-#: lib/Items/PlankDockItem.vala:118 lib/Items/PreferencesDockItem.vala:370
+#: lib/Items/PlankDockItem.vala:118 lib/Items/PreferencesDockItem.vala:381
 msgid "_About"
 msgstr "关于(_A)"
 
-#: lib/Items/PlankDockItem.vala:124 lib/Items/PreferencesDockItem.vala:376
-#: lib/Widgets/PreferencesWindow.vala:526
+#: lib/Items/PlankDockItem.vala:124 lib/Items/PreferencesDockItem.vala:387
+#: lib/Widgets/PreferencesWindow.vala:532
 msgid "_Close This Dock"
 msgstr "关闭此程序坞(_C)"
 
-#: lib/Items/PlankDockItem.vala:137 lib/Items/PreferencesDockItem.vala:388
-#: lib/Widgets/DockWindow.vala:1316
+#: lib/Items/PlankDockItem.vala:137 lib/Items/PreferencesDockItem.vala:399
+#: lib/Widgets/DockWindow.vala:1396
 msgid "_Quit"
 msgstr "退出(_Q)"
 
@@ -617,27 +624,27 @@ msgstr "网络 / Wi-Fi(_N)"
 msgid "_Do Not Disturb"
 msgstr "请勿打扰(_D)"
 
-#: lib/Items/PreferencesDockItem.vala:271
+#: lib/Items/PreferencesDockItem.vala:282
 msgid "_Apply"
 msgstr "应用(_A)"
 
-#: lib/Items/PreferencesDockItem.vala:313 lib/Widgets/DockWindow.vala:1306
+#: lib/Items/PreferencesDockItem.vala:324 lib/Widgets/DockWindow.vala:1386
 msgid "_Preferences..."
 msgstr "首选项(_P)..."
 
-#: lib/Items/PreferencesDockItem.vala:322
+#: lib/Items/PreferencesDockItem.vala:333
 msgid "_Appearance..."
 msgstr "外观(_A)..."
 
-#: lib/Items/PreferencesDockItem.vala:331
+#: lib/Items/PreferencesDockItem.vala:342
 msgid "_Behaviour..."
 msgstr "行为(_B)..."
 
-#: lib/Items/PreferencesDockItem.vala:340
+#: lib/Items/PreferencesDockItem.vala:351
 msgid "A_pplications..."
 msgstr "窗口与应用(_P)..."
 
-#: lib/Items/PreferencesDockItem.vala:349
+#: lib/Items/PreferencesDockItem.vala:360
 msgid "_Docklets..."
 msgstr "插件(_D)..."
 
@@ -657,7 +664,7 @@ msgstr "截取活动窗口"
 msgid "Open Screenshots Folder"
 msgstr "打开截屏保存目录"
 
-#: lib/Items/SessionDockItem.vala:38 data/ui/preferences.ui:2360
+#: lib/Items/SessionDockItem.vala:38 data/ui/preferences.ui:2407
 msgid "Session / Power"
 msgstr "电源与会话"
 
@@ -757,7 +764,7 @@ msgstr "关机"
 msgid "Cancel"
 msgstr "取消"
 
-#: lib/Items/ShowDesktopDockItem.vala:38 data/ui/preferences.ui:2051
+#: lib/Items/ShowDesktopDockItem.vala:38 data/ui/preferences.ui:2098
 msgid "Show Desktop"
 msgstr "显示桌面"
 
@@ -967,8 +974,8 @@ msgstr "添加文件夹"
 #: lib/Widgets/DockFolderDialogs.vala:300
 #: lib/Widgets/DockFolderDialogs.vala:550
 #: lib/Widgets/DockFolderDialogs.vala:617
-#: lib/Widgets/PreferencesWindow.vala:977
-#: lib/Widgets/PreferencesWindow.vala:1074
+#: lib/Widgets/PreferencesWindow.vala:989
+#: lib/Widgets/PreferencesWindow.vala:1086
 msgid "_Cancel"
 msgstr "取消(_C)"
 
@@ -1051,22 +1058,22 @@ msgid "_Position:"
 msgstr "位置(_P):"
 
 #: lib/Widgets/DockFolderDialogs.vala:357
-#: lib/Widgets/PreferencesWindow.vala:290 data/ui/preferences.ui:215
+#: lib/Widgets/PreferencesWindow.vala:294 data/ui/preferences.ui:222
 msgid "Bottom"
 msgstr "底部"
 
 #: lib/Widgets/DockFolderDialogs.vala:358
-#: lib/Widgets/PreferencesWindow.vala:283 data/ui/preferences.ui:214
+#: lib/Widgets/PreferencesWindow.vala:287 data/ui/preferences.ui:221
 msgid "Top"
 msgstr "顶部"
 
 #: lib/Widgets/DockFolderDialogs.vala:359
-#: lib/Widgets/PreferencesWindow.vala:285 data/ui/preferences.ui:212
+#: lib/Widgets/PreferencesWindow.vala:289 data/ui/preferences.ui:219
 msgid "Left"
 msgstr "左侧"
 
 #: lib/Widgets/DockFolderDialogs.vala:360
-#: lib/Widgets/PreferencesWindow.vala:287 data/ui/preferences.ui:213
+#: lib/Widgets/PreferencesWindow.vala:291 data/ui/preferences.ui:220
 msgid "Right"
 msgstr "右侧"
 
@@ -1131,43 +1138,43 @@ msgstr "恢复默认(_D)"
 msgid "_Rename"
 msgstr "重命名(_R)"
 
-#: lib/Widgets/DockWindow.vala:890
+#: lib/Widgets/DockWindow.vala:943
 msgid "Running"
 msgstr "运行中"
 
-#: lib/Widgets/DockWindow.vala:892
+#: lib/Widgets/DockWindow.vala:945
 msgid "Docklet"
 msgstr "Docklet 插件"
 
-#: lib/Widgets/DockWindow.vala:1346 lib/Widgets/DockWindow.vala:1388
+#: lib/Widgets/DockWindow.vala:1426 lib/Widgets/DockWindow.vala:1468
 msgid "Developer _Tools"
 msgstr "开发者工具(_T)"
 
-#: lib/Widgets/DockWindow.vala:1353
+#: lib/Widgets/DockWindow.vala:1433
 msgid "Open config folder"
 msgstr "打开配置目录"
 
-#: lib/Widgets/DockWindow.vala:1362
+#: lib/Widgets/DockWindow.vala:1442
 msgid "Open current theme file"
 msgstr "打开当前主题文件"
 
-#: lib/Widgets/DockWindow.vala:1369
+#: lib/Widgets/DockWindow.vala:1449
 msgid "Print app usage ranking"
 msgstr "打印应用使用排名"
 
-#: lib/Widgets/DockWindow.vala:1395
+#: lib/Widgets/DockWindow.vala:1475
 msgid "Print info to stdout"
 msgstr "打印信息至控制台"
 
-#: lib/Widgets/DockWindow.vala:1405
+#: lib/Widgets/DockWindow.vala:1485
 msgid "Open dockitem file"
 msgstr "打开 dockitem 文件"
 
-#: lib/Widgets/DockWindow.vala:1414
+#: lib/Widgets/DockWindow.vala:1494
 msgid "Open launcher file"
 msgstr "打开启动器 .desktop 文件"
 
-#: lib/Widgets/DockWindow.vala:1421
+#: lib/Widgets/DockWindow.vala:1501
 msgid "Print usage score"
 msgstr "打印使用得分"
 
@@ -1556,7 +1563,7 @@ msgstr "快捷键与实用工具"
 msgid "WayPlank Shortcuts & Gestures"
 msgstr "WayPlank 快捷键与手势指南"
 
-#: lib/Widgets/HelpWindow.vala:175 lib/Widgets/PreferencesWindow.vala:546
+#: lib/Widgets/HelpWindow.vala:175 lib/Widgets/PreferencesWindow.vala:552
 msgid "OK"
 msgstr "确定"
 
@@ -1606,114 +1613,130 @@ msgid "Image Files (*.png, *.svg, *.ico, *.jpg)"
 msgstr "图像文件 (*.png, *.svg, *.ico, *.jpg)"
 
 #: lib/Widgets/IconChooserDialog.vala:451
-#: lib/Widgets/PreferencesWindow.vala:995
+#: lib/Widgets/PreferencesWindow.vala:1007
 msgid "All Files"
 msgstr "所有文件"
 
-#: lib/Widgets/PreferencesWindow.vala:310
+#: lib/Widgets/PreferencesWindow.vala:314
 #, c-format
 msgid "Screen %d"
 msgstr "屏幕 %d"
 
-#: lib/Widgets/PreferencesWindow.vala:341
-#: lib/Widgets/PreferencesWindow.vala:342
+#: lib/Widgets/PreferencesWindow.vala:345
+#: lib/Widgets/PreferencesWindow.vala:346
 msgid "WayPlank Preferences"
 msgstr "WayPlank 首选项"
 
-#: lib/Widgets/PreferencesWindow.vala:529
+#: lib/Widgets/PreferencesWindow.vala:535
 msgid ""
 "Hide and close this dock while keeping all of its pinned items and screen "
 "settings for later"
 msgstr "隐藏并关闭此程序坞，同时保留其所有固定项目和屏幕设置以供日后使用"
 
-#: lib/Widgets/PreferencesWindow.vala:536
+#: lib/Widgets/PreferencesWindow.vala:542
 msgid "_Delete This Dock..."
 msgstr "删除此程序坞(_D)..."
 
-#: lib/Widgets/PreferencesWindow.vala:539
+#: lib/Widgets/PreferencesWindow.vala:545
 msgid "Permanently remove this dock and delete its pinned item configuration"
 msgstr "永久移除此程序坞并删除其固定项目配置"
 
-#: lib/Widgets/PreferencesWindow.vala:960
+#: lib/Widgets/PreferencesWindow.vala:972
 #, c-format
 msgid "Delete user theme '%s'"
 msgstr "删除用户主题 '%s'"
 
-#: lib/Widgets/PreferencesWindow.vala:962
+#: lib/Widgets/PreferencesWindow.vala:974
 msgid "System themes cannot be deleted"
 msgstr "系统预置核心主题无法删除"
 
-#: lib/Widgets/PreferencesWindow.vala:974
+#: lib/Widgets/PreferencesWindow.vala:986
 msgid "Install WayPlank Theme"
 msgstr "安装 WayPlank 主题"
 
-#: lib/Widgets/PreferencesWindow.vala:982
+#: lib/Widgets/PreferencesWindow.vala:994
 msgid "Theme Archives (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 msgstr "主题压缩包 (*.zip, *.tar.gz, *.tar.xz, *.theme)"
 
-#: lib/Widgets/PreferencesWindow.vala:1024
+#: lib/Widgets/PreferencesWindow.vala:1036
 msgid ""
 "No valid WayPlank/Plank theme found in the selected file.\n"
 "A valid theme must contain a 'dock.theme' configuration file."
 msgstr "选定的文件中未找到有效的 WayPlank/Plank 主题。\n有效主题必须包含 'dock.theme' 配置文件。"
 
-#: lib/Widgets/PreferencesWindow.vala:1049
+#: lib/Widgets/PreferencesWindow.vala:1061
 #, c-format
 msgid ""
 "A theme named '%s' already exists.\n"
 "Do you want to replace it?"
 msgstr "已存在名为 '%s' 的主题。\n是否替换？"
 
-#: lib/Widgets/PreferencesWindow.vala:1071
+#: lib/Widgets/PreferencesWindow.vala:1083
 msgid "Install Themes"
 msgstr "安装主题"
 
-#: lib/Widgets/PreferencesWindow.vala:1075
+#: lib/Widgets/PreferencesWindow.vala:1087
 msgid "_Install"
 msgstr "安装(_I)"
 
-#: lib/Widgets/PreferencesWindow.vala:1083
+#: lib/Widgets/PreferencesWindow.vala:1095
 msgid "The archive contains multiple themes. Select which ones to install:"
 msgstr "该压缩包包含多个主题。请选择要安装的主题:"
 
-#: lib/Widgets/PreferencesWindow.vala:1149
+#: lib/Widgets/PreferencesWindow.vala:1161
 #, c-format
 msgid ""
 "Are you sure you want to delete the theme '%s'?\n"
 "This will remove it from ~/.local/share/wayplank/themes/."
 msgstr "确定要删除主题 '%s' 吗？\n此操作将从 ~/.local/share/wayplank/themes/ 中移除该主题。"
 
-#: lib/Widgets/PreferencesWindow.vala:1371 data/ui/preferences.ui:1448
-#: data/ui/preferences.ui:1462
+#: lib/Widgets/PreferencesWindow.vala:1383 data/ui/preferences.ui:1455
+#: data/ui/preferences.ui:1469
 msgid "Show only windows and running indicators from the current workspace"
 msgstr "仅显示当前工作区的窗口和运行指示点"
 
-#: lib/Widgets/PreferencesWindow.vala:1376
+#: lib/Widgets/PreferencesWindow.vala:1388
 msgid "Workspace filtering is not supported by this compositor"
 msgstr "此混成器不支持工作区过滤"
 
-#: lib/Widgets/PreferencesWindow.vala:1548 data/ui/preferences.ui:554
+#: lib/Widgets/PreferencesWindow.vala:1554 data/ui/preferences.ui:561
 msgid "Docklets Only"
 msgstr "仅小部件"
 
-#: lib/Widgets/PreferencesWindow.vala:1549 data/ui/preferences.ui:555
+#: lib/Widgets/PreferencesWindow.vala:1555 data/ui/preferences.ui:562
 msgid "Docklets Only (with fallback)"
 msgstr "仅小部件 (带回退)"
 
-#: lib/Widgets/PreferencesWindow.vala:1550 data/ui/preferences.ui:556
+#: lib/Widgets/PreferencesWindow.vala:1556 data/ui/preferences.ui:563
 msgid "All Icons (integrated)"
 msgstr "所有图标 (全局集成)"
 
-#: lib/Widgets/PreferencesWindow.vala:1551 data/ui/preferences.ui:557
+#: lib/Widgets/PreferencesWindow.vala:1557 data/ui/preferences.ui:564
 msgid "Dedicated Icon (on dock)"
 msgstr "专属图标 (停靠栏常驻)"
 
-#: lib/Widgets/PreferencesWindow.vala:1738
+#: lib/Widgets/PreferencesWindow.vala:1574 data/ui/preferences.ui:1639
+msgid "Accordion (Pinned):"
+msgstr "手风琴 (固定):"
+
+#: lib/Widgets/PreferencesWindow.vala:1574
+msgid "Accordion (All):"
+msgstr "手风琴 (全部):"
+
+#: lib/Widgets/PreferencesWindow.vala:1581 data/ui/preferences.ui:1705
+msgid "Accordion (Docklets):"
+msgstr "手风琴 (插件):"
+
+#: lib/Widgets/PreferencesWindow.vala:1581
+msgid "Accordion (N/A):"
+msgstr "手风琴 (不适用):"
+
+#: lib/Widgets/PreferencesWindow.vala:1768
 #, c-format
 msgid "Scroll on Overflow active: %dpx preserved"
 msgstr "超限平滑翻页已激活: 保留图标大小 %dpx"
 
-#: lib/Widgets/PreferencesWindow.vala:1741
+#: lib/Widgets/PreferencesWindow.vala:1771
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1721,12 +1744,12 @@ msgid ""
 "the dock smoothly scrolls with mouse wheel when items exceed screen space."
 msgstr "目标图标大小: %dpx。\n行为设置中已启用 '超限平滑翻页'：图标绝不会被动缩小，当项目超出屏幕空间时可通过滚轮平滑浏览。"
 
-#: lib/Widgets/PreferencesWindow.vala:1752
+#: lib/Widgets/PreferencesWindow.vala:1782
 #, c-format
 msgid "⚠️ Limited to %dpx by screen space (auto-shrunk)"
 msgstr "⚠️ 受限于屏幕物理空间强制限制为 %dpx (自动缩小)"
 
-#: lib/Widgets/PreferencesWindow.vala:1754
+#: lib/Widgets/PreferencesWindow.vala:1784
 #, c-format
 msgid ""
 "⚠️ Icon size set to %dpx, but clamped to %dpx by screen space.\n"
@@ -1735,12 +1758,12 @@ msgid ""
 "Behaviour."
 msgstr "⚠️ 图标大小设定为 %dpx，但因屏幕空间不足被强制约束在 %dpx。\n图标会自动缩小以容纳在屏幕内。\n若要无视屏幕限制解锁更大图标尺寸，请在 '行为' 中启用 '超限平滑翻页'。"
 
-#: lib/Widgets/PreferencesWindow.vala:1762
+#: lib/Widgets/PreferencesWindow.vala:1792
 #, c-format
 msgid "Fits on screen without shrinking (limit: %dpx)"
 msgstr "在不缩小的情况下完全适应屏幕 (容纳上限: %dpx)"
 
-#: lib/Widgets/PreferencesWindow.vala:1764
+#: lib/Widgets/PreferencesWindow.vala:1794
 #, c-format
 msgid ""
 "Target icon size: %dpx.\n"
@@ -1748,31 +1771,31 @@ msgid ""
 "shrinking activates)."
 msgstr "目标图标大小: %dpx。\n完全舒适适应屏幕 (触发自动缩小的临界上限为 %dpx)。"
 
-#: lib/Widgets/PreferencesWindow.vala:2015
+#: lib/Widgets/PreferencesWindow.vala:2047
 #, c-format
 msgid "Screen %d (Disconnected)"
 msgstr "屏幕 %d（已断开）"
 
-#: lib/Widgets/PreferencesWindow.vala:2021
+#: lib/Widgets/PreferencesWindow.vala:2053
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "logical multi-seat screen index"
 msgstr "自动在主显示器上显示程序坞；禁用以选择逻辑多席位屏幕索引"
 
-#: lib/Widgets/PreferencesWindow.vala:2022
+#: lib/Widgets/PreferencesWindow.vala:2054
 msgid "Not supported by this compositor"
 msgstr "当前合成器不支持"
 
-#: lib/Widgets/PreferencesWindow.vala:2102 data/ui/preferences.ui:849
-#: data/ui/preferences.ui:862
+#: lib/Widgets/PreferencesWindow.vala:2134 data/ui/preferences.ui:856
+#: data/ui/preferences.ui:869
 msgid ""
 "Requires touching the physical screen edge (1px) to reveal the dock, "
 "preventing accidental triggers; when disabled, reveals 10px before the edge "
 "for fluid unhiding"
 msgstr "需触及屏幕物理最边缘 (1px) 方可呼出停靠栏以防误触；关闭后则在边缘 10px 范围内平滑灵敏呼出"
 
-#: lib/Widgets/PreferencesWindow.vala:2106 data/ui/preferences.ui:876
-#: data/ui/preferences.ui:889
+#: lib/Widgets/PreferencesWindow.vala:2138 data/ui/preferences.ui:883
+#: data/ui/preferences.ui:896
 msgid ""
 "Reserve screen space matching the dock thickness (Panel Mode) so maximized "
 "windows tile without overlapping the dock; enabling this automatically turns "
@@ -1780,8 +1803,8 @@ msgid ""
 "Reserve Screen Space"
 msgstr "按停靠栏厚度预留屏幕边缘空间（面板模式），使最大化窗口自动平铺而不重叠；开启此项将自动关闭“隐藏停靠栏”与“图标缩放”，而开启这两项中的任意一项将自动关闭“预留屏幕空间”"
 
-#: lib/Widgets/PreferencesWindow.vala:2109 data/ui/preferences.ui:1008
-#: data/ui/preferences.ui:1022
+#: lib/Widgets/PreferencesWindow.vala:2141 data/ui/preferences.ui:1015
+#: data/ui/preferences.ui:1029
 msgid ""
 "Begins icon magnification as the cursor approaches the dock for a fluid, "
 "magnetic feel; disable to strictly pass mouse clicks through to windows "
@@ -1953,7 +1976,7 @@ msgstr "保存并应用"
 msgid "Location not found. Please choose from suggestions or leave blank."
 msgstr "未找到指定位置。请从候选建议中挑选或留空自动检测。"
 
-#: lib/Widgets/WeatherWindow.vala:125 data/ui/preferences.ui:2513
+#: lib/Widgets/WeatherWindow.vala:125 data/ui/preferences.ui:2560
 msgid "Weather Forecast"
 msgstr "天气预报"
 
@@ -2006,563 +2029,567 @@ msgstr "已最小化"
 msgid "WayPlank - Unsupported Session"
 msgstr "WayPlank - 不支持的会话"
 
-#: data/ui/preferences.ui:114
+#: src/Main.vala:191
+msgid "translator-credits"
+msgstr "史有虎 (IFtiger-hu) <2212363803@qq.com>"
+
+#: data/ui/preferences.ui:121
 msgid "Theme:"
 msgstr "主题:"
 
-#: data/ui/preferences.ui:148
+#: data/ui/preferences.ui:155
 msgid "Install Theme from Archive (.zip, .tar.gz, .theme)..."
 msgstr "从压缩包安装主题 (.zip, .tar.gz, .theme)..."
 
-#: data/ui/preferences.ui:169
+#: data/ui/preferences.ui:176
 msgid "Delete Selected User Theme"
 msgstr "删除所选的用户主题"
 
-#: data/ui/preferences.ui:197
+#: data/ui/preferences.ui:204
 msgid "Position:"
 msgstr "屏幕位置:"
 
-#: data/ui/preferences.ui:230
+#: data/ui/preferences.ui:237
 msgid "On Primary Display:"
 msgstr "在主显示器上显示:"
 
-#: data/ui/preferences.ui:232 data/ui/preferences.ui:245
+#: data/ui/preferences.ui:239 data/ui/preferences.ui:252
 msgid ""
 "Automatically display the dock on the primary monitor; disable to choose a "
 "specific display"
 msgstr "自动在主显示器上显示停靠栏；关闭后可手动指定目标显示器"
 
-#: data/ui/preferences.ui:270
+#: data/ui/preferences.ui:277
 msgid "Alignment:"
 msgstr "停靠对齐:"
 
-#: data/ui/preferences.ui:292
+#: data/ui/preferences.ui:299
 msgid "Fill"
 msgstr "填充 (面板模式)"
 
-#: data/ui/preferences.ui:293 data/ui/preferences.ui:368
+#: data/ui/preferences.ui:300 data/ui/preferences.ui:375
 msgid "Start"
 msgstr "起始端"
 
-#: data/ui/preferences.ui:294 data/ui/preferences.ui:369
+#: data/ui/preferences.ui:301 data/ui/preferences.ui:376
 msgid "End"
 msgstr "末端"
 
-#: data/ui/preferences.ui:295 data/ui/preferences.ui:370
+#: data/ui/preferences.ui:302 data/ui/preferences.ui:377
 msgid "Center"
 msgstr "居中"
 
-#: data/ui/preferences.ui:315 data/ui/preferences.ui:329
+#: data/ui/preferences.ui:322 data/ui/preferences.ui:336
 msgid "Offset in percent from the center of the screen-edge"
 msgstr "相对于屏幕边缘中心位置的偏移百分比"
 
-#: data/ui/preferences.ui:354
+#: data/ui/preferences.ui:361
 msgid "Icon Alignment:"
 msgstr "图标对齐:"
 
-#: data/ui/preferences.ui:387
+#: data/ui/preferences.ui:394
 msgid "Icon Size:"
 msgstr "图标大小:"
 
-#: data/ui/preferences.ui:389
+#: data/ui/preferences.ui:396
 msgid ""
 "Preferred dock item size in pixels (24px to 128px); when screen space is "
 "full, items auto-shrink unless Scroll on Overflow is enabled"
 msgstr "首选停靠栏图标像素尺寸 (24px 至 128px)；当屏幕空间满载时，除非启用了“超限平滑翻页”，否则图标将自动缩小"
 
-#: data/ui/preferences.ui:420
+#: data/ui/preferences.ui:427
 msgid "Adjust dock item size in pixels (24px to 128px)"
 msgstr "以像素为单位调节停靠栏图标大小 (24px 至 128px)"
 
-#: data/ui/preferences.ui:438
+#: data/ui/preferences.ui:445
 msgid ""
 "Adjust dock item size in pixels; turning red indicates the screen capacity "
 "is exceeded and icons are auto-shrunk"
 msgstr "调节图标像素尺寸；滑块变红表示已超出当前屏幕物理容纳上限，图标正在自动缩小"
 
-#: data/ui/preferences.ui:460
+#: data/ui/preferences.ui:467
 msgid "Dynamic indicator of screen space capacity and auto-shrink status"
 msgstr "屏幕空间容纳上限与自动缩放状态的实时动态指示器"
 
-#: data/ui/preferences.ui:481
+#: data/ui/preferences.ui:488
 msgid "Scroll on Overflow:"
 msgstr "超限平滑翻页:"
 
-#: data/ui/preferences.ui:483 data/ui/preferences.ui:496
+#: data/ui/preferences.ui:490 data/ui/preferences.ui:503
 msgid ""
 "Smoothly scroll items with mouse wheel when dock exceeds screen space, "
 "preserving full icon size instead of auto-shrinking icons"
 msgstr "当停靠栏超出屏幕空间时使用鼠标滚轮平滑滚动浏览图标，完整保留图标原始大小而不自动缩小"
 
-#: data/ui/preferences.ui:510
+#: data/ui/preferences.ui:517
 msgid "Icon Tooltips:"
 msgstr "图标提示:"
 
-#: data/ui/preferences.ui:512 data/ui/preferences.ui:525
+#: data/ui/preferences.ui:519 data/ui/preferences.ui:532
 msgid "Show a name tooltip when hovering dock icons"
 msgstr "悬停在程序坞图标上时显示名称提示"
 
-#: data/ui/preferences.ui:538
+#: data/ui/preferences.ui:545
 msgid "Preferences & System Menu:"
 msgstr "偏好设置与系统菜单："
 
-#: data/ui/preferences.ui:540 data/ui/preferences.ui:552
+#: data/ui/preferences.ui:547 data/ui/preferences.ui:559
 msgid ""
 "Controls where the Preferences icon and system control menu appear on the "
 "dock"
 msgstr "控制偏好设置图标及系统控制菜单在停靠栏上的显示位置"
 
-#: data/ui/preferences.ui:572
+#: data/ui/preferences.ui:579
 msgid "WayPlank Always Left:"
 msgstr "WayPlank 始终居左:"
 
-#: data/ui/preferences.ui:574 data/ui/preferences.ui:587
+#: data/ui/preferences.ui:581 data/ui/preferences.ui:594
 msgid ""
 "Always anchor the WayPlank icon at the far left of the dock with its own "
 "vertical separator"
 msgstr "始终将 WayPlank 图标固定在停靠栏最左侧，并带有独立的垂直分隔线"
 
-#: data/ui/preferences.ui:601
+#: data/ui/preferences.ui:608
 msgid "Show Trash:"
 msgstr "显示回收站:"
 
-#: data/ui/preferences.ui:603 data/ui/preferences.ui:616
+#: data/ui/preferences.ui:610 data/ui/preferences.ui:623
 msgid "Show the Trash Bin icon on the dock"
 msgstr "在停靠栏上显示回收站图标"
 
-#: data/ui/preferences.ui:626
+#: data/ui/preferences.ui:633
 msgid "Appearance"
 msgstr "外观"
 
-#: data/ui/preferences.ui:647
+#: data/ui/preferences.ui:654
 msgid "Hide Dock"
 msgstr "停靠栏隐藏与避让"
 
-#: data/ui/preferences.ui:663
+#: data/ui/preferences.ui:670
 msgid "Hide Dock:"
 msgstr "隐藏停靠栏:"
 
-#: data/ui/preferences.ui:664 data/ui/preferences.ui:677
+#: data/ui/preferences.ui:671 data/ui/preferences.ui:684
 msgid ""
 "Enable automatic dock hiding according to the selected Hide Mode; when "
 "disabled, the dock remains permanently visible"
 msgstr "根据所选隐藏模式开启停靠栏自动隐藏；关闭后停靠栏将始终保持常驻可见"
 
-#: data/ui/preferences.ui:690
+#: data/ui/preferences.ui:697
 msgid "Hide Mode:"
 msgstr "隐藏模式:"
 
-#: data/ui/preferences.ui:703
+#: data/ui/preferences.ui:710
 msgid "Intellihide"
 msgstr "智能隐藏 (避让当前应用)"
 
-#: data/ui/preferences.ui:704
+#: data/ui/preferences.ui:711
 msgid "Autohide"
 msgstr "自动隐藏 (总是隐藏)"
 
-#: data/ui/preferences.ui:705
+#: data/ui/preferences.ui:712
 msgid "Dodge maximized window"
 msgstr "避让最大化窗口"
 
-#: data/ui/preferences.ui:706
+#: data/ui/preferences.ui:713
 msgid "Window Dodge"
 msgstr "避让任何重叠窗口"
 
-#: data/ui/preferences.ui:707
+#: data/ui/preferences.ui:714
 msgid "Dodge active window"
 msgstr "避让活动焦点窗口"
 
-#: data/ui/preferences.ui:720
+#: data/ui/preferences.ui:727
 msgid "Hide Delay (ms):"
 msgstr "隐藏延迟 (毫秒):"
 
-#: data/ui/preferences.ui:721 data/ui/preferences.ui:739
-#: data/ui/preferences.ui:764
+#: data/ui/preferences.ui:728 data/ui/preferences.ui:746
+#: data/ui/preferences.ui:771
 msgid "Delay in ms before hiding the dock"
 msgstr "停靠栏隐藏前的等待延迟时间 (毫秒)"
 
-#: data/ui/preferences.ui:784
+#: data/ui/preferences.ui:791
 msgid "Unhide Delay (ms):"
 msgstr "唤出延迟 (毫秒):"
 
-#: data/ui/preferences.ui:785 data/ui/preferences.ui:803
-#: data/ui/preferences.ui:828
+#: data/ui/preferences.ui:792 data/ui/preferences.ui:810
+#: data/ui/preferences.ui:835
 msgid "Delay in ms before showing the dock"
 msgstr "停靠栏重新显示前的等待延迟时间 (毫秒)"
 
-#: data/ui/preferences.ui:848
+#: data/ui/preferences.ui:855
 msgid "Pressure Reveal:"
 msgstr "边缘触压唤出:"
 
-#: data/ui/preferences.ui:875
+#: data/ui/preferences.ui:882
 msgid "Reserve Screen Space:"
 msgstr "保留屏幕空间:"
 
-#: data/ui/preferences.ui:904
+#: data/ui/preferences.ui:911
 msgid "Item Management"
 msgstr "图标与项目管理"
 
-#: data/ui/preferences.ui:920
+#: data/ui/preferences.ui:927
 msgid "Icon Zoom:"
 msgstr "图标缩放:"
 
-#: data/ui/preferences.ui:922 data/ui/preferences.ui:942
-#: data/ui/preferences.ui:961 data/ui/preferences.ui:979
+#: data/ui/preferences.ui:929 data/ui/preferences.ui:949
+#: data/ui/preferences.ui:968 data/ui/preferences.ui:986
 msgid "Smoothly magnify icons under the mouse cursor"
 msgstr "平滑放大鼠标指针悬停处的停靠栏图标"
 
-#: data/ui/preferences.ui:1007
+#: data/ui/preferences.ui:1014
 msgid "Anticipate Icon Zoom:"
 msgstr "提前响应图标缩放:"
 
-#: data/ui/preferences.ui:1036
+#: data/ui/preferences.ui:1043
 msgid "Lock Icons:"
 msgstr "锁定图标:"
 
-#: data/ui/preferences.ui:1037 data/ui/preferences.ui:1051
+#: data/ui/preferences.ui:1044 data/ui/preferences.ui:1058
 msgid ""
 "Lock dock icons in place to prevent accidental dragging, reordering, or "
 "removal"
 msgstr "将停靠栏图标锁定在当前位置，防止误拖拽、重排或移除"
 
-#: data/ui/preferences.ui:1065
+#: data/ui/preferences.ui:1072
 msgid "Start on Login:"
 msgstr "开机自动启动:"
 
-#: data/ui/preferences.ui:1066 data/ui/preferences.ui:1079
+#: data/ui/preferences.ui:1073 data/ui/preferences.ui:1086
 msgid "Automatically launch WayPlank when logging into your desktop session"
 msgstr "登录桌面会话时自动启动 WayPlank"
 
-#: data/ui/preferences.ui:1101
+#: data/ui/preferences.ui:1108
 msgid "Icons Visual Effects"
 msgstr "图标视觉效果"
 
-#: data/ui/preferences.ui:1132
+#: data/ui/preferences.ui:1139
 msgid "Launch Effect:"
 msgstr "启动效果:"
 
-#: data/ui/preferences.ui:1133 data/ui/preferences.ui:1141
+#: data/ui/preferences.ui:1140 data/ui/preferences.ui:1148
 msgid "Animation played when launching or clicking an application icon"
 msgstr "启动或点击应用程序图标时播放的动画效果"
 
-#: data/ui/preferences.ui:1143
+#: data/ui/preferences.ui:1150
 msgid "Bounce"
 msgstr "弹跳"
 
-#: data/ui/preferences.ui:1144
+#: data/ui/preferences.ui:1151
 msgid "Elastic"
 msgstr "弹性弹跳"
 
-#: data/ui/preferences.ui:1145
+#: data/ui/preferences.ui:1152
 msgid "Pulse"
 msgstr "脉冲"
 
-#: data/ui/preferences.ui:1146
+#: data/ui/preferences.ui:1153
 msgid "Spring"
 msgstr "弹簧按压"
 
-#: data/ui/preferences.ui:1147
+#: data/ui/preferences.ui:1154
 msgid "Ripple"
 msgstr "涟漪波纹"
 
-#: data/ui/preferences.ui:1148
+#: data/ui/preferences.ui:1155
 msgid "Flip"
 msgstr "翻转旋转"
 
-#: data/ui/preferences.ui:1149
+#: data/ui/preferences.ui:1156
 msgid "Swing"
 msgstr "钟摆摇晃"
 
-#: data/ui/preferences.ui:1150
+#: data/ui/preferences.ui:1157
 msgid "Flash"
 msgstr "闪光高亮"
 
-#: data/ui/preferences.ui:1151 data/ui/preferences.ui:1187
-#: data/ui/preferences.ui:1224
+#: data/ui/preferences.ui:1158 data/ui/preferences.ui:1194
+#: data/ui/preferences.ui:1231
 msgid "None"
 msgstr "无"
 
-#: data/ui/preferences.ui:1169
+#: data/ui/preferences.ui:1176
 msgid "Focused App:"
 msgstr "焦点应用:"
 
-#: data/ui/preferences.ui:1170 data/ui/preferences.ui:1178
+#: data/ui/preferences.ui:1177 data/ui/preferences.ui:1185
 msgid "Highlight style for the currently focused application on the dock"
 msgstr "停靠栏上当前焦点应用程序的高亮样式"
 
-#: data/ui/preferences.ui:1180
+#: data/ui/preferences.ui:1187
 msgid "Classic Box"
 msgstr "经典方框"
 
-#: data/ui/preferences.ui:1181
+#: data/ui/preferences.ui:1188
 msgid "Icon Glow"
 msgstr "图标光晕"
 
-#: data/ui/preferences.ui:1182
+#: data/ui/preferences.ui:1189
 msgid "Spotlight"
 msgstr "聚光灯"
 
-#: data/ui/preferences.ui:1183
+#: data/ui/preferences.ui:1190
 msgid "Rounded Card"
 msgstr "圆角卡片"
 
-#: data/ui/preferences.ui:1184
+#: data/ui/preferences.ui:1191
 msgid "Accent Bar"
 msgstr "强调灯条"
 
-#: data/ui/preferences.ui:1185
+#: data/ui/preferences.ui:1192
 msgid "Rim Halo"
 msgstr "边缘光环"
 
-#: data/ui/preferences.ui:1186
+#: data/ui/preferences.ui:1193
 msgid "Floor Reflection"
 msgstr "底板倒影"
 
-#: data/ui/preferences.ui:1205
+#: data/ui/preferences.ui:1212
 msgid "Unpin Effect:"
 msgstr "移除动效:"
 
-#: data/ui/preferences.ui:1206 data/ui/preferences.ui:1214
+#: data/ui/preferences.ui:1213 data/ui/preferences.ui:1221
 msgid "Animation played when removing or unpinning an icon from the dock"
 msgstr "从停靠栏移除或取消固定图标时播放的动画效果"
 
-#: data/ui/preferences.ui:1216
+#: data/ui/preferences.ui:1223
 msgid "Poof Cloud"
 msgstr "经典青烟"
 
-#: data/ui/preferences.ui:1217
+#: data/ui/preferences.ui:1224
 msgid "Shrink & Fade"
 msgstr "缩小淡出"
 
-#: data/ui/preferences.ui:1218
+#: data/ui/preferences.ui:1225
 msgid "Implode Spin"
 msgstr "漩涡坍缩"
 
-#: data/ui/preferences.ui:1219
+#: data/ui/preferences.ui:1226
 msgid "Shatter Burst"
 msgstr "碎裂迸射"
 
-#: data/ui/preferences.ui:1220
+#: data/ui/preferences.ui:1227
 msgid "Vaporize"
 msgstr "星火升腾"
 
-#: data/ui/preferences.ui:1221
+#: data/ui/preferences.ui:1228
 msgid "3D Tumble"
 msgstr "3D 翻滚远去"
 
-#: data/ui/preferences.ui:1222
+#: data/ui/preferences.ui:1229
 msgid "Shockwave"
 msgstr "冲击光环"
 
-#: data/ui/preferences.ui:1223
+#: data/ui/preferences.ui:1230
 msgid "Pixel Dissolve"
 msgstr "像素消融"
 
-#: data/ui/preferences.ui:1243
+#: data/ui/preferences.ui:1250
 msgid "Effect Duration:"
 msgstr "动画时长:"
 
-#: data/ui/preferences.ui:1244 data/ui/preferences.ui:1269
-#: data/ui/preferences.ui:1287
+#: data/ui/preferences.ui:1251 data/ui/preferences.ui:1276
+#: data/ui/preferences.ui:1294
 msgid "Duration in milliseconds (300 ms to 1500 ms) for icon visual animations"
 msgstr "图标视觉动画持续时间（300 毫秒至 1500 毫秒）"
 
-#: data/ui/preferences.ui:1305
+#: data/ui/preferences.ui:1312
 msgid "Behaviour"
 msgstr "行为"
 
-#: data/ui/preferences.ui:1326
+#: data/ui/preferences.ui:1333
 msgid "Window Management"
 msgstr "窗口管理"
 
-#: data/ui/preferences.ui:1339
+#: data/ui/preferences.ui:1346
 msgid "Click Behavior:"
 msgstr "点击行为:"
 
-#: data/ui/preferences.ui:1340 data/ui/preferences.ui:1352
+#: data/ui/preferences.ui:1347 data/ui/preferences.ui:1359
 msgid "How clicking a running application icon interacts with its windows"
 msgstr "点击正在运行的应用程序图标时如何与其打开的窗口进行交互"
 
-#: data/ui/preferences.ui:1354
+#: data/ui/preferences.ui:1361
 msgid "Smart: Focus, toggle or cycle windows"
 msgstr "智能模式：激活焦点、最小化切换或循环切换窗口"
 
-#: data/ui/preferences.ui:1355
+#: data/ui/preferences.ui:1362
 msgid "Focus: Raise active window to front"
 msgstr "聚焦模式：始终将活动窗口提升至最前端"
 
-#: data/ui/preferences.ui:1356
+#: data/ui/preferences.ui:1363
 msgid "Cycle: Step through open windows"
 msgstr "循环模式：依次遍历切换已打开的窗口"
 
-#: data/ui/preferences.ui:1369
+#: data/ui/preferences.ui:1376
 msgid "Window Preview Cards:"
 msgstr "窗口预览卡片:"
 
-#: data/ui/preferences.ui:1370 data/ui/preferences.ui:1382
+#: data/ui/preferences.ui:1377 data/ui/preferences.ui:1389
 msgid ""
 "Display floating visual preview cards when interacting with applications "
 "that have multiple open windows"
 msgstr "与拥有多个打开窗口的应用程序交互时显示浮动视觉预览卡片"
 
-#: data/ui/preferences.ui:1394
+#: data/ui/preferences.ui:1401
 msgid "Restore Minimized:"
 msgstr "恢复最小化窗口:"
 
-#: data/ui/preferences.ui:1395 data/ui/preferences.ui:1407
+#: data/ui/preferences.ui:1402 data/ui/preferences.ui:1414
 msgid "Restore and unminimize windows when clicking their dock icon"
 msgstr "点击停靠栏图标时自动恢复并展开已最小化的窗口"
 
-#: data/ui/preferences.ui:1419
+#: data/ui/preferences.ui:1426
 msgid "Show Unpinned:"
 msgstr "显示未固定应用:"
 
-#: data/ui/preferences.ui:1420 data/ui/preferences.ui:1433
+#: data/ui/preferences.ui:1427 data/ui/preferences.ui:1440
 msgid "Display running applications on the dock even if they are not pinned"
 msgstr "在停靠栏上显示正在运行的未固定应用程序"
 
-#: data/ui/preferences.ui:1446
+#: data/ui/preferences.ui:1453
 msgid "Workspace Only:"
 msgstr "仅限当前工作区:"
 
-#: data/ui/preferences.ui:1476
+#: data/ui/preferences.ui:1483
 msgid "Indicators"
 msgstr "运行指示器"
 
-#: data/ui/preferences.ui:1489
+#: data/ui/preferences.ui:1496
 msgid "Show Running:"
 msgstr "显示运行指示点:"
 
-#: data/ui/preferences.ui:1490 data/ui/preferences.ui:1502
+#: data/ui/preferences.ui:1497 data/ui/preferences.ui:1509
 msgid "Display indicator dots beneath icons for actively running applications"
 msgstr "在正在运行的应用程序图标下方显示状态指示圆点"
 
-#: data/ui/preferences.ui:1514
+#: data/ui/preferences.ui:1521
 msgid "Show Attention:"
 msgstr "显示注意提醒:"
 
-#: data/ui/preferences.ui:1515 data/ui/preferences.ui:1527
+#: data/ui/preferences.ui:1522 data/ui/preferences.ui:1534
 msgid ""
 "Highlight or animate indicator dots when an application requests user "
 "attention"
 msgstr "当应用程序请求用户注意时高亮或动画闪烁指示圆点"
 
-#: data/ui/preferences.ui:1542
+#: data/ui/preferences.ui:1549
 msgid "Categories & Layout"
 msgstr "分类与布局"
 
-#: data/ui/preferences.ui:1556
+#: data/ui/preferences.ui:1563
 msgid "Categorize Items:"
 msgstr "分类整理项目:"
 
-#: data/ui/preferences.ui:1558 data/ui/preferences.ui:1577
+#: data/ui/preferences.ui:1565 data/ui/preferences.ui:1584
 msgid ""
 "Group dock items into Folders, Pinned Apps, Docklets, and Running Apps with "
 "dynamic separators"
 msgstr "使用动态分隔线将停靠栏项目自动归类为文件夹、固定应用、插件与运行中应用"
 
-#: data/ui/preferences.ui:1590
+#: data/ui/preferences.ui:1597
 msgid ""
 "One-shot reorder: arrange dock items by Folders, Docklets, and Applications "
 "without enabling rigid categories or extra separators"
 msgstr "一键重排：按文件夹、插件和应用程序顺序整理停靠栏图标，无需启用严格分类限制或额外分隔线"
 
-#: data/ui/preferences.ui:1608
+#: data/ui/preferences.ui:1615
 msgid "Align by Type"
 msgstr "按类型对齐"
 
-#: data/ui/preferences.ui:1632
+#: data/ui/preferences.ui:1641 data/ui/preferences.ui:1660
+msgid ""
+"Hide the least used items behind an expander. Auto-Fit keeps as many as fit "
+"on screen, Top Most Used keeps the N most used. Running apps, folders with "
+"running apps, urgent apps and items marked Keep Always Visible always stay"
+msgstr "将最少使用的项目隐藏在展开按钮后。自动适应尽可能保留屏幕可容纳的项目，最常使用保留最常用的 N 项。正在运行的应用、包含运行中应用的文件夹、需要关注的应用以及标记为始终显示的项目会一直保留"
+
+#: data/ui/preferences.ui:1662 data/ui/preferences.ui:1728
+msgid "Off"
+msgstr "关闭"
+
+#: data/ui/preferences.ui:1663 data/ui/preferences.ui:1729
+msgid "Auto-Fit Capacity"
+msgstr "自动适应容量"
+
+#: data/ui/preferences.ui:1664 data/ui/preferences.ui:1730
+msgid "Top Most Used"
+msgstr "最常用的前 N 个"
+
+#: data/ui/preferences.ui:1685
+msgid "Number of most used items kept visible"
+msgstr "保持可见的最常用项目数量"
+
+#: data/ui/preferences.ui:1707 data/ui/preferences.ui:1726
+msgid ""
+"Hide the least used docklets behind an expander in Categorized mode. Auto-"
+"Fit keeps as many as fit on screen, Top Most Used keeps the N most used. "
+"Docklets marked Keep Always Visible always stay"
+msgstr "在分类模式下将最少使用的插件隐藏在展开按钮后。自动适应尽可能保留屏幕可容纳的插件，最常使用保留最常用的 N 个插件。标记为始终显示的插件会一直保留"
+
+#: data/ui/preferences.ui:1751
+msgid "Number of most used docklets kept visible"
+msgstr "保持可见的最常用插件数量"
+
+#: data/ui/preferences.ui:1771
+msgid "Collapse Delay:"
+msgstr "折叠收回延迟:"
+
+#: data/ui/preferences.ui:1798 data/ui/preferences.ui:1816
+msgid "Delay before collapsing accordions"
+msgstr "折叠手风琴前的延迟"
+
+#: data/ui/preferences.ui:1836
+msgid "Click to Expand/Compress:"
+msgstr "点击展开/收起:"
+
+#: data/ui/preferences.ui:1837 data/ui/preferences.ui:1850
+msgid "Expand accordions only when clicking the expander instead of on hover"
+msgstr "仅在点击展开按钮时展开手风琴，而非悬停时展开"
+
+#: data/ui/preferences.ui:1863
 msgid "Docklets on Right:"
 msgstr "插件置于右侧:"
 
-#: data/ui/preferences.ui:1633 data/ui/preferences.ui:1646
+#: data/ui/preferences.ui:1864 data/ui/preferences.ui:1877
 msgid ""
 "Place the Docklets group on the right near the Trash (System Tray style) "
 "instead of on the left before applications"
 msgstr "将插件组放置在右侧回收站旁（系统托盘风格），而不是置于左侧应用程序之前"
 
-#: data/ui/preferences.ui:1658
-msgid "Docklet Accordion:"
-msgstr "插件折叠手风琴:"
-
-#: data/ui/preferences.ui:1659 data/ui/preferences.ui:1672
-msgid "Collapse docklets in-line showing only the first item; expand on hover"
-msgstr "将插件栏内联折叠为仅显示主图标；鼠标悬停时平滑展开"
-
-#: data/ui/preferences.ui:1685
-msgid "Click to Expand/Compress:"
-msgstr "点击展开/收起:"
-
-#: data/ui/preferences.ui:1686 data/ui/preferences.ui:1699
-msgid ""
-"Expand docklets only when clicking the Master Preferences icon instead of on "
-"hover"
-msgstr "仅在左键点击主首选项图标时展开折叠的插件，而非鼠标悬停时展开"
-
-#: data/ui/preferences.ui:1711
-msgid "Pinned Accordion:"
-msgstr "固定应用折叠:"
-
-#: data/ui/preferences.ui:1713 data/ui/preferences.ui:1732
-msgid ""
-"Hide the least used pinned apps behind an expander. Auto-Fit keeps as many "
-"as fit on screen, Top Most Used keeps the N most used. Running apps, apps "
-"needing attention and apps marked Keep Always Visible always stay. Requires "
-"Categorize Items"
-msgstr "将最少使用的固定应用收起到展开按钮后面。自动适应会保留屏幕能容纳的数量,最常用模式保留最常用的 N 个。正在运行、需要关注或标记为“始终保持可见”的应用始终显示。需要启用“分类项目”"
-
-#: data/ui/preferences.ui:1734
-msgid "Off"
-msgstr "关闭"
-
-#: data/ui/preferences.ui:1735
-msgid "Auto-Fit Capacity"
-msgstr "自动适应容量"
-
-#: data/ui/preferences.ui:1736
-msgid "Top Most Used"
-msgstr "最常用的前 N 个"
-
-#: data/ui/preferences.ui:1757
-msgid "Number of most used pinned apps kept visible"
-msgstr "保持可见的最常用固定应用数量"
-
-#: data/ui/preferences.ui:1777
-msgid "Collapse Delay:"
-msgstr "折叠收回延迟:"
-
-#: data/ui/preferences.ui:1804 data/ui/preferences.ui:1822
-msgid "Delay before collapsing docklets accordion back to master icon"
-msgstr "将插件手风琴折叠收回至主图标前的等待延迟时间"
-
-#: data/ui/preferences.ui:1840
+#: data/ui/preferences.ui:1887
 msgid "Apps & Layout"
 msgstr "应用与布局"
 
-#: data/ui/preferences.ui:1861
+#: data/ui/preferences.ui:1908
 msgid "Built-in Docklets"
 msgstr "内置微件 (Docklets)"
 
-#: data/ui/preferences.ui:1895
+#: data/ui/preferences.ui:1942
 msgid "CPU & RAM Monitor"
 msgstr "CPU 与内存监控"
 
-#: data/ui/preferences.ui:1947 data/ui/preferences.ui:1961
+#: data/ui/preferences.ui:1994 data/ui/preferences.ui:2008
 msgid "Toggle desktop notifications and Do Not Disturb mode"
 msgstr "快速切换桌面通知提醒与请勿打扰免打扰模式"
 
-#: data/ui/preferences.ui:2000
+#: data/ui/preferences.ui:2047
 msgid "Analog Clock"
 msgstr "模拟时钟"
 
-#: data/ui/preferences.ui:2206
+#: data/ui/preferences.ui:2253
 msgid "Battery Monitor"
 msgstr "电池监控"
 
-#: data/ui/preferences.ui:2257
+#: data/ui/preferences.ui:2304
 msgid "Volume Control"
 msgstr "音量控制"
 
-#: data/ui/preferences.ui:2564
+#: data/ui/preferences.ui:2611
 msgid "Network / Wi-Fi"
 msgstr "网络 / Wi-Fi"
+
+#: data/ui/preferences.ui:2641
+msgid "Docklets"
+msgstr "插件 / Docklets"

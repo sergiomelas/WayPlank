@@ -3,8 +3,8 @@
 > **Canonical Specification for the Agnostic IPC, Event Bus & Telemetry Boundary Translator (`hal/Interfaces/`) — `D-Bus` ➔ Translator ➔ `Windows Bus`**  
 > **Pedigree:** Scattered Per-Widget `GLib.Bus.get_sync` & `/proc` Calls (`v0.7.0`–`v0.7.1.2`) ➔ Frozen Agnostic Bus/Telemetry Translators + `hal/{Freedesktop,Linux}/` (`v0.7.2` Public Beta 3) ➔ Native `hal/Windows/{Bus,Telemetry}/` Plug-In (`v0.7.3` Public Beta 4)  
 > **Author & Maintainer:** Sergio Melas (<sergiomelas@gmail.com>) © 2026  
-> **ISA-88 Document Control & MOC:** `DOC-ARCH-BUS-003` • **Revision `2.2`** (`v0.7.3.2` Public Beta 4 Hotfix — **`100.0%` 4-Platform Qualified `529/529`** — Native WinRT `GSMTC` Media Bridge `win32-media-bridge.c`, WMI+DXVA2 Brightness, Balanced Per-Thread COM/RoUninit & `AppMenuDbusService` Cache Bounds)  
-> **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) *(Compositor & Surface Translator: `KWin`, `Mutter`, `Labwc`, `Windows Compositor`)* • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) *(`IAppSystem` Data Translator & 6-Layer Identity Engine)* • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md) *(Windows Compositor/Bus Backend & Zero-DLL `wayplank.exe` Cross-Build)*  
+> **ISA-88 Document Control & MOC:** `DOC-ARCH-BUS-003` • **Revision `2.4`** (`2026-11-25` • `v0.7.4` Final Public Beta 5 — **`100.0%` 7-Platform Qualified `942/942`** — Native FreeBSD `hal/BSD/` Kernel Telemetry & `ConsoleKit2` Session Power, Multi-OS Priority Network + Live 1s RX/TX, Linux `SysFs/LinuxNetworkTelemetry.vala` & Windows 4-Tier Brightness Hardening `#38`)  
+> **Companion Architecture Specifications:** [Master Architecture Overview (`README.md`)](README.md) • [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md) • [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md) • [HAL_LINUX_BACKEND.md](HAL_LINUX_BACKEND.md) • [HAL_BSD_BACKEND.md](HAL_BSD_BACKEND.md) • [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)  
 > **Single Source of Truth:** Master System & IPC Bus HAL reference linked by [README.md](../../README.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [HAL_COMPOSITORS.md](HAL_COMPOSITORS.md), [APPLICATION_IDENTITY_ENGINE.md](APPLICATION_IDENTITY_ENGINE.md), and [HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)  
 > **Staged Execution & Qualification Record (`v0.7.1.2` ➔ `v0.7.2` ➔ `v0.7.3`):**
 > - **Prior Baseline `v0.7.1.2` (Public Beta 2 Hotfix — Concluded 2026-11-14, `100.0%` FAT Qualified `375/375`):** Core window identity resolved and locked once per window lifecycle inside `ApplicationIdentity` (including event-driven `com.canonical.dbusmenu` submenu `id=61` + `Local State` Chrome multi-profile isolation).
@@ -48,6 +48,7 @@
 | **`2.0`** | `2026-11-14` | Sergio Melas | **`MOC-0.7.2-HAL-001`:** Added formal **Wire-to-Domain Payload Translation Matrix (`§2.1`)**; purged Freedesktop naming bias (`IPortalThemeBus` $\rightarrow$ **`IDesktopThemeBus`**, `PortalDbusService` $\rightarrow$ `DesktopThemeDbusService`, `UnityClient` $\rightarrow$ `ILauncherBadgeClient` with `LauncherBadgeState` replacing raw `Variant` `'(sa{sv})'`); detailed full `ITrashProvider` (`trash:///` & `file.trash()` replacement), `IEjectorProvider` (`VolumeMonitor` & `/media` replacement), and `IPlatformRuntime` (`DesktopUtilityKind`, `parse_command_argv`, Unix `<unistd.h>`/`<sys/prctl.h>` removal from `vapi/core/`). |
 | **`2.1`** | `2026-11-19` | Sergio Melas | **`v0.7.3` Public Beta 4 Closure:** Completed and live-qualified `hal/Windows/{Bus,Telemetry}/` (`Win32BusBroker`, `Win32AppMenuBus`, CoreAudio, `DXVA2`, Recycle Bin, Ejector, `WinHTTP`, `AppsUseLightTheme`, `BitBlt` Screenshot, `PowrProf`) against frozen `v0.7.2` translators (`525/525` qualified). |
 | **`2.2`** | `2026-11-22` | Sergio Melas | **`v0.7.3.2` Public Beta 4 Hotfix Closure (`529/529` `100.0%` Qualified):** Added native WinRT `GSMTC` + CoreAudio/HWND Media Player bridge (`hal/Windows/Bus/win32-media-bridge.{c,h}`), WMI `ROOT\WMI` laptop backlight + async `hw-caps-cache.ini` brightness probe, USB Ejector empty-slot guard & 3 s polling, balanced per-thread `CoInitializeEx`/`RoInitialize` teardown, and bounded session caches across `AppMenuDbusService` and Win32 providers. |
+| **`2.4`** | `2026-11-25` | Sergio Melas | **`v0.7.4` Final Public Beta 5 Closure (`942/942` `100.0%` 7-Platform Qualified):** Unified `FreedesktopSessionPower.vala` (`systemd-logind` + `ConsoleKit2`/`acpiconf`/`shutdown`), plugged native FreeBSD `hal/BSD/` kernel telemetry (`libprocstat`, OpenZFS ARC, `libdevstat`, ACPI, OSS `/dev/mixer*`, `<sys/backlight.h>`, `getifaddrs`/`PF_ROUTE`), added multi-OS priority Network + live 1s RX/TX (`LinuxNetworkTelemetry.vala`, `NetworkManagerDbusService.vala`, `bsd-kernel-bridge.c`, `Win32Telemetry.vala`), and hardened Windows 4-tier brightness (`WMI Active==TRUE` ➔ `\\.\LCD` IOCTL ➔ `DXVA2` High-Level ➔ `VCP 0x10`, `G_LOCK`, async coalesced scroll writer, `ProbeVersion=2` — Issue `#38`). |
 
 > [!IMPORTANT]
 > **THE SYSTEM BUS & AGNOSTIC TRANSLATOR PRIME DIRECTIVE:**  
@@ -78,8 +79,8 @@ flowchart TD
 
     subgraph ZONE3_KERN ["🐧 / 😈 ZONE 3B & 3C: Unix Kernel Telemetry Plugins"]
         direction TB
-        LIN_KERN["🐧 hal/Linux/ (v0.7.2): /proc & /sys • DDC/CI • systemd-logind • PipeWire/ALSA"];
-        BSD_KERN["😈 hal/BSD/ (v0.7.4 Planned): sysctl • hw.acpi • sndio • seatd"];
+        LIN_KERN["🐧 hal/Linux/ (Live): /proc & /sys • LinuxNetworkTelemetry • DDC/CI • PipeWire/ALSA"];
+        BSD_KERN["😈 hal/BSD/ (v0.7.4 Live): libprocstat • OpenZFS ARC • libdevstat • hw.acpi • OSS /dev/mixer* • sys/backlight.h • getifaddrs/PF_ROUTE"];
     end
 
     subgraph ZONE3_WIN ["🪟 ZONE 3D: Native Windows Bus & Telemetry Drivers (hal/Windows/ — v0.7.3+)"]
@@ -319,8 +320,8 @@ flowchart TD
     end
 
     subgraph ZONE3_KERN_D ["🐧 / 😈 ZONE 3B & 3C: Kernel Telemetry Plugins (hal/Linux/ vs hal/BSD/)"]
-        LIN_TEL["🐧 hal/Linux/: Linux{SessionPower,AudioTelemetry,PlatformRuntime} • LinuxCpuMemDiskTelemetry • LinuxBatteryProvider"];
-        BSD_TEL["😈 hal/BSD/ (v0.7.4 Planned): sysctl CPU/RAM/Battery • sndio • seatd"];
+        LIN_TEL["🐧 hal/Linux/: Linux{AudioTelemetry,PlatformRuntime} • LinuxCpuMemDiskTelemetry • LinuxBatteryProvider • LinuxNetworkTelemetry"];
+        BSD_TEL["😈 hal/BSD/ (v0.7.4 Live): libprocstat • OpenZFS ARC • libdevstat • hw.acpi • OSS /dev/mixer* • sys/backlight.h • getifaddrs/PF_ROUTE"];
     end
 
     IDENTITY <==>|"Pure Domain Signals"| TRANS;
@@ -329,7 +330,7 @@ flowchart TD
     TRANS <==>|"Linux / BSD D-Bus"| DBUS_SVC;
     TRANS <==>|"Linux / BSD XDG"| XDG_SVC;
     TRANS <==>|"Linux Kernel"| LIN_TEL;
-    TRANS <-.->|"BSD Kernel (v0.7.4)"| BSD_TEL;
+    TRANS <==>|"FreeBSD Kernel (v0.7.4)"| BSD_TEL;
 ```
 
 ### 4.1 Shared Connection Pool & `NameOwnerChanged` / PID Cache (`DbusBroker`)
@@ -397,18 +398,21 @@ flowchart TD
 | **`DockController` & `ApplicationDockItemProvider`** | `ILauncherBadgeBus` (`LauncherBadgeState`) | `com.canonical.Unity.LauncherEntry` (`'(sa{sv})'` unpacked in `LauncherEntryDbusService`) | `ITaskbarList3::SetOverlayIcon` / `SetProgressValue` + UWP Badge notifications |
 | **`TrashDockItem` (`docklet://trash`)** | **`ITrashProvider`** (`TrashItemInfo`) | GVFS `trash:///`, `~/.local/share/Trash/{files,info}`, `file.trash()`, `KWinTrashBridge` | `SHQueryRecycleBinW`, `SHEmptyRecycleBinW`, `SHFileOperationW(FO_DELETE \| FOF_ALLOWUNDO)` |
 | **`EjectorDockItem` (`docklet://ejector`)** | **`IEjectorProvider`** (`RemovableDriveInfo`) | GIO `VolumeMonitor` + `/media` / `/run/media` / `/mnt` filter | `GetLogicalDrives` (`DRIVE_REMOVABLE`) + `CM_Request_Device_EjectW` + `WM_DEVICECHANGE` |
-| **`Session`, `Battery`, `Volume`, `Brightness`, `Network`, `Cpu`, `Screenshot` Docklets** | `ISystemTelemetry` + `DesktopUtilityKind` | `LinuxSessionPower`, `LinuxBatteryProvider`, `LinuxAudioTelemetry`, `BrightnessControl`, `NetworkManagerDbusService`, `LinuxCpuMemDiskTelemetry`, `FreedesktopScreenshotProvider`, `LinuxPlatformRuntime` | `ExitWindowsEx`/`PowrProf`, `GetSystemPowerStatus`, CoreAudio, `dxva2.dll`, `iphlpapi`, `GetSystemTimes`, `BitBlt`, `ms-settings:*` |
-| **`Weather*` & `ThemeManager`** | `IPlatformRuntime` (`http_get_sync`, `open_uri`, `extract_archive`) | `curl` / `Gtk.show_uri_on_window` / `unzip` & `tar` (`LinuxPlatformRuntime`) | Stock `WinHTTP.dll` / `ShellExecuteW` / native static `libz` ZIP & TAR |
+| **`Session`, `Battery`, `Volume`, `Brightness`, `Network`, `Cpu`, `Screenshot` Docklets** | `ISystemTelemetry` + `DesktopUtilityKind` | `FreedesktopSessionPower`, `LinuxBatteryProvider`/`BsdBatteryProvider`, `LinuxAudioTelemetry`/`BsdAudioTelemetry`, `BrightnessControl`, `NetworkManagerDbusService`, `LinuxCpuMemDiskTelemetry`/`BsdCpuMemDiskTelemetry`, `FreedesktopScreenshotProvider`, `LinuxPlatformRuntime`/`BsdPlatformRuntime` | `ExitWindowsEx`/`PowrProf`, `GetSystemPowerStatus`, CoreAudio, `dxva2.dll`, `iphlpapi`, `GetSystemTimes`, `BitBlt`, `ms-settings:*` |
+| **`Weather*` & `ThemeManager`** | `IPlatformRuntime` (`http_get_sync`, `open_uri`, `extract_archive`) | `curl` / `/usr/bin/fetch` / `Gtk.show_uri_on_window` / `unzip` & `tar` | Stock `WinHTTP.dll` / `ShellExecuteW` / native static `libz` ZIP & TAR |
 
 ---
 
-## 7. Two-Phase Bus Consolidation Roadmap (`v0.7.2` Translator Freeze ➔ `v0.7.3` Windows Bus Plug-In)
+## 7. Multi-OS Bus Consolidation Roadmap (`v0.7.2` ➔ `v0.7.3` ➔ `v0.7.4` — Complete)
 
 ### Phase 1 — `v0.7.2` (Public Beta 3): Agnostic Bus/Telemetry Translators & Linux Freeze (`MOC-0.7.2-HAL-001`)
-1. **[x] Step B1 (`hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala` — Move 3, *Implemented, Remediated & Live Smoke-Checked, `backup/0.7.2-move-3b`*):** Freeze all pure Vala bus, telemetry, and runtime translator contracts (`IDockIpcServer`, `IAppMenuBus`, `IMediaController`, `INotificationBus`, `IDesktopThemeBus`, `ILauncherBadgeBus`, `ITrashProvider`, `IEjectorProvider`, 7 hardware providers, and `DesktopUtilityKind`).
-2. **[x] Step B2 (`hal/Freedesktop/Dbus/DbusBroker.vala` & Bus/Telemetry Drivers — Move 3, *Implemented, Remediated across Sub-Gates A/B/C & Live Smoke-Checked, `backup/0.7.2-move-3b`*):** Implement `DbusBroker`, `DockIpc{Server,Client}`, `MprisDbusService`, `NotificationDbusService`, `DesktopThemeDbusService`, `LauncherEntryDbusService`, `NetworkManagerDbusService`, `Freedesktop{Trash,Ejector,Screenshot}Provider`, `Linux{SessionPower,AudioTelemetry,PlatformRuntime}`, `LinuxProcessInspector`, `LinuxCpuMemDiskTelemetry`, and `LinuxBatteryProvider` *(formal ISA-88 `FAT 0.7.2` qualification pending in Step B4)*.
-3. **[x] Step B3 (`hal/Freedesktop/Dbus/AppMenuDbusService.vala` & `ApplicationIdentity.vala` — Move 4 Sub-Gates M4-A/B/C, *Implemented & Verified at `backup/0.7.2-move-4`*):** Extract `com.canonical.AppMenu.Registrar` and `/com/canonical/menu/<HEX>` (`id=61`) Chrome multi-profile introspection behind `IAppMenuBus` alongside zero-timer `IAppSystem.set_browser_session_watch` / `browser_sessions_changed` (`inotify` `GFileMonitor`).
-4. **[ ] Step B4 (Dual-Zone Firewall Active & Formal `FAT 0.7.2` Qualification Pending):** `BuildBin.sh` Dual-Zone HAL Purity Firewall is **active and `GREEN` (`0` leaks across `src/`, `lib/`, `hal/Interfaces/`, and `vapi/core/`)**; pending formal human `FAT 0.7.2` qualification (`399` tests defined) at `100.0%` across KWin, Mutter, and Labwc.
+1. **[x] Step B1 (`hal/Interfaces/{IBusBackend,ISystemTelemetry,IPlatformRuntime}.vala` — Move 3):** Froze all pure Vala bus, telemetry, and runtime translator contracts.
+2. **[x] Step B2 (`hal/Freedesktop/Dbus/DbusBroker.vala` & Bus/Telemetry Drivers — Move 3):** Implemented `DbusBroker`, all Freedesktop D-Bus/XDG services, and Linux kernel telemetry drivers.
+3. **[x] Step B3 (`hal/Freedesktop/Dbus/AppMenuDbusService.vala` & `ApplicationIdentity.vala` — Move 4):** Extracted `com.canonical.AppMenu.Registrar` / `dbusmenu` (`id=61`) and zero-timer `inotify` `browser_sessions_changed`.
+4. **[x] Step B4 (Dual-Zone Firewall Active & `FAT 0.7.2` Qualified `397/397`):** `builders/linux/BuildBin.sh` 8-Gate HAL Purity Firewall `GREEN` (`0` leaks) and `100.0%` qualified across KWin, Mutter, and Labwc.
 
-### Phase 2 — `v0.7.3` (Public Beta 4): Native `Windows Bus` Plug-In (`hal/Windows/{Bus,Telemetry}/`)
-5. **[x] Step B5 (`Win32BusBroker.vala`, `win32-media-bridge.{c,h}` & `Win32Telemetry.vala` — Complete in `v0.7.3` / Hardened in `v0.7.3.2`):** Plugged Named Pipe RPC, `AUMID`/`Local State` Chrome profile inspection, `VK_MEDIA_*` + WinRT `GSMTC`, Focus Assist, `AppsUseLightTheme`, `ITaskbarList3`, CoreAudio, WMI+`DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `DeviceIoControl` Ejector, and `WinHTTP` directly into the frozen `v0.7.2` translators ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)).
+### Phase 2 — `v0.7.3` / `v0.7.3.2` (Public Beta 4): Native `Windows Bus` Plug-In (`hal/Windows/{Bus,Telemetry}/`)
+5. **[x] Step B5 (`Win32BusBroker.vala`, `win32-media-bridge.{c,h}` & `Win32Telemetry.vala` — Complete & Qualified `529/529`):** Plugged Named Pipe RPC, `AUMID`/`Local State`, `VK_MEDIA_*` + WinRT `GSMTC`, Focus Assist, `AppsUseLightTheme`, `ITaskbarList3`, CoreAudio, WMI+`DXVA2`, `PowrProf`, `SHQueryRecycleBinW`, `DeviceIoControl` Ejector, and `WinHTTP` ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)).
+
+### Phase 3 — `v0.7.4` (Final Public Beta 5): Native FreeBSD Kernel Telemetry & Priority Network (`hal/BSD/`)
+6. **[x] Step B6 (`BsdKernelBootstrap.vala`, `bsd-kernel-bridge.{c,h}`, `FreedesktopSessionPower.vala`, Priority Network & Windows 4-Tier Brightness `#38` — Qualified `942/942` across 7 Platforms):** Plugged native FreeBSD `libprocstat`/OpenZFS ARC/`libdevstat`/ACPI/OSS/`<sys/backlight.h>`/`getifaddrs`+`PF_ROUTE`/`ConsoleKit2` drivers with zero `/proc` and zero `/sys` ([HAL_BSD_BACKEND.md](HAL_BSD_BACKEND.md)) and hardened Windows 4-tier brightness ([HAL_WINDOWS_BACKEND.md](HAL_WINDOWS_BACKEND.md)).
